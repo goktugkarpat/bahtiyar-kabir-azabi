@@ -1,0 +1,659 @@
+/* KARA GEÇİT — "Kor ve Kül" (ember and ash): diegetic attack tells.
+   The attacker tells first (an ember rim building on its body, the weapon heating like forge iron, a glint at the tip),
+   then the floor: soft light pooling where the blow will land, singed ash-broken edges, rune glyphs that ignite one
+   by one, cracks that glow, a faint blade-arc ribbon, and a short flare .18 s before contact.
+   Reading rules (the hero has no block, every blow is avoided by rolling): one soft gold edge + embers drifting out = an ordinary blow, avoid it
+   if you can; crimson edge + a pale inner hairline + ash drawn inward (+ a bell) = a severe blow, dodge it. The fill moves the way the blow travels and carries the timing.
+   Renderer only: reads game.hazards / enemies / player. All timing comes from the combat clocks (h.age, h.warn),
+   never from render time or the preset, so hit-stop and slow motion freeze/slow the tells with the fight.
+   Also draws the hero's war cry (shockwave, aura, eyes) and soft floor light bursts for effects.js. */
+(() => {
+  'use strict';
+  const B = window.BABA = window.BABA || {}, T = window.THREE;
+  const TAU = Math.PI * 2, clamp = (v, a, b) => Math.max(a, Math.min(b, v)), smooth = x => { x = clamp(x, 0, 1); return x * x * (3 - 2 * x); };
+  const LEAD = .18;
+  const NOISE = `float hash(vec2 p){ p = fract(p*vec2(123.34,456.21)); p += dot(p, p+45.32); return fract(p.x*p.y); }
+float vnoise(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.-2.*f);
+  return mix(mix(hash(i),hash(i+vec2(1,0)),f.x), mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),f.x), f.y); }`;
+  // Pool: the shader works in world XZ; the quad only has to cover the shape. Output is linear HDR (the app tone-maps later).
+  const POOL_VS = 'varying vec2 vW; void main(){ vec4 w = modelMatrix*vec4(position,1.); vW = w.xz; gl_Position = projectionMatrix*viewMatrix*w; }';
+  const POOL_FS = `uniform vec2 uOrigin; uniform float uFace; uniform int uShape; uniform vec4 uDim;
+uniform float uU,uFlare,uHit,uFade,uGain,uSweepDir,uUnblock,uDetail,uTime,uSeed,uCalm; uniform int uFill,uStyle;
+uniform vec3 uEdge,uFillCol,uFront; uniform vec4 uK,uE; uniform float uBreak,uF,uCk; uniform vec3 uHl; uniform sampler2D uRune,uCrack; varying vec2 vW;
+${NOISE}
+float rmax(float a, float b, float k){ return length(max(vec2(a+k, b+k), 0.)) + min(max(a, b)+k, 0.) - k; }
+float fbm(vec2 p){ float s=0.,a=.5,n=0.; for(int i=0;i<3;i++){ if(float(i)>=uDetail) break; s+=a*vnoise(p); n+=a; p=p*2.03+7.1; a*=.5; } return s/n; }
+void main(){
+  vec2 d = vW - uOrigin; float cs = cos(uFace), sn = sin(uFace);
+  float side = cs*d.x - sn*d.y, fwd = sn*d.x + cs*d.y;
+  float r = length(d), ang = r > 1e-6 ? atan(side, fwd) : 0., R = uDim.x, span = 6.2832, sd, t;
+  if (uShape == 0) { sd = r - R; t = r/R; }
+  // Rounded corners everywhere (no sharp box corners): cones get a rounded outer arc and a blunt tip, lines a capsule-like body with a slightly tapering far end.
+  else if (uShape == 1) { span = uDim.y; float a = abs(ang)-span*.5, sdS = a > 0. ? r*sin(min(a,1.5708)) : a*r, rc = min(.45, R*.18);
+         sd = rmax(r-R, sdS, rc); sd = max(sd, .28-r); t = r/R; }
+  else if (uShape == 2) { float hw = uDim.x*.5*(1.-.2*smoothstep(.5, 1., clamp(fwd/uDim.y, 0., 1.))), rc2 = min(hw*.9, uDim.y*.45);
+         vec2 q = vec2(abs(side), abs(fwd-uDim.y*.5)) - vec2(hw, uDim.y*.5) + rc2; sd = length(max(q, 0.)) + min(max(q.x, q.y), 0.) - rc2; t = fwd/uDim.y; R = uDim.y; }
+  else { span = uDim.z; float a = abs(ang)-span*.5, ring = max(uDim.x-r, r-uDim.y), rc = min(.4, (uDim.y-uDim.x)*.4);
+         sd = span < 6.28 ? rmax(ring, a > 0. ? r*sin(min(a,1.5708)) : a*r, rc) : ring;
+         t = (r-uDim.x)/max(.01, uDim.y-uDim.x); R = uDim.y; }
+  if (sd > .7) discard;
+  float n = fbm(vW*2.4 + uSeed), aa = fwidth(sd)+.004, inside = 1.-smoothstep(-aa, aa, sd);
+  if (uStyle == 12) {   // settled bile: murky liquid with a wet meniscus (normal blending)
+    float wob = fbm(vW*1.1 + vec2(uTime*.07, -uTime*.05) + uSeed);
+    float men = exp(-abs(sd+.06)/(.05+.03*n)) * (.35+.65*smoothstep(.3,.7,vnoise(vW*5.1+uTime*.2)));
+    vec3 c = mix(vec3(.006,.011,.003), vec3(.028,.05,.009), wob) + uEdge*men*.6;
+    float al = clamp(inside*(.62+.22*wob) + men*.35, 0., .9);
+    gl_FragColor = vec4(c, al*uFade*uGain); return; }
+  float sw = clamp((ang*uSweepDir + span*.5)/span, 0., 1.), tc = clamp(t, 0., 1.);
+  float ft = uFill == 2 ? sw : uFill == 3 ? 1.-tc : uFill == 4 ? 1.-abs(2.*tc-1.) : tc;
+  float e = 1.-(1.-uU)*(1.-uU), front = mix(.10, 1.06, e);
+  float lit = 1.-smoothstep(front-.10, front, ft), band = smoothstep(front-.18, front-.03, ft)*lit;
+  // A full-circle sweep starts and ends on the same radius: feather the start so the wrap never reads as a straight seam.
+  // The bright front band also fades out over the last few degrees, where it would meet the start line.
+  if (uFill == 2 && span > 6.2) { float fe = mix(smoothstep(0., .09, ft), 1., e*e); lit *= fe; band *= fe * smoothstep(1., .9, ft); }
+  float edge = exp(-abs(sd)/(uE.w+.03*n)) * (.5+.5*smoothstep(.3,.7,n)); float n2 = vnoise(vW*7.3 + uSeed*3.);
+  edge *= mix(1., .15 + .85*smoothstep(.35,.75,n2), uBreak);
+  float edgeK = uE.x + uE.y*uU*uU + uE.z*uFlare;
+  if (uStyle == 5) {    // stalker landing shadow (normal blending): the floor darkens where it will land
+    // A dark disc gathers where it will land, a ring of gold light closes in on the centre as it drops.
+    float core = 1.-smoothstep(0., 1., r/max(.01,R)), rr = 1.-e*.85, ringD = (t-rr)/.07, ringIn = exp(-(ringD*ringD))*inside;
+    float al = clamp(inside*(.26+.5*uU*uU)*(.65+.35*n)*(.55+.45*core) + edge*(.55+.4*uFlare) + ringIn*.5, 0., .9);
+    vec3 c = uEdge*(edge*(.12 + edgeK*3.) + ringIn*(.05+.25*uU*uU+.6*uFlare)*(.6+.4*n) + edge*uHit*.8);
+    gl_FragColor = vec4(c, al*uFade); return; }
+  // Burning-ground look: no hard outline or box border. The rim is an irregular, feathered ember glow that hugs the inside of
+  // the true edge (jittered by noise), a short soft glow spills outside, cracks of energy run through the lit part and a soft
+  // dark halo keeps it readable on bright stone. Edges stay anti-aliased (fwidth); gold / crimson only differ by colour and glow.
+  float px = max(fwidth(sd), 1e-4), n3 = vnoise(vW*5.3 + uSeed*3.);
+  float sdj = sd + (n-.5)*.17 + (n3-.5)*.06, inJ = 1.-smoothstep(-px, px, sdj), depth = max(-sdj, 0.);
+  float perim = uShape==2 ? fwd : ang*R;
+  float dash = uUnblock > .5 ? (uCalm > .5 ? 1. : .7+.3*sin(perim*2.4 - uTime*2.2 + n*6.)) : 1.;
+  float flick = uCalm > .5 ? 1. : .86+.14*sin(uTime*6.3 + n*17.);
+  float ember = mix(.5, 1., smoothstep(.2, .8, n3))*flick;
+  float inner = exp(-depth/(.17+.1*n))*inJ, outer = exp(-max(sdj, 0.)/.1)*(1.-inJ);
+  float coordT = (uShape==0||uShape==3) ? (uFill==3 ? -r : r) : (uShape==2 ? fwd : r);
+  float chev = (uShape==1||uShape==2) ? abs(side)*.55 : 0.;
+  float mv = uCalm > .5 ? 0. : uTime*.5*(uFill==3 ? -1. : 1.);
+  float g = fract(coordT*.8 - chev - mv), stripe = smoothstep(0., .08, g)*(1.-smoothstep(.12, .3, g));
+  float vein = 1.-smoothstep(0., .05, abs(vnoise(vW*2.4 + uSeed*2.)-.5)*2.);
+  float lamp = uU*uU*(3.-2.*uU), core = .45+.55*exp(-depth/.9);
+  vec3 col = vec3(0.); float dark = 0.;
+  dark += inJ*(uK.x + uK.y*uU)*.8 + exp(-max(sdj, 0.)/.4)*(1.-inJ)*.2*(1.-smoothstep(.25, .68, sd));
+  col += uFillCol*inJ*(uK.x*.3 + uK.z*lit*(.5+.5*n)*core + uK.z*.35*lit*stripe*(.4+.6*lamp));
+  col += uFillCol*inJ*uK.z*.5*lit*vein*(.35+.65*lamp);
+  col += uFront*band*inJ*uK.w*(.6+.4*n)*(.75+.25*flick);
+  col += uFront*inJ*uFlare*uF*(.5+.5*n);
+  float rimK = edgeK*flick;
+  col += uEdge*inner*rimK*ember*dash*.95 + uEdge*outer*rimK*ember*.5;
+  col += uEdge*exp(-max(sdj, 0.)/.5)*(1.-inJ)*(uUnblock > .5 ? .13 : .06)*(.4+.6*lamp+uFlare)*(1.-smoothstep(.3, .69, sd));
+  if (uUnblock > .5) { float crawl = uCalm > .5 ? 1. : .6+.4*sin(perim*3.2 - uTime*3.);
+    col += vec3(1.25,1.05,.9)*exp(-abs(sd+.19)/.045)*crawl*(uHl.x+uHl.y*uU*uU+uHl.z*uFlare)*inJ*.8; }
+  if (uStyle == 4) { vec2 cuv = uShape==2 ? vec2(side/uDim.x*.25+.5, fwd/uDim.y) : vec2(side,fwd)/(2.*R)+.5;
+    float crack = uShape==2 ? texture2D(uCrack,cuv).g : texture2D(uCrack,cuv).r;
+    col += uEdge*crack*inside*(.1 + uCk*lit*uU + 2.*uHit); }
+  if (uStyle == 2 && uShape == 0) { float glyph = texture2D(uRune, vec2(side,fwd)/(2.*R)+.5).r;
+    float slot = (floor(fract(ang/6.2832+.5)*16.)+.5)/16.;
+    col += uEdge*glyph*(.18 + 1.1*step(slot, uU*1.02) + uFlare); }
+  // Contact: the whole area snaps white-hot for an instant, the rim flares.
+  col += uFront*inJ*uHit*(.9+.4*n) + uEdge*inner*uHit*1.6;
+  dark *= 1.-uHit;
+  col *= uFade*uGain; dark *= uFade;
+  if (max(col.r,max(col.g,col.b)) < .002 && dark < .004) discard;
+  gl_FragColor = vec4(col, clamp(dark, 0., .85));
+}`;
+  // Ghost arc: a faint light ribbon at weapon height along the real blade path; its head arrives at contact time.
+  // MSAA can shade edge pixels at a centre just outside the triangle. Clamp fractional-power bases so
+  // extrapolated UVs and rounded normals cannot generate NaNs that then spread through the HDR bloom chain.
+  const RIB_VS = `uniform float uMode,uArc,uRad,uWidth,uLen,uDir; varying vec2 vUv; void main(){ vUv=uv; float t=uv.x, v=uv.y-.5; vec3 p;
+ if (uMode < .5) { float a = (-uArc*.5 + uArc*t)*uDir; float rr = uRad + v*uWidth; p = vec3(sin(a)*rr, 0., cos(a)*rr); } else p = vec3(v*uWidth, 0., t*uLen);
+ gl_Position = projectionMatrix*modelViewMatrix*vec4(p,1.); }`;
+  const RIB_FS = `uniform float uHead,uFlare,uFade,uCalm; uniform vec3 uColor; varying vec2 vUv; void main(){ float t=vUv.x;
+ float headD = (t-uHead)*7.; float head = uCalm > .5 ? 0. : exp(-(headD*headD)); float tail = smoothstep(uHead-.4, uHead, t)*step(t, uHead+.02);
+ float a = (.25*tail + .8*head)*smoothstep(.35,.85,uHead)*pow(clamp(1.-abs(vUv.y-.5)*2., 0., 1.), 1.5)*(1.+1.5*uFlare)*uFade; if (a < .003) discard; gl_FragColor = vec4(uColor*a, 1.); }`;
+  // Rim shells: an inflated fresnel copy of the body (skinned) or of each weapon part (static). Additive.
+  const RIM_VS = `#include <common>
+#include <skinning_pars_vertex>
+uniform float uInflate; varying vec3 vN; varying vec3 vV; varying vec3 vP;
+vec3 tellUnit(vec3 v){ return v*inversesqrt(max(dot(v,v),1e-12)); }
+void main(){
+#include <skinbase_vertex>
+#include <beginnormal_vertex>
+#include <skinnormal_vertex>
+#include <begin_vertex>
+#include <skinning_vertex>
+ vP = position; transformed += tellUnit(objectNormal) * uInflate;
+ vec4 mv = modelViewMatrix * vec4(transformed, 1.);
+ vN = tellUnit(normalMatrix * objectNormal); vV = tellUnit(-mv.xyz); gl_Position = projectionMatrix * mv; }`;
+  // uVein > 0 (the raging hero only): ember veins flow up the whole body and blade, not just along the rim.
+  const RIM_FS = `uniform vec3 uColor; uniform float uGlow, uVein, uVTime; uniform vec2 uP; varying vec3 vN; varying vec3 vV; varying vec3 vP;
+vec3 tellUnit(vec3 v){ return v*inversesqrt(max(dot(v,v),1e-12)); }
+float vh(vec3 p){ return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453); }
+float vn3(vec3 p){ vec3 i = floor(p), f = fract(p); f = f*f*(3.-2.*f);
+ return mix(mix(mix(vh(i), vh(i+vec3(1,0,0)), f.x), mix(vh(i+vec3(0,1,0)), vh(i+vec3(1,1,0)), f.x), f.y),
+            mix(mix(vh(i+vec3(0,0,1)), vh(i+vec3(1,0,1)), f.x), mix(vh(i+vec3(0,1,1)), vh(i+vec3(1,1,1)), f.x), f.y), f.z); }
+void main(){ float f = clamp(1. - abs(dot(tellUnit(vN), tellUnit(vV))), 0., 1.); float a = pow(f, uP.x) + uP.y;
+ if (uVein > 0.) { float w = vn3(vP * 9. + vec3(0., -uVTime * 1.6, 0.)); float veins = pow(1. - abs(w * 2. - 1.), 9.);
+  float w2 = vn3(vP * 21. + vec3(uVTime * .7, -uVTime * 2.4, 0.)); a += uVein * (veins * 2.6 + .5 * pow(1. - abs(w2 * 2. - 1.), 7.) + .1); }
+ a *= uGlow;
+ if (a < .003) discard; gl_FragColor = vec4(uColor * a, 1.); }`;
+  // Shockwave through the floor (war cry, roars): an ash-broken ring of heat running outward, glowing cracks at its heart.
+  const WAVE_VS = 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.); }';
+  const WAVE_FS = `uniform float uR,uW,uA,uSeed,uMax,uCrackA,uCrackR,uSoft; uniform vec3 uCol; uniform sampler2D uCrack; varying vec2 vUv;
+${NOISE}
+void main(){ vec2 p = (vUv-.5)*2.*uMax; float r = length(p), a = r > 1e-6 ? atan(p.x, p.y) : 0.;
+ float n = vnoise(vec2(a*5.+uSeed, r*1.3)), n2 = vnoise(vec2(a*13.+uSeed*2., r*3.1));
+ float ringD = (r-uR)/max(1e-5,uW*(.7+.6*n));
+ float ring = exp(-(ringD*ringD)) * (.3+.7*smoothstep(.3,.75,n2));
+ float heat = (1.-smoothstep(0., max(.01,uR), r)) * .18 * (.6+.4*n);
+ vec3 col = uCol*(ring + heat*uSoft)*uA;
+ vec2 cuv = p/(2.*uCrackR)+.5; float crack = (cuv.x > 0. && cuv.x < 1. && cuv.y > 0. && cuv.y < 1.) ? texture2D(uCrack, cuv).r : 0.;
+ col += uCol*crack*uCrackA;
+ if (max(col.r,max(col.g,col.b)) < .002) discard; gl_FragColor = vec4(col, 1.); }`;
+  // Soft pooled floor light (glowBurst) and aura sprites.
+  const GLOW_FS = `uniform vec3 uCol; uniform float uA; varying vec2 vUv; void main(){ float r = length(vUv-.5)*2.; float a = pow(max(0.,1.-r),2.2)*uA; if (a < .002) discard; gl_FragColor = vec4(uCol*a, 1.); }`;
+
+  function seeded(s) { return () => { s = (Math.imul(s, 1664525) + 1013904223) >>> 0; return s / 4294967296; }; }
+  // The draw functions work in a 512-unit (or `base`) square; the canvas is rendered at `size` (1024/2048 on high) with the context scaled,
+  // then mipmapped with anisotropic filtering, so the rune / crack detail stays sharp at any display resolution and MSAA level.
+  function canvasTex(size, draw, srgb, base) { const c = document.createElement('canvas'); c.width = c.height = size; const x = c.getContext('2d'), k = size / (base || 512); x.scale(k, k); draw(x, base || 512, k);
+    const t = new T.CanvasTexture(c); if (srgb) t.colorSpace = T.SRGBColorSpace; t.generateMipmaps = true; t.minFilter = T.LinearMipmapLinearFilter; t.magFilter = T.LinearFilter; t.anisotropy = 8; t.needsUpdate = true; return t; }
+  function runeTex(S) {
+    return canvasTex(S, (x, sz, k) => {
+      x.fillStyle = '#000'; x.fillRect(0, 0, 512, 512); x.strokeStyle = '#f00'; x.shadowColor = '#f00'; x.shadowBlur = 6 * k; x.lineCap = 'round';
+      x.lineWidth = 3; [.68, .93].forEach(k => { x.beginPath(); x.arc(256, 256, 256 * k, 0, TAU); x.stroke(); });
+      const rnd = seeded(77); x.lineWidth = 5;
+      for (let i = 0; i < 16; i++) {
+        // slot i covers ang in [i/16 - .5, (i+1)/16 - .5] * TAU; canvas (u=side, v=fwd): ang = atan(side, fwd)
+        const ang = ((i + .5) / 16 - .5) * TAU, cx = 256 + Math.sin(ang) * 205, cy = 256 - Math.cos(ang) * 205;
+        x.save(); x.translate(cx, cy); x.rotate(-ang); const k = 3 + Math.floor(rnd() * 3); x.beginPath();
+        for (let s = 0; s < k; s++) { const ax = (rnd() - .5) * 26, ay = (rnd() - .5) * 30; x.moveTo(ax, ay); x.lineTo(ax + (rnd() - .5) * 24, ay + (rnd() - .5) * 26); }
+        x.stroke(); x.restore();
+      }
+    }, false, 512);
+  }
+  // R: nine random-walk cracks from the centre (circles). G: one jagged crack bottom->top with branches (lines).
+  function crackWalks(x, color, radial, line) {
+    let rnd = seeded(9);
+    function walk(px, py, a, w, steps) {
+      for (let s = 0; s < steps; s++) {
+        const l = 10 + rnd() * 6, nx = px + Math.cos(a) * l, ny = py + Math.sin(a) * l; x.strokeStyle = color; x.lineWidth = Math.max(1, w * (1 - s / steps));
+        x.beginPath(); x.moveTo(px, py); x.lineTo(nx, ny); x.stroke(); px = nx; py = ny; a += (rnd() - .5);
+        if (rnd() < .06) walk(px, py, a + (rnd() < .5 ? .7 : -.7), w * .6, (steps - s) * .6 | 0);
+      }
+    }
+    if (radial) { rnd = seeded(9); for (let i = 0; i < 9; i++) walk(256, 256, i / 9 * TAU + rnd() * .5, 5, 20); }
+    if (line) { rnd = seeded(21); walk(256, 510, -Math.PI / 2, 5, 34); }
+  }
+  function crackTex(S) {
+    return canvasTex(S, (x, sz, k) => {
+      x.fillStyle = '#000'; x.fillRect(0, 0, 512, 512); x.lineCap = 'round'; x.globalCompositeOperation = 'lighter';
+      [['blur(' + 1.5 * k + 'px)'], ['none']].forEach(pass => { x.filter = pass[0]; crackWalks(x, '#f00', true, false); crackWalks(x, '#0f0', false, true); });
+      x.filter = 'none';
+    }, false, 512);
+  }
+  // Dark scars left in the floor by quakes and falling hooks (white on transparent; tinted by the material).
+  function scarTex(radial, S) {
+    return canvasTex(S, (x, sz, k) => {
+      x.clearRect(0, 0, 512, 512); x.lineCap = 'round';
+      [['blur(' + 2 * k + 'px)'], ['none']].forEach(pass => { x.filter = pass[0]; crackWalks(x, '#fff', radial, !radial); });
+      x.filter = 'none';
+      if (radial) { const g = x.createRadialGradient(256, 256, 0, 256, 256, 90); g.addColorStop(0, 'rgba(255,255,255,.55)'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(0, 0, 512, 512); }
+    }, false, 512);
+  }
+  function starTex() {
+    return canvasTex(256, x => {
+      const g = x.createRadialGradient(64, 64, 0, 64, 64, 64); g.addColorStop(0, '#fff'); g.addColorStop(.12, 'rgba(255,255,255,.55)'); g.addColorStop(.4, 'rgba(255,255,255,0)');
+      x.fillStyle = g; x.fillRect(0, 0, 128, 128); x.globalCompositeOperation = 'lighter';
+      [[128, 3], [3, 128]].forEach(s => { const gr = x.createRadialGradient(64, 64, 0, 64, 64, 64); gr.addColorStop(0, 'rgba(255,255,255,.9)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+        x.fillStyle = gr; x.fillRect(64 - s[0] / 2, 64 - s[1] / 2, s[0], s[1]); });
+    }, false, 128);
+  }
+  function dotTex() { return canvasTex(128, x => { const g = x.createRadialGradient(32, 32, 0, 32, 32, 32); g.addColorStop(0, '#fff'); g.addColorStop(.35, 'rgba(255,255,255,.5)'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(0, 0, 64, 64); }, false, 64); }
+
+  const SHAPE = { circle: 0, cone: 1, line: 2, ring: 3 };
+  const FILL = { radial: 0, forward: 1, sweep: 2, inward: 3, converge: 4 };
+  const STYLE = { blade: 0, blunt: 1, rune: 2, bile: 3, quake: 4, shadow: 5, chain: 6, ember: 7, fall: 8, thrust: 9, grab: 10, roar: 11 };
+  const DETAIL = { low: 1, medium: 3, high: 3 }, PFACTOR = { low: .3, medium: .675, high: .8 };
+  const GOLD = { edge: [1.6, 1.05, .5], fill: [.7, .28, .07], front: [1.5, .95, .5] }, CRIMSON = { edge: [1.9, .16, .1], fill: [.85, .05, .04], front: [1.5, .3, .2] };
+  const AMBER_RIM = [1.6, .7, .25], CRIMSON_RIM = [1.7, .12, .08], BILE_RIM = [1.2, .5, .12], RAGE_RIM = [1.9, .26, .07], COOL_RIM = [.9, .1, .04];
+
+  B.Telegraphs = { create(root, getGame, getSettings, out) {
+    // out: { emit(x,y,z,kind,color,vx,vy,vz,life,size), sound(name, opts) } from effects.js.
+    const group = new T.Group(); group.name = 'kor_ve_kul_tells'; root.add(group);
+    const hiTex = (((getSettings && getSettings()) || {}).quality || 'high') !== 'low', TS = hiTex ? 2048 : 1024;   // 2048 px = 21 MB with mips each for rune and crack
+    const textures = { rune: runeTex(TS), crack: crackTex(TS), star: starTex(), dot: dotTex(), scarRadial: scarTex(true, TS / 2), scarLine: scarTex(false, TS / 2) };
+    const plane = new T.PlaneGeometry(1, 1).rotateX(-Math.PI / 2), ribGeo = new T.PlaneGeometry(1, 1, 48, 1);
+    const reduced = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : { matches: false };
+    const poolBase = new T.ShaderMaterial({ vertexShader: POOL_VS, fragmentShader: POOL_FS, transparent: true, depthWrite: false, depthTest: true,
+      blending: T.CustomBlending, blendEquation: T.AddEquation, blendSrc: T.OneFactor, blendDst: T.OneMinusSrcAlphaFactor, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4, fog: false,
+      uniforms: { uOrigin: { value: new T.Vector2() }, uFace: { value: 0 }, uShape: { value: 0 }, uDim: { value: new T.Vector4() }, uU: { value: 0 }, uFlare: { value: 0 },
+        uHit: { value: 0 }, uFade: { value: 0 }, uGain: { value: 1 }, uFill: { value: 0 }, uSweepDir: { value: 1 }, uUnblock: { value: 0 }, uStyle: { value: 0 }, uDetail: { value: 3 },
+        uTime: { value: 0 }, uSeed: { value: 0 }, uCalm: { value: 0 }, uK: { value: new T.Vector4(.006, .012, .03, .10) }, uE: { value: new T.Vector4(.02, .14, .35, .07) },
+        uBreak: { value: .85 }, uF: { value: .12 }, uCk: { value: .8 }, uHl: { value: new T.Vector3(.08, .25, .5) },
+        uEdge: { value: new T.Vector3() }, uFillCol: { value: new T.Vector3() }, uFront: { value: new T.Vector3() }, uRune: { value: textures.rune }, uCrack: { value: textures.crack } } });
+    const ribBase = new T.ShaderMaterial({ vertexShader: RIB_VS, fragmentShader: RIB_FS, transparent: true, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide, fog: false,
+      uniforms: { uMode: { value: 0 }, uArc: { value: 1 }, uRad: { value: 1 }, uWidth: { value: .16 }, uLen: { value: 1 }, uDir: { value: 1 }, uHead: { value: 0 }, uFlare: { value: 0 }, uFade: { value: 0 }, uCalm: { value: 0 }, uColor: { value: new T.Vector3() } } });
+    const waveBase = new T.ShaderMaterial({ vertexShader: WAVE_VS, fragmentShader: WAVE_FS, transparent: true, depthWrite: false, blending: T.AdditiveBlending, fog: false,
+      polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4,
+      uniforms: { uR: { value: 0 }, uW: { value: .3 }, uA: { value: 0 }, uSeed: { value: 0 }, uMax: { value: 6 }, uCrackA: { value: 0 }, uCrackR: { value: 2 }, uSoft: { value: 1 }, uCol: { value: new T.Vector3() }, uCrack: { value: textures.crack } } });
+    const glowBase = new T.ShaderMaterial({ vertexShader: WAVE_VS, fragmentShader: GLOW_FS, transparent: true, depthWrite: false, blending: T.AdditiveBlending, fog: false,
+      polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3, uniforms: { uCol: { value: new T.Vector3() }, uA: { value: 0 } } });
+
+    // ------------------------------------------------------------------ pooled ground tells
+    const tells = [], live = new Map();
+    let clock = 0, lastReset = null, warmed = false, frameDt = 0;
+    function makeTell() {
+      const mat = poolBase.clone(); mat.uniforms.uRune.value = textures.rune; mat.uniforms.uCrack.value = textures.crack;
+      const mesh = new T.Mesh(plane, mat); mesh.renderOrder = 2; mesh.frustumCulled = false; mesh.visible = false; mesh.name = 'tell';
+      const ribMat = ribBase.clone(), rib = new T.Mesh(ribGeo, ribMat); rib.renderOrder = 3; rib.frustumCulled = false; rib.visible = false;
+      group.add(mesh, rib);
+      const t = { mesh, mat, rib, ribMat, h: null, busy: false, releasing: false, rel: 0, struck: false, acc: {}, flared: false, fade: 0, last: null };
+      tells.push(t); return t;
+    }
+    for (let i = 0; i < 24; i++) makeTell();
+    function acquire(h) {
+      const t = tells.find(o => !o.busy) || makeTell();
+      t.busy = true; t.releasing = false; t.rel = 0; t.h = h; t.struck = false; t.flared = false; t.acc = {}; t.fade = 0; t.snap = null;
+      live.set(h, t); return t;
+    }
+    function free(t) { t.busy = false; t.releasing = false; t.h = null; t.mesh.visible = false; t.rib.visible = false; }
+    function vec(v, a) { v.set(a[0], a[1], a[2]); }
+    const styleOf = h => h.poison && h.persistent && h.active ? 12 : STYLE[h.style] != null ? STYLE[h.style] : 0;
+    function place(t, h) {
+      const u = t.mat.uniforms, shape = SHAPE[h.shape] != null ? SHAPE[h.shape] : 0, style = styleOf(h);
+      const liquid = style === 12, unb = !!h.unblockable && !liquid, pal = unb ? CRIMSON : GOLD;
+      u.uOrigin.value.set(h.x, h.z); u.uFace.value = h.face || 0; u.uShape.value = shape; u.uStyle.value = style;
+      if (shape === 0) u.uDim.value.set(h.radius, 0, 0, 0); else if (shape === 1) u.uDim.value.set(h.radius, h.arc, 0, 0);
+      else if (shape === 2) u.uDim.value.set(h.width, h.length, 0, 0); else u.uDim.value.set(h.inner || 0, h.radius, h.arc || TAU, 0);
+      u.uFill.value = FILL[h.fill] != null ? FILL[h.fill] : 0; u.uSweepDir.value = h.sweepDir || 1; u.uUnblock.value = unb ? 1 : 0;
+      // Ordinary (gold) = one soft, ash-broken gold edge; severe / `unblockable` (crimson) = a steadier crimson edge with a pale inner hairline (reads without colour).
+      u.uBreak.value = unb ? .1 : .3; u.uHl.value.set(unb ? .4 : .08, .5, 1);
+      u.uSeed.value = ((h.x * 3.1 + h.z) % 7 + 7) % 7;
+      if (liquid) { vec(u.uEdge.value, [.35, .55, .12]); vec(u.uFront.value, [.12, .2, .04]); vec(u.uFillCol.value, [.1, .18, .03]); }
+      // A flying vial lands inside a gold (or crimson) ring like every other blow; only its olive fill hints at the bile.
+      else { vec(u.uEdge.value, pal.edge); vec(u.uFront.value, pal.front); vec(u.uFillCol.value, h.style === 'bile' ? [pal.fill[0] * .85, pal.fill[1] * .9 + .05, pal.fill[2]] : pal.fill); }
+      t.mat.blending = style === 5 || liquid ? T.NormalBlending : T.CustomBlending;
+      const m = t.mesh; m.rotation.set(0, 0, 0);
+      if (shape === 2) { m.scale.set(h.width + 1.4, 1, h.length + 1.4); m.rotation.y = h.face; m.position.set(h.x + Math.sin(h.face) * h.length / 2, .035, h.z + Math.cos(h.face) * h.length / 2); }
+      else { const R = h.radius; m.scale.set(2 * R + 1.4, 1, 2 * R + 1.4); m.position.set(h.x, .035, h.z); }
+      // Ribbon: slashes/whips/grabs along the blade arc, thrusts and chains along their line.
+      const ribbon = !h.persistent && ((shape === 1 || shape === 3) && /blade|chain|grab/.test(h.style) || shape === 2 && /thrust|chain/.test(h.style));
+      t.ribbon = ribbon;
+      if (ribbon) {
+        const r = t.ribMat.uniforms, boss = !!(h.owner && h.owner.boss);
+        r.uMode.value = shape === 2 ? 1 : 0; r.uArc.value = shape === 3 ? (h.arc || TAU) : h.arc || 1; r.uRad.value = shape === 3 ? ((h.inner || 0) + h.radius) / 2 : .78 * h.radius;
+        r.uWidth.value = boss ? .28 : .16; r.uLen.value = h.length || 1; r.uDir.value = h.sweepDir || 1;
+        r.uColor.value.set(pal.edge[0] * .3, pal.edge[1] * .3, pal.edge[2] * .3);
+        t.rib.position.set(h.x, boss ? 1.6 : h.owner && h.owner.type === 'prisoner' ? .8 : 1.0, h.z); t.rib.rotation.set(0, h.face || 0, 0);
+      }
+      t.placed = style;
+    }
+    function tellState(h) {
+      const u = clamp(h.age / h.warn, 0, 1), flare = h.active ? Math.max(0, 1 - (h.age - h.warn) / .12) : smooth((h.age - (h.warn - LEAD)) / LEAD);
+      const hit = h.active ? Math.max(0, 1 - (h.age - h.warn) / .25) : 0;
+      return { u, flare, hit };
+    }
+    function update(t, h, cfg, calm) {
+      if (t.placed !== styleOf(h)) place(t, h);
+      const u = t.mat.uniforms, s = tellState(h), liquid = u.uStyle.value === 12;
+      let fade = clamp(h.age / .08, 0, 1);
+      if (liquid) fade *= clamp((h.warn + h.duration - h.age) / .6, 0, 1);
+      u.uU.value = liquid ? 1 : s.u; u.uFlare.value = liquid ? 0 : s.flare; u.uHit.value = liquid ? 0 : s.hit; u.uFade.value = fade;
+      u.uGain.value = (liquid ? .55 : 1) * (cfg.tellGain || 1);
+      // Big areas (boss sweeps, rings) cover a lot of screen: their interior light is scaled down so it never reads as paint.
+      const R = h.shape === 'line' ? Math.max(h.width, h.length * .35) : h.radius, big = clamp(2.8 / Math.max(.5, R), .38, 1);
+      u.uK.value.set(.07 * big, .08 * big, .30 * big, .6 * (.5 + .5 * big)); u.uF.value = .35 * big;
+      // Gold edges read from the first moments of the warning; in the executioner's second phase (red court) the gold
+      // edge and the pale unblockable hairline are lifted further so "gold = ordinary, crimson = severe" still holds.
+      const unbT = u.uUnblock.value > .5, rs = h.owner && h.owner.boss && B.app && B.app.rig && B.app.rig.state, p2 = rs ? rs.phase2 || 0 : 0;
+      u.uE.value.set(unbT ? .85 : .8, (unbT ? .9 : .9) * (1 + (unbT ? .25 : .6) * p2), 1.6, .07);
+      u.uHl.value.set((unbT ? .4 : .08) * (1 + 1.6 * p2), .5 * (1 + p2), 1); u.uDetail.value = DETAIL[cfg.quality] || 3; u.uTime.value = clock; u.uCalm.value = calm ? 1 : 0;
+      t.mesh.visible = fade > .001; t.fade = fade; t.last = s;
+      if (h.active && !h.harmless) t.struck = true;
+      if (t.ribbon) {
+        const r = t.ribMat.uniforms; r.uHead.value = h.active ? 1 : 1 - (1 - s.u) * (1 - s.u); r.uFlare.value = s.flare;
+        r.uFade.value = fade * (h.active ? Math.max(0, 1 - (h.age - h.warn) / .2) : 1); r.uCalm.value = calm ? 1 : 0; t.rib.visible = r.uFade.value > .002;
+      }
+    }
+    function release(t, silent) {
+      live.delete(t.h);
+      if (silent) { free(t); return; }
+      t.releasing = true; t.rel = 0; t.startFade = t.fade;
+      // Cancelled before contact (parry, stagger, war cry, a broken rite): the tell crumbles into ash.
+      if (!t.struck && t.fade > .2 && t.h) { ashPuff(t.h); if (out.sound) out.sound('tellCancel', { x: t.h.x, z: t.h.z }); }
+    }
+    function releaseAll() { for (const t of tells) if (t.busy) { live.delete(t.h); free(t); } live.clear(); }
+
+    // ------------------------------------------------------------------ shape sampling (world XZ)
+    const P = { x: 0, z: 0 };
+    function local(h, side, fwd) { const c = Math.cos(h.face || 0), s = Math.sin(h.face || 0); P.x = h.x + c * side + s * fwd; P.z = h.z - s * side + c * fwd; return P; }
+    function polar(h, a, r) { P.x = h.x + Math.sin((h.face || 0) + a) * r; P.z = h.z + Math.cos((h.face || 0) + a) * r; return P; }
+    // mode: 'in' random inside, 'edge' on the outline, 'front' on the moving light front (k = front position 0..1)
+    function sample(h, mode, k) {
+      const R = h.radius || 1, rnd = Math.random();
+      if (h.shape === 'line') {
+        const W = h.width, L = h.length;
+        if (mode === 'edge') { const q = Math.random(); return q < .8 ? local(h, (Math.random() < .5 ? -.5 : .5) * W, Math.random() * L) : local(h, (Math.random() - .5) * W, L); }
+        if (mode === 'front') { const f = h.fill === 'converge' ? (Math.random() < .5 ? k / 2 : 1 - k / 2) : k; return local(h, (Math.random() - .5) * W, clamp(f, 0, 1) * L); }
+        return local(h, (Math.random() - .5) * W, Math.random() * L);
+      }
+      const span = h.shape === 'circle' ? TAU : h.shape === 'ring' ? (h.arc || TAU) : h.arc, inner = h.shape === 'ring' ? h.inner || 0 : 0;
+      if (mode === 'front') {
+        if (h.fill === 'sweep') return polar(h, (clamp(k, 0, 1) * span - span / 2) * (h.sweepDir || 1), inner + (R - inner) * Math.sqrt(Math.random()));
+        const rr = h.fill === 'inward' ? 1 - k : k; return polar(h, (rnd - .5) * span, inner + (R - inner) * clamp(rr, 0, 1));
+      }
+      if (mode === 'edge') { if (h.shape === 'cone' && Math.random() < .3) return polar(h, (Math.random() < .5 ? -.5 : .5) * span, R * Math.random()); return polar(h, (rnd - .5) * span, R); }
+      return polar(h, (rnd - .5) * span, inner + (R - inner) * Math.sqrt(Math.random()));
+    }
+    function ashPuff(h) {
+      const e = out.emit; if (!e) return;
+      for (let i = 0; i < 10; i++) { const p = sample(h, 'edge'); e(p.x, .08, p.z, 2, [.07, .06, .055], (Math.random() - .5) * .6, .35 + Math.random() * .4, (Math.random() - .5) * .6, .7 + Math.random() * .4, .22 + Math.random() * .2); }
+      for (let i = 0; i < 6; i++) { const p = sample(h, 'edge'); e(p.x, .1, p.z, 4, [.9, .35, .12], 0, .5, 0, .5, .04); }
+    }
+
+    // ------------------------------------------------------------------ per-style particles (rates per second per tell)
+    function emitFor(t, h, dt, factor, calm) {
+      const e = out.emit; if (!e || dt <= 0 || !t.last) return;
+      const s = t.last, drift = calm ? .5 : 1, liquid = h.persistent && h.poison && h.active;
+      const rate = (key, n, fn) => { t.acc[key] = (t.acc[key] || 0) + n * factor * dt; while (t.acc[key] >= 1) { t.acc[key] -= 1; fn(); } };
+      const eFront = 1 - (1 - s.u) * (1 - s.u), front = Math.min(1, .1 + .96 * eFront), left = h.warn - h.age;
+      if (liquid) { rate('bub', 3, () => { const p = sample(h, 'in'); e(p.x, .06, p.z, 5, [.35, .6, .1], 0, .12 * drift, 0, .45, .05); }); return; }
+      if (h.active) return;
+      switch (h.style) {
+        case 'blade': case 'grab':
+          rate('em', 18, () => { const p = sample(h, 'front', front); e(p.x, .06, p.z, 4, [2.2, 1.0, .35], (Math.random() - .5) * .3 * drift, (.25 + Math.random() * .35) * drift, (Math.random() - .5) * .3 * drift, .5 + Math.random() * .4, .05); }); break;
+        case 'blunt': case 'thrust': case 'roar':
+          rate('du', 16, () => { const p = sample(h, 'edge'), a = Math.atan2(p.x - h.x, p.z - h.z); e(p.x, .06, p.z, 2, [.10, .085, .07], Math.sin(a) * .4 * drift, .3 * drift, Math.cos(a) * .4 * drift, .7 + Math.random() * .4, .2 + Math.random() * .15); }); break;
+        case 'chain':
+          rate('du', 12, () => { const p = sample(h, 'front', front); e(p.x, .06, p.z, 2, [.10, .085, .07], 0, .25 * drift, 0, .7, .2); });
+          rate('sp', 6, () => { const p = sample(h, 'front', front); e(p.x, .12, p.z, 1, [3.2, 2.0, .8], (Math.random() - .5) * 2, .8 + Math.random(), (Math.random() - .5) * 2, .25, .05); }); break;
+        case 'rune':
+          rate('mo', 20, () => { const p = h.shape === 'circle' ? polar(h, (Math.random() * clamp(s.u, 0, 1) - .5) * TAU, h.radius * .8) : sample(h, 'front', front);
+            e(p.x, .08, p.z, 4, h.unblockable ? [1.8, .3, .12] : [2.0, .9, .3], 0, (.35 + Math.random() * .3) * drift, 0, .7 + Math.random() * .3, .05); }); break;
+        case 'ember':
+          if (left > .45) rate('fa', 24, () => { const p = sample(h, 'in'); e(p.x, 4.2 + Math.random() * 1.2, p.z, 1, [3.4, 1.4, .35], (Math.random() - .5) * .3, -5.5, (Math.random() - .5) * .3, .6, .07); }); break;
+        case 'bile':
+          rate('sm', 14, () => { const p = sample(h, 'in'); e(p.x, .1, p.z, 2, [.05, .09, .02], 0, .25 * drift, 0, .8, .28); });
+          rate('mo', 4, () => { const p = sample(h, 'in'); e(p.x, .1, p.z, 5, [.6, .9, .2], 0, .25 * drift, 0, .6, .05); }); break;
+        case 'quake':
+          rate('du', 20, () => { const p = sample(h, 'in'); e(p.x, .05, p.z, 2, [.09, .075, .06], 0, .2 * drift, 0, .8, .22); });
+          if (left < .4) rate('ch', 10, () => { const p = sample(h, 'in'); e(p.x, .05, p.z, 0, [.05, .04, .035], (Math.random() - .5), 1.5, (Math.random() - .5), .5, .06); }); break;
+        case 'shadow':
+          rate('wi', 10, () => { const p = sample(h, 'edge'); const dx = h.x - p.x, dz = h.z - p.z; e(p.x, .12, p.z, 5, [.012, .01, .014], dx * .9 * drift, .05, dz * .9 * drift, .7, .3); }); break;
+        case 'fall':
+          rate('fa', 16, () => { const p = sample(h, 'in'); e(p.x, 4 + Math.random(), p.z, 2, [.09, .075, .065], 0, -2.2, 0, 1.1, .16); });
+          if (left < .3) rate('sp', 8, () => { const p = sample(h, 'in'); e(p.x, 2 + Math.random(), p.z, 1, [3.0, 2.0, .9], 0, -4, 0, .35, .06); }); break;
+      }
+      if (h.unblockable && !h.persistent) {
+        // The floor drinks: crimson motes drawn inward from just outside the edge.
+        rate('in', 24, () => {
+          const p = sample(h, 'edge'), cx = h.shape === 'line' ? local(h, 0, h.length / 2) : { x: h.x, z: h.z }, ox = p.x, oz = p.z;
+          const dx = (cx.x - ox), dz = (cx.z - oz), life = .6;
+          e(ox + dx * -.08, .1, oz + dz * -.08, 5, [1.8, .15, .1], dx * .6 / life * drift, .08, dz * .6 / life * drift, life, .06);
+        });
+        const o = h.owner, bones = o && o.model && o.model.bones;
+        if (bones && o.model.root.visible && !o.dead) rate('hs', 6, () => {
+          const hand = Math.random() < .5 ? bones.leftHand : bones.rightHand; if (!hand) return; hand.getWorldPosition(V1);
+          e(V1.x, V1.y, V1.z, 2, [.03, .01, .01], 0, .5 * drift, 0, .7, .22);
+        });
+      }
+    }
+
+    // ------------------------------------------------------------------ attacker rims, weapon heat, glints
+    const rims = new Map(), V1 = new T.Vector3(), V2 = new T.Vector3();
+    const EXCLUDE = /kara-void|kara-paint|furfringe|hair|beard|lash|brow|eye/i;
+    function rimFor(model) {
+      if (rims.has(model)) return rims.get(model);
+      const color = { value: new T.Vector3(1.6, .7, .25) }, glow = { value: 0 }, wglow = { value: 0 }, vein = { value: 0 }, veinTime = { value: 0 };
+      const list = [];
+      model.root.traverse(n => { if (n.isSkinnedMesh && n.geometry && n.geometry.attributes.normal && !(n.material && (n.material.transparent || EXCLUDE.test(n.material.name || '') || EXCLUDE.test(n.name || '')))) list.push(n); });
+      list.sort((a, b) => b.geometry.attributes.position.count - a.geometry.attributes.position.count);
+      const shells = [];
+      for (const src of list.slice(0, 2)) {
+        src.getWorldScale(V1);
+        const mat = new T.ShaderMaterial({ vertexShader: RIM_VS, fragmentShader: RIM_FS, transparent: true, depthWrite: false, blending: T.AdditiveBlending, fog: false,
+          uniforms: { uColor: color, uGlow: glow, uVein: vein, uVTime: veinTime, uP: { value: new T.Vector2(4, 0) }, uInflate: { value: .012 / Math.max(.001, V1.x) } } });
+        const s = new T.SkinnedMesh(src.geometry, mat); s.bind(src.skeleton, src.bindMatrix); s.bindMode = src.bindMode;
+        s.position.copy(src.position); s.quaternion.copy(src.quaternion); s.scale.copy(src.scale);
+        s.frustumCulled = false; s.renderOrder = 3; s.castShadow = s.receiveShadow = false; s.visible = false; s.name = 'rim_shell'; s.userData.noGhost = true;
+        src.parent.add(s); shells.push(s);
+      }
+      const parts = [], weapon = model.bones && model.bones.weapon;
+      if (weapon) weapon.traverse(n => { if (n.isMesh && !n.isSkinnedMesh && !n.isInstancedMesh && n.geometry && n.geometry.attributes.normal && n.name !== 'rim_weapon') parts.push(n); });
+      const wmat = new T.ShaderMaterial({ vertexShader: RIM_VS, fragmentShader: RIM_FS, transparent: true, depthWrite: false, blending: T.AdditiveBlending, fog: false,
+        uniforms: { uColor: color, uGlow: wglow, uVein: vein, uVTime: veinTime, uP: { value: new T.Vector2(1.5, 0) }, uInflate: { value: .012 } } });
+      const wshells = parts.map(n => { const w = new T.Mesh(n.geometry, wmat); w.name = 'rim_weapon'; w.renderOrder = 3; w.frustumCulled = false; w.visible = false; w.castShadow = w.receiveShadow = false; w.userData.noGhost = true; n.add(w); return w; });
+      const r = { model, shells, wshells, color, glow, wglow, vein, veinTime, value: 0, target: [1.6, .7, .25], cur: [1.6, .7, .25], armed: parts.length > 0, wmat };
+      rims.set(model, r); return r;
+    }
+    function setRim(r, g, col, dt, weaponK) {
+      const k = dt > 0 ? 1 - Math.exp(-dt * 14) : 1;
+      r.value += (g - r.value) * k;
+      for (let i = 0; i < 3; i++) r.cur[i] += (col[i] - r.cur[i]) * k;
+      r.color.value.set(r.cur[0], r.cur[1], r.cur[2]); r.glow.value = r.value; r.wglow.value = r.value * (weaponK || 3);
+      const on = r.value > .005 && r.model.root.visible;
+      for (const s of r.shells) s.visible = on; for (const w of r.wshells) w.visible = on;
+    }
+    // Glints: a small star at the weapon tip in the flare window; the unarmed get a faint glow in each hand while a tell is pending.
+    const glints = [];
+    function glint() {
+      let g = glints.find(o => !o.used);
+      if (!g) { const m = new T.SpriteMaterial({ map: textures.star, color: 0xffffff, blending: T.AdditiveBlending, depthTest: false, depthWrite: false, transparent: true, fog: false });
+        const s = new T.Sprite(m); s.renderOrder = 12; s.visible = false; group.add(s); g = { s, m, used: false }; glints.push(g); }
+      g.used = true; return g;
+    }
+    function showGlint(pos, scale, col) { const g = glint(); g.s.position.copy(pos); g.s.scale.set(scale, scale, 1); g.m.color.setRGB(col[0], col[1], col[2]); g.s.visible = true; }
+    function enemyTell(e) {
+      // Strongest tell of this enemy: intent (acting, nothing on the floor yet), pending (u), flare window.
+      let g = 0, flare = 0, unb = false, next = Infinity, pending = false, maxU = 0;
+      const game = getGame();
+      for (const h of game.hazards) {
+        if (h.owner !== e || h.harmless || h.persistent && !h.burst) continue;
+        if (h.burst) { if (!h.active) { g = Math.max(g, .6 * smooth(h.age / h.warn)); unb = true; pending = true; } continue; }
+        if (h.age < 0 || h.active) continue;
+        const s = tellState(h); pending = true; maxU = Math.max(maxU, s.u);
+        flare = Math.max(flare, s.flare); g = Math.max(g, s.flare > .01 ? .03 + .1 * s.u * s.u + .27 * s.flare : .03 + .1 * s.u * s.u);
+        if (h.warn - h.age < next) { next = h.warn - h.age; unb = !!h.unblockable; }
+      }
+      if (!pending && e.action && !e.dead) { g = .05; unb = !!e.action.unblockable; }
+      return { g, flare, unb, pending, maxU };
+    }
+    function rimsStep(game, dt, calm) {
+      for (const g of glints) { g.used = false; g.s.visible = false; }
+      for (const e of game.enemies) {
+        const model = e.model; if (!model || !model.root) continue;
+        const visible = model.root.visible && (!e.dead || game.hazards.some(h => h.owner === e && h.burst));
+        if (!visible && !rims.has(model)) continue;
+        const r = rimFor(model), st = visible ? enemyTell(e) : { g: 0 };
+        let g = st.g, col = st.unb ? CRIMSON_RIM : AMBER_RIM;
+        if (e.dead && st.pending) col = BILE_RIM;
+        if (!st.pending && !e.dead && visible) {
+          if (e.buff > 0 && g < .08) { g = .08; col = CRIMSON_RIM; }                 // Kan Ayini made visible
+          if (e.boss) { const base = e.enraged ? .12 : e.phase === 2 ? .08 : .06; if (g < base) { g = base; col = e.enraged ? CRIMSON_RIM : AMBER_RIM; } }
+        } else if (e.boss && !st.pending && visible && g < .06) g = .06;
+        if (e.fear > 0 && !e.dead && visible && g < .02) g = 0;
+        setRim(r, visible ? g : 0, col, dt, e.boss && !st.pending ? 3 : 3);
+        if (!visible || e.dead) continue;
+        // Weapon tip glint at the commit flare; unarmed hands glow faintly for the whole pending window.
+        if (st.flare > .01) {
+          const tip = model.weaponTip; if (r.armed && tip) tip.getWorldPosition(V1); else if (model.bones && model.bones.rightHand) model.bones.rightHand.getWorldPosition(V1); else continue;
+          const sc = (calm ? .6 : .5 + .4 * Math.sin(st.flare * Math.PI)) * (e.boss ? 1.4 : 1);
+          showGlint(V1, sc, st.unb ? [1.6, .6, .5] : [1.9, 1.4, .8]);
+        }
+        if (!r.armed && st.pending && model.bones) for (const hand of [model.bones.leftHand, model.bones.rightHand]) {
+          if (!hand) continue; hand.getWorldPosition(V2); showGlint(V2, .2 + .12 * st.maxU, st.unb ? [1.2, .15, .08] : [1.3, .6, .2]);
+        }
+      }
+    }
+
+    // ------------------------------------------------------------------ projectiles (visual only; land exactly on the strike)
+    const shots = [];
+    function shotSprite() {
+      let s = shots.find(o => !o.used);
+      if (!s) { const m = new T.SpriteMaterial({ map: textures.star, color: 0xffffff, blending: T.AdditiveBlending, depthWrite: false, transparent: true, fog: false });
+        const sp = new T.Sprite(m); sp.renderOrder = 11; sp.visible = false; group.add(sp); s = { sp, m, used: false }; shots.push(s); }
+      s.used = true; return s;
+    }
+    function projectiles(game, factor) {
+      for (const s of shots) { s.used = false; s.sp.visible = false; }
+      for (const h of game.hazards) {
+        const pr = h.projectile; if (!pr || h.active || h.age < 0 || !h.owner) continue;
+        const k = (h.age - (h.warn - pr.flight)) / pr.flight; if (k < 0 || k > 1) continue;
+        if (!h.fromPos) { const o = h.owner, hand = o.model && o.model.bones && o.model.bones.rightHand; if (hand) { hand.getWorldPosition(V1); h.fromPos = { x: V1.x, y: V1.y, z: V1.z }; } else h.fromPos = { x: o.x, y: pr.fromY || 1.4, z: o.z }; }
+        const f = h.fromPos, to = h.shape === 'line' ? local(h, 0, h.length) : { x: h.x, z: h.z };
+        const x = f.x + (to.x - f.x) * k, z = f.z + (to.z - f.z) * k, y = f.y + (.15 - f.y) * k + (pr.height || 0) * 4 * k * (1 - k);
+        const s = shotSprite(); s.sp.position.set(x, y, z);
+        const col = pr.kind === 'vial' ? [.5, 1.1, .2] : pr.kind === 'spur' ? [1.6, 1.5, 1.3] : [1.8, 1.3, .7], sc = pr.kind === 'vial' ? .45 : .32;
+        s.sp.scale.set(sc, sc, 1); s.m.color.setRGB(col[0], col[1], col[2]); s.sp.visible = true;
+        if (out.emit && Math.random() < factor) out.emit(x, y, z, pr.kind === 'vial' ? 5 : 1, pr.kind === 'vial' ? [.35, .6, .1] : [2.5, 1.6, .7], 0, 0, 0, .25, .05);
+      }
+    }
+
+    // ------------------------------------------------------------------ bursts on the floor (shockwaves, soft light)
+    const waves = [], glows = [];
+    function wave(x, z, o) {
+      let w = waves.find(v => !v.used);
+      if (!w) { const mat = waveBase.clone(); mat.uniforms.uCrack.value = textures.crack; const m = new T.Mesh(plane, mat); m.renderOrder = 2; m.frustumCulled = false; m.visible = false; group.add(m); w = { m, mat, used: false }; waves.push(w); }
+      w.used = true; w.age = 0; w.o = Object.assign({ radius: 5, life: .6, width: .35, color: [1.6, .45, .12], crack: 0, crackR: 2.2, crackLife: 1.4, soft: 1, delay: 0 }, o);
+      const R = w.o.radius + 1.5; w.m.scale.set(2 * R, 1, 2 * R); w.m.position.set(x, .04, z); w.mat.uniforms.uMax.value = R; w.mat.uniforms.uSeed.value = Math.random() * 10;
+      w.mat.uniforms.uCol.value.set(w.o.color[0], w.o.color[1], w.o.color[2]); w.mat.uniforms.uCrackR.value = w.o.crackR; w.mat.uniforms.uSoft.value = w.o.soft; w.m.visible = false;
+      return w;
+    }
+    function glowBurst(x, z, o) {
+      let g = glows.find(v => !v.used);
+      if (!g) { const mat = glowBase.clone(); const m = new T.Mesh(plane, mat); m.renderOrder = 1; m.frustumCulled = false; m.visible = false; group.add(m); g = { m, mat, used: false }; glows.push(g); }
+      g.used = true; g.age = 0; g.o = Object.assign({ radius: 2, life: .6, color: [1.4, .9, .5], peak: .6, y: .05 }, o);
+      const R = g.o.radius * 1.25; g.m.scale.set(2 * R, 1, 2 * R); g.m.position.set(x, g.o.y, z); g.mat.uniforms.uCol.value.set(g.o.color[0], g.o.color[1], g.o.color[2]); g.m.visible = true; g.mat.uniforms.uA.value = 0;
+      return g;
+    }
+    function burstsStep(dt) {
+      for (const w of waves) {
+        if (!w.used) continue; w.age += dt; const t = w.age - w.o.delay; if (t < 0) { w.m.visible = false; continue; }
+        const k = t / w.o.life, u = w.mat.uniforms, done = k >= 1 && t >= w.o.crackLife;
+        const e = 1 - Math.pow(1 - Math.min(1, k), 2.4);
+        u.uR.value = .3 + (w.o.radius - .3) * e; u.uW.value = w.o.width * (.6 + .8 * e); u.uA.value = k < 1 ? (1 - k * k) * Math.min(1, t / .04) : 0;
+        u.uCrackA.value = w.o.crack * Math.max(0, 1 - t / w.o.crackLife) * Math.min(1, t / .05);
+        w.m.visible = !done; if (done) w.used = false;
+      }
+      for (const g of glows) {
+        if (!g.used) continue; g.age += dt; const k = g.age / g.o.life;
+        g.mat.uniforms.uA.value = g.o.peak * Math.min(1, g.age / .06) * Math.max(0, 1 - k) * Math.max(0, 1 - k);
+        if (k >= 1) { g.used = false; g.m.visible = false; }
+      }
+    }
+
+    // ------------------------------------------------------------------ the father's fury (aura while rage lasts)
+    const eyes = [0, 1].map(() => { const m = new T.SpriteMaterial({ map: textures.dot, color: 0xffffff, blending: T.AdditiveBlending, depthWrite: false, transparent: true, fog: false });
+      const s = new T.Sprite(m); s.renderOrder = 12; s.visible = false; group.add(s); return { s, m }; });
+    let rageWas = 0, fadeOut = 0;
+    const HEAD_OFF = new T.Vector3();
+    function heroStep(game, dt, factor, calm) {
+      const p = game.player, model = p && p.model; if (!model) return;
+      const r = rimFor(model), roar = p.roar, raging = p.rageTime > 0 && !p.dead;
+      let g = 0, col = RAGE_RIM;
+      if (roar && !roar.released) g = .06 + .3 * smooth(roar.age / (roar.gather || .3));            // gathering
+      if (raging) {
+        const pulse = calm ? 0 : .025 * Math.sin(clock * 5.2), ending = p.rageTime < 1.6;
+        g = Math.max(g, .26 + pulse * 1.6 + .8 * (p.rageFlash || 0));
+        if (ending && !calm) g *= .55 + .45 * (Math.sin(clock * 22) > -.2 ? 1 : .2);                 // gutters before it goes out
+        fadeOut = 1;
+      } else if (fadeOut > 0) {
+        // The fury cools: a slow dull-red afterglow that darkens (the embers are already gone) instead of snapping off.
+        fadeOut = Math.max(0, fadeOut - dt * 1.3); g = Math.max(g, .3 * fadeOut * fadeOut); col = COOL_RIM;
+      }
+      const veinTo = p.dead ? 0 : raging ? (p.rageTime < 1.6 ? .5 + .5 * p.rageTime / 1.6 : 1) : roar && !roar.released ? .6 * smooth(roar.age / (roar.gather || .3)) : fadeOut * fadeOut;
+      r.vein.value += (veinTo - r.vein.value) * (dt > 0 ? 1 - Math.exp(-dt * (veinTo > r.vein.value ? 10 : 3)) : 1); r.veinTime.value = clock;
+      setRim(r, p.dead ? 0 : g, col, dt, 3.2);
+      // Burning eyes.
+      const head = model.bones && model.bones.head, show = (raging || (roar && roar.age > (roar.gather || .3) * .4)) && head && model.root.visible && !p.dead;
+      if (show) {
+        head.getWorldPosition(V1); const f = p.face, c = Math.cos(f), s = Math.sin(f), k = model.height ? model.height / 2.35 : 1;
+        for (let i = 0; i < 2; i++) { const side = (i ? 1 : -1) * .045 * k; eyes[i].s.position.set(V1.x + s * .11 * k + c * side, V1.y + .03 * k, V1.z + c * .11 * k - s * side);
+          const sc = (.22 + .16 * (p.rageFlash || 0) + (calm ? 0 : .02 * Math.sin(clock * 9 + i))) * k; eyes[i].s.scale.set(sc, sc, 1); eyes[i].m.color.setRGB(3.4, .6, .16); eyes[i].s.visible = true; }
+      } else for (const e of eyes) e.s.visible = false;
+      // Embers streaming off the father and the red-hot cleaver.
+      if (raging && out.emit && dt > 0) {
+        const n = 52 * factor * dt * (1 + 2.5 * (p.rageFlash || 0)); r.acc = (r.acc || 0) + n;
+        // Embers lift off the whole body and drift up in a tall column; some are dark ash, a few white-hot.
+        while (r.acc >= 1) { r.acc -= 1; const a = Math.random() * TAU, rr = .2 + Math.random() * .38, y = .15 + Math.random() * 1.9, q = Math.random();
+          out.emit(p.x + Math.sin(a) * rr, y, p.z + Math.cos(a) * rr, q < .1 ? 2 : 4, q < .6 ? [2.6, .7, .16] : q < .9 ? [2.3, .25, .08] : q < .96 ? [3.6, 2.2, 1.0] : [.07, .05, .045], (Math.random() - .5) * .5, (.8 + Math.random() * 1.2) * (calm ? .5 : 1), (Math.random() - .5) * .5, .7 + Math.random() * .8, q < .9 ? .05 : .035); }
+        const tip = model.weaponTip; if (tip && Math.random() < 24 * factor * dt) { tip.getWorldPosition(V1); out.emit(V1.x, V1.y, V1.z, 4, [3.0, 1.0, .25], (Math.random() - .5) * .6, .8, (Math.random() - .5) * .6, .55, .045); }
+        // Heat-scorched ground: a small pool of light under his feet, refreshed while the fury burns.
+        if ((r.pool = (r.pool || 0) - dt) <= 0 && !calm) { r.pool = .5; glowBurst(p.x, p.z, { radius: 1.5, life: .7, color: [1.4, .22, .06], peak: .32 }); }
+      }
+      rageWas = raging ? 1 : 0;
+    }
+
+    // ------------------------------------------------------------------ warm-up: compile every new program before the first fight
+    function warmUp(game) {
+      const app = B.app; if (!app || !app.renderer || !app.scene || !app.camera) return false;
+      const t = tells[0], models = [game.player.model].concat(game.enemies.slice(0, 1).map(e => e.model));
+      const hidden = [];
+      t.mat.uniforms.uGain.value = 0; t.mesh.visible = true; t.ribMat.uniforms.uFade.value = 0; t.rib.visible = true; hidden.push(t.mesh, t.rib);
+      for (const m of models) { const r = rimFor(m); r.glow.value = 0; r.wglow.value = 0; for (const s of r.shells.concat(r.wshells)) { s.visible = true; hidden.push(s); } }
+      const w = wave(0, 0, {}); w.m.visible = true; w.mat.uniforms.uA.value = 0; hidden.push(w.m);
+      const gl = glowBurst(0, 0, {}); hidden.push(gl.m);
+      const gs = glint(); gs.s.visible = true; gs.m.opacity = 0; hidden.push(gs.s);
+      // app.js compiles the whole scene in small batches during loading; older shells compile here at once.
+      if (!app.warmShaders) try { app.renderer.compile(app.scene, app.camera); } catch (e) { /* compile is only an optimisation */ }
+      for (const o of hidden) o.visible = false; w.used = false; gl.used = false; gs.used = false; gs.m.opacity = 1;
+      return true;
+    }
+
+    // ------------------------------------------------------------------ frame
+    function sync(dt) {
+      const game = getGame(); if (!game) return;
+      const cfg = getSettings() || {}, calm = !!reduced.matches, factor = (PFACTOR[cfg.quality] || PFACTOR.high), frozen = game.hitStop > 0;
+      frameDt = frozen ? 0 : dt * (game.timeScale == null ? 1 : game.timeScale);
+      if (!warmed) warmed = warmUp(game) || warmed;
+      if (game.resetSerial !== lastReset) { releaseAll(); lastReset = game.resetSerial; }
+      clock += frameDt;
+      const seen = new Set();
+      for (const h of game.hazards) {
+        if (h.age < 0 || h.harmless) continue;
+        // Plain blows (claw, bash, cleave, swing...) that start at the attacker get no ground mark at all: the wind-up animation
+        // and the attacker's own ember glow / weapon glint (rimsStep, commitSparks) are the tell. Must-dodge, ranged and
+        // special moves (hazard not plain, unblockable, projectile, or centred away from its owner) keep the full mark.
+        if (h.plain && !h.unblockable && !h.projectile && !h.persistent && h.owner && Math.hypot(h.x - h.owner.x, h.z - h.owner.z) < 1.2) {
+          if (!h.tellFlared && !h.active && h.age >= h.warn - LEAD) { h.tellFlared = true; commitSparks(h, factor); }
+          continue;
+        }
+        let t = live.get(h); if (!t) { t = acquire(h); place(t, h); }
+        seen.add(t); update(t, h, cfg, calm); emitFor(t, h, frameDt, factor, calm);
+        if (!t.flared && !h.active && h.age >= h.warn - LEAD && !h.persistent) { t.flared = true; commitSparks(h, factor); }
+      }
+      for (const t of tells) {
+        if (!t.busy) continue;
+        if (!t.releasing && !seen.has(t)) release(t, false);
+        if (t.releasing) {
+          t.rel += frameDt; const k = clamp(1 - t.rel / .18, 0, 1), u = t.mat.uniforms;
+          u.uFade.value = t.startFade * k; if (t.struck && t.last) u.uHit.value = Math.max(0, (1 - (t.rel + .17) / .25));
+          if (t.ribbon) t.ribMat.uniforms.uFade.value *= k;
+          if (k <= 0) free(t);
+        }
+      }
+      rimsStep(game, frameDt, calm); heroStep(game, frameDt, factor, calm); projectiles(game, factor); burstsStep(frameDt);
+    }
+    function commitSparks(h, factor) {
+      const o = h.owner, e = out.emit; if (!o || !e || !o.model || o.dead) return;
+      const model = o.model, tip = model.weaponTip && model.bones && model.bones.weapon ? model.weaponTip : model.bones && model.bones.rightHand; if (!tip) return;
+      tip.getWorldPosition(V1); const n = Math.round((6 + 8 * factor) * (o.boss ? 1.4 : 1));
+      for (let i = 0; i < n; i++) { const a = Math.random() * TAU; e(V1.x, V1.y, V1.z, 1, h.unblockable ? [2.6, .5, .3] : [3.4, 2.2, .9], Math.sin(a) * 1.4, .6 + Math.random() * 1.4, Math.cos(a) * 1.4, .22 + Math.random() * .15, .05); }
+    }
+    function clear() {
+      releaseAll();
+      for (const w of waves) { w.used = false; w.m.visible = false; } for (const g of glows) { g.used = false; g.m.visible = false; }
+      for (const r of rims.values()) { r.value = 0; setRim(r, 0, r.cur, 0); } for (const e of eyes) e.s.visible = false;
+    }
+    function dispose() {
+      clear();
+      for (const r of rims.values()) { for (const s of r.shells) { s.removeFromParent(); s.material.dispose(); } for (const w of r.wshells) w.removeFromParent(); r.wmat.dispose(); }
+      rims.clear();
+      for (const t of tells) { t.mat.dispose(); t.ribMat.dispose(); } for (const w of waves) w.mat.dispose(); for (const g of glows) g.mat.dispose();
+      for (const g of glints) g.m.dispose(); for (const s of shots) s.m.dispose(); for (const e of eyes) e.m.dispose();
+      poolBase.dispose(); ribBase.dispose(); waveBase.dispose(); glowBase.dispose(); plane.dispose(); ribGeo.dispose();
+      Object.values(textures).forEach(t => t.dispose()); group.removeFromParent();
+    }
+    return { sync, clear, dispose, textures, wave, glowBurst, sample: (h, mode, k) => { const p = sample(h, mode, k); return { x: p.x, z: p.z }; },
+      debug() { return { tells: tells.length, busy: tells.filter(t => t.busy).length, rims: rims.size, waves: waves.filter(w => w.used).length, glows: glows.filter(g => g.used).length }; } };
+  } };
+})();

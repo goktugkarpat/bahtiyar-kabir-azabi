@@ -1,0 +1,4 @@
+# Kabir Azabı — bağımsız yetişkin oyunu
+Bu proje kullanıcı tarafından açıkça yetişkinlere yönelik, karanlık ve şiddet içeren ayrı bir oyun olarak istendi. Üst klasördeki Feza için sevimli/çocuk içerik kuralları bu projeye uygulanmaz. Feza oyunlarının dosyalarını değiştirme.
+Three.js r170 classic script, no build dependencies; index.html works with file://. JS/CSS code should be organized into readable separate files. Use the shared contract in DESIGN.md. All testing MUST use ?sessiz and muted browsers. No uploads or GitHub push without explicit user request. Temporary tests and screenshots go in /tmp, not Dropbox. Respect reduced motion and readable attack tells at all graphics settings.
+Türkçe seslendirme sakin kadın sesi olmamalı: pes, ağır ve korkutucu bir hikâye anlatıcısı kullan. Mevcut kayıtlar tr-TR-AhmetNeural erkek sesiyle, düşük ton ve ölçülü yankıyla hazırlanmıştır. Anlaşılırlığı koru; anlatıcı savaş uyarılarını örtmesin.

@@ -1,0 +1,30 @@
+Quaternius Universal Animation Libraries 1 and 2
+
+Animation clips in authored-clips.js were extracted from the free Standard editions.
+The clips retain authored body and finger motion; horizontal root motion was removed
+and the data was quantized for efficient local/offline playback.
+
+Author and primary sources:
+https://quaternius.com/packs/universalanimationlibrary.html
+https://quaternius.com/packs/universalanimationlibrary2.html
+https://opengameart.org/content/universal-animation-library
+https://opengameart.org/content/universal-animation-library-2
+
+Downloaded 2026-09-28 from the author’s public OpenGameArt uploads.
+Both archives contain the following CC0 license notice:
+
+-------------------------------------------------------
+License:
+CC0 1.0 Universal (CC0 1.0) 
+Public Domain Dedication
+https://creativecommons.org/publicdomain/zero/1.0/
+
+------------------------------------------------------
+Models by @Quaternius
+Consider supporting me on Patreon!
+
+https://www.patreon.com/quaternius
+
+-------------------------------------------------------
+Join the Discord Server:
+https://discord.gg/vJqnRUYRfT

@@ -1,0 +1,42 @@
+Kabir Azabı — character meshes in characters.js
+
+1) Quaternius — Universal Base Characters (Standard) and
+   Modular Character Outfits – Fantasy (Standard)
+   https://quaternius.com/packs/universalbasecharacters.html
+   https://quaternius.com/packs/modularcharacteroutfitsfantasy.html
+   Downloaded 2026-09-28 from the author's itch.io pages
+   (https://quaternius.itch.io/universal-base-characters,
+    https://quaternius.itch.io/modular-character-outfits-fantasy).
+   Both archives contain License_Standard.txt with this notice:
+
+   -------------------------------------------------------
+   License:
+   CC0 1.0 Universal (CC0 1.0)
+   Public Domain Dedication
+   https://creativecommons.org/publicdomain/zero/1.0/
+   ------------------------------------------------------
+   Models by @Quaternius
+   https://www.patreon.com/quaternius
+   -------------------------------------------------------
+
+   Used: Superhero_Male_FullBody body (prisoner, guard head, cultist head, stalker),
+   Male_Peasant legs/feet, Male_Ranger body/arms/bracers/belts/hood/legs.
+   Changes: textures resized to 1024/512 px and re-encoded as WebP; geometry quantized
+   (KHR_mesh_quantization); outfit parts re-bound to the base skeleton; limb lengths,
+   thinness and hidden body parts edited at load time; colours graded in a shader;
+   original armour, weapons and props added by the game.
+
+2) thecubber — Rigged Textured Barbarian / Rigged Textured Executioner
+   https://opengameart.org/content/rigged-textured-barbarian
+   https://opengameart.org/content/rigged-textured-executioner
+   Model by thecubber, commissioned by the OpenGameArt.org community.
+   Creative Commons Attribution 3.0 Unported — https://creativecommons.org/licenses/by/3.0/
+   Changes: see ../../ASSET-LICENSES.md; in this version the colour and normal maps are kept at
+   the source 2048 px and re-encoded as WebP (ambient occlusion reduced to 512 px), a build-time
+   skin mask is stored in the colour map alpha (used for skin shading, not transparency),
+   geometry quantized, and helper-bone skin weights moved to the pelvis. Wear, dirt, rust,
+   blood, scars and all armour, cloth, fur and weapons are added by the game's own code.
+
+3) RehmanPolanski / MakeHuman community — Viking beard and moustache (CC0 1.0).
+
+The source artists do not endorse this game.
