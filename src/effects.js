@@ -471,7 +471,7 @@
         return;
       }
       if (style === 'thrust' || (style === 'chain' && d.shape === 'line')) {
-        for (let i = 0; i < n(8); i++) { const p = local((Math.random() - .5) * d.width, d.length * i / 8); particle(p.x, .08, p.z, 2, DUST, .6, Math.random() * 6, .35); }
+        const lineDust = n(8); for (let i = 0; i < lineDust; i++) { const p = local((Math.random() - .5) * d.width, d.length * (i + .5) / lineDust); particle(p.x, .08, p.z, 2, DUST, .6, Math.random() * 6, .35); }
         const e = local(0, d.length); for (let i = 0; i < n(12); i++) particle(e.x, .2, e.z, 1, sp, 1.1, f + (Math.random() - .5) * 2.4, .7);
         return;
       }
@@ -483,7 +483,7 @@
       if (style === 'blunt' || style === 'roar') {
         const cx = d.shape === 'circle' ? x : d.ix, cz = d.shape === 'circle' ? z : d.iz;
         for (let i = 0; i < n(20); i++) particle(cx + rnd(-.4, .4), .1, cz + rnd(-.4, .4), 2, DUST, 1, Math.random() * Math.PI * 2, .4);
-        if (style === 'roar' && tells) { tells.wave(x, z, { radius: R, life: .5, width: .35, color: [.55, .3, .15], soft: 0 }); for (let i = 0; i < n(30); i++) { const a = i / 30 * Math.PI * 2; particle(x + Math.sin(a) * 1.2, .1, z + Math.cos(a) * 1.2, 2, DUST, 1.6, a, .35); } }
+        if (style === 'roar' && tells) { tells.wave(x, z, { radius: R, life: .5, width: .35, color: [.55, .3, .15], soft: 0 }); const ringDust = n(30); for (let i = 0; i < ringDust; i++) { const a = i / ringDust * Math.PI * 2; particle(x + Math.sin(a) * 1.2, .1, z + Math.cos(a) * 1.2, 2, DUST, 1.6, a, .35); } }
         return;
       }
       if (style === 'quake') {
@@ -538,7 +538,7 @@
       chRing(x, z, V * 1.05, .55, [1.0, .3, .08]); chRing(x, z, V * .6, .38, [1.2, .7, .4]); chRing(x, z, V * .95, .8, [.28, .12, .07]);   // last: the slow dust ring
       scar(x, z, 0, { shape: 'circle', radius: 1.6, life: 2, heat: .5 });
       flash(x, 1.2, z, 2.0, new T.Color('#e07040'), .18, 0, softMap);
-      for (let i = 0; i < scaleCount(64); i++) { const a = i / 64 * Math.PI * 2; particle(x + Math.sin(a) * .7, .1, z + Math.cos(a) * .7, 2, DUST, 2.0, a, .4); }
+      const ringDust = scaleCount(64); for (let i = 0; i < ringDust; i++) { const a = i / ringDust * Math.PI * 2; particle(x + Math.sin(a) * .7, .1, z + Math.cos(a) * .7, 2, DUST, 2.0, a, .4); }
       // Sparks thrown out along the floor as stretched streaks, and a fountain of hot flecks lifted along the crack ring.
       for (let i = 0; i < (calm ? 8 : Math.round(scaleCount(40) * .9)); i++) { const a = Math.random() * Math.PI * 2; streak(x + Math.sin(a) * .8, .25 + Math.random() * .5, z + Math.cos(a) * .8, Math.sin(a) * (4.5 + Math.random() * 5.5), 1 + Math.random() * 3, Math.cos(a) * (4.5 + Math.random() * 5.5), .3 + Math.random() * .3, .05 + Math.random() * .04, Math.random() < .3 ? [3.4, 2.4, 1.2] : [3.0, 1.1, .3]); }
       skMesh.visible = true;
@@ -579,7 +579,14 @@
     const chLinks = new T.InstancedMesh(new T.TorusGeometry(.085, .03, 8, 18),
       new T.MeshStandardMaterial({ color: '#3d3a37', metalness: .9, roughness: .42, emissive: new T.Color(1, .32, .07), emissiveIntensity: 0 }), CH_MAX);
     chLinks.frustumCulled = false; chLinks.visible = false; chLinks.instanceMatrix.setUsage(T.DynamicDrawUsage); root.add(chLinks);
-    const chHeadGeo = new T.ConeGeometry(.13, .62, 8).rotateZ(-Math.PI / 2).translate(.16, 0, 0);
+    // Forged cleaver hooks: a curved cutting edge, a hollow chain eye and bevels that catch the room light.
+    // One shared geometry replaces the placeholder cones; both heads retain their existing two draws.
+    const hookShape = new T.Shape(); hookShape.moveTo(-.24, .08); hookShape.lineTo(.06, .11);
+    hookShape.quadraticCurveTo(.39, .17, .48, -.10); hookShape.quadraticCurveTo(.57, -.42, .18, -.47);
+    hookShape.lineTo(.26, -.33); hookShape.quadraticCurveTo(.34, -.25, .30, -.15); hookShape.quadraticCurveTo(.24, -.035, .06, -.055);
+    hookShape.lineTo(-.24, -.065); hookShape.closePath();
+    const hookEye = new T.Path(); hookEye.absarc(-.135, .0075, .036, 0, Math.PI * 2, true); hookShape.holes.push(hookEye);
+    const chHeadGeo = new T.ExtrudeGeometry(hookShape, { depth: .048, bevelEnabled: true, bevelSegments: 2, steps: 1, bevelSize: .012, bevelThickness: .012, curveSegments: 6 }).translate(0, 0, -.024).rotateX(Math.PI / 2);
     const chHeads = [0, 1].map(() => { const m = new T.Mesh(chHeadGeo, chLinks.material); m.frustumCulled = false; m.visible = false; root.add(m); return m; });
     const chGlow = [0, 1, 2].map(() => { const sp = new T.Sprite(new T.SpriteMaterial({ map: softMap, color: 0xffffff, transparent: true, depthWrite: false, depthTest: false, blending: T.AdditiveBlending, fog: false })); sp.renderOrder = 29; sp.visible = false; root.add(sp); return sp; });
     // motion-blur disc at chest height: two comet tails (one per chain) that lengthen with the turning speed
@@ -736,7 +743,7 @@
       const x = d.x, z = d.z, R = d.radius || 3.6;
       chRing(x, z, R * .7, .4, [.9, .28, .08]);
       flash(x, 1.0, z, 1.6, new T.Color('#ff9550'), .18, 0, softMap);
-      for (let i = 0; i < scaleCount(36); i++) { const a = i / 36 * Math.PI * 2; particle(x + Math.sin(a) * .8, .1, z + Math.cos(a) * .8, 2, DUST, 2.4, a, .4); }
+      const ringDust = scaleCount(36); for (let i = 0; i < ringDust; i++) { const a = i / ringDust * Math.PI * 2; particle(x + Math.sin(a) * .8, .1, z + Math.cos(a) * .8, 2, DUST, 2.4, a, .4); }
       for (let i = 0; i < scaleCount(16); i++) { const a = Math.random() * Math.PI * 2; emit(x + Math.sin(a) * .5, .3 + Math.random() * .8, z + Math.cos(a) * .5, 4, [2.6, .7, .15], Math.sin(a) * 2.2, rnd(.5, 1.6), Math.cos(a) * 2.2, .6 + Math.random() * .4, .05); }
     }
     function whirlTick(d) {
@@ -816,18 +823,26 @@
       vertexShader: 'attribute float aAlpha,aEdge;varying float a,e;void main(){a=aAlpha;e=aEdge;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
       fragmentShader: 'varying float a,e;uniform vec3 tint,rim;uniform float gain;void main(){float body=smoothstep(.05,.9,e);float edge=smoothstep(.8,.97,e)*(1.-smoothstep(.97,1.,e));vec3 col=tint*body*.42+rim*edge*1.7;float al=a*a*(body*body*.3+edge*.95)*gain;if(al<.004)discard;gl_FragColor=vec4(col*al,al);}' });
     const SUB = 5, MAXS = 16, pivot = new T.Vector3(), tipW = new T.Vector3(), baseW = new T.Vector3(), da = new T.Vector3(), db = new T.Vector3();
-    const trailTip = new T.Vector3(), trailBase = new T.Vector3(), tip = new T.Vector3(), base = new T.Vector3(), ptip = new T.Vector3(), pbase = new T.Vector3(), pv = new T.Vector3();
+    const trailTip = new T.Vector3(), trailBase = new T.Vector3(), tip = new T.Vector3(), base = new T.Vector3(), ptip = new T.Vector3(), pbase = new T.Vector3(), pv = new T.Vector3(), oppositeTangent = new T.Vector3();
     function slerpDir(out, a, b, t) {
       const dot = clamp(a.dot(b), -1, 1), ang = Math.acos(dot);
       if (ang < .02) return out.copy(a).lerp(b, t).normalize();
+      if (dot < -.9999) {
+        if (t <= 0) return out.copy(a); if (t >= 1) return out.copy(b);
+        oppositeTangent.copy(b).addScaledVector(a, -dot);
+        if (oppositeTangent.lengthSq() < 1e-12) oppositeTangent.set(Math.abs(a.y) < .9 ? 0 : 1, Math.abs(a.y) < .9 ? 1 : 0, 0).cross(a);
+        oppositeTangent.normalize();
+        return out.copy(a).multiplyScalar(Math.cos(ang * t)).addScaledVector(oppositeTangent, Math.sin(ang * t));
+      }
       const s = Math.sin(ang); return out.copy(a).multiplyScalar(Math.sin((1 - t) * ang) / s).addScaledVector(b, Math.sin(t * ang) / s);
     }
+    const trailState = { on: false, life: .12, heavy: false };
     function trailWindow(actor) {
-      const a = actor.attack, act = actor.action;
-      if (a && a.whirl) return { on: a.age > .04, life: .17, heavy: true };   // the blade smears all through the spin
-      if (a) { const lead = a.heavy ? .17 : a.combo === 2 ? .13 : .11, tail = a.heavy ? .12 : a.combo === 2 ? .05 : .08; return { on: a.age > a.strike - lead && a.age < a.strike + tail, life: a.heavy ? .17 : a.combo === 2 ? .12 : .11, heavy: a.heavy || a.combo === 2 }; }
-      if (act && act.beats) { const lead = actor.boss ? .22 : .15; return { on: act.beats.some(b => act.age > b.strike - lead && act.age < b.strike + .12), life: actor.boss ? .2 : .13, heavy: !!actor.boss }; }
-      return { on: false, life: .12 };
+      const a = actor.attack, act = actor.action, w = trailState; w.on = false; w.life = .12; w.heavy = false;
+      if (a && a.whirl) { w.on = a.age > .04; w.life = .17; w.heavy = true; }   // the blade smears all through the spin
+      else if (a) { const lead = a.heavy ? .17 : a.combo === 2 ? .13 : .11, tail = a.heavy ? .12 : a.combo === 2 ? .05 : .08; w.on = a.age > a.strike - lead && a.age < a.strike + tail; w.life = a.heavy ? .17 : a.combo === 2 ? .12 : .11; w.heavy = a.heavy || a.combo === 2; }
+      else if (act && act.beats) { const lead = actor.boss ? .22 : .15; for (const beat of act.beats) if (act.age > beat.strike - lead && act.age < beat.strike + .12) { w.on = true; break; } w.life = actor.boss ? .2 : .13; w.heavy = !!actor.boss; }
+      return w;
     }
     function hasTrail(model) { return model && !model.ownTrail && model.weaponTip && model.bones && model.bones.weapon && model.type !== 'cultist' && model.type !== 'carrier'; }
     function makeTrail(actor) {
@@ -934,7 +949,7 @@
         if (!d.player && name === 'blood') flash(x, y, z, heavy ? 1.2 : .8, new T.Color(heavy ? '#ffc9a0' : '#ffdcc0'), .06);
         // Directional arterial spray, droplets with gravity that splash where they land, gibs on heavy blows, a spurt that pulses on kills (goreHit).
         const S = clamp(((d.player ? .55 : heavy ? 1.05 : .7) + (d.kill ? .6 : 0) + (d.boss ? .3 : 0)) * clamp(.85 + (d.damage || 0) / 120, .85, 1.3), .3, 2.2);
-        goreHit(x, y, z, spray, S, { kill: !!d.kill, heavy, boss: !!d.boss, player: !!d.player, foe: d.player ? game.player : nearestFoe(x, z, 1.6, true) });
+        goreHit(x, y, z, spray, S, { kill: !!d.kill, heavy, boss: !!d.boss, player: !!d.player, foe: d.labelTarget || (d.player ? game.player : nearestFoe(x, z, 1.6, true)) });
         if (!d.player && name === 'blood') gearHit(d.kill ? .3 : heavy ? .16 : .08); else if (d.player) gearHit(.06);
         if (d.damage > 0) number(Math.round(d.damage), x, 2.5, z, d.player, d.heavy, d.kill, d.boss, d.labelTarget || null);
         // Blows struck in fury leave burning embers in the wound.
@@ -942,13 +957,28 @@
         if (name === 'death') goreKill(x, Math.max(.7, y), z, performance.now() - lastDir.t < 400 ? lastDir.a : Math.random() * 6.28, !!large, null, !!d.boss);
         return;
       }
-      if (name === 'slam' || name === 'bossPhase') {
+      if (name === 'bossPhase') {
+        // The executioner's second oath burns through the floor: narrow rust-red pressure fronts and rising ash.
+        // Existing wave/particle pools carry the whole effect; it never adds a light or a screen-wide white flash.
+        const r = d.radius || 4.5, calm = reduced.matches;
+        if (tells) {
+          tells.wave(x, z, { radius: r * .72, life: .65, width: .13, color: [1.35, .18, .065], crack: .42, crackR: r * .56, crackLife: 1.25, soft: .2 });
+          tells.wave(x, z, { radius: r * 1.08, life: .78, width: .15, color: [.95, .40, .18], soft: 0, delay: .08 });
+        }
+        flash(x, 1.0, z, 1.35, new T.Color('#d87950'), .14, 0, softMap);
+        const ring = Math.max(6, Math.round(scaleCount(36) * (calm ? .5 : 1)));
+        for (let i = 0; i < ring; i++) { const a = i / ring * Math.PI * 2, sa = Math.sin(a), ca = Math.cos(a); emit(x + sa * .65, .12, z + ca * .65, 2, DUST, sa * 2.4, .35, ca * 2.4, .65, .28); }
+        const embers = Math.max(4, Math.round(scaleCount(24) * (calm ? .5 : 1)));
+        for (let i = 0; i < embers; i++) { const a = i / embers * Math.PI * 2, r0 = .45 + Math.random() * .4; emit(x + Math.sin(a) * r0, .4 + Math.random() * 1.4, z + Math.cos(a) * r0, 4, i % 3 ? [1.7, .20, .055] : [2.25, .75, .20], Math.cos(a) * .5, .8 + Math.random() * 1.2, -Math.sin(a) * .5, .65 + Math.random() * .45, .045); }
+        return;
+      }
+      if (name === 'slam') {
         const r = d.radius || 4.5, small = !!d.small;
-        wave(x, z, r * (small ? 1.1 : 1), name === 'bossPhase' ? '#b77144' : '#a39584', small ? .28 : .5, small ? .18 : .45, small ? .05 : .08);
+        wave(x, z, r * (small ? 1.1 : 1), '#a39584', small ? .28 : .5, small ? .18 : .45, small ? .05 : .08);
         if (!small) wave(x, z, r * .6, '#6d6052', .6, .25, .2);
         flash(x, .35, z, small ? 1.1 : 2.4, new T.Color('#ffcf9a'), small ? .07 : .1);
-        const ring = small ? 12 : 26;
-        for (let i = 0; i < scaleCount(ring); i++) { const a = i / ring * Math.PI * 2; particle(x + Math.sin(a) * .5, .12, z + Math.cos(a) * .5, 2, DUST, small ? .9 : 1.6, a, .45); }
+        const ring = scaleCount(small ? 12 : 26);
+        for (let i = 0; i < ring; i++) { const a = i / ring * Math.PI * 2; particle(x + Math.sin(a) * .5, .12, z + Math.cos(a) * .5, 2, DUST, small ? .9 : 1.6, a, .45); }
         for (let i = 0; i < scaleCount(small ? 10 : 24); i++) particle(x, .2, z, 0, [.06, .05, .045], small ? .9 : 1.5, Math.random() * Math.PI * 2, 1.1);
         for (let i = 0; i < scaleCount(small ? 8 : 16); i++) particle(x, .15, z, 1, SPARK, small ? .8 : 1.2, Math.random() * Math.PI * 2, .8);
         return;

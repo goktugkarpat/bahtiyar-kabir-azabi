@@ -48,6 +48,7 @@
   let ctx = null, out = null, ready = false, offline = false, halted = false, susp = false;
   const N = {}, I = {}, BUF = {}, VOICES = new Set();
   let live = 0, WAVE = null, queue = [], QA_ONLY = null, QA_NOIR = false, LITE = false;
+  const SHOTS = new Set();
 
   /* ------------------------------------------------------------------ DSP for one-shot instrument buffers */
   function newBuf(sec, div, ch) {
@@ -197,6 +198,22 @@
     filt(d, biq('lp', 2000, .7, rate));
     return finish(b, .9);
   }
+  function funeralWire(sd) { // hand-struck iron wire with sympathetic strings; D3
+    const b = newBuf(3.2, 2), d = b.getChannelData(0), rate = b.sampleRate, R = mkRng(sd);
+    const f = 146.83, period = Math.round(rate / f), ring = new Float32Array(period);
+    for (let i = 0; i < period; i++) ring[i] = (R() * 2 - 1) * Math.sin(Math.PI * i / period);
+    let prev = 0;
+    for (let i = 0; i < d.length; i++) {
+      const j = i % period, x = ring[j]; ring[j] = .997 * (x + prev) * .5; prev = x;
+      d[i] = x * Math.min(1, i / (rate * .003));
+    }
+    // Slightly stretched, beating modes make the instrument recognisable
+    // without occupying the 1.2-4.6 kHz band used by enemy warnings.
+    partial(d, rate, f * 2.003, .11, .8, 0, .005, .4);
+    partial(d, rate, f * 3.012, .07, .55, 0, .005, .9);
+    partial(d, rate, f * 4.026, .04, .32, 0, .005, 1.3);
+    filt(d, biq('lp', 1050, .7, rate)); return finish(b, .82);
+  }
   function irJob() { // stone cathedral: 21 ms pre-delay, early reflections, ~3.9 s RT60 with the highs dying first
     const sec = LITE ? 2.8 : 4.2, b = newBuf(sec, 1, 2), rate = b.sampleRate, R = mkRng(99), pd = Math.round(.021 * rate), fade = .07 * rate;
     const kCut = Math.exp(-1 / (.9 * rate)), kAmp = Math.exp(-6.9 / (3.9 * rate)); let c = 0, i = pd, lp = 0, a = 0, eCut = 1, eAmp = 1;
@@ -236,10 +253,10 @@
       for (let i = 0; i < d.length; i++) d[i] = Math.tanh(d[i] * 1.6);
       return finish(b, .95);
     },
-    stab1: () => stab(91, 1), stab2: () => stab(92, .7), pizz: () => pizz(95)
+    stab1: () => stab(91, 1), stab2: () => stab(92, .7), pizz: () => pizz(95), wire1: () => funeralWire(101), wire2: () => funeralWire(102)
   };
   const ORDER = ['ir', 'noise', 'bellD3', 'heart', 'doum1', 'tek1', 'chain1', 'taikoL1', 'taikoM1', 'rim1', 'stab1', 'boom', 'bellD4', 'pizz', 'bone1', 'anvil', 'plate',
-    'doum2', 'tek2', 'chain2', 'chain3', 'bone2', 'bone3', 'taikoL2', 'taikoM2', 'rim2', 'stab2', 'bellBig'];
+    'doum2', 'tek2', 'chain2', 'chain3', 'bone2', 'bone3', 'taikoL2', 'taikoM2', 'rim2', 'stab2', 'bellBig', 'wire1', 'wire2'];
   let irStep = null;
   function buildSome(all) { // all: everything now (QA renders, stings); otherwise about 4 ms of work per call (one per frame)
     const t0 = performance.now();
@@ -330,9 +347,9 @@
     const stop = at + rel * 1.8 + .05; for (const s of this.srcs) try { s.stop(stop); } catch (e) { }
   }
   function voice(p, srcs, others, env) {
-    const v = { p, srcs, others, env, end: Infinity, release: relV };
+    const my = ctx, v = { p, srcs, others, env, end: Infinity, release: relV };
     p.voices.add(v); VOICES.add(v); live += srcs.length;
-    srcs[0].onended = () => { live -= srcs.length; p.voices.delete(v); VOICES.delete(v); for (const n of srcs.concat(others)) try { n.disconnect(); } catch (e) { } };
+    srcs[0].onended = () => { if (ctx === my) live = Math.max(0, live - srcs.length); p.voices.delete(v); VOICES.delete(v); for (const n of srcs.concat(others)) try { n.disconnect(); } catch (e) { } };
     return v;
   }
   function releaseAll(p, at, rel) { for (const v of p.voices) v.release(at, rel); }
@@ -345,8 +362,8 @@
     const g = G(o.gain === undefined ? 1 : o.gain), extra = [g]; s.connect(g); let last = g;
     if (o.pan && ctx.createStereoPanner) { const pn = ctx.createStereoPanner(); pn.pan.value = clamp(o.pan, -1, 1); g.connect(pn); last = pn; extra.push(pn); }
     last.connect(to);
-    s.start(Math.max(t, ctx.currentTime)); live++;
-    s.onended = () => { live--; };
+    const my = ctx; SHOTS.add(s); s.start(Math.max(t, ctx.currentTime)); live++;
+    s.onended = () => { if (ctx === my) live = Math.max(0, live - 1); SHOTS.delete(s); try { s.disconnect(); } catch (e) {} for (const n of extra) try { n.disconnect(); } catch (e) {} };
     return s;
   }
   function choirNote(p, bus, midi, t, o) {
@@ -404,14 +421,14 @@
     const s = ctx.createBufferSource(), bp = F('bandpass', f0, q || 1.2), g = G(0, dest(p, bus)); s.buffer = BUF.noise; s.loop = true; s.connect(bp); bp.connect(g);
     bp.frequency.setValueAtTime(f0, t); bp.frequency.exponentialRampToValueAtTime(f1, t + dur * .6); bp.frequency.exponentialRampToValueAtTime(f0 * .8, t + dur);
     g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vel, t + dur * .45); g.gain.linearRampToValueAtTime(0, t + dur);
-    s.start(t, rnd() * 2); s.stop(t + dur + .05); live++;
-    s.onended = () => { live--; s.disconnect(); bp.disconnect(); g.disconnect(); };
+    const my = ctx; SHOTS.add(s); s.start(t, rnd() * 2); s.stop(t + dur + .05); live++;
+    s.onended = () => { if (ctx === my) live = Math.max(0, live - 1); SHOTS.delete(s); for (const n of [s, bp, g]) try { n.disconnect(); } catch (e) {} };
   }
   function buildDrone() { // global sub/organ drone: D1 saw pair (beating), D2 sine, A1, Eb2 rub, Ab1 tritone
     const D = N.drone = { out: G(0, I.drone.in) }; D.wob = G(1, D.out); D.lp = F('lowpass', 130, .8, D.wob);
     const mk = (type, m, det, direct) => { const o = osc(type, mtof(m)); o.detune.value = det || 0; const g = G(0, direct ? D.wob : D.lp); o.connect(g); o.start(); live++; return { o, g }; };
     D.a = mk('sawtooth', 26, -4); D.b = mk('sawtooth', 26, 5); D.s = mk('sine', 38, 0, true); D.fifth = mk('triangle', 33, 0, true); D.rub = mk('sawtooth', 39, 0); D.trit = mk('sawtooth', 32, 0);
-        const l2 = osc('sine', .047), l2g = G(.15); l2.connect(l2g); l2g.connect(D.wob.gain); l2.start(); live += 1;
+    const l2 = osc('sine', .047), l2g = G(.15); l2.connect(l2g); l2g.connect(D.wob.gain); l2.start(); live += 1; D.mod = l2; D.modGain = l2g;
   }
   function droneSet(c, t, tc) {
     const D = N.drone; if (D.cfg === c) return; D.cfg = c;
@@ -424,6 +441,21 @@
     C3 = 48, Cs3 = 49, D3 = 50, Eb3 = 51, E3 = 52, F3 = 53;
   // The chapter's motif ("the gate"): D Eb D | Ab A — semitone sigh, tritone fall, resolving to the fifth.
   const GATE = [[D3, 3], [Eb3, 1.5], [D3, 2], [Ab2, 2.5], [A2, 5]];
+  // Bahtiyar's answer to the gate: the same falling semitone, ending in an
+  // open fifth. Sparse, asymmetric phrases leave the dungeon audible.
+  const OATH = [
+    [[D3, 2], [F3, 1], [E3, 1], [D3, 3], [null, 2], [A2, 3]],
+    [[A2, 3], [D3, 1.5], [Eb3, .5], [D3, 3], [null, 2], [A2, 2]],
+    [[D3, 2], [Eb3, 1], [D3, 2], [null, 2], [A2, 3], [D3, 2]]
+  ];
+  function oath(p, t, level) {
+    const variant = p.oathVariant === undefined ? 0 : (p.oathVariant + 1 + (chance(.3) ? 1 : 0)) % OATH.length;
+    p.oathVariant = variant; let at = t;
+    for (const [m, beats] of OATH[variant]) {
+      if (m !== null) playBuf('wire', at, dest(p, 'cello'), { gain: (level || .23) * rr(.92, 1.06), rate: semi(m - D3), pan: rr(-.3, .3) });
+      at += beats * .63;
+    }
+  }
   function phrase(p, bus, notes, t, o) {
     const beat = o.beat || .75; let at = t;
     for (const [m, b] of notes) {
@@ -464,7 +496,7 @@
       pads: { bus: 'choirA', vowel: 'u', inst: 'choir', chords: [[D2, A2], [D2, A2, D3], [Bb1, F2, D3], [D2, A2]], len: [14, 22], rest: .45, att: 4, rel: 5, vel: .16 },
       gens: [
         { every: [17, 27], first: [3, 6], fn: (p, t) => toll(p, t, { vel: .45, pan: rr(-.4, .4), n: chance(.3) ? 2 : 1 }) },
-        { every: [34, 52], first: [12, 18], fn: (p, t) => phrase(p, 'cello', GATE, t, { beat: .8, vel: .18, n: 2 }) },
+        { every: [34, 52], first: [12, 18], fn: (p, t) => { if (chance(.5)) oath(p, t); else phrase(p, 'cello', GATE, t, { beat: .8, vel: .18, n: 2 }); } },
         { every: [11, 19], first: [1, 4], fn: (p, t) => noiseSwell(p, 'fx', t, rr(5, 8), 280, 700, .25) }
       ] },
     { name: 'Zincir Nöbeti', // chain watch: processional frame drum, rubbing low strings, chains, a far anvil
@@ -512,7 +544,8 @@
     { name: 'Sessiz Şapel', // silent chapel (oath stone): almost nothing — soft "o" chords, long rests, a small high bell
       drone: { d1: .4, d2: .25, fifth: .15, rub: 0, trit: 0, cut: 105 },
       pads: { bus: 'choirA', vowel: 'o', inst: 'choir', chords: [[D2, A2, D3, F3], [Bb1, F2, D3, F3], [G1, D2, Bb2, D3], [A1, A2, Cs3, E3]], len: [12, 18], rest: .5, att: 4, rel: 6, vel: .11 },
-      gens: [{ every: [30, 44], first: [6, 10], fn: (p, t) => toll(p, t, { buf: 'bellD4', vel: .28, pan: rr(-.5, .5) }) }] },
+      gens: [{ every: [30, 44], first: [6, 10], fn: (p, t) => toll(p, t, { buf: 'bellD4', vel: .28, pan: rr(-.5, .5) }) },
+        { every: [37, 55], first: [12, 18], fn: (p, t) => oath(p, t, .18) }] },
     { name: 'Zincir Mahkemesi', // chain court before the executioner wakes: heartbeat, hummed tritone, chains, a far brass breath
       drone: { d1: .9, d2: .3, fifth: 0, rub: .3, trit: .3, cut: 150 },
       pads: { bus: 'choirA', vowel: 'u', inst: 'choir', chords: [[D2, Ab2], [D2, A2], [Eb2, A2], [D2, Ab2, D3]], len: [12, 18], rest: .5, att: 4, rel: 5, vel: .1 },
@@ -683,6 +716,7 @@
     playBuf('heart', t + 5.2, dest(p, 'perc'), { gain: .42 }); playBuf('heart', t + 6.7, dest(p, 'perc'), { gain: .26 }); // a heart that gives out
   }
   function stCheckpoint(p, t) { // respite: iv - V - i in D minor on soft "o", the only major third of the chapter
+    oath(p, t + 1, .3);
     vowel('choirA', 'o', t, .3);
     for (const [dt, ch] of [[0, [G2, Bb2, D3]], [3.2, [A2, Cs3, E3]], [6.4, [D2, A2, D3, F3]]])
       for (const m of ch) choirNote(p, 'choirA', m, t + dt + rr(0, .2), { vel: .12, att: 1.4, dur: dt > 6 ? 5.5 : 3.1, rel: dt > 6 ? 5 : 1.6, vib: 8 });
@@ -697,6 +731,7 @@
     vowel('choirB', 'a', t, .05); for (const m of [D3, Eb3, Ab2 + 12]) choirNote(p, 'choirB', m, t, { vel: .24, att: .1, dur: 1.3, rel: 1.5, vib: 14 });
   }
   function stVictory(p, t) { // grim requiem: Dm Bb Gm Eb Dm/A A -> open fifth; the motif resolves; something still breathes
+    oath(p, t + 8, .3);
     playBuf('boom', t, dest(p, 'perc'), { gain: .55 }); playBuf('bellBig', t, dest(p, 'bell'), { gain: .6 }); playBuf('taikoL', t, dest(p, 'perc'), { gain: .7 });
     vowel('choirA', 'o', t, .3);
     const prog = [[1.5, [D2, A2, F3]], [7.5, [Bb1, F2, D3]], [13.5, [G1, D2, Bb2]], [19.5, [Eb2, G2, Bb2]], [25.5, [A1, D2, F2]], [30.5, [A1, E3 - 12, Cs3]], [35.5, [D1, D2, A2, D3]]];
@@ -787,11 +822,12 @@
     return true;
   }
   function init(c, o, opts) {
-    if (ready) return true;
+    if (ready && ctx === c) return true;
+    if (ready) dispose();
     if (!c || !o) return false;
     offline = typeof c.startRendering === 'function';
     if (SILENT && !offline) return false;
-    ctx = c; out = o; opts = opts || {}; LITE = !!opts.lite;
+    ctx = c; out = o; opts = opts || {}; LITE = !!opts.lite; halted = susp = false;
     rnd = mkRng(opts.seed || 7331);
     buildGraph();
     SCP = SCENES.map((sc, i) => Part('room' + i)); PT = Part('tension'); PC = Part('combat'); PB = Part('boss'); PS = Part('sting'); PS.target = PS.level = 1;
@@ -803,8 +839,31 @@
     ready = true; return true;
   }
   function allParts() { return SCP.concat([PT, PC, PB, PS]); }
+  async function prepare(progress) {
+    if (!ready) return false;
+    const my = ctx, total = queue.length;
+    while (ctx === my && queue.length) {
+      buildSome(false); if (progress) progress(total ? 1 - queue.length / total : 1);
+      await new Promise(resolve => setTimeout(resolve, 0));
+    }
+    if (progress) progress(1); return ctx === my;
+  }
+  function dispose() {
+    if (!ready) return;
+    for (const v of VOICES) for (const n of v.srcs.concat(v.others)) { try { if (n.stop) n.stop(); n.disconnect(); } catch (e) {} }
+    for (const s of SHOTS) try { s.stop(); s.disconnect(); } catch (e) {}
+    if (N.drone) for (const k of ['a', 'b', 's', 'fifth', 'rub', 'trit']) try { N.drone[k].o.stop(); } catch (e) {}
+    if (N.drone) {
+      try { N.drone.mod.stop(); } catch (e) {}
+      for (const k of ['out', 'wob', 'lp', 'mod', 'modGain']) try { N.drone[k].disconnect(); } catch (e) {}
+    }
+    for (const bus of Object.values(I)) for (const n of Object.values(bus)) try { n.disconnect(); } catch (e) {}
+    for (const k of Object.keys(N)) try { if (N[k].disconnect) N[k].disconnect(); } catch (e) {}
+    for (const k of Object.keys(BUF)) delete BUF[k]; for (const k of Object.keys(I)) delete I[k]; for (const k of Object.keys(N)) delete N[k];
+    VOICES.clear(); SHOTS.clear(); LATER.length = 0; queue = []; irStep = null; ctx = out = null; ready = false; live = 0;
+  }
   B.Music = {
-    init, update, sting,
+    init, update, sting, prepare, dispose,
     stop() {
       if (!ready) return; const t = ctx.currentTime; halted = true;
       setP(N.master.gain, 0, t, .35); for (const v of VOICES) v.release(t + 1.5, .3);

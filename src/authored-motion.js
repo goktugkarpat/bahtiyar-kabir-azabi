@@ -149,8 +149,9 @@
     var wanted = pose(), extra = pose(), output = pose(), transition = pose(), locomotion = pose(), mirrored = pose(), roarBuf = pose();
     var clock = 0, gait = 0, moveWeight = 0, speed = 0, mode = '', modeAge = 0, previousAttack = 0, comboMemory = -1, legacySerial = 0;
     var deathTime = 0, deathYaw = 0, deathKind = '', hurtTime = 2, previousHurt = 0, previousDodge = 0, previousYaw = 0, turnRate = 0, rollRecover = 9;
-    var initialized = false, disposed = false, wasDead = false, lastHitAngle = 0, lookCur = 0, lookPitch = 0, lifeSeed = Math.random() * 40, shiftCur = 0;
+    var initialized = false, disposed = false, wasDead = false, lastHitAngle = 0, lookCur = 0, lookPitch = 0, lifeSeed = Math.random() * 40, shiftCur = 0, legYawCur = 0, backwardMotion = false;
     var footfall = root.userData.footfall = { serial: 0, side: 0, x: 0, z: 0, strength: 0, kind: 'step' };
+    var motionInfo = root.userData.authoredMotion = { clip: '', source: 'Quaternius CC0', phase: 0, strike: '' };
     root.updateWorldMatrix(true, true); root.getWorldQuaternion(qRoot); invRoot.copy(qRoot).invert();
     Object.keys(supplied).forEach(function (key) { if (supplied[key] && supplied[key].isObject3D) all[key] = supplied[key]; });
     model.traverse(function (n) { if (n.isBone) all[n.name] = n; });
@@ -335,12 +336,19 @@
     var wBase = pose(), wArm = pose(), wLegs = pose(), WHIRL_D = 1.3, WHIRL_TICK = .15, WHIRL_GAP = .28, WHIRL_HIT = WHIRL_TICK + 3 * WHIRL_GAP;   // = SPECIAL.first / gap / last tick in combat.js
     var wYawPrev = 0, wOmega = 0, wLag = 0, wLock = 0, wGait = 0, wLive = false, wFlare = 0;
     function yawSub(p, index, angle) { qTurn.setFromAxisAngle(up, angle); rotateSubtree(p, index, qTurn); }
-    var wq = new T.Quaternion(), wv = new T.Vector3(), wd = new T.Vector3(), wt = new T.Vector3(), wb = new T.Vector3(), wu = new T.Vector3(), wu2 = new T.Vector3();
+    var wq = new T.Quaternion(), wv = new T.Vector3(), wd = new T.Vector3(), wt = new T.Vector3(), wb = new T.Vector3(), wu = new T.Vector3(), wu2 = new T.Vector3(), oppositeTangent = new T.Vector3();
     var W_COIL_T = new T.Vector3(-.8, .1, -.6).normalize(), W_COIL_B = new T.Vector3(-.55, .15, -.82).normalize();
     var W_OVER_T = new T.Vector3(-.3, .95, .1).normalize(), W_OVER_B = new T.Vector3(-.15, .6, -.78).normalize();
     var W_SLAM_T = new T.Vector3(-.15, -.2, .96).normalize(), W_SLAM_B = new T.Vector3(-.02, -.8, .6).normalize();
     function slerpV(out, a, b, t) {   // unit vectors
       var d = clamp(a.dot(b), -1, 1), ang = Math.acos(d); if (t <= 0) return out.copy(a); if (ang < .01) return out.copy(a).lerp(b, t).normalize();
+      if (d < -.9999) {
+        if (t >= 1) return out.copy(b);
+        oppositeTangent.copy(b).addScaledVector(a, -d);
+        if (oppositeTangent.lengthSq() < 1e-12) oppositeTangent.set(Math.abs(a.y) < .9 ? 0 : 1, Math.abs(a.y) < .9 ? 1 : 0, 0).cross(a);
+        oppositeTangent.normalize();
+        return out.copy(a).multiplyScalar(Math.cos(ang * t)).addScaledVector(oppositeTangent, Math.sin(ang * t));
+      }
       var sn = Math.sin(ang); return out.copy(a).multiplyScalar(Math.sin((1 - t) * ang) / sn).addScaledVector(b, Math.sin(t * ang) / sn);
     }
     // Forward kinematics of the right arm in pose space: unit shoulder -> hand direction (the blade points along the hand bone's +Z: the weapon's +Y after qBlade).
@@ -423,7 +431,7 @@
       if (disposed) return; state = state || {}; dt = clamp(finite(dt, 0), 0, .1); clock += dt;
       if (state.reset) {
         initialized = false; clock = finite(state.time, 0); gait = 0; speed = 0; moveWeight = 0; mode = ''; modeAge = 0; deathTime = 0; deathYaw = 0; deathKind = '';
-        hurtTime = 2; previousHurt = 0; previousAttack = 0; comboMemory = -1; previousDodge = 0; wasDead = false; turnRate = 0; footfall.serial = 0; rollRecover = 9; lookCur = 0; lookPitch = 0; shiftCur = 0;
+        hurtTime = 2; previousHurt = 0; previousAttack = 0; comboMemory = -1; previousDodge = 0; wasDead = false; turnRate = 0; footfall.serial = 0; rollRecover = 9; lookCur = 0; lookPitch = 0; shiftCur = 0; legYawCur = 0; backwardMotion = false;
         originalLocal.forEach(function (r) { r.node.position.copy(r.p); r.node.quaternion.copy(r.q); }); feet.forEach(function (f) { f.locked = false; f.weight = 0; });
       }
       // The gameplay root may have moved since the last render. Refresh its
@@ -450,7 +458,16 @@
       moveWeight += ((move > .015 ? clamp(speed / (.85 * characterScale), 0, 1) : 0) - moveWeight) * (dt > 0 ? damp(15, dt) : 1);
       localVelocity.copy(velocity).applyQuaternion(invRoot); var direction = localVelocity.lengthSq() > .001 ? Math.atan2(localVelocity.x, localVelocity.z) : 0;
       if (Number.isFinite(state.moveX) || Number.isFinite(state.moveZ)) direction = Math.atan2(finite(state.moveX, 0), finite(state.moveZ, 1));
-      var backward = Math.cos(direction) < -.3, legYaw = clamp(backward ? signedAngle(direction + PI) : direction, -1.25, 1.25);
+      // Crossing the strafe/backward boundary used to flip both legs by 2.5 radians in one frame.
+      // Hysteresis keeps small steering changes from reversing the gait; the heading eases through the turn.
+      var facingMove = Math.cos(direction);
+      if (!initialized) backwardMotion = facingMove < -.3;
+      else if (facingMove < -.4) backwardMotion = true;
+      else if (facingMove > 0) backwardMotion = false;
+      var backward = backwardMotion, legYaw = clamp(backward ? signedAngle(direction + PI) : direction, -1.25, 1.25);
+      if (!initialized || dt === 0) legYawCur = legYaw;
+      else legYawCur += signedAngle(legYaw - legYawCur) * damp(12, dt);
+      legYaw = legYawCur;
       var normalizedSpeed = speed / characterScale, walkJog = smooth((normalizedSpeed - 1.0) / 1.5), jogSprint = smooth((normalizedSpeed - 3.3) / 1.8);
       var gaitName = 'walk', walking = true;
       var stride = (STRIDE.walk + (STRIDE.jog - STRIDE.walk) * walkJog + (STRIDE.sprint - STRIDE.jog) * jogSprint) * characterScale, oldGait = gait;
@@ -612,12 +629,13 @@
       }
       if (dodge > 0 || (state.dead && deathKind === 'blown')) {
         var rollFloor = Infinity;
-        [0, 3, 5].forEach(function (index) {
-          var joint = mapping[index]; if (!joint) return;
+        for (var floorJoint = 0; floorJoint < 3; floorJoint++) {
+          var index = floorJoint === 0 ? 0 : floorJoint === 1 ? 3 : 5;
+          var joint = mapping[index]; if (!joint) continue;
           joint.getWorldPosition(va); joint.getWorldQuaternion(qa);
           if (index === 5) va.add(vb.set(0, .105 * characterScale, 0).applyQuaternion(qa));
           rollFloor = Math.min(rollFloor, va.y - (index === 5 ? .135 : .18) * characterScale);
-        });
+        }
         if (rollFloor < rootNow.y + .015) moveHipY(rootNow.y + .015 - rollFloor);
       }
       var canPlant = initialized && dt > 0 && !teleported && !state.dead && !dodge && !leap && moveWeight > .05 && !acting && !stagger && modeAge > .1;
@@ -642,7 +660,7 @@
         }
         if (previousDodge > 0 && dodge === 0) emit(feet[0], .95, 'roll');
       }
-      root.userData.authoredMotion = { clip: nextMode, source: 'Quaternius CC0', phase: attack || dodge || wrap(gait), strike: strikePhase };
+      motionInfo.clip = nextMode; motionInfo.phase = attack || dodge || wrap(gait); motionInfo.strike = strikePhase;
       rootBefore.copy(rootNow); previousDodge = dodge; initialized = true;
     }
     animate(0, {});

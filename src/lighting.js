@@ -241,18 +241,18 @@
 
     function patchCharacters(game) {
       if (!game) return;
-      var list = [game.player].concat(game.enemies || []);
-      for (var i = 0; i < list.length; i++) {
-        var m = list[i] && list[i].model;
+      var enemies = game.enemies || [];
+      for (var i = -1; i < enemies.length; i++) {
+        var actor = i < 0 ? game.player : enemies[i], m = actor && actor.model;
         if (m && m.root && !patched.has(m.root)) { patched.add(m.root); patchModel(m.root); }
       }
     }
 
     function updateBlobs(game, dt) {
       if (!game || !game.player) { blobs.count = 0; return; }
-      var n = 0, list = [game.player].concat(game.enemies || []);
-      for (var i = 0; i < list.length && n < BLOBS; i++) {
-        var e = list[i]; if (!e || !e.model) continue;
+      var n = 0, enemies = game.enemies || [];
+      for (var i = -1; i < enemies.length && n < BLOBS; i++) {
+        var e = i < 0 ? game.player : enemies[i]; if (!e || !e.model) continue;
         var fade = e.__karaBlob == null ? 1 : e.__karaBlob;
         fade += ((e.dead ? 0 : 1) - fade) * Math.min(1, dt * 4); e.__karaBlob = fade;
         if (fade < .02) continue;

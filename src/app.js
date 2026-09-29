@@ -32,7 +32,7 @@
   const coarsePointer = matchMedia('(pointer:coarse)').matches;
   // Desktop defaults follow the current display's pixel density. Extra AA is opt-in.
   const DEFAULTS = { quality: 'high', qualityVersion: 3, ...DISPLAY.defaults, exposure: 1.15, shake: .55, master: .65, music: .42, sfx: .75, voice: .85, subtitles: true, uiScale: 1 };
-  const MSAA_STEPS = [0, 2, 4], UI_STEPS = [.85, 1];
+  const MSAA_STEPS = [0, 2, 4], UI_STEPS = [.85, 1, 1.25];
   const LIMITS = { exposure: [.7, 1.7], shake: [0, 1], master: [0, 1], music: [0, 1], sfx: [0, 1], voice: [0, 1] };
   // `cfg` is shared with effects.js / world.js / combat.js (they read the technical fields).
   const cfg = { ...DEFAULTS, impact: .65, touch: 'auto', showFps: false };
@@ -151,6 +151,7 @@
   let view = 'title', stack = [];
   let renderer, scene, camera, world, game, rig, post;
   let ready = false, paused = true, frame = 0, last = 0, qaClock = 0, visualDt = 0;
+  let graphicsLost = false, graphicsRecovering = false, graphicsEpoch = 0;
   const renderClock = B.Pacing.create();
   let rageHinted = false;   // the "Öfke hazır" hint shows once per session
   let shake = 0, flash = 0, ragePush = 0, announceTimer = 0, hudTimer = 0, firstHint = 25, elapsed = 0;
@@ -177,6 +178,7 @@
 
   /* ───────────── Views ───────────── */
   function show(next) {
+    if ((graphicsLost || graphicsRecovering) && next === 'playing') next = 'pause';
     if (next !== view) resetPerformance();
     view = next;
     if (next === 'playing' || next === 'title') stack = [];
@@ -204,6 +206,8 @@
     heldLight = false; lightPointer = null; touchHold = null; clicks.light = clicks.heavy = false; cursor.target = null;
     joy.x = joy.z = 0; joy.id = null; resetStick();
     input.aimX = input.aimZ = input.aimFoe = null;
+    input.x = input.z = 0; input.target = input.pointX = input.pointZ = null;
+    for (const a of ['light', 'heavy', 'near', 'clickLight', 'clickHeavy', 'holdLight', 'holdHeavy', 'stand', 'dodge', 'heal', 'rage', 'special', 'interact']) input[a] = false;
   }
 
   /* ───────────── Messages ───────────── */
@@ -283,9 +287,10 @@
     }
     else if (name === 'rage') { shake = Math.max(shake, .45); if (!reducedMotion.matches) ragePush = 1; notify('ÖFKE UYANDI', 'rage'); }   // war cry: camera pushes in on the father
     else if (name === 'rageEnd') notify('Öfke söndü');
-    else if (name === 'checkpoint') { $('objective').textContent = 'Celladı bul. Geçidi aç.'; announce('Yemin mühürlendi', 'KONTROL NOKTASI', 'checkpoint'); notify('Canın ve iksirlerin yenilendi. Buradan geri döneceksin.', 'seal'); if (B.Audio.say) B.Audio.say('checkpoint'); }
+    else if (name === 'checkpoint') { $('objective').textContent = 'Celladı bul. Geçidi aç.'; announce('Yemin mühürlendi', 'KONTROL NOKTASI', 'checkpoint'); notify('Canın ve iksirlerin yenilendi. Buradan geri döneceksin.', 'seal'); if (B.Audio.saySequence) B.Audio.saySequence(['checkpoint', 'heroOath']); else if (B.Audio.say) B.Audio.say('checkpoint'); }
     else if (name === 'encounter') { if (d.name) announce(d.name, 'KARŞILAŞMA'); }
-    else if (name === 'boss') { if (d.active !== false) { announce(d.name || 'Zincir Celladı', 'KURBAN SALONU', 'boss'); if (B.Audio.say) B.Audio.say('boss'); } }
+    else if (name === 'encounterCleared') { announce('Mühür açıldı', d.roomName || d.name || 'SALON TEMİZLENDİ', 'seal'); }
+    else if (name === 'boss') { if (d.active !== false) { announce(d.name || 'Zincir Celladı', 'KURBAN SALONU', 'boss'); if (B.Audio.saySequence) B.Audio.saySequence(['boss', 'cellat']); else if (B.Audio.say) B.Audio.say('boss'); } }
     else if (name === 'death') death(d);
     else if (name === 'win') victory(d);
     else if (name === 'toast') notify(d.text);
@@ -359,7 +364,7 @@
   }
   function densityChanged() { watchPixelDensity(); resize(); }
   function resize() {
-    if (!renderer) return;
+    if (!renderer || graphicsLost) return;
     const w = innerWidth, h = innerHeight;
     // HUD scale: as before up to 982 px of screen height, then it keeps growing with the screen (big monitors); "Arayüz boyutu" multiplies it.
     const side = Math.min(w, h);
@@ -460,7 +465,7 @@
     paintQuality(); video.append(q);
     const displayNote = document.createElement('small'); displayNote.id = 'display-note'; q.append(displayNote);
     video.append(choiceRow('displayMode', 'Yüksek çözünürlüklü ekran', ['native', 'smooth'], v => v === 'native' ? 'Doğal görüntü' : 'Daha akıcı'),
-      choiceRow('uiScale', 'Arayüz boyutu', UI_STEPS, v => v < 1 ? 'Küçük' : 'Normal'));
+      choiceRow('uiScale', 'Arayüz boyutu', UI_STEPS, v => v < 1 ? 'Küçük' : v > 1 ? 'Büyük' : 'Normal'));
     const advanced = document.createElement('details'); advanced.className = 'advanced-graphics'; advanced.open = cfg.msaa > 0;
     advanced.innerHTML = '<summary>Güçlü bilgisayarlar için</summary>';
     advanced.append(choiceRow('msaa', 'Kenar yumuşatma (MSAA)', MSAA_STEPS, v => v ? v + '×' : 'Kapalı'));
@@ -589,6 +594,7 @@
     window.addEventListener('resize', resize);
     watchPixelDensity();
     window.addEventListener('gamepadconnected', () => notify('Gamepad bağlandı.'));
+    window.addEventListener('gamepaddisconnected', () => { lastPad.length = 0; clearInput(); if (view === 'playing') show('pause'); notify('Gamepad bağlantısı kesildi. Oyun duraklatıldı.'); });
     // Menu clicks get a short iron tick (Audio stays silent under ?sessiz).
     document.addEventListener('click', e => { if (e.target.closest('.screen button')) B.Audio.play('ui', { volume: .5 }); });
   }
@@ -771,34 +777,49 @@
     input.clickLight = clicks.light; input.clickHeavy = clicks.heavy; clicks.light = clicks.heavy = false;
     input.target = cursor.target;
     if (cursor.touch && touchHold === null) cursor.has = false;   // a finger that has lifted no longer points at anything
-    const pad = navigator.getGamepads && Array.from(navigator.getGamepads()).find(Boolean);
+    const pad = connectedPad();
     if (pad) {
-      const dz = v => Math.abs(v) > .16 ? v : 0;
-      x += dz(pad.axes[0] || 0); z += dz(pad.axes[1] || 0);
-      const ax = dz(pad.axes[2] || 0), az = dz(pad.axes[3] || 0);
+      const left = stickScale(pad.axes[0] || 0, pad.axes[1] || 0);
+      x += (pad.axes[0] || 0) * left; z += (pad.axes[1] || 0) * left;
+      const right = stickScale(pad.axes[2] || 0, pad.axes[3] || 0);
+      const ax = (pad.axes[2] || 0) * right, az = (pad.axes[3] || 0) * right;
       if (Math.hypot(ax, az) > .2) { input.aimX = game.player.x + ax * 8; input.aimZ = game.player.z + az * 8; }
-      const map = { 0: 'dodge', 1: 'heal', 2: 'light', 3: 'heavy', 4: 'special', 5: 'rage' };
-      for (const [i, a] of Object.entries(map)) if (pad.buttons[i]?.pressed && !lastPad[i]) actions[a] = true;
+      for (let i = 0; i < PAD_ACTIONS.length; i++) if (pad.buttons[i]?.pressed && !lastPad[i]) actions[PAD_ACTIONS[i]] = true;
       if (pad.buttons[9]?.pressed && !lastPad[9]) show(view === 'playing' ? 'pause' : 'playing');
-      lastPad = pad.buttons.map(b => b.pressed);
-    }
+      rememberPad(pad);
+    } else lastPad.length = 0;
     const len = Math.hypot(x, z); if (len > 1) { x /= len; z /= len; }
     input.x = x; input.z = z;
     for (const a of ['light', 'heavy', 'near', 'dodge', 'heal', 'rage', 'special', 'interact']) { input[a] = !!actions[a]; delete actions[a]; }
     return input;
   }
+  const PAD_ACTIONS = ['dodge', 'heal', 'light', 'heavy', 'special', 'rage'];
+  function connectedPad() {
+    const pads = navigator.getGamepads && navigator.getGamepads();
+    if (pads) for (let i = 0; i < pads.length; i++) if (pads[i] && pads[i].connected !== false) return pads[i];
+    return null;
+  }
+  // A radial, rescaled dead zone removes idle drift without a sudden speed jump.
+  function stickScale(x, z) {
+    const length = Math.hypot(x, z);
+    return length <= .16 ? 0 : Math.min(1, (length - .16) / .84) / length;
+  }
+  function rememberPad(pad) {
+    for (let i = 0; i < pad.buttons.length; i++) lastPad[i] = !!pad.buttons[i].pressed;
+    lastPad.length = pad.buttons.length;
+  }
 
   /* ───────────── HUD ───────────── */
-  // The HUD portrait is a picture rendered once from the real hero model (assets/ui/portrait.webp): a second live
-  // WebGL context would compile the hero's sixteen materials again at start. `?portrait` renders it live with the same
-  // framing and lights; to refresh the file save the #hero-portrait canvas as image/webp (quality .92).
+  // The HUD portrait is a painted adaptation of the real hero's original model portrait.
+  // Loading it once avoids a second live GL context and repeated character shader work.
+  // `?portrait` still renders the actual model for modelling/framing QA; it is not the painted HUD asset.
   function makePortrait() {
     const canvas = $('hero-portrait'), N = 384, context = canvas.getContext('2d');
     canvas.width = canvas.height = N;
     if (!Q.has('portrait')) {
       const img = new Image();
       img.onload = () => { context.clearRect(0, 0, N, N); context.drawImage(img, 0, 0, N, N); };
-      img.src = 'assets/ui/portrait.webp';
+      img.src = 'assets/ui/portrait-v47.webp';
       return;
     }
     // Rendered 3x over with MSAA and averaged down; dark ember backdrop, vignette and a light unsharp mask are baked in.
@@ -911,6 +932,20 @@
     }
     drawMinimap(p);
   }
+  function chapterObjective(room) {
+    if (game.state === 'won') return 'Geçit açıldı. Kurban Tapınağı sustu.';
+    if (!room) return 'Kuzeydeki salona ilerle.';
+    const idx = room.id;
+    if (idx === 5) return game.checkpointIndex ? 'Yeminin mühürlendi. Zincir Mahkemesi’ne ilerle.' : 'Yemin taşına yaklaş ve ' + capName(binds.interact[0]) + ' ile dokun.';
+    if (idx === 6) {
+      const boss = game.boss || game.enemies.find(e => e.boss);
+      return boss && boss.phase === 2 ? 'Zincirler kırıldı. Celladın kızıl darbelerinden kaçın.' : 'Zincir Celladı’nı yen. Tapınağın geçidini aç.';
+    }
+    let remaining = 0;
+    for (const e of game.enemies) if (!e.dead && e.encounter && e.encounter.room === idx) remaining++;
+    if (remaining) return 'Çıkış mühürlü. Bu salonda ' + remaining + ' düşman kaldı.';
+    return idx === 4 ? 'Mühür açıldı. Şapeldeki yemin taşını bul.' : 'Mühür açıldı. Kuzeydeki salona ilerle.';
+  }
   function hud(dt) {
     const p = game.player;
     const hp = clamp(p.hp / p.maxHp, 0, 1);
@@ -929,7 +964,7 @@
     if (p.rageTime > rageMax) rageMax = p.rageTime;
     rageBtn.style.setProperty('--rage', p.rageTime > 0 ? clamp(p.rageTime / rageMax, 0, 1) : rage);
     rageBtn.classList.toggle('ready', rage >= .99 && !p.rageTime);
-    if (rage >= .99 && !p.rageTime && !rageHinted) { rageHinted = true; notify('Öfke hazır. ' + (($('actionbar').querySelector('.action-rage kbd') || {}).textContent || 'R') + ' ile bağır.', 'rage'); }
+    if (rage >= .99 && !p.rageTime && !rageHinted) { rageHinted = true; notify('Öfke hazır. ' + (($('actionbar').querySelector('.action-rage kbd') || {}).textContent || '2') + ' ile bağır.', 'rage'); }
     rageBtn.classList.toggle('burning', p.rageTime > 0);
     document.body.classList.toggle('raging', p.rageTime > 0);
     updateOverview();
@@ -944,10 +979,10 @@
       $('boss-hud').classList.toggle('phase2', boss.phase === 2);
     }
     const r = world.roomAt(p.x, p.z);
+    if (r) hudText('objective', chapterObjective(r));
     if (r && r.id !== roomId) {
       roomId = r.id; $('location').textContent = r.name;
       const idx = typeof r.id === 'number' ? r.id : world.rooms.indexOf(r);
-      $('objective').textContent = game.checkpointIndex ? 'Celladı bul. Geçidi aç.' : idx < 2 ? 'Tapınağın derinlerine in.' : idx < 5 ? 'Kurban salonuna ulaş.' : 'Yemin taşını bul.';
       if (B.Audio.say && idx > 0) B.Audio.say(['intro', 'chains', 'ritual', 'crypt', 'rot', 'checkpoint', 'boss'][Math.min(6, idx)]);
     }
     // Same reach as the stone's own auto-seal (combat.js): the button shows when enemies still keep it from sealing.
@@ -1046,7 +1081,7 @@
     return graphicsAdapter;
   }
   function performanceReport() {
-    return { schema: 3, game: 'Kabir Azabı', build: 46, capturedAt: new Date().toISOString(), view,
+    return { schema: 3, game: 'Kabir Azabı', build: 47, capturedAt: new Date().toISOString(), view,
       location: { room: world.rooms?.[roomId]?.name || roomId, x: game.player.x, z: game.player.z },
       display: { width: post.width, height: post.height, windowWidth: innerWidth, windowHeight: innerHeight,
         devicePixelRatio: window.devicePixelRatio || 1, renderPixelRatio: renderer.getPixelRatio() },
@@ -1096,6 +1131,7 @@
   function loop(ts) { requestAnimationFrame(loop); frameStep(ts); }
   function frameStep(ts) {
     if (!ready) return;
+    if (graphicsLost || graphicsRecovering) { last = ts; visualDt = 0; return; }
     const measured = cfg.showFps || Q.has('gpums');
     const cpuStart = measured ? performance.now() : 0;
     if (measured) performanceMeter.callback(ts);
@@ -1107,11 +1143,11 @@
       const stopped = Math.min(dt, hitPause), simDt = dt - stopped; hitPause -= stopped;
       // Input events remain queued during contact emphasis; all combat clocks share simDt
       // so neither enemies nor i-frames gain a hidden time advantage.
-      if (simDt > .000001) { const inp = pollInput(); game.update(simDt, inp); fxStep(simDt); footstepFeedback(); }
+      if (simDt > .000001) { const inp = pollInput(); if (view === 'playing') { game.update(simDt, inp); fxStep(simDt); footstepFeedback(); } }
       hudTimer += dt; if (hudTimer > .08) { hud(hudTimer); hudTimer = 0; }
     }
     else if ((game.state === 'dead' || game.state === 'won') && view === 'playing') { game.update(dt, { ...input, x: 0, z: 0, light: false, heavy: false, clickLight: false, clickHeavy: false, holdLight: false, holdHeavy: false, target: null, dodge: false, heal: false, rage: false }); fxStep(dt); }
-    if (view === 'pause') { const pad = navigator.getGamepads && Array.from(navigator.getGamepads()).find(Boolean); if (pad) { if (pad.buttons[9]?.pressed && !lastPad[9]) show('playing'); lastPad = pad.buttons.map(b => b.pressed); } }
+    if (view === 'pause') { const pad = connectedPad(); if (pad) { if (pad.buttons[9]?.pressed && !lastPad[9]) show('playing'); rememberPad(pad); } else lastPad.length = 0; }
     if (announceTimer > 0) { announceTimer -= dt; if (announceTimer <= 0) $('announcement').classList.remove('show'); }
     flash = Math.max(0, flash - dt * 1.7);
     for (let i = warnings.length - 1; i >= 0; i--) {
@@ -1121,7 +1157,7 @@
     const fighting = game.enemies.some(e => !e.dead && e.active && Math.hypot(e.x - game.player.x, e.z - game.player.z) < 10);
     if (fighting) announceTimer = Math.min(announceTimer, .35);
     if (fighting && firstHint > 0) { $('tutorial').classList.add('hidden'); firstHint = 0; }
-    B.Audio.update(dt, { playing, combat: fighting, boss: game.enemies.some(e => e.boss && !e.dead && Math.hypot(e.x - game.player.x, e.z - game.player.z) < 25) });
+    B.Audio.update(dt, { playing: view === 'playing' && game.state === 'playing', combat: fighting, boss: game.enemies.some(e => e.boss && !e.dead && Math.hypot(e.x - game.player.x, e.z - game.player.z) < 25) });
     const simulationEnd = measured ? performance.now() : 0;
     // While new shader programs compile in the background the last frame stays on screen (drawing would block the page).
     if (!warming && renderClock.due(ts, cfg.fps)) {
@@ -1204,8 +1240,10 @@
     return { jobs, geometryObjects, textures: Array.from(textures).filter(t => t.image && !t.isCompressedTexture) };
   }
   function warmShaders(overlay, onProgress) {
-    if (!renderer) return Promise.resolve();
+    if (!renderer || graphicsLost) return Promise.resolve(false);
     if (warming) return warming;
+    const epoch = graphicsEpoch;
+    const checkContext = () => { if (graphicsLost || graphicsEpoch !== epoch) throw Error('Grafik hazırlığı bağlantı kesildiği için durduruldu.'); };
     const box = $('warming'), fill = $('warm-fill');
     if (overlay && box) box.classList.remove('hidden');
     warmStats = { jobs: 0, textures: 0 };
@@ -1228,6 +1266,7 @@
     const progress = k => { if (onProgress) onProgress(k); if (fill) fill.style.transform = `scaleX(${Math.max(.04, k)})`; };
     const report = () => progress(.15 + .85 * Math.min(1, (next + tex / 3 + geo / 12) / total));
     async function run() {
+      checkContext();
       // Cut meshes are expensive to build on a foe's first killing blow. Prepare
       // each cached cut under the loading cover, yielding so the bar can still move.
       if (game.limbs && game.limbs.prepare) {
@@ -1239,7 +1278,7 @@
         warmStats.cuts = Math.round(performance.now() - cutStart);
         warmStats.cutVariants = game.limbs.stats().cached;
       }
-      work = prepareWarmScene();
+      checkContext(); work = prepareWarmScene();
       warmStats.jobs = work.jobs.length;
       total = work.jobs.length + work.textures.length / 3 + work.geometryObjects.length / 12 + 1;
       report();
@@ -1251,6 +1290,7 @@
         tex = work.textures.length;
       }
       while (next < work.jobs.length || !postDone) {
+        checkContext();
         const before = renderer.info.programs.length;
         batch.list = work.jobs.slice(next, next + WARM_BATCH); next += batch.list.length;
         const rt = renderer.getRenderTarget(); renderer.setRenderTarget(post.target);
@@ -1262,6 +1302,7 @@
         // when a batch takes unusually long, e.g. software rendering or a headless virtual clock).
         const batchStart = performance.now();
         while (pending.length && performance.now() - t0 < 120000) {
+          checkContext();
           if (parallel && performance.now() - batchStart < 2500) { pending = pending.filter(p => !p.isReady()); if (pending.length) await new Promise(r => setTimeout(r, 16)); }
           else { const p = pending.shift(); safe(() => p.getUniforms()); await new Promise(r => setTimeout(r, 0)); }
         }
@@ -1279,6 +1320,7 @@
       warmStats.programs = Math.round(performance.now() - t0);
       // Big character and surface maps: a few uploads per frame instead of all on the first draw.
       while (tex < work.textures.length) {
+        checkContext();
         for (let i = 0; i < 3 && tex < work.textures.length; i++) safe(() => renderer.initTexture(work.textures[tex++]));
         report(); await frame();
       }
@@ -1287,16 +1329,18 @@
       // index and instance data now so entering a room cannot first allocate it.
       const geometryStart = performance.now();
       if (renderer.initGeometry) while (geo < work.geometryObjects.length) {
+        checkContext();
         for (let i = 0; i < 12 && geo < work.geometryObjects.length; i++) renderer.initGeometry(work.geometryObjects[geo++]);
         report(); if (!WARM_SYNC) await frame();
       }
       warmStats.geometryObjects = geo; warmStats.geometryUploads = Math.round(performance.now() - geometryStart);
       // One real frame (shadow-map variants) while the cover is still up.
-      safe(() => { cameraStep(0); atmosphereStep(0); post.render(elapsed); });
+      checkContext(); safe(() => { cameraStep(0); atmosphereStep(0); post.render(elapsed); });
       warmStats.total = Math.round(performance.now() - t0); warmStats.count = renderer.info.programs.length;
       if (WARM_LOG) console.warn('[warm] done', JSON.stringify(warmStats));
+      return true;
     }
-    warming = run().catch(e => console.warn('[Kabir Azabı]', e)).then(() => { warming = null; if (box) box.classList.add('hidden'); if (onProgress) onProgress(1); });
+    warming = run().catch(e => { console.warn('[Kabir Azabı]', e); return false; }).then(ok => { warming = null; if (box) box.classList.add('hidden'); if (onProgress) onProgress(1); return ok; });
     return warming;
   }
 
@@ -1331,7 +1375,7 @@
     game = B.Game.create(world, { scene, emit: event, sound: (n, o) => B.Audio.play(n, o), fx });
     makeFX(); postProcess(); setupUI();
     titleCamera();
-    B.Audio.onCaption(text => { const n = $('narration'); n.querySelector('p').textContent = text; n.classList.toggle('hidden', !text || !cfg.subtitles); if (text) { tap(n); $('tutorial').classList.add('hidden'); } });
+    B.Audio.onCaption((text, speaker = 'Anlatıcı') => { const n = $('narration'); n.querySelector('.narration-text span').textContent = speaker; n.querySelector('p').textContent = text; n.classList.toggle('hidden', !text || !cfg.subtitles); if (text) { tap(n); $('tutorial').classList.add('hidden'); } });
     // The embedded UI fonts are also offered to canvas text (damage numbers, labels) once decoded.
     if (document.fonts && document.fonts.load) safe(() => { document.fonts.load('800 40px "Source Sans 3"'); });
     // The shadow pass clones ONE depth material per source material and then reuses it for skinned, instanced and plain casters alike,
@@ -1364,7 +1408,26 @@
       // Deterministic frame stepping for headless QA pages (virtual time barely runs requestAnimationFrame).
       step(n = 1) { for (let i = 0; i < n; i++) { qaClock = Math.max(qaClock, last || performance.now()) + 1000 / 60; frameStep(qaClock); } renderClock.reset(); } };
     $('fps-report').addEventListener('click', downloadPerformance);
-    $('game').addEventListener('webglcontextlost', e => { e.preventDefault(); graphicsAdapter = null; resetPerformance(); show('pause'); notify('Grafik bağlantısı kesildi. Sekmeyi yeniden yüklemen gerekebilir.'); });
+    $('game').addEventListener('webglcontextlost', e => {
+      e.preventDefault(); graphicsLost = graphicsRecovering = true; graphicsEpoch++; graphicsAdapter = null;
+      resetPerformance(); show('pause'); notify('Grafik bağlantısı kesildi. Oyun duraklatıldı; bağlantı bekleniyor.');
+    });
+    $('game').addEventListener('webglcontextrestored', () => {
+      graphicsLost = false; graphicsRecovering = true;
+      const epoch = graphicsEpoch;
+      // Three has restored its renderer first. Warm all rooms and cached cuts
+      // again before the player resumes, rather than stall at every first draw.
+      Promise.resolve(warming).then(() => {
+        if (graphicsLost || graphicsEpoch !== epoch) return false;
+        applySettings(); last = visualDt = 0; renderClock.reset();
+        return warmShaders(true);
+      }).then(ok => {
+        if (graphicsLost || graphicsEpoch !== epoch) return;
+        if (ok === false) throw Error('Grafik hazırlığı tamamlanamadı.');
+        graphicsRecovering = false; last = visualDt = 0; renderClock.reset();
+        notify('Grafikler yeniden hazır. Devam et ile yolculuğa dönebilirsin.');
+      }).catch(e => { if (graphicsEpoch === epoch) { console.warn('[Kabir Azabı]', e); notify('Grafikler hazırlanamadı. Sayfayı yeniden yükle.'); } });
+    });
     loadProgress(.96, 'Işıklar ve gölgeler hazırlanıyor…');
     return warmShaders(false, k => loadProgress(.96 + .04 * k)).then(() => {
       loadProgress(1, 'Hazır.');
@@ -1378,6 +1441,13 @@
   loadProgress(.92, 'Karakterler hazırlanıyor…');
   // Düşük loads the character textures at half size and touch tablets cap them at 1024 px (up to ~88 MB less video memory).
   lowTextures = cfg.quality === 'low';
-  Promise.resolve().then(() => B.Models.prepare({ textureScale: lowTextures ? .5 : 1, maxTexture: coarsePointer ? 1024 : 2048 }))
+  Promise.resolve().then(async () => {
+    await B.Models.prepare({ textureScale: lowTextures ? .5 : 1, maxTexture: coarsePointer ? 1024 : 2048 });
+    if (B.Audio.prepare) {
+      loadProgress(.94, 'Tapınağın sesleri hazırlanıyor…');
+      try { await B.Audio.prepare(k => loadProgress(.94 + .01 * k)); }
+      catch (e) { console.warn('[Kabir Azabı] Ses hazırlığı tamamlanamadı.', e); }
+    }
+  })
     .then(() => { loadProgress(.95, 'Mahzen aydınlanıyor…'); return boot(); }).catch(fatal);
 })();

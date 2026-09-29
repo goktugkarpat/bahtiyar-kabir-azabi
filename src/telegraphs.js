@@ -28,11 +28,12 @@ void main(){
   float side = cs*d.x - sn*d.y, fwd = sn*d.x + cs*d.y;
   float r = length(d), ang = r > 1e-6 ? atan(side, fwd) : 0., R = uDim.x, span = 6.2832, sd, t;
   if (uShape == 0) { sd = r - R; t = r/R; }
-  // Rounded corners everywhere (no sharp box corners): cones get a rounded outer arc and a blunt tip, lines a capsule-like body with a slightly tapering far end.
+  // Cones have a rounded arc/tip; a line's base is the exact combat width × length.
+  // Noise, feathering and the halo below soften its edge without shrinking the danger area.
   else if (uShape == 1) { span = uDim.y; float a = abs(ang)-span*.5, sdS = a > 0. ? r*sin(min(a,1.5708)) : a*r, rc = min(.45, R*.18);
          sd = rmax(r-R, sdS, rc); sd = max(sd, .28-r); t = r/R; }
-  else if (uShape == 2) { float hw = uDim.x*.5*(1.-.2*smoothstep(.5, 1., clamp(fwd/uDim.y, 0., 1.))), rc2 = min(hw*.9, uDim.y*.45);
-         vec2 q = vec2(abs(side), abs(fwd-uDim.y*.5)) - vec2(hw, uDim.y*.5) + rc2; sd = length(max(q, 0.)) + min(max(q.x, q.y), 0.) - rc2; t = fwd/uDim.y; R = uDim.y; }
+  else if (uShape == 2) { vec2 q = vec2(abs(side), abs(fwd-uDim.y*.5)) - vec2(uDim.x*.5, uDim.y*.5);
+         sd = length(max(q, 0.)) + min(max(q.x, q.y), 0.); t = fwd/uDim.y; R = uDim.y; }
   else { span = uDim.z; float a = abs(ang)-span*.5, ring = max(uDim.x-r, r-uDim.y), rc = min(.4, (uDim.y-uDim.x)*.4);
          sd = span < 6.28 ? rmax(ring, a > 0. ? r*sin(min(a,1.5708)) : a*r, rc) : ring;
          t = (r-uDim.x)/max(.01, uDim.y-uDim.x); R = uDim.y; }
@@ -50,7 +51,7 @@ void main(){
   float lit = 1.-smoothstep(front-.10, front, ft), band = smoothstep(front-.18, front-.03, ft)*lit;
   // A full-circle sweep starts and ends on the same radius: feather the start so the wrap never reads as a straight seam.
   // The bright front band also fades out over the last few degrees, where it would meet the start line.
-  if (uFill == 2 && span > 6.2) { float fe = mix(smoothstep(0., .09, ft), 1., e*e); lit *= fe; band *= fe * smoothstep(1., .9, ft); }
+  if (uFill == 2 && span > 6.2) { float fe = mix(smoothstep(0., .09, ft), 1., e*e); lit *= fe; band *= fe * (1.-smoothstep(.9, 1., ft)); }
   float edge = exp(-abs(sd)/(uE.w+.03*n)) * (.5+.5*smoothstep(.3,.7,n)); float n2 = vnoise(vW*7.3 + uSeed*3.);
   edge *= mix(1., .15 + .85*smoothstep(.35,.75,n2), uBreak);
   float edgeK = uE.x + uE.y*uU*uU + uE.z*uFlare;
@@ -239,14 +240,14 @@ void main(){ vec2 p = (vUv-.5)*2.*uMax; float r = length(p), a = r > 1e-6 ? atan
       polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3, uniforms: { uCol: { value: new T.Vector3() }, uA: { value: 0 } } });
 
     // ------------------------------------------------------------------ pooled ground tells
-    const tells = [], live = new Map();
+    const tells = [], live = new Map(), seen = new Set();
     let clock = 0, lastReset = null, warmed = false, frameDt = 0;
     function makeTell() {
       const mat = poolBase.clone(); mat.uniforms.uRune.value = textures.rune; mat.uniforms.uCrack.value = textures.crack;
       const mesh = new T.Mesh(plane, mat); mesh.renderOrder = 2; mesh.frustumCulled = false; mesh.visible = false; mesh.name = 'tell';
       const ribMat = ribBase.clone(), rib = new T.Mesh(ribGeo, ribMat); rib.renderOrder = 3; rib.frustumCulled = false; rib.visible = false;
       group.add(mesh, rib);
-      const t = { mesh, mat, rib, ribMat, h: null, busy: false, releasing: false, rel: 0, struck: false, acc: {}, flared: false, fade: 0, last: null };
+      const t = { mesh, mat, rib, ribMat, h: null, busy: false, releasing: false, rel: 0, struck: false, acc: {}, flared: false, fade: 0, last: null, state: { u: 0, flare: 0, hit: 0 } };
       tells.push(t); return t;
     }
     for (let i = 0; i < 24; i++) makeTell();
@@ -287,14 +288,15 @@ void main(){ vec2 p = (vUv-.5)*2.*uMax; float r = length(p), a = r > 1e-6 ? atan
       }
       t.placed = style;
     }
-    function tellState(h) {
+    const stateScratch = { u: 0, flare: 0, hit: 0 };
+    function tellState(h, target) {
       const u = clamp(h.age / h.warn, 0, 1), flare = h.active ? Math.max(0, 1 - (h.age - h.warn) / .12) : smooth((h.age - (h.warn - LEAD)) / LEAD);
       const hit = h.active ? Math.max(0, 1 - (h.age - h.warn) / .25) : 0;
-      return { u, flare, hit };
+      const result = target || stateScratch; result.u = u; result.flare = flare; result.hit = hit; return result;
     }
     function update(t, h, cfg, calm) {
       if (t.placed !== styleOf(h)) place(t, h);
-      const u = t.mat.uniforms, s = tellState(h), liquid = u.uStyle.value === 12;
+      const u = t.mat.uniforms, s = tellState(h, t.state), liquid = u.uStyle.value === 12;
       let fade = clamp(h.age / .08, 0, 1);
       if (liquid) fade *= clamp((h.warn + h.duration - h.age) / .6, 0, 1);
       u.uU.value = liquid ? 1 : s.u; u.uFlare.value = liquid ? 0 : s.flare; u.uHit.value = liquid ? 0 : s.hit; u.uFade.value = fade;
@@ -386,7 +388,8 @@ void main(){ vec2 p = (vUv-.5)*2.*uMax; float r = length(p), a = r > 1e-6 ? atan
       if (h.unblockable && !h.persistent) {
         // The floor drinks: crimson motes drawn inward from just outside the edge.
         rate('in', 24, () => {
-          const p = sample(h, 'edge'), cx = h.shape === 'line' ? local(h, 0, h.length / 2) : { x: h.x, z: h.z }, ox = p.x, oz = p.z;
+          const p = sample(h, 'edge'), ox = p.x, oz = p.z;
+          const cx = h.shape === 'line' ? local(h, 0, h.length / 2) : { x: h.x, z: h.z };
           const dx = (cx.x - ox), dz = (cx.z - oz), life = .6;
           e(ox + dx * -.08, .1, oz + dz * -.08, 5, [1.8, .15, .1], dx * .6 / life * drift, .08, dz * .6 / life * drift, life, .06);
         });
@@ -442,6 +445,7 @@ void main(){ vec2 p = (vUv-.5)*2.*uMax; float r = length(p), a = r > 1e-6 ? atan
       g.used = true; return g;
     }
     function showGlint(pos, scale, col) { const g = glint(); g.s.position.copy(pos); g.s.scale.set(scale, scale, 1); g.m.color.setRGB(col[0], col[1], col[2]); g.s.visible = true; }
+    const enemyState = { g: 0, flare: 0, unb: false, pending: false, maxU: 0 }, silentState = { g: 0 };
     function enemyTell(e) {
       // Strongest tell of this enemy: intent (acting, nothing on the floor yet), pending (u), flare window.
       let g = 0, flare = 0, unb = false, next = Infinity, pending = false, maxU = 0;
@@ -455,7 +459,7 @@ void main(){ vec2 p = (vUv-.5)*2.*uMax; float r = length(p), a = r > 1e-6 ? atan
         if (h.warn - h.age < next) { next = h.warn - h.age; unb = !!h.unblockable; }
       }
       if (!pending && e.action && !e.dead) { g = .05; unb = !!e.action.unblockable; }
-      return { g, flare, unb, pending, maxU };
+      enemyState.g = g; enemyState.flare = flare; enemyState.unb = unb; enemyState.pending = pending; enemyState.maxU = maxU; return enemyState;
     }
     function rimsStep(game, dt, calm) {
       for (const g of glints) { g.used = false; g.s.visible = false; }
@@ -463,7 +467,7 @@ void main(){ vec2 p = (vUv-.5)*2.*uMax; float r = length(p), a = r > 1e-6 ? atan
         const model = e.model; if (!model || !model.root) continue;
         const visible = model.root.visible && (!e.dead || game.hazards.some(h => h.owner === e && h.burst));
         if (!visible && !rims.has(model)) continue;
-        const r = rimFor(model), st = visible ? enemyTell(e) : { g: 0 };
+        const r = rimFor(model), st = visible ? enemyTell(e) : silentState;
         let g = st.g, col = st.unb ? CRIMSON_RIM : AMBER_RIM;
         if (e.dead && st.pending) col = BILE_RIM;
         if (!st.pending && !e.dead && visible) {
@@ -479,7 +483,8 @@ void main(){ vec2 p = (vUv-.5)*2.*uMax; float r = length(p), a = r > 1e-6 ? atan
           const sc = (calm ? .6 : .5 + .4 * Math.sin(st.flare * Math.PI)) * (e.boss ? 1.4 : 1);
           showGlint(V1, sc, st.unb ? [1.6, .6, .5] : [1.9, 1.4, .8]);
         }
-        if (!r.armed && st.pending && model.bones) for (const hand of [model.bones.leftHand, model.bones.rightHand]) {
+        if (!r.armed && st.pending && model.bones) for (let handSide = 0; handSide < 2; handSide++) {
+          const hand = handSide ? model.bones.rightHand : model.bones.leftHand;
           if (!hand) continue; hand.getWorldPosition(V2); showGlint(V2, .2 + .12 * st.maxU, st.unb ? [1.2, .15, .08] : [1.3, .6, .2]);
         }
       }
@@ -525,6 +530,12 @@ void main(){ vec2 p = (vUv-.5)*2.*uMax; float r = length(p), a = r > 1e-6 ? atan
       const R = g.o.radius * 1.25; g.m.scale.set(2 * R, 1, 2 * R); g.m.position.set(x, g.o.y, z); g.mat.uniforms.uCol.value.set(g.o.color[0], g.o.color[1], g.o.color[2]); g.m.visible = true; g.mat.uniforms.uA.value = 0;
       return g;
     }
+    // A roar uses three fronts at once. Reserve their materials before loading finishes so the first ability
+    // and the executioner's phase change only fill existing slots, including a small overlap with live tells.
+    for (let i = 0; i < 6; i++) { const w = wave(0, 0, {}); w.m.visible = false; }
+    for (const w of waves) w.used = false;
+    for (let i = 0; i < 4; i++) { const g = glowBurst(0, 0, {}); g.m.visible = false; }
+    for (const g of glows) g.used = false;
     function burstsStep(dt) {
       for (const w of waves) {
         if (!w.used) continue; w.age += dt; const t = w.age - w.o.delay; if (t < 0) { w.m.visible = false; continue; }
@@ -607,7 +618,7 @@ void main(){ vec2 p = (vUv-.5)*2.*uMax; float r = length(p), a = r > 1e-6 ? atan
       if (!warmed) warmed = warmUp(game) || warmed;
       if (game.resetSerial !== lastReset) { releaseAll(); lastReset = game.resetSerial; }
       clock += frameDt;
-      const seen = new Set();
+      seen.clear();
       for (const h of game.hazards) {
         if (h.age < 0 || h.harmless) continue;
         // Plain blows (claw, bash, cleave, swing...) that start at the attacker get no ground mark at all: the wind-up animation

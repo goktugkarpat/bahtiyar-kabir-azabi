@@ -57,18 +57,28 @@
   };
   function makeOrb(canvas, kind) {
     const st = { fill: 1, trail: 1, target: 1, low: 0, flash: 0, heal: 0, pal: PALETTE[kind], dirty: true };
-    let gl = null, u = {}, pr = null, ext = null, linked = false;
+    let gl = null, u = {}, pr = null, ext = null, linked = false, lost = false;
     try { gl = canvas.getContext('webgl', { alpha: true, premultipliedAlpha: false, antialias: true }); } catch (e) { gl = null; }
-    if (gl) {
+    function compile() {
+      if (!gl) return;
       // Compiled in the background (KHR_parallel_shader_compile where available); first use waits until it is done
       // so starting the chapter never stalls on it (app.js starts it while the loading screen is up).
       try {
         ext = gl.getExtension('KHR_parallel_shader_compile');
         const sh = (type, src) => { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); return s; };
-        pr = gl.createProgram(); gl.attachShader(pr, sh(gl.VERTEX_SHADER, VERT)); gl.attachShader(pr, sh(gl.FRAGMENT_SHADER, FRAG)); gl.linkProgram(pr);
+        pr = gl.createProgram();
+        const vertex = sh(gl.VERTEX_SHADER, VERT), fragment = sh(gl.FRAGMENT_SHADER, FRAG);
+        gl.attachShader(pr, vertex); gl.attachShader(pr, fragment); gl.linkProgram(pr);
+        gl.deleteShader(vertex); gl.deleteShader(fragment);
       } catch (e) { console.warn('[Kabir Azabı] orb shader', e); gl = null; }
     }
+    compile();
+    if (canvas.addEventListener) {
+      canvas.addEventListener('webglcontextlost', e => { e.preventDefault(); lost = true; linked = false; pr = null; u = {}; st.dirty = true; });
+      canvas.addEventListener('webglcontextrestored', () => { lost = false; linked = false; u = {}; measure = true; warmDrawn = false; compile(); force(); });
+    }
     function finish(force) {
+      if (lost) return false;
       if (linked || !gl) return linked;
       if (!force && ext && !gl.getProgramParameter(pr, ext.COMPLETION_STATUS_KHR)) return false;
       if (!gl.getProgramParameter(pr, gl.LINK_STATUS)) { console.warn('[Kabir Azabı] orb shader', gl.getProgramInfoLog(pr)); gl = null; return false; }
@@ -89,6 +99,7 @@
       if (r.width < 1) measure = true;   // still hidden: try again next frame
     }
     function draw(time) {
+      if (lost) return;
       size(); const p = st.pal;
       if (gl) {
         if (!finish()) return;

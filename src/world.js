@@ -217,19 +217,19 @@
       var checkpoint = { x: 0, z: -128 };
       var bossSpawn = { x: 0, z: -160 };
       var encounters = [
-        { id: 'threshold', room: 0, name: 'Eşikteki Mahkûmlar', spawns: [
+        { id: 'threshold', room: 0, name: 'Eşikteki Mahkûmlar', clearText: 'İlk mühür kırıldı. Zincir Avlusu seni bekliyor.', spawns: [
           { type: 'prisoner', x: -3.5, z: 0 },
           { type: 'prisoner', x: 3.5, z: -2.5 },
           { type: 'prisoner', x: 0, z: -4 }
         ] },
-        { id: 'courtyard', room: 1, name: 'Zincir Nöbeti', spawns: [
+        { id: 'courtyard', room: 1, name: 'Zincir Nöbeti', clearText: 'Avlunun mührü açıldı. Çürüyen Revir’e ilerle.', spawns: [
           { type: 'guard', x: 0, z: -18 },
           { type: 'prisoner', x: -4.5, z: -20 },
           { type: 'prisoner', x: 4.5, z: -23 },
           { type: 'guard', x: -3, z: -28 },
           { type: 'prisoner', x: 3.5, z: -28 }
         ] },
-        { id: 'infirmary', room: 2, name: 'Çürüyenlerin Duası', spawns: [
+        { id: 'infirmary', room: 2, name: 'Çürüyenlerin Duası', clearText: 'Revirin mührü kırıldı. Adak Salonu artık açık.', spawns: [
           { type: 'prisoner', x: -3.5, z: -40 },
           { type: 'carrier', x: 4.8, z: -44 },
           { type: 'prisoner', x: -4.5, z: -47 },
@@ -238,7 +238,7 @@
           { type: 'prisoner', x: -3.5, z: -54 },
           { type: 'carrier', x: 3, z: -55 }
         ] },
-        { id: 'offering', room: 3, name: 'Adak Ayini', spawns: [
+        { id: 'offering', room: 3, name: 'Adak Ayini', clearText: 'Ayin bozuldu. Kemik Geçidi’ne giden mühür açıldı.', spawns: [
           { type: 'guard', x: -3.5, z: -67 },
           { type: 'guard', x: 3.5, z: -67 },
           { type: 'cultist', x: 0, z: -74 },
@@ -248,7 +248,7 @@
           { type: 'cultist', x: 3.5, z: -80 },
           { type: 'guard', x: 0, z: -82 }
         ] },
-        { id: 'ossuary', room: 4, name: 'Son Alay', spawns: [
+        { id: 'ossuary', room: 4, name: 'Son Alay', clearText: 'Son alay düştü. Şapeldeki mühre yaklaş; yaralarını kapat.', spawns: [
           { type: 'stalker', x: -3.8, z: -95 },
           { type: 'prisoner', x: 3.5, z: -95 },
           { type: 'guard', x: 0, z: -100 },
@@ -2165,6 +2165,138 @@
         }
         return pos;
       }
+      // Static navigation is prepared with the world, while the loading screen is still up.
+      // A route query only visits this compact graph; it never inspects decorative meshes or
+      // allocates a new grid during combat. Rounded-up body sizes keep routes conservative.
+      function hasClearPath(ax, az, bx, bz, radius) {
+        if (!Number.isFinite(ax) || !Number.isFinite(az) || !Number.isFinite(bx) || !Number.isFinite(bz)) return false;
+        radius = Math.max(.01, radius == null ? .45 : radius);
+        if (!isWalkable(ax, az, radius) || !isWalkable(bx, bz, radius)) return false;
+        var dx = bx - ax, dz = bz - az;
+        query = (query + 1) >>> 0;
+        if (query === 0) { stamps.fill(0); query = 1; }
+        for (var gx = Math.floor((Math.min(ax, bx) - radius) / cellSize); gx <= Math.floor((Math.max(ax, bx) + radius) / cellSize); gx++) {
+          for (var gz = Math.floor((Math.min(az, bz) - radius) / cellSize); gz <= Math.floor((Math.max(az, bz) + radius) / cellSize); gz++) {
+            var list = grid[gx + ',' + gz]; if (!list) continue;
+            for (var j = 0; j < list.length; j++) {
+              var idx = list[j]; if (stamps[idx] === query) continue; stamps[idx] = query;
+              var c = colliders[idx], left = c.x - c.w / 2 - radius, right = c.x + c.w / 2 + radius;
+              var top = c.z - c.d / 2 - radius, bottom = c.z + c.d / 2 + radius, enter = 0, exit = 1;
+              if (Math.abs(dx) < 1e-9) { if (ax < left || ax > right) continue; }
+              else { var tx0 = (left - ax) / dx, tx1 = (right - ax) / dx; enter = Math.max(enter, Math.min(tx0, tx1)); exit = Math.min(exit, Math.max(tx0, tx1)); }
+              if (Math.abs(dz) < 1e-9) { if (az < top || az > bottom) continue; }
+              else { var tz0 = (top - az) / dz, tz1 = (bottom - az) / dz; enter = Math.max(enter, Math.min(tz0, tz1)); exit = Math.min(exit, Math.max(tz0, tz1)); }
+              if (enter >= exit - 1e-7 || exit <= 0 || enter >= 1) continue;
+              // The broad-phase rectangle has square corners. Refine it against the
+              // real rounded body sweep so a character hugging a pillar can still escape.
+              left += radius; right -= radius; top += radius; bottom -= radius; enter = 0; exit = 1;
+              if (Math.abs(dx) < 1e-9) { if (ax < left || ax > right) enter = 2; }
+              else { tx0 = (left - ax) / dx; tx1 = (right - ax) / dx; enter = Math.max(enter, Math.min(tx0, tx1)); exit = Math.min(exit, Math.max(tx0, tx1)); }
+              if (Math.abs(dz) < 1e-9) { if (az < top || az > bottom) enter = 2; }
+              else { tz0 = (top - az) / dz; tz1 = (bottom - az) / dz; enter = Math.max(enter, Math.min(tz0, tz1)); exit = Math.min(exit, Math.max(tz0, tz1)); }
+              if (enter <= exit && exit >= 0 && enter <= 1) return false;
+              var length2 = dx * dx + dz * dz;
+              for (var cx = 0; cx < 2; cx++) for (var cz = 0; cz < 2; cz++) {
+                var px = cx ? right : left, pz = cz ? bottom : top;
+                var u = length2 > 1e-12 ? Math.max(0, Math.min(1, ((px - ax) * dx + (pz - az) * dz) / length2)) : 0;
+                var gapX = px - ax - dx * u, gapZ = pz - az - dz * u;
+                if (gapX * gapX + gapZ * gapZ < radius * radius - .000001) return false;
+              }
+            }
+          }
+        }
+        // The temple has separate floor rectangles connected by corridors. A clear collider
+        // ray must also stay on their union, rather than cutting across empty space outside.
+        var samples = Math.max(1, Math.ceil(Math.max(Math.abs(dx), Math.abs(dz)) / .5));
+        for (var s = 1; s < samples; s++) {
+          var x = ax + dx * s / samples, z = az + dz * s / samples, floor = false;
+          for (var f = 0; f < floors.length; f++) { var tile = floors[f]; if (Math.abs(x - tile.x) <= tile.w / 2 && Math.abs(z - tile.z) <= tile.d / 2) { floor = true; break; } }
+          if (!floor) return false;
+        }
+        return true;
+      }
+      var navStep = .5, navMinX = Infinity, navMinZ = Infinity, navMaxX = -Infinity, navMaxZ = -Infinity;
+      floors.forEach(function (f) { navMinX = Math.min(navMinX, f.x - f.w / 2); navMaxX = Math.max(navMaxX, f.x + f.w / 2); navMinZ = Math.min(navMinZ, f.z - f.d / 2); navMaxZ = Math.max(navMaxZ, f.z + f.d / 2); });
+      navMinX = Math.floor(navMinX / navStep) * navStep; navMinZ = Math.floor(navMinZ / navStep) * navStep;
+      var navW = Math.ceil((navMaxX - navMinX) / navStep) + 1, navH = Math.ceil((navMaxZ - navMinZ) / navStep) + 1, navN = navW * navH;
+      var navSizes = [.4, .46, .5, .6, .85, 1.05], navGraphs = [];
+      var navDX = [1, 1, 0, -1, -1, -1, 0, 1], navDZ = [0, 1, 1, 1, 0, -1, -1, -1];
+      navSizes.forEach(function (radius) {
+        var walk = new Uint8Array(navN), links = new Uint8Array(navN);
+        for (var id = 0; id < navN; id++) walk[id] = isWalkable(navMinX + id % navW * navStep, navMinZ + Math.floor(id / navW) * navStep, radius) ? 1 : 0;
+        for (var id = 0; id < navN; id++) {
+          if (!walk[id]) continue;
+          var ix = id % navW, iz = Math.floor(id / navW), x = navMinX + ix * navStep, z = navMinZ + iz * navStep;
+          for (var dir = 0; dir < 4; dir++) {
+            var nx = ix + navDX[dir], nz = iz + navDZ[dir], other = nz * navW + nx;
+            if (nx < 0 || nx >= navW || nz < 0 || nz >= navH || !walk[other]) continue;
+            if (hasClearPath(x, z, navMinX + nx * navStep, navMinZ + nz * navStep, radius)) { links[id] |= 1 << dir; links[other] |= 1 << (dir + 4); }
+          }
+        }
+        navGraphs.push({ radius: radius, walk: walk, links: links });
+      });
+      var navSeen = new Uint32Array(navN), navClosed = new Uint32Array(navN), navScore = new Float32Array(navN), navParent = new Int32Array(navN), navSerial = 0;
+      var navHeapId = new Int32Array(navN * 8), navHeapCost = new Float64Array(navN * 8), navHeapN = 0;
+      function navPush(id, cost) {
+        var at = navHeapN++;
+        while (at > 0) { var parent = (at - 1) >>> 1; if (navHeapCost[parent] <= cost) break; navHeapId[at] = navHeapId[parent]; navHeapCost[at] = navHeapCost[parent]; at = parent; }
+        navHeapId[at] = id; navHeapCost[at] = cost;
+      }
+      function navPop() {
+        var result = navHeapId[0], id = navHeapId[--navHeapN], cost = navHeapCost[navHeapN], at = 0;
+        while (at * 2 + 1 < navHeapN) { var child = at * 2 + 1; if (child + 1 < navHeapN && navHeapCost[child + 1] < navHeapCost[child]) child++; if (navHeapCost[child] >= cost) break; navHeapId[at] = navHeapId[child]; navHeapCost[at] = navHeapCost[child]; at = child; }
+        navHeapId[at] = id; navHeapCost[at] = cost; return result;
+      }
+      function navNode(x, z, graph, allowBlocked, radius) {
+        var ix = Math.round((x - navMinX) / navStep), iz = Math.round((z - navMinZ) / navStep), best = -1, bestD = Infinity;
+        for (var oz = -3; oz <= 3; oz++) for (var ox = -3; ox <= 3; ox++) {
+          var nx = ix + ox, nz = iz + oz; if (nx < 0 || nx >= navW || nz < 0 || nz >= navH) continue;
+          var id = nz * navW + nx; if (!graph.walk[id]) continue;
+          var px = navMinX + nx * navStep, pz = navMinZ + nz * navStep, d = (px - x) * (px - x) + (pz - z) * (pz - z);
+          if (d < bestD && (allowBlocked || hasClearPath(x, z, px, pz, radius))) { bestD = d; best = id; }
+        }
+        return bestD <= 2.25 ? best : -1;
+      }
+      function pathTo(from, to, radius) {
+        if (!from || !to || !Number.isFinite(from.x) || !Number.isFinite(from.z) || !Number.isFinite(to.x) || !Number.isFinite(to.z)) return null;
+        radius = Math.max(.01, radius == null ? .5 : radius);
+        if (hasClearPath(from.x, from.z, to.x, to.z, radius)) return [{ x: to.x, z: to.z }];
+        var graph = navGraphs[navGraphs.length - 1];
+        for (var gi = 0; gi < navSizes.length; gi++) if (navSizes[gi] >= radius - 1e-6) { graph = navGraphs[gi]; break; }
+        if (radius > graph.radius) return null;
+        var targetClear = isWalkable(to.x, to.z, radius), start = navNode(from.x, from.z, graph, false, radius), goal = navNode(to.x, to.z, graph, !targetClear, radius);
+        if (start < 0 || goal < 0) return null;
+        navSerial = (navSerial + 1) >>> 0; if (!navSerial) { navSeen.fill(0); navClosed.fill(0); navSerial = 1; }
+        var goalX = goal % navW, goalZ = Math.floor(goal / navW); navHeapN = 0;
+        navScore[start] = 0; navParent[start] = -1; navSeen[start] = navSerial; navPush(start, Math.hypot(start % navW - goalX, Math.floor(start / navW) - goalZ));
+        var found = false;
+        while (navHeapN) {
+          var id = navPop(); if (navClosed[id] === navSerial) continue; navClosed[id] = navSerial;
+          if (id === goal) { found = true; break; }
+          var ix = id % navW, iz = Math.floor(id / navW), mask = graph.links[id];
+          for (var dir = 0; dir < 8; dir++) if (mask & (1 << dir)) {
+            var other = (iz + navDZ[dir]) * navW + ix + navDX[dir]; if (navClosed[other] === navSerial) continue;
+            var score = navScore[id] + (dir % 2 ? Math.SQRT2 : 1);
+            if (navSeen[other] === navSerial && navScore[other] <= score + 1e-6) continue;
+            navSeen[other] = navSerial; navScore[other] = score; navParent[other] = id;
+            navPush(other, score + Math.hypot(other % navW - goalX, Math.floor(other / navW) - goalZ));
+          }
+        }
+        if (!found) return null;
+        var reverse = [], route = [], id = goal;
+        while (id !== start && id >= 0) { reverse.push({ x: navMinX + id % navW * navStep, z: navMinZ + Math.floor(id / navW) * navStep }); id = navParent[id]; }
+        reverse.push({ x: navMinX + start % navW * navStep, z: navMinZ + Math.floor(start / navW) * navStep });
+        reverse.reverse(); if (targetClear) reverse.push({ x: to.x, z: to.z });
+        // Collapse the grid staircase into straight safe legs. This also makes a short detour
+        // feel like deliberate steering instead of a character snapping to every grid node.
+        var anchorX = from.x, anchorZ = from.z, at = 0;
+        while (at < reverse.length) {
+          var far = at;
+          while (far + 1 < reverse.length && hasClearPath(anchorX, anchorZ, reverse[far + 1].x, reverse[far + 1].z, radius)) far++;
+          var point = reverse[far]; route.push(point); anchorX = point.x; anchorZ = point.z; at = far + 1;
+        }
+        return route.length ? route : [{ x: to.x, z: to.z }];
+      }
       function roomAt(x, z) {
         var closest = rooms[0], best = Infinity;
         for (var i = 0; i < rooms.length; i++) {
@@ -2504,7 +2636,7 @@
       return {
         root: root, spawn: spawn, checkpoint: checkpoint, bossSpawn: bossSpawn,
         rooms: rooms, encounters: encounters, colliders: colliders,
-        move: move, isWalkable: isWalkable, roomAt: roomAt,
+        move: move, isWalkable: isWalkable, hasClearPath: hasClearPath, pathTo: pathTo, roomAt: roomAt,
         update: update, dispose: dispose, setQuality: setQuality,
         atmosphereAt: atmosphereAt,
         occluders: occluders,

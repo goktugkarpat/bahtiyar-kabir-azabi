@@ -130,14 +130,14 @@ Yapılan değişiklikler:
 Oyunun müziği bu proje için bestelendi ve tamamı tarayıcıda, oyun çalışırken Web Audio ile üretilir. **Üçüncü taraf
 ses dosyası, örnek (sample), kayıt, ses bankası veya indirilmiş varlık kullanılmadı**; dosyada gömülü ses verisi yoktur
 (0 bayt). Çan, taiko, çerçeve davul, örs, demir levha, zincir, kemik tıkırtısı, kalp atışı, yaylı çalgı vuruşları,
-pizzicato ve katedral yankısı gibi tek vuruşluk sesler, kodun içindeki matematiksel tariflerle (kısmi titreşimler,
-süzülmüş gürültü, Karplus-Strong tel modeli) ilk karelerde hesaplanır; drone, alçak erkek korosu (formant süzgeçleri),
+pizzicato, sempatik titreşimli demir tel ve katedral yankısı gibi tek vuruşluk sesler, kodun içindeki matematiksel tariflerle (kısmi titreşimler,
+süzülmüş gürültü, Karplus-Strong tel modeli) yükleme sırasında hesaplanır; drone, alçak erkek korosu (formant süzgeçleri),
 yaylılar/çello, bakır nefesliler ve boğaz şarkısı sesleri canlı osilatörlerdir.
 
-- Besteci / ses tasarımı: bu proje için Claude (Anthropic) tarafından, oyunun sahibinin isteğiyle yazıldı.
+- Besteci / ses tasarımı: ilk sürüm Claude (Anthropic) ile, demir tel/yemin motifi ve gece ses düzenlemeleri Codex (OpenAI) ile oyunun sahibinin isteğiyle yazıldı.
 - Lisans: oyunun kendi kaynak koduyla aynı koşullar (üçüncü taraf lisans yükümlülüğü yoktur, atıf gerekmez).
-- Test araçları (yalnızca geliştirme sırasında, oyuna dahil değil): Google Chrome headless `OfflineAudioContext`
-  ile sessiz ölçüm render'ları. Hiçbir ses dinlenmedi veya çalınmadı.
+- Test araçları (yalnızca geliştirme sırasında, oyuna dahil değil): önceki sessiz tarayıcı render'ları;
+  bu sürümde `node-web-audio-api` gerçek `OfflineAudioContext` tamponları ve FFmpeg seviye ölçümleri. Hoparlörde ses çalınmadı.
 
 English: the score is original and fully synthesised at runtime by `src/music.js`. No third-party audio, samples,
 sound banks or downloaded assets are used; there is no embedded audio data. No attribution or licence obligations
@@ -166,6 +166,9 @@ beyond the game's own code.
 | [Metal footsteps on concrete](https://opengameart.org/content/metal-footsteps-on-concrete) | thimras | `armorStep` ← metal_steps_01/03/05 |
 | [Chain winch sounds](https://opengameart.org/content/chain-winch-sounds) | bart | `winch` ← "winch - Marker #5" |
 | [Ghost Monster Voice Moaning & Growling](https://opengameart.org/content/ghost-monster-voice-moaning-growling) | qubodup | `moan` ← qubodup-GhostMoan03 |
+| [Male Grunt/Yelling sounds](https://opengameart.org/content/male-gruntyelling-sounds) | HaelDB | 19 işlenmiş kayıt: `tortScream` ← 1yell3/11, 2yell4/6, 3yell13/16, yell1/11; `tortMoan` ← 1yell4, 2yell11, 3grunt6, 3yell9; `tortSob` ← 3grunt1/2/6; `tortGurgle` ← 3yell13, 1yell16; `tortWhisper` ← 3grunt6/2 |
+
+HaelDB'nin kaynak sayfasındaki CC0 seçeneği 30 Eylül 2026 tarihinde doğrulandı. İnsan sesleri dört oyuncunun rol yaparak kaydettiği çığlık ve zorlanma sesleridir; gerçek işkence kaydı kullanılmaz. Baş/son sessizliği kırpıldı, tempo en fazla %13 değiştirildi, 95–6000 Hz süzgeç ve kısa sönüm uygulandı; tepe −2 dBFS. 19 kayıt tek bir 32 kHz/48 kbps MP3 sprite'a gömüldü. Eski `tortSob` / `tortWhisper` adları zorlanma ve kesik nefes kayıtlarını taşır; bu kaynakta ağlama veya Türkçe fısıltı konuşma kaydı olduğu iddia edilmez.
 
 Yapılan değişiklikler (hepsi `tools/gen_narration.py` içinde, yeniden üretilebilir): mono'ya indirme, baş/son sessizliğini kırpma, kesit alma, bant hızıyla perde ve süre değiştirme (`rate`), rubberband ile perde kaydırma (sesler, yaratıklar ve kahramanın zorlanma sesleri 1,5–5 yarım ton pes), yüksek/alçak geçiren süzgeç, sönüm, tepe seviyesinin −1 dBFS'ye getirilmesi; ardından parçalar üç mono MP3 "sprite" dosyasında birleştirildi (16 kHz/24 kbps, 22,05 kHz/32 kbps, 32 kHz/48 kbps) ve base64 olarak `src/narration.js` içindeki `BABA.SoundBank` nesnesine gömüldü (yaklaşık 290 KB). Oyun dosyadan (file://) açılırken hiçbir harici ses dosyası ya da sunucu kullanılmaz. İndirilen paketler proje dışında önbellekte tutulur (`KARA_AUDIO_CACHE` ya da `~/.cache/kara-gecit-audio`).
 
@@ -173,7 +176,7 @@ Müzik, ortam sesi, kılıç rüzgârı, darbe gövdesi, metal çınlaması, uya
 
 ## Anlatıcı ve tarikatçı ilahileri — sentez konuşma
 
-Anlatıcı cümleleri ve Kül Rahibi ilahileri (`chant1–3`) Microsoft Edge metin-okuma hizmetinin `tr-TR-AhmetNeural` sesiyle, açık kaynaklı `edge-tts` istemcisi aracılığıyla üretildi; üçüncü taraf bir ses kaydı değildir. Kayıtlar ffmpeg ile işlendi (perde ve formant düşürme, göğüs/anlaşılırlık eşitlemesi, sıkıştırma, çok hafif fısıltı katmanı, ölçülü taş oda yankısı, −16 LUFS eşitleme; ilahilerde üç sesli koro katmanı) ve MP3 olarak `src/narration.js` içinde `BABA.Narration` olarak gömüldü. Bu çıktılar açık lisanslı içerik olarak sunulmaz; kullanımları Microsoft'un hizmet koşullarına tabidir. Metinler oyuna özgüdür ve `tools/gen_narration.py` içindeki `LINES` / `CHANTS` tablolarındadır.
+Anlatıcı, Bahtiyar'ın kısa yemini, Zincir Celladı'nın meydan okuması ve Kül Rahibi ilahileri (`chant1–3`) Microsoft Edge metin-okuma hizmetinin `tr-TR-AhmetNeural` sesiyle, açık kaynaklı `edge-tts` istemcisi aracılığıyla üretildi. Yeni 14 konuşma kaydı bütün cümle akışını korur; anlatıcı, Bahtiyar ve cellat aynı sesin hafif tempo/ton varyantlarını kullanır. Formant düşürme veya yapay fısıltı katmanı yoktur. FFmpeg ile sessizlik kırpma, hafif EQ, de-esser, ölçülü sıkıştırma, 28/53 ms düşük seviyeli oda yansıması ve −16 LUFS eşitleme uygulandı; 32 kHz/64 kbps mono MP3 olarak `BABA.Narration` içinde gömülüdür. Önceki ilahilerde üç sesli koro işlemesi korunur. Çıktılar açık lisanslı sesler olarak sunulmaz; kullanımları Microsoft'un hizmet koşullarına tabidir. Metinler oyuna özgüdür ve `tools/gen_narration.py` içindeki `LINES` / `CHANTS` tablolarındadır.
 
 ## Arayüz — ikinci geçiş (29 Eylül 2026): yazı tipleri ve çizimler
 
@@ -230,13 +233,15 @@ Yeni dosyalar ve kaynakları:
   saçılması, karakterlere özel kenar/dolgu ışığı, karakter altı temas gölgesi, Adak Ayini / Sessiz Şapel / Zincir Mahkemesi
   ışık senaryoları. Bu oyun için yazıldı. Sis parçaları three.js'in `fog_*` shader parçalarının yerine geçer; o parçaların
   yapısı three.js kaynak kodundan türetildi (**MIT**, three.js authors, tam metin `vendor/THREE-LICENSE.txt`).
-- `src/post.js` — HDR sahne hedefi, ortam örtüşmesi (SAO), bloom, ısı dalgası, ton eğrisi, oda renk ayarı, vinyet, FXAA,
+- `src/post.js` — HDR sahne hedefi, ortam örtüşmesi (SAO), bloom, ısı dalgası, ton eğrisi, oda renk ayarı, vinyet,
   film greni. Kod bu oyun için yazıldı; izlenen yöntemler herkese açık yayınlardan: Scalable Ambient Obscurance
   (McGuire, Mara, Luebke 2012), 13 örnekli küçültme + çadır filtreli büyütme bloom zinciri (Jimenez 2014, "Next Generation
-  Post Processing in Call of Duty: Advanced Warfare"), FXAA (Timothy Lottes; three.js examples `FXAAShader` ile aynı fikir,
-  **MIT**). ACES ton eğrisi yaklaşımı (Stephen Hill), three.js `ACESFilmicToneMapping` ile birebir aynı sayılarla
+  Post Processing in Call of Duty: Advanced Warfare"). FXAA ve ilgili ara görüntü geçişi önceki sürümlerde kaldırıldı.
+  ACES ton eğrisi yaklaşımı (Stephen Hill), three.js `ACESFilmicToneMapping` ile birebir aynı sayılarla
   (**MIT**, three.js authors).
 - `src/world.js` — pencere, ızgara, çatlak ve tavan gözü (oculus) ışık desenleri, temas gölgesi diski ve damla halkaları
   harici görsel kullanmadan açılışta tuvalde / shader'da çizilir; bu oyun için yazıldı.
+
+Bahtiyar'ın yeni arayüz portresi (`assets/ui/portrait-v47.webp`), oyunun gerçek modelinden alınan önceki `portrait.webp` referansıyla yerleşik OpenAI ImageGen kullanılarak bu oyun için üretildi. Yüz, poz ve karakter tasarımı korunarak resim kalitesi iyileştirildi. Bu çizim yeni bir 3D model veya oyunun ekran görüntüsü değildir. Üretim metni `tools/portrait-prompt.txt` içinde; seçilen görsel 512 × 512 WebP biçiminde saklanır. Önceki model portresi de projede korunur.
 
 Oyun sırasında hiçbir harici sunucuya bağlanılmaz; dosyadan (file://) açılış desteklenir.

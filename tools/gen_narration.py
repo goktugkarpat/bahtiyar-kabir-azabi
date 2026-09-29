@@ -11,6 +11,7 @@ Kullanım (proje kökünden):
   python3 tools/gen_narration.py          # anlatıcı + efektler
   python3 tools/gen_narration.py voice    # yalnızca anlatıcı
   python3 tools/gen_narration.py sfx      # yalnızca efekt bankası
+  python3 tools/gen_narration.py ambient  # yalnızca kayıtlı insan çığlıkları
   python3 tools/gen_narration.py voice --only intro,boss   # seçili cümleler
   python3 tools/gen_narration.py voice --samples DIR   # 3 stil x aynı 4 cümle -> voice_A/B/C.mp3
   python3 tools/gen_narration.py --wav DIR # işlenmiş sesleri ayrıca WAV yaz (kontrol için)
@@ -19,15 +20,19 @@ Gerekenler: Python 3.9+, `pip install edge-tts`, ffmpeg + ffprobe
 (librubberband ve libmp3lame ile; Homebrew ve gyan.dev derlemelerinde vardır).
 İndirilen paketler ve TTS kayıtları proje dışında önbelleğe alınır:
   $KARA_AUDIO_CACHE  ya da  ~/.cache/kara-gecit-audio
-Anlatıcı sesi: edge-tts tr-TR-AhmetNeural (tek anadili Türkçe erkek ses; çok dilli sesler Türkçeyi yabancı
-aksanla okuyor, gürültülü tanıma testinde WER 0.6+ ile Ahmet'in 0.1'inin çok gerisinde). Ücretsiz uç nokta SSML etiketlerini
-kabul etmediği için ritim cümle/'...' sınırlarında parça parça okutularak ve ffmpeg ile ölçülü sessizlik eklenerek kurulur;
-son parça daha yavaş ve pes söylenir. Sonra ffmpeg: hafif perde/formant düşürme, de-esser, göğüs/anlaşılırlık EQ'su,
-sıkıştırma, fısıltı katmanı, kısa oda yankısı; -16 LUFS. Üç stil (A/B/C): `voice --samples DIR` aynı 4 cümleyi üçüyle yazar;
-`voice --style A|B|C` seçer (varsayılan DEFAULT_STYLE).
+Anlatıcı sesi: edge-tts tr-TR-AhmetNeural. Varsayılan N stili her kaydı bütün cümleler halinde seslendirir:
+doğal Türkçe vurgu ve sözcük geçişleri korunur, tempo -7%, ton -2 Hz'dir. Baş/son sessizliği kırpılır;
+hafif eşitleme, sibilans denetimi, ölçülü sıkıştırma ve çok kısa oda yansıması uygulanır; -16 LUFS.
+Formant düşürme, yapay fısıltı ve her cümlenin sonunu ayrıca yavaşlatma kullanılmaz. Bahtiyar (H) ve
+Zincir Celladı (E) aynı sesi hafif tempo/ton farkıyla kullanır; farklı gerçek oyuncularmış gibi sunulmaz.
+Eski A/B/C işleme adayları karşılaştırma için korunur. `voice --style N|A|B|C` anlatıcı stilini seçer;
+karakter cümleleri kendi H/E stillerinde üretilir. `voice --samples DIR` örnekleri üretir.
 Efekt kaynaklarının hepsi CC0'dır (liste ve değişiklikler: ASSET-LICENSES.md). Her sprite'ın
 başında bir eşitleme tonu vardır (MARK_AT); audio.js MP3 çözücü gecikmesini buna göre düzeltir.
+İşkence ortamındaki insan sesleri HaelDB'nin CC0 oyuncu kayıtlarından işlenir. Bunlar rol yapılarak
+kaydedilmiş çığlık ve zorlanmalardır. `ambient` mevcut darbe bankasını koruyarak bunları yeniler.
 Metni değiştirilen bir cümle için: LINES içinde düzelt, sonra `voice --only anahtar` çalıştır.
+Taşınabilir araç yolları KABIR_FFMPEG/KABIR_FFPROBE ile verilebilir; ffprobe yoksa ffmpeg ölçer.
 """
 import asyncio, base64, hashlib, json, os, re, shutil, subprocess, sys, tempfile, urllib.request, zipfile
 
@@ -35,6 +40,8 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT_JS = os.path.join(ROOT, 'src', 'narration.js')
 CACHE = os.environ.get('KARA_AUDIO_CACHE') or os.path.join(os.path.expanduser('~'), '.cache', 'kara-gecit-audio')
 VOICE = 'tr-TR-AhmetNeural'
+FFMPEG = os.environ.get('KABIR_FFMPEG') or shutil.which('ffmpeg') or 'ffmpeg'
+FFPROBE = os.environ.get('KABIR_FFPROBE') or shutil.which('ffprobe')
 
 # ---------------------------------------------------------------------------
 # Anlatıcı cümleleri. Anahtarlar app.js / audio.js tarafından çağrılır:
@@ -46,22 +53,24 @@ VOICE = 'tr-TR-AhmetNeural'
 # Anlatıcı çatışma sırasında susar; bu yüzden cümleler kısa tutulur.
 # ---------------------------------------------------------------------------
 LINES = {
-    'intro':      'Aşağıda kimse dua etmez. Yalnızca çığlık duyulur... ve o çığlıkları dinleyen bir şey.',
-    'chains':     'Zincirler hâlâ sıcak. Muhafızlar öldü... ama nöbetleri bitmedi.',
-    'ritual':     'Burası bir revirdi. Kimse iyileşmedi. Çürüme, burada dua gibi büyüdü.',
-    'crypt':      'Rahipler, ayini hiç bitirmedi. Sunak hâlâ aç... ve senin kanın hâlâ sıcak.',
-    'rot':        'Bu duvarlar kemikten. Karanlıkta bir şey var... ve adımlarını sayıyor.',
-    'checkpoint': 'Yemin taşı. Kanını ona ver. Düşersen, seni buradan geri çağırır.',
-    'boss':       'Cellat bin boyun kırdı. Sıradaki... senin boynun.',
-    'seal':       'Salon sustu. Kan aktı... ve mühür açıldı.',
-    'death':      'Bu taşlar, düşenlerin adını tutmaz.',
-    'death2':     'Karanlık seni yuttu... sonra geri kustu.',
-    'death3':     'Kalk. Burada ölüler bile huzur bulamaz.',
-    'win':        'Cellat sustu. Zincir koptu. Ama derinlerde bir şey uyandı... ve artık adını biliyor.',
+    'intro':      'Bu tapınakta ölüm bir son değil. Celladın zinciri kırılmadan kimse mezarında kalamıyor.',
+    'chains':     'Bu nöbetçiler celladın ilk kurbanlarıydı. Boyunlarındaki zincir, onları hâlâ onun emrine bağlıyor.',
+    'ritual':     'Yaralıları buraya iyileştirmek için getirdiler. Rahipler, acılarını ayini beslemek için kullandı.',
+    'crypt':      'Sunağa dökülen kan, cellada güç veriyor. Bu ayin bitmeden tapınak susmayacak.',
+    'rot':        'Bu kemikler mezarlarından söküldü. Geçidin taşına harç, celladın zincirine mühür oldular.',
+    'checkpoint': 'Yemin taşı seni hatırlayacak. Canını tazele. Sonraki kapının ardında cellat var.',
+    'boss':       'Bu hüküm cellatla yaşıyor. Zincirini kır.',
+    'heroOath':   'Onları burada bırakmayacağım.',
+    'cellat':     'Bu kapıdan kimse geçemez.',
+    'seal':       'Zincirin bir halkası daha koptu. İlerle.',
+    'death':      'Yemin henüz bozulmadı. Taş seni geri çağırıyor.',
+    'death2':     'Bu mezar seni tutamayacak. Ayağa kalk.',
+    'death3':     'Cellat seni düşürdü. Yeniden dene; zincir hâlâ kırılabilir.',
+    'win':        'Cellat öldü; hükmü sona erdi. Tapınağın ölüleri artık yatabilir. Ama aşağıdan gelen o nefes, hâlâ kesilmedi.',
 }
 TTS_RATE, TTS_PITCH = '-12%', '-11Hz'   # ilahiler (chant) için düz TTS ayarı
 VOICE_LUFS, VOICE_TP = -16.0, -1.5
-VOICE_ENC = ['-ar', '24000', '-ac', '1', '-c:a', 'libmp3lame', '-b:a', '40k']
+VOICE_ENC = ['-ar', '32000', '-ac', '1', '-c:a', 'libmp3lame', '-b:a', '64k']
 
 # ---------------------------------------------------------------------------
 # Kaynak paketleri (hepsi CC0). ASSET-LICENSES.md ile aynı liste.
@@ -85,6 +94,7 @@ SOURCES = {
     'metalsteps':     (OGA + 'metal_steps_48k24b.7z', 'thimras - Metal footsteps on concrete', 'https://opengameart.org/content/metal-footsteps-on-concrete'),
     'winch':          (OGA + 'winch.zip', 'bart - Chain winch sounds', 'https://opengameart.org/content/chain-winch-sounds'),
     'ghostmoans':     (OGA + 'qubodup-GhostMoans.zip', 'qubodup - Ghost/Monster Voice: Moaning, Growling', 'https://opengameart.org/content/ghost-monster-voice-moaning-growling'),
+    'human_pain':     (OGA + 'yelling%20sounds.zip', 'HaelDB - Male Grunt/Yelling sounds', 'https://opengameart.org/content/male-gruntyelling-sounds'),
 }
 # Birden çok varyantı olan efektler: her girdi bir kaynaktan işlenmiş bir parçadır.
 #   f: paket içi dosya (tam yol)   ss/to: kesit (sn)   rate: tape hızı (<1 daha pes ve uzun)
@@ -164,15 +174,26 @@ LEAD, MARK_AT, MARK_HZ = 0.25, 0.05, 1500.0
 def log(*a): print(*a, flush=True)
 
 def ff(args, capture=False):
-    cmd = ['ffmpeg', '-hide_banner', '-nostdin', '-y', '-v', 'error' if not capture else 'info'] + args
+    cmd = [FFMPEG, '-hide_banner', '-nostdin', '-y', '-v', 'error' if not capture else 'info'] + args
     p = subprocess.run(cmd, capture_output=True, text=True, encoding='utf-8', errors='replace')
     if p.returncode != 0:
         raise RuntimeError('ffmpeg failed: ' + ' '.join(args) + '\n' + p.stderr[-2000:])
     return p.stderr
 
 def duration(path):
-    p = subprocess.run(['ffprobe', '-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', path], capture_output=True, text=True)
-    return float(p.stdout.strip() or 0)
+    if FFPROBE:
+        p = subprocess.run([FFPROBE, '-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', path], capture_output=True, text=True)
+        if p.returncode != 0:
+            raise RuntimeError('ffprobe failed: ' + p.stderr[-1000:])
+        return float(p.stdout.strip() or 0)
+    # Portable FFmpeg packages sometimes omit ffprobe. Decode to null for the
+    # actual media duration instead of guessing it from MP3 size or bit rate.
+    p = subprocess.run([FFMPEG, '-hide_banner', '-nostdin', '-i', path, '-f', 'null', '-'], capture_output=True, text=True)
+    spans = re.findall(r'time=(\d+):(\d+):(\d+(?:\.\d+)?)', p.stderr)
+    if p.returncode != 0 or not spans:
+        raise RuntimeError('Could not measure duration: ' + p.stderr[-1000:])
+    h, m, s = spans[-1]
+    return int(h) * 3600 + int(m) * 60 + float(s)
 
 def fetch(key):
     url, _, _ = SOURCES[key]
@@ -286,13 +307,19 @@ VOICE_CHAIN = (
 BASE_FX = dict(pitch=0.95, formant='shifted', trans='mixed', low=2, mud=-2, pres=4, air=2, whisper=-21, wdelay=24,
                reverb=-15, predelay=14, deess=0.35, sat='', tts_pitch='-8Hz', pitch_last='-14Hz', ir=(1.5, 4.4, 3800, .014))
 STYLES = {
+    # Full sentences keep the native voice's coarticulation and emphasis.
+    # No formant shift, artificial whisper or forced slower final syllable.
+    'N': dict(BASE_FX, rate='-7%', rate_last='-7%', tts_pitch='-2Hz', pitch_last='-2Hz', ell=320, gap=180, whole=True),
+    'H': dict(BASE_FX, rate='-3%', rate_last='-3%', tts_pitch='-5Hz', pitch_last='-5Hz', ell=320, gap=180, whole=True),
+    'E': dict(BASE_FX, rate='-10%', rate_last='-10%', tts_pitch='-10Hz', pitch_last='-10Hz', ell=320, gap=180, whole=True),
     'A': dict(BASE_FX, rate='-20%', rate_last='-28%', tts_pitch='-6Hz', ell=650, comma=180, gap=380, reverb=-19, pres=5),
     'B': dict(BASE_FX, rate='-18%', rate_last='-27%', ell=800, comma=200, gap=460, pitch=0.93, low=3, whisper=-19, wdelay=32,
               reverb=-12, predelay=32, sat='asoftclip=type=tanh:param=1.5,', ir=(2.0, 3.4, 3400, .030)),
     'C': dict(BASE_FX, rate='-24%', rate_last='-32%', ell=900, comma=240, gap=520, pitch=0.96, whisper=-13, wdelay=12,
               reverb=-20, low=1, pres=5, air=3, ir=(.9, 6.0, 3600, .010)),
 }
-DEFAULT_STYLE = 'C'   # seçilen stil (gerekçe: README'deki ses notu; A/B alternatif)
+DEFAULT_STYLE = 'N'
+CHARACTER_LINES = {'heroOath': ('Bahtiyar', 'H'), 'cellat': ('Zincir Celladı', 'E')}
 
 def process_voice(raw, key, work, style=None):
     """TTS kaydını anlatıcı sesine çevirir; (normalize WAV, MP3) yollarını döndürür."""
@@ -303,7 +330,13 @@ def process_voice(raw, key, work, style=None):
     ff(['-i', raw, '-af', 'silenceremove=start_periods=1:start_threshold=-48dB:start_silence=0.03,'
         'areverse,silenceremove=start_periods=1:start_threshold=-48dB:start_silence=0.05,areverse', trimmed])
     wet = os.path.join(work, key + '_w.wav')
-    ff(['-i', trimmed, '-i', ir, '-filter_complex', VOICE_CHAIN.format(**fx), '-map', '[o]', '-ac', '1', wet])
+    if fx.get('whole'):
+        ff(['-i', trimmed, '-af', 'aresample=48000,highpass=f=72,'
+            'equalizer=f=260:t=q:w=1.2:g=-1.1,equalizer=f=2200:t=q:w=0.9:g=1.5,'
+            'deesser=i=0.15:m=0.3:f=0.5,acompressor=threshold=0.12:ratio=1.7:attack=12:release=140,'
+            'apad=pad_dur=0.3,aecho=0.96:0.82:28|53:0.045|0.025', '-ac', '1', wet])
+    else:
+        ff(['-i', trimmed, '-i', ir, '-filter_complex', VOICE_CHAIN.format(**fx), '-map', '[o]', '-ac', '1', wet])
     # yankı kuyruğunu -58 dB altında kes, kısa bir sönümle bitir
     cut = os.path.join(work, key + '_c.wav')
     ff(['-i', wet, '-af', 'areverse,silenceremove=start_periods=1:start_threshold=-58dB,areverse', cut])
@@ -319,16 +352,18 @@ def process_voice(raw, key, work, style=None):
 def build_voice(only=None, wav_dir=None, style=None):
     work = tempfile.mkdtemp(prefix='kara_voice_')
     out = {}
-    st = STYLES[style or DEFAULT_STYLE]
     for key, text in LINES.items():
         if only and key not in only:
             continue
-        norm, mp3 = process_voice(tts_phrases(text, st, key), key, work, style)
+        speaker, own_style = CHARACTER_LINES.get(key, ('Anlatıcı', style or DEFAULT_STYLE))
+        st = STYLES[own_style]
+        raw = tts(text, st['rate'], st['tts_pitch'], key) if st.get('whole') else tts_phrases(text, st, key)
+        norm, mp3 = process_voice(raw, key, work, own_style)
         if wav_dir:
             os.makedirs(wav_dir, exist_ok=True)
             shutil.copy(norm, os.path.join(wav_dir, 'voice_' + key + '.wav')); shutil.copy(mp3, os.path.join(wav_dir, 'voice_' + key + '.mp3'))
         data = open(mp3, 'rb').read()
-        out[key] = {'text': text, 'duration': round(duration(mp3), 3), 'audio': base64.b64encode(data).decode()}
+        out[key] = {'text': text, 'speaker': speaker, 'duration': round(duration(mp3), 3), 'audio': base64.b64encode(data).decode()}
         log(f'  {key:10s} {out[key]["duration"]:5.2f} sn  {len(data) // 1024:3d} KB')
     shutil.rmtree(work, ignore_errors=True)
     return out
@@ -451,6 +486,59 @@ def build_sfx(wav_dir=None):
     shutil.rmtree(work, ignore_errors=True)
     return {'mark': MARK_AT, 'sprites': sprites, 'clips': clips}
 
+def build_ambient(bank, wav_dir=None):
+    """Add recorded, acted human pain without regenerating the combat bank.
+
+    HaelDB's four performers are licensed CC0 on the source page. This is
+    dramatic voice acting, never a recording of actual suffering. The legacy
+    tortSob/tortWhisper keys now contain strained breaths, not synthetic speech.
+    """
+    import math, struct, wave
+    specs = {
+        'tortScream': [(f, r) for f, r in [('1yell3.wav', 1), ('1yell11.wav', .98), ('2yell4.wav', 1.03),
+                        ('2yell6.wav', 1), ('3yell13.wav', .96), ('3yell16.wav', 1), ('yell1.wav', 1), ('yell11.wav', .99)]],
+        'tortMoan': [('1yell4.wav', .88), ('2yell11.wav', .93), ('3grunt6.wav', .94), ('3yell9.wav', .93)],
+        'tortSob': [('3grunt1.wav', 1), ('3grunt2.wav', .96), ('3grunt6.wav', 1.02)],
+        'tortGurgle': [('3yell13.wav', .88), ('1yell16.wav', .95)],
+        'tortWhisper': [('3grunt6.wav', .89), ('3grunt2.wav', .87)],
+    }
+    work = tempfile.mkdtemp(prefix='kabir_acted_')
+    try:
+        pcm = bytearray(b'\0\0' * int(LEAD * 48000))
+        nm = int(.004 * 48000)
+        for k in range(nm):
+            v = .8 * math.sin(2 * math.pi * MARK_HZ * k / 48000) * (.5 - .5 * math.cos(2 * math.pi * k / (nm - 1)))
+            struct.pack_into('<h', pcm, (int((MARK_AT - .002) * 48000) + k) * 2, int(v * 32767))
+        for name, choices in specs.items():
+            bank['clips'][name] = []
+            for i, (filename, rate) in enumerate(choices):
+                spec = S('human_pain', 'yelling sounds/' + filename, rate=rate, hp=95, lp=6000, fade=.1)
+                mid, gain = build_clip(spec, work, f'{name}_{i}')
+                fin = os.path.join(work, f'{name}_{i}_g.wav')
+                ff(['-i', mid, '-af', f'volume={gain - 1:.2f}dB,aresample=48000', '-ac', '1', '-c:a', 'pcm_s16le', fin])
+                with wave.open(fin) as w:
+                    frames = w.readframes(w.getnframes())
+                start = len(pcm) / 2 / 48000
+                pcm += frames
+                bank['clips'][name].append(['pain', round(start, 5), round(len(frames) / 2 / 48000, 5)])
+                pcm += b'\0\0' * int(GAP * 48000)
+                if wav_dir:
+                    os.makedirs(wav_dir, exist_ok=True)
+                    shutil.copy(fin, os.path.join(wav_dir, f'{name}_{i}.wav'))
+        raw = os.path.join(work, 'sprite_pain.wav')
+        with wave.open(raw, 'wb') as w:
+            w.setnchannels(1); w.setsampwidth(2); w.setframerate(48000); w.writeframes(pcm)
+        mp3 = os.path.join(work, 'sprite_pain.mp3')
+        ff(['-i', raw, '-ar', '32000', '-ac', '1', '-c:a', 'libmp3lame', '-b:a', '48k', mp3])
+        bank['sprites']['pain'] = base64.b64encode(open(mp3, 'rb').read()).decode()
+        if wav_dir:
+            shutil.copy(raw, os.path.join(wav_dir, 'sprite_pain.wav'))
+            shutil.copy(mp3, os.path.join(wav_dir, 'sprite_pain.mp3'))
+        log(f'  acted pain: {sum(map(len, specs.values()))} clips, {len(pcm) / 2 / 48000:.1f} seconds')
+        return bank
+    finally:
+        shutil.rmtree(work, ignore_errors=True)
+
 def read_existing():
     narration, bank = {}, {}
     if os.path.exists(OUT_JS):
@@ -475,7 +563,7 @@ def write_js(narration, bank):
     log(f'yazıldı: {OUT_JS}  ({os.path.getsize(OUT_JS) // 1024} KB)')
 
 def main(argv):
-    what = [a for a in argv if a in ('voice', 'sfx')] or ['voice', 'sfx']
+    what = [a for a in argv if a in ('voice', 'sfx', 'ambient')] or ['voice', 'sfx', 'ambient']
     only = None
     wav_dir = None
     if '--only' in argv:
@@ -493,6 +581,10 @@ def main(argv):
     if 'sfx' in what:
         log('Efekt bankası...')
         bank = build_sfx(wav_dir)
+    if 'ambient' in what:
+        if not bank.get('clips'):
+            raise RuntimeError('Generate the combat SFX bank before adding ambient recordings.')
+        bank = build_ambient(bank, wav_dir)
     write_js(narration, bank)
 
 if __name__ == '__main__':

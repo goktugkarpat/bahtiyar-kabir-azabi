@@ -225,34 +225,42 @@
     var aoA = target(1, 1, T.HalfFloatType, false, T.RGFormat), aoB = target(1, 1, T.HalfFloatType, false, T.RGFormat);
     // Bloom is positive HDR colour and never reads alpha. Packed HDR retains its range at half the bandwidth.
     // Check the format once; drivers that cannot render into it retain the existing RGBA16F path.
-    var packedBloom = !!gl.getExtension('EXT_color_buffer_float');
-    if (packedBloom) {
-      var probe = target(1, 1, T.HalfFloatType, false, T.RGBFormat, 'R11F_G11F_B10F');
-      var previousTarget = renderer.getRenderTarget();
-      renderer.setRenderTarget(probe);
-      packedBloom = gl.checkFramebufferStatus(gl.FRAMEBUFFER) === gl.FRAMEBUFFER_COMPLETE;
-      renderer.setRenderTarget(previousTarget); probe.dispose();
-    }
     // The scene's alpha is never sampled or used as a blend factor. Packed positive HDR therefore also
     // halves its multisample colour storage/resolve bandwidth, while retaining the full HDR exponent range.
     // Keep RGBA16F as a fallback for devices without matching packed-colour/depth MSAA support.
-    var floatColour = !!gl.getExtension('EXT_color_buffer_float');
-    var depthSamples = Array.from(gl.getInternalformatParameter(gl.RENDERBUFFER, gl.DEPTH_COMPONENT24, gl.SAMPLES) || []);
+    var packedBloom = false, floatColour = false, depthSamples = [], packedSamples = [], halfSamples = [];
+    var packedScene = false, supportedSamples = [], checkedSamples = {};
     function commonSamples(format) {
       var colour = floatColour ? Array.from(gl.getInternalformatParameter(gl.RENDERBUFFER, format, gl.SAMPLES) || []) : [];
       // Settings offer 2× and 4×; only expose counts both HDR colour and depth support.
       var common = colour.filter(function (n) { return (n === 2 || n === 4) && n <= renderer.capabilities.maxSamples && depthSamples.indexOf(n) !== -1; });
       return common.sort(function (a, b) { return a - b; });
     }
-    var packedSamples = packedBloom ? commonSamples(gl.R11F_G11F_B10F) : [];
-    var halfSamples = commonSamples(gl.RGBA16F);
-    var packedScene = packedBloom && (packedSamples.length > 0 || halfSamples.length === 0);
-    var supportedSamples = packedScene ? packedSamples : halfSamples, checkedSamples = {};
     function sceneFormat() {
       sceneRT.texture.format = packedScene ? T.RGBFormat : T.RGBAFormat;
       sceneRT.texture.internalFormat = packedScene ? 'R11F_G11F_B10F' : null;
     }
-    sceneFormat();
+    // Formats, supported sample counts and verified framebuffers belong to the
+    // current context. Recheck once on creation/restoration, never per frame.
+    function probeFormats() {
+      floatColour = !!gl.getExtension('EXT_color_buffer_float');
+      packedBloom = floatColour;
+      if (packedBloom) {
+        var probe = target(1, 1, T.HalfFloatType, false, T.RGBFormat, 'R11F_G11F_B10F');
+        var previousTarget = renderer.getRenderTarget();
+        try {
+          renderer.setRenderTarget(probe);
+          packedBloom = gl.checkFramebufferStatus(gl.FRAMEBUFFER) === gl.FRAMEBUFFER_COMPLETE;
+        } finally { renderer.setRenderTarget(previousTarget); probe.dispose(); }
+      }
+      depthSamples = Array.from(gl.getInternalformatParameter(gl.RENDERBUFFER, gl.DEPTH_COMPONENT24, gl.SAMPLES) || []);
+      packedSamples = packedBloom ? commonSamples(gl.R11F_G11F_B10F) : [];
+      halfSamples = commonSamples(gl.RGBA16F);
+      packedScene = packedBloom && (packedSamples.length > 0 || halfSamples.length === 0);
+      supportedSamples = packedScene ? packedSamples : halfSamples; checkedSamples = {};
+      sceneFormat();
+    }
+    probeFormats();
     // Some drivers only expose 4x even when 2x is requested. Check the actual framebuffer once per choice;
     // the FPS counter reads that real sample count rather than assuming MAX_SAMPLES fits every format.
     function chooseSamples(requested) {
@@ -418,6 +426,10 @@
       timingContextLost(); // Also invalidate old data if a consumer missed the loss event.
       gl = renderer.getContext();
       timerExt = null; timingEnabled = false; timingAvailable = null; timingError = null;
+      sceneRT.dispose();
+      probeFormats();
+      setQuality(settingsRef);
+      rebuildMips();
       // Three registers its restore handler first and has rebuilt its GL state.
       // A restored context needs a fresh extension and fresh query objects.
       if (timingRequested) setTiming(true);

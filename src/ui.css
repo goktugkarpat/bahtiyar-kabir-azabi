@@ -68,12 +68,13 @@ kbd em { font-style: normal }
 #game { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; outline: none }
 #grain, #vignette, #damage-flash, #rage-veil { position: fixed; inset: 0; pointer-events: none }
 #vignette { z-index: 1; background: radial-gradient(ellipse 78% 72% at 50% 46%, transparent 52%, #03020388 82%, #020101d8 100%) }
+#vignette::after { content: ''; position: absolute; inset: 0; opacity: 0; box-shadow: inset 0 0 110px 18px #9c0f16aa }
 #grain { z-index: 2; opacity: .18; background: var(--grain) }
 #damage-flash { z-index: 4; opacity: 0; box-shadow: inset 0 0 160px 40px #9c0f16; background: radial-gradient(ellipse at 50% 50%, transparent 50%, #5a000870) }
 #rage-veil { z-index: 1; opacity: 0; transition: opacity .6s; box-shadow: inset 0 0 140px 30px #c2461f88; background: radial-gradient(ellipse at 50% 55%, transparent 58%, #7a1d0a48) }
 body.raging #rage-veil { opacity: 1; animation: rage-breath 1.4s ease-in-out infinite }
 body.pulse-parry #vignette { animation: parry-flash .5s ease-out }
-body.low-hp[data-view=playing] #vignette { animation: low-hp 1s ease-in-out infinite }
+body.low-hp[data-view=playing] #vignette::after { opacity: .55; will-change: opacity; animation: low-hp 1s ease-in-out infinite }
 .screen { position: fixed; inset: 0; z-index: 10 }
 .fog-layer { position: absolute; inset: 0; pointer-events: none; opacity: .09; background: url(../assets/ui/fog.webp) 0 100% / 1400px 700px repeat-x; animation: fog-drift 80s linear infinite; mix-blend-mode: screen; -webkit-mask: linear-gradient(0deg, #000 10%, transparent 75%); mask: linear-gradient(0deg, #000 10%, transparent 75%) }
 .fog-layer.far { opacity: .06; background-size: 2000px 1000px; background-position: 0 60%; animation-duration: 140s; animation-direction: reverse }
@@ -615,7 +616,7 @@ body.touch .touch-note { display: block }
 @keyframes callout { 0% { opacity: 0; transform: translate(-50%, -50%) scale(1.45); letter-spacing: .04em } 18% { opacity: 1; transform: translate(-50%, -50%) scale(1) } 70% { opacity: 1 } 100% { opacity: 0; transform: translate(-50%, -80%) scale(.98) } }
 @keyframes crest-glow { 50% { opacity: .6 } }
 @keyframes blood-run { from { clip-path: inset(0 0 100% 0) } to { clip-path: inset(0 0 0 0) } }
-@keyframes low-hp { 0%, 60%, 100% { box-shadow: inset 0 0 70px 6px #7a0a0e66 } 15% { box-shadow: inset 0 0 110px 18px #9c0f16aa } 35% { box-shadow: inset 0 0 90px 10px #8a0c1288 } }
+@keyframes low-hp { 0%, 60%, 100% { opacity: .4 } 15% { opacity: 1 } 35% { opacity: .72 } }
 
 /* ───────────── Smaller screens ───────────── */
 @media (max-height: 860px) {

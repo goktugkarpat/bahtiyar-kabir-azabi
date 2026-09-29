@@ -82,9 +82,9 @@
   // A fresh enemy owes one plain blow first (spWait 1), except the prisoner, whose charge is how it enters a fight.
   const SPECIAL_GAP = { prisoner: 2, guard: 2, cultist: 2, stalker: 2, carrier: 2, boss: 2, boss2: 1 }, SPECIAL_W = .75;   // (parent: specials a bit more often again; was 3/3 and .4)
   // Round 2 (specials still felt constant): min 3 plain blows between specials (SPECIAL_GAP, then SPECIAL_W .5); a special that is the ONLY legal move
-  // (hero kiting out of plain range) is not taken at once: the foe first chases for SPECIAL_HOLD attempts (1.5 s); plain blows recover in .75 of the
+  // (hero kiting out of plain range) is not taken at once: the foe first chases for SPECIAL_HOLD seconds; plain blows recover in .75 of the
   // rest time, specials in 1.2 of it (SPECIAL_IDS lists the specials for that).
-  const SPECIAL_HOLD = 60, PLAIN_REST = .8, SPECIAL_REST = 1.1;
+  const SPECIAL_HOLD = 1.5, PLAIN_REST = .8, SPECIAL_REST = 1.1;
   const SPECIAL_IDS = ['rush', 'grab', 'over', 'shove', 'rite', 'pair', 'rune', 'leap', 'flank', 'vial', 'exhale', 'hook', 'slam', 'cyclone', 'hooks'];
 
   function create(world, services) {
@@ -109,7 +109,9 @@
     const globes = BABA.Globes ? BABA.Globes.create(root, world, { player, fx, sound, emit }) : null;   // health globes dropped by dead foes (globes.js)
     const encounterDefs = (world.encounters || []).map((encounter, index) => ({
       id: String(encounter.id == null ? index : encounter.id), room: encounter.room,
-      name: encounter.name || 'Karanlık Geçit', activated: false, announced: false,
+      name: encounter.name || 'Karanlık Geçit', clearText: encounter.clearText || 'Salon sustu. Yol mührü açıldı.', activated: false, announced: false,
+      roomName: ((world.rooms || []).find(room => String(room.id) === String(encounter.room)) || {}).name || encounter.name || 'Karanlık Geçit',
+      nextName: ((world.rooms || [])[(world.rooms || []).findIndex(room => String(room.id) === String(encounter.room)) + 1] || {}).name || '',
       spawns: (encounter.spawns || []).filter(s => STATS[s.type]), enemies: []
     }));
     const game = {
@@ -132,6 +134,8 @@
     let hintCooldown = 0, debugInvincible = false, openingGrace = 8, corpseLifetime = 90;
     let freeze = 0, slowmo = 0, impactScale = 1, attackSerial = 0, actionSerial = 0, evadeCooldown = 0, pairCd = 0;
     let drinkLeft = 0;   // seconds of the flask flourish still to play (also the double-press guard)
+    let navigationBudget = 0;   // at most two searches per update, including slow-frame substeps; the player goes first
+    let decisionStep = 1 / 60;   // AI patience is measured in simulation seconds, never rendered frames
     const victims = [];
     game.timeScale = 1; game.resetSerial = 0;
     game.limbs = limbs;   // read-only handle for QA (pool statistics)
@@ -298,6 +302,9 @@
         const validIds = new Set(enemies.filter(e => !e.boss).map(e => e.id));
         if (!Array.isArray(saved.dead) || saved.dead.some(id => !validIds.has(id))) return null;
         const dead = Array.from(new Set(saved.dead));
+        // This stone only opens after every preceding hall is clear. A partial/corrupt
+        // record must never put the hero behind closed seals with living foes outside.
+        if (dead.length !== validIds.size) return null;
         return { index: 1, x: checkpoint.x, z: checkpoint.z, dead, kills: dead.length, elapsed: clamp(Number(saved.elapsed) || 0, 0, 86400) };
       } catch (_) { return null; }
     }
@@ -336,7 +343,7 @@
           cooldown: .55 + (enemy.index % 5) * .31, action: null, hurt: 0, stagger: 0,
           deadAge: killed.has(enemy.id) ? Infinity : 0, move: 0, buff: 0, buffCooldown: 7 + enemy.index % 4,
           cycle: 0, retreat: 0, shieldBroken: 0, poiseRecovery: 0, shield: enemy.type === 'guard', faceLocked: false,
-          push: null, staggerTotal: 0, staggerKind: '', deathKind: '', hitAngle: 0, hurtHeavy: false, lastStrike: -9
+          push: null, staggerTotal: 0, staggerKind: '', deathKind: '', hitAngle: 0, hurtHeavy: false, lastStrike: -9, navigation: null
         });
         enemy.model.root.position.set(enemy.x, 0, enemy.z); enemy.model.root.rotation.y = enemy.face;
         Object.assign(enemy, freshEnemyFields(enemy));
@@ -454,15 +461,46 @@
       }
       return h;
     }
+    function routeDirection(body, target, nav, dt, radius, isHero) {
+      nav.wait = Math.max(0, (nav.wait || 0) - dt);
+      const changed = !Number.isFinite(nav.x) || Math.hypot(target.x - nav.x, target.z - nav.z) > 1.5;
+      if (nav.route && changed && nav.wait <= 0) nav.route = null;
+      if (nav.route) {
+        while (nav.at < nav.route.length - 1 && distance(body, nav.route[nav.at]) < .2) nav.at++;
+        if (nav.at === nav.route.length - 1 && distance(body, nav.route[nav.at]) < .22) nav.route = null;
+      }
+      if (!nav.route && nav.wait <= 0 && world.pathTo && world.hasClearPath) {
+        nav.x = target.x; nav.z = target.z;
+        nav.wait = isHero ? .18 : .65 + (body.index % 7) * .037;
+        if (!world.hasClearPath(body.x, body.z, target.x, target.z, radius)) {
+          if (navigationBudget > 0) {
+            navigationBudget--;
+            nav.route = world.pathTo(body, target, radius); nav.at = 0;
+            if (nav.route && isHero && target.kind === 'move') {
+              const end = nav.route[nav.route.length - 1];
+              // Clicking a prop's edge gives a reachable nearby floor destination.
+              target.x = end.x; target.z = end.z; nav.x = end.x; nav.z = end.z;
+            }
+          } else nav.wait = .025 + (body.index || 0) % 5 * .008;
+        }
+      }
+      const point = nav.route && nav.route[nav.at] || target;
+      const dx = point.x - body.x, dz = point.z - body.z, d = Math.hypot(dx, dz);
+      nav.dx = d > .001 ? dx / d : 0; nav.dz = d > .001 ? dz / d : 0; nav.distance = d;
+      return nav;
+    }
     function walkTo(enemy, target, speed, dt) {
-      const dx = target.x - enemy.x, dz = target.z - enemy.z, d = Math.hypot(dx, dz);
+      const nav = enemy.navigation || (enemy.navigation = { wait: enemy.index % 7 * .031 });
+      routeDirection(enemy, target, nav, dt, enemy.radius, false);
+      const d = nav.distance;
       if (d < .08) return;
       const amount = Math.min(d, speed * dt);
-      moveBody(enemy, dx / d * amount, dz / d * amount, enemy.radius); enemy.move = Math.min(1, speed / enemy.stats.speed);
+      moveBody(enemy, nav.dx * amount, nav.dz * amount, enemy.radius); enemy.move = Math.min(1, speed / enemy.stats.speed);
     }
     function openAttackSlots(enemy) {
       const distanceToPlayer = distance(enemy, player);
       if (distanceToPlayer > 17) return false;
+      if (!clearStrike(enemy, player)) return false;
       const simultaneous = enemies.filter(e => e !== enemy && e.active && !e.dead && e.action && distance(e, player) < 18);
       if (enemy.boss) return simultaneous.length === 0;
       const ranged = e => e.type === 'cultist' || e.type === 'carrier';
@@ -519,7 +557,7 @@
       if (enemy.forceMove) { const o = options.find(p => p.id === enemy.forceMove); if (o && beginMove(enemy, o.move())) { enemy.forceMove = ''; return true; } return false; }
       const ok = options.filter(o => o.ok && !(o.sp && enemy.spWait > 0)), weight = o => (o.w || 1) * (o.sp ? SPECIAL_W : 1);
       // Only specials legal (hero out of plain range): chase first instead of throwing one at once.
-      if (ok.length && ok.every(o => o.sp)) { if (++enemy.spHold < SPECIAL_HOLD) return false; } else enemy.spHold = 0;
+      if (ok.length && ok.every(o => o.sp)) { enemy.spHold += decisionStep; if (enemy.spHold + 1e-7 < SPECIAL_HOLD) return false; } else enemy.spHold = 0;
       let pool = ok.filter(o => o.id !== enemy.lastMove);
       if (!pool.length || (ok.some(o => !o.sp) && pool.every(o => o.sp))) pool = ok;   // repeating the one plain blow beats being forced into a special
       while (pool.length) {
@@ -537,6 +575,16 @@
       if (!world.isWalkable) return L;
       for (let s = .5; s < L; s += .25) if (!world.isWalkable(o.x + Math.sin(face) * s, o.z + Math.cos(face) * s, .15)) return Math.max(1, s + .15);
       return L;
+    }
+    function clearStrike(a, b) {
+      const dz = b.z - a.z;
+      if (Math.abs(dz) > 1e-6) for (const seal of seals) {
+        if (seal.open) continue;
+        const u = (seal.z - a.z) / dz;
+        if (u > 0 && u < 1 && Math.abs(a.x + (b.x - a.x) * u - seal.x) < 3.5) return false;
+      }
+      if (world.hasClearPath) return world.hasClearPath(a.x, a.z, b.x, b.z, .08);
+      return !world.isWalkable || world.isWalkable((a.x + b.x) * .5, (a.z + b.z) * .5, .12);
     }
     function segmentDistance(p, a, b) {
       const dx = b.x - a.x, dz = b.z - a.z, L2 = dx * dx + dz * dz || 1, t = clamp(((p.x - a.x) * dx + (p.z - a.z) * dz) / L2, 0, 1);
@@ -913,7 +961,9 @@
       if (seal && !seal.open && seal.encounter.enemies.every(e => e.dead)) {
         seal.open = true; sound('sealOpen');
         flashRing(seal.x, seal.z, 2.4, 0xc99f69, .9);
-        emit('toast', { text: 'Salon sustu. Yol mührü açıldı.' });
+        if (game.activeEncounter === seal.encounter.name) game.activeEncounter = '';
+        emit('encounterCleared', { name: seal.encounter.name, roomName: seal.encounter.roomName, nextName: seal.encounter.nextName, room: seal.encounter.room, x: seal.x, z: seal.z, text: seal.encounter.clearText });
+        emit('toast', { text: seal.encounter.clearText });
       }
       emit('kill', { name: enemy.name, boss: enemy.boss, x: enemy.x, z: enemy.z }); sound(enemy.boss ? 'bossDeath' : 'kill', { type: enemy.type });
       fx('death', { x: enemy.x, y: .8, z: enemy.z, boss: enemy.boss });
@@ -1004,14 +1054,14 @@
       const incomingAngle = angleTo(player, attackSource);
       let damage = hazard.damage;
       if (hazard.owner) damage = Math.round(damage * (hazard.owner.boss ? EASE.bossDamage : EASE.damage));
+      // The display event and the wound use the same final amount after the cry/fury's defence.
+      if (player.roar) damage = Math.ceil(damage * .5); else if (player.rageTime > 0) damage = Math.ceil(damage * ROAR.guard);
       player.hitAngle = angleDifference(incomingAngle, player.face);
       const heavyBlow = hazard.damage >= 26;
       const applied = hitStop(damage > 0 ? (heavyBlow ? FEEL.hitstop.hurtHeavy : FEEL.hitstop.hurt) : 0, damage > 0 ? [{ body: player, model: hero, amp: .045 }] : null);
       emit('hit', { target: 'player', x: player.x, z: player.z, damage, face: incomingAngle + Math.PI, hitstop: applied,
         impact: heavyBlow ? 1 : .65, heavy: heavyBlow });
       if (damage <= 0) return false;
-      // The war cry hardens the father: blows that land while he roars are halved.
-      if (player.roar) damage = Math.ceil(damage * .5); else if (player.rageTime > 0) damage = Math.ceil(damage * ROAR.guard);
       player.hp = Math.max(0, player.hp - damage); player.hurt = 1; player.hurtHeavy = heavyBlow; player.hitDirection = Math.sin(incomingAngle - player.face); playerHitImmunity = .16;
       player.rage = Math.min(player.maxRage, player.rage + damage * RAGE_GAIN.hurt * (player.rageTime > 0 ? RAGE_HOLD : 1));
       player.healing = 0; healingAge = 0;
@@ -1036,7 +1086,9 @@
       if (h.shape === 'line') {
         const forward = dx * Math.sin(h.face) + dz * Math.cos(h.face);
         const side = dx * Math.cos(h.face) - dz * Math.sin(h.face);
-        return forward >= -radius && forward <= h.length + radius && Math.abs(side) < h.width / 2 + radius;
+        const edgeX = Math.max(Math.abs(side) - h.width / 2, 0);
+        const edgeZ = Math.max(-forward, forward - h.length, 0);
+        return edgeX * edgeX + edgeZ * edgeZ <= radius * radius;
       }
       const d = Math.hypot(dx, dz);
       if (h.shape === 'ring') {
@@ -1149,7 +1201,7 @@
       for (const e of enemies) {
         if (e.dead || !e.model.root.visible) continue;
         const d = distance(player, e); if (d > R + e.radius * .6) continue;
-        if (world.isWalkable && !world.isWalkable((player.x + e.x) * .5, (player.z + e.z) * .5, .12)) continue;
+        if (!clearStrike(player, e)) continue;
         if (!e.active) { e.active = true; e.activated = true; e.encounter.activated = true; }
         const damage = Math.round(attack.damage * (player.rageTime > 0 ? 1.48 : 1)); attack.rage = player.rageTime > 0;
         const wasBoss = e.boss, away = angleTo(player, e), rage0 = player.rage;
@@ -1179,6 +1231,7 @@
         if (e.dead || !e.model.root.visible) continue;
         const d = distance(player, e) - e.radius; if (d > range) continue;
         const off = Math.abs(angleDifference(angleTo(player, e), face)); if (off > halfArc) continue;
+        if (!clearStrike(player, e)) continue;
         const score = d + off * 1.6; if (score < bestScore) { bestScore = score; best = e; }
       }
       return best;
@@ -1239,10 +1292,7 @@
         if (enemy.dead || distance(player, enemy) > attack.radius + enemy.radius * .6) continue;
         const angle = Math.abs(angleDifference(angleTo(player, enemy), attack.face));
         if (angle > attack.arc / 2) continue;
-        if (world.isWalkable) {
-          const mx = (player.x + enemy.x) * .5, mz = (player.z + enemy.z) * .5;
-          if (!world.isWalkable(mx, mz, .12)) continue;
-        }
+        if (!clearStrike(player, enemy)) continue;
         if (!enemy.active) { enemy.active = true; enemy.activated = true; enemy.encounter.activated = true; }
         const damage = Math.round(attack.damage * (player.rageTime > 0 ? 1.48 : 1)); attack.rage = player.rageTime > 0;
         const r = hurtEnemy(enemy, damage, attack.heavy, attack.face, attack); if (!r) continue;
@@ -1304,6 +1354,8 @@
     // updatePlayer uses: the keys, or the walking direction of the order.
     function steerOrders(input, dt) {
       const out = Object.assign({}, input);
+      out.x = Number.isFinite(input.x) ? clamp(input.x, -1, 1) : 0;
+      out.z = Number.isFinite(input.z) ? clamp(input.z, -1, 1) : 0;
       rawInput = input; swingPlan = null; dodgeAim = null;
       const click = pendingClick || (input.clickLight || input.clickHeavy ? { heavy: !!input.clickHeavy, target: input.target, x: input.pointX, z: input.pointZ, stand: !!input.stand } : null);
       pendingClick = null;
@@ -1348,12 +1400,18 @@
         } else if (order.kind === 'attack') {
           const e = order.enemy, a = angleTo(player, e), reach = order.heavy ? ORDER.reachHeavy : ORDER.reach;
           dodgeAim = a; ring = e;
-          if (distance(player, e) - e.radius <= reach) { swingPlan = { enemy: e, heavy: order.heavy, order }; if (mv <= .08) out.x = out.z = 0; }
-          else if (mv <= .08) { out.x = Math.sin(a); out.z = Math.cos(a); walking = true; }
+          if (distance(player, e) - e.radius <= reach && clearStrike(player, e)) { swingPlan = { enemy: e, heavy: order.heavy, order }; if (mv <= .08) out.x = out.z = 0; }
+          else if (mv <= .08) {
+            const nav = order.navigation || (order.navigation = {}); routeDirection(player, e, nav, dt, hero.radius || .5, true);
+            out.x = nav.dx; out.z = nav.dz; walking = true;
+          }
         } else {
           const dx = order.x - player.x, dz = order.z - player.z, d = Math.hypot(dx, dz);
           if (d <= (order.held ? ORDER.hold : ORDER.arrive)) { if (!order.held) order = null; }
-          else { dodgeAim = Math.atan2(dx, dz); if (mv <= .08) { out.x = dx / d; out.z = dz / d; walking = true; } }
+          else {
+            dodgeAim = Math.atan2(dx, dz);
+            if (mv <= .08) { const nav = order.navigation || (order.navigation = {}); routeDirection(player, order, nav, dt, hero.radius || .5, true); out.x = nav.dx; out.z = nav.dz; walking = true; }
+          }
         }
       }
       if (order) {
@@ -1630,6 +1688,7 @@
       }
     }
     function step(dt, input) {
+      decisionStep = dt;
       simTime += dt; game.elapsed += dt; pairCd = Math.max(0, pairCd - dt);
       openingGrace = Math.max(0, openingGrace - dt);
       game.currentRoom = world.roomAt ? world.roomAt(player.x, player.z) : null;
@@ -1656,7 +1715,7 @@
     function update(dt, input) {
       if (disposed) return;
       if (!Number.isFinite(dt) || dt <= 0) return;
-      dt = Math.min(dt, .1); input = input || {};
+      dt = Math.min(dt, .1); input = input || {}; navigationBudget = 2;
       if (freeze > 0) {
         // Hit-stop: every combat clock holds together; presses made now are buffered for the next frame.
         const held = Math.min(freeze, dt); freeze -= held; dt -= held;

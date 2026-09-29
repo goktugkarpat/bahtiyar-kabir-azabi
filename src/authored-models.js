@@ -88,14 +88,15 @@
     'float kSkinMask=0.,kScar=0.,kFaceH=0.;\n#ifdef KARA_SCARS\nuniform vec4 kScarA[KARA_SCARS];uniform vec4 kScarB[KARA_SCARS];uniform float kScarFresh;\n#endif\n' +
     'float kH(vec3 p){return fract(sin(dot(p,vec3(127.1,311.7,74.7)))*43758.5453);}\n' +
     'float kN(vec3 p){vec3 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(mix(kH(i),kH(i+vec3(1,0,0)),f.x),mix(kH(i+vec3(0,1,0)),kH(i+vec3(1,1,0)),f.x),f.y),mix(mix(kH(i+vec3(0,0,1)),kH(i+vec3(1,0,1)),f.x),mix(kH(i+vec3(0,1,1)),kH(i+vec3(1,1,1)),f.x),f.y),f.z);}\n' +
+    'float kFall(float high,float low,float x){return 1.-smoothstep(low,high,x);}\n' +
     'float kF(vec3 p){return .55*kN(p)+.3*kN(p*2.13)+.15*kN(p*4.37);}\n' +
     'float kRidge(vec3 p){return 1.-abs(2.*kN(p)-1.);}\n' +
     '#if defined(KARA_HAIR) || defined(KARA_FACE)\n' +
     // beard area in metres of the finished hero (fits beardMass): from the cheek line down to a bottom edge that rises toward the ears, with a window for the lips
     'float kMouth(vec3 w){float ax=abs(w.x);vec2 m=vec2(ax/.026,(w.y-2.153)/.0105);return 1.-smoothstep(.55,1.,length(m));}\n' +
     'float kBeard(vec3 w,vec3 p){float ax=abs(w.x),a=abs(atan(w.x,w.z+.02)),top=2.192+max(ax-.05,0.)*.75,bot=2.05+.11*pow(smoothstep(0.,1.2,a),1.3);\n' +
-    ' return smoothstep(top+.008,top-.032,w.y+(kN(p*55.)-.5)*.02+(kN(p*160.)-.5)*.008)*smoothstep(bot-.002,bot+.016,w.y)*smoothstep(-.03,0.,w.z)*smoothstep(1.52,1.32,a)*(1.-kMouth(w));}\n' +
-    'float kGrey(vec3 w,vec3 p,float bias,float sc,float depth){float g=smoothstep(2.19,2.1,w.y)+bias+smoothstep(.055,.12,abs(w.x))*.35;vec3 q=vec3(p.x,p.y*.3,p.z);return clamp(g+(kN(q*sc)-.5)*depth+(kN(q*sc*.2+3.)-.5)*.3,0.,1.);}\n#endif\n' +
+    ' return kFall(top+.008,top-.032,w.y+(kN(p*55.)-.5)*.02+(kN(p*160.)-.5)*.008)*smoothstep(bot-.002,bot+.016,w.y)*smoothstep(-.03,0.,w.z)*kFall(1.52,1.32,a)*(1.-kMouth(w));}\n' +
+    'float kGrey(vec3 w,vec3 p,float bias,float sc,float depth){float g=kFall(2.19,2.1,w.y)+bias+smoothstep(.055,.12,abs(w.x))*.35;vec3 q=vec3(p.x,p.y*.3,p.z);return clamp(g+(kN(q*sc)-.5)*depth+(kN(q*sc*.2+3.)-.5)*.3,0.,1.);}\n#endif\n' +
     'float kFade(float px,float size){return 1.-smoothstep(.3,.9,px/size);}\n' +
     'vec3 kPerturb(vec3 sp,vec3 sn,vec2 dH,float fd){vec3 sx=normalize(dFdx(sp)),sy=normalize(dFdy(sp)),r1=cross(sy,sn),r2=cross(sn,sx);float det=dot(sx,r1)*fd;vec3 gr=sign(det)*(dH.x*r1+dH.y*r2);return normalize(abs(det)*sn-gr);}\n' +
     // micro-relief height (metres) per class. Every layer fades out with the pixel footprint (kFade is exactly 0 once
@@ -155,7 +156,7 @@
     m.defines = Object.assign(m.defines || {}, defs);
     m.defaultAttributeValues = { kwear: [0, 0, 0, 0] };
     m.userData.grade = u;
-    var cacheKey = 'kara-grade-9-' + Object.keys(defs).map(function (k) { return k + defs[k]; }).join('.');
+    var cacheKey = 'kara-grade-10-' + Object.keys(defs).map(function (k) { return k + defs[k]; }).join('.');
     m.onBeforeCompile = function (sh) {
       Object.keys(u).forEach(function (k) { sh.uniforms[k] = u[k]; });
       sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute vec4 kwear;varying vec3 vKara;varying vec4 vKWear;')
@@ -173,9 +174,9 @@
           '#if KARA_CLASS == 1\n{float ox=kF(vKara*kScale*1.3+vec3(3.,1.,7.));diffuseColor.rgb*=.72+.56*ox;vec3 bare=vec3(.47,.46,.445)*(.8+.4*kN(vKara*140.));diffuseColor.rgb=mix(diffuseColor.rgb,bare,kEdgeMask*.82);}\n' +
           '#elif KARA_CLASS == 2 || KARA_CLASS == 6\ndiffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*1.7+vec3(.035,.028,.02),kEdgeMask*.55);\n' +
           '#elif KARA_CLASS == 5\ndiffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*1.3+.03,kEdgeMask*.5);\n#endif\n' +
-          'float g=kF(vKara*kScale),low=smoothstep(kLowTop,kLowBottom,vKara.y);diffuseColor.rgb*=1.-kGrime*clamp(.75*g+.6*low-.25,0.,.85);diffuseColor.rgb*=1.-kCav*.55;\n' +
+          'float g=kF(vKara*kScale),low=kFall(kLowTop,kLowBottom,vKara.y);diffuseColor.rgb*=1.-kGrime*clamp(.75*g+.6*low-.25,0.,.85);diffuseColor.rgb*=1.-kCav*.55;\n' +
           '#ifdef KARA_SCARS\n{float sc=0.,st=0.;for(int i=0;i<KARA_SCARS;i++){vec3 a=kScarA[i].xyz,ab=kScarB[i].xyz-a;float L=length(ab),t=clamp(dot(vKara-a,ab)/(L*L),0.,1.),d=length(vKara-a-ab*t),w=kScarA[i].w*(.55+.9*kN(vKara*260.+float(i)*7.));' +
-          'sc=max(sc,smoothstep(w,w*.3,d)*smoothstep(0.,.1,t)*smoothstep(1.,.9,t));float q=abs(fract(t*L/.011)-.5)*.011;st=max(st,kScarB[i].w*smoothstep(.0016,.0006,q)*smoothstep(w*3.2,w*2.2,d)*step(.08,t)*step(t,.92));}' +
+          'sc=max(sc,kFall(w,w*.3,d)*smoothstep(0.,.1,t)*kFall(1.,.9,t));float q=abs(fract(t*L/.011)-.5)*.011;st=max(st,kScarB[i].w*kFall(.0016,.0006,q)*kFall(w*3.2,w*2.2,d)*step(.08,t)*step(t,.92));}' +
           'float sk=step(.5,kSkinMask);kScar=max(sc,st)*sk;vec3 healed=diffuseColor.rgb*vec3(1.22,1.02,.98)+vec3(.035,.02,.02),fresh=mix(vec3(.11,.012,.008),vec3(.24,.03,.02),kN(vKara*120.));' +
           'diffuseColor.rgb=mix(diffuseColor.rgb,mix(healed,fresh,kScarFresh),sc*sk*.85);diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.03,.02,.015),st*sk);kWet=max(kWet,sc*sk*kScarFresh);}\n#endif\n' +
           'float paint=clamp(vKWear.z,0.,1.),zone=smoothstep(.3,.7,kN(vKara*kScale*.33+vec3(7.,1.,3.))),bn=kF(vKara*kScale*1.6+vec3(13.,5.,2.))*.7+kN(vKara*kScale*6.)*.3;\n' +
@@ -192,16 +193,16 @@
           // hero head skin, in metres of the finished hero: grey hair at the sides of the skull, beard stubble under the strand cards,
           // forehead lines, lids, eye bags and crow's feet (front of the face only)
           '#ifdef KARA_FACE\n{vec3 w=vKara*1.2965;float ax=abs(w.x);if(w.y>2.04){\n' +
-          ' {vec3 bd=w-vec3(0.,2.25,0.);float az=abs(atan(bd.x,bd.z)),yy=w.y+(kN(vKara*75.)-.5)*.009,low=mix(mix(2.2885,2.305,smoothstep(1.2,1.6,az)),2.13,smoothstep(1.9,2.4,az)),top=mix(2.335,2.365,smoothstep(1.3,2.9,az)),m=smoothstep(1.05,1.3,az)*smoothstep(low-.004,low+.004,yy)*smoothstep(top+.004,top-.004,yy);\n' +
+          ' {vec3 bd=w-vec3(0.,2.25,0.);float az=abs(atan(bd.x,bd.z)),yy=w.y+(kN(vKara*75.)-.5)*.009,low=mix(mix(2.2885,2.305,smoothstep(1.2,1.6,az)),2.13,smoothstep(1.9,2.4,az)),top=mix(2.335,2.365,smoothstep(1.3,2.9,az)),m=smoothstep(1.05,1.3,az)*smoothstep(low-.004,low+.004,yy)*kFall(top+.004,top-.004,yy);\n' +
           '  vec3 hr=mix(vec3(.05,.045,.04),vec3(.15,.14,.13),smoothstep(.25,.85,.65*kN(vKara*1300.)+.35*kN(vKara*300.)));diffuseColor.rgb=mix(diffuseColor.rgb,hr,m*.75);kSkinMask*=1.-m*.9;}\n' +
           // the atlas has a bright dotted seam along the midline of the skull: pull it down to the local average
           '#ifdef USE_MAP\n {float sm=(1.-smoothstep(.002,.006,ax))*smoothstep(2.29,2.32,w.y);if(sm>0.){float r=dot(textureLod(map,vMapUv,2.5).rgb,vec3(.299,.587,.114))/max(dot(sampledDiffuseColor.rgb,vec3(.299,.587,.114)),.02);diffuseColor.rgb*=mix(1.,clamp(r,.8,1.),sm);}}\n#endif\n' +
           ' float fm=smoothstep(.03,.07,w.z)*(1.-smoothstep(.13,.16,ax))*smoothstep(2.07,2.12,w.y)*(1.-smoothstep(2.4,2.44,w.y));\n' +
           ' if(fm>0.){\n' +
-          '  float fl=0.;for(int i=0;i<3;i++){float y0=2.316+float(i)*.017-1.7*w.x*w.x;fl=max(fl,smoothstep(.0016,.0003,abs(w.y-y0+(kN(vec3(w.x*70.,float(i)*5.,2.))-.5)*.0035))*smoothstep(.2,.4,kN(vec3(w.x*24.,float(i)*3.,1.)))*(1.-smoothstep(.04,.085,ax)));}\n' +
+          '  float fl=0.;for(int i=0;i<3;i++){float y0=2.316+float(i)*.017-1.7*w.x*w.x;fl=max(fl,kFall(.0016,.0003,abs(w.y-y0+(kN(vec3(w.x*70.,float(i)*5.,2.))-.5)*.0035))*smoothstep(.2,.4,kN(vec3(w.x*24.,float(i)*3.,1.)))*(1.-smoothstep(.04,.085,ax)));}\n' +
           '  vec2 e=vec2(ax-.042,w.y-2.252),q=e/vec2(.03,.02);\n' +
-          '  float sock=exp(-dot(q,q)),crease=smoothstep(.0011,.0003,abs(e.y-.0135+7.*e.x*e.x))*(1.-smoothstep(.016,.024,abs(e.x+.004))),lower=smoothstep(.0008,.0002,abs(e.y+.0125-3.*e.x*e.x))*(1.-smoothstep(.012,.02,abs(e.x))),bag=exp(-pow((e.y+.022)/.0055,2.))*(1.-smoothstep(.015,.03,abs(e.x-.003))),crow=0.;\n' +
-          '  for(int i=0;i<3;i++){float a=float(i)*.4-.3;vec2 d=vec2(cos(a),sin(a)),r=e-vec2(.013,0.);float al=dot(r,d),pp=abs(r.x*d.y-r.y*d.x);crow=max(crow,smoothstep(.0007,.0002,pp)*smoothstep(0.,.004,al)*smoothstep(.022,.008,al)*smoothstep(.25,.6,kN(vec3(al*90.,float(i),4.))));}\n' +
+          '  float sock=exp(-dot(q,q)),crease=kFall(.0011,.0003,abs(e.y-.0135+7.*e.x*e.x))*(1.-smoothstep(.016,.024,abs(e.x+.004))),lower=kFall(.0008,.0002,abs(e.y+.0125-3.*e.x*e.x))*(1.-smoothstep(.012,.02,abs(e.x))),bag=exp(-pow((e.y+.022)/.0055,2.))*(1.-smoothstep(.015,.03,abs(e.x-.003))),crow=0.;\n' +
+          '  for(int i=0;i<3;i++){float a=float(i)*.4-.3;vec2 d=vec2(cos(a),sin(a)),r=e-vec2(.013,0.);float al=dot(r,d),pp=abs(r.x*d.y-r.y*d.x);crow=max(crow,kFall(.0007,.0002,pp)*smoothstep(0.,.004,al)*kFall(.022,.008,al)*smoothstep(.25,.6,kN(vec3(al*90.,float(i),4.))));}\n' +
           '  diffuseColor.rgb*=1.-fm*(.16*sock+.3*crease+.16*lower+.1*bag+.16*crow+.15*fl);kFaceH=-fm*(.0007*fl+.0006*crease+.0003*lower+.0002*crow);}\n' +
           ' float bm=kBeard(w,vKara);\n' +
           ' if(bm>0.){float g=kGrey(w,vKara,.05,600.,.8);vec3 hc=mix(vec3(.05,.036,.03),vec3(.58,.56,.52),g)*(.65+.7*kN(vKara*900.));diffuseColor.rgb=mix(diffuseColor.rgb,hc,bm*.88);kSkinMask*=1.-bm*.95;}}}\n#endif\n')
@@ -1444,10 +1445,10 @@
     m.onBeforeCompile = function (sh, r) {
       before.call(this, sh, r); sh.uniforms.kFlare = u; sh.uniforms.kFlareP = { value: new T.Vector4(spec[0], spec[1], spec[2], spec[3]) }; sh.uniforms.kFlareY = { value: new T.Vector2(top, bottom) };
       sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nuniform float kFlare;uniform vec4 kFlareP;uniform vec2 kFlareY;')
-        .replace('#include <skinning_vertex>', '#include <skinning_vertex>\n{float fw=kFlare*mix(kFlareP.w,1.,smoothstep(kFlareY.x,kFlareY.y,transformed.y));vec2 rd=transformed.xz/max(length(transformed.xz),.05);' +
+        .replace('#include <skinning_vertex>', '#include <skinning_vertex>\n{float fw=kFlare*mix(kFlareP.w,1.,(1.-smoothstep(kFlareY.y,kFlareY.x,transformed.y)));vec2 rd=transformed.xz/max(length(transformed.xz),.05);' +
           'transformed.xz+=rd*kFlareP.x*fw;transformed.y+=kFlareP.y*fw;transformed.x-=kFlareP.z*fw;}');
     };
-    m.customProgramCacheKey = function () { return (key ? key.call(this) : '') + '|flare-1'; };
+    m.customProgramCacheKey = function () { return (key ? key.call(this) : '') + '|flare-2'; };
     mesh.material = m; mesh.frustumCulled = false; return m;
   }
   var linkGeometry = null;
@@ -1473,15 +1474,15 @@
       // Live chain between the shackles: parabolic sag recomputed from the wrists every frame.
       if (!linkGeometry) linkGeometry = G.link(.075);
       var count = 13, links = new T.InstancedMesh(linkGeometry, gearMaterial('dark'), count); links.castShadow = true; links.frustumCulled = false; root.add(links); disposables.push(links);
-      var aObj = anchorObject(bp.anchors.chainA), bObj = anchorObject(bp.anchors.chainB), pa = new T.Vector3(), pb = new T.Vector3(), pt = new T.Vector3(), nx = new T.Vector3(), mm = new T.Matrix4(), qq = new T.Quaternion(), qy = new T.Quaternion(), yAxis = new T.Vector3(0, 1, 0), one = new T.Vector3(1, 1, 1);
+      var aObj = anchorObject(bp.anchors.chainA), bObj = anchorObject(bp.anchors.chainB), pa = new T.Vector3(), pb = new T.Vector3(), pt = new T.Vector3(), nx = new T.Vector3(), chainDir = new T.Vector3(), chainMid = new T.Vector3(), mm = new T.Matrix4(), qq = new T.Quaternion(), qy = new T.Quaternion(), yAxis = new T.Vector3(0, 1, 0), one = new T.Vector3(1, 1, 1);
       extras.push(function () {
         aObj.getWorldPosition(pa); bObj.getWorldPosition(pb); root.worldToLocal(pa); root.worldToLocal(pb);
         var d = pa.distanceTo(pb), L = .95, sag = Math.sqrt(Math.max(0, L * L - d * d)) * .5;
         function at(t, out) { out.lerpVectors(pa, pb, t); out.y -= sag * 4 * t * (1 - t); out.y = Math.max(out.y, .03); return out; }
         for (var i = 0; i < count; i++) {
-          var t0 = i / count, t1 = (i + 1) / count; at(t0, pt); at(t1, nx); var dir = nx.clone().sub(pt), len = dir.length(); if (len < 1e-5) dir.set(0, 1, 0); else dir.multiplyScalar(1 / len);
-          qq.setFromUnitVectors(yAxis, dir); qy.setFromAxisAngle(yAxis, i % 2 ? PI / 2 : 0); qq.multiply(qy);
-          mm.compose(pt.clone().add(nx).multiplyScalar(.5), qq, one); links.setMatrixAt(i, mm);
+          var t0 = i / count, t1 = (i + 1) / count; at(t0, pt); at(t1, nx); chainDir.copy(nx).sub(pt); var len = chainDir.length(); if (len < 1e-5) chainDir.set(0, 1, 0); else chainDir.multiplyScalar(1 / len);
+          qq.setFromUnitVectors(yAxis, chainDir); qy.setFromAxisAngle(yAxis, i % 2 ? PI / 2 : 0); qq.multiply(qy);
+          mm.compose(chainMid.copy(pt).add(nx).multiplyScalar(.5), qq, one); links.setMatrixAt(i, mm);
         }
         links.instanceMatrix.needsUpdate = true;
       });
@@ -1491,25 +1492,31 @@
       if (!linkGeometry) linkGeometry = G.link(.075);
       var n = 22, seg = .16, dragLinks = new T.InstancedMesh(linkGeometry, gearMaterial('dark'), n * 2); dragLinks.castShadow = true; dragLinks.frustumCulled = false; root.add(dragLinks); disposables.push(dragLinks);
       var hookArt = weaponGroup(G.hook()); hookArt.scale.setScalar(1.6); root.add(hookArt); disposables.push(hookArt);
-      var anchor = anchorObject(bp.anchors.drag), nodes = [], prev = [], ready = false, wp = new T.Vector3(), tmp = new T.Vector3(), q2 = new T.Quaternion(), q3 = new T.Quaternion(), mx = new T.Matrix4(), sc1 = new T.Vector3(1.9, 1.9, 1.9), up = new T.Vector3(0, 1, 0);
+      var anchor = anchorObject(bp.anchors.drag), nodes = [], prev = [], ready = false, wp = new T.Vector3(), previousAnchor = new T.Vector3(), stepAnchor = new T.Vector3(), chainMid = new T.Vector3(), tmp = new T.Vector3(), q2 = new T.Quaternion(), q3 = new T.Quaternion(), q4 = new T.Quaternion(), inverseQ = new T.Quaternion(), mx = new T.Matrix4(), inv = new T.Matrix4(), sc1 = new T.Vector3(1.9, 1.9, 1.9), up = new T.Vector3(0, 1, 0), down = new T.Vector3(0, -1, 0);
+      // A fixed 120 Hz rope step keeps the weight and drag identical on uncapped PCs and 60 Hz Macs.
+      // The anchor is interpolated at each physics tick; matrices still follow the live wrist every render.
+      var ropeStep = 1 / 120, ropeClock = 0;
       for (var k = 0; k < n; k++) { nodes.push(new T.Vector3()); prev.push(new T.Vector3()); }
       extras.push(function (dt, state) {
         anchor.getWorldPosition(wp);
-        if (!ready || state.reset || nodes[0].distanceTo(wp) > 4) { for (var i = 0; i < n; i++) { nodes[i].set(wp.x, Math.max(.04, wp.y - i * seg), wp.z); if (wp.y - i * seg < .04) { root.localToWorld(tmp.set(0, 0, -(i * seg - wp.y))); nodes[i].x = tmp.x; nodes[i].z = tmp.z; } prev[i].copy(nodes[i]); } ready = true; }
-        var h = Math.min(dt || 0, 1 / 30);
-        if (h > 0) {
+        if (!ready || state.reset || nodes[0].distanceTo(wp) > 4) { for (var i = 0; i < n; i++) { nodes[i].set(wp.x, Math.max(.04, wp.y - i * seg), wp.z); if (wp.y - i * seg < .04) { root.localToWorld(tmp.set(0, 0, -(i * seg - wp.y))); nodes[i].x = tmp.x; nodes[i].z = tmp.z; } prev[i].copy(nodes[i]); } previousAnchor.copy(wp); ropeClock = 0; ready = true; }
+        var frameDt = clamp(Number.isFinite(dt) ? dt : 0, 0, .1), h = ropeStep;
+        ropeClock += frameDt;
+        while (ropeClock + 1e-9 >= ropeStep) {
+          stepAnchor.lerpVectors(previousAnchor, wp, frameDt > 0 ? clamp((frameDt - ropeClock + ropeStep) / frameDt, 0, 1) : 1);
           for (i = 1; i < n; i++) { var p = nodes[i], o = prev[i], vx = (p.x - o.x) * .985, vy = (p.y - o.y) * .985, vz = (p.z - o.z) * .985; o.copy(p); p.x += vx; p.y += vy - 9.8 * h * h; p.z += vz; if (p.y < .045) { p.y = .045; o.x = mix(o.x, p.x, .35); o.z = mix(o.z, p.z, .35); } }
-          nodes[0].copy(wp); prev[0].copy(wp);
+          nodes[0].copy(stepAnchor); prev[0].copy(stepAnchor);
           for (var it = 0; it < 6; it++) for (i = 0; i < n - 1; i++) { var a = nodes[i], b = nodes[i + 1], dx = b.x - a.x, dy = b.y - a.y, dz = b.z - a.z, d = Math.sqrt(dx * dx + dy * dy + dz * dz) || 1e-6, diff = (d - seg) / d; if (i === 0) { b.x -= dx * diff; b.y -= dy * diff; b.z -= dz * diff; } else { a.x += dx * diff * .5; a.y += dy * diff * .5; a.z += dz * diff * .5; b.x -= dx * diff * .5; b.y -= dy * diff * .5; b.z -= dz * diff * .5; } if (b.y < .045) b.y = .045; }
+          ropeClock = Math.max(0, ropeClock - ropeStep);
         }
-        var inv = new T.Matrix4().copy(root.matrixWorld).invert();
+        previousAnchor.copy(wp); inv.copy(root.matrixWorld).invert(); inverseQ.setFromRotationMatrix(inv);
         for (i = 0; i < n - 1; i++) {
-          tmp.subVectors(nodes[i + 1], nodes[i]); var len = tmp.length() || 1e-6; tmp.multiplyScalar(1 / len); q2.setFromUnitVectors(up, tmp);
-          for (var s2 = 0; s2 < 2; s2++) { q3.setFromAxisAngle(up, (i * 2 + s2) % 2 ? PI / 2 : 0); var q4 = q2.clone().multiply(q3); var mid = nodes[i].clone().lerp(nodes[i + 1], (s2 + .5) / 2); mx.compose(mid, q4, sc1).premultiply(inv); dragLinks.setMatrixAt(i * 2 + s2, mx); }
+          var start = i === 0 ? wp : nodes[i]; tmp.subVectors(nodes[i + 1], start); var len = tmp.length() || 1e-6; tmp.multiplyScalar(1 / len); q2.setFromUnitVectors(up, tmp);
+          for (var s2 = 0; s2 < 2; s2++) { q3.setFromAxisAngle(up, (i * 2 + s2) % 2 ? PI / 2 : 0); q4.copy(q2).multiply(q3); chainMid.copy(start).lerp(nodes[i + 1], (s2 + .5) / 2); mx.compose(chainMid, q4, sc1).premultiply(inv); dragLinks.setMatrixAt(i * 2 + s2, mx); }
         }
         dragLinks.count = (n - 1) * 2; dragLinks.instanceMatrix.needsUpdate = true;
-        var last = nodes[n - 1], beforeLast = nodes[n - 2]; tmp.subVectors(last, beforeLast).normalize(); q2.setFromUnitVectors(new T.Vector3(0, -1, 0), tmp);
-        hookArt.position.copy(last).applyMatrix4(inv); hookArt.quaternion.copy(q2).premultiply(new T.Quaternion().setFromRotationMatrix(inv));
+        var last = nodes[n - 1], beforeLast = nodes[n - 2]; tmp.subVectors(last, beforeLast).normalize(); q2.setFromUnitVectors(down, tmp);
+        hookArt.position.copy(last).applyMatrix4(inv); hookArt.quaternion.copy(q2).premultiply(inverseQ);
       });
     }
     var motion = B.AuthoredMotion.create({ root: root, modelScene: scene, type: type, bones: native, weapon: weapon, weaponTip: marker, scale: bp.scale });

@@ -1,5 +1,5 @@
 /* KARA GEÇİT — ses motoru.
-   Kayıtlı sesler: src/narration.js içindeki BABA.SoundBank (CC0 paketlerden işlenmiş, üç MP3 "sprite")
+   Kayıtlı sesler: src/narration.js içindeki BABA.SoundBank (CC0 paketlerden işlenmiş, dört MP3 "sprite")
    ve BABA.Narration (tr-TR-AhmetNeural anlatıcı). Müzik ve ortam sesleri Web Audio ile üretilir.
    Kılıç darbelerinin çelik/gövde/çınlama katmanları açılışta düz JS ile hesaplanıp `bank` içine konur (bakeKit).
    Sözleşme: BABA.Audio = {unlock, set, play, update, suspend, resume, say, resetNarration, onCaption, silent}.
@@ -18,6 +18,9 @@
   let volume = { master: .65, music: .42, sfx: .75, ambient: .5, voice: .85 };
   let qaMusic = false;    // QA renders only: renderOffline({music:true}) plays the composed score too
   let extMusic = false;   // true when src/music.js (BABA.Music, the composed adaptive score) drives the music bus
+  let kitTask = null, tortTask = null, bankTask = null, preparedContext = null;
+  let audioInitTask = null, contextStateTask = null;
+  let warningUntil = 0;
   const VOICE_TRIM = .7;               // anlatıcı sessiz ortamın ~12 LU üstünde; daha fazlası irkiltir
   let testGame = null;                 // çevrimdışı testte sahte oyun durumu
   const game = () => testGame || (B.app && B.app.game) || null;
@@ -68,31 +71,47 @@
     ctx = context; offline = !!isOffline; N = {}; steadyTargets = new WeakMap(); muffleUntil = 0;
     N.limiter = ctx.createDynamicsCompressor();
     N.limiter.threshold.value = -2.5; N.limiter.knee.value = 0; N.limiter.ratio.value = 20; N.limiter.attack.value = .0015; N.limiter.release.value = .12;
-    N.limiter.connect(ctx.destination);
+    // A compressor's non-zero attack can let a coincident metal transient
+    // overshoot full scale. Preserve ordinary samples exactly, then bend only
+    // the highest peaks into a fixed ceiling instead of digital clipping.
+    N.ceiling = ctx.createWaveShaper(); const safety = new Float32Array(2049);
+    for (let i = 0; i < safety.length; i++) {
+      const x = i / 1024 - 1, a = Math.abs(x);
+      safety[i] = Math.sign(x) * (a <= .7 ? a : .7 + .25 * (1 - Math.exp(-(a - .7) / .25)));
+    }
+    N.ceiling.curve = safety; N.ceiling.oversample = '2x'; N.ceiling.connect(ctx.destination); N.limiter.connect(N.ceiling);
     N.glue = ctx.createDynamicsCompressor(); N.glue.threshold.value = -15; N.glue.knee.value = 8; N.glue.ratio.value = 2.6; N.glue.attack.value = .012; N.glue.release.value = .22;
     N.glue.connect(N.limiter);
     N.master = gainNode(volume.master, N.glue);
     // "Dünya" zinciri: müzik/ortam/efekt ve yankı; ağır darbede ve ölümde boğuklaşır. Anlatıcı bunu atlar.
     N.world = filter('lowpass', 20000, .5, N.master);
     N.voice = gainNode(volume.voice * VOICE_TRIM, N.master);
-    N.musicDuck = gainNode(1, N.world); N.music = gainNode(volume.music, N.musicDuck);
-    N.ambDuck = gainNode(1, N.world); N.amb = gainNode(volume.ambient, N.ambDuck);
+    N.warningDuck = gainNode(1, N.world);
+    N.musicDuck = gainNode(1, N.warningDuck); N.music = gainNode(volume.music, N.musicDuck);
+    N.ambDuck = gainNode(1, N.warningDuck); N.amb = gainNode(volume.ambient, N.ambDuck);
     N.sfx = gainNode(volume.sfx, N.world);
     N.reverb = ctx.createConvolver(); N.reverb.buffer = makeIR(2.4, 2.1);
     N.reverbOut = gainNode(.55, N.world); N.reverb.connect(N.reverbOut);
     N.wetSfx = gainNode(volume.sfx, N.reverb); N.wetAmb = gainNode(volume.ambient, N.reverb); N.wetMusic = gainNode(volume.music * .6, N.reverb);
     N.noise = makeNoise(2.5, 'white'); N.pink = makeNoise(4, 'pink'); N.brown = makeNoise(6, 'brown');
     voices = 0; lastPlayed = {}; lastIndex = {};
-    try { bakeKit(); } catch (e) { console.warn('Audio kit', e); }   // without the kit the recorded layers still play
+    warningUntil = 0; preparedContext = null;
+    try { kitTask = bakeKit(); } catch (e) { kitTask = null; console.warn('Audio kit', e); }
     // The composed score (src/music.js) plays on the same music bus (narrator ducking and the music slider keep working);
     // the built-in synth music below stays as the fallback and for offline QA renders.
     extMusic = (!isOffline || qaMusic) && !!(B.Music && B.Music.init) && B.Music.init(ctx, N.music, { lite: !isOffline && matchMedia('(pointer: coarse)').matches, sync: isOffline }) !== false;
     if (!extMusic) buildMusic();
     buildAmbience();
-    T.log = []; T.busV = gainNode(1, N.amb); T.busF = gainNode(1, N.sfx); T.gate = 1; T.player = null; T.until = 0; T.recent = [];
-    try { bakeTort(); } catch (e) { console.warn('Audio torture', e); }
+    T.log = []; T.busV = gainNode(1, N.amb); T.busF = gainNode(1, N.sfx);
+    // A separate ambient return lets urgent cues silence the existing echo,
+    // rather than merely stopping new sends into the shared combat reverb.
+    T.verb = ctx.createConvolver(); T.verb.buffer = N.reverb.buffer;
+    T.verbOut = gainNode(.55, N.world); T.verb.connect(T.verbOut);
+    T.wetV = gainNode(volume.ambient, T.verb); T.wetF = gainNode(volume.sfx, T.verb);
+    T.gate = 1; T.player = null; T.until = 0; T.recent = [];
+    try { tortTask = bakeTort(); } catch (e) { tortTask = null; console.warn('Audio torture', e); }
   }
-  const busOf = name => name === 'music' ? [N.music, N.wetMusic] : name === 'amb' ? [N.amb, N.wetAmb] : name === 'tort' ? [T.busV, N.wetAmb] : name === 'tortf' ? [T.busF, N.wetSfx] : [N.sfx, N.wetSfx];
+  const busOf = name => name === 'music' ? [N.music, N.wetMusic] : name === 'amb' ? [N.amb, N.wetAmb] : name === 'tort' ? [T.busV, T.wetV] : name === 'tortf' ? [T.busF, T.wetF] : [N.sfx, N.wetSfx];
 
   // ------------------------------------------------------------------ kayıtlı sesler
   const bank = {}, bankShift = {}; let bankState = 'none';
@@ -249,14 +268,20 @@
       }
     };
     if (offline) { names.forEach(bake); return; }
-    const next = () => { if (ctx !== my || n >= names.length) return; try { bake(names[n++]); } catch (e) { console.warn('Audio kit', e); return; } setTimeout(next, 0); };
-    next();
+    return new Promise(resolve => {
+      const next = () => {
+        if (ctx !== my || n >= names.length) { resolve(); return; }
+        try { bake(names[n++]); } catch (e) { console.warn('Audio kit', e); resolve(); return; }
+        setTimeout(next, 0);
+      };
+      setTimeout(next, 0);
+    });
   }
 
   // ------------------------------------------------------------------ çalıcılar
   let voices = 0, lastPlayed = {}, lastIndex = {};
   const MAX_VOICES = 56;
-  function track(node, extra) { voices++; node.onended = () => { voices--; try { node.disconnect(); } catch (e) {} if (extra) for (const x of extra) try { x.disconnect(); } catch (e) {} }; }
+  function track(node, extra) { const my = ctx; voices++; node.onended = () => { if (ctx === my) voices = Math.max(0, voices - 1); try { node.disconnect(); } catch (e) {} if (extra) for (const x of extra) try { x.disconnect(); } catch (e) {} }; }
   function throttle(key, gap) { const t = now(); if (lastPlayed[key] != null && t - lastPlayed[key] < gap) return false; lastPlayed[key] = t; return true; }
   function spatial(x, z) {
     const g = game(), p = g && g.player;
@@ -770,6 +795,10 @@
     if (TELLS.has(name)) lastTellN = nclock;
     if (name === 'sealOpen' && B.Narration && B.Narration.seal) say('seal');   // anlatıcı/altyazı sessiz modda da çalışır
     if (!ctx || !unlocked || suspended || (silent && !offline) || volume.master <= 0) return;
+    if ((name === 'enemyWindup' && opts.unblockable) || name === 'warning' || name === 'tellCommit') {
+      warningUntil = Math.max(warningUntil, ctx.currentTime + .8);
+      if (N.warningDuck) targetParam(N.warningDuck.gain, .48, ctx.currentTime, .035);
+    }
     const k = opts.volume == null ? 1 : opts.volume;
     try {
       const h = H[name] || (/slam|explosion/.test(name) ? H.slam : null);
@@ -1090,7 +1119,13 @@
   const TORT = { tortScream: [8, screamBuf], tortMoan: [8, moanBuf], tortSob: [8, sobBuf], tortGurgle: [7, gurgleBuf], tortWhisper: [8, whisperBuf], tortChain: [7, chainBuf],
     tortScrape: [7, scrapeBuf], tortWhip: [6, whipBuf], tortWet: [6, wetBuf], tortHammer: [6, hammerBuf] };
   function bakeTort() {
-    const my = ctx, jobs = []; for (const name of Object.keys(TORT)) for (let i = 0; i < TORT[name][0]; i++) jobs.push([name, i]);
+    const my = ctx, jobs = [];
+    for (const name of Object.keys(TORT)) {
+      // Recorded performers replace the old synthetic vocals. Keep synthesis
+      // only as a fallback when a bank from an older saved page is loaded.
+      if (B.SoundBank && B.SoundBank.clips && B.SoundBank.clips[name]) continue;
+      for (let i = 0; i < TORT[name][0]; i++) jobs.push([name, i]);
+    }
     const one = ([name, i]) => {
       const keep = kitSeed; kitSeed = TORT_SEED + i * 131 + name.length * 977;   // own random stream: the hit kit stays as it was
       try {
@@ -1101,8 +1136,15 @@
       } finally { kitSeed = keep; }
     };
     if (offline) { jobs.forEach(one); return; }
-    let n = 0; const next = () => { if (ctx !== my || n >= jobs.length) return; try { one(jobs[n++]); } catch (e) { console.warn('Audio torture', e); return; } setTimeout(next, 14); };
-    setTimeout(next, 3000);   // after the hit kit
+    let n = 0;
+    return new Promise(resolve => {
+      const next = () => {
+        if (ctx !== my || n >= jobs.length) { resolve(); return; }
+        try { one(jobs[n++]); } catch (e) { console.warn('Audio torture', e); resolve(); return; }
+        setTimeout(next, 0);
+      };
+      setTimeout(next, 0);
+    });
   }
   // How close the suffering is per room: Zincir Avlusu (1), Adak Salonu (3) and Çürüyen Revir (2) are the cells / torture rooms; the court (6) and the chapel (5) stay silent.
   const TORT_NEAR = { 0: .25, 1: .9, 2: .65, 3: .9, 4: .45, 5: 0, 6: 0 };
@@ -1115,15 +1157,15 @@
   };
   const T = { clock: 0, next: 0, player: null, until: 0, recent: [], gate: 1, log: [] };
   function tortEvent(kind, near) {
-    const side = chance(.5) ? -1 : 1, pan = side * rand(.35, .95), V = .45 + .55 * near, lpB = 650 + 1700 * near, sendB = .78 - .34 * near, F = volume.sfx / .75;
+    const side = chance(.5) ? -1 : 1, pan = side * rand(.35, .95), V = .45 + .55 * near, lpB = 650 + 1700 * near, sendB = .78 - .34 * near;
     let dur = 0;
     const tp = (name, o) => {
       const foley = /Chain|Scrape|Whip|Wet|Hammer/.test(name), lp = (o.lp || lpB) * rand(.8, 1.25);
-      const d = sample(name, Object.assign({ bus: foley ? 'tortf' : 'tort', hp: 70, pan: clamp(pan + rand(-.08, .08), -1, 1), lp, send: sendB, detune: .12, rate: rand(.84, 1.22) }, o, { lp, vol: (o.vol || .2) * V * (foley ? Math.min(1.3, F) : 1) }));
+      const d = sample(name, Object.assign({ bus: foley ? 'tortf' : 'tort', hp: 70, pan: clamp(pan + rand(-.08, .08), -1, 1), lp, send: sendB, detune: foley ? .035 : .015, rate: rand(.94, 1.06) }, o, { lp, vol: (o.vol || .2) * V }));
       dur = Math.max(dur, d + (o.delay || 0)); return d;
     };
     switch (kind) {
-      case 'scream': { const d = tp('tortScream', { vol: .5, rate: rand(.8, 1.18) }); if (chance(.5)) tp('tortSob', { vol: .3, delay: d * .9 + rand(.4, 1.2), rate: rand(.85, 1.05) }); if (chance(.3)) tp('tortChain', { vol: .16, delay: rand(.3, 1) }); break; }
+      case 'scream': { const d = tp('tortScream', { vol: .5, rate: rand(.96, 1.04) }); if (chance(.5)) tp('tortSob', { vol: .3, delay: d * .9 + rand(.4, 1.2), rate: rand(.96, 1.03) }); if (chance(.3)) tp('tortChain', { vol: .16, delay: rand(.3, 1) }); break; }
       case 'moan': tp('tortMoan', { vol: .55 }); if (chance(.25)) tp('tortMoan', { vol: .4, delay: rand(1.8, 3.2), rate: rand(.8, 1) }); break;
       case 'sob': tp('tortSob', { vol: .48 }); if (chance(.3)) tp('tortWhisper', { vol: .2, delay: rand(.5, 1.5), rate: rand(.9, 1.1) }); break;
       case 'gurgle': tp('tortGurgle', { vol: .55 }); if (chance(.4)) tp('tortWet', { vol: .3, delay: rand(.8, 1.8) }); break;
@@ -1139,8 +1181,12 @@
   function tortureStep(dt, st) {
     const g = game(), p = g && g.player, t = ctx.currentTime;
     // narrator: the dry layer fades out when a line starts and returns after it (a queued or urgent line also postpones new events)
-    const want = current ? 0 : 1;
-    if (want !== T.gate && T.busV) { T.gate = want; T.busV.gain.setTargetAtTime(want, t, .12); T.busF.gain.setTargetAtTime(want, t, .12); }
+    const want = current || st.combat || st.boss || st.dead || st.won || nclock - lastTellN < 1.5 ? 0 : 1;
+    if (want !== T.gate && T.busV) {
+      T.gate = want;
+      for (const bus of [T.busV, T.busF]) if (bus) targetParam(bus.gain, want, t, want ? .25 : .055);
+      if (T.verbOut) targetParam(T.verbOut.gain, .55 * want, t, want ? .25 : .055);
+    }
     if (!p || !st.playing || st.title || st.dead || st.won) return;
     if (T.player !== p) { T.player = p; T.clock = 0; T.next = 30 + rand(3, 14); }   // a new run: first event after 30 s
     T.clock += dt;
@@ -1202,7 +1248,7 @@
   // hemen başlar. Uyarı gelirse ya da çatışma 3 sn'yi aşarsa cümle 0.3 sn içinde kısılır; yarıda kalan cümle sakin
   // anda bir kez baştan okunur. Ölüm ve zafer cümleleri zorunludur. Zamanlama ses bağlamından bağımsızdır:
   // ?sessiz ve ses kapalıyken altyazılar aynı anlarda görünür.
-  const ROOM_LINES = new Set(['chains', 'ritual', 'crypt', 'rot', 'checkpoint']), URGENT = new Set(['intro', 'boss']);
+  const ROOM_LINES = new Set(['chains', 'ritual', 'crypt', 'rot', 'checkpoint']), URGENT = new Set(['intro', 'boss', 'cellat']);
   const TELLS = new Set(['enemyWindup', 'enemyAttack', 'slam', 'explosion', 'poison', 'warning', 'hurt', 'guardBreak', 'tellCommit']);
   let caption = null, voiceNode = null, voiceGain = null, current = null, queue = [], voiceSerial = 0, combatFor = 0, nclock = 0, lastTellN = -9;
   const heard = new Set(), recent = {}, voiceBuffers = {};
@@ -1233,8 +1279,9 @@
   async function prepare(entry) {
     if (!ctx || (silent && !offline)) { entry.ready = true; return; }
     try {
+      const my = ctx;
       let buf = voiceBuffers[entry.key];
-      if (!buf) { buf = await decode(b64(entry.line.audio)); voiceBuffers[entry.key] = buf; }
+      if (!buf) { buf = await decode(b64(entry.line.audio)); if (ctx !== my) return; voiceBuffers[entry.key] = buf; }
       entry.buffer = buf; entry.ready = true;
     } catch (e) { entry.ready = true; console.warn('Narration', e); }
   }
@@ -1243,13 +1290,13 @@
     if (!entry.buffer && ctx && voiceBuffers[entry.key]) entry.buffer = voiceBuffers[entry.key];
     const total = (entry.buffer ? entry.buffer.duration : entry.line.duration || 4) + .15;
     current = { key: entry.key, force: entry.force, left: total, total, line: entry.line, buffer: entry.buffer, retried: entry.retried, startedAt: nclock };
-    if (caption) caption(entry.line.text);
+    if (caption) caption(entry.line.text, entry.line.speaker || 'Anlatıcı');
     if (!ctx || !entry.buffer || (silent && !offline)) return;
     const src = ctx.createBufferSource(), g = gainNode(1, N.voice); src.buffer = entry.buffer; src.connect(g);
     voiceNode = src; voiceGain = g; const serial = voiceSerial;
     src.onended = () => { try { src.disconnect(); g.disconnect(); } catch (e) {} if (voiceNode === src && serial === voiceSerial) { voiceNode = null; current = null; if (caption) caption(''); N.musicDuck.gain.setTargetAtTime(1, ctx.currentTime, .6); N.ambDuck.gain.setTargetAtTime(1, ctx.currentTime, .6); } };
     src.start();
-    N.musicDuck.gain.setTargetAtTime(.5, ctx.currentTime, .25); N.ambDuck.gain.setTargetAtTime(.62, ctx.currentTime, .25);
+    N.musicDuck.gain.setTargetAtTime(.33, ctx.currentTime, .18); N.ambDuck.gain.setTargetAtTime(.28, ctx.currentTime, .18);
   }
   function calmAround() {
     const g = game(), p = g && g.player; if (!p || !g.enemies) return true;
@@ -1261,10 +1308,10 @@
     const tellRecent = nclock - lastTellN < 1.5;
     if (current) {
       current.left -= dt;
-      if (!current.force && (lastTellN > current.startedAt || (!URGENT.has(current.key) && combatFor > 3))) {
+      if (!current.force && (lastTellN >= current.startedAt || (!URGENT.has(current.key) && combatFor > 3))) {
         const c = current;   // yarıda kaldıysa sakin anda bir kez baştan (cellat cümlesi dövüşten sonra anlamsız: tekrar yok)
         const newer = ROOM_LINES.has(c.key) && queue.some(q => ROOM_LINES.has(q.key) || q.key === 'boss');
-        if (!c.retried && !newer && c.key !== 'boss' && c.left > c.total * .3) queue.unshift({ key: c.key, line: c.line, force: false, age: 0, ready: true, buffer: c.buffer, retried: true });
+        if (!c.retried && !newer && c.key !== 'boss' && c.key !== 'cellat' && c.left > c.total * .3) queue.unshift({ key: c.key, line: c.line, force: false, age: 0, ready: true, buffer: c.buffer, retried: true });
         stopVoice(true);
       } else if (current.left <= (voiceNode ? -3 : 0)) stopVoice(false);   // ses çalıyorsa bitişi onended belirler; sayaç yalnızca yedek
     }
@@ -1316,20 +1363,80 @@
       if (st.combat && A.calm > 8 && st.playing) stinger('encounter', 0);
       A.calm = st.combat ? 0 : A.calm + dt;
       const t = ctx.currentTime;
+      if (N.warningDuck) targetParam(N.warningDuck.gain, t < warningUntil ? .48 : 1, t, t < warningUntil ? .035 : .28);
       if (t > muffleUntil) targetParam(N.world.frequency, st.dead ? 650 : 20000, t, st.dead ? .8 : .3);
       if (p) lastHp = p.hp;
       if (g && g.state === 'playing' && !st.boss) M.phase2 = false;
     } catch (e) { console.warn('Audio update', e); }
   }
+  // Suspend/resume are asynchronous. A rapid pause/resume must follow the
+  // latest intent after the operation already in flight has completed.
+  // With no pending operation, resume is called in the gesture itself.
+  function syncContextState() {
+    if (silent || offline || !ctx) return;
+    const my = ctx;
+    if (contextStateTask && contextStateTask.context === my) return contextStateTask.promise;
+    const running = unlocked && !suspended;
+    if (running ? my.state === 'running' : my.state !== 'running') return;
+    let operation;
+    try { operation = running ? my.resume() : my.suspend(); } catch (_) { return; }
+    const task = { context: my, promise: null }; contextStateTask = task;
+    task.promise = Promise.resolve(operation).then(() => {
+      if (contextStateTask === task) contextStateTask = null;
+      if (ctx === my) return syncContextState();
+    }, () => { if (contextStateTask === task) contextStateTask = null; });
+    return task.promise;
+  }
   function unlock() {
     unlocked = true; suspended = false;
     if (silent) return;
+    if (!ctx && audioInitTask) {
+      audioInitTask.then(syncContextState);
+      return;
+    }
     if (!ctx) {
       const C = window.AudioContext || window.webkitAudioContext; if (!C) return;
       try { build(new C({ latencyHint: 'interactive' }), false); } catch (e) { console.warn('Audio', e); ctx = null; return; }
-      loadBank();
+      bankTask = loadBank();
     }
-    if (ctx.state !== 'running') ctx.resume().catch(() => {});
+    syncContextState();
+  }
+  // Await under the loading cover after a user gesture. A suspended context
+  // can decode/build buffers without being resumed. Silent tests create none.
+  async function prepareAudio(progress) {
+    if (silent && !offline) { if (progress) progress(1); return true; }
+    if (!ctx) {
+      // No oscillator/buffer source exists before this suspension completes.
+      // Loading may prepare sound before a gesture, but cannot start playback.
+      if (!audioInitTask) audioInitTask = (async () => {
+        const C = window.AudioContext || window.webkitAudioContext; if (!C) return;
+        const c = new C({ latencyHint: 'interactive' });
+        if (c.state === 'running') await c.suspend();
+        build(c, false); bankTask = loadBank();
+        if (unlocked) syncContextState();
+      })().catch(e => { console.warn('Audio preparation', e); });
+      await audioInitTask;
+    }
+    const my = ctx; if (!my) return false;
+    if (preparedContext === my) { if (progress) progress(1); return true; }
+    if (progress) progress(0);
+    await Promise.all([kitTask, tortTask, bankTask]);
+    if (ctx !== my) return false;
+    if (progress) progress(.4);
+    if (extMusic && B.Music.prepare) await B.Music.prepare(v => { if (progress) progress(.4 + .25 * v); });
+    const lines = Object.entries(B.Narration || {});
+    for (let i = 0; i < lines.length; i++) {
+      const [key, line] = lines[i];
+      if (!voiceBuffers[key] && line.audio) {
+        const buf = await decode(b64(line.audio)); if (ctx !== my) return false; voiceBuffers[key] = buf;
+      }
+      if (progress) progress(.65 + .35 * (i + 1) / Math.max(1, lines.length));
+      await new Promise(resolve => setTimeout(resolve, 0));
+    }
+    preparedContext = my; if (progress) progress(1); return true;
+  }
+  function saySequence(keys) {
+    for (const key of (Array.isArray(keys) ? keys : [keys]).slice(0, 2)) say(key);
   }
   function set(v) {
     for (const key of Object.keys(volume)) if (Number.isFinite(v && v[key])) volume[key] = clamp(v[key], 0, 1);
@@ -1338,6 +1445,8 @@
     targetParam(N.master.gain, volume.master, t, .08); targetParam(N.music.gain, volume.music, t, .08);
     targetParam(N.amb.gain, volume.ambient, t, .08); targetParam(N.sfx.gain, volume.sfx, t, .08); targetParam(N.voice.gain, volume.voice * VOICE_TRIM, t, .08);
     targetParam(N.wetSfx.gain, volume.sfx, t, .08); targetParam(N.wetAmb.gain, volume.ambient, t, .08); targetParam(N.wetMusic.gain, volume.music * .6, t, .08);
+    if (T.wetV) targetParam(T.wetV.gain, volume.ambient, t, .08);
+    if (T.wetF) targetParam(T.wetF.gain, volume.sfx, t, .08);
   }
   // Çevrimdışı işleme (test): olay listesini OfflineAudioContext içinde çalar, AudioBuffer döndürür.
   // events: [[zaman_sn, 'play', ad, seçenekler] | [zaman_sn, 'say', anahtar, zorla] | [zaman_sn, 'state', {...}] | [zaman_sn, 'fn', f]]
@@ -1365,8 +1474,10 @@
     for (let t = step; t < seconds - step; t += step) octx.suspend(Math.round(t / step) * step).then(() => { tick(octx.currentTime); octx.resume(); });
     tick(0);
     const out = await octx.startRendering();
+    if (extMusic && B.Music.dispose) B.Music.dispose();
     // test bağlamını tamamen bırak
-    ctx = null; offline = false; unlocked = saved.unlocked; N = {}; testGame = null; qaMusic = false; extMusic = false; Object.assign(volume, saved.volume);
+    ctx = null; offline = false; unlocked = saved.unlocked; N = {}; testGame = null; qaMusic = false; extMusic = false;
+    kitTask = tortTask = bankTask = preparedContext = audioInitTask = contextStateTask = null; Object.assign(volume, saved.volume);
     for (const k of Object.keys(bank)) delete bank[k]; bankState = 'none';
     queue = []; current = null; voiceNode = null; heard.clear();
     for (const k of Object.keys(voiceBuffers)) delete voiceBuffers[k];
@@ -1378,12 +1489,12 @@
     for (const ev of ['click', 'keydown', 'touchend']) window.addEventListener(ev, first, true);
   }
   B.Audio = {
-    say, onCaption(fn) { caption = fn; },
+    say, saySequence, prepare: prepareAudio, onCaption(fn) { caption = fn; },
     resetNarration() { stopVoice(false); queue = []; heard.clear(); },
     unlock, set, play, update,
     sample(name, o) { if (ctx && unlocked && !suspended && (!silent || offline)) return sample(name, o || {}); return 0; },   // tek bir kayıtlı parça (test ve ileride oyun kodu için)
-    suspend() { suspended = true; if (extMusic) B.Music.suspend(); if (ctx && !offline && ctx.state === 'running') ctx.suspend().catch(() => {}); },
-    resume() { if (!unlocked) return; suspended = false; if (silent || !ctx) return; if (ctx.state !== 'running') ctx.resume().catch(() => {}); if (extMusic) B.Music.resume(); },
+    suspend() { suspended = true; if (extMusic) B.Music.suspend(); return syncContextState(); },
+    resume() { if (!unlocked) return; suspended = false; if (silent || !ctx) return; if (extMusic) B.Music.resume(); return syncContextState(); },
     renderOffline,
     debug() { return { context: ctx ? ctx.state : 'none', bank: bankState, shift: bankShift, clips: Object.keys(bank).length, voices, tort: T.log, queue: queue.map(q => q.key), current: current && current.key, music: Object.assign({}, M.level) }; },
     get silent() { return silent; }
