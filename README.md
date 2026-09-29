@@ -67,6 +67,8 @@ Doğrulama: gerçek karakter geometrileri/hareketleri, engeller ve dövüş akı
 
 `node tools/verify-gameplay.cjs` gerçek harita ve modellerle kapılar, engel etrafından yürüme, yetenekler, iksir, hasar sayıları, farklı kare hızlarında saldırı beklemesi, patron evreleri, kayıt, ölüm ve yeni oyun akışlarını denetler. Çizim ve ses çıkışı kullanmaz; FPS ölçmez.
 
+Sürüm 48'de karakterlerin eski pozunun her kare yeniden hesaplanan ikinci taraması kaldırıldı. Ayak kilitleri, temaslar, iskeletler, zincirler ve silah izleri eski sürümle birebir korunuyor. Üçer CPU karşılaştırmasında oyun işlemi %10,5–12,6, kalabalık sahnelerde ölçülen toplam CPU işi yaklaşık %8 azaldı; tarayıcı/GPU süresi ölçüme dahil değildir. Kalite değişiminde grafikler hazırlanırken erken devam edilmesi de engellendi: dövüş duraklar, hazırlık bitince oyuncu devam eder. Ayarlardaki ses davranışı korunur.
+
 ## Teknik yapı
 
 Three.js r170, klasik JavaScript; oynamak için paket yöneticisi veya derleme adımı yoktur. Gerçek UV kaplamalı ve iskeletli karakterler başlangıçta gömülü glTF verisinden yüklenir. `file://` ve çevrimdışı kullanım desteklenir.

@@ -178,7 +178,7 @@
 
   /* ───────────── Views ───────────── */
   function show(next) {
-    if ((graphicsLost || graphicsRecovering) && next === 'playing') next = 'pause';
+    if ((graphicsLost || graphicsRecovering || warming) && next === 'playing') next = 'pause';
     if (next !== view) resetPerformance();
     view = next;
     if (next === 'playing' || next === 'title') stack = [];
@@ -1081,7 +1081,7 @@
     return graphicsAdapter;
   }
   function performanceReport() {
-    return { schema: 3, game: 'Kabir Azabı', build: 47, capturedAt: new Date().toISOString(), view,
+    return { schema: 3, game: 'Kabir Azabı', build: 48, capturedAt: new Date().toISOString(), view,
       location: { room: world.rooms?.[roomId]?.name || roomId, x: game.player.x, z: game.player.z },
       display: { width: post.width, height: post.height, windowWidth: innerWidth, windowHeight: innerHeight,
         devicePixelRatio: window.devicePixelRatio || 1, renderPixelRatio: renderer.getPixelRatio() },
@@ -1132,6 +1132,9 @@
   function frameStep(ts) {
     if (!ready) return;
     if (graphicsLost || graphicsRecovering) { last = ts; visualDt = 0; return; }
+    // The loading cover hides combat. Keep it paused until prepared graphics can
+    // be seen, while settings/menu audio continues to follow its own pause state.
+    if (warming && view === 'playing') show('pause');
     const measured = cfg.showFps || Q.has('gpums');
     const cpuStart = measured ? performance.now() : 0;
     if (measured) performanceMeter.callback(ts);

@@ -434,9 +434,14 @@
         hurtTime = 2; previousHurt = 0; previousAttack = 0; comboMemory = -1; previousDodge = 0; wasDead = false; turnRate = 0; footfall.serial = 0; rollRecover = 9; lookCur = 0; lookPitch = 0; shiftCur = 0; legYawCur = 0; backwardMotion = false;
         originalLocal.forEach(function (r) { r.node.position.copy(r.p); r.node.quaternion.copy(r.q); }); feet.forEach(function (f) { f.locked = false; f.weight = 0; });
       }
-      // The gameplay root may have moved since the last render. Refresh its
-      // imported armature ancestors before converting the pelvis world point.
-      root.updateWorldMatrix(true, true); root.getWorldPosition(rootNow); root.getWorldQuaternion(qRoot); invRoot.copy(qRoot).invert();
+      // Only the pelvis ancestry is read before applying the new pose. Keep
+      // rigid root siblings (chains/hooks) current; the model subtree is refreshed
+      // after retargeting, so visiting its old pose here would be duplicate work.
+      pelvis.parent.updateWorldMatrix(true, false);
+      for (var earlyChild = 0; earlyChild < root.children.length; earlyChild++) {
+        if (root.children[earlyChild] !== model) root.children[earlyChild].updateWorldMatrix(false, true);
+      }
+      root.getWorldPosition(rootNow); root.getWorldQuaternion(qRoot); invRoot.copy(qRoot).invert();
       var rootYaw = Math.atan2(root.matrixWorld.elements[8], root.matrixWorld.elements[10]);
       var teleported = initialized && rootNow.distanceTo(rootBefore) > characterScale * 2.5;
       velocity.copy(rootNow).sub(rootBefore).setY(0).multiplyScalar(initialized && dt > 0 && !teleported ? 1 / dt : 0);
