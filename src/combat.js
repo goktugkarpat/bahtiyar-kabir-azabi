@@ -874,7 +874,7 @@
       }
       // A short whoosh as armed swings release (not for spells, spit or claws, which have their own cues).
       if (enemy.boss || enemy.type === 'guard' || enemy.type === 'stalker') for (const b of action.beats) {
-        if (!b.whooshed && action.age >= b.strike - (enemy.boss ? .2 : .13)) { b.whooshed = true; if (distance(enemy, player) < 16) sound(enemy.boss || enemy.type === 'guard' ? 'heavy' : 'swing', { x: enemy.x, z: enemy.z, volume: enemy.boss ? .9 : .55 }); }
+        if (!b.whooshed && action.age >= b.strike - (enemy.boss ? .2 : .13)) { b.whooshed = true; if (distance(enemy, player) < 16) sound('enemySwing', { x: enemy.x, z: enemy.z, type: enemy.type, heavy: enemy.boss || enemy.type === 'guard', strikeIn: Math.max(0, b.strike - action.age), volume: enemy.boss ? .9 : .55 }); }
       }
       if (action.movement) advanceMovement(enemy, action, dt);
       if (action.age >= action.duration) {
@@ -962,10 +962,10 @@
       separateEnemies(enemy, dt);
     }
 
-    function killEnemy(enemy) {
+    function killEnemy(enemy, rageScale = 1) {
       if (enemy.dead) return;
       enemy.dead = true; enemy.hp = 0; enemy.deadAge = 0; enemy.action = null; enemy.shield = false; enemy.active = false; enemy.stagger = 0;
-      cancelHazards(enemy, false); game.kills++; player.rage = Math.min(player.maxRage, player.rage + (enemy.boss ? 0 : RAGE_GAIN.kill * (player.rageTime > 0 ? RAGE_HOLD : 1)));
+      cancelHazards(enemy, false); game.kills++; player.rage = Math.min(player.maxRage, player.rage + (enemy.boss ? 0 : RAGE_GAIN.kill * (player.rageTime > 0 ? RAGE_HOLD : 1) * rageScale));
       const seal = seals.find(seal => seal.encounter === enemy.encounter);
       if (seal && !seal.open && seal.encounter.enemies.every(e => e.dead)) {
         seal.open = true; sound('sealOpen');
@@ -1020,7 +1020,9 @@
         push(enemy, away, enemy.boss ? (heavy ? FEEL.knock.bossHeavy : FEEL.knock.boss) : heavy ? FEEL.knock.heavy : finisher ? FEEL.knock.finisher : FEEL.knock.light);
         if (breaksGuard) enemy.guardBroke = true;
       }
-      enemy.hp = Math.max(0, enemy.hp - damage); if (enemy.boss && !enemy.action) enemy.wrath += damage; player.rage = Math.min(player.maxRage, player.rage + (player.rageTime > 0 ? RAGE_HOLD : 1) * (blocked ? RAGE_GAIN.blocked : heavy ? RAGE_GAIN.heavy : RAGE_GAIN.light));
+      // Whirlwind scales the earned amount before the cap, so a nearly full bar can still reach 100.
+      const rageScale = attack && attack.whirl ? .3 : 1;
+      enemy.hp = Math.max(0, enemy.hp - damage); if (enemy.boss && !enemy.action) enemy.wrath += damage; player.rage = Math.min(player.maxRage, player.rage + rageScale * (player.rageTime > 0 ? RAGE_HOLD : 1) * (blocked ? RAGE_GAIN.blocked : heavy ? RAGE_GAIN.heavy : RAGE_GAIN.light));
       if (player.rageTime > 0 && !blocked && player.hp > 0) player.hp = Math.min(player.maxHp, player.hp + damage * ROAR.steal);   // blood fury: a little of every blow comes back
       const killed = enemy.hp <= 0;
       if (killed) enemy.deathKind = !enemy.boss && (heavy || finisher) ? 'blown' : '';
@@ -1029,7 +1031,7 @@
         hitstop: 0, impact: blocked ? .3 : heavy ? 1 : finisher ? .8 : .45 });
       fx(blocked ? 'spark' : 'blood', { x: contact.x, y: contact.y, z: contact.z, damage, labelTarget: enemy, heavy: heavy || finisher, face: attackFace, spray, kill: killed, boss: enemy.boss, shield: blocked, rage: !!(attack && attack.rage), braced });
       if (braced && !killed) fx('spark', { x: contact.x, y: contact.y + .2, z: contact.z, face: attackFace, glance: true });
-      if (killed) killEnemy(enemy);
+      if (killed) killEnemy(enemy, rageScale);
       else enemyPhaseChange(enemy);
       if (killed && limbs && !enemy.boss) {
         // Killing blows can sever a limb or the head (cosmetic only; the foe's own seeded rand keeps runs repeatable).
@@ -1213,10 +1215,9 @@
         if (!clearStrike(player, e)) continue;
         if (!e.active) { e.active = true; e.activated = true; e.encounter.activated = true; }
         const damage = Math.round(attack.damage * (player.rageTime > 0 ? 1.48 : 1)); attack.rage = player.rageTime > 0;
-        const wasBoss = e.boss, away = angleTo(player, e), rage0 = player.rage;
+        const wasBoss = e.boss, away = angleTo(player, e);
         attack.face = away;
         const r = hurtEnemy(e, damage, true, away, attack); if (!r) continue;
-        player.rage = rage0 + (player.rage - rage0) * .3;   // four ticks on a crowd must not fill the fury bar in one spin
         hits++; fx('whirlHit', { x: r.contact.x, y: r.contact.y, z: r.contact.z, face: away, last, boss: wasBoss });
         if (r.killed) { kills++; continue; }
         e.push = null;

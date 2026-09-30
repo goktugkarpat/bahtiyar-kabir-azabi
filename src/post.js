@@ -575,6 +575,12 @@
     // Reduced motion drops blur, ring, fringe and caps the flash. Costs: ring/flash/sat/vig/freeze are a few ALU ops, blur is abTaps texture taps, fringe two taps.
     var ab = { spin: 0, chroma: 0, flash: 0, sat: 0, vig: 0, freeze: 0, ringA: 0, rx: 0, rz: 0, rr: 0, rw: 1, sx: 0, sz: 0, hasSpin: false, live: false };
     var reduced = typeof matchMedia === 'function' ? matchMedia('(prefers-reduced-motion: reduce)') : { matches: false }, abPoint = new T.Vector3();
+    function clearAbilityFx() {
+      ab.spin = ab.chroma = ab.flash = ab.sat = ab.vig = ab.freeze = ab.ringA = 0;
+      ab.hasSpin = ab.live = false;
+      U.uAbA.value.set(0, 0, 0, 0); U.uAbB.value.set(0, 0, 0, 0);
+      U.uAbC.value.set(.5, .5, 0, .1); U.uAbD.value.set(.5, .5, 1, 0);
+    }
     function setAbilityFx(o) {
       if (!o) return;
       var v;
@@ -639,7 +645,7 @@
     }
     setQuality(settings || {});
     api = {
-      render: render, setSize: setSize, setQuality: setQuality, setGrade: setGrade, heat: heatSources, pulse: pulse, setAbilityFx: setAbilityFx, dispose: dispose, compile: compile,
+      render: render, setSize: setSize, setQuality: setQuality, setGrade: setGrade, heat: heatSources, pulse: pulse, setAbilityFx: setAbilityFx, clearAbilityFx: clearAbilityFx, dispose: dispose, compile: compile,
       setTiming: setTiming, resetTiming: resetTiming,
       uniforms: U, target: sceneRT,
       get supportedSamples() { return supportedSamples.slice(); },

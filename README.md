@@ -81,6 +81,10 @@ Menü öncesindeki dokunuş oyuna dönünce komut üretmez. Tarayıcının Contr
 
 Gerçek harita ve modellerle, normal can/hasar ve oyun girdileri kullanılarak yapılan 21 otomatik tam bölüm denemesi tamamlandı. Farklı hızlar, kaçırılmış saldırı uyarıları, kapalı mühür, Cellat'ın son evresinde ölüm, yemin taşından dönüş ve finalden yeni yolculuk birlikte denetlendi. Bu otomatik denemeler insanın oynama süresini/zorluğunu veya ekran kartı performansını ölçmez.
 
+Girdap'ın öfke kazancı önce ölçeklenip sonra sınırlandırılır: dolmaya yakın çubuk artık %100'e ulaşır ve savaş narası kullanılabilir. Yeni yolculuk ve yeniden doğuş, önceki yeteneğin ışığını, kamera etkisini ve ekran parlamasını temizler. Efektler tamamen kapatıldığında hazırlık kopyaları ve zincir arabellekleri de bırakılır.
+
+Düşman kılıcının sesi kendi konumundan ve kendi vuruş zamanına göre gelir; Bahtiyar'ın saldırısı bu sesi değiştirmez. Sessiz Şapel ve Zincir Mahkemesi'ne girerken süren işkence ortamı da söner. Yeni yolculuk ve yeniden doğuşta ilk 30 saniyelik sakin başlangıç korunur. Bu düzeltmeler gerçek dövüş kodu, kaynak temizleme kontrolleri ve kısa çevrimdışı ses üretimleriyle denetlendi; yeni tarayıcı/GPU ölçümü yapılmadı.
+
 ## Teknik yapı
 
 Three.js r170, klasik JavaScript; oynamak için paket yöneticisi veya derleme adımı yoktur. Gerçek UV kaplamalı ve iskeletli karakterler başlangıçta gömülü glTF verisinden yüklenir. `file://` ve çevrimdışı kullanım desteklenir.

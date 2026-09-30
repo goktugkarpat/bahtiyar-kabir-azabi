@@ -1060,10 +1060,11 @@
       for (const f of flashPool) { f.m.material.dispose(); f.m.removeFromParent(); }
       flashPool.clear(); freeFlashes.length = 0;
       for (const [actor, tr] of trails) dropTrail(actor, tr);
-      // The hidden compilation copies own their materials, while their geometry and maps are shared above.
-      const shared = new Set(); for (const child of root.children) if (child !== warmGroup) child.traverse(o => { if (o.material) shared.add(o.material); });
-      const materials = new Set(); warmGroup.traverse(o => { if (o.material && !shared.has(o.material)) materials.add(o.material); });
+      // Compilation copies share most surfaces, but own their instance buffers and the empty trail geometry.
+      const shared = new Set([ckMat]), sharedGeometry = new Set([plane]); for (const child of root.children) if (child !== warmGroup) child.traverse(o => { if (o.material) shared.add(o.material); if (o.geometry) sharedGeometry.add(o.geometry); });
+      const materials = new Set(), geometries = new Set(); warmGroup.traverse(o => { if (o.material && !shared.has(o.material)) materials.add(o.material); if (o.geometry && !sharedGeometry.has(o.geometry)) geometries.add(o.geometry); if (o.isInstancedMesh) o.dispose(); });
       for (const mat of materials) mat.dispose();
+      for (const geo of geometries) geo.dispose();
     }
     // Hidden copies of every material the effects create on demand (blood decals, flashes, labels, scars, blade smears,
     // roll afterimages). app.js compiles them with the rest during loading; they are never disposed, so the programs stay
@@ -1090,7 +1091,7 @@
       add(new T.Sprite(new T.SpriteMaterial({ map: softMap, transparent: true, depthWrite: false, depthTest: false, blending: T.AdditiveBlending, fog: false })));
       add(new T.InstancedMesh(gdGeo, gdMat, 1)); add(new T.Mesh(bsGeo, bsMat)); add(new T.InstancedMesh(chGeoG, gcMat, 1));
     }
-    const api = { burst, update, clear, tells, warm, gore, debug: () => ({ pri: gdPri.length, walls: gdPri.concat(gdMic).filter(d => d.rx === 0).length, prints: gdMic.filter(d => d.cell === 3).length, p0: gdMic.filter(d => d.cell === 3).map(d => [+d.x.toFixed(2), +d.z.toFixed(2), +d.a0.toFixed(2)]), mic: gdMic.length, count: gdMesh.count, streaks: bsLive, gibs: gibs.length }), dispose() { if (B.Effects.current === api) B.Effects.current = null; clear(); bsGeo.dispose(); bsMat.dispose(); gdGeo.dispose(); gdMat.dispose(); goreAtlas.dispose(); chGeoG.dispose(); gcMat.dispose(); gcMesh.dispose(); gdMesh.dispose(); if (tells) tells.dispose(); disposeGhosts(); disposePools(); root.removeFromParent(); geometry.dispose(); material.dispose(); trailMaterial.dispose(); chLinks.geometry.dispose(); chLinks.material.dispose(); chHeadGeo.dispose(); chDisc.geometry.dispose(); chDiscMat.dispose(); chFloor.geometry.dispose(); chFloorMat.dispose(); skGeo.dispose(); skMesh.material.dispose(); for (const c of chCracks) { c.m.geometry.dispose(); c.m.material.dispose(); } ckMat.dispose(); for (const r of chRings) { r.m.geometry.dispose(); r.mat.dispose(); } softMap.dispose(); bloodMap.dispose(); sprayMap.dispose(); flashMap.dispose(); plane.dispose(); } };
+    const api = { burst, update, clear, tells, warm, gore, debug: () => ({ pri: gdPri.length, walls: gdPri.concat(gdMic).filter(d => d.rx === 0).length, prints: gdMic.filter(d => d.cell === 3).length, p0: gdMic.filter(d => d.cell === 3).map(d => [+d.x.toFixed(2), +d.z.toFixed(2), +d.a0.toFixed(2)]), mic: gdMic.length, count: gdMesh.count, streaks: bsLive, gibs: gibs.length }), dispose() { if (B.Effects.current === api) B.Effects.current = null; clear(); bsGeo.dispose(); bsMat.dispose(); gdGeo.dispose(); gdMat.dispose(); goreAtlas.dispose(); chGeoG.dispose(); gcMat.dispose(); gcMesh.dispose(); gdMesh.dispose(); if (tells) tells.dispose(); disposeGhosts(); disposePools(); root.removeFromParent(); geometry.dispose(); material.dispose(); trailMaterial.dispose(); chLinks.geometry.dispose(); chLinks.material.dispose(); chLinks.dispose(); for (const s of chGlow) s.material.dispose(); chHeadGeo.dispose(); chDisc.geometry.dispose(); chDiscMat.dispose(); chFloor.geometry.dispose(); chFloorMat.dispose(); skGeo.dispose(); skMesh.material.dispose(); for (const c of chCracks) { c.m.geometry.dispose(); c.m.material.dispose(); } ckMat.dispose(); for (const r of chRings) { r.m.geometry.dispose(); r.mat.dispose(); } softMap.dispose(); bloodMap.dispose(); sprayMap.dispose(); flashMap.dispose(); plane.dispose(); } };
     B.Effects.current = api; return api;
   },
   // Same call for code that does not hold the instance (dismemberment): B.Effects.gore('stump', x, y, z, dirX, dirZ, strength).

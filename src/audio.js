@@ -108,7 +108,7 @@
     T.verb = ctx.createConvolver(); T.verb.buffer = N.reverb.buffer;
     T.verbOut = gainNode(.55, N.world); T.verb.connect(T.verbOut);
     T.wetV = gainNode(volume.ambient, T.verb); T.wetF = gainNode(volume.sfx, T.verb);
-    T.gate = 1; T.player = null; T.until = 0; T.recent = [];
+    T.gate = 1; T.player = null; T.resetSerial = null; T.until = 0; T.recent = [];
     try { tortTask = bakeTort(); } catch (e) { tortTask = null; console.warn('Audio torture', e); }
   }
   const busOf = name => name === 'music' ? [N.music, N.wetMusic] : name === 'amb' ? [N.amb, N.wetAmb] : name === 'tort' ? [T.busV, T.wetV] : name === 'tortf' ? [T.busF, T.wetF] : [N.sfx, N.wetSfx];
@@ -508,6 +508,18 @@
   const H = {};
   H.attack = H.light = H.swing = (o, k) => heroSwing(false, o, k);
   H.heavy = (o, k) => heroSwing(true, o, k);
+  // An enemy's release follows its own contact time and position. It must
+  // never borrow the hero's combo, breath or delayed blade envelope.
+  H.enemySwing = (o, k) => {
+    const t = now(), s = spatial(o.x, o.z), boss = o.type === 'boss';
+    const heavy = o.heavy == null ? boss || o.type === 'guard' : !!o.heavy;
+    const strike = Number.isFinite(o.strikeIn) ? clamp(o.strikeIn, 0, .4) : heavy ? .2 : .13;
+    const lead = Math.max(.008, Math.min(strike, heavy ? .18 : .11));
+    const start = t + Math.max(0, strike - lead), dur = lead + (heavy ? .16 : .11);
+    whoosh(start, { dur, peak: lead / dur, f0: heavy ? 180 : 580, f1: heavy ? 1050 : 2200,
+      f2: heavy ? 260 : 700, q: heavy ? .85 : 1.35, vol: (boss ? .34 : heavy ? .24 : .18) * k * s.gain,
+      pan0: s.pan + .12, pan1: s.pan - .12, low: heavy ? 180 : 0, edge: boss ? .12 : 0, send: .1 });
+  };
   H.hit = H.heavyHit = H.blood = (o, k, name) => {
     const t = now(), pa = (player() || {}).attack;
     const tier = pa ? (pa.heavy ? 2 : pa.combo === 2 ? 1 : 0) : name === 'heavyHit' ? (k >= .99 ? 1 : 2) : o.heavy ? 2 : 0;
@@ -1155,7 +1167,7 @@
     3: { whisper: 3, moan: 2, scream: 3, wet: 2, sob: 2, scrape: 1, gurgle: 1 },
     4: { scrape: 3, whisper: 2, hammer: 2, moan: 2, chain: 1 }
   };
-  const T = { clock: 0, next: 0, player: null, until: 0, recent: [], gate: 1, log: [] };
+  const T = { clock: 0, next: 0, player: null, resetSerial: null, until: 0, recent: [], gate: 1, log: [] };
   function tortEvent(kind, near) {
     const side = chance(.5) ? -1 : 1, pan = side * rand(.35, .95), V = .45 + .55 * near, lpB = 650 + 1700 * near, sendB = .78 - .34 * near;
     let dur = 0;
@@ -1179,19 +1191,23 @@
     return dur;
   }
   function tortureStep(dt, st) {
-    const g = game(), p = g && g.player, t = ctx.currentTime;
+    const g = game(), p = g && g.player, t = ctx.currentTime, r = room();
+    // Game resets preserve the player object. Its reset serial marks a new
+    // journey/respawn and keeps already scheduled suffering muted in the grace period.
+    if (p && (T.player !== p || T.resetSerial !== g.resetSerial)) {
+      T.player = p; T.resetSerial = g.resetSerial; T.clock = 0; T.next = 30 + rand(3, 14); T.until = 0; T.recent = [];
+    }
     // narrator: the dry layer fades out when a line starts and returns after it (a queued or urgent line also postpones new events)
-    const want = current || st.combat || st.boss || st.dead || st.won || nclock - lastTellN < 1.5 ? 0 : 1;
+    const want = !st.playing || st.title || !TORT_NEAR[r] || T.clock < 30 || current || st.combat || st.boss || st.dead || st.won || nclock - lastTellN < 1.5 ? 0 : 1;
     if (want !== T.gate && T.busV) {
       T.gate = want;
       for (const bus of [T.busV, T.busF]) if (bus) targetParam(bus.gain, want, t, want ? .25 : .055);
       if (T.verbOut) targetParam(T.verbOut.gain, .55 * want, t, want ? .25 : .055);
     }
     if (!p || !st.playing || st.title || st.dead || st.won) return;
-    if (T.player !== p) { T.player = p; T.clock = 0; T.next = 30 + rand(3, 14); }   // a new run: first event after 30 s
     T.clock += dt;
     if (T.clock < T.next) return;
-    const r = room(), near = TORT_NEAR[r], mix = TORT_MIX[r];
+    const near = TORT_NEAR[r], mix = TORT_MIX[r];
     if (!mix || !near || st.boss) { T.next = T.clock + rand(3, 6); return; }
     if (st.combat || A.calm < 4 || nclock - lastTellN < 4 || current || queue.length || t < T.until) { T.next = T.clock + rand(2, 4); return; }
     let sum = 0; const list = Object.keys(mix).filter(k => !T.recent.includes(k)); list.forEach(k => sum += mix[k]);

@@ -337,7 +337,7 @@
       }
     }
 
-    // ---- special ability (Zincir Kasırgası, F) and war cry (R): screen effects, a borrowed light and camera layers ----
+    // ---- Zincir Girdabı (1) and war cry (2): screen effects, a borrowed light and camera layers ----
     // Reads player.special = {active, t, tick, radius[, ticks, duration, turns]} (falls back to player.attack.whirl) and player.rageFlash defensively.
     // Feeds Post.setAbilityFx every frame something is going on (nothing when idle), drives world.lighting.setPlayerLightFx (the hero's own point light
     // is borrowed: no new light, no shader rebuild) and hands camera layers to app.js through cameraFx(). See DESIGN.md "Ability screen effects".
@@ -346,6 +346,17 @@
     var abIn = { active: false, angle: null, t: 0, tick: 0, ticks: 4, radius: 3.6, duration: 1.3, turns: 4 }, abFx = { spin: 0, spinAt: { x: 0, z: 0 }, chroma: 0, flash: 0, sat: 0, vig: 0, freeze: 0, ring: null },
       abRing = { x: 0, z: 0, r: 1, w: .5, t: 0 }, abLight = { x: 0, y: 1.5, z: 0, r: 1, g: .4, b: .14, intensity: 0, distance: 10 }, camOut = { x: 0, y: 0, z: 0, ix: 0, iz: 0 };
     var baseFov = camera.fov, EMBER = [1, .4, .13], HOTWHITE = [1, .78, .5];
+    var abilitySerial = null;
+    function clearAbility() {
+      ab.spin = ab.tick = ab.flash = ab.chroma = ab.sat = ab.vig = ab.freeze = ab.light = ab.fov = ab.fovT = ab.ix = ab.iz = ab.ang = ab.clock = 0;
+      ab.ringAge = 9; ab.ringLife = .4; ab.ringR = 3; ab.ringW = .5;
+      ab.rx = ab.rz = ab.warm = ab.lx = ab.lz = 0; ab.wr = 6.5; ab.stepped = ab.lightOn = false;
+      abIn.active = false; abIn.angle = null; abIn.t = abIn.tick = 0;
+      abFx.spin = abFx.chroma = abFx.flash = abFx.sat = abFx.vig = abFx.freeze = 0; abFx.spinAt.x = abFx.spinAt.z = 0; abFx.ring = null;
+      if (opts.post && opts.post.clearAbilityFx) opts.post.clearAbilityFx();
+      if (L && L.setPlayerLightFx) L.setPlayerLightFx(null);
+      if (Math.abs(camera.fov - baseFov) > .0005) { camera.fov = baseFov; camera.updateProjectionMatrix(); }
+    }
     function abilityRead(p) {
       var sp = p.special, a = p.attack;
       if (sp && typeof sp === 'object') {
@@ -369,6 +380,8 @@
     }
     // Advances all envelopes once per frame (cameraFx runs it first when app.js asks, otherwise update() does).
     function abilityStep(dt, game, time) {
+      var serial = game && game.resetSerial;
+      if (Number.isFinite(serial) && serial !== abilitySerial) { abilitySerial = serial; clearAbility(); }
       ab.stepped = true; ab.clock += dt;
       var p = game && game.player; if (!p) return;
       abilityRead(p);
