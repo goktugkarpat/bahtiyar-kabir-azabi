@@ -5,7 +5,7 @@ Yetişkinlere yönelik, bağımsız bir karanlık fantezi aksiyon RPG bölümü.
 
 ## Oyna
 
-- Mac: `OYNA.command` dosyasına çift tıkla. Varsa Microsoft Edge açılır.
+- Mac: `OYNA.command` dosyasına çift tıkla. Oyun hazır olduğunda varsa Microsoft Edge açılır; başlangıç hatasında terminaldeki mesaj korunur.
 - PC/Mac: `index.html` doğrudan tarayıcıda açılabilir. Kurulum gerekmez.
 - Tablet: `python3 serve.py` çalışırken aynı Wi-Fi üzerindeki bilgisayarın IP adresine `http://BILGISAYAR-IP:8787` ile bağlan. Yatay ekran önerilir.
 - Yerel adres: `http://localhost:8787`.

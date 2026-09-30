@@ -247,3 +247,12 @@ resetToSnapshot clears both the private body spin and the existing player.specia
 Limbs keeps each slot's warm cap geometry separately from borrowed cached caps. Engine disposal releases the warm geometry once and lets the cache release each piece cap once. Engine-owned corpse index wrappers are tracked separately; their shared blueprint vertex/morph attributes are detached before wrapper disposal, preserving shared GPU buffers while removing the private index/geometry records. Touched actors restore their original geometry and animation and discard only this engine's private wrappers. Normal reset retains the cache and reusable private indices; no cut topology or normal-frame pool size changes.
 
 Both publication helpers check gh api user login against goktugkarpat before staging/pushing. Windows command flow with mocked correct, incorrect and unavailable responses preserves only the correct account; shell syntax is checked separately. No live publication, Mac runtime test or new login flow was performed for this change.
+
+
+## Release 55: menu cards and launch readiness
+
+Skill tooltips are dismissed when leaving playing, including queued touch-hold timers. Hover/focus callbacks outside playing cannot reopen a card over pause, settings, death or victory. Returning to play retains ordinary hover/focus and current key labels. Actual HUD and app.show source tests use a small mocked DOM/timer boundary; no browser pixel claim is made.
+
+The Mac launcher checks the game manifest with bounded connection/read timeouts before opening the browser. Its background readiness check stops when the foreground server process exits; an unavailable Python, failed server or occupied port serving another game no longer opens a broken or unrelated page after a fixed one-second delay. Existing ready-game reuse remains. Six offline command-mock cases cover failure, missing interpreter, unrelated port, delayed readiness, reuse and timeout; this is a Git bash flow check, not a Mac/browser runtime test.
+
+The audio source document now describes all four embedded sprite banks and separates attributed CC0 recordings from the original synthesised layers and music. Sound data and mixing are unchanged.

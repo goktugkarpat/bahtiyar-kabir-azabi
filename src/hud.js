@@ -253,10 +253,14 @@
     special: ['Zincir Girdabı', 'Zincirli pala ile etrafında dönersin ve yakındaki herkese 4 kez vurursun. Hafif düşmanlar içeri çekilir, son vuruş onları savurur. Dönerken yürüyebilirsin.', '45 dayanıklılık · 8 sn bekleme'],
     rage: ['Kan Öfkesi', 'Öfke çubuğu dolunca bağırırsın: yakındaki düşmanlar sendeler. 11 sn boyunca %48 daha sert vurur, %25 az hasar alır ve vurduğun hasarın bir kısmı can olarak geri döner.', 'Öfke çubuğu dolu olmalı']
   };
+  let dismissSkillTips = () => {};
+  function dismissTips() { dismissSkillTips(); }
   function initTips() {
     const tip = document.createElement('div'); tip.id = 'skill-tip'; tip.setAttribute('role', 'tooltip'); document.body.appendChild(tip);
     let hideTimer = 0;
+    const pressTimers = new Set();
     function show(btn) {
+      if (document.body.dataset.view !== 'playing') return;
       const key = btn.dataset.action || btn.dataset.hold, t = TIPS[key]; if (!t) return;
       const kbd = btn.querySelector('kbd'), cap = kbd ? kbd.textContent.trim() : '';
       tip.innerHTML = '';
@@ -271,21 +275,32 @@
       tip.style.left = Math.max(8, Math.min(innerWidth - w - 8, r.left + r.width / 2 - w / 2)) + 'px';
       tip.style.top = Math.max(8, r.top - h - 12) + 'px';
     }
-    function hide() { clearTimeout(hideTimer); tip.classList.remove('show'); }
+    function hide() { clearTimeout(hideTimer); hideTimer = 0; tip.classList.remove('show'); }
+    dismissSkillTips = () => { hide(); pressTimers.forEach(timer => clearTimeout(timer)); pressTimers.clear(); };
     for (const btn of document.querySelectorAll('.combat-pad .action, .flask-button')) {
       btn.addEventListener('pointerenter', e => { if (e.pointerType === 'mouse') show(btn); });
       btn.addEventListener('pointerleave', hide);
       btn.addEventListener('focus', () => show(btn)); btn.addEventListener('blur', hide);
       let press = 0;   // touch: hold a slot for half a second to read it (the tap itself still acts)
-      btn.addEventListener('pointerdown', e => { if (e.pointerType === 'mouse') { hide(); return; } clearTimeout(press); press = setTimeout(() => { show(btn); hideTimer = setTimeout(hide, 4200); }, 520); });
-      for (const ev of ['pointerup', 'pointercancel']) btn.addEventListener(ev, () => clearTimeout(press));
+      const cancelPress = () => { clearTimeout(press); pressTimers.delete(press); press = 0; };
+      btn.addEventListener('pointerdown', e => {
+        cancelPress();
+        if (e.pointerType === 'mouse') { hide(); return; }
+        if (document.body.dataset.view !== 'playing') return;
+        press = setTimeout(() => {
+          pressTimers.delete(press); press = 0; show(btn);
+          if (document.body.dataset.view === 'playing') { clearTimeout(hideTimer); hideTimer = setTimeout(hide, 4200); }
+        }, 520);
+        pressTimers.add(press);
+      });
+      for (const ev of ['pointerup', 'pointercancel']) btn.addEventListener(ev, cancelPress);
     }
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initTips); else initTips();
 
   // Finish the orb programs now even if the browser has not reported them compiled (blocks once, during loading).
   function force(redraw = false) { if (!ensure()) return; for (const k in orbs) orbs[k].force(); if (redraw || !warmDrawn) { warmDrawn = true; render(); } }
-  B.HUD = { frame, vitals, skills, reset, damageCanvas, callout, prepare: ensure, force, get webgl() { return !!(orbs.health && orbs.health.webgl); },
+  B.HUD = { frame, vitals, skills, reset, dismissTips, damageCanvas, callout, prepare: ensure, force, get webgl() { return !!(orbs.health && orbs.health.webgl); },
     // Ready once compiled; the first draw is made here too (some drivers finish the program only on its first draw).
     get ready() { const ok = !orbs.health || Object.keys(orbs).every(k => orbs[k].ready); if (ok && orbs.health && !warmDrawn) { warmDrawn = true; render(); } return ok; } };
 })();

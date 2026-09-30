@@ -201,6 +201,7 @@
     for (const v of views) $(v).classList.toggle('hidden', v !== next);
     $('hud').classList.toggle('hidden', next === 'title' || !game);
     document.body.dataset.view = next;
+    if (next !== 'playing' && B.HUD && B.HUD.dismissTips) B.HUD.dismissTips();
     paused = next !== 'playing';
     clearInput();
     // Settings keep the sound running so volume changes can be heard; the pause menu itself is silent.
@@ -1176,7 +1177,7 @@
     return graphicsAdapter;
   }
   function performanceReport() {
-    return { schema: 3, game: 'Kabir Azabı', build: 54, capturedAt: new Date().toISOString(), view,
+    return { schema: 3, game: 'Kabir Azabı', build: 55, capturedAt: new Date().toISOString(), view,
       location: { room: world.rooms?.[roomId]?.name || roomId, x: game.player.x, z: game.player.z },
       display: { width: post.width, height: post.height, windowWidth: innerWidth, windowHeight: innerHeight,
         devicePixelRatio: window.devicePixelRatio || 1, renderPixelRatio: renderer.getPixelRatio() },
