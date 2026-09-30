@@ -131,7 +131,7 @@
         lastChange = ts; late.length = 0;
         return levels[index];
       }
-      if (count === 0 && index > minIndex && ts - lastChange > CLEAN && ts - lastLate > CLEAN) {
+      if (count === 0 && index > Math.max(minIndex, hintIndex) && ts - lastChange > CLEAN && ts - lastLate > CLEAN) {
         index--; lastUp = lastChange = ts; late.length = 0;
         return levels[index];
       }

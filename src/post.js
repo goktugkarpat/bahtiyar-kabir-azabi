@@ -117,6 +117,35 @@
     '  c *= 1. / .6; c = I * c; c = rrtOdt(c); c = O * c; return clamp(c, 0., 1.); }',
     'vec3 toSRGB(vec3 c){ return mix(c * 12.92, 1.055 * pow(c, vec3(1. / 2.4)) - .055, step(.0031308, c)); }',
     'float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }',
+    // Screen overlays that used to be full-screen DOM layers over the canvas (same look, no extra compositor layers):
+    // uOvl x = damage flash opacity, y = rage veil opacity, z = low-health pulse opacity; uCss = viewport size in CSS pixels.
+    'uniform vec4 uOvl; uniform vec2 uCss;',
+    // CSS inset box-shadow (spread s, blur b; Gaussian sigma = b / 2) as a separable edge falloff.
+    'float insetShadow(vec2 d, float s, float b){ return 1. - smoothstep(s - b, s + b, d.x) * smoothstep(s - b, s + b, d.y); }',
+    'vec3 overlays(vec3 c){',
+    '  vec2 st = vec2(vUv.x, 1. - vUv.y), px = st * uCss, dd = min(px, uCss - px);',
+    // #vignette: radial-gradient(ellipse 78% 72% at 50% 46%, transparent 52%, #03020388 82%, #020101d8 100%)
+    '  float r = length((st - vec2(.5, .46)) / vec2(.78, .72));',
+    '  float a = r < .82 ? clamp((r - .52) / .3, 0., 1.) * .533 : .533 + min(1., (r - .82) / .18) * .314;',
+    '  c = mix(c, r < .82 ? vec3(.0118, .0078, .0118) : vec3(.0078, .0039, .0039), a);',
+    // low health: inset 0 0 110px 18px #9c0f16aa, pulsing
+    '  if (uOvl.z > 0.) c = mix(c, vec3(.612, .059, .086), insetShadow(dd, 18., 110.) * .667 * uOvl.z);',
+    // #rage-veil: radial-gradient(ellipse at 50% 55%, transparent 58%, #7a1d0a48) + inset 0 0 140px 30px #c2461f88
+    '  if (uOvl.y > 0.) {',
+    '    float rr = length((st - vec2(.5, .55)) / vec2(.7071, .7778));',
+    '    c = mix(c, vec3(.478, .114, .039), clamp((rr - .58) / .42, 0., 1.) * .282 * uOvl.y);',
+    '    c = mix(c, vec3(.761, .275, .122), insetShadow(dd, 30., 140.) * .533 * uOvl.y);',
+    '  }',
+    // #grain: static warm film grain at opacity .18
+    '  c = mix(c, vec3(.6, .54, .48), .18 * max(0., .36 * (.3 + .4 * hash(floor(px) * .917 + 3.1)) - .12));',
+    // #damage-flash: radial-gradient(ellipse, transparent 50%, #5a000870) + inset 0 0 160px 40px #9c0f16
+    '  if (uOvl.x > 0.) {',
+    '    float fr = length((st - .5) / .7071);',
+    '    c = mix(c, vec3(.353, 0., .031), clamp((fr - .5) / .5, 0., 1.) * .439 * uOvl.x);',
+    '    c = mix(c, vec3(.612, .059, .086), insetShadow(dd, 40., 160.) * uOvl.x);',
+    '  }',
+    '  return c;',
+    '}',
     'void main(){',
     '  vec2 uv = vUv;',
     '  #if HAZE',
@@ -199,7 +228,7 @@
     '  if (uPulse.w > 0.) { c = mix(c, vec3(.55, .04, .02), v * v * uPulse.w * .55); c += vec3(.5, .2, .12) * pring * .3; }',
     '  float g = hash(gl_FragCoord.xy * .731 + fract(uTime * 7.13) * 91.) - .5;',
     '  c += g * uGrain * (.35 + .65 * (1. - abs(luma(c) * 2. - 1.))) + (ign(gl_FragCoord.xy + fract(uTime) * 57.) - .5) / 255.;',
-    '  gl_FragColor = vec4(c, 1.);',
+    '  gl_FragColor = vec4(overlays(c), 1.);',
     '}'].join('\n');
 
   function create(renderer, scene, camera, settings) {
@@ -282,6 +311,7 @@
       uLift: { value: new T.Vector3() }, uGain: { value: new T.Vector3(1, 1, 1) }, uShadowTint: { value: new T.Vector3(1, 1, 1) },
       uHighTint: { value: new T.Vector3(1, 1, 1) }, uVigColor: { value: new T.Vector3(0, 0, 0) }, uBloomTint: { value: new T.Vector3(1, 1, 1) },
       uHeat: { value: heat }, uPulse: { value: new T.Vector4(.5, .5, 0, 0) },
+      uOvl: { value: new T.Vector4() }, uCss: { value: new T.Vector2(typeof innerWidth === 'number' ? innerWidth : 1280, typeof innerHeight === 'number' ? innerHeight : 800) },
       uAbA: { value: new T.Vector4() }, uAbB: { value: new T.Vector4() }, uAbC: { value: new T.Vector4(.5, .5, 0, .1) }, uAbD: { value: new T.Vector4(.5, .5, 1, 0) }
     };
     var compositeMat = null, abilityMat = null;
@@ -372,6 +402,9 @@
     // Builds and touches the targets of the given sizes ([w, h] pairs), then returns to the current size. Runs under the loading cover.
     function prewarm(list) {
       keepSets = true;
+      // Sizes that are already built (or current) need no work.
+      list = list.filter(function (sz) { var w = Math.max(1, Math.round(sz[0])), h = Math.max(1, Math.round(sz[1])); return !sets[w + 'x' + h] && !(w === width && h === height); });
+      if (!list.length) return;
       var w0 = width, h0 = height, prev = renderer.getRenderTarget();
       try {
         list.forEach(function (sz) {
@@ -386,7 +419,9 @@
     function setKeepSets(on) { keepSets = !!on; if (!on) flushSets(); }
     function setQuality(cfg) {
       var p = PRESETS[cfg && (cfg.quality || cfg.preset)] || PRESETS.high, changed = p !== preset;
-      flushSets();   // cached sizes were built for the previous preset / sample count
+      // Cached sizes were built for the previous preset (bloom levels/half size). A sound or UI setting keeps them,
+      // so a later automatic resolution step is still only a reference swap.
+      if (changed) flushSets();
       if (cfg) settingsRef = cfg;
       preset = p;
       // Edge smoothing (SMAA) is independent of the AO/bloom preset but its search depth follows the quality tier.
@@ -704,6 +739,11 @@
     }
     setQuality(settings || {});
     api = {
+      // Screen overlays drawn in the composite: damage flash, rage veil, low-health pulse (0..1 opacities) and the CSS viewport size.
+      setOverlay: function (flash, rage, low, cssW, cssH) {
+        U.uOvl.value.set(flash || 0, rage || 0, low || 0, 0);
+        if (cssW > 0 && cssH > 0) U.uCss.value.set(cssW, cssH);
+      },
       render: render, setSize: setSize, setQuality: setQuality, setGrade: setGrade, heat: heatSources, pulse: pulse, setAbilityFx: setAbilityFx, clearAbilityFx: clearAbilityFx, dispose: dispose, compile: compile,
       setTiming: setTiming, resetTiming: resetTiming,
       uniforms: U, get target() { return sceneRT; }, prewarm: prewarm, keepSizes: setKeepSets,

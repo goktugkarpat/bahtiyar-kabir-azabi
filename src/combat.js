@@ -31,8 +31,8 @@
   // Hit-stop freezes every combat clock together (player, enemies, hazards, i-frames), so it never grants an advantage.
   const FEEL = {
     buffer: .22, chainEarly: .12, finisherChainEarly: .06, queueAfter: .06,
-    hitstop: { light: .012, finisher: .028, heavy: .020, extraTarget: .004, kill: .012, bossKill: .22, shield: .012, guardBreak: .035,
-      hurt: .020, hurtHeavy: .030 },
+    hitstop: { light: 0, finisher: 0, heavy: .008, extraTarget: 0, kill: 0, bossKill: .008, shield: 0, guardBreak: .008,
+      hurt: 0, hurtHeavy: .008 },
     knock: { light: .32, finisher: .62, heavy: 1.05, shield: .12, boss: .05, bossHeavy: .16 },
     lunge: [.34, .42, .56], heavyLunge: .72, lungeLead: [.12, .12, .14], heavyLungeLead: .2,
     whoosh: { light: .09, finisher: .11, heavy: .15 },
@@ -164,10 +164,10 @@
     game.globes = globes;
     // Slow motion: every combat clock slows together, exactly like hit-stop, so it never favours a side (no caller since the war cry became quick).
     function slowMotion(seconds) { if (!reducedMotion.matches && seconds > 0 && impactScale > 0) slowmo = Math.max(slowmo, seconds); }
-    // Contact emphasis: a short freeze of all combat clocks; victims shudder while the frame holds.
+    // Heavy contact emphasis: at most 8 ms of shared combat time; ordinary blows never hold the frame.
     function hitStop(seconds, shudder) {
       if (reducedMotion.matches || !(seconds > 0)) return 0;
-      const s = Math.min(.3, seconds * impactScale); freeze = Math.max(freeze, s);
+      const s = Math.min(.008, seconds * impactScale); freeze = Math.max(freeze, s);
       if (shudder) shudder.forEach(v => { if (!victims.some(o => o.body === v.body)) victims.push(v); });
       return s;
     }
@@ -538,10 +538,14 @@
       const distanceToPlayer = distance(enemy, player);
       if (distanceToPlayer > 17) return false;
       if (!clearStrike(enemy, player)) return false;
-      const simultaneous = enemies.filter(e => e !== enemy && e.active && !e.dead && e.action && distance(e, player) < 18);
-      if (enemy.boss) return simultaneous.length === 0;
-      const ranged = e => e.type === 'cultist' || e.type === 'carrier';
-      return simultaneous.length < 3 && simultaneous.filter(e => ranged(e) === ranged(enemy)).length < (ranged(enemy) ? 1 : 2);
+      const mine = enemy.type === 'cultist' || enemy.type === 'carrier';
+      let simultaneous = 0, same = 0;
+      for (const e of enemies) {
+        if (e === enemy || !e.active || e.dead || !e.action || !(distance(e, player) < 18)) continue;
+        simultaneous++; if ((e.type === 'cultist' || e.type === 'carrier') === mine) same++;
+      }
+      if (enemy.boss) return simultaneous === 0;
+      return simultaneous < 3 && same < (mine ? 1 : 2);
     }
 
     // ------------------------------------------------------------------ moves
@@ -853,14 +857,13 @@
       if (openingGrace > 0 && distance(player, spawn) < 4 && !player.attack) return;
       openingGrace = 0;
       for (const enc of encounterDefs) {
-        const living = enc.enemies.filter(e => !e.dead);
-        if (!living.length) continue;
-        const nearest = Math.min(...living.map(e => distance(e, player)));
-        const isBoss = living.some(e => e.boss);
+        let alive = 0, nearest = Infinity, isBoss = false;
+        for (const e of enc.enemies) { if (e.dead) continue; alive++; const d = distance(e, player); if (d < nearest) nearest = d; if (e.boss) isBoss = true; }
+        if (!alive) continue;
         if (!enc.activated && nearest < (isBoss ? 13 : 13.2)) {
           enc.activated = true; game.activeEncounter = enc.name;
           if (!enc.announced) { emit('encounter', { name: enc.name, room: enc.room }); enc.announced = true; }
-          living.forEach(e => { e.active = true; e.activated = true; e.cooldown = Math.max(e.cooldown, .6 + e.index % 4 * .22); });
+          for (const e of enc.enemies) if (!e.dead) { e.active = true; e.activated = true; e.cooldown = Math.max(e.cooldown, .6 + e.index % 4 * .22); }
           if (isBoss) { emit('boss', { name: STATS.boss.name, active: true }); sound('boss'); }
         }
         // Locked halls cannot aggro through their predecessor's sealed exit.
@@ -1068,7 +1071,7 @@
       if (killed && limbs && !enemy.boss) {
         // Killing blows can sever a limb or the head (cosmetic only; the foe's own seeded rand keeps runs repeatable).
         const kind = attack && attack.whirl ? (attack.ticks >= SPECIAL.ticks ? 'whirlLast' : 'whirl') : heavy ? 'heavy' : finisher ? 'finisher' : 'light';
-        if (limbs.cut(enemy, kind, attackFace, () => rand(enemy), player)) hitStop(.025, [{ body: enemy, model: enemy.model, amp: .07 }]);
+        if (limbs.cut(enemy, kind, attackFace, () => rand(enemy), player) && heavy && !(attack && attack.whirl)) hitStop(.008, [{ body: enemy, model: enemy.model, amp: .07 }]);
       }
       return { blocked, killed, guardBreak: !!enemy.guardBroke && (enemy.guardBroke = false, true), contact };
     }
@@ -1318,7 +1321,7 @@
       }
       shudder.push({ body: player, model: hero, amp: last ? .03 : .015 });
       attack.face = keepFace;
-      hitStop(hits ? (last ? .025 : .012) + (kills ? .02 : 0) : 0, shudder);
+      hitStop(0, shudder);
       sound('specialHit', { x: player.x, z: player.z, hits });
       fx('whirlTick', { x: player.x, y: .1, z: player.z, face: attack.face, n, last, hits, radius: R });
       emit('impact', { x: player.x, z: player.z, strength: last ? 1 : .22 + .12 * n, radius: R });
@@ -1403,8 +1406,8 @@
       if (hits) {
         const clean = hits - blocks;
         let stop = clean ? (attack.heavy ? H.heavy : finisher ? H.finisher : H.light) + (clean - 1) * H.extraTarget : H.shield;
-        if (breaks) stop = Math.max(stop, H.guardBreak);
-        if (kills) stop += game.state === 'won' ? H.bossKill : H.kill;
+        if (breaks && attack.heavy) stop = Math.max(stop, H.guardBreak);
+        if (kills && attack.heavy) stop += game.state === 'won' ? H.bossKill : H.kill;
         shudder.push({ body: player, model: hero, amp: .012 });
         hitStop(stop, shudder);
         if (clean) sound(attack.heavy || finisher ? 'heavyHit' : 'hit', { hits, volume: finisher ? 1 : .9 });
@@ -1431,10 +1434,9 @@
       return true;
     }
     // The roar goes out: a shockwave through the floor staggers the nearest foes (their unfired tells break),
-    // cows the rest for a moment and the executioner flinches. A short hit-stop sells the moment (no slow motion: the roar stays quick).
+    // cows the rest for a moment and the executioner flinches. The camera sells the impact without pausing combat.
     function releaseWarCry() {
       player.rageTime = ROAR.time; player.rageMax = ROAR.time; player.rageFlash = 1;
-      hitStop(.025, [{ body: player, model: hero, amp: .024 }]);
       emit('rage', { x: player.x, z: player.z, face: player.face });
       emit('impact', { x: player.x, z: player.z, strength: .85, radius: ROAR.near });
       fx('warCry', { x: player.x, y: .05, z: player.z, face: player.face, radius: ROAR.near, far: ROAR.far });
@@ -1735,18 +1737,23 @@
         ? .01 + (contact - .01) * clamp(attack.age / attack.strike, 0, 1)
         : contact + (1 - contact) * clamp((attack.age - attack.strike) / (attack.duration - attack.strike), 0, 1);
     }
-    function movementState(actor, model, dt, speed) {
+    // Writes into 'out' (one reused animation-state object per actor; every field is rewritten each call, so nothing stale survives).
+    function movementState(actor, model, dt, speed, out) {
       const dx = actor.x - model.root.position.x, dz = actor.z - model.root.position.z;
       const distance = Math.hypot(dx, dz), valid = dt > .000001 && distance < 2.5;
       const vx = valid ? dx / dt : 0, vz = valid ? dz / dt : 0;
-      return { velocityX: vx, velocityZ: vz, move: Math.min(1, Math.hypot(vx, vz) / speed),
-        turnRate: valid ? angleDifference(actor.face, model.root.rotation.y) / dt : 0 };
+      out = out || {};
+      out.velocityX = vx; out.velocityZ = vz; out.move = Math.min(1, Math.hypot(vx, vz) / speed);
+      out.turnRate = valid ? angleDifference(actor.face, model.root.rotation.y) / dt : 0;
+      out.moveX = undefined; out.moveZ = undefined;
+      return out;
     }
+    const heroAnim = {};
     // Whirlwind body turn: an unwrapped angle (eased in and out, SPECIAL.turns full turns) added to the body's yaw only, so the hero ends facing player.yaw exactly.
     const SPIN = (() => { const sm = x => { x = clamp(x, 0, 1); return x * x * (3 - 2 * x); }, t = [0]; for (let i = 1; i <= 64; i++) { const u = i / 64; t.push(t[i - 1] + sm(u / .1) * (1 - sm((u - .78) / .22))); } return t.map(v => v / t[64]); })();
     function whirlAngle(u) { return BABA.AuthoredMotion.whirlAngle(u, reducedMotion.matches ? 1 : SPECIAL.turns); }
     function animateAll(dt) {
-      const pm = movementState(player, hero, dt, 5.35);
+      const pm = movementState(player, hero, dt, 5.35, heroAnim);
       player.move = pm.move;
       // player.face is the facing the game acts on and changes at once; the body swings round to it fast but smoothly (shortest way).
       player.yaw = dampAngle(player.yaw, player.face, player.dodge ? FEEL.turn.roll : player.attack ? FEEL.turn.swing : FEEL.turn.walk, dt);
@@ -1762,25 +1769,26 @@
       // Read-only state for the effects / post-processing: { active, t (s), u (0..1), tick, ticks, radius, spin (rad), serial }.
       const sp = player.special || (player.special = { active: false, t: 0, u: 0, tick: 0, ticks: SPECIAL.ticks, radius: SPECIAL.radius, spin: 0, serial: 0 });
       sp.active = !!wh; sp.t = wh ? wh.age : 0; sp.u = wh ? clamp(wh.age / wh.duration, 0, 1) : 0; sp.tick = wh ? wh.ticks : 0; sp.spin = spinCur; sp.serial = wh ? wh.serial : sp.serial;
-      hero.animate(dt, {
-        ...pm, time: simTime, attack: wh ? 0 : playerAttackPose(atk), whirl: wh ? clamp(wh.age / wh.duration, 0, 1) : -1, whirlTime: wh ? wh.age : -1,
-        attackTime: atk && !wh ? atk.age : -1, attackStrike: atk ? atk.strike : 0, attackDuration: atk ? atk.duration : 0, attackSerial: atk ? atk.serial : 0,
-        hitAngle: player.hitAngle || 0, hurtHeavy: !!player.hurtHeavy, iframeEnd: DODGE.iframe / .48,
-        stagger: player.stagger > 0 ? 1 - player.stagger / (player.staggerTotal || .7) : 0, staggerTime: player.staggerTotal || .7,
-        contactPhase: player.attack && player.attack.heavy ? .56 : .41,
-        heavy: !!(player.attack && player.attack.heavy && !wh), block: false,
-        combo: player.attack ? player.attack.combo : 0, parry: 0,
-        blockImpact: 0, hitDirection: player.hitDirection || 0,
-        dodge: player.dodge ? clamp(dodgeAge / .48, .01, 1) : 0,
-        dodgeProgress: player.dodge ? clamp(dodgeAge / .48, .01, 1) : 0,
-        dodgeDirection: Math.atan2(dodgeVector.x, dodgeVector.z), healing: player.healing ? 1 - player.healing / .82 : 0,
-        drinkTime: drinkLeft > 0 ? DRINK - drinkLeft : -1, drinkDuration: DRINK,
-        hurt: player.hurt, dead: player.dead, phase: player.healing ? 'heal' : 'idle', face: player.face, rage: player.rageTime > 0,
-        roarTime: player.roar ? player.roar.age : -1, roarRelease: ROAR.release, roarDuration: ROAR.duration, roarSerial: player.roar ? player.roar.serial : 0
-      });
+      // Same fields as before, written into the reused heroAnim object (pm === heroAnim) instead of a fresh spread every callback.
+      const hs = pm;
+      hs.time = simTime; hs.attack = wh ? 0 : playerAttackPose(atk); hs.whirl = wh ? clamp(wh.age / wh.duration, 0, 1) : -1; hs.whirlTime = wh ? wh.age : -1;
+      hs.attackTime = atk && !wh ? atk.age : -1; hs.attackStrike = atk ? atk.strike : 0; hs.attackDuration = atk ? atk.duration : 0; hs.attackSerial = atk ? atk.serial : 0;
+      hs.hitAngle = player.hitAngle || 0; hs.hurtHeavy = !!player.hurtHeavy; hs.iframeEnd = DODGE.iframe / .48;
+      hs.stagger = player.stagger > 0 ? 1 - player.stagger / (player.staggerTotal || .7) : 0; hs.staggerTime = player.staggerTotal || .7;
+      hs.contactPhase = player.attack && player.attack.heavy ? .56 : .41;
+      hs.heavy = !!(player.attack && player.attack.heavy && !wh); hs.block = false;
+      hs.combo = player.attack ? player.attack.combo : 0; hs.parry = 0;
+      hs.blockImpact = 0; hs.hitDirection = player.hitDirection || 0;
+      hs.dodge = player.dodge ? clamp(dodgeAge / .48, .01, 1) : 0;
+      hs.dodgeProgress = player.dodge ? clamp(dodgeAge / .48, .01, 1) : 0;
+      hs.dodgeDirection = Math.atan2(dodgeVector.x, dodgeVector.z); hs.healing = player.healing ? 1 - player.healing / .82 : 0;
+      hs.drinkTime = drinkLeft > 0 ? DRINK - drinkLeft : -1; hs.drinkDuration = DRINK;
+      hs.hurt = player.hurt; hs.dead = player.dead; hs.phase = player.healing ? 'heal' : 'idle'; hs.face = player.face; hs.rage = player.rageTime > 0;
+      hs.roarTime = player.roar ? player.roar.age : -1; hs.roarRelease = ROAR.release; hs.roarDuration = ROAR.duration; hs.roarSerial = player.roar ? player.roar.serial : 0;
+      hero.animate(dt, hs);
       for (const enemy of enemies) {
         const d = distance(enemy, player), visible = d < 45 && (!enemy.dead || enemy.deadAge < corpseLifetime);
-        const em = movementState(enemy, enemy.model, dt, STATS[enemy.type].speed);
+        const em = movementState(enemy, enemy.model, dt, STATS[enemy.type].speed, enemy._anim || (enemy._anim = {}));
         enemy.model.root.visible = visible;
         // Shadow level of detail (60 Hz-class targets): a character far from the hero no longer casts into the key light's map.
         // Every skinned part is a separate shadow draw, so distant crowds cost far more than they show. 0 = everyone casts.
@@ -1801,19 +1809,19 @@
             ? clamp((action.age - action.movement.start) / action.movement.duration, 0, 1) : 0;
           enemy.model.root.position.y = Math.sin(leap * Math.PI) * 1.15;
           const beat = enemyBeat(enemy);
-          enemy.model.animate(dt, {
-            ...em, time: simTime + enemy.index * .31,
-            beat: beat ? beat.index : 0, beatTime: beat ? beat.t : -1, beatContact: beat ? beat.contact : 0, beatEnd: beat ? beat.end : 0,
-            attackSerial: action ? action.serial : 0, rushTime: action && action.movement ? action.movement.duration : 0,
-            lookYaw: enemy.active && !enemy.dead && !player.dead ? angleDifference(angleTo(enemy, player), enemy.face) : undefined,
-            hitAngle: enemy.hitAngle || 0, hurtHeavy: !!enemy.hurtHeavy, deathKind: enemy.deathKind || '', blockImpact: enemy.blockImpact || 0,
-            stagger: enemy.stagger > 0 && !enemy.dead ? 1 - enemy.stagger / Math.max(enemy.stagger, enemy.staggerTotal || 0) : 0, staggerTime: enemy.staggerTotal || 0,
-            attack: enemyAttackPose(enemy), contactPhase: enemy.boss || enemy.type === 'guard' ? .56 : .41, pose: beat ? beat.pose : '',
-            action: action ? action.attack : '', actionProgress: action ? action.age / action.duration : 0, leap,
-            heavy: !!(action && (enemy.boss || enemy.type === 'guard')),
-            block: enemy.shield && !enemy.dead, dodge: 0, hurt: enemy.hurt, hitDirection: enemy.hitDirection || 0, dead: enemy.dead,
-            phase: enemy.phase === 2 ? 'rage' : action ? 'attack' : 'idle', face: enemy.face, rage: enemy.buff > 0 || enemy.phase === 2
-          });
+          const es = em;   // the enemy's reused animation state; same fields as the old per-callback spread
+          es.time = simTime + enemy.index * .31;
+          es.beat = beat ? beat.index : 0; es.beatTime = beat ? beat.t : -1; es.beatContact = beat ? beat.contact : 0; es.beatEnd = beat ? beat.end : 0;
+          es.attackSerial = action ? action.serial : 0; es.rushTime = action && action.movement ? action.movement.duration : 0;
+          es.lookYaw = enemy.active && !enemy.dead && !player.dead ? angleDifference(angleTo(enemy, player), enemy.face) : undefined;
+          es.hitAngle = enemy.hitAngle || 0; es.hurtHeavy = !!enemy.hurtHeavy; es.deathKind = enemy.deathKind || ''; es.blockImpact = enemy.blockImpact || 0;
+          es.stagger = enemy.stagger > 0 && !enemy.dead ? 1 - enemy.stagger / Math.max(enemy.stagger, enemy.staggerTotal || 0) : 0; es.staggerTime = enemy.staggerTotal || 0;
+          es.attack = enemyAttackPose(enemy); es.contactPhase = enemy.boss || enemy.type === 'guard' ? .56 : .41; es.pose = beat ? beat.pose : '';
+          es.action = action ? action.attack : ''; es.actionProgress = action ? action.age / action.duration : 0; es.leap = leap;
+          es.heavy = !!(action && (enemy.boss || enemy.type === 'guard'));
+          es.block = enemy.shield && !enemy.dead; es.dodge = 0; es.hurt = enemy.hurt; es.hitDirection = enemy.hitDirection || 0; es.dead = enemy.dead;
+          es.phase = enemy.phase === 2 ? 'rage' : action ? 'attack' : 'idle'; es.face = enemy.face; es.rage = enemy.buff > 0 || enemy.phase === 2;
+          enemy.model.animate(dt, es);
         }
         enemy.shadow.visible = visible && (!enemy.dead || enemy.deadAge < 2.5);
         enemy.shadow.position.x = enemy.x; enemy.shadow.position.z = enemy.z;

@@ -58,7 +58,8 @@
   function makeOrb(canvas, kind) {
     const st = { fill: 1, trail: 1, target: 1, low: 0, flash: 0, heal: 0, pal: PALETTE[kind], dirty: true };
     let gl = null, u = {}, pr = null, ext = null, linked = false, lost = false;
-    try { gl = canvas.getContext('webgl', { alpha: true, premultipliedAlpha: false, antialias: true }); } catch (e) { gl = null; }
+    // No MSAA: the quad covers the whole canvas and the shader draws its own soft rim, so multisampling only cost a resolve.
+    try { gl = canvas.getContext('webgl', { alpha: true, premultipliedAlpha: false, antialias: false }); } catch (e) { gl = null; }
     function compile() {
       if (!gl) return;
       // Compiled in the background (KHR_parallel_shader_compile where available); first use waits until it is done
@@ -125,6 +126,7 @@
   const orbs = {};
   let clock = 0, warmDrawn = false;
   function ensure() {
+    warmNumerals();
     if (!orbs.health) { const h = document.getElementById('orb-health'), s = document.getElementById('orb-stamina'); if (h) orbs.health = makeOrb(h, 'health'); if (s) orbs.stamina = makeOrb(s, 'stamina'); }
     return orbs.health;
   }
@@ -137,14 +139,28 @@
       o.flash = Math.max(0, o.flash - dt * 2.5); o.heal = Math.max(0, o.heal - dt * 1.4);
     }
   }
-  function render() { for (const k in orbs) orbs[k].draw(clock); }
+  function render() { for (const k in orbs) { orbs[k].draw(clock); orbs[k].st.age = 0; } }
   // The app calls this once per presented scene frame; HUD ticks only supply new targets.
+  // Each orb is its own small GL canvas, so it is only redrawn at a modest rate: 30 Hz while the liquid just sways
+  // (10 Hz with reduced motion), 60 Hz while its level, trail, flash or heal glow is moving. Two swaying orbs take
+  // turns, so a frame usually presents at most one of the extra canvases.
+  let hudEl = null, phase = 0;
+  function busy(o) { return Math.abs(o.target - o.fill) > .0015 || o.trail - o.fill > .0015 || o.flash > 0 || o.heal > 0 || o.dirty; }
   function frame(dt) {
-    const view = document.body.dataset.view, hud = document.getElementById('hud');
-    if (view !== 'playing' || !hud || hud.classList.contains('hidden')) return;
+    if (document.body.dataset.view !== 'playing') return;
+    if (!hudEl || !hudEl.isConnected) hudEl = document.getElementById('hud');
+    if (!hudEl || hudEl.classList.contains('hidden')) return;
     if (!ensure()) return;
     dt = Number.isFinite(dt) ? clamp(dt, 0, .1) : 0; clock += dt;
-    step(dt); render();
+    step(dt);
+    const calm = reduced.matches ? 1 / 10 : 1 / 30, keys = Object.keys(orbs);
+    if ((phase ^= 1) && keys.length > 1) keys.reverse();
+    for (const k of keys) orbs[k].st.age = (orbs[k].st.age || 0) + dt;
+    let drew = false;
+    for (const k of keys) {
+      const o = orbs[k].st, moving = busy(o), every = moving ? 1 / 60 : (o.low > 0 ? 1 / 30 : calm);
+      if (o.dirty || o.age >= every * 2 || ((moving || !drew || dt >= every - .0005) && o.age >= every - .0005)) { orbs[k].draw(clock); o.age = 0; drew = true; }
+    }
   }
   // Stamina reading in the orb (health's is written by app.js). Floor keeps it consistent with the 20 / 34 stamina thresholds.
   const reading = { num: undefined, max: null, n: -1, m: -1 };
@@ -163,11 +179,14 @@
     staminaText(p);
     if (hp < H.target - .002) { H.trailHold = .42; H.flash = Math.min(1, H.flash + .6); }
     if (hp > H.target + .02) { H.heal = 1; H.trail = hp; }
-    H.target = hp; H.low = hp < .3 && !p.dead ? 1 : 0;
+    const low = hp < .3 && !p.dead ? 1 : 0; if (low !== H.low) H.dirty = true;
+    H.target = hp; H.low = low;
     if (S) {
       if (st < S.target - .004) S.trailHold = .25;
       S.target = st;
-      const winded = p.stamina < 20; S.pal = winded ? PALETTE.winded : PALETTE.stamina; S.low = winded ? .45 : 0;
+      const winded = p.stamina < 20, pal = winded ? PALETTE.winded : PALETTE.stamina;
+      if (pal !== S.pal) { S.pal = pal; S.dirty = true; }
+      S.low = winded ? .45 : 0;
     }
   }
   function reset(p) { if (!ensure()) return; for (const k in orbs) { const o = orbs[k].st; o.fill = o.trail = o.target = 1; o.flash = o.heal = o.low = o.trailHold = 0; } if (p) vitals(p); render(); }
@@ -186,6 +205,24 @@
     x.fillStyle = player ? '#ff9d87' : heavy ? '#ffe0a0' : '#f5eddf';
     x.fillText(text, 0, 0); x.restore();
     return c;
+  }
+
+  // The first damage number used to make the browser build its text-stroke / blur drawing programs in the middle of
+  // the first fight (a 30-130 ms hitch). Draw every numeral style once while the loading screen is still up.
+  let numeralsWarm = false;
+  function warmNumerals() {
+    if (numeralsWarm) return; numeralsWarm = true;
+    const run = () => {
+      try {
+        // One canvas per style (a canvas that is read back repeatedly may leave the GPU; one read each keeps it there).
+        for (const [pl, hv] of [[false, false], [true, false], [false, true]]) for (const v of [12345, 67890]) {
+          const c = damageCanvas(v, pl, hv); c.getContext('2d').getImageData(128, 72, 1, 1);   // read back = finish drawing now
+        }
+      } catch (e) { /* warm-up only */ }
+    };
+    try {
+      if (document.fonts && document.fonts.load) document.fonts.load("800 104px 'Source Sans 3'").then(run, run); else run();
+    } catch (e) { run(); }
   }
 
   /* ───────────── Impact callouts (parry) ───────────── */

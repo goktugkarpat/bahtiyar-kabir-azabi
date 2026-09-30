@@ -464,6 +464,7 @@
         w.needsUpdate = true;
       });
     };
+    var HIDDEN_CASTER = /(^|[-_])(eyes?|brows?|lash(es)?|teeth|tooth|tongue|iris|pupil)($|[-_])/i;
     A.build = function (materials) {
       A.contact();
       var byKey = {};
@@ -471,7 +472,9 @@
       var skeleton = new T.Skeleton(bones, inverses), meshes = [];
       Object.keys(byKey).forEach(function (key) {
         var geo = mergeSkinned(byKey[key]), mat = materials[key] || gearMaterial(key);
-        var mesh = new T.SkinnedMesh(geo, mat); mesh.name = key; mesh.castShadow = mesh.receiveShadow = true;
+        // Eyes, brows, lashes and teeth sit inside the head silhouette: their shadow is invisible, but each
+        // was one more skinned draw in every shadow pass.
+        var mesh = new T.SkinnedMesh(geo, mat); mesh.name = key; mesh.receiveShadow = true; mesh.castShadow = !HIDDEN_CASTER.test(key);
         mesh.frustumCulled = true; parent.add(mesh); mesh.bind(skeleton, new T.Matrix4()); meshes.push(mesh);
       });
       scene.updateMatrixWorld(true);

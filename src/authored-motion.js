@@ -149,7 +149,7 @@
     var wanted = pose(), extra = pose(), output = pose(), transition = pose(), locomotion = pose(), mirrored = pose(), roarBuf = pose();
     var clock = 0, gait = 0, moveWeight = 0, speed = 0, mode = '', modeAge = 0, previousAttack = 0, comboMemory = -1, legacySerial = 0;
     var deathTime = 0, deathYaw = 0, deathKind = '', hurtTime = 2, previousHurt = 0, previousDodge = 0, previousYaw = 0, turnRate = 0, rollRecover = 9;
-    var initialized = false, disposed = false, wasDead = false, lastHitAngle = 0, lookCur = 0, lookPitch = 0, lifeSeed = Math.random() * 40, shiftCur = 0, legYawCur = 0, backwardMotion = false;
+    var initialized = false, disposed = false, wasDead = false, settled = false, lastHitAngle = 0, lookCur = 0, lookPitch = 0, lifeSeed = Math.random() * 40, shiftCur = 0, legYawCur = 0, backwardMotion = false;
     var footfall = root.userData.footfall = { serial: 0, side: 0, x: 0, z: 0, strength: 0, kind: 'step' };
     var motionInfo = root.userData.authoredMotion = { clip: '', source: 'Quaternius CC0', phase: 0, strike: '' };
     root.updateWorldMatrix(true, true); root.getWorldQuaternion(qRoot); invRoot.copy(qRoot).invert();
@@ -434,6 +434,11 @@
         hurtTime = 2; previousHurt = 0; previousAttack = 0; comboMemory = -1; previousDodge = 0; wasDead = false; turnRate = 0; footfall.serial = 0; rollRecover = 9; lookCur = 0; lookPitch = 0; shiftCur = 0; legYawCur = 0; backwardMotion = false;
         originalLocal.forEach(function (r) { r.node.position.copy(r.p); r.node.quaternion.copy(r.q); }); feet.forEach(function (f) { f.locked = false; f.weight = 0; });
       }
+      // A corpse whose fall has finished holds one fixed local pose (death clip clamped at its end, slide eased out, no
+      // secondary life, no foot planting, the limbs.js death spasm long over), so recomputing it each frame changes nothing.
+      // The bones are local to the root, so the renderer's own matrix pass still carries the corpse if the root moves.
+      if (settled && state.dead && wasDead) { deathTime += dt; return; }
+      settled = false;
       // Only the pelvis ancestry is read before applying the new pose. Keep
       // rigid root siblings (chains/hooks) current; the model subtree is refreshed
       // after retargeting, so visiting its old pose here would be duplicate work.
@@ -667,6 +672,10 @@
       }
       motionInfo.clip = nextMode; motionInfo.phase = attack || dodge || wrap(gait); motionInfo.strike = strikePhase;
       rootBefore.copy(rootNow); previousDodge = dodge; initialized = true;
+      if (state.dead && dt > 0 && mode === 'death' && modeAge > fade) {
+        var settleAt = Math.max(2.2, .3 + (deathKind === 'blown' ? clip('hitKnockback').duration / 1.05 : clip('death').duration / (boss ? 1.05 : 1.75)));
+        if (deathTime > settleAt) settled = true;
+      }
     }
     animate(0, {});
     return { animate: animate, bones: armAliases, dispose: function () { disposed = true; } };

@@ -195,6 +195,7 @@
       const z = [0, 0, 0, 0, 0, 0, 0, 0, 0]; warm.setAttribute('position', new T.Float32BufferAttribute([0, 0, 0, 0, 0, 0, 0, 0, 0], 3)); warm.setAttribute('normal', new T.Float32BufferAttribute([0, 1, 0, 0, 1, 0, 0, 1, 0], 3));
       warm.setAttribute('color', new T.Float32BufferAttribute(z, 3)); warm.setAttribute('skinIndex', new T.Float32BufferAttribute(new Array(12).fill(0), 4)); warm.setAttribute('skinWeight', new T.Float32BufferAttribute([1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0], 4));
       const cap = new T.SkinnedMesh(warm, capMaterial); cap.bind(skel, new T.Matrix4()); cap.frustumCulled = false; cap.castShadow = cap.receiveShadow = true; cap.matrixAutoUpdate = false; g.add(cap);
+      cap.boundingSphere = new T.Sphere();
       group.add(g);
       const frozen = []; for (let i = 0; i < MAXBONES; i++) frozen.push(new T.Matrix4());
       return { g, skel, bones, inverses, cap, warmGeometry: warm, meshes: [], frozen, weapon: null, weaponFrozen: new T.Matrix4(), alive: false, used: [], serial: 0,
@@ -290,6 +291,8 @@
       // the lower halves of the triangles the plane crossed, and the flesh cap, as skinned meshes on the corpse's own skeleton
       const first = list[0], addStump = (geo, material, name) => {
         const m = new T.SkinnedMesh(geo, material); m.bind(first.skeleton, first.bindMatrix); m.frustumCulled = false; m.castShadow = m.receiveShadow = true; m.name = name;
+        // Same skeleton, bind matrix and parent space: keep the actor's conservative bounds for renderer sorting.
+        const h = model.height || 2.2; m.boundingSphere = first.boundingSphere ? first.boundingSphere.clone() : new T.Sphere(new T.Vector3(0, h * .5, 0), h * 1.1);
         first.parent.add(m); info.caps.push(m);
       };
       cut.parts.forEach(part => { if (part.restGeo) addStump(part.restGeo, part.material, 'limb_rest'); });
@@ -325,7 +328,7 @@
       // assemble the meshes
       cut.parts.forEach((part, j) => {
         let m = s.meshes[j];
-        if (!m) { m = new T.SkinnedMesh(part.pieceGeo, part.material); m.frustumCulled = false; m.castShadow = m.receiveShadow = true; m.matrixAutoUpdate = false; s.g.add(m); s.meshes[j] = m; }
+        if (!m) { m = new T.SkinnedMesh(part.pieceGeo, part.material); m.frustumCulled = false; m.castShadow = m.receiveShadow = true; m.matrixAutoUpdate = false; m.boundingSphere = new T.Sphere(); s.g.add(m); s.meshes[j] = m; }
         m.geometry = part.pieceGeo; m.material = part.material; m.bind(s.skel, part.bindMatrix); m.visible = true;
       });
       for (let j = cut.parts.length; j < s.meshes.length; j++) s.meshes[j].visible = false;
@@ -364,6 +367,10 @@
       for (let i = 0; i < s.used.length; i++) { const b = s.used[i]; s.bones[b].matrixWorld.multiplyMatrices(M, s.frozen[b]); }
       if (s.weapon) s.weapon.matrix.multiplyMatrices(M, s.weaponFrozen);
       s.g.updateMatrixWorld(true);
+      // These uncullable meshes have identity matrixWorld; their skin already holds the world-space pose.
+      // Only the sorting centre is used. Avoid Three scanning every skinned vertex on the first cut or pooled rebind.
+      const radius = (s.L + s.r) * sc;
+      s.cap.boundingSphere.set(s.p, radius); for (let i = 0; i < s.meshes.length; i++) s.meshes[i].boundingSphere.set(s.p, radius);
     }
     function stepPiece(s, dt) {
       s.age += dt;

@@ -26,9 +26,34 @@
         });
       }
       return ready.catch(() => { failedImages.add(type); });
-    })).then(() => {});
+    })).then(() => { warm(); });
     return prepared;
   }
+  // The first time the bar appeared (first attack), the browser had to build the drawing programs for its gradients,
+  // blurred text shadows, rounded portraits and upload each portrait, which stalled one frame by up to ~130 ms
+  // (Chrome draws page content and WebGL on the same GPU thread).
+  // A copy of the bar (every portrait, boss styling) is drawn almost fully transparent (1 %, invisible) through the
+  // loading and title screens so that work is already done; it is removed on the first in-game HUD update.
+  let warmEl = null;
+  function warm() {
+    if (warmEl || !document.body) return;
+    try {
+      const el = document.createElement('div');
+      el.setAttribute('aria-hidden', 'true');
+      el.style.cssText = 'position:fixed;left:50%;top:calc(var(--top, 0px) + 8px);width:calc(500px * var(--k, 1));transform:translateX(-50%);' +
+        'display:flex;flex-wrap:wrap;align-items:center;gap:calc(7px * var(--k, 1));opacity:.01;pointer-events:none;z-index:3;contain:layout';
+      const bar = (type, boss) => '<div class="target-portrait"><img alt="" width="256" height="256" src="' + portraits[type] + '"><i class="portrait-frame"></i></div>' +
+        '<div class="target-details' + (boss ? ' boss-target phase2' : '') + '" style="flex:1 1 60%"><div class="target-title"><strong class="target-name">Zincir Celladı 0123456789</strong><small class="target-phase">ZİNCİRLER KIRILDI</small></div>' +
+        '<div class="target-health"><i class="target-fill" style="transform:scaleX(.6)"></i><b class="target-count">1234 / 5678</b><i class="target-notch" style="display:block"></i></div></div>';
+      let html = '';
+      for (const type of Object.keys(portraits)) if (!failedImages.has(type)) html += bar(type, type === 'boss');
+      // The skill slots' attack sweep (conic gradient + brightness) also first appears at the first attack.
+      const slot = cls => '<div class="action ' + cls + '" style="position:relative;width:calc(90px * var(--k, 1));height:calc(90px * var(--k, 1));--progress:.4"><i class="skill light"></i></div>';
+      html += slot('pressed') + slot('unavailable') + slot('action-rage burning');
+      el.innerHTML = html; document.body.appendChild(el); warmEl = el;
+    } catch (e) { warmEl = null; }
+  }
+  function unwarm() { if (warmEl && warmEl !== true) { warmEl.remove(); warmEl = true; } }
   function create(root) {
     const portrait = root.querySelector('.target-portrait img'), name = root.querySelector('.target-name');
     const health = root.querySelector('.target-health'), fill = root.querySelector('.target-fill');
@@ -54,6 +79,7 @@
       if (previousId !== null) { root.removeAttribute('data-enemy-id'); previousId = null; }
     }
     function update(enemy) {
+      if (warmEl) unwarm();
       if (!enemy || enemy.dead || !Number.isFinite(enemy.hp) || !Number.isFinite(enemy.maxHp) || !(enemy.maxHp > 0) || !(enemy.hp > 0)) { clear(); return; }
       if (!shown) { root.classList.remove('hidden'); shown = true; }
       if (previousId !== enemy.id) { root.setAttribute('data-enemy-id', enemy.id); previousId = enemy.id; }

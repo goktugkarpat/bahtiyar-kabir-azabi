@@ -421,25 +421,34 @@
     const tmpColor = new T.Color();
     function linear(hex, k) { tmpColor.set(hex); return [tmpColor.r * k, tmpColor.g * k, tmpColor.b * k]; }
     // Cracks left in the floor by quakes, falling hooks and heavy overheads: a hot glow that cools into a dark scar.
-    const scars = [];
+    // Scars are pooled: the two materials and the group are made once and reused, so combat never creates or disposes
+    // GPU resources for them (disposing the last user of a program would make the next scar recompile it).
+    const scars = [], scarFree = [];
+    function makeScar(map) {
+      const dark = new T.MeshBasicMaterial({ color: '#1a0d0a', map, transparent: true, opacity: .6, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+      const hot = new T.MeshBasicMaterial({ color: new T.Color(2.2, .55, .16), map, transparent: true, opacity: 1, depthWrite: false, blending: T.AdditiveBlending, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 });
+      const group = new T.Group(), a = new T.Mesh(plane, dark), b = new T.Mesh(plane, hot);
+      for (const m of [a, b]) { m.rotation.x = -Math.PI / 2; m.renderOrder = -1; group.add(m); }
+      return { group, a, b, dark, hot, time: 0, life: 0 };
+    }
+    function releaseScar(s) { s.group.removeFromParent(); scarFree.push(s); }
     function scar(x, z, face, o) {
       if (!tells || getSettings().decals <= 0) return;
       const line = o.shape === 'line', map = line ? tells.textures.scarLine : tells.textures.scarRadial;
-      const dark = new T.MeshBasicMaterial({ color: '#1a0d0a', map, transparent: true, opacity: .6, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
-      const hot = new T.MeshBasicMaterial({ color: new T.Color(2.2 * (o.heat || 1), .55 * (o.heat || 1), .16 * (o.heat || 1)), map, transparent: true, opacity: 1, depthWrite: false, blending: T.AdditiveBlending, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 });
-      const group = new T.Group(), a = new T.Mesh(plane, dark), b = new T.Mesh(plane, hot);
-      for (const m of [a, b]) { m.rotation.x = -Math.PI / 2; m.renderOrder = -1; group.add(m); }
+      const e = scarFree.length ? scarFree.pop() : makeScar(map), { group, a, b, dark, hot } = e, heat = o.heat || 1;
+      dark.map = hot.map = map; dark.opacity = .6; hot.opacity = 1; hot.color.setRGB(2.2 * heat, .55 * heat, .16 * heat);
       // The line art runs bottom -> top of the canvas; after rotation.x the canvas top points to local -Z, so flip it along +Z.
-      if (line) { a.rotation.z = b.rotation.z = Math.PI; group.scale.set(o.width * 2.2, 1, o.length); group.rotation.y = face; group.position.set(x + Math.sin(face) * o.length / 2, .037, z + Math.cos(face) * o.length / 2); }
+      a.rotation.z = b.rotation.z = line ? Math.PI : 0;
+      if (line) { group.scale.set(o.width * 2.2, 1, o.length); group.rotation.y = face; group.position.set(x + Math.sin(face) * o.length / 2, .037, z + Math.cos(face) * o.length / 2); }
       else { const s = (o.radius || 1.5) * 1.9; group.scale.set(s, 1, s); group.rotation.y = Math.random() * 6; group.position.set(x, .037, z); }
-      root.add(group); scars.push({ group, dark, hot, time: 0, life: o.life || 0 });
+      e.time = 0; e.life = o.life || 0; root.add(group); scars.push(e);
       const limit = Math.max(6, Math.min(40, Math.round((getSettings().decals || 90) / 4)));
-      while (scars.length > limit) { const s = scars.shift(); s.group.removeFromParent(); s.dark.dispose(); s.hot.dispose(); }
+      while (scars.length > limit) releaseScar(scars.shift());
     }
     function scarsStep(dt) {
       for (let i = scars.length - 1; i >= 0; i--) {
         const s = scars[i], sl = s.life || 8, f0 = s.life ? sl * .35 : 6; s.time += dt; s.hot.opacity = Math.pow(Math.max(0, 1 - s.time / (s.life ? Math.min(1.3, sl * .6) : 1.3)), 2); s.dark.opacity = .6 * Math.min(1, s.time / .25) * Math.max(0, 1 - Math.max(0, s.time - f0) / (sl - f0));
-        if (s.time > sl) { s.group.removeFromParent(); s.dark.dispose(); s.hot.dispose(); scars.splice(i, 1); }
+        if (s.time > sl) { releaseScar(s); scars.splice(i, 1); }
       }
     }
     // Enemy blows land: matter, not rings. Sparks along a blade's arc, dust kicked by blunt weight, motes rising
@@ -785,13 +794,19 @@
         let sk = skeletons.get(sm.skeleton);
         if (!sk) { sk = new T.Skeleton(sm.skeleton.bones, sm.skeleton.boneInverses); sk.computeBoneTexture(); sk.update = function () {}; skeletons.set(sm.skeleton, sk); }
         const gm = new T.SkinnedMesh(sm.geometry, mat); gm.skeleton = sk; gm.bindMatrix.copy(sm.bindMatrix); gm.frustumCulled = false; gm.renderOrder = 5;
-        group.add(gm); parts.push({ gm, sm, sk });
+        const h = model.height || 2.2, bounds = sm.boundingSphere || new T.Sphere(new T.Vector3(0, h * .5, 0), h * 1.1);
+        gm.boundingSphere = bounds.clone();
+        group.add(gm); parts.push({ gm, sm, sk, bounds });
       }
-      for (const rm of src.rigid) { const m = new T.Mesh(rm.geometry, mat); m.matrixAutoUpdate = false; m.frustumCulled = false; m.renderOrder = 5; group.add(m); parts.push({ rigid: m, rm }); }
-      root.add(group); return { group, mat, parts, skeletons, model, time: 0, life: 0, active: false };
+      const rmat = src.rigid.length ? mat.clone() : null;
+      for (const rm of src.rigid) { const m = new T.Mesh(rm.geometry, rmat); m.matrixAutoUpdate = false; m.frustumCulled = false; m.renderOrder = 5; group.add(m); parts.push({ rigid: m, rm }); }
+      root.add(group); return { group, mat, rmat, parts, skeletons, model, time: 0, life: 0, active: false };
     }
     function snapshot(g) {
+      // Frozen skin matrices already contain the world pose; the uncullable ghost mesh itself stays at identity.
+      // These prepared bounds only supply its sorting centre, without scanning all skinned vertices on the first dodge.
       for (const p of g.parts) if (p.rigid) p.rigid.matrix.copy(p.rm.matrixWorld);
+      else p.gm.boundingSphere.copy(p.sm.boundingSphere || p.bounds).applyMatrix4(p.sm.matrixWorld);
       for (const [source, sk] of g.skeletons) {
         const bones = source.bones, inv = source.boneInverses;
         for (let i = 0; i < bones.length; i++) { ghostM.multiplyMatrices(bones[i].matrixWorld, inv[i]); ghostM.toArray(sk.boneMatrices, i * 16); }
@@ -815,7 +830,7 @@
         if (!oldest || o.time > oldest.time) oldest = o;
       }
       g = g || oldest;
-      snapshot(g); g.active = true; g.time = 0; g.life = life; g.opacity = opacity; g.group.visible = true; g.mat.color.copy(color || ghostTint);
+      snapshot(g); g.active = true; g.time = 0; g.life = life; g.opacity = opacity; g.group.visible = true; g.mat.color.copy(color || ghostTint); if (g.rmat) g.rmat.color.copy(g.mat.color);
     }
     // ------------------------------------------------------------ blade smears
     const trailMaterial = new T.ShaderMaterial({ side: T.DoubleSide, transparent: true, depthWrite: false, blending: T.AdditiveBlending,
@@ -1033,7 +1048,7 @@
       }
       for (const g of ghosts) {
         if (!g.active) continue; g.time += dt; const k = g.time / g.life;
-        g.mat.opacity = g.opacity * Math.max(0, 1 - k) * Math.max(0, 1 - k); if (k >= 1) { g.active = false; g.group.visible = false; }
+        g.mat.opacity = g.opacity * Math.max(0, 1 - k) * Math.max(0, 1 - k); if (g.rmat) g.rmat.opacity = g.mat.opacity; if (k >= 1) { g.active = false; g.group.visible = false; }
       }
       if (tells) tells.sync(dt);
       scarsStep(dt); cracksStep(dt); whirlStep(dt); roarSpiralStep(dt); streaksStep(dt); goreStep(dt);
@@ -1046,12 +1061,12 @@
       for (const f of flashes) releaseFlash(f); flashes.length = 0;
       for (const tr of trails.values()) { while (tr.samples.length) tr.free.push(tr.samples.pop()); tr.active = false; tr.mesh.visible = false; tr.mesh.geometry.setDrawRange(0, 0); }
       for (const g of ghosts) { g.active = false; g.group.visible = false; }
-      for (const s of scars) { s.group.removeFromParent(); s.dark.dispose(); s.hot.dispose(); } scars.length = 0;
+      for (const s of scars) releaseScar(s); scars.length = 0;
       if (tells) tells.clear(); chainClear();
       goreClear(); gearBlood = 0; gearApply();
     }
     function disposeGhosts() {
-      for (const g of ghosts) { for (const sk of g.skeletons.values()) sk.dispose(); g.mat.dispose(); g.group.removeFromParent(); }
+      for (const g of ghosts) { for (const sk of g.skeletons.values()) sk.dispose(); g.mat.dispose(); if (g.rmat) g.rmat.dispose(); g.group.removeFromParent(); }
       ghosts.length = 0; ghostSources.clear(); ghostModel = null;
     }
     function disposePools() {
@@ -1077,10 +1092,13 @@
       const game = getGame();
       if (game && game.player && game.player.model) {
         prepareGhosts(game.player.model);
+        const R = B.app && B.app.renderer;
+        if (R && R.initTexture) for (const g of ghosts) { if (g.model !== game.player.model) continue; snapshot(g); for (const sk of g.skeletons.values()) if (sk.boneTexture) R.initTexture(sk.boneTexture); }
         const actors = new Set([game.player, ...game.enemies]);
         for (const [actor, tr] of trails) if (!actors.has(actor) || tr.model !== actor.model) dropTrail(actor, tr);
         for (const actor of actors) if (hasTrail(actor.model) && !trails.has(actor)) makeTrail(actor);
       }
+      if (tells) while (scarFree.length + scars.length < 8) scarFree.push(makeScar(tells.textures.scarRadial));
       if (warmGroup.children.length) return;
       const add = o => { o.frustumCulled = false; warmGroup.add(o); };
       for (const map of [bloodMap, sprayMap]) add(new T.Mesh(plane, new T.MeshStandardMaterial({ map, transparent: true, opacity: .86, roughness: .3, metalness: .12, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -1 })));
@@ -1091,7 +1109,7 @@
       add(new T.Sprite(new T.SpriteMaterial({ map: softMap, transparent: true, depthWrite: false, depthTest: false, blending: T.AdditiveBlending, fog: false })));
       add(new T.InstancedMesh(gdGeo, gdMat, 1)); add(new T.Mesh(bsGeo, bsMat)); add(new T.InstancedMesh(chGeoG, gcMat, 1));
     }
-    const api = { burst, update, clear, tells, warm, gore, debug: () => ({ pri: gdPri.length, walls: gdPri.concat(gdMic).filter(d => d.rx === 0).length, prints: gdMic.filter(d => d.cell === 3).length, p0: gdMic.filter(d => d.cell === 3).map(d => [+d.x.toFixed(2), +d.z.toFixed(2), +d.a0.toFixed(2)]), mic: gdMic.length, count: gdMesh.count, streaks: bsLive, gibs: gibs.length }), dispose() { if (B.Effects.current === api) B.Effects.current = null; clear(); bsGeo.dispose(); bsMat.dispose(); gdGeo.dispose(); gdMat.dispose(); goreAtlas.dispose(); chGeoG.dispose(); gcMat.dispose(); gcMesh.dispose(); gdMesh.dispose(); if (tells) tells.dispose(); disposeGhosts(); disposePools(); root.removeFromParent(); geometry.dispose(); material.dispose(); trailMaterial.dispose(); chLinks.geometry.dispose(); chLinks.material.dispose(); chLinks.dispose(); for (const s of chGlow) s.material.dispose(); chHeadGeo.dispose(); chDisc.geometry.dispose(); chDiscMat.dispose(); chFloor.geometry.dispose(); chFloorMat.dispose(); skGeo.dispose(); skMesh.material.dispose(); for (const c of chCracks) { c.m.geometry.dispose(); c.m.material.dispose(); } ckMat.dispose(); for (const r of chRings) { r.m.geometry.dispose(); r.mat.dispose(); } softMap.dispose(); bloodMap.dispose(); sprayMap.dispose(); flashMap.dispose(); plane.dispose(); } };
+    const api = { burst, update, clear, tells, warm, gore, debug: () => ({ pri: gdPri.length, walls: gdPri.concat(gdMic).filter(d => d.rx === 0).length, prints: gdMic.filter(d => d.cell === 3).length, p0: gdMic.filter(d => d.cell === 3).map(d => [+d.x.toFixed(2), +d.z.toFixed(2), +d.a0.toFixed(2)]), mic: gdMic.length, count: gdMesh.count, streaks: bsLive, gibs: gibs.length }), dispose() { if (B.Effects.current === api) B.Effects.current = null; clear(); bsGeo.dispose(); bsMat.dispose(); gdGeo.dispose(); gdMat.dispose(); goreAtlas.dispose(); chGeoG.dispose(); gcMat.dispose(); gcMesh.dispose(); gdMesh.dispose(); for (const s of scarFree) { s.dark.dispose(); s.hot.dispose(); } scarFree.length = 0; if (tells) tells.dispose(); disposeGhosts(); disposePools(); root.removeFromParent(); geometry.dispose(); material.dispose(); trailMaterial.dispose(); chLinks.geometry.dispose(); chLinks.material.dispose(); chLinks.dispose(); for (const s of chGlow) s.material.dispose(); chHeadGeo.dispose(); chDisc.geometry.dispose(); chDiscMat.dispose(); chFloor.geometry.dispose(); chFloorMat.dispose(); skGeo.dispose(); skMesh.material.dispose(); for (const c of chCracks) { c.m.geometry.dispose(); c.m.material.dispose(); } ckMat.dispose(); for (const r of chRings) { r.m.geometry.dispose(); r.mat.dispose(); } softMap.dispose(); bloodMap.dispose(); sprayMap.dispose(); flashMap.dispose(); plane.dispose(); } };
     B.Effects.current = api; return api;
   },
   // Same call for code that does not hold the instance (dismemberment): B.Effects.gore('stump', x, y, z, dirX, dirZ, strength).

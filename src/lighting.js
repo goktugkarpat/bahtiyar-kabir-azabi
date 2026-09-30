@@ -279,6 +279,99 @@
       }
     }
 
+    // One material drawn by different caster kinds (skinned body, instanced prop, batched world, plain mesh) makes
+    // three.js rebuild its program parameters and cache key at every kind switch inside a frame (~23 rebuilds per
+    // frame in combat). Each extra kind gets a twin: same shader program, shared defines/hooks/userData/uniforms,
+    // and it follows every later change of the original (values, maps, needsUpdate), so nothing looks different.
+    var twins = [];
+    var TWIN_VALUES = ['opacity', 'transparent', 'visible', 'roughness', 'metalness', 'emissiveIntensity', 'envMapIntensity', 'map',
+      'emissiveMap', 'alphaMap', 'normalMap', 'roughnessMap', 'metalnessMap', 'aoMap', 'aoMapIntensity', 'lightMap', 'lightMapIntensity',
+      'envMap', 'depthWrite', 'depthTest', 'side', 'shadowSide', 'blending', 'alphaTest', 'wireframe', 'colorWrite', 'toneMapped', 'fog',
+      'vertexColors', 'flatShading', 'polygonOffset', 'polygonOffsetFactor', 'polygonOffsetUnits', 'bumpScale', 'displacementScale', 'alphaHash', 'bumpMap', 'displacementMap', 'displacementBias'];
+    var TWIN_COLORS = ['color', 'emissive'];
+    // Game code must change the original material (library / materials.X entry), not a twin's mesh.material.
+    var TWIN_SKIP = { combat_feedback: 1, fx_warm: 1, kor_ve_kul_tells: 1, limbs: 1, rim_shell: 1, rim_weapon: 1 };
+    function twinnable(m) {
+      return !!m && !m.isShaderMaterial && (m.isMeshStandardMaterial || m.isMeshBasicMaterial || m.isMeshLambertMaterial || m.isMeshPhongMaterial);
+    }
+    function drawKind(o) {
+      var g = o.geometry, k = o.isSkinnedMesh ? 's' : o.isBatchedMesh ? (o._colorsTexture ? 'B' : 'b')
+        : o.isInstancedMesh ? (o.instanceColor ? 'I' : 'i') + (o.morphTexture ? 'm' : '') : 'p';
+      if (g) {
+        var ma = g.morphAttributes, at = g.attributes;
+        k += (ma && ma.position ? ma.position.length : 0) + '.' + (ma && ma.normal ? 1 : 0) + (ma && ma.color ? 1 : 0)
+          + (at.color && at.color.itemSize === 4 ? 'a' : '') + (at.tangent ? 't' : '');
+      }
+      return k;
+    }
+    function twinSync(t, all) {
+      var s = t.__karaTwinOf, last = t.__karaLast, i, p, v, c;
+      if (s.version !== t.__karaVersion) {
+        // A later patch of the original (rim light, grade) arrives with needsUpdate: carry its hooks over too.
+        t.__karaVersion = s.version; t.needsUpdate = true; all = true; twinHooks(s, t);
+      }
+      for (i = 0; i < TWIN_VALUES.length; i++) {
+        p = TWIN_VALUES[i]; v = s[p];
+        if (v !== undefined && (all || v !== last[p])) { last[p] = v; t[p] = v; }
+      }
+      for (i = 0; i < TWIN_COLORS.length; i++) {
+        p = TWIN_COLORS[i]; c = s[p]; if (!c) continue; v = last[p] || (last[p] = [NaN, NaN, NaN]);
+        if (all || c.r !== v[0] || c.g !== v[1] || c.b !== v[2]) { v[0] = c.r; v[1] = c.g; v[2] = c.b; t[p].copy(c); }
+      }
+      if (s.normalScale && t.normalScale && (all || s.normalScale.x !== last.nsx || s.normalScale.y !== last.nsy)) { last.nsx = s.normalScale.x; last.nsy = s.normalScale.y; t.normalScale.copy(s.normalScale); }
+    }
+    function twinHooks(src, t) {
+      Object.keys(src).forEach(function (k) {
+        // Skip private/engine keys (e.g. EventDispatcher's _listeners): sharing them breaks dispose.
+        if (k.charAt(0) === '_') return;
+        if (!(k in t) || k === 'onBeforeCompile' || k === 'customProgramCacheKey' || k === 'onBeforeRender') t[k] = src[k];
+      });
+      if (src.defines) t.defines = src.defines;
+    }
+    function makeTwin(src) {
+      var ud = src.userData, t; src.userData = {};
+      try { t = src.clone(); } finally { src.userData = ud; }
+      t.userData = ud; t.name = src.name;
+      if (src.defines) t.defines = src.defines;
+      twinHooks(src, t);
+      t.__karaTwinOf = src; t.__karaVersion = src.version; t.__karaLast = {};
+      twinSync(t, true);
+      var off = function () { src.removeEventListener('dispose', off); var i = twins.indexOf(t); if (i >= 0) twins.splice(i, 1); t.dispose(); };
+      src.addEventListener('dispose', off);
+      twins.push(t); return t;
+    }
+    function splitShared(root) {
+      if (!root || !root.traverse) return;
+      var groups = new Map();
+      // Only the world and the actors: effect/telegraph/limb objects write through mesh.material at runtime.
+      (function walk(o) {
+        if (o !== root && TWIN_SKIP[o.name]) return;
+        var ch = o.children; for (var ci = 0; ci < ch.length; ci++) walk(ch[ci]);
+        if (!o.isMesh || o.isSprite || (o.userData && o.userData.occluder)) return;
+        var m = o.material; if (!m || Array.isArray(m) || m.__karaTwinOf || !twinnable(m)) return;
+        var k = drawKind(o), g = groups.get(m); if (!g) groups.set(m, g = {});
+        (g[k] || (g[k] = [])).push(o);
+      })(root);
+      groups.forEach(function (g, m) {
+        var kinds = Object.keys(g), home = m.__karaHome;
+        if (!home) { home = kinds[0]; kinds.forEach(function (k) { if (g[k].length > g[home].length) home = k; }); m.__karaHome = home; }
+        kinds.forEach(function (k) {
+          if (k === home) return;
+          var tw = m.__karaTwins || (m.__karaTwins = {}), t = tw[k] || (tw[k] = makeTwin(m));
+          g[k].forEach(function (o) { o.material = t; });
+        });
+      });
+    }
+    function splitCharacters(game) {
+      if (!game) return;
+      var enemies = game.enemies || [];
+      for (var i = -1; i < enemies.length; i++) {
+        var actor = i < 0 ? game.player : enemies[i], m = actor && actor.model;
+        if (m && m.root) splitShared(m.root);
+      }
+    }
+    function prepare(game) { patchCharacters(game); splitShared(scene); splitCharacters(game); }
+
     function updateBlobs(game, dt) {
       if (!game || !game.player) { blobs.count = 0; return; }
       var n = 0, enemies = game.enemies || [];
@@ -561,6 +654,7 @@
     function update(dt, time, game, view) {
       if (!game || !game.player) return;
       syncShadowMap();
+      for (var ti = 0; ti < twins.length; ti++) twinSync(twins[ti], false);
       // Measure presented spacing, rather than the requested FPS or the monitor's callbacks. This also
       // handles the alternating short/long intervals of 120 rendered frames on a 144/180/200 Hz screen.
       if (shadowFrameAt !== null && time > shadowFrameAt) {
@@ -593,7 +687,7 @@
       if (moonShadows && moon.shadow.needsUpdate && frequentFrames
         && L && L.deferShadowRefresh) L.deferShadowRefresh();
       var p = game.player, a = world.atmosphereAt(p.x, p.z);
-      patchClock -= dt; if (patchClock <= 0) { patchClock = 1; patchCharacters(game); }
+      patchClock -= dt; if (patchClock <= 0) { patchClock = 1; patchCharacters(game); splitCharacters(game); }
       directorStep(dt, time, game, a);
       corpseClock -= dt; if (corpseClock <= 0 && L && L.setCorpses) { corpseClock = .5; flyCorpses(game); }
       var k = ready ? 1 - Math.exp(-dt * 2.2) : 1; ready = true;
@@ -638,7 +732,7 @@
       if (scene.environment) { scene.environment.dispose(); scene.environment = null; }
     }
     setQuality(opts.cfg || {});
-    return { update: update, follow: follow, setQuality: setQuality, dispose: dispose, grade: grade, moon: moon, hemi: hemi, rim: rim, prepare: patchCharacters, snap: function () { ready = false; },
+    return { update: update, follow: follow, setQuality: setQuality, dispose: dispose, grade: grade, moon: moon, hemi: hemi, rim: rim, prepare: prepare, snap: function () { ready = false; },
       get state() { return state; }, fog: FOG, rimUniforms: RIM, patchModel: patchModel, attachPost: function (post) { opts.post = post; }, cameraFx: cameraFx };
   }
 

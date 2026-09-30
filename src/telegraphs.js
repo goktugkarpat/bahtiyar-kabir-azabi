@@ -417,6 +417,8 @@ void main(){ vec2 p = (vUv-.5)*2.*uMax; float r = length(p), a = r > 1e-6 ? atan
           uniforms: { uColor: color, uGlow: glow, uVein: vein, uVTime: veinTime, uP: { value: new T.Vector2(4, 0) }, uInflate: { value: .012 / Math.max(.001, V1.x) } } });
         const s = new T.SkinnedMesh(src.geometry, mat); s.bind(src.skeleton, src.bindMatrix); s.bindMode = src.bindMode;
         s.position.copy(src.position); s.quaternion.copy(src.quaternion); s.scale.copy(src.scale);
+        // The shell has the source mesh's pose and parent space. Reuse its ready sorting bounds.
+        s.boundingSphere = src.boundingSphere ? src.boundingSphere.clone() : null;
         s.frustumCulled = false; s.renderOrder = 3; s.castShadow = s.receiveShadow = false; s.visible = false; s.name = 'rim_shell'; s.userData.noGhost = true;
         src.parent.add(s); shells.push(s);
       }
@@ -461,11 +463,12 @@ void main(){ vec2 p = (vUv-.5)*2.*uMax; float r = length(p), a = r > 1e-6 ? atan
       if (!pending && e.action && !e.dead) { g = .05; unb = !!e.action.unblockable; }
       enemyState.g = g; enemyState.flare = flare; enemyState.unb = unb; enemyState.pending = pending; enemyState.maxU = maxU; return enemyState;
     }
+    function ownsBurst(list, e) { for (let i = 0; i < list.length; i++) if (list[i].owner === e && list[i].burst) return true; return false; }
     function rimsStep(game, dt, calm) {
       for (const g of glints) { g.used = false; g.s.visible = false; }
       for (const e of game.enemies) {
         const model = e.model; if (!model || !model.root) continue;
-        const visible = model.root.visible && (!e.dead || game.hazards.some(h => h.owner === e && h.burst));
+        const visible = model.root.visible && (!e.dead || ownsBurst(game.hazards, e));
         if (!visible && !rims.has(model)) continue;
         const r = rimFor(model), st = visible ? enemyTell(e) : silentState;
         let g = st.g, col = st.unb ? CRIMSON_RIM : AMBER_RIM;

@@ -172,6 +172,39 @@
   const overlays = new Set(['settings', 'controls', 'keybinds', 'confirm']);
   let view = 'title', stack = [];
   let renderer, scene, camera, world, game, rig, post;
+  let scalerWarmTimer = 0, limbRoot = null, limbLookup = -1e9;
+  const rawDepthTwins = [];
+  // Title shot culling (only visible foes are animated there).
+  const titleFrustum = new THREE.Frustum(), titleMatrix = new THREE.Matrix4(), titleSphere = new THREE.Sphere(new THREE.Vector3(), 4.5);
+  // Damage flash, rage veil and the low-health pulse are drawn by the composite shader (post.js) instead of full-screen
+  // DOM layers over the canvas. Same shapes, colours and timings as the old CSS (rage-breath 1.4 s, low-hp 1 s, .6 s fade).
+  let ovRage = 0, ovRageOn = false, ovRageStart = 0, ovLowOn = false, ovLowStart = 0, ovLast = 0;
+  const ovEase = k => k * k * (3 - 2 * k);
+  const LOW_KEYS = [[0, .4], [.15, 1], [.35, .72], [.6, .4], [1, .4]];
+  function overlayStep(now) {
+    if (!post || !post.setOverlay) return;
+    const dt = ovLast ? Math.min(.25, Math.max(0, (now - ovLast) / 1000)) : 0; ovLast = now;
+    const cl = document.body.classList, still = reducedMotion.matches;
+    const rage = cl.contains('raging');
+    if (rage && !ovRageOn) ovRageStart = now;
+    ovRageOn = rage;
+    if (rage) {
+      if (still) ovRage = 1;
+      else { const ph = ((now - ovRageStart) / 1400) % 1, k = ph < .5 ? ph * 2 : 2 - ph * 2; ovRage = 1 - .45 * ovEase(k); }
+    } else ovRage = still ? 0 : Math.max(0, ovRage - dt / .6);
+    const low = view === 'playing' && cl.contains('low-hp');
+    if (low && !ovLowOn) ovLowStart = now;
+    ovLowOn = low;
+    let lv = 0;
+    if (low) {
+      if (still) lv = .55;
+      else {
+        const ph = ((now - ovLowStart) / 1000) % 1;
+        for (let i = 1; i < LOW_KEYS.length; i++) if (ph <= LOW_KEYS[i][0]) { const a = LOW_KEYS[i - 1], b = LOW_KEYS[i]; lv = a[1] + (b[1] - a[1]) * ovEase((ph - a[0]) / (b[0] - a[0])); break; }
+      }
+    }
+    post.setOverlay(flash * .8, ovRage, lv);
+  }
   let ready = false, paused = true, frame = 0, last = 0, qaClock = 0, visualDt = 0;
   let resumeAudioOnVisible = null;
   let graphicsLost = false, graphicsRecovering = false, graphicsEpoch = 0;
@@ -334,13 +367,13 @@
   function event(name, d = {}) {
     if (name === 'hit') {
       // combat.js sizes the hit-stop itself (d.hitstop is set) and reports how hard the contact was (d.impact 0..1),
-      // so here the camera only recoils; the old global pause remains for hit events without d.hitstop.
+      // so here the camera only recoils; unclassified heavy hits retain the same short 8 ms limit.
       const strength = Number.isFinite(d.impact) ? d.impact : d.blocked ? .28 : d.heavy ? .85 : d.target === 'player' ? .65 : .26;
       if (!reducedMotion.matches) {
         const face = Number.isFinite(d.face) ? d.face : game.player.face, kick = d.target === 'player' ? 1.6 : d.kill ? 2.6 : 2.1;
         cameraKick.vx += Math.sin(face) * strength * kick;
         cameraKick.vz += Math.cos(face) * strength * kick;
-        if (!Number.isFinite(d.hitstop)) hitPause = Math.max(hitPause, (d.blocked ? .012 : d.heavy ? .047 : d.target === 'player' ? .033 : .018) * cfg.impact);
+        if (!Number.isFinite(d.hitstop) && d.heavy) hitPause = Math.max(hitPause, Math.min(.008, .008 * cfg.impact / .65));
       }
       if (d.target === 'player') { flash = Math.min(1, flash + (d.blocked ? .08 : .52)); shake = Math.max(shake, .18); }
       else shake = Math.max(shake, d.blocked ? .03 : d.kill ? .13 : d.heavy ? .1 : d.finisher ? .09 : .045);
@@ -459,6 +492,7 @@
     if (camera.aspect !== w / h) { camera.aspect = w / h; camera.updateProjectionMatrix(); }
     const changedSize = post.width !== renderer.domElement.width || post.height !== renderer.domElement.height;
     post.setSize(renderer.domElement.width, renderer.domElement.height);
+    if (post.setOverlay) post.setOverlay(flash * .8, ovRage, 0, w, h);
     if (changedSize) resetPerformance();
     if (view === 'settings') safe(paintGraphicsNotes);
     const touch = touchDevice();
@@ -475,6 +509,10 @@
     $('narration').classList.toggle('hidden', !cfg.subtitles || !$('narration').querySelector('p').textContent);
     if (game && game.setQuality) game.setQuality(cfg);
     resize(); resetPerformance(); saveSettings();
+    // A settings change (e.g. frame cap 60, display mode) can make the scaler eligible or change its sizes:
+    // build the missing sizes now, in a quiet moment, instead of at the first step in a fight.
+    clearTimeout(scalerWarmTimer);
+    scalerWarmTimer = setTimeout(() => { if (ready && !warming) prewarmScaler(); }, 250);
   }
 
   /* ───────────── Settings screen ───────────── */
@@ -988,50 +1026,111 @@
     const el = $(id);
     if (el.style.transform !== value) el.style.transform = value;
   }
-  function drawMinimap(p) {
-    const c = $('minimap'), x = c.getContext('2d'), scale = 4.6, cx = 128, cy = 140;
-    x.setTransform(c.width / 256, 0, 0, c.width / 256, 0, 0);   // drawn on a 256 grid, backing store may be larger (sharper on Retina)
+  // HUD elements looked up once (re-looked up only if one is replaced).
+  const hudEls = {};
+  function hq(sel) { let el = hudEls[sel]; if (!el || !el.isConnected) el = hudEls[sel] = document.querySelector(sel); return el; }
+  let padButtons = null;
+  function padList() {
+    if (!padButtons || padButtons.some(b => !b.el.isConnected)) padButtons = Array.from(document.querySelectorAll('.combat-pad .action'), el => ({ el, key: el.dataset.action || el.dataset.hold, progress: '' }));
+    return padButtons;
+  }
+  // Minimap glows: canvas shadowBlur on every dot was the costliest part of the HUD tick, so each glowing mark is drawn
+  // once (with the same blur) into a small sprite and stamped with drawImage. The blur is in backing-store pixels,
+  // exactly as before; sprites are rebuilt when the backing-store scale changes.
+  const MINI_SCALE = 4.6, MINI_BEATS = 6;
+  let miniSprites = null, miniSpriteK = 0, miniBg = null, miniBgCtx = null, miniPending = false, miniKey = '';
+  try { const mc = document.getElementById('minimap'); if (mc) mc.addEventListener('contextrestored', () => { miniKey = ''; miniBgCtx = null; }); } catch (e) {}
+  function miniSprite(pad, draw) {
+    const c = document.createElement('canvas');
+    c.width = c.height = Math.max(2, Math.ceil(pad * 2));
+    const x = c.getContext('2d'); x.translate(c.width / 2, c.height / 2); draw(x); return c;
+  }
+  function buildMiniSprites(k) {
+    const u = MINI_SCALE * k;   // world unit -> backing-store pixels
+    const dot = (r, fill, blur) => miniSprite(r * u + blur * 1.6 + 3, x => { x.fillStyle = fill; x.shadowColor = '#ff2a1a'; x.shadowBlur = blur; x.beginPath(); x.arc(0, 0, r * u, 0, Math.PI * 2); x.fill(); });
+    const s = { enemy: [], boss: [] };
+    for (const [key, r, fill] of [['enemy', .45, '#c8302b'], ['boss', .95, '#ee7a3c']]) {
+      s[key + 'Idle'] = dot(r, fill, 3);
+      for (let i = 0; i < MINI_BEATS; i++) s[key].push(dot(r, fill, 8 * (.5 + .5 * i / (MINI_BEATS - 1))));
+    }
+    s.checkpoint = [0, 1].map(i => {
+      const fill = i ? '#a8c49a' : '#c2a878';
+      return miniSprite(.85 * u + 6 * 1.6 + 3, x => { x.rotate(Math.PI / 4); x.fillStyle = fill; x.shadowColor = fill; x.shadowBlur = 6; x.fillRect(-.6 * u, -.6 * u, 1.2 * u, 1.2 * u); });
+    });
+    s.hero = miniSprite(1.35 * u + 8 * 1.6 + 3, x => {
+      x.scale(u, u); x.fillStyle = '#f3e3c3'; x.shadowColor = '#f0c27a'; x.shadowBlur = 8;
+      x.beginPath(); x.moveTo(0, 1.3); x.lineTo(-.85, -.8); x.lineTo(0, -.42); x.lineTo(.85, -.8); x.closePath(); x.fill();
+    });
+    return s;
+  }
+  function stamp(x, sprite, sx, sy, rot) {
+    // (sx, sy) on the 256 grid; the sprite is drawn 1:1 in backing-store pixels.
+    const k = miniSpriteK, w = sprite.width, h = sprite.height;
+    if (rot) { x.setTransform(Math.cos(rot), Math.sin(rot), -Math.sin(rot), Math.cos(rot), sx * k, sy * k); x.drawImage(sprite, -w / 2, -h / 2); x.setTransform(1, 0, 0, 1, 0, 0); }
+    else x.drawImage(sprite, Math.round(sx * k - w / 2), Math.round(sy * k - h / 2));
+  }
+  // The HUD tick only asks for a redraw; the map is drawn on the next animation frame so it does not add to the
+  // frame that already carries the rest of the HUD update, and it is skipped when nothing on it moved.
+  function drawMinimap() {
+    if (miniPending) return; miniPending = true;
+    requestAnimationFrame(() => { miniPending = false; try { drawMinimapNow(game.player); } catch (e) { console.warn('[Kabir Azabı] minimap', e); } });
+  }
+  function drawMinimapNow(p) {
+    const c = $('minimap'), x = c.getContext('2d'), scale = MINI_SCALE, cx = 128, cy = 140, k = c.width / 256;
+    const beat = .75 + Math.sin(elapsed * 6) * .25, beatIndex = clamp(Math.round((beat - .5) / .5 * (MINI_BEATS - 1)), 0, MINI_BEATS - 1);
+    const here = world.roomAt(p.x, p.z);
+    let key = c.width + '|' + Math.round(p.x * 40) + ',' + Math.round(p.z * 40) + ',' + Math.round(p.face * 200) + '|' + (here ? world.rooms.indexOf(here) : -1) + '|' + (game.checkpointIndex ? 1 : 0), anyActive = false;
+    for (const e of game.enemies) {
+      if (e.dead || Math.hypot(e.x - p.x, e.z - p.z) > 23) continue;
+      key += '|' + Math.round(e.x * 40) + ',' + Math.round(e.z * 40) + (e.boss ? 'B' : '') + (e.active ? 'a' : '');
+      if (e.active) anyActive = true;
+    }
+    if (anyActive) key += '|b' + beatIndex;
+    if (key === miniKey) return;
+    miniKey = key;
+    if (!miniSprites || miniSpriteK !== k) { miniSpriteK = k; miniSprites = buildMiniSprites(k); }
+    x.setTransform(k, 0, 0, k, 0, 0);   // drawn on a 256 grid, backing store may be larger (sharper on Retina)
     x.clearRect(0, 0, 256, 256);
-    const bg = x.createRadialGradient(128, 128, 20, 128, 128, 140); bg.addColorStop(0, '#1a1615'); bg.addColorStop(1, '#070606');
-    x.fillStyle = bg; x.fillRect(0, 0, 256, 256);
+    if (miniBgCtx !== x) { miniBgCtx = x; miniBg = x.createRadialGradient(128, 128, 20, 128, 128, 140); miniBg.addColorStop(0, '#1a1615'); miniBg.addColorStop(1, '#070606'); }
+    x.fillStyle = miniBg; x.fillRect(0, 0, 256, 256);
     x.save(); x.translate(cx, cy); x.scale(scale, scale); x.translate(-p.x, -p.z);
     x.strokeStyle = '#3a302a'; x.lineWidth = 6.8; x.lineCap = 'round'; x.beginPath();
     world.rooms.forEach((r, i) => { if (i) x.lineTo(r.x, r.z); else x.moveTo(r.x, r.z); }); x.stroke();
-    const here = world.roomAt(p.x, p.z);
     for (const r of world.rooms) {
       x.fillStyle = here === r ? '#4a3a2e' : '#2a2320'; x.fillRect(r.x - r.w / 2, r.z - r.d / 2, r.w, r.d);
       x.strokeStyle = here === r ? '#d0ae7a' : '#65574a'; x.lineWidth = here === r ? .5 : .32; x.strokeRect(r.x - r.w / 2, r.z - r.d / 2, r.w, r.d);
     }
     x.fillStyle = '#0b0909';
     for (const r of world.colliders) if (Math.abs(r.z - p.z) < 35 && Math.abs(r.x - p.x) < 35) x.fillRect(r.x - r.w / 2, r.z - r.d / 2, r.w, r.d);
+    x.restore();
+    x.setTransform(1, 0, 0, 1, 0, 0);
+    const sx = wx => cx + (wx - p.x) * scale, sy = wz => cy + (wz - p.z) * scale;
     const cp = world.checkpoint;
-    x.save(); x.translate(cp.x, cp.z); x.rotate(Math.PI / 4); x.fillStyle = game.checkpointIndex ? '#a8c49a' : '#c2a878'; x.shadowColor = x.fillStyle; x.shadowBlur = 6; x.fillRect(-.6, -.6, 1.2, 1.2); x.restore();
-    const beat = .75 + Math.sin(elapsed * 6) * .25;
+    stamp(x, miniSprites.checkpoint[game.checkpointIndex ? 1 : 0], sx(cp.x), sy(cp.z));
     for (const e of game.enemies) {
       if (e.dead || Math.hypot(e.x - p.x, e.z - p.z) > 23) continue;
-      x.fillStyle = e.boss ? '#ee7a3c' : '#c8302b'; x.shadowColor = '#ff2a1a'; x.shadowBlur = e.active ? 8 * beat : 3;
-      x.beginPath(); x.arc(e.x, e.z, e.boss ? .95 : .45, 0, Math.PI * 2); x.fill();
+      const set = e.boss ? 'boss' : 'enemy';
+      stamp(x, e.active ? miniSprites[set][beatIndex] : miniSprites[set + 'Idle'], sx(e.x), sy(e.z));
     }
-    x.shadowBlur = 0;
-    x.save(); x.translate(p.x, p.z); x.rotate(-p.face);
-    x.fillStyle = '#f3e3c3'; x.shadowColor = '#f0c27a'; x.shadowBlur = 8;
-    x.beginPath(); x.moveTo(0, 1.3); x.lineTo(-.85, -.8); x.lineTo(0, -.42); x.lineTo(.85, -.8); x.closePath(); x.fill();
-    x.restore(); x.restore();
+    stamp(x, miniSprites.hero, sx(p.x), sy(p.z), -p.face);
   }
   function updateOverview() {
     const p = game.player, total = game.enemies.length;
     let kills = 0; for (const e of game.enemies) if (e.dead) kills++;
     hudText('kill-progress', kills + ' / ' + total);
     hudTransform('chapter-progress', `scaleX(${kills / Math.max(total, 1)})`);
-    document.querySelector('.hero-card').classList.toggle('sealed', !!game.checkpointIndex);
-    document.querySelector('.flask-button').classList.toggle('empty', p.flasks === 0);
-    for (const b of document.querySelectorAll('.combat-pad .action')) {
-      const key = b.dataset.action || b.dataset.hold;
+    hq('.hero-card').classList.toggle('sealed', !!game.checkpointIndex);
+    hq('.flask-button').classList.toggle('empty', p.flasks === 0);
+    for (const pad of padList()) {
+      const b = pad.el, key = pad.key;
       const active = key === 'light' ? p.attack && !p.attack.heavy : key === 'heavy' ? p.attack && p.attack.heavy && !p.attack.special : key === 'dodge' ? p.dodge > 0 : key === 'special' ? !!(p.attack && p.attack.special) : cryEffect.remaining > 0;
       b.classList.toggle('pressed', !!active);
       const cost = B.Game.resources.costs[key];
       b.classList.toggle('unavailable', cost > 0 && p.stamina < cost && !active);
-      if (key === 'light' || key === 'heavy') b.style.setProperty('--progress', active && p.attack ? clamp(p.attack.age / p.attack.duration, 0, 1) : 0);
+      if (key === 'light' || key === 'heavy') {
+        const progress = String(active && p.attack ? clamp(p.attack.age / p.attack.duration, 0, 1) : 0);
+        if (progress !== pad.progress) { pad.progress = progress; b.style.setProperty('--progress', progress); }
+      }
     }
     drawMinimap(p);
   }
@@ -1060,16 +1159,16 @@
     const hp = clamp(p.hp / p.maxHp, 0, 1);
     hudText('health-number', Math.ceil(Math.max(0, p.hp))); hudText('health-max', '/ ' + Math.round(p.maxHp));
     if (B.HUD) B.HUD.vitals(p, dt);   // liquid health and stamina orbs (src/hud.js)
-    const orb = document.querySelector('.health-orb');
+    const orb = hq('.health-orb');
     orb.classList.toggle('low', hp < .3); document.body.classList.toggle('low-hp', hp < .3 && !p.dead);
     if (lastHp !== null && p.hp < lastHp - .5) tap(orb);
     if (lastHp !== null && p.hp > lastHp + 3) { orb.classList.remove('healed'); void orb.offsetWidth; orb.classList.add('healed'); }
     lastHp = p.hp;
-    document.querySelector('.stamina-orb').classList.toggle('winded', p.stamina < 25);
-    const flaskBtn = document.querySelector('.flask-button');
+    hq('.stamina-orb').classList.toggle('winded', p.stamina < 25);
+    const flaskBtn = hq('.flask-button');
     if (lastFlasks !== null && p.flasks !== lastFlasks) tap(flaskBtn);
     lastFlasks = p.flasks; hudText('flask-count', p.flasks ?? 0);
-    const rageBtn = document.querySelector('.action-rage');
+    const rageBtn = hq('.action-rage');
     const rageReady = p.stamina >= B.Game.resources.costs.rage && !(p.rageCd > 0) && !(p.rageTime > 0) && !p.roar && !p.dead;
     rageBtn.classList.toggle('ready', rageReady);
     rageBtn.classList.toggle('burning', cryEffect.remaining > 0);
@@ -1184,7 +1283,7 @@
     return graphicsAdapter;
   }
   function performanceReport() {
-    return { schema: 4, game: 'Kabir Azabı', build: 62, capturedAt: new Date().toISOString(), view,
+    return { schema: 4, game: 'Kabir Azabı', build: 70, capturedAt: new Date().toISOString(), view,
       location: { room: world.rooms?.[roomId]?.name || roomId, x: game.player.x, z: game.player.z },
       display: { width: post.width, height: post.height, windowWidth: innerWidth, windowHeight: innerHeight,
         devicePixelRatio: window.devicePixelRatio || 1, renderPixelRatio: renderer.getPixelRatio() },
@@ -1245,29 +1344,8 @@
     const simulationEnd = measured ? performance.now() : 0;
     // While new shader programs compile in the background the last frame stays on screen (drawing would block the page).
     if (!warming && renderClock.due(ts, cfg.fps)) {
-      // Simulation and input above keep their clocks. Prepare the visible frame
-      // once, using all time since the last draw, even on a faster-refresh screen.
-      const drawDt = visualDt; visualDt = 0;
-      if (view === 'title') { game.player.model.animate(drawDt, { time: elapsed, move: 0 }); for (const e of game.enemies) if (!e.dead) e.model.animate(drawDt, { time: elapsed, move: 0 }); }
-      world.update(paused ? drawDt * .35 : drawDt, elapsed, game.player); cameraStep(drawDt); atmosphereStep(drawDt);
-      // Three updates the scene and camera matrices inside render; a separate
-      // complete scene walk here would repeat the same work.
-      const presentationEnd = measured ? performance.now() : 0;
-      game.beginRenderTraversal();
-      try { renderer.info.reset(); post.render(elapsed); }
-      finally { game.endRenderTraversal(); }
-      const submissionEnd = measured ? performance.now() : 0;
-      $('damage-flash').style.opacity = flash * .8;
-      document.body.classList.toggle('in-combat', fighting && view === 'playing');
-      drawWarnings();
-      if (B.HUD && B.HUD.frame) B.HUD.frame(drawDt);
-      if (measured) {
-        const cpuEnd = performance.now();
-        performanceMeter.record(ts, { simulation: simulationEnd - cpuStart, presentation: presentationEnd - simulationEnd,
-          submission: submissionEnd - presentationEnd, hud: cpuEnd - submissionEnd, total: cpuEnd - cpuStart, ...post.cpuSections },
-          { view, room: roomId, x: game.player.x, z: game.player.z, combat: fighting, hitPause, ...post.frameResources });
-      }
-      fpsTick(ts);
+      // A size change clears the browser canvas. Apply it before drawing the
+      // visible frame, so a completed frame is never erased before presentation.
       // Automatic resolution: only while really playing, and never on 120 Hz-class targets (see Display.createScaler).
       const scaling = AUTO_SCALE && view === 'playing' && game.state === 'playing' && !paused && !warming && document.visibilityState === 'visible';
       if (scaling) {
@@ -1286,6 +1364,42 @@
           safe(() => game.setQuality(cfg));
         }
       }
+      // Simulation and input above keep their clocks. Prepare the visible frame
+      // once, using all time since the last draw, even on a faster-refresh screen.
+      const drawDt = visualDt; visualDt = 0;
+      if (view === 'title') {
+        game.player.model.animate(drawDt, { time: elapsed, move: 0 });
+        // Only the foes the title shot can show (or throw a shadow into) are posed; the rest of the dungeon stays still.
+        titleMatrix.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse); titleFrustum.setFromProjectionMatrix(titleMatrix);
+        for (const e of game.enemies) {
+          if (e.dead) continue;
+          titleSphere.center.set(e.x, 1.2, e.z);
+          if (Math.hypot(e.x - camera.position.x, e.z - camera.position.z) < 48 && titleFrustum.intersectsSphere(titleSphere)) e.model.animate(drawDt, { time: elapsed, move: 0 });
+        }
+      }
+      world.update(paused ? drawDt * .35 : drawDt, elapsed, game.player); cameraStep(drawDt); atmosphereStep(drawDt);
+      // Three updates the scene and camera matrices inside render; a separate
+      // complete scene walk here would repeat the same work.
+      const presentationEnd = measured ? performance.now() : 0;
+      overlayStep(ts);
+      // Cut limb pieces are created at the killing blow; give them their body's (already compiled) shadow material
+      // before their first shadow draw, otherwise Three's shared depth material compiles a new variant mid-fight.
+      if (!limbRoot && ts - limbLookup > 1000) { limbLookup = ts; scene.traverse(o => { if (!limbRoot && o.isGroup && o.name === 'limbs' && o.parent && o.parent.parent === scene) limbRoot = o; }); }
+      if (limbRoot) assignDepthMaterials(limbRoot);
+      game.beginRenderTraversal();
+      try { renderer.info.reset(); post.render(elapsed); }
+      finally { game.endRenderTraversal(); }
+      const submissionEnd = measured ? performance.now() : 0;
+      document.body.classList.toggle('in-combat', fighting && view === 'playing');
+      drawWarnings();
+      if (B.HUD && B.HUD.frame) B.HUD.frame(drawDt);
+      if (measured) {
+        const cpuEnd = performance.now();
+        performanceMeter.record(ts, { simulation: simulationEnd - cpuStart, presentation: presentationEnd - simulationEnd,
+          submission: submissionEnd - presentationEnd, hud: cpuEnd - submissionEnd, total: cpuEnd - cpuStart, ...post.cpuSections },
+          { view, room: roomId, x: game.player.x, z: game.player.z, combat: fighting, hitPause, ...post.frameResources });
+      }
+      fpsTick(ts);
     }
   }
 
@@ -1296,7 +1410,33 @@
   // KHR_parallel_shader_compile), then the big textures are uploaded a few per frame. The bar follows the work.
   let warming = null, lowTextures = false, warmStats = null;
   const WARM_BATCH = +(Q.get('warmbatch') || 48), WARM_LOG = Q.has('warmlog'), WARM_SYNC = /HeadlessChrome/.test(navigator.userAgent) && !Q.has('warm');
+  // The shadow pass clones ONE depth material per source material and then reuses it for skinned, instanced and plain casters alike,
+  // so it switched programs on every change of caster type. Give each (material, caster type) pair its own depth material instead.
+  // Meshes that only start casting later (shadow LOD, effects) get one too, so the warm-up compiles their shadow program as well.
+  const depthMaterials = new Map();
+  function assignDepthMaterials(root) {
+    root.traverse(o => {
+      if (!o.isMesh || !o.material || Array.isArray(o.material) || o.customDepthMaterial) return;
+      const m = o.material;
+      if (!o.castShadow && (m.transparent || m.depthWrite === false || !m.colorWrite)) return;
+      const key = m.uuid + (o.isSkinnedMesh ? 's' : o.isBatchedMesh ? 'b' : o.isInstancedMesh ? 'i' : 'm');
+      let dm = depthMaterials.get(key);
+      if (!dm) {
+        dm = new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking });
+        dm.side = m.shadowSide !== null ? m.shadowSide : m.side === THREE.FrontSide ? THREE.BackSide : m.side === THREE.BackSide ? THREE.FrontSide : THREE.DoubleSide;
+        dm.alphaMap = m.alphaMap; dm.alphaTest = m.alphaTest;
+        dm.displacementMap = m.displacementMap; dm.displacementScale = m.displacementScale; dm.displacementBias = m.displacementBias;
+        dm.clipShadows = m.clipShadows; dm.clippingPlanes = m.clippingPlanes; dm.clipIntersection = m.clipIntersection;
+        // Match the shadow pass, keeping colour maps only for real alpha cutouts.
+        if (m.alphaTest > 0) dm.map = m.map;
+        else Object.defineProperty(dm, 'map', { get() { return null; }, set() { }, configurable: true });
+        depthMaterials.set(key, dm);
+      }
+      o.customDepthMaterial = dm;
+    });
+  }
   function prepareWarmScene() {
+    safe(() => assignDepthMaterials(scene));                                   // casters added since boot
     safe(() => { if (game.prepareGraphics) game.prepareGraphics(); });         // hidden click-to-move and target rings
     safe(() => { if (feedback && feedback.warm) feedback.warm(); });            // hidden blood, sparks, scars, smears, afterimages
     safe(() => { if (feedback) feedback.update(0); });                          // tells: rim shells, rings, glints
@@ -1330,15 +1470,39 @@
       // compile() only visits object.material. Compile the actual shadow material
       // with the same geometry/skin/instance flags, including casters outside the first camera view.
       const depth = o.customDepthMaterial;
-      if (o.castShadow && depth && !seen.has(depth.uuid + kind)) {
+      if (depth && !seen.has(depth.uuid + kind)) {
         seen.add(depth.uuid + kind);
         jobs.push(Object.assign(Object.create(o), { material: depth, depthWarm: true }));
+      }
+      // Cut limb pieces are made at the killing blow from the body's skinned material and first cast with Three's
+      // shared depth material, which copies the colour map (a 'uv' depth variant). Compile that variant now; the kept
+      // twin material holds the program so it is never released.
+      const sm = o.material;
+      if (o.isSkinnedMesh && sm && !Array.isArray(sm) && sm.map) {
+        const side = sm.shadowSide !== null && sm.shadowSide !== undefined ? sm.shadowSide : sm.side === THREE.FrontSide ? THREE.BackSide : sm.side === THREE.BackSide ? THREE.FrontSide : THREE.DoubleSide;
+        const rk = 'rawdepth' + side + kind + (sm.alphaTest > 0 ? 'a' : '') + (sm.alphaMap ? 'm' : '');
+        if (!seen.has(rk)) {
+          seen.add(rk);
+          const dm = new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking });
+          dm.map = sm.map; dm.alphaMap = sm.alphaMap; dm.alphaTest = sm.alphaTest; dm.side = side;
+          rawDepthTwins.push(dm);
+          jobs.push(Object.assign(Object.create(o), { material: dm, depthWarm: true }));
+        }
       }
     });
     if (game.limbs && game.limbs.warmGeometryObjects) for (const o of game.limbs.warmGeometryObjects()) {
       if (!seenGeometry.has(o.geometry)) { seenGeometry.add(o.geometry); geometryObjects.push(o); }
     }
     return { jobs, geometryObjects, textures: Array.from(textures).filter(t => t.image && !t.isCompressedTexture) };
+  }
+  // Automatic-resolution sizes are built ahead, so a later step is only a reference swap (sizes already built are skipped).
+  function prewarmScaler() {
+    if (!(AUTO_SCALE && cfg.fps > 0 && cfg.fps <= 64 && post.prewarm && renderer && !graphicsLost)) return;
+    safe(() => {
+      const sizes = [], v = { width: innerWidth, height: innerHeight, pixelRatio: window.devicePixelRatio };
+      for (const lv of scaler.levels) { const pl = DISPLAY.plan(v, { ...cfg, dynScale: lv }); if (!sizes.some(z => z[0] === pl.width && z[1] === pl.height)) sizes.push([pl.width, pl.height]); }
+      post.prewarm(sizes);
+    });
   }
   function warmShaders(overlay, onProgress) {
     if (!renderer || graphicsLost) return Promise.resolve(false);
@@ -1438,11 +1602,7 @@
       // One real frame (shadow-map variants) while the cover is still up.
       checkContext(); safe(() => { cameraStep(0); atmosphereStep(0); post.render(elapsed); });
       // Automatic-resolution sizes are built now, so a later step is only a reference swap. Skipped on 120 Hz-class targets.
-      if (AUTO_SCALE && cfg.fps > 0 && cfg.fps <= 64 && post.prewarm) safe(() => {
-        const sizes = [], v = { width: innerWidth, height: innerHeight, pixelRatio: window.devicePixelRatio };
-        for (const lv of scaler.levels) { const pl = DISPLAY.plan(v, { ...cfg, dynScale: lv }); if (!sizes.some(z => z[0] === pl.width && z[1] === pl.height)) sizes.push([pl.width, pl.height]); }
-        post.prewarm(sizes);
-      });
+      prewarmScaler();
       warmStats.total = Math.round(performance.now() - t0); warmStats.count = renderer.info.programs.length;
       if (WARM_LOG) console.warn('[warm] done', JSON.stringify(warmStats));
       return true;
@@ -1497,27 +1657,7 @@
     if (document.fonts && document.fonts.load) safe(() => { document.fonts.load('800 40px "Source Sans 3"'); });
     // The shadow pass clones ONE depth material per source material and then reuses it for skinned, instanced and plain casters alike,
     // so it switched programs on every change of caster type. Give each (material, caster type) pair its own depth material instead.
-    safe(() => {
-      const depth = new Map();
-      scene.traverse(o => {
-        if (!o.isMesh || !o.castShadow || !o.material || Array.isArray(o.material) || o.customDepthMaterial) return;
-        const key = o.material.uuid + (o.isSkinnedMesh ? 's' : o.isBatchedMesh ? 'b' : o.isInstancedMesh ? 'i' : 'm');
-        let dm = depth.get(key);
-        if (!dm) {
-          dm = new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking });
-          const m = o.material;
-          dm.side = m.shadowSide !== null ? m.shadowSide : m.side === THREE.FrontSide ? THREE.BackSide : m.side === THREE.BackSide ? THREE.FrontSide : THREE.DoubleSide;
-          dm.alphaMap = m.alphaMap; dm.alphaTest = m.alphaTest;
-          dm.displacementMap = m.displacementMap; dm.displacementScale = m.displacementScale; dm.displacementBias = m.displacementBias;
-          dm.clipShadows = m.clipShadows; dm.clippingPlanes = m.clippingPlanes; dm.clipIntersection = m.clipIntersection;
-          // Match the shadow pass, keeping colour maps only for real alpha cutouts.
-          if (m.alphaTest > 0) dm.map = m.map;
-          else Object.defineProperty(dm, 'map', { get() { return null; }, set() { }, configurable: true });
-          depth.set(key, dm);
-        }
-        o.customDepthMaterial = dm;
-      });
-    });
+    safe(() => assignDepthMaterials(scene));
     ready = true; applySettings();
     B.app = { scene, camera, renderer, world, game, post, rig, scaler, resetPerformance, settings: cfg, input, get view() { return view; }, begin, show, fx, applySettings, clearFX, warmShaders,
       get warming() { return !!warming; }, get warmStats() { return warmStats; },
@@ -1535,6 +1675,7 @@
       // again before the player resumes, rather than stall at every first draw.
       Promise.resolve(warming).then(() => {
         if (graphicsLost || graphicsEpoch !== epoch) return false;
+        if (post && post.keepSizes) post.keepSizes(false); // GL objects are gone: rebuild size sets fresh
         applySettings(); last = visualDt = 0; renderClock.reset();
         return warmShaders(true);
       }).then(ok => {
