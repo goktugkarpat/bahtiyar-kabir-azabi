@@ -4,7 +4,7 @@
   'use strict';
   const B = window.BABA = window.BABA || {};
   const defaults = Object.freeze({ displayVersion: 3, displayMode: 'auto', msaa: 2 });
-  const MODES = ['auto', 'native', 'smooth'];
+  const MODES = ['auto', 'native'];
   const MIN_DYNAMIC = .75;
 
   function settings(raw) {
@@ -34,8 +34,6 @@
       const budget = raw?.quality === 'low' ? 2000000 : raw?.quality === 'medium' ? 2500000 : 3500000;
       requestedRatio = Math.min(nativeRatio, qualityRatio, Math.sqrt(budget / (cssWidth * cssHeight)));
     }
-    // Smooth is always lighter than Auto, including on Retina displays.
-    if (cfg.displayMode === 'smooth') requestedRatio *= .75;
     // Automatic resolution steps (createScaler) only ever remove a little: never below 0.8 of the chosen size per axis.
     const dyn = raw && Number.isFinite(raw.dynScale) ? Math.min(1, Math.max(MIN_DYNAMIC, raw.dynScale)) : 1;
     requestedRatio *= dyn;

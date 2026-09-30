@@ -33,7 +33,7 @@
   // Desktop defaults follow the current display's pixel density. Extra AA is opt-in.
   const DEFAULTS = { quality: FRAME_LIMIT === 60 ? 'medium' : 'high', qualityVersion: 3, ...DISPLAY.defaults, frameRate: FRAME_LIMIT === 60 ? 60 : 0, exposure: 1.15, shake: .55, master: .65, music: .42, sfx: .75, voice: .85, subtitles: true, uiScale: 1 };
   const FRAME_RATES = [60, 120, 0];   // 0 = follow the display (every refresh; best with G-Sync / FreeSync / ProMotion)
-  const UI_STEPS = [.85, 1, 1.25];
+  const UI_STEPS = [.85, 1];
   const LIMITS = { exposure: [.7, 1.7], shake: [0, 1], master: [0, 1], music: [0, 1], sfx: [0, 1], voice: [0, 1] };
   // `cfg` is shared with effects.js / world.js / combat.js (they read the technical fields).
   const cfg = { ...DEFAULTS, impact: .65, touch: 'auto', showFps: false };
@@ -137,6 +137,7 @@
       Object.assign(cfg, DISPLAY.settings(raw));
       if (raw.displayVersion !== DISPLAY.defaults.displayVersion || raw.displayMode !== cfg.displayMode) migrated = true;
       cfg.uiScale = UI_STEPS.includes(raw.uiScale) ? raw.uiScale : DEFAULTS.uiScale;
+      if (raw.uiScale !== cfg.uiScale) migrated = true;
       cfg.frameRate = FRAME_RATES.includes(raw.frameRate) ? raw.frameRate : raw.frameRate === 144 ? 0 : DEFAULTS.frameRate;
       if (raw.frameRate !== cfg.frameRate) migrated = true;
       cfg.shake = DEFAULTS.shake;   // camera shake is no longer a setting
@@ -476,7 +477,7 @@
     const hudScale = clamp((side < 982 ? clamp(side / 800, .68, 1.05) : Math.min(2.3, 1.05 * side / 982)) * cfg.uiScale, .5, 2.9);
     document.documentElement.style.setProperty('--k', hudScale);
     document.body.classList.toggle('target-stacked', w <= 1100 || w < 1080 * hudScale + 36);
-    // The HUD stays native even when Auto or Smooth reduces the scene resolution.
+    // The HUD stays native even when Auto reduces the scene resolution.
     const gl = renderer.getContext(), vp = gl.getParameter(gl.MAX_VIEWPORT_DIMS) || [16384, 16384];
     const gpuMax = Math.min(gl.getParameter(gl.MAX_TEXTURE_SIZE) || 16384, gl.getParameter(gl.MAX_RENDERBUFFER_SIZE) || 16384, vp[0] || 16384, vp[1] || 16384);
     const nextDisplay = DISPLAY.plan({ width: w, height: h, pixelRatio: window.devicePixelRatio, maxSize: gpuMax }, cfg);
@@ -567,7 +568,6 @@
     if (mode) {
       mode.textContent = cfg.displayMode === 'auto'
         ? 'Otomatik: yüksek çözünürlüklü ekranlarda grafik kalitesine uygun boyut seçer. Düşük ayar bilgisayarı daha az çalıştırır. Yazılar net kalır.'
-        : cfg.displayMode === 'smooth' ? 'Akıcı: Otomatik seçeneğine göre görüntü boyutunu %25 azaltır. Yazılar net kalır.'
         : 'Ekranın bütün piksellerini kullanır. Retina ekranda Düşük kalite seçilse de çizim boyutu azalmaz.';
     }
     if (rate) rate.textContent = cfg.fps ? 'En fazla ' + cfg.fps + ' kare/sn. Ekranın yenileme hızına uymayan bir sınır kare atlamalarına yol açabilir; en düzgünü "Ekran hızı"dır.' : 'Ekranın her yenilemesinde çizer (G-Sync / FreeSync / ProMotion ile en düzgünü).';
@@ -581,9 +581,9 @@
     q.querySelectorAll('[data-quality]').forEach(b => b.addEventListener('click', () => { if (b.dataset.quality === cfg.quality) return; cfg.quality = b.dataset.quality; paintQuality(); applySettings(); warmShaders(true); }));
     paintQuality(); video.append(q);
     const displayNote = document.createElement('small'); displayNote.id = 'display-note'; q.append(displayNote);
-    video.append(choiceRow('displayMode', 'Görüntü boyutu', ['auto', 'native', 'smooth'], v => ({ auto: 'Otomatik', native: 'Tam boyut', smooth: 'Akıcı' })[v]),
+    video.append(choiceRow('displayMode', 'Görüntü boyutu', ['auto', 'native'], v => ({ auto: 'Otomatik', native: 'Tam boyut' })[v]),
       choiceRow('frameRate', 'Kare hızı', FRAME_RATES, v => v ? v + ' FPS' : 'Ekran hızı'),
-      choiceRow('uiScale', 'Arayüz boyutu', UI_STEPS, v => v < 1 ? 'Küçük' : v > 1 ? 'Büyük' : 'Normal'));
+      choiceRow('uiScale', 'Arayüz boyutu', UI_STEPS, v => v < 1 ? 'Küçük' : 'Normal'));
     // Edge smoothing (SMAA post pass in post.js) is always on: no settings row.
     paintGraphicsNotes();
     $('uiScale-note').textContent = 'Alt çubuk, küreler, harita ve yazıları ölçekler.';
@@ -1283,7 +1283,7 @@
     return graphicsAdapter;
   }
   function performanceReport() {
-    return { schema: 4, game: 'Kabir Azabı', build: 70, capturedAt: new Date().toISOString(), view,
+    return { schema: 4, game: 'Kabir Azabı', build: 71, capturedAt: new Date().toISOString(), view,
       location: { room: world.rooms?.[roomId]?.name || roomId, x: game.player.x, z: game.player.z },
       display: { width: post.width, height: post.height, windowWidth: innerWidth, windowHeight: innerHeight,
         devicePixelRatio: window.devicePixelRatio || 1, renderPixelRatio: renderer.getPixelRatio() },
