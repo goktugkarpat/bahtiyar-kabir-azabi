@@ -51,6 +51,8 @@ assert(app.includes('    syncWarnings(dt);') && app.includes('      drawWarnings
 vm.runInContext(`
 let played = 0, view = 'playing';
 const B = { Audio: { silent: true, play() { played++; } } };
+const buffUI = { clear() {} }; // This harness isolates warning geometry/clocks from timed-effect DOM.
+const targetUI = { clear() {} }; // The attacked-enemy card has its own browser/state checks.
 const $ = id => document.getElementById(id), clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const camera = new THREE.PerspectiveCamera(50, 16 / 9, .1, 300), projected = new THREE.Vector3();
 camera.position.set(0, 10, 10); camera.lookAt(0, 0, 0); camera.updateMatrixWorld(true);

@@ -200,7 +200,7 @@
 
   /* ───────────── Skill slots: cooldown sweeps, seconds, stamina cost hints ───────────── */
   // Slot key -> stamina cost shown in the corner and used for the "not enough stamina" dim (numbers mirror combat.js).
-  const SLOT_COST = { light: 13, heavy: 34, dodge: 20, special: 45 };
+  const RESOURCE = B.Game.resources, SLOT_COST = RESOURCE.costs;
   const slots = {};
   function slotFor(key) {
     if (slots[key]) return slots[key];
@@ -218,19 +218,36 @@
     if (text !== sl.shown) { sl.shown = text; sl.txt.textContent = text; }
   }
   const secs = t => t > 9.5 ? String(Math.ceil(t)) : t > 0 ? (Math.ceil(t * 10) / 10).toFixed(1) : '';
-  function skills(p) {
+  let feedbackEl = null, feedbackSerial = 0, feedbackTime = 0, feedbackText = '';
+  const WAIT_TEXT = { attack: 'vuruş bitince', dodge: 'kaçınma bitince', stagger: 'toparlanınca', rage: 'nara bitince', cooldown: 'yeniden hazır olunca' };
+  function skillFeedback(p, dt) {
+    if (!feedbackEl) {
+      const hud = document.getElementById('hud'); if (!hud) return;
+      feedbackEl = document.createElement('div'); feedbackEl.id = 'skill-feedback'; feedbackEl.className = 'hidden';
+      feedbackEl.setAttribute('role', 'status'); feedbackEl.setAttribute('aria-live', 'polite'); hud.appendChild(feedbackEl);
+    }
+    feedbackTime = Math.max(0, feedbackTime - (dt || 0));
+    if (!p.lack) { feedbackSerial = 0; feedbackTime = 0; feedbackText = ''; }
+    else if (p.lack.serial !== feedbackSerial) { feedbackSerial = p.lack.serial; feedbackText = p.lack.text || ''; feedbackTime = 2.4; }
+    const queued = p.pendingAction;
+    const text = queued ? (TIPS[queued.key]?.[0] || 'Yetenek') + ' sırada · ' + (WAIT_TEXT[queued.reason] || 'hareket bitince') : feedbackTime > 0 ? feedbackText : '';
+    if (feedbackEl.textContent !== text) feedbackEl.textContent = text;
+    feedbackEl.classList.toggle('hidden', !text);
+    feedbackEl.classList.toggle('waiting', !!queued);
+  }
+  function skills(p, dt) {
     const st = p.stamina || 0, lack = p.lack;
     for (const key of ['light', 'heavy', 'dodge', 'special', 'rage', 'heal']) {
       const sl = slotFor(key); if (!sl) continue;
       // A respawn clears p.lack and starts its serial again; forget the old run's alert.
       if (!lack) sl.lackSerial = 0;
       let f = 0, text = '', dim = false;
-      if (key === 'special') {
-        const cd = p.specialCd || 0; f = cd / (p.specialMax || 8); text = secs(cd); dim = cd <= 0 && st < SLOT_COST.special;
+      if (key === 'special' || key === 'rage') {
+        const cd = (key === 'special' ? p.specialCd : p.rageCd) || 0;
+        const max = (key === 'special' ? p.specialMax : p.rageMaxCd) || RESOURCE.cooldowns[key];
+        f = clamp(cd / max, 0, 1); text = secs(cd); dim = st < SLOT_COST[key];
         if (sl.prevCd > 0 && cd <= 0 && !reduced.matches) pulse(sl.el, 'ready-flash');
         sl.prevCd = cd;
-      } else if (key === 'rage') {
-        if (p.rageTime > 0) text = secs(p.rageTime);
       } else if (key === 'heal') {
         f = clamp((p.drink || 0) / .34, 0, 1);
       } else if (key === 'dodge') {
@@ -238,20 +255,22 @@
       } else if (SLOT_COST[key]) dim = st < SLOT_COST[key];
       setCd(sl, f, text);
       sl.el.classList.toggle('short', dim);
-      sl.el.classList.toggle('cooling', f > 0 && key === 'special');
+      sl.el.classList.toggle('cooling', f > 0 && (key === 'special' || key === 'rage'));
+      sl.el.classList.toggle('queued', p.pendingAction?.key === key);
       if (lack && lack.key === key && lack.serial !== sl.lackSerial) { sl.lackSerial = lack.serial; pulse(sl.el, 'lack'); }
     }
+    skillFeedback(p, dt);
   }
 
 
   /* ───────────── Skill cards: hover / keyboard focus / long press on a slot shows name, key, what it does, cost and cooldown ───────────── */
   const TIPS = {
-    light: ['Hafif saldırı', 'Atanmış fare düğmesiyle düşmanı seç: yaklaşır ve üç vuruşluk kombo yapar; basılı tutunca sürdürür. Klavye tuşu önündeki yakın düşmana vurur. Kalkanlı düşmanın gardını kıramaz. Yerinde vur tuşuyla birlikte fareden saldırırsan yürümez.', '13 dayanıklılık'],
-    heavy: ['Ağır saldırı', 'Yavaş ama çok sert vurur; kalkanlı düşmanın gardını kırar, hafif düşmanları sendeletir. Atanmış fare düğmesiyle düşmanı seç; boş yere tıklamak saldırmaz. Klavye tuşu önündeki yakın düşmana vurur. Yerinde vur tuşuyla birlikte fareden saldırırsan yürümez.', '34 dayanıklılık'],
-    dodge: ['Kaçınma', 'Yürüdüğün yöne (yürümüyorsan fareye doğru) yuvarlanır. Yuvarlanmanın başında darbelerden korunursun; sondaki kalkışta koruma biter. Kızıl ve altın kenarlı darbelerden böyle kaç.', '20 dayanıklılık'],
+    light: ['Hafif saldırı', 'Atanmış fare düğmesiyle düşmanı seç: yaklaşır ve üç vuruşluk kombo yapar; basılı tutunca sürdürür. Klavye tuşu önündeki yakın düşmana vurur. Kalkanlı düşmanın gardını kıramaz. Yerinde vur tuşuyla birlikte fareden saldırırsan yürümez.', SLOT_COST.light + ' dayanıklılık'],
+    heavy: ['Ağır saldırı', 'Yavaş ama çok sert vurur; kalkanlı düşmanın gardını kırar, hafif düşmanları sendeletir. Atanmış fare düğmesiyle düşmanı seç; boş yere tıklamak saldırmaz. Klavye tuşu önündeki yakın düşmana vurur. Yerinde vur tuşuyla birlikte fareden saldırırsan yürümez.', SLOT_COST.heavy + ' dayanıklılık'],
+    dodge: ['Kaçınma', 'Yürüdüğün yöne (yürümüyorsan fareye doğru) yuvarlanır. Yuvarlanmanın başında darbelerden korunursun; sondaki kalkışta koruma biter. Kızıl ve altın kenarlı darbelerden böyle kaç.', SLOT_COST.dodge + ' dayanıklılık'],
     heal: ['Can iksiri', 'Anında can yeniler. Yemin taşında yeniden dolar.', 'sınırlı sayıda'],
-    special: ['Zincir Girdabı', 'Zincirli pala ile etrafında dönersin ve yakındaki herkese 4 kez vurursun. Hafif düşmanlar içeri çekilir, son vuruş onları savurur. Dönerken yürüyebilirsin.', '45 dayanıklılık · 8 sn bekleme'],
-    rage: ['Kan Öfkesi', 'Öfke çubuğu dolunca bağırırsın: yakındaki düşmanlar sendeler. 11 sn boyunca %48 daha sert vurur, %25 az hasar alır ve vurduğun hasarın bir kısmı can olarak geri döner.', 'Öfke çubuğu dolu olmalı']
+    special: ['Zincir Girdabı', 'Zincirli pala ile etrafında dönersin ve yakındaki herkese 4 kez vurursun. Hafif düşmanlar içeri çekilir, son vuruş onları savurur. Dönerken yürüyebilirsin.', SLOT_COST.special + ' dayanıklılık · ' + RESOURCE.cooldowns.special + ' sn bekleme'],
+    rage: ['Kan Öfkesi', 'Dayanıklılık harcayıp bağırırsın: yakındaki düşmanlar sendeler. ' + RESOURCE.durations.rage + ' sn boyunca %48 daha sert vurur, %25 az hasar alır ve vurduğun hasarın bir kısmı can olarak geri döner.', SLOT_COST.rage + ' dayanıklılık · ' + RESOURCE.cooldowns.rage + ' sn bekleme']
   };
   let dismissSkillTips = () => {};
   function dismissTips() { dismissSkillTips(); }

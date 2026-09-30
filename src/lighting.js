@@ -82,12 +82,17 @@
     '\t\t\tfloat kH = kM0.z; float kYp = max( kP.y, 0.0 ); float kYc = max( cameraPosition.y, kYp + 0.01 );',
     '\t\t\tfloat kOd = kH * ( exp( - kYp / kH ) - exp( - kYc / kH ) ) / max( - kRd.y, 0.08 );',
     '\t\t\tvec2 kQ = kP.xz * kM1.z + kM0.w * kM1.xy;',
-    '\t\t\tfloat kN = karaNoise( kQ ) * 0.62 + karaNoise( kQ * 2.7 + vec2( 5.2, 1.3 ) - kM0.w * kM1.xy * 1.9 ) * 0.38;',
+    // Low retains the height/distance mist, without eight trigonometric noise hashes at every surface pixel.
+    '\t\t\tfloat kN = 0.5;',
+    '\t\t\tif ( kM2.z > 0.5 ) kN = karaNoise( kQ ) * 0.62 + karaNoise( kQ * 2.7 + vec2( 5.2, 1.3 ) - kM0.w * kM1.xy * 1.9 ) * 0.38;',
     '\t\t\tkMist = 1.0 - exp( - kM0.y * kOd * ( 0.1 + 2.0 * smoothstep( 0.36, 0.9, kN ) ) );',
     '\t\t}',
     '\t\tint kCount = int( kM0.x );',
     '\t\tfor ( int ki = 0; ki < kCount; ki ++ ) {',
     '\t\t\tvec4 kL = karaLights[ ki ]; vec3 kC = karaLightColors[ ki ]; vec4 kRay = karaLightRays[ ki ];',
+    '\t\t\tvec3 kD = kP + vec3( 0.0, 0.3, 0.0 ) - kL.xyz; float kG = kL.w / ( kL.w + dot( kD, kD ) * 0.3 ); kGlow += kC * kG * kG;',
+    // The economical preset uses the same warm/cold glow, without the per-light ray integral.
+    '\t\t\tif ( kM2.z < 0.5 ) { kScat += kC * kG * kG * 0.25; continue; }',
     '\t\t\tfloat kB = dot( kRay.xyz, kRd );',
     // density ~ 1 / (1 + k d^2)^2 around each light, integrated in closed form along the view ray
     // kL.w holds radius squared; camera-relative source position/distance are frame constants, uploaded once.
@@ -98,7 +103,6 @@
     '\t\t\tfloat kAngle = atan( kLen * kA, kA2 + kU1 * kU0 );',
     '\t\t\tfloat kI = ( kU1 / ( kA2 + kU1 * kU1 ) - kU0 / ( kA2 + kU0 * kU0 ) + kAngle / kA ) / ( 2.0 * kA2 );',
     '\t\t\tkScat += kC * kI * kL.w * kL.w;',
-    '\t\t\tvec3 kD = kP + vec3( 0.0, 0.3, 0.0 ) - kL.xyz; float kG = kL.w / ( kL.w + dot( kD, kD ) * 0.3 ); kGlow += kC * kG * kG;',
     '\t\t}',
     '\t\t#if ! defined( OPAQUE ) && ! defined( KARA_FULLMIST )',
     '\t\t\tkMist *= kM1.w;',
@@ -156,9 +160,9 @@
 
   // ---------------------------------------------------------------- presets
   var PRESET = {
-    low:  { scatter: 4, moonShadow: 0,    blob: .42, rimWrap: .8 },
-    medium: { scatter: 8, moonShadow: 1536, blob: .28, rimWrap: .95 },
-    high: { scatter: 10, moonShadow: 2048, blob: .26, rimWrap: 1 }
+    low:  { scatter: 2, moonShadow: 0,    shadowHz: 0, blob: .42, rimWrap: .8, mistDetail: 0 },
+    medium: { scatter: 8, moonShadow: 1536, shadowHz: 30, blob: .28, rimWrap: .95, mistDetail: 1 },
+    high: { scatter: 10, moonShadow: 2048, shadowHz: 60, blob: .26, rimWrap: 1, mistDetail: 1 }
   };
 
   function smooth(t) { t = Math.max(0, Math.min(1, t)); return t * t * (3 - 2 * t); }
@@ -174,6 +178,9 @@
     var moon = new T.DirectionalLight('#a3b9d8', 1.2); moon.position.set(-9, 19, 5);
     moon.shadow.camera.left = -20; moon.shadow.camera.right = 20; moon.shadow.camera.top = 20; moon.shadow.camera.bottom = -20;
     moon.shadow.camera.near = 1; moon.shadow.camera.far = 60; moon.shadow.bias = -.0003; moon.shadow.normalBias = .05;
+    moon.shadow.autoUpdate = false;
+    var moonShadowSlot = null, moonPendingSlot = null;
+    var shadowFrameAt = null, shadowFrameInterval = 0;
     var moonTarget = new T.Object3D(); scene.add(moonTarget); moon.target = moonTarget; scene.add(moon);
     var rim = new T.DirectionalLight('#8aaee0', 1.1); rim.position.set(4, 7.5, -4); scene.add(rim); scene.add(rim.target);
     (function environment() {
@@ -224,6 +231,10 @@
       var shadows = preset.moonShadow > 0 && cfgRef.shadows !== 0;
       moonShadows = shadows; syncShadowMap();
       moon.castShadow = shadows;
+      moonShadowSlot = null; moon.shadow.needsUpdate = shadows;
+      moonPendingSlot = null;
+      shadowFrameAt = null; shadowFrameInterval = 0;
+      FOG.karaMist.value[2].z = preset.mistDetail;
       if (shadows && moon.shadow.mapSize.x !== preset.moonShadow) {
         moon.shadow.mapSize.set(preset.moonShadow, preset.moonShadow);
         if (moon.shadow.map) { moon.shadow.map.dispose(); moon.shadow.map = null; }
@@ -530,6 +541,37 @@
     function update(dt, time, game, view) {
       if (!game || !game.player) return;
       syncShadowMap();
+      // Measure presented spacing, rather than the requested FPS or the monitor's callbacks. This also
+      // handles the alternating short/long intervals of 120 rendered frames on a 144/180/200 Hz screen.
+      if (shadowFrameAt !== null && time > shadowFrameAt) {
+        var frameGap = time - shadowFrameAt;
+        shadowFrameInterval = shadowFrameInterval > 0 ? shadowFrameInterval + (frameGap - shadowFrameInterval) * Math.min(1, frameGap * 10) : frameGap;
+      } else if (shadowFrameAt !== null && time < shadowFrameAt) { shadowFrameInterval = 0; moonShadowSlot = moonPendingSlot = null; }
+      shadowFrameAt = time;
+      // Character poses still animate every presented frame. The depth map alone has a time budget,
+      // independent of a 60/120/200 Hz monitor; a missing map after restoration is always filled at once.
+      // Clock buckets offset ordinary key/spot deadlines; the pending requests below also separate
+      // passes on nonuniform presented frames. Slower displays refresh both when necessary. Clock
+      // jumps coalesce into one current update, with no delayed catch-up work.
+      var keySlot = Math.floor(time * preset.shadowHz + 1e-5);
+      var frequentFrames = shadowFrameInterval > 0 && shadowFrameInterval < 1 / (preset.shadowHz * 1.6);
+      if (moonShadows && (!moon.shadow.map || moonPendingSlot !== null || keySlot !== moonShadowSlot)) {
+        var nextKeySlot = moonPendingSlot !== null ? keySlot - moonPendingSlot > 2 ? keySlot : moonPendingSlot
+          : moonShadowSlot !== null && keySlot > moonShadowSlot && keySlot - moonShadowSlot <= 2 ? moonShadowSlot + 1 : keySlot;
+        if (frequentFrames && moon.shadow.map && !moon.shadow.needsUpdate && moonPendingSlot === null
+          && L && L.shadowRefreshDeferred && L.shadowRefreshDeferred()) {
+          // The world's regular request already waited one frame. It wins this frame; this new key
+          // request waits exactly one frame instead. Fresh and previously pending key maps never yield.
+          moonPendingSlot = nextKeySlot;
+        } else {
+          moon.shadow.needsUpdate = true; moonShadowSlot = nextKeySlot; moonPendingSlot = null;
+        }
+      }
+      // World prepares spot requests first. Only a new regular request may yield to this key pass;
+      // deferred requests and fresh/restored maps keep their immediate path. Below ~96 Hz on High
+      // (~48 Hz on Medium), allow both maps together so the 60/30 Hz shadow budget does not starve.
+      if (moonShadows && moon.shadow.needsUpdate && frequentFrames
+        && L && L.deferShadowRefresh) L.deferShadowRefresh();
       var p = game.player, a = world.atmosphereAt(p.x, p.z);
       patchClock -= dt; if (patchClock <= 0) { patchClock = 1; patchCharacters(game); }
       directorStep(dt, time, game, a);

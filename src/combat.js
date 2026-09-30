@@ -10,20 +10,29 @@
   // Frame-rate independent turn toward b along the shortest way round (k = how fast, per second).
   const dampAngle = (a, b, k, dt) => a + angleDifference(b, a) * (1 - Math.exp(-k * dt));
   const finitePoint = p => p && Number.isFinite(p.x) && Number.isFinite(p.z);
+  // One shared resource contract for combat, HUD and control hints. Weapons leave room for rolls and skills.
+  const RESOURCES = Object.freeze({
+    costs: Object.freeze({ light: 4, heavy: 8, dodge: 20, special: 45, rage: 45 }),
+    cooldowns: Object.freeze({ special: 8, rage: 24 }),
+    durations: Object.freeze({ rage: 11 })
+  });
   const STATS = {
-    prisoner: { name: 'Zincirli Mahkûm', hp: 118, speed: 2.15, radius: .58, reach: 2.5, cooldown: 1.25, color: 0xb77c63 },
-    guard: { name: 'Mezar Muhafızı', hp: 205, speed: 1.62, radius: .72, reach: 3.4, cooldown: 1.75, color: 0xb49a5f },
-    cultist: { name: 'Kül Rahibi', hp: 116, speed: 1.68, radius: .54, reach: 12, cooldown: 2.8, color: 0xac5550 },
-    stalker: { name: 'Karanlık Pusucusu', hp: 130, speed: 2.85, radius: .53, reach: 8.5, cooldown: 1.8, color: 0x978790 },
-    carrier: { name: 'Veba Taşıyıcısı', hp: 172, speed: 1.35, radius: .74, reach: 10, cooldown: 3.2, color: 0x829665 },
-    boss: { name: 'Zincir Celladı', hp: 2100, speed: 1.75, radius: 1.03, reach: 13, cooldown: 1.3, color: 0xc69160 }
+    prisoner: { name: 'Zincirli Mahkûm', hp: 118, speed: 2.4, radius: .58, reach: 2.5, cooldown: 1.25, color: 0xb77c63 },
+    guard: { name: 'Mezar Muhafızı', hp: 205, speed: 1.8, radius: .72, reach: 3.4, cooldown: 1.75, color: 0xb49a5f },
+    cultist: { name: 'Kül Rahibi', hp: 116, speed: 1.85, radius: .54, reach: 12, cooldown: 2.8, color: 0xac5550 },
+    stalker: { name: 'Karanlık Pusucusu', hp: 130, speed: 3.15, radius: .53, reach: 8.5, cooldown: 1.8, color: 0x978790 },
+    carrier: { name: 'Veba Taşıyıcısı', hp: 172, speed: 1.5, radius: .74, reach: 10, cooldown: 3.2, color: 0x829665 },
+    boss: { name: 'Zincir Celladı', hp: 2100, speed: 2.2, radius: 1.03, reach: 13, cooldown: .75, color: 0xc69160 }
   };
+  // Stronger enemies resist an unbuffed full Girdap; the boss has faster, explicitly timed normal moves.
+  // Apply health once at spawn and damage once at contact so every enemy move follows the same balance.
+  const BALANCE = Object.freeze({ health: 1.65, bossHealth: 1.50, damage: 1.70 });
   // Combat feel. Strike times, durations and damage stay authoritative; these shape how contact is presented.
   // Hit-stop freezes every combat clock together (player, enemies, hazards, i-frames), so it never grants an advantage.
   const FEEL = {
     buffer: .22, chainEarly: .12, finisherChainEarly: .06, queueAfter: .06,
-    hitstop: { light: .055, finisher: .08, heavy: .07, extraTarget: .012, kill: .035, bossKill: .22, shield: .04, guardBreak: .1,
-      hurt: .07, hurtHeavy: .1 },
+    hitstop: { light: .012, finisher: .028, heavy: .020, extraTarget: .004, kill: .012, bossKill: .22, shield: .012, guardBreak: .035,
+      hurt: .020, hurtHeavy: .030 },
     knock: { light: .32, finisher: .62, heavy: 1.05, shield: .12, boss: .05, bossHeavy: .16 },
     lunge: [.34, .42, .56], heavyLunge: .72, lungeLead: [.12, .12, .14], heavyLungeLead: .2,
     whoosh: { light: .09, finisher: .11, heavy: .15 },
@@ -48,7 +57,7 @@
   // A second press inside DRINK_GUARD s of a drink is ignored, so one press (or a double-fired tap) cannot burn two flasks.
   const DRINK = .34, DRINK_GUARD = .2;
   // Roll (Space): stamina cost and how long of its .48 s the hero cannot be hit; stamina regeneration per second (all in the D4-controls compensation).
-  const DODGE = { cost: 20, iframe: .45 }, REGEN = 34;
+  const DODGE = { cost: RESOURCES.costs.dodge, iframe: .45 }, REGEN = 34;
   // Diablo-4 click-target controls (steerOrders): a click on a foe walks up to it and swings (light left / heavy right), a click on the ground walks there,
   // Shift + click swings in place toward the cursor. reach = distance to the foe's edge at which the swing starts; arrive = stop distance of a ground click,
   // hold = the same while the button is held (steering); stuck = seconds without progress before an approach is given up.
@@ -56,16 +65,16 @@
   // Hero war cry: the roar releases its shockwave at ROAR.release; the father is committed until ROAR.duration
   // (quick: he keeps moving at ROAR.move of his speed and the blows-halved window is only this long).
   // Kan öfkesi: wider shockwave (near 6.5 m stagger / far 10 m cow), 11 s buff, -25 % damage taken (guard .75), 4 % of damage dealt returns as hp (steal);
-  // while it burns, blows stagger lighter foes (see canStagger) and rage gain runs at half speed (RAGE_HOLD) so the next roar can be banked.
-  const ROAR = { duration: .36, release: .2, move: .6, near: 6.5, far: 10, time: 11, guard: .75, steal: .04 };
-  // Rage is a moment, not a mode: it fills from blood spilled, rolls that dodge a blow and wounds taken (not while it burns).
-  // Special ability "Zincir Girdabı" (key F, a whirlwind): the father spins with the chained cleaver for SPECIAL.duration s, walks on at SPECIAL.move of his speed
+  // while it burns, blows stagger lighter foes (see canStagger). The cry uses the same stamina as rolls/Girdap,
+  // with its own cooldown; there is no separate fury meter to fill by fighting.
+  const ROAR = { cost: RESOURCES.costs.rage, cooldown: RESOURCES.cooldowns.rage, duration: .36, release: .2, move: .6,
+    near: 6.5, far: 10, time: RESOURCES.durations.rage, guard: .75, steal: .04 };
+  // Special ability "Zincir Girdabı" (key 1, a whirlwind): the father spins with the chained cleaver for SPECIAL.duration s, walks on at SPECIAL.move of his speed
   // (steer with the movement keys) and hits every foe within SPECIAL.radius m SPECIAL.ticks times (first after SPECIAL.first s, then every SPECIAL.gap s) for SPECIAL.damage each
   // (ticks x damage = 132, what the old lane strike did). Ticks stagger small foes (SPECIAL.stagger s, the last one SPECIAL.staggerLast s and a knock-back), pull loose ones a
   // little inward (SPECIAL.pull m), break guards and give bosses only damage. Armoured: light hits do not stop it, a stagger (broken guard) or a roll does. It costs
   // SPECIAL.cost stamina (of 110) and rests SPECIAL.cooldown s. SPECIAL.turns full body turns are shown.
-  const SPECIAL = { cost: 45, cooldown: 8, duration: 1.3, radius: 3.6, ticks: 4, first: .15, gap: .28, damage: 33, stagger: .6, staggerLast: 1.15, pull: .45, move: .6, turns: 2 };
-  const RAGE_GAIN = { kill: 20, light: 5, heavy: 10, blocked: 1.25, hurt: .75, evade: 4 }, RAGE_HOLD = .5;   // ~2.5x the old fill: first roar ~15-20 s into a fight
+  const SPECIAL = { cost: RESOURCES.costs.special, cooldown: RESOURCES.cooldowns.special, duration: 1.3, radius: 3.6, ticks: 4, first: .15, gap: .28, damage: 33, stagger: .6, staggerLast: 1.15, pull: .45, move: .6, turns: 2 };
   // Test-build ease (29 Sep 2026; DESIGN.md "Enemy difficulty" has the measurements). Before -> after:
   //   executioner hp (STATS) 2280 -> 2100 and rest between two of his moves 1.25 -> 1.3 s; the five common foes keep their hp and pace
   //   (a few percent of hp changes no hit count, the special gate below is what lightens the halls).
@@ -80,11 +89,11 @@
   // Before: no gate and full weights (specials were 40-87 % of all chosen moves). Cooldowns of single specials, before -> after (s):
   // prisoner grab 7 -> 14, cultist rite 14 -> 18 and pair 12 -> 16, executioner hooks 13 -> 15 (last stand 9 -> 11).
   // A fresh enemy owes one plain blow first (spWait 1), except the prisoner, whose charge is how it enters a fight.
-  const SPECIAL_GAP = { prisoner: 2, guard: 2, cultist: 2, stalker: 2, carrier: 2, boss: 2, boss2: 1 }, SPECIAL_W = .75;   // (parent: specials a bit more often again; was 3/3 and .4)
+  const SPECIAL_GAP = { prisoner: 1, guard: 1, cultist: 1, stalker: 1, carrier: 1, boss: 1, boss2: 1 }, SPECIAL_W = .9;
   // Round 2 (specials still felt constant): min 3 plain blows between specials (SPECIAL_GAP, then SPECIAL_W .5); a special that is the ONLY legal move
   // (hero kiting out of plain range) is not taken at once: the foe first chases for SPECIAL_HOLD seconds; plain blows recover in .75 of the
   // rest time, specials in 1.2 of it (SPECIAL_IDS lists the specials for that).
-  const SPECIAL_HOLD = 1.5, PLAIN_REST = .8, SPECIAL_REST = 1.1;
+  const SPECIAL_HOLD = 1.5, PLAIN_REST = .62, SPECIAL_REST = .9;
   const SPECIAL_IDS = ['rush', 'grab', 'over', 'shove', 'rite', 'pair', 'rune', 'leap', 'flank', 'vial', 'exhale', 'hook', 'slam', 'cyclone', 'hooks'];
 
   function create(world, services) {
@@ -99,7 +108,7 @@
     const checkpoint = finitePoint(world.checkpoint) ? world.checkpoint : { x: 0, z: -128 };
     const player = {
       x: spawn.x, z: spawn.z, face: Math.PI, yaw: Math.PI, hp: 125, maxHp: 125,
-      stamina: 110, maxStamina: 110, rage: 0, maxRage: 100,
+      stamina: 110, maxStamina: 110,
       flasks: 4, maxFlasks: 4, dead: false, model: hero,
       attack: null, dodge: 0, healing: 0, rageTime: 0,
       hurt: 0, stagger: 0, status: '', invulnerable: false, target: null
@@ -117,10 +126,23 @@
     const game = {
       player, enemies, hazards, state: 'ready', checkpointIndex: 0,
       elapsed: 0, kills: 0, totalKills: 0, lastDeath: null, hasSave: false,
-      currentRoom: null, activeEncounter: '', boss: null,
-      start, update, restart, respawn, interact, dispose, setQuality, toTitle
+      currentRoom: null, activeEncounter: '', boss: null, attackTarget: null,
+      start, update, restart, respawn, interact, dispose, setQuality, toTitle, beginRenderTraversal, endRenderTraversal, prepareGraphics
     };
     let disposed = false, simTime = 0, buffer = {};
+    // Only the renderer's scene walk may skip invisible actor trees. Animation, queries and limb capture stay native.
+    let renderTraversal = false;
+    const matrixGuards = [];
+    function beginRenderTraversal() { if (!disposed) renderTraversal = true; }
+    function endRenderTraversal() { renderTraversal = false; }
+    function guardRenderMatrices(node) {
+      const descriptor = Object.getOwnPropertyDescriptor(node, 'updateMatrixWorld'), nativeUpdate = node.updateMatrixWorld;
+      const guard = function (force) {
+        if (renderTraversal && !this.visible) return;
+        return nativeUpdate.call(this, force);
+      };
+      node.updateMatrixWorld = guard; matrixGuards.push({ node, guard, descriptor });
+    }
     let staminaDelay = 0, dodgeAge = 0, dodgeVector = { x: 0, z: -1 };
     // Explicit aim of this frame (gamepad right stick only; the mouse never aims): its direction from the hero, null = none.
     // moveFace = travel direction this frame (null = standing); assistFoe = the foe the last attack-key swing auto-turned onto (hysteresis).
@@ -131,7 +153,7 @@
     let order = null, swingPlan = null, dodgeAim = null, pendingClick = null, targetRing = null, rawInput = null, moveMark = null, markX = 0, markZ = 0, markA = 0;
     let forcedMotion = null, healingAge = 0, comboStep = 0, comboWindow = 0, spinCur = 0;
     let playerHitImmunity = 0, checkpointSnapshot = null, endAnnounced = false;
-    let hintCooldown = 0, debugInvincible = false, openingGrace = 8, corpseLifetime = 90;
+    let hintCooldown = 0, deniedCooldown = 0, deniedId = '', lackSerial = 0, debugInvincible = false, openingGrace = 8, corpseLifetime = 90;
     let freeze = 0, slowmo = 0, impactScale = 1, attackSerial = 0, actionSerial = 0, evadeCooldown = 0, pairCd = 0;
     let drinkLeft = 0;   // seconds of the flask flourish still to play (also the double-press guard)
     let navigationBudget = 0;   // at most two searches per update, including slow-frame substeps; the player goes first
@@ -237,11 +259,13 @@
     encounterDefs.forEach((enc, ei) => {
       enc.spawns.forEach((s, si) => {
         const stats = STATS[s.type], model = BABA.Models.create(s.type);
+        const maxHp = Math.round(stats.hp * (s.type === 'boss' ? BALANCE.bossHealth : BALANCE.health));
         root.add(model.root);
+        guardRenderMatrices(model.root);
         const enemy = {
           id: enc.id + ':' + si, encounter: enc, index: enemies.length, type: s.type, name: stats.name,
           x: s.x, z: s.z, spawnX: s.x, spawnZ: s.z, face: Math.PI,
-          hp: stats.hp, maxHp: stats.hp, dead: false, model, boss: s.type === 'boss', phase: 1,
+          hp: maxHp, maxHp, dead: false, model, boss: s.type === 'boss', phase: 1,
           active: false, activated: false, cooldown: .4 + si * .33, action: null,
           radius: model.radius || stats.radius, stats, hurt: 0, stagger: 0,
           deadAge: 0, move: 0, buff: 0, buffCooldown: 7 + si, cycle: 0,
@@ -328,21 +352,22 @@
       clearHazards(); shudder(false); game.resetSerial++;
       if (limbs) limbs.reset(enemies);
       if (globes) globes.reset();
-      simTime = 0; buffer = {}; staminaDelay = 0; drinkLeft = 0; order = null; swingPlan = null; dodgeAim = null; pendingClick = null; showTargetRing(null); markA = 0;
+      simTime = 0; buffer = {}; staminaDelay = 0; drinkLeft = 0; order = null; swingPlan = null; dodgeAim = null; pendingClick = null; showTargetRing(null); clearMoveMark();
       dodgeAge = 0; forcedMotion = null; healingAge = 0; comboStep = 0; comboWindow = 0; spinCur = 0;
-      playerHitImmunity = 0; endAnnounced = false; hintCooldown = 0; openingGrace = snapshot.index ? 0 : 8;
+      playerHitImmunity = 0; endAnnounced = false; hintCooldown = 0; deniedCooldown = 0; deniedId = ''; lackSerial = 0; openingGrace = snapshot.index ? 0 : 8;
       freeze = 0; slowmo = 0; victims.length = 0; evadeCooldown = 0; game.hitStop = 0; game.timeScale = 1; pairCd = 0;
       aimFace = moveFace = assistFoe = null;
       Object.assign(player, {
         x: snapshot.x, z: snapshot.z, face: Math.PI, yaw: Math.PI, hp: player.maxHp, stamina: player.maxStamina,
-        rage: 0, flasks: player.maxFlasks, hitDirection: 0, dead: false, attack: null, dodge: 0,
+        flasks: player.maxFlasks, hitDirection: 0, dead: false, attack: null, dodge: 0,
         healing: 0, rageTime: 0, hurt: 0, stagger: 0, target: null, status: '', invulnerable: false,
-        push: null, staggerTotal: 0, hitAngle: 0, hurtHeavy: false, evade: 0, roar: null, rageFlash: 0, specialCd: 0, specialMax: SPECIAL.cooldown, lack: null, drink: 0
+        push: null, staggerTotal: 0, hitAngle: 0, hurtHeavy: false, evade: 0, roar: null, rageFlash: 0,
+        specialCd: 0, specialMax: SPECIAL.cooldown, rageCd: 0, rageMaxCd: ROAR.cooldown, rageMax: ROAR.time, lack: null, pendingAction: null, drink: 0
       });
       if (player.special) Object.assign(player.special, { active: false, t: 0, u: 0, tick: 0, spin: 0, serial: 0 });
       hero.root.visible = true; hero.root.position.set(player.x, 0, player.z); hero.root.rotation.y = player.yaw;
       game.kills = snapshot.kills; game.elapsed = snapshot.elapsed; game.checkpointIndex = snapshot.index;
-      game.lastDeath = null; game.currentRoom = null; game.activeEncounter = '';
+      game.lastDeath = null; game.currentRoom = null; game.activeEncounter = ''; game.attackTarget = null;
       const killed = new Set(snapshot.dead);
       encounterDefs.forEach(enc => { enc.activated = false; enc.announced = false; });
       enemies.forEach(enemy => {
@@ -401,7 +426,9 @@
         dead: enemies.filter(e => e.dead && !e.boss).map(e => e.id), kills: game.kills, elapsed: game.elapsed
       };
       game.checkpointIndex = 1;
-      player.hp = player.maxHp; player.stamina = player.maxStamina; player.flasks = player.maxFlasks; player.rage = 0;
+      player.hp = player.maxHp; player.stamina = player.maxStamina; player.flasks = player.maxFlasks;
+      player.specialCd = player.rageCd = 0;
+      game.attackTarget = null;
       if (globes) globes.reset();
       saveCheckpoint(); flashRing(checkpoint.x, checkpoint.z, 3.3, 0xf0d293, 1.4);
       sound('checkpoint'); emit('checkpoint', { index: 1, name: 'Celladın Eşiği' });
@@ -751,8 +778,8 @@
         { at: 1.0, warn: 1.0, shape: 'circle', radius: 5.5, dmg: 5, knockback: 5, style: 'roar', fill: 'radial', pose: 'roar', cancelOnStagger: false, parry: 'deflect' }] };
     }
     function kickMove() {
-      return { id: 'kick', name: 'Cellat Tekmesi', duration: 1.2, pose: 'kick', hits: [
-        { at: .55, warn: .55, shape: 'cone', radius: 2.6, arc: 1.9, dmg: 12, knockback: 5.5, parryStagger: 1.0, style: 'blunt', fill: 'forward', pose: 'kick' }] };
+      return { id: 'kick', name: 'Cellat Tekmesi', duration: 1.05, pose: 'kick', hits: [
+        { at: .5, warn: .5, shape: 'cone', radius: 2.6, arc: 1.9, dmg: 12, knockback: 5.5, parryStagger: 1.0, style: 'blunt', fill: 'forward', pose: 'kick' }] };
     }
     function slamMove(e, d, after) {
       const f = e.face, k = clamp(d, 3, 6), t = { x: e.x + Math.sin(f) * k, z: e.z + Math.cos(f) * k };
@@ -798,11 +825,11 @@
       if (e.phase !== 2) return pick(e, [
         { id: 'hook', sp: 1, ok: d > 6, w: 3, move: () => ({ id: 'hook', name: 'Kanca Atışı', duration: 2.1, pose: 'hookSwing', hits: [
           hookLine(e, d, 1.25, 1.0, 'Kanca Atışı', { onHitPlayer(h) { neckStrike(e, h.face); } })] }) },
-        { id: 'sweep', ok: d < 6, w: 3, move: () => ({ id: 'sweep', name: 'Celladın Biçişi', duration: 2.1, pose: 'sweep', hits: [
-          { at: 1.1, warn: 1.1, shape: 'cone', radius: 5.4, arc: 3.6, dmg: 26, knockback: 3, style: 'blade', fill: 'sweep', sweepDir: 1, parry: 'deflect', pose: 'sweep' }] }) },
+        { id: 'sweep', ok: d < 6, w: 3, move: () => ({ id: 'sweep', name: 'Celladın Biçişi', duration: 1.62, pose: 'sweep', hits: [
+          { at: .82, warn: .82, shape: 'cone', radius: 5.4, arc: 3.6, dmg: 26, knockback: 3, style: 'blade', fill: 'sweep', sweepDir: 1, parry: 'deflect', pose: 'sweep' }] }) },
         { id: 'slam', sp: 1, ok: d > 2.5 && d < 8, w: 2, move: () => slamMove(e, d, false) },
-        { id: 'lash', ok: d > 2.6 && d < 7.5, w: 2, move: () => ({ id: 'lash', name: 'Zincir Savuruşu', duration: 1.8, pose: 'chainLash', hits: [
-          { at: 1.0, warn: 1.0, shape: 'ring', inner: 2.8, radius: 7.2, arc: 2.6, dmg: 17, guardPressure: 1.6, style: 'chain', fill: 'sweep', sweepDir: -1, pose: 'chainLash' }] }) },
+        { id: 'lash', ok: d > 2.6 && d < 7.5, w: 2, move: () => ({ id: 'lash', name: 'Zincir Savuruşu', duration: 1.4, pose: 'chainLash', hits: [
+          { at: .8, warn: .8, shape: 'ring', inner: 2.8, radius: 7.2, arc: 2.6, dmg: 17, guardPressure: 1.6, style: 'chain', fill: 'sweep', sweepDir: -1, pose: 'chainLash' }] }) },
         { id: 'charge', ok: d > 7.5, w: 2, move: () => chargeMove(e, d, .95, false) },
         { id: 'kick', ok: d < 2.4, w: 2, move: kickMove }
       ]);
@@ -810,9 +837,9 @@
         { id: 'hook', sp: 1, ok: d > 6, w: 3, move: () => ({ id: 'hook', name: 'Kanca ve Biçme', duration: 3.1, pose: 'hookSwing', hits: [
           hookLine(e, d, 1.2, .95, 'Kanca ve Biçme · kanca'),
           { at: 2.3, warn: 1.0, shape: 'cone', radius: 5.2, arc: 3.6, dmg: 26, style: 'blade', fill: 'sweep', sweepDir: 1, parry: 'deflect', pose: 'sweep', attack: 'Kanca ve Biçme · savuruş' }] }) },
-        { id: 'sweep', ok: d < 6, w: 3, move: () => ({ id: 'sweep', name: 'Çifte Biçiş', duration: 2.7, pose: 'sweep', hits: [
-          { at: 1.05, warn: 1.05, shape: 'cone', radius: 5.4, arc: 3.6, dmg: 24, style: 'blade', fill: 'sweep', sweepDir: 1, parry: 'deflect', pose: 'sweep', attack: 'Çifte Biçiş · ilk' },
-          { at: 1.85, warn: .75, shape: 'cone', radius: 5.8, arc: 3.6, face: e.face + .5, dmg: 26, style: 'blade', fill: 'sweep', sweepDir: -1, parry: 'deflect', pose: 'sweepBack', attack: 'Çifte Biçiş · dönüş' }] }) },
+        { id: 'sweep', ok: d < 6, w: 3, move: () => ({ id: 'sweep', name: 'Çifte Biçiş', duration: 2.15, pose: 'sweep', hits: [
+          { at: .82, warn: .82, shape: 'cone', radius: 5.4, arc: 3.6, dmg: 24, style: 'blade', fill: 'sweep', sweepDir: 1, parry: 'deflect', pose: 'sweep', attack: 'Çifte Biçiş · ilk' },
+          { at: 1.5, warn: .62, shape: 'cone', radius: 5.8, arc: 3.6, face: e.face + .5, dmg: 26, style: 'blade', fill: 'sweep', sweepDir: -1, parry: 'deflect', pose: 'sweepBack', attack: 'Çifte Biçiş · dönüş' }] }) },
         { id: 'slam', sp: 1, ok: d > 2.5 && d < 8 && e.lastMove !== 'hooks', w: 2, move: () => slamMove(e, d, true) },
         { id: 'cyclone', sp: 1, ok: d < 7, w: 2, move: () => ({ id: 'cyclone', name: 'Zincir Kasırgası', duration: 3.2, pose: 'spin', cooldown: 1.9, hits: [1.2, 1.8, 2.4].map((at, i) => ({
           at, warn: i ? .6 : 1.2, shape: 'ring', inner: 2.4, radius: 6.2, arc: TAU, dmg: 11, guardPressure: 1.2, style: 'chain', fill: 'sweep', sweepDir: 1, pose: 'spin' })) }) },
@@ -963,10 +990,15 @@
       separateEnemies(enemy, dt);
     }
 
-    function killEnemy(enemy, rageScale = 1) {
+    // The upper target card follows attack intent/contact, independently of the cursor's hover ring.
+    function trackAttackTarget(enemy) {
+      if (game.state === 'playing' && enemy && !enemy.dead && enemy.model.root.visible) game.attackTarget = enemy;
+    }
+    function killEnemy(enemy) {
       if (enemy.dead) return;
       enemy.dead = true; enemy.hp = 0; enemy.deadAge = 0; enemy.action = null; enemy.shield = false; enemy.active = false; enemy.stagger = 0;
-      cancelHazards(enemy, false); game.kills++; player.rage = Math.min(player.maxRage, player.rage + (enemy.boss ? 0 : RAGE_GAIN.kill * (player.rageTime > 0 ? RAGE_HOLD : 1) * rageScale));
+      if (game.attackTarget === enemy) game.attackTarget = null;
+      cancelHazards(enemy, false); game.kills++;
       const seal = seals.find(seal => seal.encounter === enemy.encounter);
       if (seal && !seal.open && seal.encounter.enemies.every(e => e.dead)) {
         seal.open = true; sound('sealOpen');
@@ -987,6 +1019,7 @@
     // Returns { blocked, killed } so the strike can size hit-stop, sound and camera for the whole swing.
     function hurtEnemy(enemy, damage, heavy, attackFace, attack) {
       if (enemy.dead) return null;
+      if (attack) trackAttackTarget(enemy);
       const toPlayer = angleTo(enemy, player), fromFront = Math.abs(angleDifference(toPlayer, enemy.face)) < 1.4;
       const finisher = !!(attack && !heavy && attack.combo === 2), away = angleTo(player, enemy);
       const blocked = enemy.shield && fromFront && !heavy;
@@ -1013,17 +1046,15 @@
         }
         const canStagger = !enemy.boss && (breaksGuard || enemy.poiseRecovery <= 0 && (heavy || enemy.type === 'cultist' || (!enemy.action && enemy.type !== 'guard') || (attack && attack.rage && enemy.type !== 'guard')));
         if (canStagger) {
-          enemy.stagger = enemy.staggerTotal = heavy ? .8 : .32; enemy.staggerKind = breaksGuard ? 'guardBreak' : heavy ? 'heavy' : 'light';
+          enemy.stagger = enemy.staggerTotal = heavy ? .55 : .22; enemy.staggerKind = breaksGuard ? 'guardBreak' : heavy ? 'heavy' : 'light';
           enemy.action = null; enemy.faceLocked = false;
-          enemy.poiseRecovery = heavy ? 2.2 : .7;
+          enemy.poiseRecovery = heavy ? 3 : 1.1;
           enemy.cooldown = Math.max(enemy.cooldown, heavy ? .9 : .3); cancelHazards(enemy, true);
         }
         push(enemy, away, enemy.boss ? (heavy ? FEEL.knock.bossHeavy : FEEL.knock.boss) : heavy ? FEEL.knock.heavy : finisher ? FEEL.knock.finisher : FEEL.knock.light);
         if (breaksGuard) enemy.guardBroke = true;
       }
-      // Whirlwind scales the earned amount before the cap, so a nearly full bar can still reach 100.
-      const rageScale = attack && attack.whirl ? .3 : 1;
-      enemy.hp = Math.max(0, enemy.hp - damage); if (enemy.boss && !enemy.action) enemy.wrath += damage; player.rage = Math.min(player.maxRage, player.rage + rageScale * (player.rageTime > 0 ? RAGE_HOLD : 1) * (blocked ? RAGE_GAIN.blocked : heavy ? RAGE_GAIN.heavy : RAGE_GAIN.light));
+      enemy.hp = Math.max(0, enemy.hp - damage); if (enemy.boss && !enemy.action) enemy.wrath += damage;
       if (player.rageTime > 0 && !blocked && player.hp > 0) player.hp = Math.min(player.maxHp, player.hp + damage * ROAR.steal);   // blood fury: a little of every blow comes back
       const killed = enemy.hp <= 0;
       if (killed) enemy.deathKind = !enemy.boss && (heavy || finisher) ? 'blown' : '';
@@ -1032,24 +1063,26 @@
         hitstop: 0, impact: blocked ? .3 : heavy ? 1 : finisher ? .8 : .45 });
       fx(blocked ? 'spark' : 'blood', { x: contact.x, y: contact.y, z: contact.z, damage, labelTarget: enemy, heavy: heavy || finisher, face: attackFace, spray, kill: killed, boss: enemy.boss, shield: blocked, rage: !!(attack && attack.rage), braced });
       if (braced && !killed) fx('spark', { x: contact.x, y: contact.y + .2, z: contact.z, face: attackFace, glance: true });
-      if (killed) killEnemy(enemy, rageScale);
+      if (killed) killEnemy(enemy);
       else enemyPhaseChange(enemy);
       if (killed && limbs && !enemy.boss) {
         // Killing blows can sever a limb or the head (cosmetic only; the foe's own seeded rand keeps runs repeatable).
         const kind = attack && attack.whirl ? (attack.ticks >= SPECIAL.ticks ? 'whirlLast' : 'whirl') : heavy ? 'heavy' : finisher ? 'finisher' : 'light';
-        if (limbs.cut(enemy, kind, attackFace, () => rand(enemy), player)) hitStop(.06, [{ body: enemy, model: enemy.model, amp: .07 }]);
+        if (limbs.cut(enemy, kind, attackFace, () => rand(enemy), player)) hitStop(.025, [{ body: enemy, model: enemy.model, amp: .07 }]);
       }
       return { blocked, killed, guardBreak: !!enemy.guardBroke && (enemy.guardBroke = false, true), contact };
     }
     function die(enemyName, attackName) {
       if (game.state !== 'playing' || player.dead) return;
-      player.dead = true; player.hp = 0; player.attack = null; player.dodge = 0; player.healing = 0; order = null; showTargetRing(null);
+      player.dead = true; player.hp = 0; player.attack = null; player.dodge = 0; player.healing = 0; order = null; showTargetRing(null); clearMoveMark();
+      buffer = {}; player.pendingAction = null; player.lack = null; game.attackTarget = null;
       game.state = 'dead'; game.lastDeath = { enemy: enemyName, attack: attackName };
       sound('death'); emit('death', game.lastDeath);
     }
     function win() {
       if (endAnnounced) return;
-      endAnnounced = true; game.state = 'won'; clearHazards(); player.attack = null; order = null; showTargetRing(null);
+      endAnnounced = true; game.state = 'won'; clearHazards(); player.attack = null; order = null; showTargetRing(null); clearMoveMark();
+      buffer = {}; player.pendingAction = null; player.lack = null; game.attackTarget = null;
       // The chapter is finished: the next visit to the title starts a new journey instead of the pre-boss stone.
       removeSave(); checkpointSnapshot = freshSnapshot();
       emit('boss', { name: STATS.boss.name, active: false });
@@ -1059,13 +1092,13 @@
       if (game.state !== 'playing' || player.dead || debugInvincible || playerHitImmunity > 0) return false;
       if (player.invulnerable) {
         // A strike that passes through the roll's protection is shown, never silently swallowed.
-        if (!hazard.harmless && !hazard.periodic && evadeCooldown <= 0) { evadeCooldown = .35; player.rage = Math.min(player.maxRage, player.rage + RAGE_GAIN.evade * (player.rageTime > 0 ? RAGE_HOLD : 1)); fx('evade', { x: player.x, y: 1, z: player.z, face: player.face }); emit('evade', { x: player.x, z: player.z, attack: hazard.attack }); }
+        if (!hazard.harmless && !hazard.periodic && evadeCooldown <= 0) { evadeCooldown = .35; fx('evade', { x: player.x, y: 1, z: player.z, face: player.face }); emit('evade', { x: player.x, z: player.z, attack: hazard.attack }); }
         return false;
       }
       const attackSource = hazard.owner && !hazard.owner.dead ? hazard.owner : hazard;
       const incomingAngle = angleTo(player, attackSource);
       let damage = hazard.damage;
-      if (hazard.owner) damage = Math.round(damage * (hazard.owner.boss ? EASE.bossDamage : EASE.damage));
+      if (hazard.owner) damage = Math.round(damage * (hazard.owner.boss ? EASE.bossDamage : EASE.damage) * BALANCE.damage);
       // The display event and the wound use the same final amount after the cry/fury's defence.
       if (player.roar) damage = Math.ceil(damage * .5); else if (player.rageTime > 0) damage = Math.ceil(damage * ROAR.guard);
       player.hitAngle = angleDifference(incomingAngle, player.face);
@@ -1075,7 +1108,6 @@
         impact: heavyBlow ? 1 : .65, heavy: heavyBlow });
       if (damage <= 0) return false;
       player.hp = Math.max(0, player.hp - damage); player.hurt = 1; player.hurtHeavy = heavyBlow; player.hitDirection = Math.sin(incomingAngle - player.face); playerHitImmunity = .16;
-      player.rage = Math.min(player.maxRage, player.rage + damage * RAGE_GAIN.hurt * (player.rageTime > 0 ? RAGE_HOLD : 1));
       player.healing = 0; healingAge = 0;
       // Hurt never steals dodge input.
       sound('hurt'); fx('blood', { x: player.x + Math.sin(incomingAngle) * .3, y: 1.25, z: player.z + Math.cos(incomingAngle) * .3, player: true, damage, labelTarget: player, face: incomingAngle + Math.PI, spray: incomingAngle + Math.PI, heavy: heavyBlow });
@@ -1155,44 +1187,99 @@
       for (const key of Object.keys(buffer)) { buffer[key] -= dt; if (buffer[key] <= 0) delete buffer[key]; }
       holdInput(input);
     }
-    // Presses are remembered for FEEL.buffer seconds. An attack pressed during a swing is queued
-    // and fires at the chain point, so mashing or rhythm both land the full combo.
+    // Attack presses use the short combo buffer. Abilities keep a valid press until the current
+    // committed movement/animation ends; a .22 s buffer must not swallow a press during a .70 s swing.
+    // This only waits for an action already in progress, never for an empty resource bar or a long cooldown.
+    function actionWait(key) {
+      if (key === 'dodge') return Math.max(0, player.dodge - .03, player.roar && !player.roar.released ? ROAR.release - player.roar.age : 0);
+      if (key === 'rage') return Math.max(0, player.dodge, player.roar ? ROAR.duration - player.roar.age : 0);
+      if (key === 'heal') return Math.max(0, player.stagger);
+      if (key === 'special') return Math.max(0, player.dodge, player.stagger, player.healing,
+        player.attack ? player.attack.duration - player.attack.age : 0, player.roar ? ROAR.duration - player.roar.age : 0);
+      return 0;
+    }
+    const actionNames = { dodge: 'Kaçınma', special: 'Girdap', rage: 'Kan Öfkesi', heal: 'İksir' };
+    const secondsText = seconds => (Math.ceil(seconds * 10) / 10).toFixed(1).replace('.', ',');
+    function rejectAction(key, reason, text, details) {
+      delete buffer[key]; lack(key, reason, text, details); deny(text, key + ':' + reason); return false;
+    }
+    function canQueueAbility(key) {
+      if (key === 'special' && player.specialCd > FEEL.buffer) return rejectAction(key, 'cooldown',
+        'Girdap yeniden hazırlanıyor: ' + secondsText(player.specialCd) + ' sn.', { remaining: player.specialCd });
+      if (key === 'rage') {
+        if (player.rageTime > 0 || player.roar) return rejectAction(key, 'active', 'Kan Öfkesi zaten etkin.', { remaining: player.rageTime });
+        if (player.rageCd > FEEL.buffer) return rejectAction(key, 'cooldown',
+          'Kan Öfkesi yeniden hazırlanıyor: ' + secondsText(player.rageCd) + ' sn.', { remaining: player.rageCd });
+      }
+      if (key === 'heal') {
+        if (!player.flasks) return rejectAction(key, 'empty', 'Şifa mataraların boş.');
+        if (player.hp >= player.maxHp) return rejectAction(key, 'full', 'Yaraların zaten kapalı.');
+      }
+      const cost = key === 'special' ? SPECIAL.cost : key === 'rage' ? ROAR.cost : key === 'dodge' ? DODGE.cost : 0;
+      if (cost && player.stamina < cost) return rejectAction(key, 'stamina',
+        actionNames[key] + ' için ' + cost + ' dayanıklılık gerekiyor (şu an ' + Math.floor(player.stamina) + ').', { cost, have: player.stamina });
+      return true;
+    }
     function holdInput(input) {
-      ['light', 'heavy', 'near', 'dodge', 'heal', 'rage', 'special'].forEach(key => { if (input[key]) buffer[key] = FEEL.buffer; });
+      for (const key of ['light', 'heavy', 'near', 'dodge', 'heal', 'rage', 'special']) {
+        if (!input[key] || !canQueueAbility(key)) continue;
+        buffer[key] = Math.max(FEEL.buffer, actionWait(key) + FEEL.buffer);
+      }
       const attack = player.attack;
       if (attack && (input.light || input.heavy) && attack.age >= FEEL.queueAfter) attack.queued = input.heavy ? 'heavy' : 'light';
     }
-    function deny(text) {
-      if (hintCooldown <= 0) { emit('toast', { text }); hintCooldown = 2; }
+    function pendingAction() {
+      player.pendingAction = null;
+      for (const key of ['dodge', 'rage', 'heal', 'special']) {
+        if (!buffer[key]) continue;
+        const wait = actionWait(key), cooldown = key === 'special' ? player.specialCd || 0 : key === 'rage' ? player.rageCd || 0 : 0;
+        if (wait > 0 || cooldown > 0) {
+          const reason = cooldown > wait ? 'cooldown' : player.dodge ? 'dodge' : player.stagger > 0 ? 'stagger' : player.roar ? 'rage' : 'attack';
+          player.pendingAction = { key, reason, wait: Math.max(wait, cooldown) }; return;
+        }
+      }
+    }
+    function deny(text, id = text) {
+      // Suppress repeats of the same failure, but always explain a different button/reason.
+      if (deniedCooldown <= 0 || id !== deniedId) { emit('toast', { text }); deniedCooldown = 1.5; deniedId = id; }
     }
     function beginDodge(input) {
-      if (player.stamina < DODGE.cost) { lack('dodge'); deny('Kaçınmak için dayanıklılık gerekiyor.'); return false; }
+      if (player.stamina < DODGE.cost) return rejectAction('dodge', 'stamina',
+        'Kaçınma için ' + DODGE.cost + ' dayanıklılık gerekiyor (şu an ' + Math.floor(player.stamina) + ').', { cost: DODGE.cost, have: player.stamina });
       // Direction: the keys held (the real ones, not an auto-approach), else the pad's right stick, else the cursor / target of a click order, else the facing.
-      const raw = rawInput || input, len = Math.hypot(raw.x || 0, raw.z || 0);
-      if (len > .1) dodgeVector = { x: raw.x / len, z: raw.z / len };
+      const raw = rawInput || input, rx = Number.isFinite(raw.x) ? raw.x : 0, rz = Number.isFinite(raw.z) ? raw.z : 0, len = Math.hypot(rx, rz);
+      if (len > .1) dodgeVector = { x: rx / len, z: rz / len };
       else if (Number.isFinite(raw.pointX) && Number.isFinite(raw.pointZ) && Math.hypot(raw.pointX - player.x, raw.pointZ - player.z) > .4) { const d = Math.hypot(raw.pointX - player.x, raw.pointZ - player.z); dodgeVector = { x: (raw.pointX - player.x) / d, z: (raw.pointZ - player.z) / d }; }   // Diablo IV: the roll goes toward the mouse cursor
       else if (aimFace !== null) dodgeVector = { x: Math.sin(aimFace), z: Math.cos(aimFace) };
       else if (dodgeAim !== null) dodgeVector = { x: Math.sin(dodgeAim), z: Math.cos(dodgeAim) };
       else dodgeVector = { x: Math.sin(player.face), z: Math.cos(player.face) };
       if (order && !order.held) order = null;   // a roll ends a one-shot order (a held button keeps going once the roll is over)
-      player.stamina -= DODGE.cost; staminaDelay = .62; player.dodge = .48; dodgeAge = 0; player.invulnerable = true;
+      clearLack('dodge'); player.stamina -= DODGE.cost; staminaDelay = .62; player.dodge = .48; dodgeAge = 0; player.invulnerable = true;
+      // Two presses may share a frame. The roll starts after queuing, so retain accepted skills for this new commitment too.
+      for (const key of ['rage', 'special']) if (buffer[key]) buffer[key] = Math.max(buffer[key], player.dodge + FEEL.buffer);
       player.attack = null; player.healing = 0; player.stagger = 0; healingAge = 0; forcedMotion = null; player.push = null;
       player.face = Math.atan2(dodgeVector.x, dodgeVector.z); comboStep = 0; comboWindow = 0;
       delete buffer.dodge; emit('dodge', { x: player.x, z: player.z }); sound('dodge');
       fx('dodge', { x: player.x, y: .1, z: player.z, face: player.face }); return true;
     }
-    // HUD hint: the slot `key` was pressed without enough stamina (hud.js pulses it red on a new serial).
-    function lack(key) { player.lack = { key, serial: ((player.lack && player.lack.serial) || 0) + 1 }; }
+    // The HUD pulses the requested slot; reason distinguishes resource shortages from cooldowns.
+    function lack(key, reason = 'stamina', text = '', details = {}) {
+      // A success can clear p.lack between HUD refreshes. Keep new reasons distinguishable without observing that null.
+      player.lack = Object.assign({ key, reason, text, serial: ++lackSerial }, details);
+    }
+    function clearLack(key) { if (player.lack && player.lack.key === key) player.lack = null; }
     // ---- special ability: Zincir Girdabı (whirlwind). player.attack.whirl is the state; whirlStep runs the ticks from updatePlayer.
     function beginSpecial(hasAim) {
-      if (player.specialCd > 0) { lack('special'); return false; }
-      if (player.stamina < SPECIAL.cost) { lack('special'); deny('Girdap için dayanıklılık gerekiyor.'); return false; }
+      if (player.specialCd > 0) return false;   // a press in the final .22 s waits for readiness
+      if (player.stamina < SPECIAL.cost) return rejectAction('special', 'stamina',
+        'Girdap için ' + SPECIAL.cost + ' dayanıklılık gerekiyor (şu an ' + Math.floor(player.stamina) + ').', { cost: SPECIAL.cost, have: player.stamina });
       player.attack = {
         heavy: true, special: true, whirl: true, combo: 0, age: 0, duration: SPECIAL.duration, strike: 99, hit: false, face: player.face, damage: SPECIAL.damage,
         radius: SPECIAL.radius, arc: Math.PI * 2, moveUntil: 0, serial: ++attackSerial, queued: null, lunge: 0, lungeLead: .1, lunged: 1,
         whooshAt: 9, whooshed: true, chainAt: SPECIAL.duration, ticks: 0
       };
-      player.stamina -= SPECIAL.cost; staminaDelay = 1.0; player.specialCd = player.specialMax = SPECIAL.cooldown;
+      clearLack('special'); player.stamina -= SPECIAL.cost; staminaDelay = 1.0; player.specialCd = player.specialMax = SPECIAL.cooldown;
+      trackAttackTarget(frontTarget(player.face, SPECIAL.radius, Math.PI));
       player.healing = 0; comboStep = 0; comboWindow = 0;
       delete buffer.special; delete buffer.heavy; delete buffer.light;
       sound('specialWind', { x: player.x, z: player.z, wind: SPECIAL.first });
@@ -1231,7 +1318,7 @@
       }
       shudder.push({ body: player, model: hero, amp: last ? .03 : .015 });
       attack.face = keepFace;
-      hitStop(hits ? (last ? .09 : .035) + (kills ? .02 : 0) : 0, shudder);
+      hitStop(hits ? (last ? .025 : .012) + (kills ? .02 : 0) : 0, shudder);
       sound('specialHit', { x: player.x, z: player.z, hits });
       fx('whirlTick', { x: player.x, y: .1, z: player.z, face: attack.face, n, last, hits, radius: R });
       emit('impact', { x: player.x, z: player.z, strength: last ? 1 : .22 + .12 * n, radius: R });
@@ -1249,8 +1336,9 @@
     }
     const ASSIST = { range: 3.6, arc: 50 * Math.PI / 180, near: 4.4 };   // attack key / pad button: reach (to the foe's edge) and half-angle of the front cone (near = the touch button, any direction)
     function beginAttack(heavy, hasAim) {
-      const cost = heavy ? 34 : 13;
-      if (player.stamina < cost) { lack(heavy ? 'heavy' : 'light'); deny('Dayanıklılık tükendi. Bir nefes al.'); return false; }
+      const cost = RESOURCES.costs[heavy ? 'heavy' : 'light'];
+      if (player.stamina < cost) return rejectAction(heavy ? 'heavy' : 'light', 'stamina',
+        (heavy ? 'Ağır' : 'Hafif') + ' darbe için ' + cost + ' dayanıklılık gerekiyor (şu an ' + Math.floor(player.stamina) + ').', { cost, have: player.stamina });
       const combo = heavy ? 0 : comboWindow > 0 ? comboStep % 3 : 0;
       const durations = [.51, .56, .68], timings = [.20, .23, .29], damages = [25, 29, 36];
       // Who is hit and where the blow goes. A click order (swingPlan) names its foe, or a stand swing (Shift + click) its direction: the cursor. The attack key /
@@ -1285,7 +1373,8 @@
         chainAt: heavy ? duration : duration - (combo === 2 ? FEEL.finisherChainEarly : FEEL.chainEarly)
       };
       if (heavy) Object.assign(player.attack, { duration: HEAVY.duration, strike: HEAVY.strike, chainAt: HEAVY.duration, whooshAt: 0, lungeLead: HEAVY.lungeLead });
-      player.stamina -= cost; staminaDelay = heavy ? .75 : .5;
+      trackAttackTarget(foe);
+      clearLack(heavy ? 'heavy' : 'light'); player.stamina -= cost; staminaDelay = heavy ? .75 : .5;
       player.healing = 0; comboStep = heavy ? 0 : combo + 1; comboWindow = .85;
       if (plan && plan.order) { plan.order.owed = false; if (!plan.order.held && order === plan.order) order = null; }   // a one-shot click order is spent by its swing
       swingPlan = null;
@@ -1329,16 +1418,23 @@
     }
     // ------------------------------------------------------------------ war cry (Öfke)
     function startWarCry() {
-      player.rage = 0; player.attack = null; player.healing = 0; healingAge = 0; comboStep = 0; comboWindow = 0;
+      if (player.rageCd > 0) return false;   // a press in the final .22 s waits for readiness
+      if (player.stamina < ROAR.cost) return rejectAction('rage', 'stamina',
+        'Kan Öfkesi için ' + ROAR.cost + ' dayanıklılık gerekiyor (şu an ' + Math.floor(player.stamina) + ').', { cost: ROAR.cost, have: player.stamina });
+      clearLack('rage'); player.stamina -= ROAR.cost; staminaDelay = 1; player.rageCd = ROAR.cooldown;
+      player.attack = null; player.healing = 0; healingAge = 0; comboStep = 0; comboWindow = 0;
       player.roar = { age: 0, released: false, serial: ++attackSerial, gather: ROAR.release };
+      delete buffer.rage;
+      if (buffer.special) buffer.special = Math.max(buffer.special, ROAR.duration + FEEL.buffer);
       sound('rage', { x: player.x, z: player.z, warCry: true, release: ROAR.release }); emit('rageStart', { x: player.x, z: player.z });
       fx('warCryGather', { x: player.x, y: 1.2, z: player.z, face: player.face, life: ROAR.release });
+      return true;
     }
     // The roar goes out: a shockwave through the floor staggers the nearest foes (their unfired tells break),
     // cows the rest for a moment and the executioner flinches. A short hit-stop sells the moment (no slow motion: the roar stays quick).
     function releaseWarCry() {
-      player.rageTime = ROAR.time; player.rageMax = ROAR.time; player.rageFlash = 1; player.stamina = Math.min(player.maxStamina, player.stamina + 40);
-      hitStop(.07, [{ body: player, model: hero, amp: .024 }]);
+      player.rageTime = ROAR.time; player.rageMax = ROAR.time; player.rageFlash = 1;
+      hitStop(.025, [{ body: player, model: hero, amp: .024 }]);
       emit('rage', { x: player.x, z: player.z, face: player.face });
       emit('impact', { x: player.x, z: player.z, strength: .85, radius: ROAR.near });
       fx('warCry', { x: player.x, y: .05, z: player.z, face: player.face, radius: ROAR.near, far: ROAR.far });
@@ -1380,6 +1476,7 @@
         if (click.stand) order = { kind: 'stand', heavy: click.heavy, x: cx, z: cz, owed: true };
         else if (t) order = { kind: 'attack', enemy: t, heavy: click.heavy, owed: true };
         else if (!click.heavy && Number.isFinite(click.x)) order = { kind: 'move', x: click.x, z: click.z };
+        if (t) trackAttackTarget(t);
         if (order) order.stuck = 0;
       }
       const btn = holdL ? 'L' : holdH ? 'H' : '';
@@ -1387,10 +1484,13 @@
       if (btn && !click) {
         if (stand) {
           if (!order || order.kind !== 'stand' || order.heavy !== (btn === 'H')) order = { kind: 'stand', heavy: btn === 'H', owed: true, stuck: 0 };
+          if (hover) trackAttackTarget(hover);
           order.held = true;
         } else if (hover) {
           const heavy = btn === 'H';
-          if (!order || order.kind !== 'attack' || order.heavy !== heavy || order.enemy !== hover) order = { kind: 'attack', enemy: hover, heavy, owed: true, stuck: 0 };
+          if (!order || order.kind !== 'attack' || order.heavy !== heavy || order.enemy !== hover) {
+            order = { kind: 'attack', enemy: hover, heavy, owed: true, stuck: 0 }; trackAttackTarget(hover);
+          }
           order.held = true;
         } else if (btn === 'L' && hasPt) {
           if (!order || order.kind !== 'move') order = { kind: 'move', stuck: 0 };
@@ -1438,13 +1538,31 @@
       showMoveMark(order && order.kind === 'move' && Number.isFinite(order.x) ? order : null, dt);
       return out;
     }
+    function ensureMoveMark() {
+      if (!moveMark) {
+        moveMark = new THREE.Mesh(new THREE.RingGeometry(.84, 1, 40), new THREE.MeshBasicMaterial({ color: 0xffb070, transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, fog: false }));
+        moveMark.rotation.x = -Math.PI / 2; moveMark.renderOrder = 2; moveMark.name = 'MoveMark'; moveMark.visible = false; root.add(moveMark);
+      }
+    }
+    function ensureTargetRing() {
+      if (!targetRing) {
+        targetRing = new THREE.Mesh(new THREE.RingGeometry(.9, 1, 56), new THREE.MeshBasicMaterial({ color: 0xff8a3c, transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, fog: false }));
+        targetRing.rotation.x = -Math.PI / 2; targetRing.renderOrder = 3; targetRing.name = 'TargetRing'; targetRing.visible = false; root.add(targetRing);
+      }
+    }
+    function clearMoveMark() { markA = 0; if (moveMark) moveMark.visible = false; }
+    // The loader compiles/uploads these invisible meshes before the first hover or click; lazy calls remain valid.
+    function prepareGraphics() {
+      if (disposed) return false;
+      ensureMoveMark(); ensureTargetRing();
+      return true;
+    }
     // A faint small ring on the floor where a click-to-move order is heading; it fades out once the hero arrives or the order ends.
     function showMoveMark(o, dt) {
       if (o) { markX = o.x; markZ = o.z; markA = Math.min(1, markA + dt * 4); } else markA = Math.max(0, markA - dt * 2.2);
       if (!moveMark) {
         if (markA <= 0) return;
-        moveMark = new THREE.Mesh(new THREE.RingGeometry(.84, 1, 40), new THREE.MeshBasicMaterial({ color: 0xffb070, transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, fog: false }));
-        moveMark.rotation.x = -Math.PI / 2; moveMark.renderOrder = 2; moveMark.name = 'MoveMark'; moveMark.visible = false; root.add(moveMark);
+        ensureMoveMark();
       }
       moveMark.visible = markA > .01;
       if (!moveMark.visible) return;
@@ -1457,8 +1575,7 @@
       player.target = foe || null;
       if (!targetRing) {
         if (!foe) return;
-        targetRing = new THREE.Mesh(new THREE.RingGeometry(.9, 1, 56), new THREE.MeshBasicMaterial({ color: 0xff8a3c, transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, fog: false }));
-        targetRing.rotation.x = -Math.PI / 2; targetRing.renderOrder = 3; targetRing.name = 'TargetRing'; targetRing.visible = false; root.add(targetRing);
+        ensureTargetRing();
       }
       targetRing.visible = !!foe;
       if (!foe) return;
@@ -1468,7 +1585,7 @@
     }
     function updatePlayer(dt, input) {
       input = steerOrders(input, dt);
-      queueInput(input, dt); hintCooldown = Math.max(0, hintCooldown - dt); evadeCooldown = Math.max(0, evadeCooldown - dt);
+      queueInput(input, dt); hintCooldown = Math.max(0, hintCooldown - dt); deniedCooldown = Math.max(0, deniedCooldown - dt); evadeCooldown = Math.max(0, evadeCooldown - dt);
       player.hurt = Math.max(0, player.hurt - dt * 3.5);
       playerHitImmunity = Math.max(0, playerHitImmunity - dt);
       player.stagger = Math.max(0, player.stagger - dt);
@@ -1483,7 +1600,8 @@
         if (!r.released && r.age >= ROAR.release) { r.released = true; releaseWarCry(); }
         if (r.age >= ROAR.duration) player.roar = null;
       }
-      player.specialCd = Math.max(0, (player.specialCd || 0) - dt); player.drink = drinkLeft;
+      player.specialCd = Math.max(0, (player.specialCd || 0) - dt);
+      player.rageCd = Math.max(0, (player.rageCd || 0) - dt); player.drink = drinkLeft;
       staminaDelay = Math.max(0, staminaDelay - dt); comboWindow = Math.max(0, comboWindow - dt);
       const moveLength = Math.hypot(input.x || 0, input.z || 0);
       // Only the pad's right stick can aim (a stand swing, a roll from standing); it never turns the hero by itself.
@@ -1496,11 +1614,11 @@
         else if (moveLength > .08) player.face = Math.atan2(input.x, input.z);
       }
       // A roll may cut the war cry short, but only once its shockwave has gone out.
-      if (buffer.dodge && player.dodge <= .03 && player.stamina >= DODGE.cost && (!player.roar || player.roar.released)) { player.roar = null; beginDodge(input); }
+      if (buffer.dodge && player.dodge <= .03 && (!player.roar || player.roar.released)) {
+        if (beginDodge(input)) player.roar = null;
+      }
       if (buffer.rage && player.rageTime <= 0 && !player.roar && !player.dodge) {
-        if (player.rage >= player.maxRage) startWarCry();
-        else deny('Öfke henüz dolmadı.');
-        delete buffer.rage;
+        if (player.rageCd <= 0) startWarCry();
       }
       // Flask: instant. The heal lands on the press and nothing is locked (player.healing, the old .82 s drink, is no longer set), so it
       // works mid-swing, mid-roll or during the roar.
@@ -1511,7 +1629,7 @@
         else if (!player.flasks) deny('Şifa mataraların boş.');
         else if (player.hp >= player.maxHp) deny('Yaraların zaten kapalı.');
         else {
-          player.flasks--; player.hp = Math.min(player.maxHp, player.hp + 64); drinkLeft = DRINK;
+          clearLack('heal'); player.flasks--; player.hp = Math.min(player.maxHp, player.hp + 64); drinkLeft = DRINK;
           emit('heal', { hp: player.hp, flasks: player.flasks }); sound('healStart'); sound('heal');
           flashRing(player.x, player.z, 1.3, 0xd7bf88, .6);
         }
@@ -1524,8 +1642,9 @@
       } else {
         player.invulnerable = false;
         if (!player.attack && !player.healing && !player.roar && player.stagger <= 0) {
-          if (buffer.special) { const ok = beginSpecial(hasAim); if (!ok) delete buffer.special; }
+          if (buffer.special && player.specialCd <= 0) beginSpecial(hasAim);
           if (player.attack) { /* special just began */ }
+          else if (buffer.special) { /* finishing its short readiness buffer: retain the press */ }
           else if (swingPlan) beginAttack(swingPlan.heavy, hasAim);
           else if (buffer.heavy) beginAttack(true, hasAim);
           else if (buffer.light) beginAttack(false, hasAim);
@@ -1543,11 +1662,13 @@
           }
           if (!attack.hit && attack.age >= attack.strike) playerStrike(attack);
           if (attack.whirl && player.attack === attack) whirlStep(attack, input, moveLength);
-          if (player.attack === attack && attack.queued && attack.age >= attack.chainAt) {
+          if (player.attack === attack && attack.queued && !buffer.special && attack.age >= attack.chainAt) {
             const next = attack.queued === 'heavy'; player.attack = null; comboWindow = Math.max(comboWindow, .46); beginAttack(next, hasAim);
           } else if (player.attack === attack && attack.age >= attack.duration) {
             player.attack = null; comboWindow = .46;
-            if (swingPlan) beginAttack(swingPlan.heavy, hasAim);
+            if (buffer.special && player.specialCd <= 0) beginSpecial(hasAim);
+            else if (buffer.special) { /* let the already requested ability become ready */ }
+            else if (swingPlan) beginAttack(swingPlan.heavy, hasAim);
             else if (buffer.heavy) beginAttack(true, hasAim);
             else if (buffer.light) beginAttack(false, hasAim);
           }
@@ -1572,6 +1693,7 @@
         player.stamina = Math.min(player.maxStamina, player.stamina + REGEN * (player.rageTime > 0 ? 1.65 : 1) * dt);
       }
       player.status = player.healing ? 'Şifa içiliyor' : player.roar ? 'Savaş narası' : player.rageTime > 0 ? 'Kan öfkesi' : '';
+      pendingAction();
       player.move = player.dodge ? 1 : Math.min(1, moveLength) * (player.attack ? .5 : 1);
       if (input.interact) interact();
     }
@@ -1730,7 +1852,8 @@
         // Hit-stop: every combat clock holds together; presses made now are buffered for the next frame.
         const held = Math.min(freeze, dt); freeze -= held; dt -= held;
         if (game.state === 'playing') { holdInput(input); if (input.clickLight || input.clickHeavy) pendingClick = { heavy: !!input.clickHeavy, target: input.target, x: input.pointX, z: input.pointZ, stand: !!input.stand }; }
-        input = Object.assign({}, input, { light: false, heavy: false, near: false, clickLight: false, clickHeavy: false, dodge: false, heal: false, rage: false });
+        input = Object.assign({}, input, { light: false, heavy: false, near: false, clickLight: false, clickHeavy: false, dodge: false, heal: false, rage: false, special: false });
+        pendingAction();
         shudder(freeze > 0); game.hitStop = freeze;
         if (dt <= .00001) return;
       }
@@ -1744,7 +1867,7 @@
       let remaining = dt, first = true;
       while (remaining > .00001 && game.state === 'playing') {
         const substep = Math.min(remaining, 1 / 60);
-        const frameInput = first ? input : Object.assign({}, input, { light: false, heavy: false, near: false, clickLight: false, clickHeavy: false, dodge: false, heal: false, rage: false, interact: false });
+        const frameInput = first ? input : Object.assign({}, input, { light: false, heavy: false, near: false, clickLight: false, clickHeavy: false, dodge: false, heal: false, rage: false, special: false, interact: false });
         step(substep, frameInput); first = false; remaining -= substep;
         if (freeze > 0) { freeze = Math.max(0, freeze - remaining); break; }
       }
@@ -1752,6 +1875,14 @@
     }
     function dispose() {
       if (disposed) return; disposed = true;
+      renderTraversal = false;
+      for (const { node, guard, descriptor } of matrixGuards) {
+        if (node.updateMatrixWorld !== guard) continue;
+        if (descriptor) Object.defineProperty(node, 'updateMatrixWorld', descriptor);
+        else delete node.updateMatrixWorld;
+      }
+      matrixGuards.length = 0;
+      game.attackTarget = null;
       clearHazards();
       if (limbs) limbs.dispose();
       if (globes) globes.dispose();
@@ -1772,19 +1903,20 @@
       snapshot() {
         return {
           state: game.state, checkpointIndex: game.checkpointIndex, elapsed: game.elapsed, kills: game.kills, totalKills: game.totalKills,
-          player: { x: player.x, z: player.z, hp: player.hp, stamina: player.stamina, flasks: player.flasks, rage: player.rage, invulnerable: player.invulnerable },
+          player: { x: player.x, z: player.z, hp: player.hp, stamina: player.stamina, flasks: player.flasks,
+            rageTime: player.rageTime, rageCd: player.rageCd, specialCd: player.specialCd, invulnerable: player.invulnerable },
           living: enemies.filter(e => !e.dead).map(e => ({ id: e.id, type: e.type, hp: e.hp, active: e.active, x: e.x, z: e.z, phase: e.phase, action: e.action && e.action.attack })),
           hazards: hazards.map(h => ({ enemy: h.enemy, attack: h.attack, shape: h.shape, x: h.x, z: h.z, warn: h.warn, age: h.age, active: h.active, unblockable: h.unblockable })),
           seals: seals.map(seal => ({ room: seal.encounter.room, open: seal.open, remaining: seal.encounter.enemies.filter(e => !e.dead).length })),
           openingGrace,
-          lastDeath: game.lastDeath, sceneChildren: root.children.length, hasSave: game.hasSave
+          lastDeath: game.lastDeath, attackTarget: game.attackTarget ? game.attackTarget.id : null, sceneChildren: root.children.length, hasSave: game.hasSave
         };
       },
       teleport(x, z) { if (Number.isFinite(x) && Number.isFinite(z) && (!world.isWalkable || world.isWalkable(x, z, .5))) { player.x = x; player.z = z; animateAll(0); return true; } return false; },
       invincible(value) { debugInvincible = !!value; return debugInvincible; },
       setPlayer(values) {
         if (!values || typeof values !== 'object') return;
-        ['hp', 'stamina', 'rage', 'flasks'].forEach(key => { if (Number.isFinite(values[key])) player[key] = clamp(values[key], key === 'hp' ? 1 : 0, player['max' + key[0].toUpperCase() + key.slice(1)] || 125); });
+        ['hp', 'stamina', 'flasks'].forEach(key => { if (Number.isFinite(values[key])) player[key] = clamp(values[key], key === 'hp' ? 1 : 0, player['max' + key[0].toUpperCase() + key.slice(1)] || 125); });
       },
       activateBoss() {
         if (!game.boss || game.boss.dead) return false;
@@ -1806,5 +1938,5 @@
     });
     return game;
   }
-  BABA.Game = { create };
+  BABA.Game = Object.defineProperty({ create }, 'resources', { value: RESOURCES, enumerable: true });
 }());

@@ -21,8 +21,8 @@ Gerekenler: Python 3.9+, `pip install edge-tts`, ffmpeg + ffprobe
 İndirilen paketler ve TTS kayıtları proje dışında önbelleğe alınır:
   $KARA_AUDIO_CACHE  ya da  ~/.cache/kara-gecit-audio
 Anlatıcı sesi: edge-tts tr-TR-AhmetNeural. Varsayılan N stili her kaydı bütün cümleler halinde seslendirir:
-doğal Türkçe vurgu ve sözcük geçişleri korunur, tempo -7%, ton -2 Hz'dir. Baş/son sessizliği kırpılır;
-hafif eşitleme, sibilans denetimi, ölçülü sıkıştırma ve çok kısa oda yansıması uygulanır; -16 LUFS.
+doğal Türkçe vurgu ve sözcük geçişleri korunur, tempo -4%, perde doğal (0 Hz) kalır. Baş/son sessizliği kırpılır;
+hafif eşitleme, sibilans denetimi ve ölçülü sıkıştırma uygulanır; -16 LUFS. Konuşmaya yankı eklenmez.
 Formant düşürme, yapay fısıltı ve her cümlenin sonunu ayrıca yavaşlatma kullanılmaz. Bahtiyar (H) ve
 Zincir Celladı (E) aynı sesi hafif tempo/ton farkıyla kullanır; farklı gerçek oyuncularmış gibi sunulmaz.
 Eski A/B/C işleme adayları karşılaştırma için korunur. `voice --style N|A|B|C` anlatıcı stilini seçer;
@@ -34,7 +34,7 @@ kaydedilmiş çığlık ve zorlanmalardır. `ambient` mevcut darbe bankasını k
 Metni değiştirilen bir cümle için: LINES içinde düzelt, sonra `voice --only anahtar` çalıştır.
 Taşınabilir araç yolları KABIR_FFMPEG/KABIR_FFPROBE ile verilebilir; ffprobe yoksa ffmpeg ölçer.
 """
-import asyncio, base64, hashlib, json, os, re, shutil, subprocess, sys, tempfile, urllib.request, zipfile
+import array, asyncio, base64, hashlib, json, os, re, shutil, subprocess, sys, tempfile, urllib.request, zipfile
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT_JS = os.path.join(ROOT, 'src', 'narration.js')
@@ -50,23 +50,23 @@ FFPROBE = os.environ.get('KABIR_FFPROBE') or shutil.which('ffprobe')
 #   rot: Kemik Geçidi (oda 4)             checkpoint: Sessiz Şapel / yemin taşı
 #   boss: Zincir Mahkemesi / cellat       seal: ilk mühür açılınca (audio.js)
 #   death, death2, death3: ölüm ekranı (sırayla)   win: bölüm sonu
-# Anlatıcı çatışma sırasında susar; bu yüzden cümleler kısa tutulur.
+# Yeni konuşma çatışmada başlamaz; başlamış cümle, oda değişse de tamamlanır.
 # ---------------------------------------------------------------------------
 LINES = {
     'intro':      'Bu tapınakta ölüm bir son değil. Celladın zinciri kırılmadan kimse mezarında kalamıyor.',
-    'chains':     'Bu nöbetçiler celladın ilk kurbanlarıydı. Boyunlarındaki zincir, onları hâlâ onun emrine bağlıyor.',
-    'ritual':     'Yaralıları buraya iyileştirmek için getirdiler. Rahipler, acılarını ayini beslemek için kullandı.',
+    'chains':     'Bu nöbetçiler celladın ilk kurbanlarıydı. Boyunlarındaki zincir onları bugün bile celladın emrinde tutuyor.',
+    'ritual':     'Yaralıları buraya iyileşsinler diye getirdiler. Rahipler onların acısıyla ayini besledi.',
     'crypt':      'Sunağa dökülen kan, cellada güç veriyor. Bu ayin bitmeden tapınak susmayacak.',
-    'rot':        'Bu kemikler mezarlarından söküldü. Geçidin taşına harç, celladın zincirine mühür oldular.',
+    'rot':        'Bu kemikler mezarlarından söküldü. Geçidin taşlarına harç oldular. Celladın zincirini ayakta tutuyorlar.',
     'checkpoint': 'Yemin taşı seni hatırlayacak. Canını tazele. Sonraki kapının ardında cellat var.',
-    'boss':       'Bu hüküm cellatla yaşıyor. Zincirini kır.',
+    'boss':       'Bu laneti cellat ayakta tutuyor. Zincirini kır.',
     'heroOath':   'Onları burada bırakmayacağım.',
     'cellat':     'Bu kapıdan kimse geçemez.',
     'seal':       'Zincirin bir halkası daha koptu. İlerle.',
     'death':      'Yemin henüz bozulmadı. Taş seni geri çağırıyor.',
     'death2':     'Bu mezar seni tutamayacak. Ayağa kalk.',
-    'death3':     'Bir kez daha düştün. Ama yemin duruyor; zincir hâlâ kırılabilir.',
-    'win':        'Cellat öldü; hükmü sona erdi. Tapınağın ölüleri artık yatabilir. Ama aşağıdan gelen o nefes, hâlâ kesilmedi.',
+    'death3':     'Bir kez daha düştün. Ama yemin bozulmadı. Zinciri kırmak için yeniden ayağa kalk.',
+    'win':        'Cellat öldü. Hükmü sona erdi. Tapınağın ölüleri artık huzur bulabilir. Ama aşağıdan gelen o nefes henüz kesilmedi.',
 }
 TTS_RATE, TTS_PITCH = '-12%', '-11Hz'   # ilahiler (chant) için düz TTS ayarı
 VOICE_LUFS, VOICE_TP = -16.0, -1.5
@@ -218,17 +218,65 @@ def fetch(key):
     return base
 
 def tts(text, rate, pitch, name):
-    """edge-tts kaydı; metin+ayar özetine göre önbellekte tutulur."""
+    """Tam cümle kaydı ve hizmetin sözcük zamanları. Zamanlar ASR doğrulaması değildir."""
     os.makedirs(os.path.join(CACHE, 'tts'), exist_ok=True)
     h = hashlib.sha1(f'{VOICE}|{rate}|{pitch}|{text}'.encode()).hexdigest()[:16]
     path = os.path.join(CACHE, 'tts', f'{name}_{h}.mp3')
-    if not os.path.exists(path):
+    meta_path = path + '.json'
+    if not (os.path.exists(path) and os.path.exists(meta_path)):
         import edge_tts
         async def go():
-            await edge_tts.Communicate(text, VOICE, rate=rate, pitch=pitch).save(path)
+            boundaries = []
+            with open(path + '.part', 'wb') as out:
+                async for chunk in edge_tts.Communicate(text, VOICE, rate=rate, pitch=pitch,
+                                                        boundary='WordBoundary').stream():
+                    if chunk['type'] == 'audio':
+                        out.write(chunk['data'])
+                    elif chunk['type'] == 'WordBoundary':
+                        boundaries.append({k: chunk[k] for k in ('text', 'offset', 'duration')})
+            if not boundaries or tokens(' '.join(b['text'] for b in boundaries)) != tokens(text):
+                raise RuntimeError('TTS sözcük zamanları istenen metinle uyuşmuyor: ' + name)
+            with open(meta_path + '.part', 'w', encoding='utf-8') as out:
+                json.dump({'voice': VOICE, 'rate': rate, 'pitch': pitch, 'text': text,
+                           'boundaries': boundaries}, out, ensure_ascii=False, indent=2)
+            os.replace(path + '.part', path)
+            os.replace(meta_path + '.part', meta_path)
         log('  seslendiriliyor:', text)
         asyncio.run(go())
     return path
+
+
+def tokens(text):
+    """Türkçe büyük/küçük harf ve noktalama farkını yok say; sözcükleri değiştirme."""
+    return re.findall(r'\w+', text.replace('İ', 'i').replace('I', 'ı').lower())
+
+
+def pcm(path):
+    p = subprocess.run([FFMPEG, '-hide_banner', '-nostdin', '-v', 'error', '-i', path,
+                        '-ar', '48000', '-ac', '1', '-f', 's16le', '-'], capture_output=True)
+    if p.returncode:
+        raise RuntimeError('PCM çözme başarısız: ' + p.stderr.decode('utf-8', errors='replace')[-1000:])
+    samples = array.array('h', p.stdout)
+    if sys.byteorder != 'little':
+        samples.byteswap()
+    if not samples:
+        raise RuntimeError('Boş konuşma kaydı: ' + path)
+    return samples
+
+
+def trim_bounds(samples, boundary_end=0):
+    """Yalnız dış sessizlik; iç duraklar ve zayıf son ünsüzler korunur.
+
+    -60 dBFS üzerindeki her örnek korunur. Sonda hem gerçek dalga biçimine hem
+    TTS'nin son sözcük zamanına en az 150 ms pay bırakılır. Sonda fade yoktur.
+    """
+    active = [i for i, v in enumerate(samples) if abs(v) > 32767 * 10 ** (-60 / 20)]
+    if not active:
+        raise RuntimeError('Konuşma yerine sessiz kayıt geldi.')
+    rate = 48000
+    start = max(0, active[0] / rate - .06)
+    end = min(len(samples) / rate, max(active[-1] / rate, boundary_end) + .15)
+    return start, end, active[-1] / rate
 
 def tts_phrases(text, st, name):
     """Anlatıcı ritmi: edge-tts'in ücretsiz uç noktası SSML etiketlerini (break/emphasis/phoneme) reddediyor, yalnızca
@@ -309,9 +357,9 @@ BASE_FX = dict(pitch=0.95, formant='shifted', trans='mixed', low=2, mud=-2, pres
 STYLES = {
     # Full sentences keep the native voice's coarticulation and emphasis.
     # No formant shift, artificial whisper or forced slower final syllable.
-    'N': dict(BASE_FX, rate='-7%', rate_last='-7%', tts_pitch='-2Hz', pitch_last='-2Hz', ell=320, gap=180, whole=True),
-    'H': dict(BASE_FX, rate='-3%', rate_last='-3%', tts_pitch='-5Hz', pitch_last='-5Hz', ell=320, gap=180, whole=True),
-    'E': dict(BASE_FX, rate='-10%', rate_last='-10%', tts_pitch='-10Hz', pitch_last='-10Hz', ell=320, gap=180, whole=True),
+    'N': dict(BASE_FX, rate='-4%', rate_last='-4%', tts_pitch='+0Hz', pitch_last='+0Hz', ell=320, gap=180, whole=True),
+    'H': dict(BASE_FX, rate='-1%', rate_last='-1%', tts_pitch='+0Hz', pitch_last='+0Hz', ell=320, gap=180, whole=True),
+    'E': dict(BASE_FX, rate='-6%', rate_last='-6%', tts_pitch='+0Hz', pitch_last='+0Hz', ell=320, gap=180, whole=True),
     'A': dict(BASE_FX, rate='-20%', rate_last='-28%', tts_pitch='-6Hz', ell=650, comma=180, gap=380, reverb=-19, pres=5),
     'B': dict(BASE_FX, rate='-18%', rate_last='-27%', ell=800, comma=200, gap=460, pitch=0.93, low=3, whisper=-19, wdelay=32,
               reverb=-12, predelay=32, sat='asoftclip=type=tanh:param=1.5,', ir=(2.0, 3.4, 3400, .030)),
@@ -324,29 +372,52 @@ CHARACTER_LINES = {'heroOath': ('Bahtiyar', 'H'), 'cellat': ('Zincir Celladı', 
 def process_voice(raw, key, work, style=None):
     """TTS kaydını anlatıcı sesine çevirir; (normalize WAV, MP3) yollarını döndürür."""
     fx = STYLES[style or DEFAULT_STYLE]
-    ir = room_ir(os.path.join(CACHE, 'room_ir_%s.wav' % '_'.join(str(x) for x in fx['ir'])), *fx['ir'])
     trimmed = os.path.join(work, key + '_t.wav')
-    # TTS'nin baştaki/sondaki sessizliğini kırp
-    ff(['-i', raw, '-af', 'silenceremove=start_periods=1:start_threshold=-48dB:start_silence=0.03,'
-        'areverse,silenceremove=start_periods=1:start_threshold=-48dB:start_silence=0.05,areverse', trimmed])
     wet = os.path.join(work, key + '_w.wav')
+    verification = None
     if fx.get('whole'):
+        samples = pcm(raw)
+        with open(raw + '.json', encoding='utf-8') as meta_file:
+            meta = json.load(meta_file)
+        last = meta['boundaries'][-1]
+        boundary_end = (last['offset'] + last['duration']) / 10_000_000
+        start, end, last_active = trim_bounds(samples, boundary_end)
+        if end < boundary_end - .08:
+            raise RuntimeError('TTS son sözcüğün zamanından önce bitiyor: ' + key)
+        ff(['-i', raw, '-af', f'atrim=start={start:.6f}:end={end:.6f},asetpts=PTS-STARTPTS', trimmed])
         ff(['-i', trimmed, '-af', 'aresample=48000,highpass=f=72,'
-            'equalizer=f=260:t=q:w=1.2:g=-1.1,equalizer=f=2200:t=q:w=0.9:g=1.5,'
-            'deesser=i=0.15:m=0.3:f=0.5,acompressor=threshold=0.12:ratio=1.7:attack=12:release=140,'
-            'apad=pad_dur=0.3,aecho=0.96:0.82:28|53:0.045|0.025', '-ac', '1', wet])
+            'equalizer=f=260:t=q:w=1.2:g=-0.6,equalizer=f=2200:t=q:w=0.9:g=0.8,'
+            'deesser=i=0.1:m=0.2:f=0.5,acompressor=threshold=0.14:ratio=1.4:attack=15:release=140,'
+            'apad=pad_dur=0.12', '-ac', '1', wet])
+        verification = dict(meta, raw_duration=len(samples) / 48000, trim_start=start, trim_end=end,
+                            last_active=last_active, last_word_end=boundary_end,
+                            source_tail=end-last_active, fade=False, echo=False)
+        fin = wet
     else:
+        ir = room_ir(os.path.join(CACHE, 'room_ir_%s.wav' % '_'.join(str(x) for x in fx['ir'])), *fx['ir'])
+        ff(['-i', raw, '-af', 'silenceremove=start_periods=1:start_threshold=-48dB:start_silence=0.03,'
+            'areverse,silenceremove=start_periods=1:start_threshold=-48dB:start_silence=0.05,areverse', trimmed])
         ff(['-i', trimmed, '-i', ir, '-filter_complex', VOICE_CHAIN.format(**fx), '-map', '[o]', '-ac', '1', wet])
-    # yankı kuyruğunu -58 dB altında kes, kısa bir sönümle bitir
-    cut = os.path.join(work, key + '_c.wav')
-    ff(['-i', wet, '-af', 'areverse,silenceremove=start_periods=1:start_threshold=-58dB,areverse', cut])
-    d = duration(cut)
-    fin = os.path.join(work, key + '_f.wav')
-    ff(['-i', wet, '-af', f'atrim=0:{d:.3f},afade=t=out:st={max(0, d - .18):.3f}:d=0.18', fin])
+        cut = os.path.join(work, key + '_c.wav')
+        ff(['-i', wet, '-af', 'areverse,silenceremove=start_periods=1:start_threshold=-58dB,areverse', cut])
+        d = duration(cut)
+        fin = os.path.join(work, key + '_f.wav')
+        ff(['-i', wet, '-af', f'atrim=0:{d:.3f},afade=t=out:st={max(0, d - .18):.3f}:d=0.18', fin])
     norm = os.path.join(work, key + '_n.wav')
     loudnorm(fin, norm, VOICE_LUFS, VOICE_TP)
     mp3 = os.path.join(work, key + '.mp3')
     ff(['-i', norm] + VOICE_ENC + [mp3])
+    if verification:
+        final_samples = pcm(mp3)
+        _, _, final_active = trim_bounds(final_samples)
+        # Decoded MP3 can have tiny quantization tails; retain a measurable quiet
+        # guard after speech, without shortening the actual spoken recording.
+        verification.update(duration=len(final_samples)/48000, final_active=final_active,
+                            final_quiet_tail=len(final_samples)/48000-final_active)
+        if verification['final_quiet_tail'] < .10:
+            raise RuntimeError('Konuşmanın sonunda güvenli sessizlik yok: ' + key)
+        with open(os.path.join(work, key + '.json'), 'w', encoding='utf-8') as out:
+            json.dump(verification, out, ensure_ascii=False, indent=2)
     return norm, mp3
 
 def build_voice(only=None, wav_dir=None, style=None):
@@ -362,6 +433,9 @@ def build_voice(only=None, wav_dir=None, style=None):
         if wav_dir:
             os.makedirs(wav_dir, exist_ok=True)
             shutil.copy(norm, os.path.join(wav_dir, 'voice_' + key + '.wav')); shutil.copy(mp3, os.path.join(wav_dir, 'voice_' + key + '.mp3'))
+            meta = os.path.join(work, key + '.json')
+            if os.path.exists(meta):
+                shutil.copy(meta, os.path.join(wav_dir, 'voice_' + key + '.json'))
         data = open(mp3, 'rb').read()
         out[key] = {'text': text, 'speaker': speaker, 'duration': round(duration(mp3), 3), 'audio': base64.b64encode(data).decode()}
         log(f'  {key:10s} {out[key]["duration"]:5.2f} sn  {len(data) // 1024:3d} KB')
@@ -376,7 +450,9 @@ def build_samples(dirpath):
         work = tempfile.mkdtemp(prefix='kara_smp_')
         parts = []
         for key in SAMPLE_KEYS:
-            norm, _ = process_voice(tts_phrases(LINES[key], STYLES[style], key), key, work, style)
+            st = STYLES[style]
+            raw = tts(LINES[key], st['rate'], st['tts_pitch'], key) if st.get('whole') else tts_phrases(LINES[key], st, key)
+            norm, _ = process_voice(raw, key, work, style)
             parts.append(norm)
         lst = os.path.join(work, 'l.txt')
         sil = os.path.join(work, 'sil.wav'); ff(['-f', 'lavfi', '-i', 'anullsrc=r=48000:cl=mono', '-t', '0.9', sil])

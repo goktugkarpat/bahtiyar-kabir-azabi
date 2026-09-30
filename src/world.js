@@ -1879,6 +1879,59 @@
         allBatches.push(mesh);
         if (b.level) decorationBatches.push(mesh);
       });
+      // Static batched instances never change their shape or local transform. r170 normally reloads
+      // each 16-float matrix and transforms its sphere again in every main/shadow draw. Cache exactly
+      // that result, retaining the original per-camera culling and indirect order. A world/group transform
+      // is still included in the local frustum every pass; changed geometry/instance matrices rebuild bounds.
+      function cacheStaticBounds(mesh) {
+        var original = mesh.onBeforeRender;
+        if (T.REVISION !== '170' || !Array.isArray(mesh._instanceInfo) || !Array.isArray(mesh._geometryInfo)
+          || !mesh._multiDrawStarts || !mesh._multiDrawCounts || !mesh._indirectTexture || !mesh._matricesTexture) return;
+        var bounds = new Float64Array(mesh._instanceInfo.length * 4), geometryIds = new Int32Array(mesh._instanceInfo.length);
+        var sphere = new T.Sphere(), matrix = new T.Matrix4(), frustum = new T.Frustum();
+        var matrixVersion = -1, positionVersion = -1, indexVersion = -1;
+        function writeBound(id) {
+          var geometryId = mesh._instanceInfo[id].geometryIndex;
+          mesh.getMatrixAt(id, matrix); mesh.getBoundingSphereAt(geometryId, sphere).applyMatrix4(matrix);
+          var offset = id * 4;
+          bounds[offset] = sphere.center.x; bounds[offset + 1] = sphere.center.y; bounds[offset + 2] = sphere.center.z; bounds[offset + 3] = sphere.radius;
+          geometryIds[id] = geometryId;
+        }
+        function rebuild() {
+          if (geometryIds.length !== mesh._instanceInfo.length) { geometryIds = new Int32Array(mesh._instanceInfo.length); bounds = new Float64Array(geometryIds.length * 4); }
+          for (var i = 0; i < mesh._instanceInfo.length; i++) if (mesh._instanceInfo[i].active) writeBound(i);
+          matrixVersion = mesh._matricesTexture.version; positionVersion = mesh.geometry.attributes.position.version;
+          indexVersion = mesh.geometry.index ? mesh.geometry.index.version : -1;
+        }
+        rebuild();
+        mesh.onBeforeRender = function (renderer, scene, camera, geometry, material, group) {
+          if (this.sortObjects || !this.perObjectFrustumCulled || !this._matricesTexture || !this._indirectTexture
+            || !this._indirectTexture.image || !this._indirectTexture.image.data || !geometry.attributes.position) {
+            return original.call(this, renderer, scene, camera, geometry, material, group);
+          }
+          if (matrixVersion !== this._matricesTexture.version || positionVersion !== geometry.attributes.position.version
+            || indexVersion !== (geometry.index ? geometry.index.version : -1) || geometryIds.length !== this._instanceInfo.length) rebuild();
+          matrix.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse).multiply(this.matrixWorld);
+          frustum.setFromProjectionMatrix(matrix, renderer.coordinateSystem);
+          var n = 0, indirectChanged = false, bytes = geometry.index ? geometry.index.array.BYTES_PER_ELEMENT : 1, indirect = this._indirectTexture.image.data;
+          for (var i = 0; i < this._instanceInfo.length; i++) {
+            var instance = this._instanceInfo[i]; if (!instance.visible || !instance.active) continue;
+            if (geometryIds[i] !== instance.geometryIndex) writeBound(i);
+            var offset = i * 4;
+            sphere.center.set(bounds[offset], bounds[offset + 1], bounds[offset + 2]); sphere.radius = bounds[offset + 3];
+            if (!frustum.intersectsSphere(sphere)) continue;
+            var info = this._geometryInfo[instance.geometryIndex];
+            this._multiDrawStarts[n] = info.start * bytes; this._multiDrawCounts[n] = info.count;
+            if (indirect[n] !== i) { indirect[n] = i; indirectChanged = true; }
+            n++;
+          }
+          // Only the first n IDs are consumed. Shorter lists can keep their unused tail, and every
+          // main/shadow camera still writes its own list before drawing. A fresh/restored GPU texture
+          // uploads its current version on first use; version zero must be made uploadable here too.
+          if (indirectChanged || this._indirectTexture.version === 0) this._indirectTexture.needsUpdate = true;
+          this._multiDrawCount = n; this._visibilityChanged = false;
+        };
+      }
       Object.keys(drawGroups).forEach(function (key) {
         var group = drawGroups[key], names = [], count = 0, vertices = 0, indices = 0;
         group.parts.forEach(function (p) {
@@ -1908,6 +1961,7 @@
         });
         mesh.castShadow = group.cast; mesh.receiveShadow = group.receive;
         mesh.userData.baseCastShadow = group.cast; mesh.userData.detail = group.level; mesh.userData.batchRanges = ranges;
+        cacheStaticBounds(mesh);
         mesh.computeBoundingSphere(); root.add(mesh); allBatches.push(mesh);
         if (group.level) decorationBatches.push(mesh);
       });
@@ -1986,7 +2040,13 @@
           // A jagged crack in the vault.
           x.beginPath(); x.moveTo(60, 40); x.lineTo(118, 70); x.lineTo(104, 120); x.lineTo(160, 150); x.lineTo(150, 222); x.lineTo(196, 214); x.lineTo(186, 150); x.lineTo(140, 104); x.lineTo(154, 58); x.lineTo(90, 30); x.closePath(); x.fill();
         }
-        var t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; textures.push(t); cookies[type] = t; return t;
+        var t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; t.name = 'kara:light-cookie:' + type; textures.push(t); cookies[type] = t; return t;
+      }
+      function prepareLightTextures() {
+        if (!moonSpot) return [];
+        // Switching the shaft's pattern must not first paint/upload it during room entry.
+        shafts.forEach(function (sh) { cookieTexture(sh[10] || 'grate'); });
+        return Object.keys(cookies).map(function (type) { return cookies[type]; });
       }
       var moonSpot = null, moonSpotShaft = null, moonSpotW = 0, moonSpotSize = 0;
       function setMoonSpot(size) {
@@ -2090,19 +2150,63 @@
             moonSpot.intensity = moonSpot.userData.base * ew * cloud * groupGain(sh2[11]) * lightGain;
           } else moonSpot.intensity = 0;
         }
-        scheduleShadows();
+        scheduleShadows(time);
       }
-      // Spot shadow maps are refreshed round-robin: with two or more lit spots each map is redrawn every other
-      // frame (a one-frame lag nobody sees), dark slots are never drawn, a newly assigned light draws at once.
-      var shadowTick = 0, moonSpotFresh = false, shadowJobs = [];
-      function scheduleShadows() {
-        shadowTick = (shadowTick + 1) % 2; shadowJobs.length = 0;
-        spotSlots.forEach(function (slot) { slot.light.shadow.autoUpdate = false; slot.light.shadow.needsUpdate = false; if (slot.light.intensity > 0) shadowJobs.push(slot.light.shadow); });
-        if (moonSpot) { moonSpot.shadow.autoUpdate = false; moonSpot.shadow.needsUpdate = false; if (moonSpot.intensity > 0) shadowJobs.push(moonSpot.shadow); }
-        var every = shadowJobs.length < 2;
-        for (var j = 0; j < shadowJobs.length; j++) if (every || (j + shadowTick) % 2 === 0 || !shadowJobs[j].map) shadowJobs[j].needsUpdate = true;
-        spotSlots.forEach(function (slot) { if (slot.fresh && slot.light.intensity > 0) { slot.light.shadow.needsUpdate = true; slot.fresh = false; } });
-        if (moonSpot && moonSpotFresh && moonSpot.intensity > 0) { moonSpot.shadow.needsUpdate = true; moonSpotFresh = false; }
+      // One spot-map update at a time, at most 60/s on High and 30/s on Medium. Two active maps share that
+      // budget evenly; 200 Hz no longer means 200 scene/shadow submissions. Real source assignments and
+      // missing maps invalidate immediately. Preserve a pending update until the renderer consumes it.
+      var shadowTick = 0, shadowSlot = null, shadowHz = 60, moonSpotFresh = false, shadowJobs = [];
+      var deferredShadow = null, deferredSlot = null, renderedDeferred = false;
+      var refreshShadow = null, refreshCanDefer = false, refreshPreviousSlot = null, refreshPreviousTick = 0;
+      function scheduleShadows(time) {
+        refreshShadow = null; refreshCanDefer = renderedDeferred = false;
+        shadowJobs.length = 0;
+        spotSlots.forEach(function (slot) {
+          var shadow = slot.light.shadow; shadow.autoUpdate = false;
+          if (slot.light.intensity > 0) {
+            shadowJobs.push(shadow);
+            if (slot.fresh || !shadow.map) { shadow.needsUpdate = true; slot.fresh = false; }
+          } else shadow.needsUpdate = false;
+        });
+        if (moonSpot) {
+          var moonShadow = moonSpot.shadow; moonShadow.autoUpdate = false;
+          if (moonSpot.intensity > 0) {
+            shadowJobs.push(moonShadow);
+            if (moonSpotFresh || !moonShadow.map) { moonShadow.needsUpdate = true; moonSpotFresh = false; }
+          } else moonShadow.needsUpdate = false;
+        }
+        if (!shadowJobs.length || !shadowHz) { deferredShadow = deferredSlot = null; return; }
+        // The offset reduces ordinary collisions. Lighting also coordinates the actual presented frames:
+        // a 120 FPS cap on a 180 Hz monitor does not present uniformly spaced timestamps.
+        var slot = Math.floor(time * shadowHz + .5 + 1e-5);
+        if (shadowSlot !== null && slot < shadowSlot || deferredSlot !== null && slot < deferredSlot) { shadowSlot = null; deferredShadow = null; deferredSlot = null; }
+        if (deferredShadow) {
+          var deferredIndex = shadowJobs.indexOf(deferredShadow);
+          if (deferredIndex >= 0) {
+            deferredShadow.needsUpdate = true;
+            shadowTick = (deferredIndex + 1) % shadowJobs.length; shadowSlot = slot - deferredSlot > 2 ? slot : deferredSlot;
+            deferredShadow = null; deferredSlot = null; renderedDeferred = true;
+            return; // A deferred request gets the next frame, even when the key also needs an update.
+          }
+          deferredShadow = null; deferredSlot = null; // The source disappeared or the quality replaced its light.
+        }
+        if (slot !== shadowSlot) {
+          refreshShadow = shadowJobs[shadowTick % shadowJobs.length];
+          // Fresh/missing maps and requests left pending by the renderer are never cancelled.
+          refreshCanDefer = !refreshShadow.needsUpdate;
+          refreshPreviousSlot = shadowSlot; refreshPreviousTick = shadowTick;
+          refreshShadow.needsUpdate = true;
+          shadowTick = (shadowTick + 1) % shadowJobs.length;
+          // Retain at most the one missed regular tick. Larger jumps coalesce immediately; never
+          // create a catch-up queue after pause, a stalled browser or restoration.
+          shadowSlot = shadowSlot !== null && slot > shadowSlot && slot - shadowSlot <= 2 ? shadowSlot + 1 : slot;
+        }
+      }
+      function deferShadowRefresh() {
+        if (!refreshCanDefer || !refreshShadow || !refreshShadow.needsUpdate) return false;
+        refreshShadow.needsUpdate = false; deferredShadow = refreshShadow; deferredSlot = shadowSlot;
+        shadowSlot = refreshPreviousSlot; shadowTick = refreshPreviousTick; refreshCanDefer = false;
+        return true;
       }
       var spotAxis = new T.Vector3(), spotTop = new T.Vector3(), spotFloor = new T.Vector3();
       function placeMoonSpot(sh) {
@@ -2333,6 +2437,8 @@
           preset = typeof value === 'number' ? (value <= 0 ? 'low' : value < 2 ? 'medium' : 'high') : (PRESET_LEVEL[value] != null ? value : 'high');
         }
         var level = PRESET_LEVEL[preset], budget = preset === 'low' ? 0 : preset === 'medium' ? 1 : 2;
+        shadowHz = [0, 30, 60][budget]; shadowSlot = null;
+        deferredShadow = refreshShadow = null; deferredSlot = null; refreshCanDefer = renderedDeferred = false;
         qualityLevel = level;
         var detail = Math.min(2, level);
         decorationBatches.forEach(function (mesh) { mesh.userData.detailOK = mesh.userData.detail <= detail; });
@@ -2653,9 +2759,12 @@
         // Read and driven by lighting.js (in-scatter, heat haze, scripted moments). Presentation only.
         lighting: {
           sources: lightSources, flames: flameDefs, shafts: shafts, moods: MOODS,
+          prepareTextures: prepareLightTextures,
           setGroup: setGroup, setGroupTint: setGroupTint, groupGain: groupGain,
           setRitualGlow: setRitualGlow, setOathGlow: setOathGlow, setCorpses: setCorpses,
           setPlayerLightFx: function (fx) { playerLightFx = fx; },
+          deferShadowRefresh: deferShadowRefresh,
+          shadowRefreshDeferred: function () { return renderedDeferred; },
           wantsShadows: function () { return spotCount > 0 || !!moonSpot; }
         }
       };

@@ -810,6 +810,7 @@
     if ((name === 'enemyWindup' && opts.unblockable) || name === 'warning' || name === 'tellCommit') {
       warningUntil = Math.max(warningUntil, ctx.currentTime + .8);
       if (N.warningDuck) targetParam(N.warningDuck.gain, .48, ctx.currentTime, .035);
+      updateVoiceWarning();
     }
     const k = opts.volume == null ? 1 : opts.volume;
     try {
@@ -1267,12 +1268,13 @@
   // ------------------------------------------------------------------ anlatıcı
   // Anlatıcı savaş uyarılarını örtmez. Oda cümleleri yalnızca sakin anda başlar (yakında canlı düşman yok, 1.5 sn
   // içinde saldırı uyarısı yok); beklerken kuyrukta kalır ve oda temizlenince okunur. Açılış ve cellat cümleleri
-  // hemen başlar. Uyarı gelirse ya da çatışma 3 sn'yi aşarsa cümle 0.3 sn içinde kısılır; yarıda kalan cümle sakin
-  // anda bir kez baştan okunur. Ölüm ve zafer cümleleri zorunludur. Zamanlama ses bağlamından bağımsızdır:
+  // hemen başlar. Başlayan bir cümle bitene kadar kesilmez; yeni oda yalnızca henüz başlamamış oda cümlesini
+  // değiştirir. Ölüm ve zafer sırada önceliklidir, mevcut cümle bittikten sonra başlar. Saldırı uyarısı sırasında
+  // anlatıcı kısa süre hafif kısılır, kayıt ve altyazı sürer. Zamanlama ses bağlamından bağımsızdır:
   // ?sessiz ve ses kapalıyken altyazılar aynı anlarda görünür.
   const ROOM_LINES = new Set(['chains', 'ritual', 'crypt', 'rot', 'checkpoint']), URGENT = new Set(['intro', 'boss', 'cellat']);
   const TELLS = new Set(['enemyWindup', 'enemyAttack', 'slam', 'explosion', 'poison', 'warning', 'hurt', 'guardBreak', 'tellCommit']);
-  let caption = null, voiceNode = null, voiceGain = null, current = null, queue = [], voiceSerial = 0, combatFor = 0, nclock = 0, lastTellN = -9;
+  let caption = null, voiceNode = null, voiceGain = null, current = null, queue = [], nclock = 0, lastTellN = -9;
   const heard = new Set(), recent = {}, voiceBuffers = {};
   let deathTurn = 0;
   function updateNarrationDuck() {
@@ -1281,12 +1283,13 @@
     N.musicDuck.gain.setTargetAtTime(audible ? .33 : 1, ctx.currentTime, tc);
     N.ambDuck.gain.setTargetAtTime(audible ? .28 : 1, ctx.currentTime, tc);
   }
-  function stopVoice(fade) {
-    voiceSerial++;
-    if (voiceNode) {
-      const n = voiceNode, g = voiceGain; voiceNode = null;
-      try { if (fade && ctx) { g.gain.setTargetAtTime(0, ctx.currentTime, .08); n.stop(ctx.currentTime + .35); } else n.stop(); } catch (e) {}
-    }
+  function updateVoiceWarning() {
+    if (!ctx || !voiceNode || !voiceGain) return;
+    const warning = ctx.currentTime < warningUntil;
+    targetParam(voiceGain.gain, warning ? .65 : 1, ctx.currentTime, warning ? .035 : .18);
+  }
+  function finishVoice() {
+    voiceNode = null; voiceGain = null;
     current = null; if (caption) caption('');
     updateNarrationDuck();
   }
@@ -1296,7 +1299,7 @@
     const line = lines[key]; if (!line) return;
     if (!force && (heard.has(key) || queue.some(q => q.key === key) || current && current.key === key)) return;
     if (!force && key !== 'intro' && recent[key] && Date.now() - recent[key] < 150000) return;   // yeniden doğunca aynı oda cümlesi tekrar etmesin
-    if (force) { stopVoice(true); queue = []; }
+    if (force) queue = [];   // öncelik sıradadır; başlamış cümleye dokunma
     if (key === 'seal' && queue.some(q => ROOM_LINES.has(q.key))) return;                       // bir oda cümlesi zaten bekliyor
     if (key !== 'seal') queue = queue.filter(q => q.key !== 'seal');
     if (ROOM_LINES.has(key) || key === 'boss') queue = queue.filter(q => !ROOM_LINES.has(q.key)); // yalnızca son odanın cümlesi bekler
@@ -1317,13 +1320,14 @@
     heard.add(entry.key); recent[entry.key] = Date.now();
     if (!entry.buffer && ctx && voiceBuffers[entry.key]) entry.buffer = voiceBuffers[entry.key];
     const total = (entry.buffer ? entry.buffer.duration : entry.line.duration || 4) + .15;
-    current = { key: entry.key, force: entry.force, left: total, total, line: entry.line, buffer: entry.buffer, retried: entry.retried, startedAt: nclock };
+    current = { key: entry.key, force: entry.force, left: total };
     if (caption) caption(entry.line.text, entry.line.speaker || 'Anlatıcı');
     if (!ctx || !entry.buffer || (silent && !offline)) return;
     const src = ctx.createBufferSource(), g = gainNode(1, N.voice); src.buffer = entry.buffer; src.connect(g);
-    voiceNode = src; voiceGain = g; const serial = voiceSerial;
-    src.onended = () => { try { src.disconnect(); g.disconnect(); } catch (e) {} if (voiceNode === src && serial === voiceSerial) { voiceNode = null; current = null; if (caption) caption(''); updateNarrationDuck(); } };
+    voiceNode = src; voiceGain = g;
+    src.onended = () => { try { src.disconnect(); g.disconnect(); } catch (e) {} if (voiceNode === src) finishVoice(); };
     src.start();
+    updateVoiceWarning();
     updateNarrationDuck();
   }
   function calmAround() {
@@ -1332,23 +1336,19 @@
   }
   function narrationStep(dt, st) {
     nclock += dt;
-    combatFor = st.combat ? combatFor + dt : 0;
     const tellRecent = nclock - lastTellN < 1.5;
     if (current) {
       current.left -= dt;
-      if (!current.force && (lastTellN >= current.startedAt || (!URGENT.has(current.key) && combatFor > 3))) {
-        const c = current;   // yarıda kaldıysa sakin anda bir kez baştan (cellat cümlesi dövüşten sonra anlamsız: tekrar yok)
-        const newer = ROOM_LINES.has(c.key) && queue.some(q => ROOM_LINES.has(q.key) || q.key === 'boss');
-        if (!c.retried && !newer && c.key !== 'boss' && c.key !== 'cellat' && c.left > c.total * .3) queue.unshift({ key: c.key, line: c.line, force: false, age: 0, ready: true, buffer: c.buffer, retried: true });
-        stopVoice(true);
-      } else if (current.left <= (voiceNode ? -3 : 0)) stopVoice(false);   // ses çalıyorsa bitişi onended belirler; sayaç yalnızca yedek
+      // Kayıtlı seste bitişi yalnızca onended belirler; düşük FPS veya sekme
+      // duraklaması oyun sayacıyla ses saatini ayırsa da kaydı erken kesme.
+      if (!voiceNode && current.left <= 0) finishVoice();
     }
     for (const q of queue) q.age += dt;
-    queue = queue.filter(q => q.age < (q.force ? 20 : 150));
+    queue = queue.filter(q => q.force || q.age < 150);
     const next = queue[0];
     if (!current && next && next.ready && !suspended) {
       const calm = !st.combat && !tellRecent && calmAround() && !(ctx && ctx.currentTime < T.until);
-      if (next.force || calm || (URGENT.has(next.key) && !next.retried && !tellRecent)) { queue.shift(); startVoice(next); }
+      if (next.force || calm || (URGENT.has(next.key) && !tellRecent)) { queue.shift(); startVoice(next); }
     }
   }
 
@@ -1392,6 +1392,7 @@
       A.calm = st.combat ? 0 : A.calm + dt;
       const t = ctx.currentTime;
       if (N.warningDuck) targetParam(N.warningDuck.gain, t < warningUntil ? .48 : 1, t, t < warningUntil ? .035 : .28);
+      updateVoiceWarning();
       if (t > muffleUntil) targetParam(N.world.frequency, st.dead ? 650 : 20000, t, st.dead ? .8 : .3);
       if (p) lastHp = p.hp;
       if (g && g.state === 'playing' && !st.boss) M.phase2 = false;
@@ -1525,7 +1526,7 @@
   }
   B.Audio = {
     say, saySequence, prepare: prepareAudio, onCaption(fn) { caption = fn; },
-    resetNarration() { stopVoice(false); queue = []; heard.clear(); },
+    resetNarration() { queue = []; heard.clear(); },   // yeni yolculukta bekleyenleri at; mevcut cümle bitsin
     unlock, set, play, update,
     sample(name, o) { if (ctx && unlocked && !suspended && (!silent || offline)) return sample(name, o || {}); return 0; },   // tek bir kayıtlı parça (test ve ileride oyun kodu için)
     suspend() { suspended = true; if (extMusic) B.Music.suspend(); return syncContextState(); },

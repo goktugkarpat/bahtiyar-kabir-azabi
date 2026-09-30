@@ -15,6 +15,8 @@ Yapılan değişiklikler: eski Blender malzemelerinin glTF/PBR dönüşümü, no
 
 Karakter ayrıntı geçişi 2: Bu sürümde barbar ve cellat modellerinin renk ve normal haritaları kaynaktaki 2048 px çözünürlükte bırakılıp WebP olarak yeniden kodlandı (ortam örtüşmesi 512 px). Renk haritasının alfa kanalına derleme sırasında bir deri maskesi yazıldı; saydamlık için değil, deri gölgelendirmesi için kullanılır. Geometri sıkıştırıldı. Aşınma, kir, pas, kan, yara izleri ve bütün zırh, kumaş, kürk ve silahlar oyunun kendi koduyla eklenir.
 
+Hedef portreleri (`assets/ui/target-*.webp`) bu değiştirilmiş karakter modellerinin yüz ve omuz kadrajlarından üretildi. Ayrı ışıklandırma ve karanlık arka plan kullanıldı; model kaynakları ve yukarıdaki CC BY 3.0 atfı bu portreler için de geçerlidir.
+
 ## Sakal ve bıyık — RehmanPolanski
 
 MakeHuman topluluğunun [Bodyparts05 paketi](https://static.makehumancommunity.org/assets/assetpacks/bodyparts05.html): Viking beard ve Viking moustache. **CC0 1.0**. Geometri başa uyarlandı, baş kemiğine ağırlıklandırıldı, renk ve saydamlık ayarlandı.

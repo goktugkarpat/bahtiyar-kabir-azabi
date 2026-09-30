@@ -15,8 +15,8 @@
   const KEY = 'karaGecit.settings.v2', OLD_KEY = 'karaGecit.settings.v1';
   const DISPLAY = B.Display;
   // Browsers cannot reliably distinguish a MacBook from a desktop Mac.
-  // Desktop PCs draw on every browser callback. Mac's requested 60 FPS policy stays in place.
-  const FRAME_LIMIT = /Mac/i.test(navigator.userAgentData?.platform || navigator.platform || navigator.userAgent) ? 60 : 0;
+  // Start Macs at 60 FPS and desktop PCs at 120; either limit remains selectable.
+  const FRAME_LIMIT = /Mac/i.test(navigator.userAgentData?.platform || navigator.platform || navigator.userAgent) ? 60 : 120;
   const QUALITY = {
     low:    { scale: 1, shadows: 0,    detail: 'low',    lights: .35, particles: 180, fog: .014, bloom: .08, corpses: 20, decals: 20, aa: true, occlusion: 0 },
     medium: { scale: 1, shadows: 1536, detail: 'high',   lights: .7,  particles: 500, fog: .019, bloom: .205, corpses: 68, decals: 68, aa: true, occlusion: .5 },
@@ -31,7 +31,8 @@
   const TEXTURE_NOTE = ' Karakter kaplamaları oyun yeniden açılınca bu ayara geçer.';
   const coarsePointer = matchMedia('(pointer:coarse)').matches;
   // Desktop defaults follow the current display's pixel density. Extra AA is opt-in.
-  const DEFAULTS = { quality: 'high', qualityVersion: 3, ...DISPLAY.defaults, exposure: 1.15, shake: .55, master: .65, music: .42, sfx: .75, voice: .85, subtitles: true, uiScale: 1 };
+  const DEFAULTS = { quality: FRAME_LIMIT === 60 ? 'medium' : 'high', qualityVersion: 3, ...DISPLAY.defaults, frameRate: FRAME_LIMIT, exposure: 1.15, shake: .55, master: .65, music: .42, sfx: .75, voice: .85, subtitles: true, uiScale: 1 };
+  const FRAME_RATES = [60, 120];
   const MSAA_STEPS = [0, 2, 4], UI_STEPS = [.85, 1, 1.25];
   const LIMITS = { exposure: [.7, 1.7], shake: [0, 1], master: [0, 1], music: [0, 1], sfx: [0, 1], voice: [0, 1] };
   // `cfg` is shared with effects.js / world.js / combat.js (they read the technical fields).
@@ -132,10 +133,12 @@
       if (Object.prototype.hasOwnProperty.call(QUALITY, raw.quality)) cfg.quality = raw.quality;
       for (const k of Object.keys(LIMITS)) if (Number.isFinite(raw[k])) cfg[k] = clamp(raw[k], LIMITS[k][0], LIMITS[k][1]);
       if (typeof raw.subtitles === 'boolean') cfg.subtitles = raw.subtitles;
-      // Old CSS-pixel multipliers must not override the new native-screen default.
+      // Preserve valid display choices; retired choices fall back to Auto.
       Object.assign(cfg, DISPLAY.settings(raw));
-      if (raw.displayVersion !== DISPLAY.defaults.displayVersion) migrated = true;
+      if (raw.displayVersion !== DISPLAY.defaults.displayVersion || raw.displayMode !== cfg.displayMode) migrated = true;
       cfg.uiScale = UI_STEPS.includes(raw.uiScale) ? raw.uiScale : DEFAULTS.uiScale;
+      cfg.frameRate = FRAME_RATES.includes(raw.frameRate) ? raw.frameRate : [0, 144].includes(raw.frameRate) ? 120 : DEFAULTS.frameRate;
+      if (raw.frameRate !== cfg.frameRate) migrated = true;
       cfg.shake = DEFAULTS.shake;   // camera shake is no longer a setting
     }
     if (raw && typeof raw === 'object' && raw.bindVersion !== BIND_VERSION) {
@@ -146,7 +149,7 @@
   }
   function deriveSettings() {
     Object.assign(cfg, QUALITY[cfg.quality] || QUALITY.high);
-    cfg.fps = FRAME_LIMIT;
+    cfg.fps = cfg.frameRate;
     cfg.preset = cfg.quality;
     cfg.ambient = cfg.sfx * .66;   // dungeon ambience follows the effects slider
   }
@@ -169,12 +172,16 @@
   let resumeAudioOnVisible = null;
   let graphicsLost = false, graphicsRecovering = false, graphicsEpoch = 0;
   const renderClock = B.Pacing.create();
-  let rageHinted = false;   // the "Öfke hazır" hint shows once per session
   let shake = 0, flash = 0, ragePush = 0, announceTimer = 0, hudTimer = 0, firstHint = 25, elapsed = 0;
   let fpsStart = 0, fpsFrames = 0;
   const performanceMeter = B.Performance.create();
   let graphicsAdapter = null, multiDraw = false;
-  let introBlend = 1, introStart = 0, deaths = 0, rageMax = 9, lastHp = null, lastFlasks = null;
+  let introBlend = 1, introStart = 0, deaths = 0, lastHp = null, lastFlasks = null;
+  const buffUI = B.Buffs.create($('timed-effects'));
+  const targetUI = B.TargetHUD.create($('target-hud'));
+  const cryEffect = { id: 'rage', name: 'Kan Öfkesi', icon: 'rage', remaining: 0, duration: B.Game.resources.durations.rage };
+  const timedEffects = [cryEffect];
+  let lastBuffRows = -1;
   const keys = new Set(), actions = {}, cameraPos = new THREE.Vector3(), look = new THREE.Vector3(), target = new THREE.Vector3(), projected = new THREE.Vector3();
   // D4 controls: light / heavy = the attack KEY (J, K, pad, on-screen button: only swings at a foe in the front cone); clickLight / clickHeavy = a mouse press or tap this frame,
   // holdLight / holdHeavy = the mouse button (or the finger) is still down, stand = the "stand still" modifier, target = the foe under the cursor, pointX / pointZ = the floor under it.
@@ -242,6 +249,8 @@
     setTimeout(() => d.remove(), 4200);
   }
   function clearNotices() {
+    buffUI.clear();
+    targetUI.clear();
     $('toasts').replaceChildren();
     for (const w of warnings) w.el.remove(); warnings.length = 0;
     flash = shake = hitPause = ragePush = 0;
@@ -426,8 +435,10 @@
     if (w < 1 || h < 1) return;   // Keep valid buffers while the window has no drawable area.
     // HUD scale: as before up to 982 px of screen height, then it keeps growing with the screen (big monitors); "Arayüz boyutu" multiplies it.
     const side = Math.min(w, h);
-    document.documentElement.style.setProperty('--k', clamp((side < 982 ? clamp(side / 800, .68, 1.05) : Math.min(2.3, 1.05 * side / 982)) * cfg.uiScale, .5, 2.9));
-    // Native pixels by default; the HUD remains native in the reduced rendering mode too.
+    const hudScale = clamp((side < 982 ? clamp(side / 800, .68, 1.05) : Math.min(2.3, 1.05 * side / 982)) * cfg.uiScale, .5, 2.9);
+    document.documentElement.style.setProperty('--k', hudScale);
+    document.body.classList.toggle('target-stacked', w <= 1100 || w < 1080 * hudScale + 36);
+    // The HUD stays native even when Auto or Smooth reduces the scene resolution.
     const gl = renderer.getContext(), vp = gl.getParameter(gl.MAX_VIEWPORT_DIMS) || [16384, 16384];
     const gpuMax = Math.min(gl.getParameter(gl.MAX_TEXTURE_SIZE) || 16384, gl.getParameter(gl.MAX_RENDERBUFFER_SIZE) || 16384, vp[0] || 16384, vp[1] || 16384);
     const nextDisplay = DISPLAY.plan({ width: w, height: h, pixelRatio: window.devicePixelRatio, maxSize: gpuMax }, cfg);
@@ -486,7 +497,7 @@
   // Display choices are independent of shadow/effect quality.
   function choiceRow(key, label, values, text) {
     const row = document.createElement('div'); row.className = 'setting quality ' + key;
-    row.innerHTML = `<div class="setting-head"><label id="${key}-label">${label}</label></div><div class="segmented wide" role="radiogroup" aria-labelledby="${key}-label">${values.map((v, i) => `<button type="button" role="radio" data-i="${i}">${text(v)}</button>`).join('')}</div><small id="${key}-note"></small>`;
+    row.innerHTML = `<div class="setting-head"><label id="${key}-label">${label}</label></div><div class="segmented${values.length === 2 ? ' pair' : values.length > 3 ? ' wide' : ''}" role="radiogroup" aria-labelledby="${key}-label">${values.map((v, i) => `<button type="button" role="radio" data-i="${i}">${text(v)}</button>`).join('')}</div><small id="${key}-note"></small>`;
     const buttons = [...row.querySelectorAll('button')];
     const paint = () => {
       buttons.forEach((b, i) => {
@@ -507,13 +518,16 @@
   // Report the real output, including hardware fallback, separately from the requested choice.
   function paintGraphicsNotes() {
     if (!renderer || !displayPlan) return;
-    const r = $('display-note'), m = $('msaa-note'), mode = $('displayMode-note');
+    const r = $('display-note'), m = $('msaa-note'), mode = $('displayMode-note'), rate = $('frameRate-note');
     if (r) r.textContent = `Şu an: ${post.width} × ${post.height} piksel · ${cfg.fps ? 'en fazla ' + cfg.fps + ' FPS' : 'FPS sınırı kapalı'}.` +
       (displayPlan.limited ? ' Ekran kartının görüntü boyutu sınırı uygulanıyor.' : '');
     if (mode) {
-      mode.closest('.setting').classList.toggle('hidden', !displayPlan.highDensity && cfg.displayMode === 'native');
-      mode.textContent = 'Daha akıcı: görüntüyü doğal boyutun %75’inde çizer; yazılar net kalır.';
+      mode.textContent = cfg.displayMode === 'auto'
+        ? 'Otomatik: yüksek çözünürlüklü ekranlarda grafik kalitesine uygun boyut seçer. Düşük ayar bilgisayarı daha az çalıştırır. Yazılar net kalır.'
+        : cfg.displayMode === 'smooth' ? 'Akıcı: Otomatik seçeneğine göre görüntü boyutunu %25 azaltır. Yazılar net kalır.'
+        : 'Ekranın bütün piksellerini kullanır. Retina ekranda Düşük kalite seçilse de çizim boyutu azalmaz.';
     }
+    if (rate) rate.textContent = 'En fazla ' + cfg.fps + ' kare/sn. Daha düzenli görüntü için ekran hızına uygun bir sınır seçebilirsin.';
     if (!m) return;
     const got = post.samples, want = post.requestedSamples;
     m.textContent = post.supportedSamples.length
@@ -530,7 +544,8 @@
     q.querySelectorAll('[data-quality]').forEach(b => b.addEventListener('click', () => { if (b.dataset.quality === cfg.quality) return; cfg.quality = b.dataset.quality; paintQuality(); applySettings(); warmShaders(true); }));
     paintQuality(); video.append(q);
     const displayNote = document.createElement('small'); displayNote.id = 'display-note'; q.append(displayNote);
-    video.append(choiceRow('displayMode', 'Yüksek çözünürlüklü ekran', ['native', 'smooth'], v => v === 'native' ? 'Doğal görüntü' : 'Daha akıcı'),
+    video.append(choiceRow('displayMode', 'Görüntü boyutu', ['auto', 'native', 'smooth'], v => ({ auto: 'Otomatik', native: 'Tam boyut', smooth: 'Akıcı' })[v]),
+      choiceRow('frameRate', 'Kare hızı', FRAME_RATES, v => v + ' FPS'),
       choiceRow('uiScale', 'Arayüz boyutu', UI_STEPS, v => v < 1 ? 'Küçük' : v > 1 ? 'Büyük' : 'Normal'));
     const advanced = document.createElement('details'); advanced.className = 'advanced-graphics'; advanced.open = cfg.msaa > 0;
     advanced.innerHTML = '<summary>Güçlü bilgisayarlar için</summary>';
@@ -1017,9 +1032,10 @@
     document.querySelector('.flask-button').classList.toggle('empty', p.flasks === 0);
     for (const b of document.querySelectorAll('.combat-pad .action')) {
       const key = b.dataset.action || b.dataset.hold;
-      const active = key === 'light' ? p.attack && !p.attack.heavy : key === 'heavy' ? p.attack && p.attack.heavy && !p.attack.special : key === 'dodge' ? p.dodge > 0 : key === 'special' ? !!(p.attack && p.attack.special) : p.rageTime > 0;
+      const active = key === 'light' ? p.attack && !p.attack.heavy : key === 'heavy' ? p.attack && p.attack.heavy && !p.attack.special : key === 'dodge' ? p.dodge > 0 : key === 'special' ? !!(p.attack && p.attack.special) : cryEffect.remaining > 0;
       b.classList.toggle('pressed', !!active);
-      b.classList.toggle('unavailable', key === 'heavy' ? p.stamina < 34 : key === 'dodge' ? p.stamina < 20 : key === 'rage' ? p.rage < p.maxRage && !p.rageTime : false);
+      const cost = B.Game.resources.costs[key];
+      b.classList.toggle('unavailable', cost > 0 && p.stamina < cost && !active);
       if (key === 'light' || key === 'heavy') b.style.setProperty('--progress', active && p.attack ? clamp(p.attack.age / p.attack.duration, 0, 1) : 0);
     }
     drawMinimap(p);
@@ -1040,6 +1056,12 @@
   }
   function hud(dt) {
     const p = game.player;
+    cryEffect.remaining = !p.dead && game.state === 'playing' ? p.rageTime || 0 : 0;
+    buffUI.update(timedEffects);
+    let buffCount = 0;
+    for (const effect of timedEffects) if (Number.isFinite(effect.remaining) && effect.remaining > 0) buffCount++;
+    const buffRows = Math.ceil(buffCount / 3);
+    if (buffRows !== lastBuffRows) { lastBuffRows = buffRows; $('hud').style.setProperty('--buff-rows', buffRows); }
     const hp = clamp(p.hp / p.maxHp, 0, 1);
     hudText('health-number', Math.ceil(Math.max(0, p.hp))); hudText('health-max', '/ ' + Math.round(p.maxHp));
     if (B.HUD) B.HUD.vitals(p, dt);   // liquid health and stamina orbs (src/hud.js)
@@ -1052,25 +1074,15 @@
     const flaskBtn = document.querySelector('.flask-button');
     if (lastFlasks !== null && p.flasks !== lastFlasks) tap(flaskBtn);
     lastFlasks = p.flasks; hudText('flask-count', p.flasks ?? 0);
-    const rage = clamp((p.rage || 0) / (p.maxRage || 100), 0, 1), rageBtn = document.querySelector('.action-rage');
-    const rageReady = p.rage >= p.maxRage && !p.rageTime;
-    if (p.rageTime > rageMax) rageMax = p.rageTime;
-    rageBtn.style.setProperty('--rage', p.rageTime > 0 ? clamp(p.rageTime / rageMax, 0, 1) : rage);
+    const rageBtn = document.querySelector('.action-rage');
+    const rageReady = p.stamina >= B.Game.resources.costs.rage && !(p.rageCd > 0) && !(p.rageTime > 0) && !p.roar && !p.dead;
     rageBtn.classList.toggle('ready', rageReady);
-    if (rageReady && !rageHinted) { rageHinted = true; notify('Öfke hazır. ' + (($('actionbar').querySelector('.action-rage kbd') || {}).textContent || '2') + ' ile bağır.', 'rage'); }
-    rageBtn.classList.toggle('burning', p.rageTime > 0);
-    document.body.classList.toggle('raging', p.rageTime > 0);
+    rageBtn.classList.toggle('burning', cryEffect.remaining > 0);
+    document.body.classList.toggle('raging', cryEffect.remaining > 0);
     updateOverview();
     if (B.HUD && B.HUD.skills) B.HUD.skills(p, dt);   // cooldown sweeps, stamina cost hints (src/hud.js)
-    const boss = game.enemies.find(e => e.boss && !e.dead && Math.hypot(e.x - p.x, e.z - p.z) < 28);
-    $('boss-hud').classList.toggle('hidden', !boss);
-    if (boss) {
-      const f = clamp(boss.hp / boss.maxHp, 0, 1);
-      hudText('boss-name', boss.name || 'Zincir Celladı');
-      hudTransform('boss-fill', `scaleX(${f})`); hudTransform('boss-trail', `scaleX(${f})`);
-      hudText('boss-phase', boss.phase === 2 ? 'ZİNCİRLER KIRILDI' : 'KURBAN SALONU');
-      $('boss-hud').classList.toggle('phase2', boss.phase === 2);
-    }
+    const targetEnemy = !p.dead && game.state === 'playing' ? game.attackTarget || game.enemies.find(e => e.boss && !e.dead && Math.hypot(e.x - p.x, e.z - p.z) < 28) : null;
+    targetUI.update(targetEnemy);
     const r = world.roomAt(p.x, p.z);
     if (r) hudText('objective', chapterObjective(r));
     if (r && r.id !== roomId) {
@@ -1177,11 +1189,11 @@
     return graphicsAdapter;
   }
   function performanceReport() {
-    return { schema: 3, game: 'Kabir Azabı', build: 55, capturedAt: new Date().toISOString(), view,
+    return { schema: 4, game: 'Kabir Azabı', build: 61, capturedAt: new Date().toISOString(), view,
       location: { room: world.rooms?.[roomId]?.name || roomId, x: game.player.x, z: game.player.z },
       display: { width: post.width, height: post.height, windowWidth: innerWidth, windowHeight: innerHeight,
         devicePixelRatio: window.devicePixelRatio || 1, renderPixelRatio: renderer.getPixelRatio() },
-      settings: { quality: cfg.quality, msaaRequested: cfg.msaa, msaaActual: post.samples, frameLimit: cfg.fps },
+      settings: { quality: cfg.quality, displayMode: cfg.displayMode, displayScale: displayPlan?.scale, msaaRequested: cfg.msaa, msaaActual: post.samples, frameLimit: cfg.fps },
       adapter: readGraphicsAdapter(), ...performanceMeter.report(),
       gpu: { available: post.timingAvailable, enabled: post.timingEnabled, ready: post.timingReady,
         error: post.timingError, sampleIntervalMs: post.timingSampleIntervalMs, milliseconds: post.gpuSections },
@@ -1265,7 +1277,9 @@
       // Three updates the scene and camera matrices inside render; a separate
       // complete scene walk here would repeat the same work.
       const presentationEnd = measured ? performance.now() : 0;
-      renderer.info.reset(); post.render(elapsed);
+      game.beginRenderTraversal();
+      try { renderer.info.reset(); post.render(elapsed); }
+      finally { game.endRenderTraversal(); }
       const submissionEnd = measured ? performance.now() : 0;
       $('damage-flash').style.opacity = flash * .8;
       document.body.classList.toggle('in-combat', fighting && view === 'playing');
@@ -1289,6 +1303,7 @@
   let warming = null, lowTextures = false, warmStats = null;
   const WARM_BATCH = +(Q.get('warmbatch') || 48), WARM_LOG = Q.has('warmlog'), WARM_SYNC = /HeadlessChrome/.test(navigator.userAgent) && !Q.has('warm');
   function prepareWarmScene() {
+    safe(() => { if (game.prepareGraphics) game.prepareGraphics(); });         // hidden click-to-move and target rings
     safe(() => { if (feedback && feedback.warm) feedback.warm(); });            // hidden blood, sparks, scars, smears, afterimages
     safe(() => { if (feedback) feedback.update(0); });                          // tells: rim shells, rings, glints
     safe(() => { if (rig && rig.prepare) rig.prepare(game); });                 // character rim light is patched in first
@@ -1296,6 +1311,10 @@
     // One entry per material and mesh kind (each kind is its own program variant).
     const seen = new Set(), seenGeometry = new Set(), jobs = [], geometryObjects = [], textures = new Set();
     const TEX = ['map', 'normalMap', 'roughnessMap', 'metalnessMap', 'aoMap', 'emissiveMap', 'alphaMap', 'bumpMap', 'lightMap'];
+    // Future window patterns and floor scars already exist, but are only assigned to a light/material
+    // when their first room/attack is reached. Include them under the loading cover as well.
+    if (world.lighting && world.lighting.prepareTextures) for (const t of world.lighting.prepareTextures()) textures.add(t);
+    if (feedback && feedback.tells && feedback.tells.textures) for (const t of Object.values(feedback.tells.textures)) textures.add(t);
     scene.traverse(o => {
       if (!(o.isMesh || o.isPoints || o.isLine || o.isSprite) || !o.material) return;
       if (o.geometry && (!seenGeometry.has(o.geometry) || o.isInstancedMesh)) {
@@ -1464,7 +1483,16 @@
     game = B.Game.create(world, { scene, emit: event, sound: (n, o) => B.Audio.play(n, o), fx });
     makeFX(); postProcess(); setupUI();
     titleCamera();
-    B.Audio.onCaption((text, speaker = 'Anlatıcı') => { const n = $('narration'); n.querySelector('.narration-text span').textContent = speaker; n.querySelector('p').textContent = text; n.classList.toggle('hidden', !text || !cfg.subtitles); if (text) { tap(n); $('tutorial').classList.add('hidden'); } });
+    const placeNotices = () => {
+      const height = Math.max($('narration').offsetHeight, $('tutorial').offsetHeight);
+      $('hud').style.setProperty('--message-clearance', (height + 12) + 'px');
+    };
+    if (typeof ResizeObserver === 'function') {
+      const noticeLayout = new ResizeObserver(placeNotices);
+      noticeLayout.observe($('narration')); noticeLayout.observe($('tutorial'));
+    }
+    B.Audio.onCaption((text, speaker = 'Anlatıcı') => { const n = $('narration'); n.querySelector('.narration-text span').textContent = speaker; n.querySelector('p').textContent = text; n.classList.toggle('hidden', !text || !cfg.subtitles); if (text) { tap(n); $('tutorial').classList.add('hidden'); } placeNotices(); });
+    placeNotices();
     // The embedded UI fonts are also offered to canvas text (damage numbers, labels) once decoded.
     if (document.fonts && document.fonts.load) safe(() => { document.fonts.load('800 40px "Source Sans 3"'); });
     // The shadow pass clones ONE depth material per source material and then reuses it for skinned, instanced and plain casters alike,
@@ -1531,7 +1559,10 @@
   // Düşük loads the character textures at half size and touch tablets cap them at 1024 px (up to ~88 MB less video memory).
   lowTextures = cfg.quality === 'low';
   Promise.resolve().then(async () => {
-    await B.Models.prepare({ textureScale: lowTextures ? .5 : 1, maxTexture: coarsePointer ? 1024 : 2048 });
+    await Promise.all([
+      B.Models.prepare({ textureScale: lowTextures ? .5 : 1, maxTexture: coarsePointer ? 1024 : 2048 }),
+      B.TargetHUD.prepare()
+    ]);
     if (B.Audio.prepare) {
       loadProgress(.94, 'Tapınağın sesleri hazırlanıyor…');
       try { await B.Audio.prepare(k => loadProgress(.94 + .01 * k)); }
