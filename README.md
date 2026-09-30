@@ -114,7 +114,7 @@ Barbar ve cellat modelleri thecubber / OpenGameArt kaynaklıdır (CC BY 3.0); sa
 
 Darbe vurgusu bütün dövüş saatlerine birlikte uygulanan kısa duraklamadır (sabit bir değer; ayarlarda yoktur). Duraklama sırasında basılan tuşlar kaybolmaz, sıradaki harekete aktarılır. İşletim sistemindeki hareket azaltma tercihi darbe duraklamasını ve kamera geri tepmesini kapatır. Yeni görsel çalışma can, hasar, saldırı süreleri, bölüm güzergâhı ve kayıt noktalarını değiştirmez.
 
-GitHub yayını bağımsız `goktugkarpat/bahtiyar-kabir-azabi` deposunu ve doğrudan `main` dalını kullanır. Windows'ta `yayinla.cmd`, Mac'te `yayinla.command` çift tıklanarak gönderim yapılabilir. Git ve GitHub CLI gerekir; ilk kullanımda GitHub'ın resmî giriş ekranı açılır. Bu dosyalar değişiklikleri kaydeder, gönderir ve GitHub Pages'i etkinleştirir.
+GitHub yayını bağımsız `goktugkarpat/bahtiyar-kabir-azabi` deposunu ve doğrudan `main` dalını kullanır. Windows'ta `yayinla.cmd`, Mac'te `yayinla.command` çift tıklanarak gönderim yapılabilir. Git ve GitHub CLI gerekir; ilk kullanımda GitHub'ın resmî giriş ekranı açılır. Göndermeden önce aktif hesabın `goktugkarpat` olduğu doğrulanır. Bu dosyalar değişiklikleri kaydeder, gönderir ve GitHub Pages'i etkinleştirir.
 
 ## Anlatıcıyı yeniden kaydetmek
 

@@ -17,6 +17,12 @@ gh auth status >nul 2>&1
 if errorlevel 1 (
   gh auth login --hostname github.com --git-protocol https --web || goto failed
 )
+set "GAME_LOGIN="
+for /f "delims=" %%U in ('gh api user --jq .login 2^>nul') do set "GAME_LOGIN=%%U"
+if not "%GAME_LOGIN%"=="goktugkarpat" (
+  echo Gonderim icin aktif GitHub hesabi goktugkarpat olmali.
+  goto failed
+)
 git add -A || goto failed
 git diff --cached --quiet
 if errorlevel 1 (

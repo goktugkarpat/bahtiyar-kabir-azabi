@@ -182,7 +182,7 @@
   function create(parent, world, hooks) {
     hooks = hooks || {};
     const fx = hooks.fx || function () {}, sound = hooks.sound || function () {}, emit = hooks.emit || function () {};
-    const cache = new Map(), slots = [], stumps = [], cuts = [];
+    const cache = new Map(), slots = [], stumps = [], privateG2 = new Set(), cutActors = new Set();
     let maxAlive = 12, low = false, serial = 0, disposed = false, warmLeft = 0, preparing = null;
     const group = new T.Group(); group.name = 'limbs'; parent.add(group);
     const M = new T.Matrix4(), M2 = new T.Matrix4(), Q1 = new T.Quaternion(), QT = new T.Quaternion(), V1 = new T.Vector3(), V2 = new T.Vector3(), V3 = new T.Vector3(), SC = new T.Vector3(1, 1, 1), proxy = { x: 0, z: 0 };
@@ -197,7 +197,7 @@
       const cap = new T.SkinnedMesh(warm, capMaterial); cap.bind(skel, new T.Matrix4()); cap.frustumCulled = false; cap.castShadow = cap.receiveShadow = true; cap.matrixAutoUpdate = false; g.add(cap);
       group.add(g);
       const frozen = []; for (let i = 0; i < MAXBONES; i++) frozen.push(new T.Matrix4());
-      return { g, skel, bones, inverses, cap, meshes: [], frozen, weapon: null, weaponFrozen: new T.Matrix4(), alive: false, used: [], serial: 0,
+      return { g, skel, bones, inverses, cap, warmGeometry: warm, meshes: [], frozen, weapon: null, weaponFrozen: new T.Matrix4(), alive: false, used: [], serial: 0,
         p: new T.Vector3(), q: new T.Quaternion(), v: new T.Vector3(), w: new T.Vector3(), c0: new T.Vector3(), a0: new T.Vector3(), j0: new T.Vector3() };
     }
     for (let i = 0; i < 12; i++) slots.push(makeSlot());
@@ -222,6 +222,7 @@
         const src = base.index.array, arr = new src.constructor(src); g2.setIndex(new T.BufferAttribute(arr, 1)); g2.index.setUsage(T.DynamicDrawUsage);
         g2.userData.limbOrig = base; g2.boundingSphere = base.boundingSphere; g2.boundingBox = base.boundingBox; map.set(base, g2);
       }
+      privateG2.add(g2); cutActors.add(enemy);
       return g2;
     }
 
@@ -501,7 +502,24 @@
     }
     function dispose() {
       if (disposed) return; disposed = true; slots.forEach(release);
-      slots.forEach(s => { s.skel.dispose(); s.cap.geometry.dispose(); });
+      slots.forEach(s => { s.skel.dispose(); s.warmGeometry.dispose(); });
+      cutActors.forEach(enemy => {
+        restore(enemy);
+        const map = enemy._limbG2;
+        if (map) { for (const [base, g2] of map) if (privateG2.has(g2)) map.delete(base); if (!map.size) delete enemy._limbG2; }
+      });
+      // Only the copied index belongs to the corpse; vertex buffers belong to the shared blueprint.
+      privateG2.forEach(g2 => {
+        const base = orig(g2);
+        if (g2.index === base.index) g2.setIndex(null);
+        for (const name in g2.attributes) if (g2.attributes[name] === base.attributes[name]) g2.deleteAttribute(name);
+        for (const name in g2.morphAttributes) {
+          const shared = base.morphAttributes[name] || [];
+          g2.morphAttributes[name] = g2.morphAttributes[name].filter(a => !shared.includes(a));
+        }
+        g2.dispose();
+      });
+      privateG2.clear(); cutActors.clear(); stumps.length = 0;
       cache.forEach(c => { if (c) { c.parts.forEach(p => { p.pieceGeo.dispose(); if (p.restGeo) p.restGeo.dispose(); }); if (c.stumpCap) c.stumpCap.dispose(); if (c.pieceCap) c.pieceCap.dispose(); } });
       cache.clear(); group.removeFromParent();
     }

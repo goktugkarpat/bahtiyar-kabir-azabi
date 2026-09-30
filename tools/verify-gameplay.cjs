@@ -34,6 +34,15 @@ const assert=require('node:assert');
    if(initial>0){tick(.4,i=>({rage:i===0}),fps);assert(game.player.rageTime>10,'A full bar must release the cry');}
  }
  console.log('WHIRLWIND rage gain/cap/kill/full-bar activation: PASS');
+ // Derived visual state is read even without Game.update on the title screen.
+ for(const reset of ['titleStart','restart','respawn']){
+   game.restart();for(const foe of game.enemies)foe.cooldown=999;game.update(1/120,{special:true});tick(.4);
+   const visual=game.player.special;assert(visual.active);assert(visual.spin>0);
+   if(reset==='titleStart')game.toTitle();else game[reset]();
+   assert.strictEqual(game.player.special,visual);assert(!visual.active);assert.equal(visual.t,0);assert.equal(visual.tick,0);assert.equal(visual.spin,0);assert.equal(visual.serial,0);
+   if(reset==='titleStart')game.start();game.update(1/120,{});assert(!visual.active);assert.equal(visual.spin,0);assert(Math.abs(game.player.model.root.rotation.y-game.player.yaw)<1e-7);
+ }
+ console.log('WHIRLWIND title/start/restart/respawn derived-state reset: PASS');
  game.debug.invincible(true);for(const foe of game.enemies)if(!foe.dead)game.debug.damageEnemy(foe.id,10000);assert.equal(game.state,'won');assert(!game.hasSave);assert(!store.has(game.debug.storageKey));game.toTitle();game.start();assert.equal(game.player.z,8);assert(game.enemies.every(e=>!e.dead));assert.equal(game.kills,0);console.log('WIN title/new run: PASS');
  game.restart();game.debug.invincible(true);for(const foe of game.enemies)foe.cooldown=999;const gateFoe=game.enemies.find(e=>e.encounter.room===1);gateFoe.x=0;gateFoe.z=-7.2;game.debug.teleport(0,-4.8);let gateHp=gateFoe.hp;tick(.65,i=>({stand:true,clickHeavy:i===0,pointX:gateFoe.x,pointZ:gateFoe.z,target:gateFoe}));assert.equal(gateFoe.hp,gateHp,'A closed seal blocks damage');assert(!gateFoe.activated,'Do not wake the hall behind the seal');for(const foe of game.enemies.filter(e=>e.encounter.room===0))game.debug.damageEnemy(foe.id,10000);tick(.65,i=>({stand:true,clickHeavy:i===0,pointX:gateFoe.x,pointZ:gateFoe.z,target:gateFoe}));assert(gateFoe.hp<gateHp,'Opening a seal clears the same line without rebuilding navigation');console.log('DYNAMIC SEAL closed attack/open attack: PASS');
  // The executioner's closed rear gate and masonry are physical surfaces, not floor destinations.

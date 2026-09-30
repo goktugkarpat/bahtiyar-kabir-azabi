@@ -13,6 +13,10 @@ if [[ "$(git branch --show-current)" != 'main' ]]; then
   exit 1
 fi
 gh auth status >/dev/null 2>&1 || gh auth login --hostname github.com --git-protocol https --web
+if [[ "$(gh api user --jq .login)" != 'goktugkarpat' ]]; then
+  print 'Gönderim için aktif GitHub hesabı goktugkarpat olmalı.'
+  exit 1
+fi
 git add -A
 if ! git diff --cached --quiet; then
   git commit -m 'Kabir Azabi: guncelleme'

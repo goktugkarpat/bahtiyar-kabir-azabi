@@ -129,7 +129,7 @@
     // swingPlan = the swing the order wants this frame (foe in reach / stand); dodgeAim = the cursor / target direction a roll takes when no key is held;
     // pendingClick = a click that arrived during hit-stop; targetRing = the slim ember ring under the foe that is targeted / under the cursor.
     let order = null, swingPlan = null, dodgeAim = null, pendingClick = null, targetRing = null, rawInput = null, moveMark = null, markX = 0, markZ = 0, markA = 0;
-    let forcedMotion = null, healingAge = 0, comboStep = 0, comboWindow = 0;
+    let forcedMotion = null, healingAge = 0, comboStep = 0, comboWindow = 0, spinCur = 0;
     let playerHitImmunity = 0, checkpointSnapshot = null, endAnnounced = false;
     let hintCooldown = 0, debugInvincible = false, openingGrace = 8, corpseLifetime = 90;
     let freeze = 0, slowmo = 0, impactScale = 1, attackSerial = 0, actionSerial = 0, evadeCooldown = 0, pairCd = 0;
@@ -329,7 +329,7 @@
       if (limbs) limbs.reset(enemies);
       if (globes) globes.reset();
       simTime = 0; buffer = {}; staminaDelay = 0; drinkLeft = 0; order = null; swingPlan = null; dodgeAim = null; pendingClick = null; showTargetRing(null); markA = 0;
-      dodgeAge = 0; forcedMotion = null; healingAge = 0; comboStep = 0; comboWindow = 0;
+      dodgeAge = 0; forcedMotion = null; healingAge = 0; comboStep = 0; comboWindow = 0; spinCur = 0;
       playerHitImmunity = 0; endAnnounced = false; hintCooldown = 0; openingGrace = snapshot.index ? 0 : 8;
       freeze = 0; slowmo = 0; victims.length = 0; evadeCooldown = 0; game.hitStop = 0; game.timeScale = 1; pairCd = 0;
       aimFace = moveFace = assistFoe = null;
@@ -339,6 +339,7 @@
         healing: 0, rageTime: 0, hurt: 0, stagger: 0, target: null, status: '', invulnerable: false,
         push: null, staggerTotal: 0, hitAngle: 0, hurtHeavy: false, evade: 0, roar: null, rageFlash: 0, specialCd: 0, specialMax: SPECIAL.cooldown, lack: null, drink: 0
       });
+      if (player.special) Object.assign(player.special, { active: false, t: 0, u: 0, tick: 0, spin: 0, serial: 0 });
       hero.root.visible = true; hero.root.position.set(player.x, 0, player.z); hero.root.rotation.y = player.yaw;
       game.kills = snapshot.kills; game.elapsed = snapshot.elapsed; game.checkpointIndex = snapshot.index;
       game.lastDeath = null; game.currentRoom = null; game.activeEncounter = '';
@@ -1621,7 +1622,6 @@
     }
     // Whirlwind body turn: an unwrapped angle (eased in and out, SPECIAL.turns full turns) added to the body's yaw only, so the hero ends facing player.yaw exactly.
     const SPIN = (() => { const sm = x => { x = clamp(x, 0, 1); return x * x * (3 - 2 * x); }, t = [0]; for (let i = 1; i <= 64; i++) { const u = i / 64; t.push(t[i - 1] + sm(u / .1) * (1 - sm((u - .78) / .22))); } return t.map(v => v / t[64]); })();
-    let spinCur = 0;
     function whirlAngle(u) { return BABA.AuthoredMotion.whirlAngle(u, reducedMotion.matches ? 1 : SPECIAL.turns); }
     function animateAll(dt) {
       const pm = movementState(player, hero, dt, 5.35);
