@@ -75,6 +75,10 @@ Sürüm 50'de ekran dışındaki tehlike okları gerçek saldırı süresini izl
 
 Kayıtlı ses seviyeleri ilk yüklemeden itibaren uygulanır. Sekmeye dönerken ayarlar ve final/ölüm ekranlarının sesi yeniden açılır; duraklatılmış dövüş duraklatılmış kalır. Anlatıcı sesi kapalıysa altyazı sürer ve konuşma müziği kısmaz. Önbelleği okuma veya yazma başarısız olduğunda, internetten başarıyla gelen dosya kaybolmaz. `node tools/verify-offline.cjs` gerçek çevrimdışı işleyicilerin önbellek sırasını, tüm dosyaların geri dönüşünü ve diğer oyunların önbelleğinin korunmasını; `node tools/verify-warnings.cjs` gerçek uyarı kodunu ve kamera hesabını denetler. Bu kontroller tarayıcı veya ekran kartı ölçümü değildir.
 
+Sürüm 51'de ses veya arayüz ayarını değiştirirken aynı boyuttaki çizim alanı tekrar sıfırlanmaz. Ekran boyutu gerçekten değişince tek işlemle yenilenir; gizli veya çok küçük pencerede son geçerli görüntü boyutu korunur. Ekran yoğunluğu değişince can/dayanıklılık küreleri de yenilenir. Girdap sonrası başlığa dönülünce kamera normal açısına gelir.
+
+Menü öncesindeki dokunuş oyuna dönünce komut üretmez. Tarayıcının Control/Command kısayolları yanlışlıkla yetenek çalıştırmaz; oyuncunun kendi Control ataması korunur. Cihaz kayıt yazmayı reddetse de bu oturumdaki yemin taşından devam seçeneği doğru görünür. Yeni oyun/finalde eski kayıt silinemiyorsa geçersizleştirme denenir; cihaz her iki işlemi de engellerse açık mesaj gösterilir. Yeni oyun, devam ve yeniden doğuş mesajları eski bildirimler temizlenirken kaybolmaz. Kayıt hatası kontrolleri `tools/verify-gameplay.cjs` içinde de bulunur.
+
 Gerçek harita ve modellerle, normal can/hasar ve oyun girdileri kullanılarak yapılan 21 otomatik tam bölüm denemesi tamamlandı. Farklı hızlar, kaçırılmış saldırı uyarıları, kapalı mühür, Cellat'ın son evresinde ölüm, yemin taşından dönüş ve finalden yeni yolculuk birlikte denetlendi. Bu otomatik denemeler insanın oynama süresini/zorluğunu veya ekran kartı performansını ölçmez.
 
 ## Teknik yapı

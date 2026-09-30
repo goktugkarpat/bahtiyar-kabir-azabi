@@ -221,7 +221,7 @@
   function back() { show(stack.pop() || 'title'); }
   function clearInput() {
     keys.clear(); for (const k in actions) delete actions[k];
-    heldLight = false; lightPointer = null; touchHold = null; clicks.light = clicks.heavy = false; cursor.target = null;
+    heldLight = false; lightPointer = null; touchHold = null; zoneTap = null; clicks.light = clicks.heavy = false; cursor.target = null;
     joy.x = joy.z = 0; joy.id = null; resetStick();
     input.aimX = input.aimZ = input.aimFoe = null;
     input.x = input.z = 0; input.target = input.pointX = input.pointZ = null;
@@ -306,8 +306,9 @@
   function begin(fresh = false) {
     B.Audio.unlock(); if (B.Audio.resetNarration) B.Audio.resetNarration();
     const fromTitle = view === 'title';
+    clearNotices();
     if (fresh) { game.restart(); deaths = 0; } else game.start();
-    clearNotices(); deathShown = wonShown = false; roomId = -1; firstHint = 25; lastHp = lastFlasks = null;
+    deathShown = wonShown = false; roomId = -1; firstHint = 25; lastHp = lastFlasks = null;
     $('tutorial').classList.remove('hidden');
     show('playing'); hud(0);
     if (fromTitle && !reducedMotion.matches) { introBlend = 0; introStart = performance.now(); introFrom.copy(cameraPos); introLook.copy(look); }   // swoop from the title shot down to the play camera
@@ -411,6 +412,7 @@
     rig = B.Lighting.create({ renderer, scene, camera, world, cfg, post });
   }
   let displayPlan = null, densityQuery = null;
+  const resizeSize = new THREE.Vector2();
   function watchPixelDensity() {
     if (densityQuery) densityQuery.removeEventListener('change', densityChanged);
     densityQuery = matchMedia(`(resolution: ${window.devicePixelRatio || 1}dppx)`);
@@ -420,15 +422,24 @@
   function resize() {
     if (!renderer || graphicsLost) return;
     const w = innerWidth, h = innerHeight;
+    if (w < 1 || h < 1) return;   // Keep valid buffers while the window has no drawable area.
     // HUD scale: as before up to 982 px of screen height, then it keeps growing with the screen (big monitors); "Arayüz boyutu" multiplies it.
     const side = Math.min(w, h);
     document.documentElement.style.setProperty('--k', clamp((side < 982 ? clamp(side / 800, .68, 1.05) : Math.min(2.3, 1.05 * side / 982)) * cfg.uiScale, .5, 2.9));
     // Native pixels by default; the HUD remains native in the reduced rendering mode too.
     const gl = renderer.getContext(), vp = gl.getParameter(gl.MAX_VIEWPORT_DIMS) || [16384, 16384];
     const gpuMax = Math.min(gl.getParameter(gl.MAX_TEXTURE_SIZE) || 16384, gl.getParameter(gl.MAX_RENDERBUFFER_SIZE) || 16384, vp[0] || 16384, vp[1] || 16384);
-    displayPlan = DISPLAY.plan({ width: w, height: h, pixelRatio: window.devicePixelRatio, maxSize: gpuMax }, cfg);
-    renderer.setPixelRatio(displayPlan.pixelRatio); renderer.setSize(w, h, false);
-    camera.aspect = w / h; camera.updateProjectionMatrix();
+    const nextDisplay = DISPLAY.plan({ width: w, height: h, pixelRatio: window.devicePixelRatio, maxSize: gpuMax }, cfg);
+    if (Math.floor(w * nextDisplay.pixelRatio) < 1 || Math.floor(h * nextDisplay.pixelRatio) < 1) return;
+    displayPlan = nextDisplay;
+    renderer.getSize(resizeSize);
+    // Setting pixel ratio also resizes Three's canvas. Change both together,
+    // and retain the drawing buffer when a sound/UI setting leaves it intact.
+    if (resizeSize.x !== w || resizeSize.y !== h || renderer.getPixelRatio() !== displayPlan.pixelRatio ||
+        renderer.domElement.width !== displayPlan.width || renderer.domElement.height !== displayPlan.height) {
+      renderer.setDrawingBufferSize(w, h, displayPlan.pixelRatio);
+    }
+    if (camera.aspect !== w / h) { camera.aspect = w / h; camera.updateProjectionMatrix(); }
     const changedSize = post.width !== renderer.domElement.width || post.height !== renderer.domElement.height;
     post.setSize(renderer.domElement.width, renderer.domElement.height);
     if (changedSize) resetPerformance();
@@ -564,7 +575,7 @@
       titleCamera(); snapScene(); show('title');   // cut straight to the title shot (no flight back through the walls)
     };
     $('respawn').onclick = () => {
-      B.Audio.unlock(); B.Audio.resetNarration(); game.respawn(); clearFX(); clearNotices();
+      B.Audio.unlock(); B.Audio.resetNarration(); clearFX(); clearNotices(); game.respawn();
       deathShown = wonShown = false; show('playing'); roomId = -1; introBlend = 1; lastHp = lastFlasks = null; hud(0);
       cameraPos.set(game.player.x, 16, game.player.z + 13); look.set(game.player.x, .7, game.player.z); snapScene();
       announce(game.checkpointIndex ? 'Yemin Taşı' : 'Kabir Azabı', 'GERİ DÖNDÜN', 'checkpoint');
@@ -599,7 +610,8 @@
       if (zoneTap && zoneTap.id === e.pointerId) zoneTap = null;
     });
     document.addEventListener('keydown', e => {
-      if (view === 'playing' && (bindMap[normCode(e.code)] || e.code === 'Tab') && !e.metaKey && !(e.ctrlKey && !e.code.startsWith('Control'))) e.preventDefault();   // mapped keys never scroll or search the page
+      const browserChord = e.metaKey || (e.ctrlKey && !e.code.startsWith('Control') && !bindMap.ControlLeft);
+      if (view === 'playing' && (bindMap[normCode(e.code)] || e.code === 'Tab') && !browserChord) e.preventDefault();   // mapped keys never scroll or search the page
       if (e.code === 'Escape') {
         e.preventDefault();
         if (e.repeat) return;
@@ -619,7 +631,7 @@
         }
         return;
       }
-      if (view !== 'playing') return;
+      if (view !== 'playing' || browserChord) return;
       if (e.code === 'KeyH' && !e.repeat) { show('pause'); openControls(); return; }
       if (e.repeat) keys.add(normCode(e.code)); else pressBind(normCode(e.code));
     });
@@ -1076,6 +1088,7 @@
   const occlusionRay = new THREE.Raycaster(), rayDir = new THREE.Vector3(), eyePoint = new THREE.Vector3(), occlusionHits = [], occlusionBlocked = new Set();
   // Title shot: over the father's shoulder, looking down into the temple. (QA: &tc=x,y,z,lookX,lookY,lookZ)
   const TITLE_CAM = (Q.get('tc') || '-2.7,2.0,5.2,.55,1.75,-6').split(',').map(Number);
+  const BASE_FOV = 43;
   const CAM_NEAR = Q.has('cam') ? clamp(+Q.get('cam') || 1, .5, 1.5) : .78;
   function cameraStep(dt) {
     const p = game.player;
@@ -1160,7 +1173,7 @@
     return graphicsAdapter;
   }
   function performanceReport() {
-    return { schema: 3, game: 'Kabir Azabı', build: 50, capturedAt: new Date().toISOString(), view,
+    return { schema: 3, game: 'Kabir Azabı', build: 51, capturedAt: new Date().toISOString(), view,
       location: { room: world.rooms?.[roomId]?.name || roomId, x: game.player.x, z: game.player.z },
       display: { width: post.width, height: post.height, windowWidth: innerWidth, windowHeight: innerHeight,
         devicePixelRatio: window.devicePixelRatio || 1, renderPixelRatio: renderer.getPixelRatio() },
@@ -1422,13 +1435,14 @@
   // instead of fading in over a second of darkness.
   function snapScene() { safe(() => { for (let i = 0; i < 4; i++) world.update(.1, elapsed, game.player); if (rig.snap) rig.snap(); }); }
   function titleCamera() {
+    if (camera.fov !== BASE_FOV) { camera.fov = BASE_FOV; camera.updateProjectionMatrix(); }
     cameraPos.set(world.spawn.x + TITLE_CAM[0], TITLE_CAM[1] + .35, world.spawn.z + TITLE_CAM[2] + .6);
     look.set(world.spawn.x + TITLE_CAM[3], TITLE_CAM[4], world.spawn.z + TITLE_CAM[5]);
   }
   function boot() {
     if (!B.World || !B.Models || !B.Game) throw Error('Oyun dosyaları henüz hazır değil. Sayfayı biraz sonra yenile.');
     scene = new THREE.Scene(); scene.background = new THREE.Color('#07090c');
-    camera = new THREE.PerspectiveCamera(43, innerWidth / innerHeight, .15, 150);
+    camera = new THREE.PerspectiveCamera(BASE_FOV, Math.max(1, innerWidth) / Math.max(1, innerHeight), .15, 150);
     renderer = new THREE.WebGLRenderer({ canvas: $('game'), antialias: false, alpha: false, powerPreference: 'high-performance', stencil: false });
     renderer.outputColorSpace = THREE.LinearSRGBColorSpace; renderer.toneMapping = THREE.NoToneMapping; renderer.shadowMap.type = THREE.PCFSoftShadowMap; renderer.info.autoReset = false;
     // Shader error checks read every program's log on first use; development pages only (?debug).

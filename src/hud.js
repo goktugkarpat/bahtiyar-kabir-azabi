@@ -89,12 +89,13 @@
       linked = true; return true;
     }
     const ctx = gl ? null : canvas.getContext('2d');
-    // Backing-store size follows the CSS size; measured only when the layout changes (ResizeObserver).
-    let measure = true;
+    // Backing-store size follows the CSS size; remeasure on layout or pixel-density changes.
+    let measure = true, measuredDpr = 0;
     if (window.ResizeObserver) new ResizeObserver(() => { measure = true; }).observe(canvas); else addEventListener('resize', () => { measure = true; });
     function size() {
-      if (!measure && canvas.width > 2) return; measure = false;
-      const r = canvas.getBoundingClientRect(), dpr = Math.min(devicePixelRatio || 1, 2), w = Math.max(2, Math.round(r.width * dpr)), h = Math.max(2, Math.round(r.height * dpr));
+      const dpr = Math.min(devicePixelRatio || 1, 2);
+      if (!measure && measuredDpr === dpr && canvas.width > 2) return; measure = false; measuredDpr = dpr;
+      const r = canvas.getBoundingClientRect(), w = Math.max(2, Math.round(r.width * dpr)), h = Math.max(2, Math.round(r.height * dpr));
       if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; st.dirty = true; }
       if (r.width < 1) measure = true;   // still hidden: try again next frame
     }

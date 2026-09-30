@@ -309,10 +309,18 @@
       } catch (_) { return null; }
     }
     function saveCheckpoint() {
-      try { window.localStorage.setItem(SAVE_KEY, JSON.stringify(Object.assign({ version: 2, signature }, checkpointSnapshot))); game.hasSave = true; }
+      game.hasSave = true;
+      try { window.localStorage.setItem(SAVE_KEY, JSON.stringify(Object.assign({ version: 2, signature }, checkpointSnapshot))); }
       catch (_) { emit('toast', { text: 'Mühür bu oturum için kaydedildi.' }); }
     }
-    function removeSave() { try { window.localStorage.removeItem(SAVE_KEY); } catch (_) {} game.hasSave = false; }
+    function removeSave() {
+      try { window.localStorage.removeItem(SAVE_KEY); }
+      catch (_) {
+        try { window.localStorage.setItem(SAVE_KEY, 'null'); }
+        catch (_) { emit('toast', { text: 'Bu cihazdaki eski mühür kaydı silinemedi.' }); }
+      }
+      game.hasSave = false;
+    }
     checkpointSnapshot = readSave() || freshSnapshot(); game.hasSave = checkpointSnapshot.index === 1;
     game.checkpointIndex = checkpointSnapshot.index;
 
