@@ -98,6 +98,16 @@ Three.js r170 ve aynı sürümün GLTFLoader / toTrianglesDrawMode yardımcılar
 
 Yükleyicide yalnızca ES module import/export sınırı klasik `window.THREE` script biçimine uyarlandı; oyun kurulum veya derleme gerektirmez.
 
+## SMAA (kenar yumuşatma)
+
+`src/smaa.js` — SMAA 1x (Subpixel Morphological Anti-Aliasing) klasik script portu. Shader kodu three.js r170'in
+`examples/jsm/shaders/SMAAShader.js` dosyasından (**MIT**, three.js authors) türetildi; o da SMAA v2.8 referans uygulamasının
+(**MIT**, © 2013 Jorge Jimenez, Jose I. Echevarria, Belen Masia, Fernando Navarro, Diego Gutierrez; http://www.iryoku.com/smaa/)
+WebGL portudur. İki arama dokusu (AreaTex 160×560 ve SearchTex 64×16, PNG olarak gömülü) three.js r170 `SMAAPass.js` dosyasından
+alındı. Bu oyun için değişiklikler: klasik script biçimi, kalite kademesine göre eşik/adım ayarı, her ekran boyutu için önceden
+ayrılan hedefler. Referanstaki köşe ve çapraz desen algılama eklenmedi. Referans lisans metni: Permission is hereby granted, free of
+charge, to any person obtaining a copy of this software ... (MIT; tam metin `vendor/THREE-LICENSE.txt` ile aynı koşullar).
+
 ## Karakterler — Quaternius (CC0 1.0)
 
 **Models by Quaternius** — https://quaternius.com — kaynakta atıf zorunlu değildir; yine de belirtilir.

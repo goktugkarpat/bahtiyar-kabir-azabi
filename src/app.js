@@ -19,8 +19,8 @@
   const FRAME_LIMIT = /Mac/i.test(navigator.userAgentData?.platform || navigator.platform || navigator.userAgent) ? 60 : 120;
   const QUALITY = {
     low:    { scale: 1, shadows: 0,    detail: 'low',    lights: .35, particles: 180, fog: .014, bloom: .08, corpses: 20, decals: 20, aa: true, occlusion: 0 },
-    medium: { scale: 1, shadows: 1536, detail: 'high',   lights: .7,  particles: 500, fog: .019, bloom: .205, corpses: 68, decals: 68, aa: true, occlusion: .5 },
-    high:   { scale: 1, shadows: 2048, detail: 'high',   lights: .8,  particles: 650, fog: .02,  bloom: .25,  corpses: 90, decals: 90, aa: true, occlusion: .6 }
+    medium: { scale: 1, shadows: 1024, detail: 'high',   lights: .7,  particles: 440, fog: .019, bloom: .205, corpses: 58, decals: 58, aa: true, occlusion: .5 },
+    high:   { scale: 1, shadows: 1536, detail: 'high',   lights: .8,  particles: 560, fog: .02,  bloom: .25,  corpses: 75, decals: 75, aa: true, occlusion: .6 }
   };
   const QUALITY_TEXT = {
     low: ['Düşük', 'Akıcılık öncelikli. Hafif ışıklar ve daha az parçacık.'],
@@ -31,9 +31,9 @@
   const TEXTURE_NOTE = ' Karakter kaplamaları oyun yeniden açılınca bu ayara geçer.';
   const coarsePointer = matchMedia('(pointer:coarse)').matches;
   // Desktop defaults follow the current display's pixel density. Extra AA is opt-in.
-  const DEFAULTS = { quality: FRAME_LIMIT === 60 ? 'medium' : 'high', qualityVersion: 3, ...DISPLAY.defaults, frameRate: FRAME_LIMIT, exposure: 1.15, shake: .55, master: .65, music: .42, sfx: .75, voice: .85, subtitles: true, uiScale: 1 };
-  const FRAME_RATES = [60, 120];
-  const MSAA_STEPS = [0, 2, 4], UI_STEPS = [.85, 1, 1.25];
+  const DEFAULTS = { quality: FRAME_LIMIT === 60 ? 'medium' : 'high', qualityVersion: 3, ...DISPLAY.defaults, frameRate: FRAME_LIMIT === 60 ? 60 : 0, exposure: 1.15, shake: .55, master: .65, music: .42, sfx: .75, voice: .85, subtitles: true, uiScale: 1 };
+  const FRAME_RATES = [60, 120, 0];   // 0 = follow the display (every refresh; best with G-Sync / FreeSync / ProMotion)
+  const UI_STEPS = [.85, 1, 1.25];
   const LIMITS = { exposure: [.7, 1.7], shake: [0, 1], master: [0, 1], music: [0, 1], sfx: [0, 1], voice: [0, 1] };
   // `cfg` is shared with effects.js / world.js / combat.js (they read the technical fields).
   const cfg = { ...DEFAULTS, impact: .65, touch: 'auto', showFps: false };
@@ -137,7 +137,7 @@
       Object.assign(cfg, DISPLAY.settings(raw));
       if (raw.displayVersion !== DISPLAY.defaults.displayVersion || raw.displayMode !== cfg.displayMode) migrated = true;
       cfg.uiScale = UI_STEPS.includes(raw.uiScale) ? raw.uiScale : DEFAULTS.uiScale;
-      cfg.frameRate = FRAME_RATES.includes(raw.frameRate) ? raw.frameRate : [0, 144].includes(raw.frameRate) ? 120 : DEFAULTS.frameRate;
+      cfg.frameRate = FRAME_RATES.includes(raw.frameRate) ? raw.frameRate : raw.frameRate === 144 ? 0 : DEFAULTS.frameRate;
       if (raw.frameRate !== cfg.frameRate) migrated = true;
       cfg.shake = DEFAULTS.shake;   // camera shake is no longer a setting
     }
@@ -150,6 +150,10 @@
   function deriveSettings() {
     Object.assign(cfg, QUALITY[cfg.quality] || QUALITY.high);
     cfg.fps = cfg.frameRate;
+    // 60 Hz-class targets: distant characters stop casting into the key light's shadow map (see combat.js); 0 = all cast.
+    // ...and the busiest per-frame extras are trimmed a little on High so a 60 Hz screen stays locked (120 Hz keeps the full amounts).
+    if (cfg.fps > 0 && cfg.fps <= 64 && cfg.quality === 'high') { cfg.decals = 60; cfg.particles = 480; cfg.corpses = 60; }
+    cfg.shadowReach = cfg.quality === 'low' ? 0 : cfg.fps > 0 && cfg.fps <= 64 ? (cfg.quality === 'high' ? 13 : 10) : (cfg.quality === 'high' ? 18 : 13);   // far characters do not cast into the key light's map (fewer shadow draws = a steadier frame time)
     cfg.preset = cfg.quality;
     cfg.ambient = cfg.sfx * .66;   // dungeon ambience follows the effects slider
   }
@@ -172,6 +176,7 @@
   let resumeAudioOnVisible = null;
   let graphicsLost = false, graphicsRecovering = false, graphicsEpoch = 0;
   const renderClock = B.Pacing.create();
+  const scaler = DISPLAY.createScaler(), AUTO_SCALE = !Q.has('nodrs');
   let shake = 0, flash = 0, ragePush = 0, announceTimer = 0, hudTimer = 0, firstHint = 25, elapsed = 0;
   let fpsStart = 0, fpsFrames = 0;
   const performanceMeter = B.Performance.create();
@@ -428,7 +433,7 @@
     densityQuery = matchMedia(`(resolution: ${window.devicePixelRatio || 1}dppx)`);
     densityQuery.addEventListener('change', densityChanged);
   }
-  function densityChanged() { watchPixelDensity(); resize(); }
+  function densityChanged() { watchPixelDensity(); scaler.display(); resize(); }
   function resize() {
     if (!renderer || graphicsLost) return;
     const w = innerWidth, h = innerHeight;
@@ -502,7 +507,6 @@
     const paint = () => {
       buttons.forEach((b, i) => {
         const on = values[i] === cfg[key]; b.classList.toggle('selected', on); b.setAttribute('aria-checked', on);
-        b.disabled = key === 'msaa' && values[i] > 0 && !post.supportedSamples.length;
       });
     };
     buttons.forEach((b, i) => b.addEventListener('click', () => {
@@ -518,22 +522,17 @@
   // Report the real output, including hardware fallback, separately from the requested choice.
   function paintGraphicsNotes() {
     if (!renderer || !displayPlan) return;
-    const r = $('display-note'), m = $('msaa-note'), mode = $('displayMode-note'), rate = $('frameRate-note');
+    const r = $('display-note'), mode = $('displayMode-note'), rate = $('frameRate-note');
     if (r) r.textContent = `Şu an: ${post.width} × ${post.height} piksel · ${cfg.fps ? 'en fazla ' + cfg.fps + ' FPS' : 'FPS sınırı kapalı'}.` +
-      (displayPlan.limited ? ' Ekran kartının görüntü boyutu sınırı uygulanıyor.' : '');
+      (displayPlan.limited ? ' Ekran kartının görüntü boyutu sınırı uygulanıyor.' : '') +
+      (cfg.dynScale < 1 ? ` Akıcılığı korumak için çizim boyutu geçici olarak %${Math.round(cfg.dynScale * 100)} düzeyinde.` : '');
     if (mode) {
       mode.textContent = cfg.displayMode === 'auto'
         ? 'Otomatik: yüksek çözünürlüklü ekranlarda grafik kalitesine uygun boyut seçer. Düşük ayar bilgisayarı daha az çalıştırır. Yazılar net kalır.'
         : cfg.displayMode === 'smooth' ? 'Akıcı: Otomatik seçeneğine göre görüntü boyutunu %25 azaltır. Yazılar net kalır.'
         : 'Ekranın bütün piksellerini kullanır. Retina ekranda Düşük kalite seçilse de çizim boyutu azalmaz.';
     }
-    if (rate) rate.textContent = 'En fazla ' + cfg.fps + ' kare/sn. Daha düzenli görüntü için ekran hızına uygun bir sınır seçebilirsin.';
-    if (!m) return;
-    const got = post.samples, want = post.requestedSamples;
-    m.textContent = post.supportedSamples.length
-      ? 'Tırtıklı kenarları yumuşatır; daha yüksek değer bilgisayarı daha fazla çalıştırır. Şu an: ' + (got ? got + '×' : 'kapalı')
-        + (want !== got ? ` (seçilen ${want}× için ekran kartının desteklediği değer)` : '') + '.'
-      : 'Bu ekran kartı kenar yumuşatmayı desteklemiyor.';
+    if (rate) rate.textContent = cfg.fps ? 'En fazla ' + cfg.fps + ' kare/sn. Ekranın yenileme hızına uymayan bir sınır kare atlamalarına yol açabilir; en düzgünü "Ekran hızı"dır.' : 'Ekranın her yenilemesinde çizer (G-Sync / FreeSync / ProMotion ile en düzgünü).';
   }
   function renderSettings() {
     const video = $('settings-video'), audio = $('settings-audio');
@@ -545,12 +544,9 @@
     paintQuality(); video.append(q);
     const displayNote = document.createElement('small'); displayNote.id = 'display-note'; q.append(displayNote);
     video.append(choiceRow('displayMode', 'Görüntü boyutu', ['auto', 'native', 'smooth'], v => ({ auto: 'Otomatik', native: 'Tam boyut', smooth: 'Akıcı' })[v]),
-      choiceRow('frameRate', 'Kare hızı', FRAME_RATES, v => v + ' FPS'),
+      choiceRow('frameRate', 'Kare hızı', FRAME_RATES, v => v ? v + ' FPS' : 'Ekran hızı'),
       choiceRow('uiScale', 'Arayüz boyutu', UI_STEPS, v => v < 1 ? 'Küçük' : v > 1 ? 'Büyük' : 'Normal'));
-    const advanced = document.createElement('details'); advanced.className = 'advanced-graphics'; advanced.open = cfg.msaa > 0;
-    advanced.innerHTML = '<summary>Güçlü bilgisayarlar için</summary>';
-    advanced.append(choiceRow('msaa', 'Kenar yumuşatma (MSAA)', MSAA_STEPS, v => v ? v + '×' : 'Kapalı'));
-    video.append(advanced);
+    // Edge smoothing (SMAA post pass in post.js) is always on: no settings row.
     paintGraphicsNotes();
     $('uiScale-note').textContent = 'Alt çubuk, küreler, harita ve yazıları ölçekler.';
     for (const f of SLIDERS.video) video.append(sliderRow(f));
@@ -1189,18 +1185,18 @@
     return graphicsAdapter;
   }
   function performanceReport() {
-    return { schema: 4, game: 'Kabir Azabı', build: 61, capturedAt: new Date().toISOString(), view,
+    return { schema: 4, game: 'Kabir Azabı', build: 62, capturedAt: new Date().toISOString(), view,
       location: { room: world.rooms?.[roomId]?.name || roomId, x: game.player.x, z: game.player.z },
       display: { width: post.width, height: post.height, windowWidth: innerWidth, windowHeight: innerHeight,
         devicePixelRatio: window.devicePixelRatio || 1, renderPixelRatio: renderer.getPixelRatio() },
-      settings: { quality: cfg.quality, displayMode: cfg.displayMode, displayScale: displayPlan?.scale, msaaRequested: cfg.msaa, msaaActual: post.samples, frameLimit: cfg.fps },
+      settings: { quality: cfg.quality, displayMode: cfg.displayMode, displayScale: displayPlan?.scale, edgeSmoothing: 'smaa-1x', smaa: post.smaa, frameLimit: cfg.fps },
       adapter: readGraphicsAdapter(), ...performanceMeter.report(),
       gpu: { available: post.timingAvailable, enabled: post.timingEnabled, ready: post.timingReady,
         error: post.timingError, sampleIntervalMs: post.timingSampleIntervalMs, milliseconds: post.gpuSections },
       rendering: { ...renderer.info.render, multiDraw, programs: renderer.info.programs.length,
         memory: { ...renderer.info.memory }, lastFrame: { ...post.frameResources } },
       loading: warmStats,
-      measurementScope: 'CPU samples describe the JavaScript and draw submission of presented callbacks; callbacks skipped by the Mac frame cap are not included in CPU stages. GPU scene includes shadows and MSAA resolve; GPU post includes AO, bloom and composition. GPU excludes HUD contexts and screen presentation. CPU and GPU run concurrently; do not add their times.' };
+      measurementScope: 'CPU samples describe the JavaScript and draw submission of presented callbacks; callbacks skipped by the Mac frame cap are not included in CPU stages. GPU scene includes shadows; GPU post includes AO, bloom and composition. GPU excludes HUD contexts and screen presentation. CPU and GPU run concurrently; do not add their times.' };
   }
   function downloadPerformance() {
     // A local download: nothing is sent to a server and no browser history is collected.
@@ -1210,8 +1206,7 @@
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
   function drawFps(fps, ms) {
-    const samples = Math.min(post.target.samples || 0, renderer.capabilities.maxSamples || 0);
-    const aa = `MSAA ${samples ? samples + '×' : 'kapalı'}`;
+    const aa = 'Kenar yumuşatma açık';
     const scale = +renderer.getPixelRatio().toFixed(2);
     const rate = Number.isFinite(fps) ? `${Math.round(fps)} FPS · ${ms.toFixed(1)} ms` : 'FPS ölçülüyor…';
     const report = performanceMeter.report(), gpu = post.gpuSections;
@@ -1244,6 +1239,7 @@
     // be seen, while settings/menu audio continues to follow its own pause state.
     if (warming && view === 'playing') show('pause');
     const measured = cfg.showFps || Q.has('gpums');
+    scaler.callback(ts);
     const cpuStart = measured ? performance.now() : 0;
     if (measured) performanceMeter.callback(ts);
     const dt = clamp((ts - (last || ts)) / 1000, 0, .05); last = ts; elapsed += dt; frame++;
@@ -1292,6 +1288,24 @@
           { view, room: roomId, x: game.player.x, z: game.player.z, combat: fighting, hitPause, ...post.frameResources });
       }
       fpsTick(ts);
+      // Automatic resolution: only while really playing, and never on 120 Hz-class targets (see Display.createScaler).
+      const scaling = AUTO_SCALE && view === 'playing' && game.state === 'playing' && !paused && !warming && document.visibilityState === 'visible';
+      if (scaling) {
+        // Prediction: three or more awake enemies close by (or the boss) means a heavy frame is coming; step down now.
+        let near = 0, boss = false;
+        for (const e of game.enemies) { if (e.dead || !e.active) continue; const d = Math.hypot(e.x - game.player.x, e.z - game.player.z); if (d < 16) near++; if (e.boss && d < 30) boss = true; }
+        if (near >= 6) scaler.hint(3, ts, 4000); else if (near >= 3 || boss) scaler.hint(2, ts, 4000); else if (near >= 2) scaler.hint(1, ts, 3000);
+      }
+      const stepped = scaler.frame(ts, cfg.fps, scaling);
+      if (stepped !== null) {
+        cfg.dynScale = stepped; resize();
+        // While the picture is stepped down the extras shrink too: fewer casting characters, shorter-lived marks and sparks.
+        if (cfg.fps > 0 && cfg.fps <= 64 && cfg.quality === 'high') {
+          const busy = stepped <= .86;
+          cfg.shadowReach = busy ? 9 : 13; cfg.decals = busy ? 40 : 60; cfg.particles = busy ? 340 : 480;
+          safe(() => game.setQuality(cfg));
+        }
+      }
     }
   }
 
@@ -1443,6 +1457,12 @@
       warmStats.geometryObjects = geo; warmStats.geometryUploads = Math.round(performance.now() - geometryStart);
       // One real frame (shadow-map variants) while the cover is still up.
       checkContext(); safe(() => { cameraStep(0); atmosphereStep(0); post.render(elapsed); });
+      // Automatic-resolution sizes are built now, so a later step is only a reference swap. Skipped on 120 Hz-class targets.
+      if (AUTO_SCALE && cfg.fps > 0 && cfg.fps <= 64 && post.prewarm) safe(() => {
+        const sizes = [], v = { width: innerWidth, height: innerHeight, pixelRatio: window.devicePixelRatio };
+        for (const lv of scaler.levels) { const pl = DISPLAY.plan(v, { ...cfg, dynScale: lv }); if (!sizes.some(z => z[0] === pl.width && z[1] === pl.height)) sizes.push([pl.width, pl.height]); }
+        post.prewarm(sizes);
+      });
       warmStats.total = Math.round(performance.now() - t0); warmStats.count = renderer.info.programs.length;
       if (WARM_LOG) console.warn('[warm] done', JSON.stringify(warmStats));
       return true;
@@ -1519,7 +1539,7 @@
       });
     });
     ready = true; applySettings();
-    B.app = { scene, camera, renderer, world, game, post, rig, settings: cfg, input, get view() { return view; }, begin, show, fx, applySettings, clearFX, warmShaders,
+    B.app = { scene, camera, renderer, world, game, post, rig, scaler, resetPerformance, settings: cfg, input, get view() { return view; }, begin, show, fx, applySettings, clearFX, warmShaders,
       get warming() { return !!warming; }, get warmStats() { return warmStats; },
       get performance() { return performanceReport(); },
       // Deterministic frame stepping for headless QA pages (virtual time barely runs requestAnimationFrame).

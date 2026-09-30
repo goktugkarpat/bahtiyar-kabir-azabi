@@ -1,5 +1,6 @@
 /* KARA GEÇİT — post-processing: HDR scene target, ambient occlusion, bloom, heat haze, filmic tone curve,
-   per-room colour grade, vignette, MSAA, grain and dither. Classic script; publishes BABA.Post.
+   per-room colour grade, vignette, grain and dither, then SMAA 1x (smaa.js) on the finished picture. No hardware MSAA.
+   Classic script; publishes BABA.Post.
    Techniques follow the public descriptions of: scalable ambient obscurance (McGuire et al.), the 13-tap /
    tent-filter bloom chain (Jimenez, "Next Generation Post Processing in Call of Duty: AW"), the ACES fit used by
    three.js (MIT). All shader code here is written for this game. */
@@ -225,23 +226,14 @@
     var aoA = target(1, 1, T.HalfFloatType, false, T.RGFormat), aoB = target(1, 1, T.HalfFloatType, false, T.RGFormat);
     // Bloom is positive HDR colour and never reads alpha. Packed HDR retains its range at half the bandwidth.
     // Check the format once; drivers that cannot render into it retain the existing RGBA16F path.
-    // The scene's alpha is never sampled or used as a blend factor. Packed positive HDR therefore also
-    // halves its multisample colour storage/resolve bandwidth, while retaining the full HDR exponent range.
-    // Keep RGBA16F as a fallback for devices without matching packed-colour/depth MSAA support.
-    var packedBloom = false, floatColour = false, depthSamples = [], packedSamples = [], halfSamples = [];
-    var packedScene = false, supportedSamples = [], checkedSamples = {};
-    function commonSamples(format) {
-      var colour = floatColour ? Array.from(gl.getInternalformatParameter(gl.RENDERBUFFER, format, gl.SAMPLES) || []) : [];
-      // Settings offer 2× and 4×; only expose counts both HDR colour and depth support.
-      var common = colour.filter(function (n) { return (n === 2 || n === 4) && n <= renderer.capabilities.maxSamples && depthSamples.indexOf(n) !== -1; });
-      return common.sort(function (a, b) { return a - b; });
-    }
+    // The scene's alpha is never sampled or used as a blend factor, so packed positive HDR halves the scene target's bandwidth.
+    // There is no multisampling (SMAA does the edge smoothing), so only the colour format itself has to be renderable.
+    var packedBloom = false, floatColour = false, packedScene = false;
     function sceneFormat() {
       sceneRT.texture.format = packedScene ? T.RGBFormat : T.RGBAFormat;
       sceneRT.texture.internalFormat = packedScene ? 'R11F_G11F_B10F' : null;
     }
-    // Formats, supported sample counts and verified framebuffers belong to the
-    // current context. Recheck once on creation/restoration, never per frame.
+    // Formats belong to the current context: recheck once on creation/restoration, never per frame.
     function probeFormats() {
       floatColour = !!gl.getExtension('EXT_color_buffer_float');
       packedBloom = floatColour;
@@ -253,39 +245,28 @@
           packedBloom = gl.checkFramebufferStatus(gl.FRAMEBUFFER) === gl.FRAMEBUFFER_COMPLETE;
         } finally { renderer.setRenderTarget(previousTarget); probe.dispose(); }
       }
-      depthSamples = Array.from(gl.getInternalformatParameter(gl.RENDERBUFFER, gl.DEPTH_COMPONENT24, gl.SAMPLES) || []);
-      packedSamples = packedBloom ? commonSamples(gl.R11F_G11F_B10F) : [];
-      halfSamples = commonSamples(gl.RGBA16F);
-      packedScene = packedBloom && (packedSamples.length > 0 || halfSamples.length === 0);
-      supportedSamples = packedScene ? packedSamples : halfSamples; checkedSamples = {};
+      packedScene = packedBloom;
       sceneFormat();
     }
     probeFormats();
-    // Some drivers only expose 4x even when 2x is requested. Check the actual framebuffer once per choice;
-    // the FPS counter reads that real sample count rather than assuming MAX_SAMPLES fits every format.
-    function chooseSamples(requested) {
-      if (!requested || !supportedSamples.length) return 0;
-      var n = supportedSamples[0];
-      for (var i = 0; i < supportedSamples.length; i++) if (supportedSamples[i] <= requested) n = supportedSamples[i];
-      if (checkedSamples[n] != null) return checkedSamples[n];
-      var probe = target(1, 1, T.HalfFloatType, true, packedScene ? T.RGBFormat : T.RGBAFormat, packedScene ? 'R11F_G11F_B10F' : null);
-      probe.depthTexture = new T.DepthTexture(1, 1, T.UnsignedIntType);
-      probe.samples = n; probe.resolveDepthBuffer = true;
-      var previousTarget = renderer.getRenderTarget();
-      renderer.setRenderTarget(probe);
-      var actual = gl.checkFramebufferStatus(gl.FRAMEBUFFER) === gl.FRAMEBUFFER_COMPLETE ? gl.getParameter(gl.SAMPLES) : 0;
-      renderer.setRenderTarget(previousTarget); probe.dispose();
-      if (!actual && packedScene) {
-        sceneRT.dispose(); packedScene = false; sceneFormat();
-        supportedSamples = halfSamples; checkedSamples = {};
-        return chooseSamples(requested);
-      }
-      checkedSamples[n] = actual;
-      return actual;
-    }
     var mips = [];
     var white = new T.DataTexture(new Uint8Array([255, 255, 255, 255]), 1, 1); white.needsUpdate = true;
     var black = new T.DataTexture(new Uint8Array([0, 0, 0, 255]), 1, 1); black.needsUpdate = true;
+
+    // ---- SMAA: the composite draws into an 8-bit display-referred target; edges (RG8) and blend weights (RGBA8) follow; the
+    // neighbourhood-blend pass writes the canvas. Targets are 8-bit, so their cost is small next to the HDR scene target.
+    var SM = B.Smaa, smaaTex = SM.makeTextures(T), smaaPreset = SM.presets.high;
+    function ldrTarget(w, h, rg) {
+      var t = new T.WebGLRenderTarget(w, h, { type: T.UnsignedByteType, depthBuffer: false, stencilBuffer: false, format: rg ? T.RGFormat : T.RGBAFormat,
+        minFilter: T.LinearFilter, magFilter: T.LinearFilter, generateMipmaps: false });
+      t.texture.wrapS = t.texture.wrapT = T.ClampToEdgeWrapping; return t;
+    }
+    var ldrRT = ldrTarget(1, 1), edgesRT = ldrTarget(1, 1, true), weightsRT = ldrTarget(1, 1);
+    var smaaRes = { value: new T.Vector2(1, 1) };
+    var edgesMat = pass(SM.fsEdges, { tColor: { value: ldrRT.texture }, resolution: smaaRes }, { SMAA_THRESHOLD: '0.1' }, { vertexShader: SM.vsEdges });
+    var weightsMat = pass(SM.fsWeights, { tEdges: { value: edgesRT.texture }, tArea: { value: smaaTex.area }, tSearch: { value: smaaTex.search }, resolution: smaaRes },
+      { SMAA_MAX_SEARCH_STEPS: 16 }, { vertexShader: SM.vsWeights });
+    var blendMat = pass(SM.fsBlend, { tWeights: { value: weightsRT.texture }, tColor: { value: ldrRT.texture }, resolution: smaaRes }, {}, { vertexShader: SM.vsBlend });
 
     var aoMat = pass(AO_FS, { tDepth: { value: sceneRT.depthTexture }, uTexel: { value: new T.Vector2() }, uInvP: { value: new T.Vector2() },
       uNear: { value: .15 }, uFar: { value: 150 }, uRadius: { value: 1 }, uIntensity: { value: 1 }, uProjScale: { value: 500 } }, { SAMPLES: 12 });
@@ -304,7 +285,7 @@
       uAbA: { value: new T.Vector4() }, uAbB: { value: new T.Vector4() }, uAbC: { value: new T.Vector4(.5, .5, 0, .1) }, uAbD: { value: new T.Vector4(.5, .5, 1, 0) }
     };
     var compositeMat = null, abilityMat = null;
-    var settingsRef = settings || {}, preset = PRESETS.high, width = 1, height = 1, compositeKey = '', wantedSamples = 0;
+    var settingsRef = settings || {}, preset = PRESETS.high, width = 1, height = 1, compositeKey = '';
     function buildComposite() {
       var key = [preset.ao > 0, preset.haze, preset.abTaps, preset.abChroma].join();
       if (key === compositeKey && compositeMat) return;
@@ -326,29 +307,94 @@
       }
       U.tBloom.value = mips.length ? mips[0].texture : black;
     }
+    // Render-target sets kept per size. The automatic resolution scaler switches between a few fixed sizes; allocating
+    // new half-float targets at a step cost a ~45 ms stall in the middle of a fight, so each size's set is built once
+    // (prewarm, under the loading cover) and later steps only swap references.
+    var sets = {}, keepSets = false, MAX_SETS = 6;
+    function disposeSet(st) {
+      [st.sceneRT, st.aoA, st.aoB, st.ldrRT, st.edgesRT, st.weightsRT].concat(st.mips).forEach(function (t) { t.dispose(); });
+      if (st.sceneRT.depthTexture) st.sceneRT.depthTexture.dispose();
+    }
+    function flushSets() { for (var k in sets) disposeSet(sets[k]); sets = {}; }
+    function buildMips(w, h) {
+      var list = [], levels = preset.bloomLevels;
+      for (var i = 0; i < levels; i++) {
+        w = Math.max(1, Math.round(w / 2)); h = Math.max(1, Math.round(h / 2));
+        if (i === 0 && !preset.bloomHalf) { w = Math.max(1, Math.round(w / 2)); h = Math.max(1, Math.round(h / 2)); }
+        list.push(target(w, h, T.HalfFloatType, false, packedBloom ? T.RGBFormat : T.RGBAFormat, packedBloom ? 'R11F_G11F_B10F' : null));
+        if (w <= 8 || h <= 8) break;
+      }
+      return list;
+    }
+    function adopt(st, w, h) {
+      sceneRT = st.sceneRT; aoA = st.aoA; aoB = st.aoB; mips = st.mips; ldrRT = st.ldrRT; edgesRT = st.edgesRT; weightsRT = st.weightsRT;
+      edgesMat.uniforms.tColor.value = blendMat.uniforms.tColor.value = ldrRT.texture;
+      weightsMat.uniforms.tEdges.value = edgesRT.texture; blendMat.uniforms.tWeights.value = weightsRT.texture;
+      smaaRes.value.set(1 / w, 1 / h);
+      U.tScene.value = sceneRT.texture; aoMat.uniforms.tDepth.value = sceneRT.depthTexture;
+      U.tAO.value = preset.ao > 0 ? aoA.texture : white;
+      U.tBloom.value = mips.length ? mips[0].texture : black;
+      U.uTexel.value.set(1 / w, 1 / h); U.uAspect.value = w / h;
+      var hw = aoA.width, hh = aoA.height; aoMat.uniforms.uTexel.value.set(1 / hw, 1 / hh);
+    }
+    function makeSet(w, h) {
+      var s = target(w, h, T.HalfFloatType, true);
+      s.texture.format = sceneRT.texture.format; s.texture.internalFormat = sceneRT.texture.internalFormat;
+      s.depthTexture = new T.DepthTexture(w, h, T.UnsignedIntType);
+      var hw = Math.max(1, Math.round(w / 2)), hh = Math.max(1, Math.round(h / 2));
+      return { sceneRT: s, aoA: target(hw, hh, T.HalfFloatType, false, T.RGFormat), aoB: target(hw, hh, T.HalfFloatType, false, T.RGFormat), mips: buildMips(w, h),
+        ldrRT: ldrTarget(w, h), edgesRT: ldrTarget(w, h, true), weightsRT: ldrTarget(w, h) };
+    }
     function setSize(w, h) {
       w = Math.max(1, Math.round(w)); h = Math.max(1, Math.round(h));
       if (w === width && h === height) return;
       resetTiming(); // Old-resolution GPU samples must not describe the new buffers.
+      if (keepSets && width > 1) {
+        sets[width + 'x' + height] = { sceneRT: sceneRT, aoA: aoA, aoB: aoB, mips: mips, ldrRT: ldrRT, edgesRT: edgesRT, weightsRT: weightsRT };
+        width = w; height = h;
+        var key = w + 'x' + h, st = sets[key];
+        if (!st) {
+          var keys = Object.keys(sets);
+          if (keys.length >= MAX_SETS) { var drop = keys[0]; disposeSet(sets[drop]); delete sets[drop]; }
+          st = makeSet(w, h);
+        }
+        delete sets[key]; adopt(st, w, h); return;
+      }
       width = w; height = h;
       sceneRT.setSize(w, h);
       var hw = Math.max(1, Math.round(w / 2)), hh = Math.max(1, Math.round(h / 2));
       aoA.setSize(hw, hh); aoB.setSize(hw, hh);
+      ldrRT.setSize(w, h); edgesRT.setSize(w, h); weightsRT.setSize(w, h); smaaRes.value.set(1 / w, 1 / h);
       U.uTexel.value.set(1 / w, 1 / h); U.uAspect.value = w / h;
       aoMat.uniforms.uTexel.value.set(1 / hw, 1 / hh);
       rebuildMips();
     }
+    // Builds and touches the targets of the given sizes ([w, h] pairs), then returns to the current size. Runs under the loading cover.
+    function prewarm(list) {
+      keepSets = true;
+      var w0 = width, h0 = height, prev = renderer.getRenderTarget();
+      try {
+        list.forEach(function (sz) {
+          setSize(sz[0], sz[1]);
+          renderer.setRenderTarget(sceneRT); renderer.clear();
+          var ac = renderer.autoClear; renderer.autoClear = false;
+          try { runPasses(); draw(compositeMat, ldrRT); runSmaa(null); } finally { renderer.autoClear = ac; }
+        });
+        setSize(w0, h0);
+      } finally { renderer.setRenderTarget(prev); }
+    }
+    function setKeepSets(on) { keepSets = !!on; if (!on) flushSets(); }
     function setQuality(cfg) {
       var p = PRESETS[cfg && (cfg.quality || cfg.preset)] || PRESETS.high, changed = p !== preset;
+      flushSets();   // cached sizes were built for the previous preset / sample count
       if (cfg) settingsRef = cfg;
       preset = p;
-      // Edge smoothing is independent of quality and stays off unless 2× or 4× is selected.
-      var want = cfg && (cfg.msaa === 2 || cfg.msaa === 4) ? cfg.msaa : 0;
-      var msaa = chooseSamples(want);
-      if (changed || want !== wantedSamples || sceneRT.samples !== msaa) resetTiming();
-      wantedSamples = want;
-      if (sceneRT.samples !== msaa) { sceneRT.dispose(); sceneRT.samples = msaa; }
-      // AO samples the resolved depth texture after Three finishes the HDR scene render.
+      // Edge smoothing (SMAA) is independent of the AO/bloom preset but its search depth follows the quality tier.
+      smaaPreset = SM.presets[cfg && (cfg.quality || cfg.preset)] || SM.presets.high;
+      if (changed) resetTiming();
+      var thr = String(smaaPreset.threshold);
+      if (edgesMat.defines.SMAA_THRESHOLD !== thr) { edgesMat.defines.SMAA_THRESHOLD = thr; edgesMat.needsUpdate = true; }
+      if (weightsMat.defines.SMAA_MAX_SEARCH_STEPS !== smaaPreset.steps) { weightsMat.defines.SMAA_MAX_SEARCH_STEPS = smaaPreset.steps; weightsMat.needsUpdate = true; }
       sceneRT.resolveDepthBuffer = true;
       if (aoMat.defines.SAMPLES !== Math.max(1, p.samples)) { aoMat.defines.SAMPLES = Math.max(1, p.samples); aoMat.needsUpdate = true; }
       U.uAO.value = p.ao; U.uGrain.value = p.grain;
@@ -502,31 +548,8 @@
     }
     function avg(a) { if (!a.length) return null; var t = 0; for (var i = 0; i < a.length; i++) t += a[i]; return t / a.length; }
     function p95(a) { if (!a.length) return null; return a.slice().sort(function (x, y) { return x - y; })[Math.ceil(a.length * .95) - 1]; }
-    function render(time) {
-      var trace = timingRequested, start = trace ? performance.now() : 0;
-      var measured = timingEnabled && timingStart(time || 0), complete = false;
-      var sceneStart = trace ? performance.now() : 0, postStart = 0, info = renderer.info;
-      var calls = trace && info ? info.render.calls : 0;
-      var programs = trace && info ? info.programs.length : 0;
-      var geometries = trace && info ? info.memory.geometries : 0, textures = trace && info ? info.memory.textures : 0;
-      if (trace) { cpuSections.gpuProbe = sceneStart - start; cpuSections.shadows = 0; frameResources.shadowCalls = 0; }
-      var autoClear = renderer.autoClear;
-      try {
-      if (measured) tBegin('scene');
-      U.uTime.value = time || 0;
-      renderer.setRenderTarget(sceneRT);
-      // render() already clears when autoClear is enabled. Preserve the explicit clear only for external users that disable it.
-      if (!autoClear) renderer.clear();
-      renderer.render(scene, camera);
-      // Vendored Three finishes shadow rendering and sceneRT's MSAA resolve
-      // before render returns. Both belong to scene; the post query starts next.
-      if (measured) { tEnd(); tBegin('post'); }
-      if (trace) {
-        postStart = performance.now(); cpuSections.sceneDraw = postStart - sceneStart - cpuSections.shadows;
-        frameResources.sceneCalls = info ? info.render.calls - calls - frameResources.shadowCalls : 0;
-        calls = info ? info.render.calls : 0;
-      }
-      renderer.autoClear = false;
+    // Ambient occlusion and the bloom chain, reading the finished scene target.
+    function runPasses() {
       if (preset.ao > 0) {
         var P = camera.projectionMatrix.elements;
         aoMat.uniforms.uInvP.value.set(1 / P[0], 1 / P[5]);
@@ -551,7 +574,42 @@
           draw(upMat, mips[j - 1]);
         }
       }
-      draw(abilityUniforms() ? abilityMat : compositeMat, null);
+    }
+    // Edge detection -> blending weights -> neighbourhood blend into `out` (null = canvas). The edge target is cleared because the
+    // edge shader discards flat pixels; the weights and blend passes write every pixel.
+    function runSmaa(out) {
+      renderer.setRenderTarget(edgesRT); renderer.clear();
+      draw(edgesMat, edgesRT);
+      draw(weightsMat, weightsRT);
+      draw(blendMat, out);
+    }
+    function render(time) {
+      var trace = timingRequested, start = trace ? performance.now() : 0;
+      var measured = timingEnabled && timingStart(time || 0), complete = false;
+      var sceneStart = trace ? performance.now() : 0, postStart = 0, info = renderer.info;
+      var calls = trace && info ? info.render.calls : 0;
+      var programs = trace && info ? info.programs.length : 0;
+      var geometries = trace && info ? info.memory.geometries : 0, textures = trace && info ? info.memory.textures : 0;
+      if (trace) { cpuSections.gpuProbe = sceneStart - start; cpuSections.shadows = 0; frameResources.shadowCalls = 0; }
+      var autoClear = renderer.autoClear;
+      try {
+      if (measured) tBegin('scene');
+      U.uTime.value = time || 0;
+      renderer.setRenderTarget(sceneRT);
+      // render() already clears when autoClear is enabled. Preserve the explicit clear only for external users that disable it.
+      if (!autoClear) renderer.clear();
+      renderer.render(scene, camera);
+      // Shadow rendering finishes before render returns and belongs to scene; the post query (AO, bloom, composite, SMAA) starts next.
+      if (measured) { tEnd(); tBegin('post'); }
+      if (trace) {
+        postStart = performance.now(); cpuSections.sceneDraw = postStart - sceneStart - cpuSections.shadows;
+        frameResources.sceneCalls = info ? info.render.calls - calls - frameResources.shadowCalls : 0;
+        calls = info ? info.render.calls : 0;
+      }
+      renderer.autoClear = false;
+      runPasses();
+      draw(abilityUniforms() ? abilityMat : compositeMat, ldrRT);
+      runSmaa(null);
       complete = true;
       } finally {
         renderer.autoClear = autoClear;
@@ -624,12 +682,13 @@
     function heatSources() { return heat; }
     function pulse() { return U.uPulse.value; }
     function dispose() {
-      setTiming(false);
+      setTiming(false); flushSets();
       if (timingCanvas && timingCanvas.removeEventListener) {
         timingCanvas.removeEventListener('webglcontextlost', timingContextLost);
         timingCanvas.removeEventListener('webglcontextrestored', timingContextRestored);
       }
-      [sceneRT, aoA, aoB].concat(mips).forEach(function (t) { t.dispose(); });
+      [sceneRT, aoA, aoB, ldrRT, edgesRT, weightsRT].concat(mips).forEach(function (t) { t.dispose(); });
+      smaaTex.dispose();
       if (sceneRT.depthTexture) sceneRT.depthTexture.dispose();
       materials.forEach(function (m) { m.dispose(); }); tri.dispose(); white.dispose(); black.dispose();
     }
@@ -647,11 +706,10 @@
     api = {
       render: render, setSize: setSize, setQuality: setQuality, setGrade: setGrade, heat: heatSources, pulse: pulse, setAbilityFx: setAbilityFx, clearAbilityFx: clearAbilityFx, dispose: dispose, compile: compile,
       setTiming: setTiming, resetTiming: resetTiming,
-      uniforms: U, target: sceneRT,
-      get supportedSamples() { return supportedSamples.slice(); },
-      get requestedSamples() { return wantedSamples; },
-      get samples() { return sceneRT.samples || 0; },
-      get bufferFormats() { return { scene: packedScene ? 'R11F_G11F_B10F' : 'RGBA16F', ao: 'RG16F', bloom: packedBloom ? 'R11F_G11F_B10F' : 'RGBA16F' }; },
+      uniforms: U, get target() { return sceneRT; }, prewarm: prewarm, keepSizes: setKeepSets,
+      get samples() { return 0; },
+      get smaa() { return { threshold: smaaPreset.threshold, steps: smaaPreset.steps, texturesReady: smaaTex.ready }; },
+      get bufferFormats() { return { scene: packedScene ? 'R11F_G11F_B10F' : 'RGBA16F', ao: 'RG16F', smaa: 'RGBA8', bloom: packedBloom ? 'R11F_G11F_B10F' : 'RGBA16F' }; },
       get width() { return width; }, get height() { return height; },
       get timingEnabled() { return timingEnabled; }, get timingAvailable() { return timingAvailable; },
       get timingReady() { return samples.total.length > 0; }, get timingError() { return timingError; },

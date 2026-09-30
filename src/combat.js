@@ -153,7 +153,7 @@
     let order = null, swingPlan = null, dodgeAim = null, pendingClick = null, targetRing = null, rawInput = null, moveMark = null, markX = 0, markZ = 0, markA = 0;
     let forcedMotion = null, healingAge = 0, comboStep = 0, comboWindow = 0, spinCur = 0;
     let playerHitImmunity = 0, checkpointSnapshot = null, endAnnounced = false;
-    let hintCooldown = 0, deniedCooldown = 0, deniedId = '', lackSerial = 0, debugInvincible = false, openingGrace = 8, corpseLifetime = 90;
+    let hintCooldown = 0, deniedCooldown = 0, deniedId = '', lackSerial = 0, debugInvincible = false, openingGrace = 8, corpseLifetime = 90, shadowReach = 0;
     let freeze = 0, slowmo = 0, impactScale = 1, attackSerial = 0, actionSerial = 0, evadeCooldown = 0, pairCd = 0;
     let drinkLeft = 0;   // seconds of the flask flourish still to play (also the double-press guard)
     let navigationBudget = 0;   // at most two searches per update, including slow-frame substeps; the player goes first
@@ -1782,6 +1782,18 @@
         const d = distance(enemy, player), visible = d < 45 && (!enemy.dead || enemy.deadAge < corpseLifetime);
         const em = movementState(enemy, enemy.model, dt, STATS[enemy.type].speed);
         enemy.model.root.visible = visible;
+        // Shadow level of detail (60 Hz-class targets): a character far from the hero no longer casts into the key light's map.
+        // Every skinned part is a separate shadow draw, so distant crowds cost far more than they show. 0 = everyone casts.
+        if (shadowReach > 0 && visible) {
+          const want = enemy.boss || (enemy._shadowOn ? d < shadowReach + 2 : d < shadowReach - (enemy.dead ? 4 : 0));
+          if (want !== enemy._shadowOn) {
+            enemy._shadowOn = want;
+            if (!enemy._shadowParts) { enemy._shadowParts = []; enemy.model.root.traverse(o => { if (o.isMesh && o.castShadow) enemy._shadowParts.push(o); }); }
+            for (const part of enemy._shadowParts) part.castShadow = want;
+          }
+        } else if (enemy._shadowOn === false && (shadowReach === 0 || !visible)) {
+          enemy._shadowOn = true; for (const part of enemy._shadowParts) part.castShadow = true;
+        }
         enemy.model.root.position.set(enemy.x, 0, enemy.z); enemy.model.root.rotation.y = enemy.face;
         if (visible) {
           const action = enemy.action;
@@ -1894,6 +1906,7 @@
     function setQuality(settings) {
       if (limbs) limbs.setQuality(settings);
       if (globes) globes.setQuality(settings);
+      if (settings && Number.isFinite(settings.shadowReach)) shadowReach = clamp(settings.shadowReach, 0, 60);
       if (settings && Number.isFinite(settings.corpses)) corpseLifetime = clamp(settings.corpses, 0, 180);
       // The app's contact-emphasis strength (default .65) scales hit-stop; 0 turns it off.
       if (settings && Number.isFinite(settings.impact)) impactScale = clamp(settings.impact / .65, 0, 1.6);

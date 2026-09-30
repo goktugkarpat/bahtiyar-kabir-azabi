@@ -88,28 +88,48 @@
     '\t\t\tkMist = 1.0 - exp( - kM0.y * kOd * ( 0.1 + 2.0 * smoothstep( 0.36, 0.9, kN ) ) );',
     '\t\t}',
     '\t\tint kCount = int( kM0.x );',
-    '\t\tfor ( int ki = 0; ki < kCount; ki ++ ) {',
-    '\t\t\tvec4 kL = karaLights[ ki ]; vec3 kC = karaLightColors[ ki ]; vec4 kRay = karaLightRays[ ki ];',
-    '\t\t\tvec3 kD = kP + vec3( 0.0, 0.3, 0.0 ) - kL.xyz; float kG = kL.w / ( kL.w + dot( kD, kD ) * 0.3 ); kGlow += kC * kG * kG;',
-    // The economical preset uses the same warm/cold glow, without the per-light ray integral.
-    '\t\t\tif ( kM2.z < 0.5 ) { kScat += kC * kG * kG * 0.25; continue; }',
-    '\t\t\tfloat kB = dot( kRay.xyz, kRd );',
-    // density ~ 1 / (1 + k d^2)^2 around each light, integrated in closed form along the view ray
-    // kL.w holds radius squared; camera-relative source position/distance are frame constants, uploaded once.
-    '\t\t\tfloat kH2 = max( kRay.w - kB * kB, 0.0 ); float kA2 = kL.w + kH2; float kA = sqrt( kA2 );',
-    '\t\t\tfloat kU1 = kLen - kB; float kU0 = - kB;',
-    // atan(u1/a)-atan(u0/a) = atan(a*(u1-u0), a*a+u1*u0). The positive ray length
-    // keeps the same [0, pi] branch, with one transcendental per source instead of two (same mist/light).
-    '\t\t\tfloat kAngle = atan( kLen * kA, kA2 + kU1 * kU0 );',
-    '\t\t\tfloat kI = ( kU1 / ( kA2 + kU1 * kU1 ) - kU0 / ( kA2 + kU0 * kU0 ) + kAngle / kA ) / ( 2.0 * kA2 );',
-    '\t\t\tkScat += kC * kI * kL.w * kL.w;',
-    '\t\t}',
+    '@KARA_SCATTER@',
     '\t\t#if ! defined( OPAQUE ) && ! defined( KARA_FULLMIST )',
     '\t\t\tkMist *= kM1.w;',
     '\t\t#endif',
     '\t\tgl_FragColor.rgb = mix( gl_FragColor.rgb, karaMistColor[ 0 ] + kGlow * kM2.y, kMist ) + kScat * kM2.x;',
     '\t}',
     '#endif'].join('\n');
+  // In-scattering of the nearest lights along the view ray, one closed-form term per light. The loop is written out (not a `for`) on purpose:
+  // ANGLE's Metal backend compiled the runtime-count loop so badly that it cost about half of a Retina frame's GPU time; the same
+  // arithmetic with constant indices is several times cheaper and identical on every GPU. Two cheap changes on top, invisible by design:
+  // the arctangent is a polynomial (error < 1e-4 rad) and a light whose whole possible contribution is below ~1/20000 of the
+  // displayed range (bound: C * r^4 * (1 + pi) / (2 a^3), a^2 = r^2 + miss distance^2) is skipped before the expensive part.
+  function scatterTerm(q) {
+    return [
+      '\t\tif ( kCount > ' + q + ' ) {',
+      '\t\t\tvec4 kL = karaLights[ ' + q + ' ]; vec3 kC = karaLightColors[ ' + q + ' ]; vec4 kRay = karaLightRays[ ' + q + ' ];',
+      '\t\t\tvec3 kD = kP + vec3( 0.0, 0.3, 0.0 ) - kL.xyz; float kG = kL.w / ( kL.w + dot( kD, kD ) * 0.3 ); kGlow += kC * kG * kG;',
+      // The economical preset uses the same warm/cold glow, without the per-light ray integral.
+      '\t\t\tif ( kM2.z < 0.5 ) kScat += kC * kG * kG * 0.25;',
+      '\t\t\telse {',
+      '\t\t\t\tfloat kB = dot( kRay.xyz, kRd );',
+      // density ~ 1 / (1 + k d^2)^2 around each light, integrated in closed form along the view ray
+      // kL.w holds radius squared; camera-relative source position/distance are frame constants, uploaded once.
+      '\t\t\t\tfloat kH2 = max( kRay.w - kB * kB, 0.0 ); float kA2 = kL.w + kH2;',
+      '\t\t\t\tfloat kBound = max( kC.r, max( kC.g, kC.b ) ) * kL.w * kL.w * 2.1 * kM2.x;',
+      '\t\t\t\tif ( kBound * kBound > 2.5e-9 * kA2 * kA2 * kA2 ) {',
+      '\t\t\t\t\tfloat kIA = inversesqrt( kA2 ); float kA = kA2 * kIA;',
+      '\t\t\t\t\tfloat kU1 = kLen - kB; float kU0 = - kB;',
+      // atan(u1/a)-atan(u0/a) = atan2(a*(u1-u0), a*a+u1*u0), in [0, pi] because the ray length is positive
+      '\t\t\t\t\tfloat kY = kLen * kA, kX = kA2 + kU1 * kU0, kAx = abs( kX );',
+      '\t\t\t\t\tfloat kR = min( kAx, kY ) / max( max( kAx, kY ), 1e-6 ); float kR2 = kR * kR;',
+      '\t\t\t\t\tfloat kAngle = kR * ( 0.9998660 + kR2 * ( -0.3302995 + kR2 * ( 0.1801410 + kR2 * ( -0.0851330 + kR2 * 0.0208351 ) ) ) );',
+      '\t\t\t\t\tif ( kY > kAx ) kAngle = 1.5707963 - kAngle;',
+      '\t\t\t\t\tif ( kX < 0.0 ) kAngle = 3.1415927 - kAngle;',
+      '\t\t\t\t\tfloat kI = ( kU1 / ( kA2 + kU1 * kU1 ) - kU0 / ( kA2 + kU0 * kU0 ) + kAngle * kIA ) * kIA * kIA * 0.5;',
+      '\t\t\t\t\tkScat += kC * kI * kL.w * kL.w;',
+      '\t\t\t\t}',
+      '\t\t\t}',
+      '\t\t}'].join('\n');
+  }
+  var scatterCode = ''; for (var sq = 0; sq < MAX_SCATTER; sq++) scatterCode += scatterTerm(sq) + '\n';
+  C.fog_fragment = C.fog_fragment.replace('@KARA_SCATTER@', function () { return scatterCode; });
   function injectFogUniforms(target) { Object.keys(FOG).forEach(function (k) { target[k] = FOG[k]; }); }
   injectFogUniforms(T.UniformsLib.fog);
   Object.keys(T.ShaderLib).forEach(function (k) { var u = T.ShaderLib[k].uniforms; if (u && u.fogDensity) injectFogUniforms(u); });
@@ -161,8 +181,8 @@
   // ---------------------------------------------------------------- presets
   var PRESET = {
     low:  { scatter: 2, moonShadow: 0,    shadowHz: 0, blob: .42, rimWrap: .8, mistDetail: 0 },
-    medium: { scatter: 8, moonShadow: 1536, shadowHz: 30, blob: .28, rimWrap: .95, mistDetail: 1 },
-    high: { scatter: 10, moonShadow: 2048, shadowHz: 60, blob: .26, rimWrap: 1, mistDetail: 1 }
+    medium: { scatter: 8, moonShadow: 1024, shadowHz: 30, blob: .28, rimWrap: .95, mistDetail: 1 },
+    high: { scatter: 10, moonShadow: 1536, shadowHz: 60, blob: .26, rimWrap: 1, mistDetail: 1 }
   };
 
   function smooth(t) { t = Math.max(0, Math.min(1, t)); return t * t * (3 - 2 * t); }
