@@ -25,7 +25,7 @@ Bahtiyar, Kurban Tapınağı'nın mahzenlerinde ölüleri, tarikatçıları ve Z
 ## Ayarlar
 
 Grafik kalitesi (Düşük / Orta / Yüksek), çözünürlük çarpanı (1×, 1,25×, 1,5×), parlaklık, ses seviyeleri ve arayüz boyutu.
-Kare hızını görmek için oyun sırasında **.** (nokta) tuşuna bas.
+Kare hızını ve çözünürlüğü görmek için oyun sırasında **.** (nokta) tuşuna bas.
 
 ## Dosyalar
 

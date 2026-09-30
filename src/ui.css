@@ -598,7 +598,6 @@ body.touch .touch-note { display: block }
 /* ───────────── Diagnostics ───────────── */
 #fps { position: fixed; left: var(--pad); top: calc(var(--top) + 134px * var(--k) + 10px); z-index: 100; padding: 8px 12px; max-width: min(640px, calc(100vw - 2 * var(--pad))); max-height: 65vh; overflow: auto; background: #070606e8; color: #d7e3d8; font: 600 14px/1.5 var(--text); font-variant-numeric: tabular-nums; border-radius: 6px; white-space: pre-line; pointer-events: auto; box-shadow: 0 0 0 1px #3a322a }
 #fps-values { overflow-wrap: anywhere }
-#fps-report { display: block; margin-top: 5px }
 #fatal { position: fixed; inset: 0; z-index: 200; padding: 10vw; color: var(--bone-2); background: radial-gradient(ellipse at 50% 40%, #2a0d0e, #060404) }
 #fatal h2 { font: 700 34px/1.2 var(--display); letter-spacing: .04em; color: var(--bone) }
 #fatal p { margin: 20px 0; white-space: pre-wrap; font-size: 14px; max-width: 700px }

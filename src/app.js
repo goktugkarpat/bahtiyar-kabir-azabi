@@ -638,7 +638,6 @@
         if (!e.repeat) {
           cfg.showFps = !cfg.showFps; resetPerformance();
           $('fps').classList.toggle('hidden', !cfg.showFps);
-          post.setTiming(cfg.showFps || Q.has('gpums'));
           if (cfg.showFps) drawFps();
         }
         return;
@@ -1198,29 +1197,10 @@
       loading: warmStats,
       measurementScope: 'CPU samples describe the JavaScript and draw submission of presented callbacks; callbacks skipped by the Mac frame cap are not included in CPU stages. GPU scene includes shadows; GPU post includes AO, bloom and composition. GPU excludes HUD contexts and screen presentation. CPU and GPU run concurrently; do not add their times.' };
   }
-  function downloadPerformance() {
-    // A local download: nothing is sent to a server and no browser history is collected.
-    const blob = new Blob([JSON.stringify(performanceReport(), null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob), a = document.createElement('a');
-    a.href = url; a.download = 'kabir-performans.json'; a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-  }
-  function drawFps(fps, ms) {
-    const aa = 'Kenar yumuşatma açık';
-    const scale = +renderer.getPixelRatio().toFixed(2);
-    const rate = Number.isFinite(fps) ? `${Math.round(fps)} FPS · ${ms.toFixed(1)} ms` : 'FPS ölçülüyor…';
-    const report = performanceMeter.report(), gpu = post.gpuSections;
-    const showMs = value => Number.isFinite(value) ? value.toFixed(2) + ' ms' : 'ölçülüyor…';
-    const cpu = report.cpuMs;
-    const gpuText = post.timingAvailable === false ? 'GPU süresi bu tarayıcıda ölçülemiyor'
-      : `GPU sahne ${showMs(gpu.scene)} · efekt ${showMs(gpu.post)}\nGPU toplam ${showMs(gpu.total)} · %95 ${showMs(gpu.totalP95)}`;
-    $('fps-values').textContent = `${rate} · ${cfg.fps ? 'sınır ' + cfg.fps : 'sınır kapalı'}\n${aa}\nÇizim ${post.width} × ${post.height} · ekran noktası başına ${scale}×\n` +
-      `CPU toplam ${showMs(cpu.total?.mean)} · %95 ${showMs(cpu.total?.p95)}\n` +
-      `Kare aralığı %99 ${showMs(report.frameIntervalsMs?.p99)} · en uzun ${showMs(report.frameIntervalsMs?.max)}\n` +
-      `Hareket ${showMs(cpu.simulation?.mean)} · çizim hazırlığı ${showMs(cpu.presentation?.mean)}\n` +
-      `Çizim gönderimi ${showMs(cpu.submission?.mean)} · arayüz ${showMs(cpu.hud?.mean)}\n${gpuText}\n` +
-      `${renderer.info.render.calls} çizim · ${(renderer.info.render.triangles / 1000).toFixed(0)} bin üçgen\n` +
-      `Tarayıcı ${Number.isFinite(report.callbackHz) ? Math.round(report.callbackHz) + ' kare/sn' : 'ölçülüyor…'}\n${readGraphicsAdapter().renderer || 'Ekran kartı adı gizli'}`;
+  function drawFps(fps) {
+    // Player-facing: frame rate and render resolution only (details stay in B.app.performance).
+    const rate = Number.isFinite(fps) ? `${Math.round(fps)} FPS` : 'FPS ölçülüyor…';
+    $('fps-values').textContent = `${rate}\n${post.width} × ${post.height}`;
   }
   function fpsTick(ts) {
     if (!cfg.showFps) return;
@@ -1228,7 +1208,7 @@
     fpsFrames++;
     const span = ts - fpsStart;
     if (span < 500) return;
-    drawFps(fpsFrames * 1000 / span, span / fpsFrames);
+    drawFps(fpsFrames * 1000 / span);
     fpsStart = ts; fpsFrames = 0;
   }
   function loop(ts) { requestAnimationFrame(loop); frameStep(ts); }
@@ -1544,7 +1524,6 @@
       get performance() { return performanceReport(); },
       // Deterministic frame stepping for headless QA pages (virtual time barely runs requestAnimationFrame).
       step(n = 1) { for (let i = 0; i < n; i++) { qaClock = Math.max(qaClock, last || performance.now()) + 1000 / 60; frameStep(qaClock); } renderClock.reset(); } };
-    $('fps-report').addEventListener('click', downloadPerformance);
     $('game').addEventListener('webglcontextlost', e => {
       e.preventDefault(); graphicsLost = graphicsRecovering = true; graphicsEpoch++; graphicsAdapter = null;
       resetPerformance(); show('pause'); notify('Grafik bağlantısı kesildi. Oyun duraklatıldı; bağlantı bekleniyor.');
