@@ -134,11 +134,11 @@
       emit('heal', { hp: p.hp, flasks: p.flasks, source: 'globe', amount: got });
       sound('globe', { x: p.x, z: p.z }); fx('glowBurst', { x: p.x, y: .05, z: p.z, radius: 2.8, color: 0xff2418, duration: .6 });
       fx('glowBurst', { x: p.x, y: .05, z: p.z, radius: 1.4, color: 0xff8070, duration: .3 });
-      label('+' + Math.max(1, got), p.x, p.z); g.dying = .001; g.taken = true;
+      label('+' + Math.max(1, Math.round(got)), p.x, p.z); g.dying = .001; g.taken = true;
     }
 
     function step(g, dt) {
-      g.age += dt; g.phase += dt;
+      g.age += dt; if (!reducedMotion.matches) g.phase += dt;
       const d = g.dying > 0;
       if (d) { g.dying -= dt; return g.dying <= 0; }
       if (g.age > LIFE) return true;
@@ -175,7 +175,7 @@
       for (let i = 0; i < SLOTS; i++) {
         const g = globes[i], G = uG[i], F = uF[i];
         if (!g) { G.set(0, 0, 0, 0); continue; }
-        const left = LIFE - g.age, blink = left < BLINK && !g.dying ? (.55 + .45 * Math.sin(g.age * (10 + (BLINK - left) * 5))) : 1;
+        const left = LIFE - g.age, blink = !reducedMotion.matches && left < BLINK && !g.dying ? (.55 + .45 * Math.sin(g.age * (10 + (BLINK - left) * 5))) : 1;
         let sc = 1; if (g.dying > 0) sc = g.taken ? 0 : clamp(g.dying / .35, 0, 1); if (left < .4) sc = Math.min(sc, left / .4);
         G.set(g.x, g.y, g.z, sc); F.set(g.phase, reducedMotion.matches ? 0 : 1, reducedMotion.matches ? .5 : .5 + .5 * Math.sin(g.phase * 3.1), blink);
       }

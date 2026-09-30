@@ -158,6 +158,7 @@
     safe(() => localStorage.setItem(KEY, JSON.stringify(out)));
   }
   readSettings();
+  B.Audio.set({ master: cfg.master, music: cfg.music, sfx: cfg.sfx, ambient: cfg.ambient, voice: cfg.voice });
 
   /* ───────────── State ───────────── */
   const views = ['title', 'pause', 'settings', 'controls', 'keybinds', 'death', 'victory', 'confirm'];
@@ -165,6 +166,7 @@
   let view = 'title', stack = [];
   let renderer, scene, camera, world, game, rig, post;
   let ready = false, paused = true, frame = 0, last = 0, qaClock = 0, visualDt = 0;
+  let resumeAudioOnVisible = null;
   let graphicsLost = false, graphicsRecovering = false, graphicsEpoch = 0;
   const renderClock = B.Pacing.create();
   let rageHinted = false;   // the "Öfke hazır" hint shows once per session
@@ -251,19 +253,53 @@
     announceTimer = 4.2;
   }
   const warnings = [];
+  const warningClip = new THREE.Vector4();
+  function projectWarning(x, z) {
+    warningClip.set(x, 1, z, 1).applyMatrix4(camera.matrixWorldInverse).applyMatrix4(camera.projectionMatrix);
+    // A point behind the camera still points toward its actual side, rather
+    // than being mirrored by a negative perspective denominator.
+    const divisor = Math.max(.001, Math.abs(warningClip.w));
+    projected.set(warningClip.x / divisor, warningClip.y / divisor, warningClip.z / divisor);
+    return warningClip.w > 0 && Math.abs(projected.x) < .9 && Math.abs(projected.y) < .82 && projected.z > -1 && projected.z < 1;
+  }
   function warn(d) {
     if (!Number.isFinite(d.x) || !Number.isFinite(d.z)) return;
-    projected.set(d.x, 1, d.z).project(camera);
-    if (Math.abs(projected.x) < .9 && Math.abs(projected.y) < .82 && projected.z > -1 && projected.z < 1) return;
+    const onscreen = projectWarning(d.x, d.z);
+    if (!d.hazard && onscreen) return;
     const el = document.createElement('div');
     el.className = 'direction-warning' + (d.unblockable ? ' unblockable' : '');
     const lab = document.createElement('span'); lab.className = 'dw-label';
     const tag = document.createElement('b'); tag.textContent = d.unblockable ? 'KAÇIN' : 'DİKKAT'; lab.append(tag, (d.text || 'Tehlike').replace(/ · .*/, ''));
     el.innerHTML = '<svg viewBox="0 0 40 40" aria-hidden="true"><path d="M20 3 37 34H3Z"/><path d="M20 14v10M20 29v.5"/></svg>';
     el.append(lab); el.title = d.text || 'Tehlike';
+    el.style.visibility = 'hidden';
     $('warnings').appendChild(el);
-    warnings.push({ el, x: d.x, z: d.z, time: 1.3 });
-    B.Audio.play('warning', { volume: .4 });
+    warnings.push({ el, x: d.x, z: d.z, time: 1.3, hazard: d.hazard || null, sounded: false });
+  }
+  function syncWarnings(dt) {
+    for (let i = warnings.length - 1; i >= 0; i--) {
+      const w = warnings[i], h = w.hazard;
+      if (h) { w.x = h.x; w.z = h.z; w.time = h.warn - h.age; }
+      else if (view === 'playing') w.time -= dt;
+      if (game.state !== 'playing' || w.time <= 0 || (h && (!game.hazards.includes(h) || h.active))) {
+        w.el.remove(); warnings.splice(i, 1);
+      }
+    }
+  }
+  function drawWarnings() {
+    for (const w of warnings) {
+      const onscreen = projectWarning(w.x, w.z);
+      const waiting = w.hazard && w.hazard.age < 0;
+      const visible = !onscreen && !waiting && view === 'playing';
+      w.el.style.visibility = visible ? '' : 'hidden';
+      if (!visible) continue;
+      if (!w.sounded) { w.sounded = true; B.Audio.play('warning', { volume: .4 }); }
+      const sx = (projected.x * .5 + .5) * innerWidth, sy = (-projected.y * .5 + .5) * innerHeight;
+      w.el.style.left = clamp(sx, 44, innerWidth - 44) + 'px'; w.el.style.top = clamp(sy, 60, innerHeight - 60) + 'px';
+      const wa = Math.atan2(sy - innerHeight / 2, sx - innerWidth / 2); w.el.firstElementChild.style.rotate = wa * 180 / Math.PI + 90 + 'deg';
+      w.el.style.setProperty('--ux', (-Math.cos(wa)).toFixed(2)); w.el.style.setProperty('--uy', (-Math.sin(wa)).toFixed(2));
+      w.el.classList.toggle('late', w.time < .35);
+    }
   }
 
   /* ───────────── Game events ───────────── */
@@ -589,7 +625,17 @@
     });
     document.addEventListener('keyup', e => releaseBind(normCode(e.code)));
     window.addEventListener('blur', () => { clearInput(); if (view === 'playing') show('pause'); });
-    document.addEventListener('visibilitychange', () => { resetPerformance(); if (document.hidden) { clearInput(); if (view === 'playing') show('pause'); B.Audio.suspend(); } else if (view === 'title') B.Audio.resume(); });
+    document.addEventListener('visibilitychange', () => {
+      resetPerformance();
+      if (document.hidden) {
+        clearInput(); if (view === 'playing') show('pause');
+        if (resumeAudioOnVisible === null) resumeAudioOnVisible = !B.Audio.paused;
+        B.Audio.suspend();
+      } else {
+        if (resumeAudioOnVisible || view === 'title') B.Audio.resume();
+        resumeAudioOnVisible = null;
+      }
+    });
     const canvas = $('game');
         canvas.addEventListener('pointerdown', e => {
       if (e.pointerType === 'touch') {
@@ -1114,7 +1160,7 @@
     return graphicsAdapter;
   }
   function performanceReport() {
-    return { schema: 3, game: 'Kabir Azabı', build: 49, capturedAt: new Date().toISOString(), view,
+    return { schema: 3, game: 'Kabir Azabı', build: 50, capturedAt: new Date().toISOString(), view,
       location: { room: world.rooms?.[roomId]?.name || roomId, x: game.player.x, z: game.player.z },
       display: { width: post.width, height: post.height, windowWidth: innerWidth, windowHeight: innerHeight,
         devicePixelRatio: window.devicePixelRatio || 1, renderPixelRatio: renderer.getPixelRatio() },
@@ -1186,10 +1232,7 @@
     if (view === 'pause') { const pad = connectedPad(); if (pad) { if (pad.buttons[9]?.pressed && !lastPad[9]) show('playing'); rememberPad(pad); } else lastPad.length = 0; }
     if (announceTimer > 0) { announceTimer -= dt; if (announceTimer <= 0) $('announcement').classList.remove('show'); }
     flash = Math.max(0, flash - dt * 1.7);
-    for (let i = warnings.length - 1; i >= 0; i--) {
-      const w = warnings[i]; w.time -= dt;
-      if (w.time <= 0) { w.el.remove(); warnings.splice(i, 1); }
-    }
+    syncWarnings(dt);
     const fighting = game.enemies.some(e => !e.dead && e.active && Math.hypot(e.x - game.player.x, e.z - game.player.z) < 10);
     if (fighting) announceTimer = Math.min(announceTimer, .35);
     if (fighting && firstHint > 0) { $('tutorial').classList.add('hidden'); firstHint = 0; }
@@ -1209,15 +1252,7 @@
       const submissionEnd = measured ? performance.now() : 0;
       $('damage-flash').style.opacity = flash * .8;
       document.body.classList.toggle('in-combat', fighting && view === 'playing');
-      for (const w of warnings) {
-        projected.set(w.x, 1, w.z).project(camera);
-        const sx = (projected.x * .5 + .5) * innerWidth, sy = (-projected.y * .5 + .5) * innerHeight;
-        w.el.style.left = clamp(sx, 44, innerWidth - 44) + 'px'; w.el.style.top = clamp(sy, 60, innerHeight - 60) + 'px';
-        const wa = Math.atan2(sy - innerHeight / 2, sx - innerWidth / 2); w.el.firstElementChild.style.rotate = wa * 180 / Math.PI + 90 + 'deg';
-        w.el.style.setProperty('--ux', (-Math.cos(wa)).toFixed(2)); w.el.style.setProperty('--uy', (-Math.sin(wa)).toFixed(2));
-        w.el.classList.toggle('late', w.time < .35);
-        w.el.style.visibility = Math.abs(projected.x) < .9 && Math.abs(projected.y) < .82 && projected.z < 1 ? 'hidden' : '';
-      }
+      drawWarnings();
       if (B.HUD && B.HUD.frame) B.HUD.frame(drawDt);
       if (measured) {
         const cpuEnd = performance.now();

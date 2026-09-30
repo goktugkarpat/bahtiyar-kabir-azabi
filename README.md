@@ -71,6 +71,10 @@ Sürüm 48'de karakterlerin eski pozunun her kare yeniden hesaplanan ikinci tara
 
 Sürüm 49'da Esc basılı tutulunca oyunun kendiliğinden devam etmesi, ölüm/final ekranından önce can ve sayaçların eski kalması, kişisel tuş atamalarındaki yanlış açıklamalar ve yeniden başlarken kaybolan dayanıklılık uyarısı düzeltildi. Tıklayarak yürümeyi kaldıran bir tuş atamasına izin verilmez; eski böyle bir kayıt varsa bir fare tuşu geri eklenir. Karakteri örten kemerlerin saydamlık ayarı yüklemede hazırlanır; başlığa dönünce kemerler ve kızıl savaş örtüsü normale döner. Üçüncü ölüm konuşması artık yanlış düşman adı söylemez. Finalden hemen yeni yolculuğa dönülürse final melodisinin sonraki notaları yeni oyuna karışmaz.
 
+Sürüm 50'de ekran dışındaki tehlike okları gerçek saldırı süresini izler: gecikmeli saldırı henüz başlamadan gösterilmez, duraklatmada zamanı korunur ve iptal olunca temizlenir. Kamera arkasındaki düşmanın oku ters yana dönmez. Boğucu Kavrayış'ın yerdeki yay işareti tehlikeli dış köşesini de kapsar. İyileşme yazıları uzun ondalıklar yerine tam sayı gösterir; kazanılan gerçek can değişmez. Azaltılmış hareket tercihinde sağlık küresinin iç dönmesi ve ömür sonu parlaması durur. Yemin taşına varınca önceki salonların küreleri temizlenir.
+
+Kayıtlı ses seviyeleri ilk yüklemeden itibaren uygulanır. Sekmeye dönerken ayarlar ve final/ölüm ekranlarının sesi yeniden açılır; duraklatılmış dövüş duraklatılmış kalır. Anlatıcı sesi kapalıysa altyazı sürer ve konuşma müziği kısmaz. Önbelleği okuma veya yazma başarısız olduğunda, internetten başarıyla gelen dosya kaybolmaz. `node tools/verify-offline.cjs` gerçek çevrimdışı işleyicilerin önbellek sırasını, tüm dosyaların geri dönüşünü ve diğer oyunların önbelleğinin korunmasını; `node tools/verify-warnings.cjs` gerçek uyarı kodunu ve kamera hesabını denetler. Bu kontroller tarayıcı veya ekran kartı ölçümü değildir.
+
 Gerçek harita ve modellerle, normal can/hasar ve oyun girdileri kullanılarak yapılan 21 otomatik tam bölüm denemesi tamamlandı. Farklı hızlar, kaçırılmış saldırı uyarıları, kapalı mühür, Cellat'ın son evresinde ölüm, yemin taşından dönüş ve finalden yeni yolculuk birlikte denetlendi. Bu otomatik denemeler insanın oynama süresini/zorluğunu veya ekran kartı performansını ölçmez.
 
 ## Teknik yapı
@@ -88,7 +92,7 @@ Three.js r170, klasik JavaScript; oynamak için paket yöneticisi veya derleme a
 - `src/post.js`: HDR görüntü zinciri: ortam gölgesi (AO), parlama (bloom), ısı dalgası ve renk derecelendirme; isteğe bağlı MSAA ana sahne hedefinde uygulanır.
 - `src/performance.js`: yalnız ölçüm açıkken tutulan kare aralıkları ve işlemci süreleri; `app.js` raporu ile `post.js` eşlenmiş GPU ölçümleri.
 - `src/limbs.js`: öldürücü vuruşta uzuv/kafa kesme (düşmanın kendi ağından kesilip fizikle savrulan parça, kesit kapağı, kan izi). Her zaman açık, ayarı yok; patronlar kesilmez.
-- `src/globes.js`: ölen düşmanlardan arada kırmızı sağlık küresi düşer (sıradan %10, ağır/bitirici vuruş %14, Muhafız/Taşıyıcı %30, 10 boşluktan sonra garanti; Cellat'ta yalnızca evre geçişlerinde). 3,2 m'de çekilir, 0,7 m'de toplanır: azami canın %12'si (öfkedeyken %16), can doluyken toplanmaz. 25 sn yaşar (son 4 sn yanıp söner), en çok 8. Kaydedilmez; iki çizim çağrısı, ışık eklemez.
+- `src/globes.js`: ölen düşmanlardan arada kırmızı sağlık küresi düşer (sıradan %10, ağır/bitirici vuruş %14, Muhafız/Taşıyıcı %30, 10 boşluktan sonra garanti; Cellat'ta yalnızca evre geçişlerinde). 3,2 m'de çekilir, 0,7 m'de toplanır: azami canın %12'si (öfkedeyken %16), can doluyken toplanmaz. 25 sn yaşar (son 4 sn yanıp söner; azaltılmış harekette sabit kalır), en çok 8. Kaydedilmez; iki çizim çağrısı, ışık eklemez.
 - `src/combat.js`: dövüş, düşmanlar, boss, darbe duraklaması, girdi tamponu ve kontrol noktaları.
 - `src/telegraphs.js`: "Kor ve Kül" saldırı uyarıları ve savaş narasının görüntüsü.
 - `src/effects.js`: gerçek bıçak hareketini izleyen şeritler, kan, kıvılcım ve darbe parçacıkları.

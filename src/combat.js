@@ -203,7 +203,7 @@
       if (!h.fill) h.fill = h.shape === 'circle' ? (h.unblockable && !h.persistent ? 'inward' : 'radial') : h.shape === 'line' ? 'forward' : h.style === 'blade' || h.style === 'chain' ? 'sweep' : 'forward';
       h.age = -(h.delay || 0); h.serial = ++hazardSerial; hazards.push(h);
       if (h.near === undefined) h.near = distance(h, player) < NEAR || !!(h.owner && distance(h.owner, player) < NEAR);
-      if (h.damage >= 26 || h.unblockable) emit('warning', { x: h.x, z: h.z, text: h.attack, unblockable: h.unblockable });
+      if (h.damage >= 26 || h.unblockable) emit('warning', { x: h.x, z: h.z, text: h.attack, unblockable: h.unblockable, hazard: h });
       return h;
     }
     function removeHazard(index) { hazards.splice(index, 1); }
@@ -393,6 +393,7 @@
       };
       game.checkpointIndex = 1;
       player.hp = player.maxHp; player.stamina = player.maxStamina; player.flasks = player.maxFlasks; player.rage = 0;
+      if (globes) globes.reset();
       saveCheckpoint(); flashRing(checkpoint.x, checkpoint.z, 3.3, 0xf0d293, 1.4);
       sound('checkpoint'); emit('checkpoint', { index: 1, name: 'Celladın Eşiği' });
       return true;

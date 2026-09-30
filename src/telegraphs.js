@@ -28,10 +28,10 @@ void main(){
   float side = cs*d.x - sn*d.y, fwd = sn*d.x + cs*d.y;
   float r = length(d), ang = r > 1e-6 ? atan(side, fwd) : 0., R = uDim.x, span = 6.2832, sd, t;
   if (uShape == 0) { sd = r - R; t = r/R; }
-  // Cones have a rounded arc/tip; a line's base is the exact combat width × length.
+  // Cones keep the true sector boundary; a line's base is the exact combat width × length.
   // Noise, feathering and the halo below soften its edge without shrinking the danger area.
-  else if (uShape == 1) { span = uDim.y; float a = abs(ang)-span*.5, sdS = a > 0. ? r*sin(min(a,1.5708)) : a*r, rc = min(.45, R*.18);
-         sd = rmax(r-R, sdS, rc); sd = max(sd, .28-r); t = r/R; }
+  else if (uShape == 1) { span = uDim.y; float a = abs(ang)-span*.5, sdS = a > 0. ? r*sin(min(a,1.5708)) : a*r;
+         sd = max(r-R, sdS); sd = max(sd, .28-r); t = r/R; }
   else if (uShape == 2) { vec2 q = vec2(abs(side), abs(fwd-uDim.y*.5)) - vec2(uDim.x*.5, uDim.y*.5);
          sd = length(max(q, 0.)) + min(max(q.x, q.y), 0.); t = fwd/uDim.y; R = uDim.y; }
   else { span = uDim.z; float a = abs(ang)-span*.5, ring = max(uDim.x-r, r-uDim.y), rc = min(.4, (uDim.y-uDim.x)*.4);

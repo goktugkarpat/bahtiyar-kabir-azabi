@@ -1253,6 +1253,12 @@
   let caption = null, voiceNode = null, voiceGain = null, current = null, queue = [], voiceSerial = 0, combatFor = 0, nclock = 0, lastTellN = -9;
   const heard = new Set(), recent = {}, voiceBuffers = {};
   let deathTurn = 0;
+  function updateNarrationDuck() {
+    if (!ctx) return;
+    const audible = !!(current && voiceNode && volume.voice > 0), tc = audible ? .18 : .6;
+    N.musicDuck.gain.setTargetAtTime(audible ? .33 : 1, ctx.currentTime, tc);
+    N.ambDuck.gain.setTargetAtTime(audible ? .28 : 1, ctx.currentTime, tc);
+  }
   function stopVoice(fade) {
     voiceSerial++;
     if (voiceNode) {
@@ -1260,7 +1266,7 @@
       try { if (fade && ctx) { g.gain.setTargetAtTime(0, ctx.currentTime, .08); n.stop(ctx.currentTime + .35); } else n.stop(); } catch (e) {}
     }
     current = null; if (caption) caption('');
-    if (ctx) { N.musicDuck.gain.setTargetAtTime(1, ctx.currentTime, .6); N.ambDuck.gain.setTargetAtTime(1, ctx.currentTime, .6); }
+    updateNarrationDuck();
   }
   function say(key, force = false) {
     const lines = B.Narration || {};
@@ -1294,9 +1300,9 @@
     if (!ctx || !entry.buffer || (silent && !offline)) return;
     const src = ctx.createBufferSource(), g = gainNode(1, N.voice); src.buffer = entry.buffer; src.connect(g);
     voiceNode = src; voiceGain = g; const serial = voiceSerial;
-    src.onended = () => { try { src.disconnect(); g.disconnect(); } catch (e) {} if (voiceNode === src && serial === voiceSerial) { voiceNode = null; current = null; if (caption) caption(''); N.musicDuck.gain.setTargetAtTime(1, ctx.currentTime, .6); N.ambDuck.gain.setTargetAtTime(1, ctx.currentTime, .6); } };
+    src.onended = () => { try { src.disconnect(); g.disconnect(); } catch (e) {} if (voiceNode === src && serial === voiceSerial) { voiceNode = null; current = null; if (caption) caption(''); updateNarrationDuck(); } };
     src.start();
-    N.musicDuck.gain.setTargetAtTime(.33, ctx.currentTime, .18); N.ambDuck.gain.setTargetAtTime(.28, ctx.currentTime, .18);
+    updateNarrationDuck();
   }
   function calmAround() {
     const g = game(), p = g && g.player; if (!p || !g.enemies) return true;
@@ -1439,6 +1445,7 @@
     for (const key of (Array.isArray(keys) ? keys : [keys]).slice(0, 2)) say(key);
   }
   function set(v) {
+    const voiceWasAudible = volume.voice > 0;
     for (const key of Object.keys(volume)) if (Number.isFinite(v && v[key])) volume[key] = clamp(v[key], 0, 1);
     if (!ctx) return;
     const t = ctx.currentTime;
@@ -1447,6 +1454,7 @@
     targetParam(N.wetSfx.gain, volume.sfx, t, .08); targetParam(N.wetAmb.gain, volume.ambient, t, .08); targetParam(N.wetMusic.gain, volume.music * .6, t, .08);
     if (T.wetV) targetParam(T.wetV.gain, volume.ambient, t, .08);
     if (T.wetF) targetParam(T.wetF.gain, volume.sfx, t, .08);
+    if (current && voiceWasAudible !== (volume.voice > 0)) updateNarrationDuck();
   }
   // Çevrimdışı işleme (test): olay listesini OfflineAudioContext içinde çalar, AudioBuffer döndürür.
   // events: [[zaman_sn, 'play', ad, seçenekler] | [zaman_sn, 'say', anahtar, zorla] | [zaman_sn, 'state', {...}] | [zaman_sn, 'fn', f]]
@@ -1497,6 +1505,7 @@
     resume() { if (!unlocked) return; suspended = false; if (silent || !ctx) return; if (extMusic) B.Music.resume(); return syncContextState(); },
     renderOffline,
     debug() { return { context: ctx ? ctx.state : 'none', bank: bankState, shift: bankShift, clips: Object.keys(bank).length, voices, tort: T.log, queue: queue.map(q => q.key), current: current && current.key, music: Object.assign({}, M.level) }; },
+    get paused() { return suspended; },
     get silent() { return silent; }
   };
 })();
