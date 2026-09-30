@@ -1538,7 +1538,10 @@
       dispose: function () {
         if (disposed) return; disposed = true; motion.dispose(); if (trail) trail.dispose(); flareMats.forEach(function (fm) { fm.dispose(); }); if (root.parent) root.parent.remove(root);
         var skeletons = new Set(); scene.traverse(function (n) { if (n.isSkinnedMesh) skeletons.add(n.skeleton); }); skeletons.forEach(function (s) { s.dispose(); });
-        disposables.forEach(function (d) { if (d.isInstancedMesh) d.dispose(); });
+        // Dragged hooks belong to this actor; gear materials and chain geometry stay shared.
+        var ownedGeometry = new Set();
+        disposables.forEach(function (d) { if (d.isInstancedMesh) d.dispose(); else d.traverse(function (n) { if (n.isMesh && n.geometry) ownedGeometry.add(n.geometry); }); });
+        ownedGeometry.forEach(function (g) { g.dispose(); });
         root.clear();
       }
     };

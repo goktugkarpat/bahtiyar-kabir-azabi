@@ -1224,7 +1224,13 @@
     for (const e of g.enemies) {
       if (e.dead) continue;
       const ff = e.model && e.model.root && e.model.root.userData && e.model.root.userData.footfall;
-      let s = E.get(e); if (!s) { s = { serial: ff ? ff.serial : 0, n: 0 }; E.set(e, s); }
+      let s = E.get(e);
+      if (!s) { s = { serial: ff ? ff.serial : 0, n: 0, resetSerial: g.resetSerial }; E.set(e, s); }
+      else if (s.resetSerial !== g.resetSerial) {
+        // The reused model resets its footfall counter to zero. Compare from
+        // that baseline so reset itself is silent and a first real step survives.
+        s.serial = 0; s.n = 0; s.resetSerial = g.resetSerial;
+      }
       const d = Math.hypot(e.x - p.x, e.z - p.z);
       if (ff && ff.serial !== s.serial) {
         s.serial = ff.serial; s.n++;
@@ -1450,7 +1456,12 @@
     for (let i = 0; i < lines.length; i++) {
       const [key, line] = lines[i];
       if (!voiceBuffers[key] && line.audio) {
-        const buf = await decode(b64(line.audio)); if (ctx !== my) return false; voiceBuffers[key] = buf;
+        try {
+          const buf = await decode(b64(line.audio)); if (ctx !== my) return false; voiceBuffers[key] = buf;
+        } catch (e) {
+          if (ctx !== my) return false;
+          console.warn('Narration preparation', key, e);   // keep other records warm; say() can retry or show captions
+        }
       }
       if (progress) progress(.65 + .35 * (i + 1) / Math.max(1, lines.length));
       await new Promise(resolve => setTimeout(resolve, 0));

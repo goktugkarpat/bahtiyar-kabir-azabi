@@ -182,7 +182,7 @@
   let lightPointer = null, hitPause = 0;
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
   const cameraKick = { x: 0, z: 0, vx: 0, vz: 0 }, cameraLead = new THREE.Vector3(), introFrom = new THREE.Vector3(), introLook = new THREE.Vector3(), lookTarget = new THREE.Vector3();
-  let lastFootfall = 0;
+  let lastFootfall = 0, lastFootfallReset = null;
   let heldLight = false, lightRepeat = 0, lastPad = [], roomId = -1, deathShown = false, wonShown = false;
   const joy = { x: 0, z: 0, id: null, ox: 0, oy: 0 };
   // Pointer for the click-target controls: last position (client px), the foe under it, whether it counts (over the game, or a button held), clicks waiting for the next frame.
@@ -1052,10 +1052,11 @@
     if (lastFlasks !== null && p.flasks !== lastFlasks) tap(flaskBtn);
     lastFlasks = p.flasks; hudText('flask-count', p.flasks ?? 0);
     const rage = clamp((p.rage || 0) / (p.maxRage || 100), 0, 1), rageBtn = document.querySelector('.action-rage');
+    const rageReady = p.rage >= p.maxRage && !p.rageTime;
     if (p.rageTime > rageMax) rageMax = p.rageTime;
     rageBtn.style.setProperty('--rage', p.rageTime > 0 ? clamp(p.rageTime / rageMax, 0, 1) : rage);
-    rageBtn.classList.toggle('ready', rage >= .99 && !p.rageTime);
-    if (rage >= .99 && !p.rageTime && !rageHinted) { rageHinted = true; notify('Öfke hazır. ' + (($('actionbar').querySelector('.action-rage kbd') || {}).textContent || '2') + ' ile bağır.', 'rage'); }
+    rageBtn.classList.toggle('ready', rageReady);
+    if (rageReady && !rageHinted) { rageHinted = true; notify('Öfke hazır. ' + (($('actionbar').querySelector('.action-rage kbd') || {}).textContent || '2') + ' ile bağır.', 'rage'); }
     rageBtn.classList.toggle('burning', p.rageTime > 0);
     document.body.classList.toggle('raging', p.rageTime > 0);
     updateOverview();
@@ -1146,11 +1147,13 @@
   function atmosphereStep(dt) { rig.update(dt, elapsed, game, view); }
   function footstepFeedback() {
     const footfall = game.player.model.root.userData.footfall;
+    if (Number.isFinite(game.resetSerial) && game.resetSerial !== lastFootfallReset) { lastFootfallReset = game.resetSerial; lastFootfall = 0; }
     if (!footfall || footfall.serial === lastFootfall) return;
     lastFootfall = footfall.serial;
     if (game.player.dead) return;
-    B.Audio.play('step', { volume: footfall.kind === 'dodge' ? .65 : .38 });
-    fx('footstep', { x: footfall.x, z: footfall.z, y: .045, heavy: footfall.kind === 'dodge' });
+    const landing = footfall.kind === 'roll' || footfall.kind === 'dodge';
+    B.Audio.play('step', { volume: landing ? .65 : .38 });
+    fx('footstep', { x: footfall.x, z: footfall.z, y: .045, heavy: landing });
   }
 
   /* ───────────── Frame loop ───────────── */
@@ -1173,7 +1176,7 @@
     return graphicsAdapter;
   }
   function performanceReport() {
-    return { schema: 3, game: 'Kabir Azabı', build: 52, capturedAt: new Date().toISOString(), view,
+    return { schema: 3, game: 'Kabir Azabı', build: 53, capturedAt: new Date().toISOString(), view,
       location: { room: world.rooms?.[roomId]?.name || roomId, x: game.player.x, z: game.player.z },
       display: { width: post.width, height: post.height, windowWidth: innerWidth, windowHeight: innerHeight,
         devicePixelRatio: window.devicePixelRatio || 1, renderPixelRatio: renderer.getPixelRatio() },

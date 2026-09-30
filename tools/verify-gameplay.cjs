@@ -36,6 +36,12 @@ const assert=require('node:assert');
  console.log('WHIRLWIND rage gain/cap/kill/full-bar activation: PASS');
  game.debug.invincible(true);for(const foe of game.enemies)if(!foe.dead)game.debug.damageEnemy(foe.id,10000);assert.equal(game.state,'won');assert(!game.hasSave);assert(!store.has(game.debug.storageKey));game.toTitle();game.start();assert.equal(game.player.z,8);assert(game.enemies.every(e=>!e.dead));assert.equal(game.kills,0);console.log('WIN title/new run: PASS');
  game.restart();game.debug.invincible(true);for(const foe of game.enemies)foe.cooldown=999;const gateFoe=game.enemies.find(e=>e.encounter.room===1);gateFoe.x=0;gateFoe.z=-7.2;game.debug.teleport(0,-4.8);let gateHp=gateFoe.hp;tick(.65,i=>({stand:true,clickHeavy:i===0,pointX:gateFoe.x,pointZ:gateFoe.z,target:gateFoe}));assert.equal(gateFoe.hp,gateHp,'A closed seal blocks damage');assert(!gateFoe.activated,'Do not wake the hall behind the seal');for(const foe of game.enemies.filter(e=>e.encounter.room===0))game.debug.damageEnemy(foe.id,10000);tick(.65,i=>({stand:true,clickHeavy:i===0,pointX:gateFoe.x,pointZ:gateFoe.z,target:gateFoe}));assert(gateFoe.hp<gateHp,'Opening a seal clears the same line without rebuilding navigation');console.log('DYNAMIC SEAL closed attack/open attack: PASS');
+ // The executioner's closed rear gate and masonry are physical surfaces, not floor destinations.
+ game.restart();game.debug.invincible(true);for(const foe of game.enemies)foe.cooldown=999;
+ assert(!world.isWalkable(0,-169.6,game.player.model.radius));
+ for(const x of [-7.4,7.4])assert(!world.isWalkable(x,-170,game.player.model.radius));
+ assert(game.debug.teleport(0,-168.8));tick(.4,{z:-1});assert(game.player.z>=-169.34+game.player.model.radius-1e-5,'Held movement must stop before the closed gate');
+ console.log('FINAL GATE central bars/stone wings/held movement: PASS');
  // Storage failures must not hide the usable session checkpoint or resurrect a cleared journey.
  const writableStorage=global.localStorage,saveKey=game.debug.storageKey;
  game.restart();store.clear();global.localStorage={...writableStorage,setItem(){throw Error('QuotaExceededError');}};

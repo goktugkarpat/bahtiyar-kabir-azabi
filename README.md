@@ -85,6 +85,8 @@ Girdap'ın öfke kazancı önce ölçeklenip sonra sınırlandırılır: dolmaya
 
 Düşman kılıcının sesi kendi konumundan ve kendi vuruş zamanına göre gelir; Bahtiyar'ın saldırısı bu sesi değiştirmez. Sessiz Şapel ve Zincir Mahkemesi'ne girerken süren işkence ortamı da söner. Yeni yolculuk ve yeniden doğuşta ilk 30 saniyelik sakin başlangıç korunur. Bu düzeltmeler gerçek dövüş kodu, kaynak temizleme kontrolleri ve kısa çevrimdışı ses üretimleriyle denetlendi; yeni tarayıcı/GPU ölçümü yapılmadı.
 
+Son salonun arka kapısı ve yan taş blokları artık karakteri fiziksel olarak durdurur. Öfke göstergesi savaş narası gerçekten kullanılabildiğinde hazır olur. Yuvarlanma inişi ağır adım verir; yeni yolculukta eski adımların sesi ve tozu yeniden oluşmaz. Bir konuşma kaydı çözülemezse kalan sağlam kayıtlar hazırlanır, sorunlu cümlede altyazı ve yeniden deneme korunur.
+
 ## Teknik yapı
 
 Three.js r170, klasik JavaScript; oynamak için paket yöneticisi veya derleme adımı yoktur. Gerçek UV kaplamalı ve iskeletli karakterler başlangıçta gömülü glTF verisinden yüklenir. `file://` ve çevrimdışı kullanım desteklenir.
