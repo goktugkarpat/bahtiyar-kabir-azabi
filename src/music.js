@@ -49,6 +49,7 @@
   const N = {}, I = {}, BUF = {}, VOICES = new Set();
   let live = 0, WAVE = null, queue = [], QA_ONLY = null, QA_NOIR = false, LITE = false;
   const SHOTS = new Set();
+  const SHOT_META = new Map(), PART_OUTPUTS = new WeakMap();
 
   /* ------------------------------------------------------------------ DSP for one-shot instrument buffers */
   function newBuf(sec, div, ch) {
@@ -334,7 +335,7 @@
   /* ------------------------------------------------------------------ parts (layers) and voices */
   const INSTS = ['drone', 'choirA', 'choirB', 'strings', 'cello', 'hi', 'brass', 'perc', 'far', 'bell', 'fx'];
   function Part(name) { return { name, level: 0, target: 0, tc: 1, g: {}, voices: new Set() }; }
-  function dest(p, inst) { let g = p.g[inst]; if (!g) { g = p.g[inst] = st2(G(p.level, I[inst].in)); if (p.target !== p.level) setP(g.gain, p.target, ctx.currentTime, p.tc); } return g; }
+  function dest(p, inst) { let g = p.g[inst]; if (!g) { g = p.g[inst] = st2(G(p.level, I[inst].in)); PART_OUTPUTS.set(g, p); if (p.target !== p.level) setP(g.gain, p.target, ctx.currentTime, p.tc); } return g; }
   function setPart(p, target, tc, dt) {
     const t = ctx.currentTime;
     if (Math.abs(target - p.target) > .002 || (tc !== p.tc && target !== p.level)) { p.target = target; p.tc = tc; for (const k in p.g) setP(p.g[k].gain, target, t, tc); }
@@ -353,6 +354,16 @@
     return v;
   }
   function releaseAll(p, at, rel) { for (const v of p.voices) v.release(at, rel); }
+  function releaseShots(p, at, rel) {
+    at = Math.max(at, ctx.currentTime);
+    for (const [s, shot] of SHOT_META) {
+      if (shot.part !== p) continue;
+      const g = shot.gain.gain;
+      if (typeof g.cancelAndHoldAtTime === 'function') g.cancelAndHoldAtTime(at); else g.cancelScheduledValues(at);
+      g.setTargetAtTime(0, at, Math.max(.01, rel / 5)); g.setValueAtTime(0, at + rel * 1.7);
+      try { s.stop(at + rel * 1.8 + .05); } catch (e) { }
+    }
+  }
   function playBuf(name, t, to, o) {
     o = o || {};
     if (QA_ONLY && QA_ONLY.indexOf(name) < 0) return null;
@@ -362,8 +373,8 @@
     const g = G(o.gain === undefined ? 1 : o.gain), extra = [g]; s.connect(g); let last = g;
     if (o.pan && ctx.createStereoPanner) { const pn = ctx.createStereoPanner(); pn.pan.value = clamp(o.pan, -1, 1); g.connect(pn); last = pn; extra.push(pn); }
     last.connect(to);
-    const my = ctx; SHOTS.add(s); s.start(Math.max(t, ctx.currentTime)); live++;
-    s.onended = () => { if (ctx === my) live = Math.max(0, live - 1); SHOTS.delete(s); try { s.disconnect(); } catch (e) {} for (const n of extra) try { n.disconnect(); } catch (e) {} };
+    const my = ctx; SHOTS.add(s); SHOT_META.set(s, { part: PART_OUTPUTS.get(to), gain: g, nodes: extra }); s.start(Math.max(t, ctx.currentTime)); live++;
+    s.onended = () => { if (ctx === my) live = Math.max(0, live - 1); SHOTS.delete(s); SHOT_META.delete(s); try { s.disconnect(); } catch (e) {} for (const n of extra) try { n.disconnect(); } catch (e) {} };
     return s;
   }
   function choirNote(p, bus, midi, t, o) {
@@ -421,8 +432,8 @@
     const s = ctx.createBufferSource(), bp = F('bandpass', f0, q || 1.2), g = G(0, dest(p, bus)); s.buffer = BUF.noise; s.loop = true; s.connect(bp); bp.connect(g);
     bp.frequency.setValueAtTime(f0, t); bp.frequency.exponentialRampToValueAtTime(f1, t + dur * .6); bp.frequency.exponentialRampToValueAtTime(f0 * .8, t + dur);
     g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vel, t + dur * .45); g.gain.linearRampToValueAtTime(0, t + dur);
-    const my = ctx; SHOTS.add(s); s.start(t, rnd() * 2); s.stop(t + dur + .05); live++;
-    s.onended = () => { if (ctx === my) live = Math.max(0, live - 1); SHOTS.delete(s); for (const n of [s, bp, g]) try { n.disconnect(); } catch (e) {} };
+    const my = ctx; SHOTS.add(s); SHOT_META.set(s, { part: p, gain: g, nodes: [bp, g] }); s.start(t, rnd() * 2); s.stop(t + dur + .05); live++;
+    s.onended = () => { if (ctx === my) live = Math.max(0, live - 1); SHOTS.delete(s); SHOT_META.delete(s); for (const n of [s, bp, g]) try { n.disconnect(); } catch (e) {} };
   }
   function buildDrone() { // global sub/organ drone: D1 saw pair (beating), D2 sine, A1, Eb2 rub, Ab1 tritone
     const D = N.drone = { out: G(0, I.drone.in) }; D.wob = G(1, D.out); D.lp = F('lowpass', 130, .8, D.wob);
@@ -778,7 +789,7 @@
     if (!dead && S.dead) { S.quietUntil = 0; S.hold = 0; S.danger = 0; }
     S.dead = dead;
     if (won && !S.won) sting('victory');
-    if (!won && S.won) { S.wonAt = -1; LATER.length = 0; releaseAll(PS, t, 1.5); } // new run during the ending piece
+    if (!won && S.won) { S.wonAt = -1; LATER.length = 0; releaseAll(PS, t, 1.5); releaseShots(PS, t, .35); } // new run: fade the ending, including its future one-shot notes
     S.won = won;
     if (boss && !S.boss) { sting('bossStart'); if (BS.start === undefined) bossBegin(t); }
     if (!boss && S.boss) bossEnd(t);
@@ -852,6 +863,7 @@
     if (!ready) return;
     for (const v of VOICES) for (const n of v.srcs.concat(v.others)) { try { if (n.stop) n.stop(); n.disconnect(); } catch (e) {} }
     for (const s of SHOTS) try { s.stop(); s.disconnect(); } catch (e) {}
+    for (const shot of SHOT_META.values()) for (const n of shot.nodes) try { n.disconnect(); } catch (e) {}
     if (N.drone) for (const k of ['a', 'b', 's', 'fifth', 'rub', 'trit']) try { N.drone[k].o.stop(); } catch (e) {}
     if (N.drone) {
       try { N.drone.mod.stop(); } catch (e) {}
@@ -860,7 +872,7 @@
     for (const bus of Object.values(I)) for (const n of Object.values(bus)) try { n.disconnect(); } catch (e) {}
     for (const k of Object.keys(N)) try { if (N[k].disconnect) N[k].disconnect(); } catch (e) {}
     for (const k of Object.keys(BUF)) delete BUF[k]; for (const k of Object.keys(I)) delete I[k]; for (const k of Object.keys(N)) delete N[k];
-    VOICES.clear(); SHOTS.clear(); LATER.length = 0; queue = []; irStep = null; ctx = out = null; ready = false; live = 0;
+    VOICES.clear(); SHOTS.clear(); SHOT_META.clear(); LATER.length = 0; queue = []; irStep = null; ctx = out = null; ready = false; live = 0;
   }
   B.Music = {
     init, update, sting, prepare, dispose,

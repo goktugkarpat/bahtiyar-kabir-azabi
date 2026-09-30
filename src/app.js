@@ -57,6 +57,8 @@
     Mouse0: 'SOL TIK', Mouse1: 'ORTA TIK', Mouse2: 'SAĞ TIK', Mouse3: 'FARE 4', Mouse4: 'FARE 5' };
   const binds = {}; let bindMap = {}, keyLayout = null;
   const normCode = c => c.replace(/^(Shift|Control|Alt)Right$/, '$1Left');   // both Shift keys count as one
+  const mouseCode = c => /^Mouse[0-4]$/.test(c);
+  const hasWalkMouse = pair => pair.some(mouseCode);
   function capName(code) {
     if (!code) return '—';
     if (CAP_NAMES[code]) return CAP_NAMES[code];
@@ -66,9 +68,9 @@
   function rebuildBindMap() { bindMap = {}; for (const a in binds) for (const c of binds[a]) if (c && !bindMap[c]) bindMap[c] = a; }
   // Fills `binds` from a saved value; anything invalid or double-used falls back to the default for that action.
   function setBinds(saved, first) {   // `first`: the action whose keys win a double use
-    const used = new Set(), src = saved && typeof saved === 'object' ? saved : {};
+    const used = new Set(), processed = [], src = saved && typeof saved === 'object' ? saved : {};
     for (const a of [first, 'special', 'rage', ...Object.keys(BIND_DEFAULTS)].filter((x, i, l) => x && l.indexOf(x) === i)) {
-      const ok = c => typeof c === 'string' && /^[A-Za-z0-9]{2,20}$/.test(c) && !BIND_RESERVED.includes(c) && !used.has(c) && (!c.startsWith('Mouse') || BIND_MOUSE_OK.includes(a));
+      const ok = c => typeof c === 'string' && /^[A-Za-z0-9]{2,20}$/.test(c) && !BIND_RESERVED.includes(c) && !used.has(c) && (!c.startsWith('Mouse') || BIND_MOUSE_OK.includes(a) && mouseCode(c));
       let pair = Array.isArray(src[a]) ? [src[a][0], src[a][1]].map(c => ok(c) ? c : '') : ['', ''];
       if (pair[0] && pair[0] === pair[1]) pair[1] = '';
       if (!pair[0]) {
@@ -78,7 +80,19 @@
       // A saved custom binding may occupy both defaults. Keep every action usable
       // without assigning the same key twice; its new cap is shown in the UI.
       if (!pair[0]) pair[0] = [...'1234567890'].map(n => 'Digit' + n).concat([...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'].map(c => 'Key' + c)).find(ok) || '';
-      pair.forEach(c => c && used.add(c)); binds[a] = pair;
+      // The mouse light action also owns click-to-walk. Keep a usable button
+      // when repairing old/custom saves, while preserving their primary key.
+      if (a === 'light' && !hasWalkMouse(pair)) {
+        let walkMouse = ['Mouse0', 'Mouse1', 'Mouse2', 'Mouse3', 'Mouse4'].find(ok);
+        // Earlier combat actions may use both slots and occupy all five buttons.
+        // Reclaim an optional backup rather than removing a primary or walking.
+        if (!walkMouse) for (let i = processed.length - 1; i >= 0; i--) {
+          const owner = processed[i], backup = binds[owner][1];
+          if (mouseCode(backup)) { walkMouse = backup; binds[owner][1] = ''; used.delete(backup); break; }
+        }
+        pair[1] = walkMouse || '';
+      }
+      pair.forEach(c => c && used.add(c)); binds[a] = pair; processed.push(a);
     }
     rebuildBindMap();
   }
@@ -192,6 +206,8 @@
     else if (next === 'pause') B.Audio.suspend();
     if (next === 'title') {
       B.Audio.resume();
+      document.body.classList.remove('raging', 'low-hp', 'in-combat');
+      if (world && world.occluders) for (const m of world.occluders) { m.material.opacity = 1; m.material.depthWrite = true; }
       $('hud').classList.add('hidden');
       $('play').querySelector('span').textContent = game && game.hasSave ? 'Yolculuğa devam' : 'Tapınağa gir';
       $('new').classList.toggle('hidden', !game || !game.hasSave);
@@ -311,7 +327,7 @@
     [/kavrayış|pençe|hücum/i, 'Mahkûmlar ikili pençe vurur. İlk darbeden sonra hemen yuvarlan, ikincisi arkandan gelir.'],
     [/kalkan|balta|yarma/i, 'Muhafızın gecikmeli baltası bir an bekler. Erken kaçınma; ışık dolmak üzereyken yuvarlan.']
   ];
-  const GENERAL_TIPS = ['Darbe inmeden hemen önce Space ile yuvarlan; yuvarlanırken vurulmazsın.', 'Kaçınmanın koruması hareketin başındadır. Geç kalırsan hasar alırsın.', 'Canın azaldığında güvenli bir anda Q ile iksir iç.', 'Ağır saldırı (sağ tık) kalkanlıların gardını kırar ama dayanıklılığını hızla tüketir.'];
+  const GENERAL_TIPS = ['Darbe inmeden hemen önce yuvarlanarak kaçın.', 'Kaçınmanın koruması hareketin başındadır. Geç kalırsan hasar alırsın.', 'Canın azaldığında can iksiri kullan; saldırırken de içebilirsin.', 'Ağır saldırı kalkanlıların gardını kırar ama dayanıklılığını hızla tüketir.'];
   // Cruel omens shown under the death card, rotated by death count and picked by the killer's name.
   const DEATH_OMENS = {
     'Zincirli Mahkûm': ['Bir mahkûm seni ezdi. Zincirin ucunda artık sen varsın.', 'Zincirini sürüklüyordu. Şimdi seni sürükleyecek.', 'Bu taşlar, mahkûma yenilenleri unutmaz.'],
@@ -324,6 +340,7 @@
   const DEATH_OMENS_ANY = ['Ölüm seni bile istemedi.', 'Karanlık seni yuttu ve geri tükürdü.', 'Burada ölüler bile dinlenemez.'];
   function death(d = {}) {
     if (deathShown) return; deathShown = true; deaths++;
+    hud(0); hudTimer = 0;
     if (B.Audio.say) B.Audio.say('death', true);
     const enemy = d.enemy || game.lastDeath?.enemy, attack = d.attack || game.lastDeath?.attack;
     $('death-cause').textContent = enemy || 'Son darbeyi karanlık vurdu.';
@@ -336,6 +353,7 @@
   }
   function victory(d = {}) {
     if (wonShown) return; wonShown = true;
+    hud(0); hudTimer = 0;
     if (B.Audio.say) B.Audio.say('win', true);
     const t = d.time ?? game.elapsed ?? elapsed, k = d.kills ?? game.kills ?? 0;
     const stat = (icon, value, label) => `<div><svg class="icon" aria-hidden="true"><use href="#${icon}"/></svg><b>${value}</b><small>${label}</small></div>`;
@@ -548,6 +566,7 @@
       if (view === 'playing' && (bindMap[normCode(e.code)] || e.code === 'Tab') && !e.metaKey && !(e.ctrlKey && !e.code.startsWith('Control'))) e.preventDefault();   // mapped keys never scroll or search the page
       if (e.code === 'Escape') {
         e.preventDefault();
+        if (e.repeat) return;
         if (view === 'playing') show('pause'); else if (view === 'pause') show('playing'); else if (overlays.has(view)) back();
         return;
       }
@@ -645,16 +664,30 @@
   // Gives `code` to binds[action][slot]. A code that is already used elsewhere swaps places with what this slot held.
   function assignBind(action, slot, code) {
     const label = a => BIND_INFO[a][0], mouseOk = a => BIND_MOUSE_OK.includes(a);
-    if (!code) { if (!slot) return { ok: false, msg: 'Ana tuş boş bırakılamaz.' }; binds[action][1] = ''; return { ok: true, msg: `${label(action)}: yedek tuş boşaltıldı.` }; }
+    const walkNote = 'Tıklayarak yürümek için Hafif saldırıda en az bir fare tuşu kalmalı. Önce yedek kutuya bir fare tuşu ata.';
+    if (!code) {
+      if (!slot) return { ok: false, msg: 'Ana tuş boş bırakılamaz.' };
+      if (action === 'light' && !mouseCode(binds.light[0])) return { ok: false, msg: walkNote };
+      binds[action][1] = ''; return { ok: true, msg: `${label(action)}: yedek tuş boşaltıldı.` };
+    }
     if (BIND_RESERVED.includes(code)) return { ok: false, msg: code === 'KeyH' ? 'H tuşu yardım için ayrılmış.' : 'Bu tuş ayrılmış, başka bir tuş dene.' };
+    if (code.startsWith('Mouse') && !mouseCode(code)) return { ok: false, msg: 'Bu fare düğmesi desteklenmiyor; başka bir düğme seç.' };
     if (code.startsWith('Mouse') && !mouseOk(action)) return { ok: false, msg: 'Bu işlem için fare tuşu atanamaz, klavyeden bir tuş dene.' };
     const old = binds[action][slot]; if (old === code) return { ok: true, msg: '' };
     let hit = null; for (const a in binds) binds[a].forEach((c, i) => { if (c === code) hit = [a, i]; });
     let msg = `${label(action)}: ${capName(code)}`;
+    let give = old;
     if (hit) {
-      const [a2, s2] = hit; let give = old;
+      const [a2, s2] = hit;
       if (give.startsWith('Mouse') && !mouseOk(a2)) give = '';
       if (!give && !s2) return { ok: false, msg: `${capName(code)} zaten ${label(a2)} için ana tuş; önce onu değiştir.` };
+    }
+    const nextLight = binds.light.slice();
+    if (hit && hit[0] === 'light') nextLight[hit[1]] = give;
+    if (action === 'light') nextLight[slot] = code;
+    if (!hasWalkMouse(nextLight)) return { ok: false, msg: walkNote };
+    if (hit) {
+      const [a2, s2] = hit;
       binds[a2][s2] = give;
       msg += a2 === action ? ' (ana ve yedek yer değiştirdi)' : ` · ${label(a2)} artık ${capName(give)}`;
     }
@@ -706,7 +739,7 @@
     $('keybinds-close').onclick = $('keybinds-done').onclick = () => { if (rebind) endRebind(); back(); };
     $('keybinds-reset').onclick = () => { setBinds(null); bindsChanged(); bindNote('Bütün tuşlar varsayılana döndü.'); };
     $('bind-capture-cancel').onclick = () => endRebind();
-    $('bind-capture-clear').onclick = () => { const r = assignBind(rebind.action, rebind.slot, ''); bindsChanged(); endRebind(r.msg); };
+    $('bind-capture-clear').onclick = () => { const r = assignBind(rebind.action, rebind.slot, ''); if (!r.ok) { $('bind-capture-hint').textContent = r.msg; return; } bindsChanged(); endRebind(r.msg); };
     // While a slot listens, this capture-phase handler takes every key before the game's own handler sees it.
     window.addEventListener('keydown', e => {
       if (!rebind) return;
@@ -1045,7 +1078,7 @@
       const blocked = occlusionBlocked; blocked.clear(); occlusionHits.length = 0;
       occlusionRay.intersectObjects(world.occluders, false, occlusionHits);
       for (const hit of occlusionHits) blocked.add(hit.object);
-      for (const m of world.occluders) { m.material.transparent = true; const targetAlpha = blocked.has(m) ? .1 : 1; m.material.opacity += (targetAlpha - m.material.opacity) * (1 - Math.exp(-dt * 14)); m.material.depthWrite = m.material.opacity > .98; }
+      for (const m of world.occluders) { const targetAlpha = blocked.has(m) ? .1 : 1; m.material.opacity += (targetAlpha - m.material.opacity) * (1 - Math.exp(-dt * 14)); m.material.depthWrite = m.material.opacity > .98; }
     }
     shake = Math.max(0, shake - dt * .9); ragePush = Math.max(0, ragePush - dt / 1.3);
     rig.follow(p);
@@ -1081,7 +1114,7 @@
     return graphicsAdapter;
   }
   function performanceReport() {
-    return { schema: 3, game: 'Kabir Azabı', build: 48, capturedAt: new Date().toISOString(), view,
+    return { schema: 3, game: 'Kabir Azabı', build: 49, capturedAt: new Date().toISOString(), view,
       location: { room: world.rooms?.[roomId]?.name || roomId, x: game.player.x, z: game.player.z },
       display: { width: post.width, height: post.height, windowWidth: innerWidth, windowHeight: innerHeight,
         devicePixelRatio: window.devicePixelRatio || 1, renderPixelRatio: renderer.getPixelRatio() },

@@ -65,7 +65,7 @@ LINES = {
     'seal':       'Zincirin bir halkası daha koptu. İlerle.',
     'death':      'Yemin henüz bozulmadı. Taş seni geri çağırıyor.',
     'death2':     'Bu mezar seni tutamayacak. Ayağa kalk.',
-    'death3':     'Cellat seni düşürdü. Yeniden dene; zincir hâlâ kırılabilir.',
+    'death3':     'Bir kez daha düştün. Ama yemin duruyor; zincir hâlâ kırılabilir.',
     'win':        'Cellat öldü; hükmü sona erdi. Tapınağın ölüleri artık yatabilir. Ama aşağıdan gelen o nefes, hâlâ kesilmedi.',
 }
 TTS_RATE, TTS_PITCH = '-12%', '-11Hz'   # ilahiler (chant) için düz TTS ayarı

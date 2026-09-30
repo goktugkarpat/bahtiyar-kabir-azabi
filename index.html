@@ -13,7 +13,7 @@
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="stylesheet" href="src/ui.css?v=48">
+<link rel="stylesheet" href="src/ui.css?v=49">
 </head>
 <body>
 <svg class="icon-library" aria-hidden="true"><defs>
@@ -42,7 +42,7 @@
   </div>
   <div class="load-bar"><i id="load-fill"></i></div>
   <small id="load-text">Tapınağın kapıları açılıyor…</small>
-  <p class="load-tip"><b>İpucu</b> Altın kenar: sıradan darbe. Kızıl kenar: ağır darbe. İkisinden de Space ile yuvarlanarak kaç.</p>
+  <p class="load-tip"><b>İpucu</b> Altın kenar: sıradan darbe. Kızıl kenar: ağır darbe. İkisinden de kaçınma ile yuvarlanarak kaç.</p>
   <p class="age-note"><b>18+</b> Kan, yoğun şiddet ve korku</p>
 </div>
 <script>
@@ -105,7 +105,7 @@ KG_LOAD(.04);
       <button class="action action-heavy" data-action="heavy" aria-label="Ağır saldırı"><i class="skill heavy" aria-hidden="true"></i><kbd class="mouse"><svg aria-hidden="true"><use href="#i-mouse-r"/></svg><em>SAĞ TIK</em></kbd></button>
     </div>
   </section>
-  <div id="tutorial" class="hidden"><i class="skill dodge" aria-hidden="true"></i><p><strong>Her darbenin bir ışığı var.</strong><span><i class="chip amber"></i>Altın kenar: sıradan darbe. <i class="chip red"></i>Kızıl kenar: ağır darbe. Işık dolmadan Space ile yuvarlan; yuvarlanırken vurulmazsın.</span></p><button class="close small" aria-label="İpucunu kapat">×</button></div>
+  <div id="tutorial" class="hidden"><i class="skill dodge" aria-hidden="true"></i><p><strong>Her darbenin bir ışığı var.</strong><span><i class="chip amber"></i>Altın kenar: sıradan darbe. <i class="chip red"></i>Kızıl kenar: ağır darbe. Işık dolmadan yuvarlan; yuvarlanmanın başında korunursun.</span></p><button class="close small" aria-label="İpucunu kapat">×</button></div>
   <div id="touch-controls" class="hidden"><div id="touch-zone" aria-hidden="true"></div><div id="joystick" aria-label="Hareket çubuğu"><div></div></div></div>
   <div id="portrait-note">Daha geniş görüş için cihazını yatay çevir.</div>
 </div>
@@ -135,19 +135,19 @@ KG_LOAD(.04);
 <div id="controls" class="screen modal hidden"><div class="panel controls-panel">
   <header class="panel-head"><div><span class="eyebrow">Hayatta kal</span><h2>Kontroller</h2></div><button id="controls-close" class="close" aria-label="Kontrolleri kapat">×</button></header>
   <div class="control-grid">
-    <div><span class="ctl-icon glyph"><svg class="icon" aria-hidden="true"><use href="#i-move"/></svg></span><p><b>Hareket</b><span>Boş yere tıkla: oraya yürür, basılı tutarsan fareyi izler</span></p><span class="caps"><kbd>FARE</kbd></span></div>
-    <div><span class="ctl-icon"><i class="skill light"></i></span><p><b>Hafif saldırı</b><span>Düşmana sol tık: yürür ve vurur, basılı tutarsan sürer · boş yere tıklarsan oraya yürürsün · 13 dayanıklılık</span></p><span class="caps" data-caps="light"></span></div>
-    <div><span class="ctl-icon"><i class="skill heavy"></i></span><p><b>Ağır saldırı</b><span>Düşmana sağ tık · gardı kırar, hafifleri sendeletir · boşluğa bir şey yapmaz · 34 dayanıklılık</span></p><span class="caps" data-caps="heavy"></span></div>
-    <div><span class="ctl-icon"><i class="skill light"></i></span><p><b>Yerinde vur</b><span>Basılıyken sol / sağ tık: yürümeden fareye doğru vurur (boşluğa vurmanın tek yolu)</span></p><span class="caps" data-caps="stand"></span></div>
-    <div><span class="ctl-icon"><i class="skill dodge"></i></span><p><b>Kaçınma</b><span>Yürüdüğün yöne (durunca fareye doğru) yuvarlanır · yuvarlanırken hasar almazsın · 20 dayanıklılık</span></p><span class="caps" data-caps="dodge"></span></div>
+    <div><span class="ctl-icon glyph"><svg class="icon" aria-hidden="true"><use href="#i-move"/></svg></span><p><b>Hareket</b><span>Hafif saldırıya atanmış fare düğmesiyle boş yere tıkla: yürür; basılı tutarsan fareyi izler</span></p><span class="caps"><kbd>FARE</kbd></span></div>
+    <div><span class="ctl-icon"><i class="skill light"></i></span><p><b>Hafif saldırı</b><span>Fareyle düşmanı seç: yürür ve vurur, basılı tutunca sürer · klavye tuşu önündeki yakın düşmana vurur · 13 dayanıklılık</span></p><span class="caps" data-caps="light"></span></div>
+    <div><span class="ctl-icon"><i class="skill heavy"></i></span><p><b>Ağır saldırı</b><span>Gardı kırar, hafifleri sendeletir · fareyle düşmanı seç veya klavye tuşuyla önündekine vur · 34 dayanıklılık</span></p><span class="caps" data-caps="heavy"></span></div>
+    <div><span class="ctl-icon"><i class="skill light"></i></span><p><b>Yerinde vur</b><span>Bu tuş basılıyken fareden saldır: yürümeden fareye doğru vurur; boşluğa da saldırabilirsin</span></p><span class="caps" data-caps="stand"></span></div>
+    <div><span class="ctl-icon"><i class="skill dodge"></i></span><p><b>Kaçınma</b><span>Yürüdüğün yöne (durunca fareye doğru) yuvarlanır · başında korunursun, kalkarken koruma biter · 20 dayanıklılık</span></p><span class="caps" data-caps="dodge"></span></div>
     <div><span class="ctl-icon"><i class="skill flask"></i></span><p><b>Can iksiri</b><span>Anında iyileştirir · yemin taşında dolar</span></p><span class="caps" data-caps="heal"></span></div>
     <div><span class="ctl-icon"><i class="skill rage"></i></span><p><b>Kan Öfkesi</b><span>Öfke çubuğu dolunca bağırırsın: yakındakiler sendeler; 11 sn %48 sert vurur, %25 az hasar alır, vurduğun hasarın bir kısmı can olur</span></p><span class="caps" data-caps="rage"></span></div>
     <div><span class="ctl-icon"><i class="skill special"></i></span><p><b>Zincir Girdabı</b><span>Etrafında dönerek yakındaki herkese 4 kez vurur; hafifleri içine çeker, sonda savurur · dönerken yürüyebilirsin · 45 dayanıklılık, 8 sn bekleme</span></p><span class="caps" data-caps="special"></span></div>
     <div><span class="ctl-icon glyph"><svg class="icon" aria-hidden="true"><use href="#i-seal"/></svg></span><p><b>Etkileşim · Mola</b><span>Yemin taşı · menü</span></p><span class="caps" data-caps="interact"></span><kbd>ESC</kbd></div>
   </div>
-  <div class="warning-legend"><span><i class="chip amber"></i>Altın kenar: sıradan darbe</span><span><i class="chip red"></i>Kızıl kenar: ağır darbe, mutlaka kaç</span><span>Işık dolduğunda darbe iner · yuvarlanırken vurulmazsın</span></div>
+  <div class="warning-legend"><span><i class="chip amber"></i>Altın kenar: sıradan darbe</span><span><i class="chip red"></i>Kızıl kenar: ağır darbe, mutlaka kaç</span><span>Işık dolduğunda darbe iner · yuvarlanmanın başında korunursun</span></div>
   <p class="muted pad-note kb-only"><b>Tuşlar</b> Tuşları ve fare düğmelerini değiştirebilirsin. <button id="controls-keys" class="text-button">Tuş atamaları</button></p>
-  <p class="muted pad-note"><b>Fare</b> Sol tık düşmana: ona yürür ve vurur (hedefte halka yanar); boş yere: oraya yürürsün, boşa kılıç savurmazsın. Sağ tık düşmana ağır vurur. Shift + tık: yürümeden fareye doğru vurur. Klavyeyle yürünmez; kaçınma (Space) fareye doğru yuvarlanır. J / K önündeki yakın düşmana vurur.</p>
+  <p class="muted pad-note"><b>Fare ve klavye</b> Hafif saldırıya atanmış fare düğmesiyle düşmanı seç: ona yürür ve vurur; boş yere tıkla: oraya yürürsün. Ağır saldırıya atanmış fare düğmesi gardı kıran darbeyi başlatır. Yerinde vur tuşunu basılı tutarak fareden saldırırsan yürümeden vurursun. Saldırıların klavye tuşları önündeki yakın düşmana vurur; klavyeyle yürünmez. Kaçınma, dururken fareye doğru yuvarlanır. Tuş atamalarını yukarıdaki kutulardan görebilirsin.</p>
   <p class="muted pad-note"><b>Gamepad</b> sol çubuk hareket · X hafif · Y ağır (önündeki yakın düşmana; yoksa boşa vurmaz) · sağ çubuk + X yerinde vur · A kaçın · LB girdap · B iksir · RB öfke · Start mola</p>
   <p class="muted touch-note"><b>Dokunmatik</b> bir düşmana dokun: ona yürür ve vurur · yere dokun: oraya yürürsün · sol başparmakla kaydırarak da yürüyebilirsin · sağdaki düğmeler en yakın düşmana vurur</p>
 </div></div>
@@ -200,11 +200,11 @@ KG_LOAD(.04);
 
 <div id="warming" class="hidden" role="status" aria-live="polite"><span>Grafik hazırlanıyor…</span><div class="load-bar"><i id="warm-fill"></i></div><small>Yeni ayar için gölgeler ve ışıklar derleniyor.</small></div>
 <div id="fps" class="hidden"><div id="fps-values"></div><button id="fps-report" class="text-button" type="button">Ölçümü indir</button></div><div id="fatal" class="hidden"><h2>Tapınağın kapısı açılmadı.</h2><p></p><button class="btn primary" onclick="location.reload()"><span>Yeniden dene</span></button></div>
-<script src="vendor/three.js?v=48"></script><script src="vendor/gltf-loader.js?v=48"></script><script>window.BABA={};KG_LOAD(.1,'Taşlar yerine oturuyor…');</script>
-<script src="src/materials.js?v=48"></script><script>KG_LOAD(.3);</script>
-<script src="src/world.js?v=48"></script><script src="src/motion.js?v=48"></script><script src="src/models.js?v=48"></script><script>KG_LOAD(.36,'Zincirler çözülüyor…');</script>
-<script src="assets/characters/characters.js?v=48"></script><script>KG_LOAD(.82,'Ölüler uyanıyor…');</script>
-<script src="assets/characters/authored-clips.js?v=48"></script>
-<script src="src/authored-motion.js?v=48"></script><script src="src/authored-models.js?v=48"></script><script src="src/limbs.js?v=48"></script><script src="src/globes.js?v=48"></script><script src="src/combat.js?v=48"></script><script>KG_LOAD(.88);</script>
-<script src="src/narration.js?v=48"></script><script src="src/music.js?v=48"></script><script src="src/audio.js?v=48"></script><script src="src/telegraphs.js?v=48"></script><script src="src/effects.js?v=48"></script><script src="src/hud.js?v=48"></script><script src="src/lighting.js?v=48"></script><script src="src/display.js?v=48"></script><script src="src/pacing.js?v=48"></script><script src="src/performance.js?v=48"></script><script src="src/post.js?v=48"></script><script src="src/app.js?v=48"></script><script>KG_LOAD(.9,'Tapınak nefes alıyor…');</script>
+<script src="vendor/three.js?v=49"></script><script src="vendor/gltf-loader.js?v=49"></script><script>window.BABA={};KG_LOAD(.1,'Taşlar yerine oturuyor…');</script>
+<script src="src/materials.js?v=49"></script><script>KG_LOAD(.3);</script>
+<script src="src/world.js?v=49"></script><script src="src/motion.js?v=49"></script><script src="src/models.js?v=49"></script><script>KG_LOAD(.36,'Zincirler çözülüyor…');</script>
+<script src="assets/characters/characters.js?v=49"></script><script>KG_LOAD(.82,'Ölüler uyanıyor…');</script>
+<script src="assets/characters/authored-clips.js?v=49"></script>
+<script src="src/authored-motion.js?v=49"></script><script src="src/authored-models.js?v=49"></script><script src="src/limbs.js?v=49"></script><script src="src/globes.js?v=49"></script><script src="src/combat.js?v=49"></script><script>KG_LOAD(.88);</script>
+<script src="src/narration.js?v=49"></script><script src="src/music.js?v=49"></script><script src="src/audio.js?v=49"></script><script src="src/telegraphs.js?v=49"></script><script src="src/effects.js?v=49"></script><script src="src/hud.js?v=49"></script><script src="src/lighting.js?v=49"></script><script src="src/display.js?v=49"></script><script src="src/pacing.js?v=49"></script><script src="src/performance.js?v=49"></script><script src="src/post.js?v=49"></script><script src="src/app.js?v=49"></script><script>KG_LOAD(.9,'Tapınak nefes alıyor…');</script>
 </body></html>

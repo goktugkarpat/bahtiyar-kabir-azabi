@@ -221,6 +221,8 @@
     const st = p.stamina || 0, lack = p.lack;
     for (const key of ['light', 'heavy', 'dodge', 'special', 'rage', 'heal']) {
       const sl = slotFor(key); if (!sl) continue;
+      // A respawn clears p.lack and starts its serial again; forget the old run's alert.
+      if (!lack) sl.lackSerial = 0;
       let f = 0, text = '', dim = false;
       if (key === 'special') {
         const cd = p.specialCd || 0; f = cd / (p.specialMax || 8); text = secs(cd); dim = cd <= 0 && st < SLOT_COST.special;
@@ -243,9 +245,9 @@
 
   /* ───────────── Skill cards: hover / keyboard focus / long press on a slot shows name, key, what it does, cost and cooldown ───────────── */
   const TIPS = {
-    light: ['Hafif saldırı', 'Düşmana sol tıkla: yürür ve üç vuruşluk kombo yapar. Basılı tutarsan vurmaya devam eder. Kalkanlı düşmanın gardını kıramaz. Shift + sol tık: yürümeden, fareye doğru vurur.', '13 dayanıklılık'],
-    heavy: ['Ağır saldırı', 'Düşmana sağ tıkla: yavaş ama çok sert vurur; kalkanlı düşmanın gardını kırar, hafif düşmanları sendeletir. Boşluğa sağ tık bir şey yapmaz. Shift + sağ tık: yerinde vurur.', '34 dayanıklılık'],
-    dodge: ['Kaçınma', 'Yürüdüğün yöne (yürümüyorsan fareye doğru) yuvarlanır. Yuvarlanırken hasar almazsın; kızıl ve altın kenarlı darbelerden böyle kaç.', '20 dayanıklılık'],
+    light: ['Hafif saldırı', 'Atanmış fare düğmesiyle düşmanı seç: yaklaşır ve üç vuruşluk kombo yapar; basılı tutunca sürdürür. Klavye tuşu önündeki yakın düşmana vurur. Kalkanlı düşmanın gardını kıramaz. Yerinde vur tuşuyla birlikte fareden saldırırsan yürümez.', '13 dayanıklılık'],
+    heavy: ['Ağır saldırı', 'Yavaş ama çok sert vurur; kalkanlı düşmanın gardını kırar, hafif düşmanları sendeletir. Atanmış fare düğmesiyle düşmanı seç; boş yere tıklamak saldırmaz. Klavye tuşu önündeki yakın düşmana vurur. Yerinde vur tuşuyla birlikte fareden saldırırsan yürümez.', '34 dayanıklılık'],
+    dodge: ['Kaçınma', 'Yürüdüğün yöne (yürümüyorsan fareye doğru) yuvarlanır. Yuvarlanmanın başında darbelerden korunursun; sondaki kalkışta koruma biter. Kızıl ve altın kenarlı darbelerden böyle kaç.', '20 dayanıklılık'],
     heal: ['Can iksiri', 'Anında can yeniler. Yemin taşında yeniden dolar.', 'sınırlı sayıda'],
     special: ['Zincir Girdabı', 'Zincirli pala ile etrafında dönersin ve yakındaki herkese 4 kez vurursun. Hafif düşmanlar içeri çekilir, son vuruş onları savurur. Dönerken yürüyebilirsin.', '45 dayanıklılık · 8 sn bekleme'],
     rage: ['Kan Öfkesi', 'Öfke çubuğu dolunca bağırırsın: yakındaki düşmanlar sendeler. 11 sn boyunca %48 daha sert vurur, %25 az hasar alır ve vurduğun hasarın bir kısmı can olarak geri döner.', 'Öfke çubuğu dolu olmalı']

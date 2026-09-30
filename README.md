@@ -53,7 +53,7 @@ Destekleyen ekran kartlarında aynı malzemeli sabit dünya parçaları birlikte
 
 Ses bir kullanıcı etkileşiminden sonra başlar. Müzik bu oyun için bestelenmiştir ve tarayıcıda çalınırken üretilir (`src/music.js`): salona, dövüşe ve Cellat aşamalarına göre değişir. Bahtiyar'ın yemini, şapelde ve finalde tekrar duyulan özgün bir demir tel melodisiyle bağlanır. Darbe, zincir, yaratık ve adım sesleri CC0 paketlerden işlenmiş kayıtlardır; uyarı çanı, rüzgâr ve arayüz sesleri Web Audio ile üretilir. Kılıç sesleri ilk yüklemede hazırlanan çelik, gövde ve alt gümbürtü katmanlarıyla güçlendirilir; vuruştan vuruşa küçük perde ve seçim farkları vardır. Zindan ortamında seyrek boğuk çığlık, inilti, hıçkırık, zincir, kırbaç ve uzak çekiç duyulur. Çığlıklar dört oyuncunun canlandırma kayıtlarından işlenmiştir. Zincir Nöbeti ve Adak Ayini'nde daha yakın, Zincir Mahkemesi'nde sessizdir; savaş ve konuşma sırasında azalır. Efektler yükleme ekranında hazırlanır. 14 Türkçe kayıt tr-TR-AhmetNeural ile bütün cümleler halinde, hafif tempo/ton farklarıyla seslendirilmiştir. Anlatıcı, Bahtiyar ve Zincir Celladı konuşmaları sırayla çalar; altyazı konuşmacıyı gösterir. Müzik ve ortam konuşmalara ve saldırı uyarılarına yer açar. Ses seviyeleri ve altyazı ayrıca ayarlanır. `?sessiz` hiçbir ses bağlamı oluşturmaz; geliştirme testlerinde zorunludur.
 
-## 30 Eylül gece geliştirmesi — sürüm 47
+## 30 Eylül gece geliştirmesi — sürüm 47–49
 
 Engellerin arkasındaki hedeflere ve düşmanlara güvenli yol bulma eklendi; kapalı mühürlerin arkasına vurulmaz. Özel saldırıların bekleme süresi bilgisayarın hızına göre değişmez. Salon temizlenince sonraki hedef yazılır; görev satırı kalan düşmanları, kapıyı ve yemin taşını takip eder. İksir, iki yetenek, Cellat'ın iki evresi, ölüm, kontrol noktası ve yeni yolculuk akışları birlikte denetlendi.
 
@@ -68,6 +68,10 @@ Doğrulama: gerçek karakter geometrileri/hareketleri, engeller ve dövüş akı
 `node tools/verify-gameplay.cjs` gerçek harita ve modellerle kapılar, engel etrafından yürüme, yetenekler, iksir, hasar sayıları, farklı kare hızlarında saldırı beklemesi, patron evreleri, kayıt, ölüm ve yeni oyun akışlarını denetler. Çizim ve ses çıkışı kullanmaz; FPS ölçmez.
 
 Sürüm 48'de karakterlerin eski pozunun her kare yeniden hesaplanan ikinci taraması kaldırıldı. Ayak kilitleri, temaslar, iskeletler, zincirler ve silah izleri eski sürümle birebir korunuyor. Üçer CPU karşılaştırmasında oyun işlemi %10,5–12,6, kalabalık sahnelerde ölçülen toplam CPU işi yaklaşık %8 azaldı; tarayıcı/GPU süresi ölçüme dahil değildir. Kalite değişiminde grafikler hazırlanırken erken devam edilmesi de engellendi: dövüş duraklar, hazırlık bitince oyuncu devam eder. Ayarlardaki ses davranışı korunur.
+
+Sürüm 49'da Esc basılı tutulunca oyunun kendiliğinden devam etmesi, ölüm/final ekranından önce can ve sayaçların eski kalması, kişisel tuş atamalarındaki yanlış açıklamalar ve yeniden başlarken kaybolan dayanıklılık uyarısı düzeltildi. Tıklayarak yürümeyi kaldıran bir tuş atamasına izin verilmez; eski böyle bir kayıt varsa bir fare tuşu geri eklenir. Karakteri örten kemerlerin saydamlık ayarı yüklemede hazırlanır; başlığa dönünce kemerler ve kızıl savaş örtüsü normale döner. Üçüncü ölüm konuşması artık yanlış düşman adı söylemez. Finalden hemen yeni yolculuğa dönülürse final melodisinin sonraki notaları yeni oyuna karışmaz.
+
+Gerçek harita ve modellerle, normal can/hasar ve oyun girdileri kullanılarak yapılan 21 otomatik tam bölüm denemesi tamamlandı. Farklı hızlar, kaçırılmış saldırı uyarıları, kapalı mühür, Cellat'ın son evresinde ölüm, yemin taşından dönüş ve finalden yeni yolculuk birlikte denetlendi. Bu otomatik denemeler insanın oynama süresini/zorluğunu veya ekran kartı performansını ölçmez.
 
 ## Teknik yapı
 

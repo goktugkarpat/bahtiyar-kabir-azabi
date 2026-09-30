@@ -848,7 +848,13 @@
       var animatedCloth = [], movingHangers = [];
       function architectureMesh(geometry, mat, x, y, z, angle, level, occludes) {
         var useMaterial = materials[mat];
-        if (occludes) { useMaterial = useMaterial.userData.surfaceOpts ? cloneSurface(useMaterial) : useMaterial.clone(); uniqueMaterials.push(useMaterial); }
+        if (occludes) {
+          useMaterial = useMaterial.userData.surfaceOpts ? cloneSurface(useMaterial) : useMaterial.clone();
+          // The camera fades these arches. Prepare their alpha-capable program
+          // before the title; changing transparent later leaves a warmed OPAQUE shader.
+          useMaterial.transparent = true;
+          uniqueMaterials.push(useMaterial);
+        }
         var mesh = new T.Mesh(geometry, useMaterial);
         mesh.position.set(x, y, z); mesh.rotation.y = angle || 0;
         mesh.castShadow = true; mesh.receiveShadow = true; mesh.userData.baseCastShadow = true;
