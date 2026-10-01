@@ -65,7 +65,7 @@
       if (!gear || gear.model !== model) {
         gear = { model, list: [] }; const seen = new Set();
         model.root.traverse(o => { const m = o.material, g = m && m.userData && m.userData.grade; if (!g || !g.kBlood || seen.has(m)) return; seen.add(m);
-          const n = m.name || ''; if (n === 'kara-blade-runes') gear.list.push({ u: g.kBlood, base: g.kBlood.value, gain: .85 }); else if (/^kara-hero-(iron|skin|leather)$/.test(n)) gear.list.push({ u: g.kBlood, base: g.kBlood.value, gain: n === 'kara-hero-skin' ? .3 : .45 }); });
+          const n = m.name || ''; if (n === 'kara-blade-runes') gear.list.push({ u: g.kBlood, base: g.kBlood.value, gain: .85 }); else if (/^(kara-hero-(iron|skin|leather)|kara-equipment-.+)$/.test(n)) gear.list.push({ u: g.kBlood, base: g.kBlood.value, gain: n === 'kara-hero-skin' ? .3 : .45 }); });
       }
       for (const e of gear.list) e.u.value = e.base + e.gain * gearBlood;
     }
@@ -459,6 +459,17 @@
       const polar = (a, r) => ({ x: x + Math.sin(f + a) * r, z: z + Math.cos(f + a) * r });
       const local = (side, fwd) => ({ x: x + Math.cos(f) * side + Math.sin(f) * fwd, z: z - Math.sin(f) * side + Math.cos(f) * fwd });
       const R = d.radius || 2, arc = d.shape === 'ring' ? (d.arc || Math.PI * 2) : d.arc || Math.PI, dir = d.sweepDir || 1;
+      if (style === 'tide') {
+        const inner=d.inner||0,m=n(30);
+        // Kara Kıyı supplies a shaped water surface; mist must follow the same hit footprint.
+        if(tells && !(B.app && B.app.world.chapter===2))tells.wave(x,z,{radius:R,life:.52,width:Math.min(1.4,R-inner),color:[.12,.34,.36],soft:.5});
+        for(let i=0;i<m;i++){const a=i/m*Math.PI*2,r=inner+(R-inner)*(.3+Math.random()*.5),p=d.shape==='line'?local((Math.random()-.5)*d.width,d.length*Math.random()):polar(a,r);particle(p.x,.14,p.z,2,[.13,.24,.24],1.0,d.shape==='line'?f:a,.55);}
+        return;
+      }
+      if (style === 'root') {
+        for(let i=0;i<n(22);i++){const p=d.shape==='line'?local((Math.random()-.5)*d.width,d.length*Math.random()):polar(Math.random()*Math.PI*2,(d.inner||0)+(R-(d.inner||0))*Math.random());particle(p.x,.12,p.z,0,[.14,.10,.055],1,Math.random()*6,1.4);particle(p.x,.07,p.z,2,[.10,.085,.065],.7,Math.random()*6,.5);}
+        return;
+      }
       if (d.poison || style === 'bile') {
         if (d.burst) { if (tells) tells.wave(x, z, { radius: R + .4, life: .5, width: .6, color: [.45, .9, .15], soft: .6 }); flash(x, .6, z, 2.6, new T.Color('#d8ff9a'), .1); }
         const cx = d.shape === 'cone' ? d.ix : x, cz = d.shape === 'cone' ? d.iz : z;
@@ -547,7 +558,7 @@
       chRing(x, z, V * 1.05, .55, [1.0, .3, .08]); chRing(x, z, V * .6, .38, [1.2, .7, .4]); chRing(x, z, V * .95, .8, [.28, .12, .07]);   // last: the slow dust ring
       scar(x, z, 0, { shape: 'circle', radius: 1.6, life: 2, heat: .5 });
       flash(x, 1.2, z, 2.0, new T.Color('#e07040'), .18, 0, softMap);
-      const ringDust = scaleCount(64); for (let i = 0; i < ringDust; i++) { const a = i / ringDust * Math.PI * 2; particle(x + Math.sin(a) * .7, .1, z + Math.cos(a) * .7, 2, DUST, 2.0, a, .4); }
+      const ringDust = scaleCount(28); for (let i = 0; i < ringDust; i++) { const a = i / ringDust * Math.PI * 2; particle(x + Math.sin(a) * .7, .1, z + Math.cos(a) * .7, 2, DUST, 2.0, a, .4); }
       // Sparks thrown out along the floor as stretched streaks, and a fountain of hot flecks lifted along the crack ring.
       for (let i = 0; i < (calm ? 8 : Math.round(scaleCount(40) * .9)); i++) { const a = Math.random() * Math.PI * 2; streak(x + Math.sin(a) * .8, .25 + Math.random() * .5, z + Math.cos(a) * .8, Math.sin(a) * (4.5 + Math.random() * 5.5), 1 + Math.random() * 3, Math.cos(a) * (4.5 + Math.random() * 5.5), .3 + Math.random() * .3, .05 + Math.random() * .04, Math.random() < .3 ? [3.4, 2.4, 1.2] : [3.0, 1.1, .3]); }
       skMesh.visible = true;
@@ -781,7 +792,7 @@
     function sourcesOf(model) {
       if (ghostSources.has(model)) return ghostSources.get(model);
       const skinned = [], rigid = [];
-      model.root.traverse(n => { if (!n.isMesh || !n.visible) return; if (n.isSkinnedMesh) skinned.push(n); else if (!n.isInstancedMesh && model.bones && model.bones.weapon && isUnder(n, model.bones.weapon)) rigid.push(n); });
+      model.root.traverse(n => { if (!n.isMesh || (!n.visible && !n.userData.equipmentId)) return; if (n.isSkinnedMesh) skinned.push(n); else if (!n.isInstancedMesh && model.bones && model.bones.weapon && isUnder(n, model.bones.weapon)) rigid.push(n); });
       const s = { skinned, rigid }; ghostSources.set(model, s); return s;
     }
     function isUnder(n, parent) { for (let p = n; p; p = p.parent) if (p === parent) return true; return false; }
@@ -805,8 +816,8 @@
     function snapshot(g) {
       // Frozen skin matrices already contain the world pose; the uncullable ghost mesh itself stays at identity.
       // These prepared bounds only supply its sorting centre, without scanning all skinned vertices on the first dodge.
-      for (const p of g.parts) if (p.rigid) p.rigid.matrix.copy(p.rm.matrixWorld);
-      else p.gm.boundingSphere.copy(p.sm.boundingSphere || p.bounds).applyMatrix4(p.sm.matrixWorld);
+      for (const p of g.parts) if (p.rigid) { p.rigid.visible = p.rm.visible; p.rigid.matrix.copy(p.rm.matrixWorld); }
+      else { p.gm.visible = p.sm.visible; p.gm.boundingSphere.copy(p.sm.boundingSphere || p.bounds).applyMatrix4(p.sm.matrixWorld); }
       for (const [source, sk] of g.skeletons) {
         const bones = source.bones, inv = source.boneInverses;
         for (let i = 0; i < bones.length; i++) { ghostM.multiplyMatrices(bones[i].matrixWorld, inv[i]); ghostM.toArray(sk.boneMatrices, i * 16); }
@@ -913,10 +924,96 @@
       trail.mesh.geometry.setDrawRange(0, v); trail.mesh.geometry.attributes.position.needsUpdate = true; trail.mesh.geometry.attributes.aAlpha.needsUpdate = true;
       if (!S.length && !w.on) { trail.active = false; trail.mesh.visible = false; }
     }
+    // Prepared signature effects: four crimson crescents and one gilded level ascent. These never
+    // allocate a surface, texture, light or shader when a skill/level is earned.
+    const skillCrescents = Array.from({ length: 4 }, () => {
+      const mat = new T.ShaderMaterial({ transparent: true, depthWrite: false, side: T.DoubleSide, blending: T.AdditiveBlending,
+        uniforms: { uK: { value: 1 }, uFace: { value: 0 }, uArc: { value: 3.65 } },
+        vertexShader: 'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+        fragmentShader: `varying vec2 vUv;uniform float uK,uFace,uArc;
+          void main(){vec2 p=(vUv-.5)*2.4;float r=length(p);float a=atan(p.x,-p.y)-uFace;a=atan(sin(a),cos(a));
+          float end=1.-smoothstep(uArc*.5-.24,uArc*.5,abs(a));float reach=.72+.28*(1.-pow(1.-uK,3.));
+          float band=exp(-pow((r-reach)/.074,2.));float core=exp(-pow((r-reach)/.019,2.));
+          float echo=exp(-pow((r-reach+.17)/.038,2.))*.25;
+          float rune=exp(-pow((r-reach+.29)/.065,2.))*pow(max(0.,cos(a*17.)),16.)*.42;
+          float life=pow(1.-uK,1.3)*smoothstep(0.,.065,uK);float alpha=(band+echo+rune)*end*life;
+          if(alpha<.004)discard;vec3 col=vec3(3.4,.08,.025)*(band+echo)+vec3(5.2,1.3,.55)*core+vec3(2.5,.38,.1)*rune;
+          gl_FragColor=vec4(col*end*life,alpha);}` });
+      const m = new T.Mesh(plane, mat); m.name = 'mezar-yaran-crescent'; m.rotation.x = -Math.PI / 2; m.visible = false; root.add(m);
+      return { m, mat, time: 1, life: .56 };
+    });
+    const ascentGeo = new T.CylinderGeometry(.48, .58, 1.8, 48, 1, true);
+    const ascentMat = new T.ShaderMaterial({ transparent: true, depthWrite: false, side: T.DoubleSide, blending: T.AdditiveBlending,
+      uniforms: { uK: { value: 1 } },
+      vertexShader: 'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+      fragmentShader: `varying vec2 vUv;uniform float uK;void main(){float y=vUv.y;
+        float phase=vUv.x*75.3982;
+        float crown=exp(-pow((y-(.10+uK*.70))/.009,2.));
+        float echo=exp(-pow((y-(.035+uK*.53))/.006,2.))*.32;
+        float jewels=pow(max(0.,cos(phase*.5)),20.)*exp(-pow((y-(.10+uK*.70))/.04,2.));
+        float envelope=smoothstep(0.,.025,y)*(1.-smoothstep(.88,1.,y));
+        float life=smoothstep(0.,.06,uK)*(1.-smoothstep(.28,.92,uK));
+        float a=(crown*.36+echo*.6+jewels*.18)*envelope*life;
+        if(a<.004)discard;vec3 col=mix(vec3(2.5,1.35,.32),vec3(2.6,2.15,1.3),crown*.75);
+        gl_FragColor=vec4(col,a);}` });
+    const ascent = new T.Mesh(ascentGeo, ascentMat); ascent.name = 'level-gold-ascent'; ascent.visible = false; root.add(ascent);
+    const levelGroundMat = new T.ShaderMaterial({ transparent: true, depthWrite: false, blending: T.AdditiveBlending,
+      uniforms: ascentMat.uniforms,
+      vertexShader: 'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+      fragmentShader: `varying vec2 vUv;uniform float uK;void main(){
+        float r=length(vUv-.5)*2.;float reach=.20+.50*uK;
+        float haze=exp(-pow(r/max(.12,reach*.65),2.))* .10;
+        float wave=exp(-pow((r-reach)/.10,2.))*.035;
+        float life=smoothstep(0.,.06,uK)*(1.-smoothstep(.18,.80,uK));
+        float a=(haze+wave)*life*(1.-smoothstep(.88,1.,r));
+        if(a<.003)discard;gl_FragColor=vec4(vec3(2.1,1.25,.30),a);}` });
+    const levelGround = new T.Mesh(plane, levelGroundMat); levelGround.name = 'level-gold-ground';
+    levelGround.rotation.x = -Math.PI / 2; levelGround.scale.setScalar(1.7); levelGround.visible = false; root.add(levelGround);
+    function placeLevelGround(x, z) {
+      const world = B.app && B.app.world;
+      levelGround.position.set(x, world && world.effectHeightAt ? world.effectHeightAt(x, z, .85) + .015 : .065, z);
+    }
+    let ascentTime = 3;
+    function signatureStep(dt) {
+      for (const o of skillCrescents) if (o.m.visible) { o.time += dt; o.mat.uniforms.uK.value = clamp(o.time / o.life, 0, 1); if (o.time >= o.life) o.m.visible = false; }
+      if (ascent.visible) { ascentTime += dt; ascent.position.x = getGame().player.x; ascent.position.z = getGame().player.z; ascentMat.uniforms.uK.value = clamp(ascentTime / 1.1, 0, 1); placeLevelGround(ascent.position.x, ascent.position.z); if (ascentTime >= 1.1) { ascent.visible = false; levelGround.visible = false; } }
+    }
     // ------------------------------------------------------------ bursts
     const RED = [.17, .008, .014], DARK = [.09, .004, .008], SPARK = [4.5, 2.65, .9], STEEL = [3.2, 3.0, 2.6], DUST = [.10, .08, .065];
     function burst(name, d = {}) {
       const game = getGame(); if (!game) return; const x = d.x ?? game.player.x, y = d.y ?? 1, z = d.z ?? game.player.z;
+      if (name === 'heroSkill') {
+        const face = d.face || 0, sx = Math.sin(face), sz = Math.cos(face), r = d.radius || 3.2;
+        const count = scaleCount(d.phase === 'gather' ? 20 : d.skill === 'reap' ? 65 : 40);
+        if (d.phase === 'gather') {
+          for (let i = 0; i < count; i++) { const a = i / count * Math.PI * 2, rr = .65 + Math.random() * .45;
+            emit(x + Math.sin(a) * rr, .2 + Math.random() * .8, z + Math.cos(a) * rr, 4, d.skill === 'reap' ? [.7, .85, 1.7] : [2.6, .35, .12], -Math.sin(a) * 1.7, .8, -Math.cos(a) * 1.7, .35, .055); }
+          return;
+        }
+        if (d.skill === 'quake') { strike({ x: x + sx * 2.4, z: z + sz * 2.4, face, style: 'quake', shape: 'circle', radius: r, scar: true, unblockable: true }); return; }
+        if (d.skill === 'cleave') {
+          const o = skillCrescents.find(q => !q.m.visible) || skillCrescents[0]; o.time = 0; o.mat.uniforms.uK.value = 0; o.mat.uniforms.uFace.value = face; o.mat.uniforms.uArc.value = d.arc || 3.65;
+          o.m.position.set(x, .95, z); o.m.scale.set(r * 2.4, r * 2.4, 1); o.m.visible = true;
+          for (let i = 0; i < count; i++) { const a = face + (i / Math.max(1, count - 1) - .5) * (d.arc || 3.65);
+            emit(x + Math.sin(a) * r, .5 + Math.sin(i / count * Math.PI) * .9, z + Math.cos(a) * r, 4, [3.8, .32, .11], Math.sin(a) * 2, .25, Math.cos(a) * 2, .55, .09); }
+          return;
+        }
+        if (d.skill === 'reap' || d.skill === 'charge') {
+          if (d.skill === 'charge' && d.length <= .05) return;
+          const length = d.length ?? (d.skill === 'reap' ? 9 : 5), width = d.width || 1.8;
+          for (let i = 0; i < count; i++) { const f = i / count, lateral = (Math.random() - .5) * width, depth = f * length;
+            const py = d.skill === 'reap' ? .35 + Math.sin(f * Math.PI * 3) ** 2 * 1.35 : .25;
+            emit(x + sx * depth + sz * lateral, py, z + sz * depth - sx * lateral, 4, d.skill === 'reap' ? [.8, .9, 2.4] : [3, .7, .18], sx * 3, .4, sz * 3, .45, .09); }
+          return;
+        }
+        if (d.skill === 'level') {
+          ascentTime = 0; ascentMat.uniforms.uK.value = 0; ascent.position.set(x, .90, z); ascent.visible = true; placeLevelGround(x, z); levelGround.visible = true;
+          // Ascending jeweled rings and a soft outward glow frame the character.
+          for (let i = 0; i < scaleCount(28); i++) { const a = i * 2.39996, rr = .25 + Math.random() * .35;
+            emit(x + Math.sin(a) * rr, .1 + Math.random() * 1.2, z + Math.cos(a) * rr, 4, i%3 ? [2.4, 1.35, .32] : [2.0, 1.8, 1.2], Math.sin(a) * .12, .6 + Math.random()*.3, Math.cos(a) * .12, .55 + Math.random() * .35, .05); }
+        }
+        return;
+      }
       if (name === 'slash') return; // the smear follows the actual blade
       if (name === 'strike') { strike(Object.assign({ x, z }, d)); return; }
       if (name === 'glowBurst') { if (tells) tells.glowBurst(x, z, { radius: d.radius || 1.5, life: d.duration || .5, color: linear(d.color == null ? '#f0d293' : d.color, 1.6), peak: .5 }); return; }
@@ -966,7 +1063,7 @@
         const S = clamp(((d.player ? .55 : heavy ? 1.05 : .7) + (d.kill ? .6 : 0) + (d.boss ? .3 : 0)) * clamp(.85 + (d.damage || 0) / 120, .85, 1.3), .3, 2.2);
         goreHit(x, y, z, spray, S, { kill: !!d.kill, heavy, boss: !!d.boss, player: !!d.player, foe: d.labelTarget || (d.player ? game.player : nearestFoe(x, z, 1.6, true)) });
         if (!d.player && name === 'blood') gearHit(d.kill ? .3 : heavy ? .16 : .08); else if (d.player) gearHit(.06);
-        if (d.damage > 0) number(Math.round(d.damage), x, 2.5, z, d.player, d.heavy, d.kill, d.boss, d.labelTarget || null);
+        if (d.damage > 0) number(Math.round(d.damage), x, 2.5, z, d.player, d.heavy || d.critical, d.kill, d.boss, d.labelTarget || null);
         // Blows struck in fury leave burning embers in the wound.
         if (d.rage && !d.player) for (let i = 0; i < scaleCount(heavy ? 18 : 10); i++) emit(x, y, z, 4, i % 2 ? [2.6, .6, .12] : [2.2, .25, .08], Math.sin(spray) * rnd(.6, 2.2) + rnd(-.5, .5), rnd(.4, 1.6), Math.cos(spray) * rnd(.6, 2.2) + rnd(-.5, .5), rnd(.4, .8), .045);
         if (name === 'death') goreKill(x, Math.max(.7, y), z, performance.now() - lastDir.t < 400 ? lastDir.a : Math.random() * 6.28, !!large, null, !!d.boss);
@@ -1051,7 +1148,7 @@
         g.mat.opacity = g.opacity * Math.max(0, 1 - k) * Math.max(0, 1 - k); if (g.rmat) g.rmat.opacity = g.mat.opacity; if (k >= 1) { g.active = false; g.group.visible = false; }
       }
       if (tells) tells.sync(dt);
-      scarsStep(dt); cracksStep(dt); whirlStep(dt); roarSpiralStep(dt); streaksStep(dt); goreStep(dt);
+      signatureStep(dt); scarsStep(dt); cracksStep(dt); whirlStep(dt); roarSpiralStep(dt); streaksStep(dt); goreStep(dt);
     }
     function clear() {
       for (const l of labels) releaseLabel(l); labels.length = 0;
@@ -1062,6 +1159,7 @@
       for (const tr of trails.values()) { while (tr.samples.length) tr.free.push(tr.samples.pop()); tr.active = false; tr.mesh.visible = false; tr.mesh.geometry.setDrawRange(0, 0); }
       for (const g of ghosts) { g.active = false; g.group.visible = false; }
       for (const s of scars) releaseScar(s); scars.length = 0;
+      for (const o of skillCrescents) o.m.visible = false; ascent.visible = false; levelGround.visible = false;
       if (tells) tells.clear(); chainClear();
       goreClear(); gearBlood = 0; gearApply();
     }
@@ -1107,9 +1205,10 @@
       add(new T.Mesh(new T.BufferGeometry(), trailMaterial.clone()));
       add(new T.InstancedMesh(chLinks.geometry, chLinks.material, 1)); add(new T.Mesh(chHeadGeo, chLinks.material)); add(new T.Mesh(chDisc.geometry, chDiscMat)); add(new T.Mesh(chFloor.geometry, chFloorMat)); add(new T.Mesh(skGeo, skMesh.material)); add(new T.Mesh(chRings[0].m.geometry, chRings[0].mat)); add(new T.Mesh(chCracks[0].m.geometry, ckMat));
       add(new T.Sprite(new T.SpriteMaterial({ map: softMap, transparent: true, depthWrite: false, depthTest: false, blending: T.AdditiveBlending, fog: false })));
+      for (const o of skillCrescents) add(new T.Mesh(plane, o.mat)); add(new T.Mesh(ascentGeo, ascentMat)); add(new T.Mesh(plane, levelGroundMat));
       add(new T.InstancedMesh(gdGeo, gdMat, 1)); add(new T.Mesh(bsGeo, bsMat)); add(new T.InstancedMesh(chGeoG, gcMat, 1));
     }
-    const api = { burst, update, clear, tells, warm, gore, debug: () => ({ pri: gdPri.length, walls: gdPri.concat(gdMic).filter(d => d.rx === 0).length, prints: gdMic.filter(d => d.cell === 3).length, p0: gdMic.filter(d => d.cell === 3).map(d => [+d.x.toFixed(2), +d.z.toFixed(2), +d.a0.toFixed(2)]), mic: gdMic.length, count: gdMesh.count, streaks: bsLive, gibs: gibs.length }), dispose() { if (B.Effects.current === api) B.Effects.current = null; clear(); bsGeo.dispose(); bsMat.dispose(); gdGeo.dispose(); gdMat.dispose(); goreAtlas.dispose(); chGeoG.dispose(); gcMat.dispose(); gcMesh.dispose(); gdMesh.dispose(); for (const s of scarFree) { s.dark.dispose(); s.hot.dispose(); } scarFree.length = 0; if (tells) tells.dispose(); disposeGhosts(); disposePools(); root.removeFromParent(); geometry.dispose(); material.dispose(); trailMaterial.dispose(); chLinks.geometry.dispose(); chLinks.material.dispose(); chLinks.dispose(); for (const s of chGlow) s.material.dispose(); chHeadGeo.dispose(); chDisc.geometry.dispose(); chDiscMat.dispose(); chFloor.geometry.dispose(); chFloorMat.dispose(); skGeo.dispose(); skMesh.material.dispose(); for (const c of chCracks) { c.m.geometry.dispose(); c.m.material.dispose(); } ckMat.dispose(); for (const r of chRings) { r.m.geometry.dispose(); r.mat.dispose(); } softMap.dispose(); bloodMap.dispose(); sprayMap.dispose(); flashMap.dispose(); plane.dispose(); } };
+    const api = { burst, update, clear, tells, warm, gore, debug: () => ({ pri: gdPri.length, walls: gdPri.concat(gdMic).filter(d => d.rx === 0).length, prints: gdMic.filter(d => d.cell === 3).length, p0: gdMic.filter(d => d.cell === 3).map(d => [+d.x.toFixed(2), +d.z.toFixed(2), +d.a0.toFixed(2)]), mic: gdMic.length, count: gdMesh.count, streaks: bsLive, gibs: gibs.length }), dispose() { if (B.Effects.current === api) B.Effects.current = null; clear(); for (const o of skillCrescents) o.mat.dispose(); ascentMat.dispose(); levelGroundMat.dispose(); ascentGeo.dispose(); bsGeo.dispose(); bsMat.dispose(); gdGeo.dispose(); gdMat.dispose(); goreAtlas.dispose(); chGeoG.dispose(); gcMat.dispose(); gcMesh.dispose(); gdMesh.dispose(); for (const s of scarFree) { s.dark.dispose(); s.hot.dispose(); } scarFree.length = 0; if (tells) tells.dispose(); disposeGhosts(); disposePools(); root.removeFromParent(); geometry.dispose(); material.dispose(); trailMaterial.dispose(); chLinks.geometry.dispose(); chLinks.material.dispose(); chLinks.dispose(); for (const s of chGlow) s.material.dispose(); chHeadGeo.dispose(); chDisc.geometry.dispose(); chDiscMat.dispose(); chFloor.geometry.dispose(); chFloorMat.dispose(); skGeo.dispose(); skMesh.material.dispose(); for (const c of chCracks) { c.m.geometry.dispose(); c.m.material.dispose(); } ckMat.dispose(); for (const r of chRings) { r.m.geometry.dispose(); r.mat.dispose(); } softMap.dispose(); bloodMap.dispose(); sprayMap.dispose(); flashMap.dispose(); plane.dispose(); } };
     B.Effects.current = api; return api;
   },
   // Same call for code that does not hold the instance (dismemberment): B.Effects.gore('stump', x, y, z, dirX, dirZ, strength).

@@ -188,7 +188,7 @@ Yapılan değişiklikler (hepsi `tools/gen_narration.py` içinde, yeniden üreti
 
 ## Anlatıcı ve tarikatçı ilahileri — sentez konuşma
 
-Anlatıcı, Bahtiyar'ın kısa yemini, Zincir Celladı'nın meydan okuması ve Kül Rahibi ilahileri (`chant1–3`) Microsoft Edge metin-okuma hizmetinin `tr-TR-AhmetNeural` sesiyle, açık kaynaklı `edge-tts` istemcisi aracılığıyla üretildi. Yeni 14 konuşma kaydı bütün cümle akışını korur; anlatıcı, Bahtiyar ve cellat aynı sesin hafif tempo/ton varyantlarını kullanır. Formant düşürme veya yapay fısıltı katmanı yoktur. FFmpeg ile sessizlik kırpma, hafif EQ, de-esser, ölçülü sıkıştırma, 28/53 ms düşük seviyeli oda yansıması ve −16 LUFS eşitleme uygulandı; 32 kHz/64 kbps mono MP3 olarak `BABA.Narration` içinde gömülüdür. Önceki ilahilerde üç sesli koro işlemesi korunur. Çıktılar açık lisanslı sesler olarak sunulmaz; kullanımları Microsoft'un hizmet koşullarına tabidir. Metinler oyuna özgüdür ve `tools/gen_narration.py` içindeki `LINES` / `CHANTS` tablolarındadır.
+Anlatıcı, Bahtiyar'ın kısa yemini, Zincir Celladı'nın meydan okuması ve Kül Rahibi ilahileri (`chant1–3`) Microsoft Edge metin-okuma hizmetinin anadili Türkçe erkek `tr-TR-AhmetNeural` sesiyle, açık kaynaklı `edge-tts` istemcisi aracılığıyla üretildi. 1 Ekim 2026'da yenilenen 26 konuşmaya Sessiz Taht ve Kızıl Ocak için aynı doğal stilde sekiz kayıt eklendi: toplam 34 konuşma her düşünceyi tek parçada seslendirir. Giriş ve bitişler Bahtiyar'ın güçsüz başlangıcından kıyıya, gömülü krallığa ve zincirlerin dövüldüğü ocağa uzanan yolculuğa uygundur. Anlatıcı D okumasında −8% hız ve yalnız −3 Hz perde kullanır; Bahtiyar'ın H ve celladın E okumaları aynı sesin küçük tempo farklarıdır, farklı gerçek oyuncularmış gibi sunulmaz. FFmpeg ile yalnız dış sessizlik kırpma, hafif göğüs EQ'su, de-esser, düşük oranlı sıkıştırma ve −16 LUFS eşitleme uygulandı. Formant düşürme, yapay fısıltı, son heceyi ayrıca yavaşlatma veya konuşmaya yankı ekleme yoktur; kayıtlar 32 kHz/96 kbps mono MP3 olarak `BABA.Narration` içinde gömülüdür. Son sözcük zamanları ve en az 100 ms son sessizlik payı üretimde denetlenir. Önceki ilahilerde üç sesli koro işlemesi korunur; efekt bankası bu ses yenilemesinde değiştirilmemiştir. Çıktılar açık lisanslı sesler olarak sunulmaz; kullanımları Microsoft'un hizmet koşullarına tabidir. Metinler oyuna özgüdür ve `tools/gen_narration.py` içindeki `LINES` / `CHANTS` tablolarındadır.
 
 ## Arayüz — ikinci geçiş (29 Eylül 2026): yazı tipleri ve çizimler
 
@@ -242,7 +242,7 @@ Bu güncellemede **yeni bir üçüncü taraf dosya indirilmedi** (doku, model, H
 Yeni dosyalar ve kaynakları:
 
 - `src/lighting.js` — oda başına ışık düzeni (ana ışık, dolgu, kenar ışığı), yere yakın hareketli sis, ışıkların havada
-  saçılması, karakterlere özel kenar/dolgu ışığı, karakter altı temas gölgesi, Adak Ayini / Sessiz Şapel / Zincir Mahkemesi
+  saçılması, karakterlere özel kenar/dolgu ışığı, Adak Ayini / Sessiz Şapel / Zincir Mahkemesi
   ışık senaryoları. Bu oyun için yazıldı. Sis parçaları three.js'in `fog_*` shader parçalarının yerine geçer; o parçaların
   yapısı three.js kaynak kodundan türetildi (**MIT**, three.js authors, tam metin `vendor/THREE-LICENSE.txt`).
 - `src/post.js` — HDR sahne hedefi, ortam örtüşmesi (SAO), bloom, ısı dalgası, ton eğrisi, oda renk ayarı, vinyet,
@@ -251,9 +251,41 @@ Yeni dosyalar ve kaynakları:
   Post Processing in Call of Duty: Advanced Warfare"). FXAA ve ilgili ara görüntü geçişi önceki sürümlerde kaldırıldı.
   ACES ton eğrisi yaklaşımı (Stephen Hill), three.js `ACESFilmicToneMapping` ile birebir aynı sayılarla
   (**MIT**, three.js authors).
-- `src/world.js` — pencere, ızgara, çatlak ve tavan gözü (oculus) ışık desenleri, temas gölgesi diski ve damla halkaları
+- `src/world.js` — pencere, ızgara, çatlak ve tavan gözü (oculus) ışık desenleri, damla halkaları
   harici görsel kullanmadan açılışta tuvalde / shader'da çizilir; bu oyun için yazıldı.
 
 Bahtiyar'ın yeni arayüz portresi (`assets/ui/portrait-v47.webp`), oyunun gerçek modelinden alınan önceki `portrait.webp` referansıyla yerleşik OpenAI ImageGen kullanılarak bu oyun için üretildi. Yüz, poz ve karakter tasarımı korunarak resim kalitesi iyileştirildi. Bu çizim yeni bir 3D model veya oyunun ekran görüntüsü değildir. Üretim metni `tools/portrait-prompt.txt` içinde; seçilen görsel 512 × 512 WebP biçiminde saklanır. Önceki model portresi de projede korunur.
 
 Oyun sırasında hiçbir harici sunucuya bağlanılmaz; dosyadan (file://) açılış desteklenir.
+
+## Bölüm II · Kara Kıyı
+
+Kıyı yerleşimi, kökler, mezarlar, gemi enkazları, düşmanların deniz/kök eklentileri, silahları ve saldırı görselleri projede kodla oluşturulmuştur (`src/coast-*.js`). Yeni düşmanlar yukarıda lisansları belirtilen Quaternius ve thecubber bedenleri ve hareketleri üzerinde özgün donanım ve oran değişiklikleri kullanır. Hedef portreleri bu oyun modellerinden oluşturulmuştur. Taş ve diğer mevcut kaplamalar Poly Haven kaynaklarından gelir. Kara Kıyı’nın temel yüzeyleri aşağıdaki taranmış PBR kaplamaları kullanır; yerel aşınma/ıslaklık/tuz katmanları `src/coast-world.js` içinde eklenir. Çürümüş deri haritası `src/coast-models.js` içinde özgün olarak üretilir. Yeni Türkçe anlatımlar mevcut `tr-TR-AhmetNeural` sesiyle hazırlanmıştır.
+
+### Sürüm 84 — yüksek ayrıntılı yerel kaplamalar
+
+`assets/coast/surfaces.js` tam renkli albedo, OpenGL normal ve paketlenmiş ARM haritalarını içerir. Ana çevre albedoları 2048×2048, normal haritaları 1024×1024; donanım/kumaş/deri albedoları 1024×1024, kabartı haritaları 512×512; bütün ARM haritaları 512×512. Albedolar WebP kalite 86, normal haritaları kalite 98, ARM kayıpsız WebP olarak saklanır. Üstteki eski haritalar ilk sürümlerin kaynak kaydıdır; sürüm 84 her iki bölümde taş, ahşap, metal, deri ve kumaş için aşağıdaki paketlenmiş sürümleri kullanır. Üretim tarifi ve kaynak dosyaların doğrulama özetleri `tools/coast-material-sources.json` içinde tutulur.
+
+Bütün Poly Haven kaynakları **CC0**: https://polyhaven.com/license
+
+| Kullanım | Kaynak |
+| --- | --- |
+| Kıyı kumu / küçük taşlar | https://polyhaven.com/a/coast_sand_01 |
+| Orman toprağı / mezar çamuru | https://polyhaven.com/a/brown_mud_02 |
+| Doğal kıyı kayaları | https://polyhaven.com/a/rock_boulder_cracked |
+| Harabe duvarları / aşınmış harç | https://polyhaven.com/a/castle_brick_broken_06 |
+| Ahşap / iskele / donanım | https://polyhaven.com/a/dark_wooden_planks |
+| Ağaç kabuğu / kökler | https://polyhaven.com/a/bark_brown_02 |
+| Döşeme / kesilmiş taş / ilk bölüm duvarları | https://polyhaven.com/a/worn_rock_natural_01 |
+| İlk bölüm yer taşları | https://polyhaven.com/a/dark_rock_02 |
+| Paslı metal / donanım yüzey ayrıntısı | https://polyhaven.com/a/rust_coarse_01 |
+| Deri / kemer / silah sapı | https://polyhaven.com/a/brown_leather |
+| Kumaş / bez / yelken | https://polyhaven.com/a/rough_linen |
+
+Deniz yüzeyi normal haritası, Three.js r170 `examples/textures/waternormals.jpg` (1024×1024) dosyasından alınmıştır: https://github.com/mrdoob/three.js/blob/r170/examples/textures/waternormals.jpg — Three.js deposunun **MIT** lisansı (`vendor/THREE-LICENSE.txt`). JPEG özgün biçimiyle yerel pakete gömülür. İki farklı yön/hız/ölçekte örnekleme, geometri dalgaları, kamera açısına bağlı gökyüzü yansıması ve ay parıltısı bu oyun için yazılan su malzemesinde birleşir; ek sahne yansıması render geçişi açılmaz.
+
+## Sessiz Taht ve Kızıl Ocak çevre geçişi (1 Ekim 2026)
+
+Yeni zemin kaynağı: [Monastery Stone Floor](https://polyhaven.com/a/monastery_stone_floor), **Amal Kumar / Poly Haven, CC0 1.0**. Kaynak kontrolü `tools/ruins-material-sources.json`; tekrar üretim `tools/build_ruins_materials.py`. 2048 px renk haritası kalite 94 WebP, 1024 px OpenGL normal haritası kalite 98 WebP, 512 px ARM kayıpsız WebP. Yerel `assets/ruins/surfaces.js` içindedir; file:// ve internetsiz çalışır. Kaynak MD5 değerleri: Diffuse `35420aa52b8257920b1d7566fb80ab4d`, normal `6c71df7edca7120a011c03d5d3866355`, ARM `fbf01c48b7af8378d9cf66cd37a2bfc2`.
+
+Duvar, doğal kaya ve demir yüzeyler mevcut CC0 Poly Haven taramalarını kullanır. Yüzey izdüşümü artık renk, normal, pürüzlülük ve ortam örtüşmesi haritalarında aynı fiziksel ölçeği ve yönü izler. Yivli sütunlar, taş kemer parçaları, mezar bezemeleri, düzensiz mağara kayaları, ocak kazanları ve fırın çerçeveleri oyuna özgü geometridir. Eklenen çevre ayrıntıları oda başına örneklenir; yeni dinamik ışık eklenmedi.

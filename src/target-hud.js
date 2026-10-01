@@ -5,7 +5,9 @@
   const portraits = Object.freeze({
     prisoner: 'assets/ui/target-prisoner.webp', guard: 'assets/ui/target-guard.webp',
     cultist: 'assets/ui/target-cultist.webp', stalker: 'assets/ui/target-stalker.webp',
-    carrier: 'assets/ui/target-carrier.webp', boss: 'assets/ui/target-boss.webp'
+    carrier: 'assets/ui/target-carrier.webp', boss: 'assets/ui/target-boss.webp',
+    drowned: 'assets/ui/target-drowned.webp', rootborn: 'assets/ui/target-rootborn.webp', crawler: 'assets/ui/target-crawler.webp',
+    urchin: 'assets/ui/target-urchin.webp', lantern: 'assets/ui/target-lantern.webp', bell: 'assets/ui/target-bell.webp'
   });
   // Keep the small portrait images ready before the loading cover is removed.
   // Failed artwork does not prevent the player or health bar from appearing.
@@ -94,10 +96,10 @@
       if (hp !== previousHp) { health.setAttribute('aria-valuenow', hp); previousHp = hp; }
       const scale = 'scaleX(' + Math.max(0, Math.min(1, enemy.hp / enemy.maxHp)) + ')';
       if (scale !== previousScale) { fill.style.transform = scale; previousScale = scale; }
-      const boss = !!enemy.boss, phase2 = boss && enemy.phase === 2;
+      const boss = !!enemy.boss, phase2 = boss && enemy.phase >= 2;
       if (boss !== wasBoss) { root.classList.toggle('boss-target', boss); wasBoss = boss; }
       if (phase2 !== wasPhase2) { root.classList.toggle('phase2', phase2); wasPhase2 = phase2; }
-      const phaseText = boss ? phase2 ? 'ZİNCİRLER KIRILDI' : 'KURBAN SALONU' : '';
+      const phaseText = enemy.type === 'bell' ? ['', 'BOĞULMUŞ ÇANLIK', 'DENİZİN YEMİNİ', 'MEZAR KÖKLERİ', 'SON ÇAN'][enemy.phase] : boss ? phase2 ? 'ZİNCİRLER KIRILDI' : 'KURBAN SALONU' : '';
       if (phaseText !== previousPhase) { phase.textContent = phaseText; previousPhase = phaseText; }
     }
     return { update, clear };

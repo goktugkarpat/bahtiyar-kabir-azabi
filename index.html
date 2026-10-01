@@ -13,7 +13,9 @@
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="stylesheet" href="src/ui.css?v=71">
+<link rel="stylesheet" href="src/ui.css?v=110">
+<link rel="stylesheet" href="src/character-ui.css?v=110">
+<link rel="stylesheet" href="src/ui-polish.css?v=110">
 </head>
 <body>
 <svg class="icon-library" aria-hidden="true"><defs>
@@ -38,7 +40,6 @@
   <div class="fog-layer" aria-hidden="true"></div>
   <div class="load-art">
     <p class="wordmark">KABİR AZABI</p>
-    <p class="chapter-label"><span>Bölüm I</span><strong>Kurban Tapınağı</strong></p>
   </div>
   <div class="load-bar"><i id="load-fill"></i></div>
   <small id="load-text">Tapınağın kapıları açılıyor…</small>
@@ -47,7 +48,7 @@
 </div>
 <script>
 /* Loading bar: each big script below reports when it has been parsed. */
-window.KG_LOAD=function(p,text){var f=document.getElementById('load-fill'),t=document.getElementById('load-text');if(f)f.style.transform='scaleX('+Math.max(.03,Math.min(1,p))+')';if(t&&text)t.textContent=text;};
+var KG_LOAD_LAST=0;window.KG_LOAD=function(p,text){p=Math.max(KG_LOAD_LAST,p);KG_LOAD_LAST=p;var f=document.getElementById('load-fill'),t=document.getElementById('load-text');if(f)f.style.transform='scaleX('+Math.max(.03,Math.min(1,p))+')';if(t&&text)t.textContent=text;};
 KG_LOAD(.04);
 </script>
 
@@ -56,12 +57,10 @@ KG_LOAD(.04);
   <div class="fog-layer" aria-hidden="true"></div><div class="fog-layer far" aria-hidden="true"></div>
   <div class="embers" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
   <div class="title-copy">
-    <p class="eyebrow">Kül, demir ve kan</p>
     <h1 class="logo-wrap wordmark">KABİR AZABI</h1>
-    <p class="chapter-label"><span>Bölüm I</span><strong>Kurban Tapınağı</strong></p>
-    <p class="intro">“Aşağıda hiçbir dua duyulmaz.”</p>
+    <i class="title-divider" aria-hidden="true"></i>
     <nav class="title-actions" aria-label="Ana menü">
-      <button id="play" class="btn primary big"><svg class="icon" aria-hidden="true"><use href="#i-play"/></svg><span>Tapınağa gir</span></button>
+      <button id="play" class="btn primary big"><svg class="icon" aria-hidden="true"><use href="#i-play"/></svg><span>Yolculuğa başla</span></button>
       <button id="new" class="btn hidden"><span>Yeni yolculuk</span></button>
       <button id="title-settings" class="btn"><svg class="icon" aria-hidden="true"><use href="#i-gear"/></svg><span>Ayarlar</span></button>
       <button id="title-controls" class="btn"><svg class="icon" aria-hidden="true"><use href="#i-keys"/></svg><span>Kontroller</span></button>
@@ -73,8 +72,8 @@ KG_LOAD(.04);
 
 <div id="hud" class="hidden">
   <section class="hero-card">
-    <div class="portrait"><canvas id="hero-portrait" width="160" height="160"></canvas><i class="portrait-frame" aria-hidden="true"></i><span class="portrait-seal" aria-hidden="true">I</span></div>
-    <div class="hero-info"><strong>Bahtiyar</strong><span>Bölüm I · Kurban Tapınağı</span></div>
+    <div class="portrait"><canvas id="hero-portrait" width="160" height="160"></canvas><i class="portrait-frame" aria-hidden="true"></i><span class="portrait-seal" aria-hidden="true">1</span></div>
+    <div class="hero-info"><strong>Bahtiyar</strong><span id="hero-subtitle">Seviye 1</span></div>
   </section>
   <div class="corner-tools">
     <div class="minimap"><canvas id="minimap" width="384" height="384"></canvas><i class="minimap-frame" aria-hidden="true"></i></div>
@@ -88,6 +87,7 @@ KG_LOAD(.04);
       <div class="target-health" role="progressbar" aria-labelledby="target-name" aria-valuemin="0"><i class="target-fill"></i><b class="target-count"></b><i class="target-notch" aria-hidden="true"></i></div>
     </div>
   </section>
+  <div id="level-up" role="status" aria-live="polite"><small>YENİ GÜÇ KAZANDIN</small><strong></strong><span></span></div>
   <div id="announcement" aria-live="polite"><small></small><strong></strong><i class="divider" aria-hidden="true"></i></div>
   <div id="narration" class="hidden" aria-live="polite"><div class="narrator-sigil"><svg class="icon" aria-hidden="true"><use href="#i-eye"/></svg></div><div class="narration-text"><span>Anlatıcı</span><p></p></div></div>
   <div id="toasts" aria-live="polite"></div><div id="warnings"></div>
@@ -95,9 +95,9 @@ KG_LOAD(.04);
   <section class="vitals" id="actionbar">
     <div id="timed-effects" class="timed-effects" role="list" aria-label="Etkin süreli etkiler"></div>
     <i class="bar-plate" aria-hidden="true"></i>
-    <div class="chapter-progress" aria-label="Bölüm ilerlemesi"><i id="chapter-progress"></i></div>
-    <div class="health-orb orb" role="img" aria-label="Can"><canvas id="orb-health"></canvas><i class="orb-frame" aria-hidden="true"></i><div class="orb-reading"><strong id="health-number">125</strong><small id="health-max">/ 125</small></div></div>
-    <div class="stamina-orb orb" role="img" aria-label="Dayanıklılık"><canvas id="orb-stamina"></canvas><i class="orb-frame" aria-hidden="true"></i><div class="orb-reading"><strong id="stamina-number">110</strong><small id="stamina-max">/ 110</small></div></div>
+    <div class="chapter-progress" role="progressbar" aria-label="Tecrübe ilerlemesi" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="chapter-progress"></i></div>
+    <div class="health-orb orb" role="img" aria-label="Can"><canvas id="orb-health"></canvas><i class="orb-frame" aria-hidden="true"></i><div class="orb-reading"><strong id="health-number">100</strong><small id="health-max">/ 100</small></div></div>
+    <div class="stamina-orb orb" role="img" aria-label="Dayanıklılık"><canvas id="orb-stamina"></canvas><i class="orb-frame" aria-hidden="true"></i><div class="orb-reading"><strong id="stamina-number">100</strong><small id="stamina-max">/ 100</small></div></div>
     <button class="flask-button action" data-action="heal" aria-label="Can iksiri"><i class="skill flask" aria-hidden="true"></i><span id="flask-count">4</span><kbd>Q</kbd></button>
     <div class="combat-pad">
       <button class="action action-special" data-action="special" aria-label="Zincir Girdabı"><i class="skill special" aria-hidden="true"></i><kbd>1</kbd></button>
@@ -107,50 +107,65 @@ KG_LOAD(.04);
       <button class="action action-heavy" data-action="heavy" aria-label="Ağır saldırı"><i class="skill heavy" aria-hidden="true"></i><kbd class="mouse"><svg aria-hidden="true"><use href="#i-mouse-r"/></svg><em>SAĞ TIK</em></kbd></button>
     </div>
   </section>
+
   <div id="tutorial" class="hidden"><i class="skill dodge" aria-hidden="true"></i><p><strong>Her darbenin bir ışığı var.</strong><span><i class="chip amber"></i>Altın kenar: sıradan darbe. <i class="chip red"></i>Kızıl kenar: ağır darbe. Işık dolmadan yuvarlan; yuvarlanmanın başında korunursun.</span></p><button class="close small" aria-label="İpucunu kapat">×</button></div>
   <div id="touch-controls" class="hidden"><div id="touch-zone" aria-hidden="true"></div><div id="joystick" aria-label="Hareket çubuğu"><div></div></div></div>
   <div id="portrait-note">Daha geniş görüş için cihazını yatay çevir.</div>
 </div>
 
-<div id="pause" class="screen modal hidden"><div class="panel compact">
+<div id="pause" class="screen modal hidden" role="dialog" aria-modal="true" aria-label="Mola"><div class="panel compact">
   <img class="panel-crest" src="assets/ui/crest.webp" alt="" aria-hidden="true">
   <span class="eyebrow">Kurban Tapınağı</span><h2>Mola</h2><i class="divider" aria-hidden="true"></i>
   <div class="pause-stats"><div><svg class="icon" aria-hidden="true"><use href="#i-seal"/></svg><b id="pause-room">Kül Eşiği</b><small>Bölge</small></div><div><svg class="icon" aria-hidden="true"><use href="#i-hourglass"/></svg><b id="pause-time">0:00</b><small>Süre</small></div><div><svg class="icon" aria-hidden="true"><use href="#i-cross"/></svg><b id="pause-kills">0 / 31</b><small>Alt edilen</small></div></div>
+  <small id="pause-difficulty">Zorluk: Normal</small>
   <nav class="menu-stack">
     <button id="resume" class="btn primary"><svg class="icon" aria-hidden="true"><use href="#i-play"/></svg><span>Devam et</span></button>
     <button id="pause-settings" class="btn"><svg class="icon" aria-hidden="true"><use href="#i-gear"/></svg><span>Ayarlar</span></button>
+    <div class="btn-row"><button id="pause-character" class="btn"><svg class="icon" aria-hidden="true"><use href="#i-skull"/></svg><span>Karakter</span></button><button id="pause-talents" class="btn"><svg class="icon" aria-hidden="true"><use href="#i-chain"/></svg><span>Yetenekler</span></button></div>
     <button id="pause-controls" class="btn"><svg class="icon" aria-hidden="true"><use href="#i-keys"/></svg><span>Kontroller</span></button>
     <div class="btn-row"><button id="restart" class="btn danger"><span>Baştan başla</span></button><button id="return-title" class="btn"><span>Ana menü</span></button></div>
   </nav>
-  <small class="save-note">Kontrol noktaları: bölüm girişi ve cellattan önceki yemin taşı.</small>
+  <small class="save-note">Karakterin ve çantan korunur. Ölümde son yemin noktasına dönersin.</small>
 </div></div>
 
-<div id="settings" class="screen modal hidden"><div class="panel settings-panel">
-  <header class="panel-head"><div><span class="eyebrow">Kabir Azabı</span><h2>Ayarlar</h2></div><button id="settings-close" class="close" aria-label="Ayarları kapat">×</button></header>
-  <div class="settings-cols">
+<div id="settings" class="screen modal hidden" role="dialog" aria-modal="true" aria-labelledby="settings-title"><div class="panel settings-panel">
+  <header class="panel-head"><div><span class="eyebrow">Kabir Azabı</span><h2 id="settings-title">Ayarlar</h2></div><button id="settings-close" class="close" aria-label="Ayarları kapat">×</button></header>
+  <div class="settings-workspace">
+    <nav class="settings-nav" aria-label="Ayar kategorileri">
+      <button data-settings-page="game" aria-pressed="false"><svg class="icon" aria-hidden="true"><use href="#i-skull"/></svg><span>Oynanış<small>Zorluk ve yolculuk</small></span></button>
+      <button data-settings-page="video" aria-pressed="true" class="active"><svg class="icon" aria-hidden="true"><use href="#i-eye"/></svg><span>Görüntü<small>Kalite ve akıcılık</small></span></button>
+      <button data-settings-page="audio" aria-pressed="false"><svg class="icon" aria-hidden="true"><use href="#i-chain"/></svg><span>Ses<small>Müzik ve anlatıcı</small></span></button>
+      <button data-settings-page="input" aria-pressed="false"><svg class="icon" aria-hidden="true"><use href="#i-keys"/></svg><span>Kontroller<small>Fare, klavye ve Xbox</small></span></button>
+    </nav>
+    <div class="settings-pages">
+      <section id="settings-game" class="hidden" aria-label="Oynanış ayarları"></section>
+      <div class="settings-cols">
     <section id="settings-video" aria-labelledby="set-video"><h3 id="set-video"><svg class="icon" aria-hidden="true"><use href="#i-eye"/></svg>Görüntü</h3></section>
     <section id="settings-audio" aria-labelledby="set-audio"><h3 id="set-audio"><svg class="icon" aria-hidden="true"><use href="#i-chain"/></svg>Ses</h3></section>
+      </div>
+      <section id="settings-input" class="hidden" aria-label="Kontrol ayarları"><h3>Kontroller</h3><p class="input-intro">Her savaşın bir ritmi var. Tuşları kendi eline göre düzenle.</p><div class="input-actions"><button id="settings-keys" class="btn small kb-only"><svg class="icon" aria-hidden="true"><use href="#i-keys"/></svg><span>Fare ve klavye tuşları</span></button><button id="settings-controls" class="btn small"><svg class="icon" aria-hidden="true"><use href="#i-eye"/></svg><span>Nasıl oynanır?</span></button></div></section>
+    </div>
   </div>
-  <footer><button id="settings-keys" class="btn small kb-only"><svg class="icon" aria-hidden="true"><use href="#i-keys"/></svg><span>Tuşlar</span></button><button id="settings-controls" class="btn small"><svg class="icon" aria-hidden="true"><use href="#i-keys"/></svg><span>Kontroller</span></button><span id="settings-note">Ayarlar hemen uygulanır.</span><button id="settings-reset" class="text-button">Varsayılanlar</button><button id="settings-done" class="btn primary small"><span>Tamam</span></button></footer>
+  <footer><span id="settings-note">Ayarlar bu cihazda saklanır.</span><button id="settings-reset" class="text-button">Varsayılanlar</button><button id="settings-done" class="btn primary small"><span>Tamam</span></button></footer>
 </div></div>
 
 <div id="controls" class="screen modal hidden"><div class="panel controls-panel">
   <header class="panel-head"><div><span class="eyebrow">Hayatta kal</span><h2>Kontroller</h2></div><button id="controls-close" class="close" aria-label="Kontrolleri kapat">×</button></header>
   <div class="control-grid">
     <div><span class="ctl-icon glyph"><svg class="icon" aria-hidden="true"><use href="#i-move"/></svg></span><p><b>Hareket</b><span>Hafif saldırıya atanmış fare düğmesiyle boş yere tıkla: yürür; basılı tutarsan fareyi izler</span></p><span class="caps"><kbd>FARE</kbd></span></div>
-    <div><span class="ctl-icon"><i class="skill light"></i></span><p><b>Hafif saldırı</b><span>Fareyle düşmanı seç: yürür ve vurur, basılı tutunca sürer · klavye tuşu önündeki yakın düşmana vurur · 4 dayanıklılık</span></p><span class="caps" data-caps="light"></span></div>
-    <div><span class="ctl-icon"><i class="skill heavy"></i></span><p><b>Ağır saldırı</b><span>Gardı kırar, hafifleri sendeletir · fareyle düşmanı seç veya klavye tuşuyla önündekine vur · 8 dayanıklılık</span></p><span class="caps" data-caps="heavy"></span></div>
+    <div><span class="ctl-icon"><i class="skill light"></i></span><p><b>Hafif saldırı</b><span>Fareyle düşmanı seç: yürür ve vurur, basılı tutunca sürer · klavye tuşu önündeki yakın düşmana vurur · Dayanıklılık harcamaz</span></p><span class="caps" data-caps="light"></span></div>
+    <div><span class="ctl-icon"><i class="skill heavy"></i></span><p><b>Yetenek I · Sağ tuş</b><span>Yetenek ağacında öğrendiğin güçlerden birini bu yuvaya ata. Mezar Yaran, eski ağır vuruşun güçlendirilmiş hâlidir.</span></p><span class="caps" data-caps="heavy"></span></div>
     <div><span class="ctl-icon"><i class="skill light"></i></span><p><b>Yerinde vur</b><span>Bu tuş basılıyken fareden saldır: yürümeden fareye doğru vurur; boşluğa da saldırabilirsin</span></p><span class="caps" data-caps="stand"></span></div>
-    <div><span class="ctl-icon"><i class="skill dodge"></i></span><p><b>Kaçınma</b><span>Yürüdüğün yöne (durunca fareye doğru) yuvarlanır · başında korunursun, kalkarken koruma biter · 20 dayanıklılık</span></p><span class="caps" data-caps="dodge"></span></div>
+    <div><span class="ctl-icon"><i class="skill dodge"></i></span><p><b>Kaçınma</b><span>Yürüdüğün yöne (durunca fareye doğru) yuvarlanır · başında korunursun, kalkarken koruma biter · 18 dayanıklılık</span></p><span class="caps" data-caps="dodge"></span></div>
     <div><span class="ctl-icon"><i class="skill flask"></i></span><p><b>Can iksiri</b><span>Anında iyileştirir · yemin taşında dolar</span></p><span class="caps" data-caps="heal"></span></div>
-    <div><span class="ctl-icon"><i class="skill rage"></i></span><p><b>Kan Öfkesi</b><span>Dayanıklılık harcayıp bağırırsın: yakındakiler sendeler; 11 sn %48 sert vurur, %25 az hasar alır, vurduğun hasarın bir kısmı can olur · 45 dayanıklılık, 24 sn bekleme</span></p><span class="caps" data-caps="rage"></span></div>
-    <div><span class="ctl-icon"><i class="skill special"></i></span><p><b>Zincir Girdabı</b><span>Etrafında dönerek yakındaki herkese 4 kez vurur; hafifleri içine çeker, sonda savurur · dönerken yürüyebilirsin · 45 dayanıklılık, 8 sn bekleme</span></p><span class="caps" data-caps="special"></span></div>
+    <div><span class="ctl-icon"><i class="skill rage"></i></span><p><b>Yetenek III</b><span>Üçüncü seçili aktif güç. Kan Nidası düşmanları sarsar; kısa süre daha sert vurmanı ve can kazanmanı sağlar.</span></p><span class="caps" data-caps="rage"></span></div>
+    <div><span class="ctl-icon"><i class="skill special"></i></span><p><b>Yetenek II</b><span>İkinci seçili aktif güç. Aynı anda normal saldırı ve üç aktif yetenek kullanırsın. Karakter ekranı: I · yetenek ağacı: T.</span></p><span class="caps" data-caps="special"></span></div>
     <div><span class="ctl-icon glyph"><svg class="icon" aria-hidden="true"><use href="#i-seal"/></svg></span><p><b>Etkileşim · Mola</b><span>Yemin taşı · menü</span></p><span class="caps" data-caps="interact"></span><kbd>ESC</kbd></div>
   </div>
   <div class="warning-legend"><span><i class="chip amber"></i>Altın kenar: sıradan darbe</span><span><i class="chip red"></i>Kızıl kenar: ağır darbe, mutlaka kaç</span><span>Işık dolduğunda darbe iner · yuvarlanmanın başında korunursun</span></div>
   <p class="muted pad-note kb-only"><b>Tuşlar</b> Tuşları ve fare düğmelerini değiştirebilirsin. <button id="controls-keys" class="text-button">Tuş atamaları</button></p>
   <p class="muted pad-note"><b>Fare ve klavye</b> Hafif saldırıya atanmış fare düğmesiyle düşmanı seç: ona yürür ve vurur; boş yere tıkla: oraya yürürsün. Ağır saldırıya atanmış fare düğmesi gardı kıran darbeyi başlatır. Yerinde vur tuşunu basılı tutarak fareden saldırırsan yürümeden vurursun. Saldırıların klavye tuşları önündeki yakın düşmana vurur; klavyeyle yürünmez. Kaçınma, dururken fareye doğru yuvarlanır. Tuş atamalarını yukarıdaki kutulardan görebilirsin.</p>
-  <p class="muted pad-note"><b>Gamepad</b> sol çubuk hareket · X hafif · Y ağır (önündeki yakın düşmana; yoksa boşa vurmaz) · sağ çubuk + X yerinde vur · A kaçın · LB girdap · B iksir · RB öfke · Start mola</p>
+  <p class="muted pad-note"><b>Gamepad</b> sol çubuk hareket · A normal saldırı · B kaçınma · RT ilk yetenek · X ikinci yetenek · Y üçüncü yetenek · LB iksir · RB etkileşim · Start mola</p>
   <p class="muted touch-note"><b>Dokunmatik</b> bir düşmana dokun: ona yürür ve vurur · yere dokun: oraya yürürsün · sol başparmakla kaydırarak da yürüyebilirsin · sağdaki düğmeler en yakın düşmana vurur</p>
 </div></div>
 
@@ -160,7 +175,7 @@ KG_LOAD(.04);
     <div class="bind-col"><section id="bind-misc" aria-labelledby="bind-h-misc"><h3 id="bind-h-misc"><svg class="icon" aria-hidden="true"><use href="#i-seal"/></svg>Diğer</h3></section></div>
     <section id="bind-combat" aria-labelledby="bind-h-combat"><h3 id="bind-h-combat"><svg class="icon" aria-hidden="true"><use href="#i-keys"/></svg>Savaş</h3></section>
   </div>
-  <p class="muted pad-note bind-pad"><b>Gamepad</b> sol çubuk hareket · X hafif · Y ağır · sağ çubuk + X yerinde vur · A kaçın · LB girdap · B iksir · RB öfke · Start mola (değiştirilemez)</p>
+  <p class="muted pad-note bind-pad"><b>Gamepad</b> Tuşlarını Ayarlar → Kontroller → Xbox bölümünde değiştirebilirsin. Sol çubuk hareket, sağ çubuk nişan; A seçer, B geri döner.</p>
   <footer><button id="keybinds-reset" class="text-button">Hepsini varsayılana döndür</button><span id="keybinds-note">Bir kutuya tıkla, sonra yeni tuşa bas.</span><button id="keybinds-done" class="btn primary small"><span>Tamam</span></button></footer>
 </div>
 <div id="bind-capture" class="hidden" role="dialog" aria-live="assertive"><div class="bind-card"><span class="eyebrow" id="bind-capture-what"></span><strong>Bir tuşa bas…</strong><span id="bind-capture-hint">Esc iptal</span><div class="bind-card-actions"><button id="bind-capture-clear" class="text-button">Boşalt</button><button id="bind-capture-cancel" class="text-button">İptal</button></div></div></div>
@@ -188,9 +203,9 @@ KG_LOAD(.04);
     <span class="eyebrow">Bölüm I tamamlandı</span>
     <h2 id="victory-title-text" class="end-title">Geçit açıldı</h2>
     <i class="divider" aria-hidden="true"></i>
-    <p class="end-quote">Cellat sustu. Derinlerde hâlâ bir şey nefes alıyor.</p>
+    <p class="end-quote">Celladın mührü kırıldı. Yeraltı geçidinden tuzlu rüzgâr yükseliyor. Yukarıda, denizin yuttuğu Kara Kıyı seni bekliyor.</p>
     <div id="victory-stats"></div>
-    <div class="end-actions"><button id="again" class="btn primary big"><svg class="icon" aria-hidden="true"><use href="#i-play"/></svg><span>Yeniden oyna</span></button><button id="victory-title" class="text-button">Ana menü</button></div>
+    <div class="end-actions"><button id="again" class="btn primary big"><svg class="icon" aria-hidden="true"><use href="#i-play"/></svg><span>Yeniden oyna</span></button><button id="next-chapter" class="btn"><span>Geçitten çık · Kara Kıyı</span></button><button id="victory-character" class="btn"><span>Ganimet ve yetenekler</span></button><button id="victory-title" class="text-button">Ana menü</button></div>
   </div>
 </div>
 
@@ -202,11 +217,16 @@ KG_LOAD(.04);
 
 <div id="warming" class="hidden" role="status" aria-live="polite"><span>Grafik hazırlanıyor…</span><div class="load-bar"><i id="warm-fill"></i></div><small>Yeni ayar için gölgeler ve ışıklar derleniyor.</small></div>
 <div id="fps" class="hidden"><div id="fps-values"></div></div><div id="fatal" class="hidden"><h2>Tapınağın kapısı açılmadı.</h2><p></p><button class="btn primary" onclick="location.reload()"><span>Yeniden dene</span></button></div>
-<script src="vendor/three.js?v=71"></script><script src="vendor/gltf-loader.js?v=71"></script><script>window.BABA={};KG_LOAD(.1,'Taşlar yerine oturuyor…');</script>
-<script src="src/materials.js?v=71"></script><script>KG_LOAD(.3);</script>
-<script src="src/world.js?v=71"></script><script src="src/motion.js?v=71"></script><script src="src/models.js?v=71"></script><script>KG_LOAD(.36,'Zincirler çözülüyor…');</script>
-<script src="assets/characters/characters.js?v=71"></script><script>KG_LOAD(.82,'Ölüler uyanıyor…');</script>
-<script src="assets/characters/authored-clips.js?v=71"></script>
-<script src="src/authored-motion.js?v=71"></script><script src="src/authored-models.js?v=71"></script><script src="src/limbs.js?v=71"></script><script src="src/globes.js?v=71"></script><script src="src/combat.js?v=71"></script><script>KG_LOAD(.88);</script>
-<script src="src/narration.js?v=71"></script><script src="src/music.js?v=71"></script><script src="src/audio.js?v=71"></script><script src="src/telegraphs.js?v=71"></script><script src="src/effects.js?v=71"></script><script src="src/hud.js?v=71"></script><script src="src/buffs.js?v=71"></script><script src="src/target-hud.js?v=71"></script><script src="src/lighting.js?v=71"></script><script src="src/display.js?v=71"></script><script src="src/pacing.js?v=71"></script><script src="src/performance.js?v=71"></script><script src="src/smaa.js?v=71"></script><script src="src/post.js?v=71"></script><script src="src/app.js?v=71"></script><script>KG_LOAD(.9,'Tapınak nefes alıyor…');</script>
+<script src="vendor/three.js?v=110"></script><script src="vendor/gltf-loader.js?v=110"></script><script>window.BABA={};KG_LOAD(.06,'Taşlar yerine oturuyor…');</script>
+<script src="src/materials.js?v=110"></script><script>KG_LOAD(.09);</script>
+<script src="assets/coast/surfaces.js?v=110"></script><script src="assets/ruins/surfaces.js?v=110"></script><script src="src/coast-materials.js?v=110"></script><script src="src/chapter-expansion.js?v=110"></script><script src="src/world.js?v=110"></script><script src="src/coast-world.js?v=110"></script><script src="src/ruins-world.js?v=110"></script><script src="src/forge-world.js?v=110"></script><script src="src/motion.js?v=110"></script><script src="src/models.js?v=110"></script><script>KG_LOAD(.12,'Zincirler çözülüyor…');</script>
+<script src="assets/characters/characters.js?v=110"></script><script>KG_LOAD(.14,'Ölüler uyanıyor…');</script>
+<script src="assets/characters/authored-clips.js?v=110"></script>
+<script src="src/authored-motion.js?v=110"></script><script src="src/authored-models.js?v=110"></script><script src="src/coast-models.js?v=110"></script><script src="src/ruins-models.js?v=110"></script><script src="src/forge-models.js?v=110"></script><script src="src/limbs.js?v=110"></script><script src="src/globes.js?v=110"></script><script src="src/coast-combat.js?v=110"></script><script src="src/ruins-combat.js?v=110"></script><script src="src/forge-combat.js?v=110"></script><script src="src/progression.js?v=110"></script>
+<script src="src/ground-loot.js?v=110"></script><script src="src/combat.js?v=110"></script><script>KG_LOAD(.16);</script>
+<script src="src/narration.js?v=110"></script><script src="src/music.js?v=110"></script><script src="src/audio.js?v=110"></script><script src="src/telegraphs.js?v=110"></script><script src="src/effects.js?v=110"></script><script src="src/coast-effects.js?v=110"></script><script src="src/ruins-effects.js?v=110"></script><script src="src/forge-effects.js?v=110"></script><script src="src/hud.js?v=110"></script><script src="src/buffs.js?v=110"></script><script src="src/target-hud.js?v=110"></script><script src="src/lighting.js?v=110"></script><script src="src/display.js?v=110"></script><script src="src/pacing.js?v=110"></script><script src="src/performance.js?v=110"></script><script src="src/smaa.js?v=110"></script><script src="src/post.js?v=110"></script>
+<script src="src/character-preview.js?v=110"></script>
+<script src="src/character-ui.js?v=110"></script>
+<script src="src/controller.js?v=110"></script>
+<script src="src/app.js?v=110"></script><script>KG_LOAD(.18,'Karanlık yol hazırlanıyor…');</script>
 </body></html>

@@ -5,6 +5,34 @@
   const B = window.BABA, $ = id => document.getElementById(id);
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const Q = new URLSearchParams(location.search);
+  const CAMPAIGN_KEY = 'baba.kabir.campaign.v1';
+  let campaign = null;
+  try {
+    const saved=JSON.parse(localStorage.getItem(CAMPAIGN_KEY));
+    if(saved && saved.version===3 && [1,2,3,4].includes(saved.chapter) && saved.progression && [1,B.Progression.VERSION].includes(saved.progression.version) && Array.isArray(saved.progression.inventory) && (saved.index===1 || saved.index===0 && (saved.transition||saved.completed||saved.ongoing)) && (saved.chapter===1 || Array.isArray(saved.progression.completed) && saved.progression.completed.includes(saved.chapter-1))) {
+      campaign=saved;
+      // The old two-chapter ending now opens the road into the third chapter.
+      if(saved.chapter<4 && saved.chapter>1 && saved.completed && saved.progression.completed.includes(saved.chapter)) {
+        campaign={version:3,chapter:saved.chapter+1,index:0,transition:true,progression:saved.progression};
+        localStorage.setItem(CAMPAIGN_KEY,JSON.stringify(campaign));
+      }
+    }
+  } catch (_) {}
+  const chapter=campaign?campaign.chapter:1,coastChapter=chapter===2,ruinsChapter=chapter===3,forgeChapter=chapter===4;
+  B.ActiveChapter=chapter;
+  const chapterNames=['Kurban Tapınağı','Kara Kıyı','Sessiz Taht','Kızıl Ocak'],chapterNumbers=['I','II','III','IV'];
+  function chapterLink(continueJourney = false) { const u = new URL(location.href); u.searchParams.delete('bolum'); if (continueJourney) u.searchParams.set('yolculuk', 'devam'); else u.searchParams.delete('yolculuk'); location.href = u.href; }
+  $('next-chapter').onclick = () => chapterLink(true);
+  $('next-chapter').classList.toggle('hidden',forgeChapter);
+  if(chapter>1){
+    document.querySelector('#pause .eyebrow').textContent=chapterNames[chapter-1];
+    document.querySelector('#pause .save-note').textContent='Karakterin ve çantan korunur. Ölümde son yemin noktasına dönersin.';
+    document.querySelector('#fatal h2').textContent='Yol açılmadı.';
+    document.querySelector('#victory .eyebrow').textContent='Bölüm '+chapterNumbers[chapter-1]+' tamamlandı';
+    document.querySelector('#victory .end-quote').textContent=coastChapter?'Çanın içindeki kırık mühür, kıyının ardındaki kral harabelerini gösterdi. Denizden uzaklaş; seni çağıran ses henüz susmadı.':ruinsChapter?'Boş taht kırıldı. Altından gelen körük sesi, kralın zincirlerinin hâlâ dövüldüğünü gösterdi. Kızıl Ocak’a in; bu yeminin kaynağını söndür.':'Son döküm soğudu. Zincirin yapıldığı ocak artık sessiz. Mezarın, denizin ve taşın sesi geride kaldı.';
+    $('victory-title-text').textContent=forgeChapter?'Kızıl Ocak söndü':coastChapter?'Kıyının ardındaki yol':'Tahtın altındaki ocak';
+    if(coastChapter)$('next-chapter').textContent='Harabelere ilerle';if(ruinsChapter)$('next-chapter').textContent='Kızıl Ocak’a in';
+  }
   const safe = f => { try { return f(); } catch (e) { console.warn('[Kabir Azabı]', e); } };
   const timeText = t => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
   const loadProgress = (p, text) => { if (window.KG_LOAD) window.KG_LOAD(p, text); };
@@ -31,7 +59,7 @@
   const TEXTURE_NOTE = ' Karakter kaplamaları oyun yeniden açılınca bu ayara geçer.';
   const coarsePointer = matchMedia('(pointer:coarse)').matches;
   // Desktop defaults follow the current display's pixel density. Extra AA is opt-in.
-  const DEFAULTS = { quality: FRAME_LIMIT === 60 ? 'medium' : 'high', qualityVersion: 3, ...DISPLAY.defaults, frameRate: FRAME_LIMIT === 60 ? 60 : 0, exposure: 1.15, shake: .55, master: .65, music: .42, sfx: .75, voice: .85, subtitles: true, uiScale: 1 };
+  const DEFAULTS = { difficulty: 'normal', quality: FRAME_LIMIT === 60 ? 'medium' : 'high', qualityVersion: 3, ...DISPLAY.defaults, frameRate: FRAME_LIMIT, exposure: 1.15, shake: .55, master: .65, music: .42, sfx: .75, voice: .85, subtitles: true, uiScale: 1 };
   const FRAME_RATES = [60, 120, 0];   // 0 = follow the display (every refresh; best with G-Sync / FreeSync / ProMotion)
   const UI_STEPS = [.85, 1];
   const LIMITS = { exposure: [.7, 1.7], shake: [0, 1], master: [0, 1], music: [0, 1], sfx: [0, 1], voice: [0, 1] };
@@ -42,8 +70,8 @@
      Saved with the settings (field `binds`). Esc (pause) and H (help) are fixed. Menu: the 'keybinds' screen (setupBindUI). */
   const BIND_INFO = {
     up: ['Yukarı', ''], down: ['Aşağı', ''], left: ['Sola', ''], right: ['Sağa', ''],
-    light: ['Hafif saldırı', 'Düşmana tıkla, basılı tut · boşluğa tık: yürü'], heavy: ['Ağır saldırı', 'Düşmana tıkla · gardı kırar'], stand: ['Yerinde vur', 'Basılıyken tıkla: yürümeden vurur'], dodge: ['Kaçınma', 'Yürüdüğün yöne'],
-    heal: ['Can iksiri', 'Anında iyileşir'], rage: ['Kan Öfkesi', 'Savaş narası'], special: ['Zincir Girdabı', 'Etrafında dönüp herkese vurur'], interact: ['Etkileşim', 'Yemin taşı']
+    light: ['Hafif saldırı', 'Düşmana tıkla, basılı tut · boşluğa tık: yürü'], heavy: ['Yetenek I', 'Yetenek ağacından sağ tuşa bir güç ata'], stand: ['Yerinde vur', 'Basılıyken tıkla: yürümeden vurur'], dodge: ['Kaçınma', 'Yürüdüğün yöne'],
+    heal: ['Can iksiri', 'Anında iyileşir'], rage: ['Yetenek III', 'Üçüncü seçili aktif yetenek'], special: ['Yetenek II', 'İkinci seçili aktif yetenek'], interact: ['Etkileşim', 'Yemin taşı']
   };
   const BIND_VERSION = 1;
   const BIND_GROUPS = [['bind-combat', ['special', 'rage', 'dodge', 'heal', 'light', 'heavy', 'stand']], ['bind-misc', ['interact']]];
@@ -53,7 +81,7 @@
     heal: ['KeyQ', ''], rage: ['Digit2', ''], special: ['Digit1', ''], interact: ['KeyE', '']
   };
   const BIND_MOUSE_OK = ['light', 'heavy', 'dodge', 'heal', 'rage', 'special'];   // walking and interact stay on the keyboard
-  const BIND_RESERVED = ['Escape', 'KeyH', 'Tab', 'MetaLeft', 'MetaRight', 'ContextMenu'];
+  const BIND_RESERVED = ['Escape', 'KeyH', 'KeyI', 'KeyC', 'KeyT', 'KeyM', 'Tab', 'MetaLeft', 'MetaRight', 'ContextMenu'];
   const CAP_NAMES = { Space: 'SPACE', ShiftLeft: 'SHIFT', ControlLeft: 'CTRL', AltLeft: 'ALT', ArrowUp: '↑', ArrowDown: '↓', ArrowLeft: '←', ArrowRight: '→', Enter: 'ENTER', Backspace: 'SİL', CapsLock: 'CAPS',
     Mouse0: 'SOL TIK', Mouse1: 'ORTA TIK', Mouse2: 'SAĞ TIK', Mouse3: 'FARE 4', Mouse4: 'FARE 5' };
   const binds = {}; let bindMap = {}, keyLayout = null;
@@ -131,6 +159,7 @@
       }
       if (raw.qualityVersion !== DEFAULTS.qualityVersion) migrated = true;
       if (Object.prototype.hasOwnProperty.call(QUALITY, raw.quality)) cfg.quality = raw.quality;
+      cfg.difficulty = ['easy','normal','hard'].includes(raw.difficulty) ? raw.difficulty : 'normal';
       for (const k of Object.keys(LIMITS)) if (Number.isFinite(raw[k])) cfg[k] = clamp(raw[k], LIMITS[k][0], LIMITS[k][1]);
       if (typeof raw.subtitles === 'boolean') cfg.subtitles = raw.subtitles;
       // Preserve valid display choices; retired choices fall back to Auto.
@@ -169,10 +198,10 @@
   B.Audio.set({ master: cfg.master, music: cfg.music, sfx: cfg.sfx, ambient: cfg.ambient, voice: cfg.voice });
 
   /* ───────────── State ───────────── */
-  const views = ['title', 'pause', 'settings', 'controls', 'keybinds', 'death', 'victory', 'confirm'];
-  const overlays = new Set(['settings', 'controls', 'keybinds', 'confirm']);
+  const views = ['title', 'pause', 'settings', 'controls', 'keybinds', 'death', 'victory', 'confirm', 'character'];
+  const overlays = new Set(['settings', 'controls', 'keybinds', 'confirm', 'character']);
   let view = 'title', stack = [];
-  let renderer, scene, camera, world, game, rig, post;
+  let renderer, scene, camera, world, game, rig, post, characterUI, characterPreview;
   let scalerWarmTimer = 0, limbRoot = null, limbLookup = -1e9;
   const rawDepthTwins = [];
   // Title shot culling (only visible foes are animated there).
@@ -211,7 +240,7 @@
   let graphicsLost = false, graphicsRecovering = false, graphicsEpoch = 0;
   const renderClock = B.Pacing.create();
   const scaler = DISPLAY.createScaler(), AUTO_SCALE = !Q.has('nodrs');
-  let shake = 0, flash = 0, ragePush = 0, announceTimer = 0, hudTimer = 0, firstHint = 25, elapsed = 0;
+  let shake = 0, flash = 0, ragePush = 0, announceTimer = 0, levelUpTimer = 0, hudTimer = 0, firstHint = 25, elapsed = 0;
   let fpsStart = 0, fpsFrames = 0;
   const performanceMeter = B.Performance.create();
   let graphicsAdapter = null, multiDraw = false;
@@ -229,7 +258,7 @@
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
   const cameraKick = { x: 0, z: 0, vx: 0, vz: 0 }, cameraLead = new THREE.Vector3(), introFrom = new THREE.Vector3(), introLook = new THREE.Vector3(), lookTarget = new THREE.Vector3();
   let lastFootfall = 0, lastFootfallReset = null;
-  let heldLight = false, lightRepeat = 0, lastPad = [], roomId = -1, deathShown = false, wonShown = false;
+  let heldLight = false, lightRepeat = 0, controller = null, controllerState = null, roomId = -1, deathShown = false, wonShown = false;
   const joy = { x: 0, z: 0, id: null, ox: 0, oy: 0 };
   // Pointer for the click-target controls: last position (client px), the foe under it, whether it counts (over the game, or a button held), clicks waiting for the next frame.
   const cursor = { x: 0, y: 0, has: false, touch: false, target: null }, clicks = { light: false, heavy: false }, ndc = new THREE.Vector2(), pickRay = new THREE.Raycaster(), pickA = new THREE.Vector3(), pickB = new THREE.Vector3();
@@ -258,14 +287,16 @@
       document.body.classList.remove('raging', 'low-hp', 'in-combat');
       if (world && world.occluders) for (const m of world.occluders) { m.material.opacity = 1; m.material.depthWrite = true; }
       $('hud').classList.add('hidden');
-      $('play').querySelector('span').textContent = game && game.hasSave ? 'Yolculuğa devam' : 'Tapınağa gir';
+      $('play').querySelector('span').textContent = game && game.hasSave ? 'Yolculuğa devam' : game && game.campaignCompleted ? 'Yolculuğun sonu' : 'Yolculuğa başla';
       $('new').classList.toggle('hidden', !game || !game.hasSave);
     }
     if (next === 'pause') fillPause();
+    if (characterUI && next !== 'character') characterUI.close(true);
     return next;
   }
   function open(next) { stack.push(view); show(next); }
   function back() { show(stack.pop() || 'title'); }
+  function openCharacter(tab = 'inventory') { if (!game || !['playing', 'pause', 'victory', 'character'].includes(view)) return; if (view !== 'character') open('character'); characterUI.open(tab); }
   function clearInput() {
     keys.clear(); for (const k in actions) delete actions[k];
     heldLight = false; lightPointer = null; touchHold = null; zoneTap = null; clicks.light = clicks.heavy = false; cursor.target = null;
@@ -284,10 +315,11 @@
     const d = document.createElement('div');
     d.dataset.text = text; d.className = 'toast ' + kind; d.textContent = text;
     box.appendChild(d);
-    setTimeout(() => d.classList.add('out'), 3600);
-    setTimeout(() => d.remove(), 4200);
+    setTimeout(() => d.classList.add('out'), kind.startsWith('rarity-') ? 6000 : 3600);
+    setTimeout(() => d.remove(), kind.startsWith('rarity-') ? 6600 : 4200);
   }
   function clearNotices() {
+    levelUpTimer = 0; $('level-up').classList.remove('show');
     buffUI.clear();
     targetUI.clear();
     $('toasts').replaceChildren();
@@ -296,6 +328,7 @@
     cameraKick.x = cameraKick.z = cameraKick.vx = cameraKick.vz = 0; cameraLead.set(0, 0, 0); lastFootfall = 0;
   }
   function announce(name, sub = 'KURBAN TAPINAĞI', kind = '') {
+    if (levelUpTimer > 0 && kind === 'checkpoint') return;
     const el = $('announcement');
     el.querySelector('small').textContent = sub; el.querySelector('strong').textContent = name;
     el.className = ''; void el.offsetWidth; el.className = 'show ' + kind;
@@ -353,19 +386,23 @@
 
   /* ───────────── Game events ───────────── */
   function begin(fresh = false) {
+    if (fresh && chapter > 1) { safe(() => localStorage.removeItem(CAMPAIGN_KEY)); chapterLink(); return; }
     B.Audio.unlock(); if (B.Audio.resetNarration) B.Audio.resetNarration();
     const fromTitle = view === 'title';
     clearNotices();
     if (fresh) { game.restart(); deaths = 0; } else game.start();
+    if (game.campaignCompleted && game.state === 'won') { wonShown = false; victory(); show('victory'); return; }
     deathShown = wonShown = false; roomId = -1; firstHint = 25; lastHp = lastFlasks = null;
     $('tutorial').classList.remove('hidden');
     show('playing'); hud(0);
     if (fromTitle && !reducedMotion.matches) { introBlend = 0; introStart = performance.now(); introFrom.copy(cameraPos); introLook.copy(look); }   // swoop from the title shot down to the play camera
     else { introBlend = 1; cameraPos.set(game.player.x, 16, game.player.z + 13); look.set(game.player.x, .7, game.player.z); }
-    announce('Kabir Azabı', 'BÖLÜM I · KURBAN TAPINAĞI', 'chapter');
-    if (B.Audio.say && !game.checkpointIndex) B.Audio.say('intro');
+    announce(chapterNames[chapter-1],'BÖLÜM '+chapterNumbers[chapter-1],'chapter');
+    if (B.Audio.say && !game.checkpointIndex) B.Audio.say(forgeChapter ? 'forgeIntro' : ruinsChapter ? 'ruinsIntro' : coastChapter ? 'coastIntro' : 'intro');
   }
   function event(name, d = {}) {
+    if (name === 'progression') { if (d.levels > 0) { announceTimer = 0; $('announcement').classList.remove('show'); const el = $('level-up'); el.querySelector('small').textContent = 'SEVİYE ATLADIN'; el.querySelector('strong').textContent = 'SEVİYE ' + d.level; el.querySelector('span').textContent = '+' + d.levels + ' YETENEK PUANI · T'; el.classList.remove('show'); void el.offsetWidth; el.classList.add('show'); levelUpTimer = 6; } if (characterUI) characterUI.refresh(); return; }
+    if (name === 'loot') { for (const item of d.items || []) { const def = B.Progression.catalog[item.id]; if (def) notify(B.Progression.qualities[def.rarity].name + ' ganimet · ' + def.name + ' · Çantaya eklendi [I]', 'rarity-' + def.rarity); } return; }
     if (name === 'hit') {
       // combat.js sizes the hit-stop itself (d.hitstop is set) and reports how hard the contact was (d.impact 0..1),
       // so here the camera only recoils; unclassified heavy hits retain the same short 8 ms limit.
@@ -389,10 +426,10 @@
     }
     else if (name === 'rage') { shake = Math.max(shake, .45); if (!reducedMotion.matches) ragePush = 1; notify('ÖFKE UYANDI', 'rage'); }   // war cry: camera pushes in on the father
     else if (name === 'rageEnd') notify('Öfke söndü');
-    else if (name === 'checkpoint') { $('objective').textContent = 'Celladı bul. Geçidi aç.'; announce('Yemin mühürlendi', 'KONTROL NOKTASI', 'checkpoint'); notify('Canın ve iksirlerin yenilendi. Buradan geri döneceksin.', 'seal'); if (B.Audio.saySequence) B.Audio.saySequence(['checkpoint', 'heroOath']); else if (B.Audio.say) B.Audio.say('checkpoint'); }
+    else if (name === 'checkpoint') { $('objective').textContent = formatObjective(forgeChapter ? 'Son Döküm’e ilerle. Ocağın Kalbi’ni söndür.' : ruinsChapter ? 'Sessiz Taht’a ilerle. Oyukların Kralı’nı yen.' : coastChapter ? 'Çanlığa ilerle. Çancıyı sustur.' : 'Celladı bul. Geçidi aç.'); announce('Yemin mühürlendi', 'KONTROL NOKTASI', 'checkpoint'); notify('Canın ve iksirlerin yenilendi. Buradan geri döneceksin.', 'seal'); if (B.Audio.saySequence) B.Audio.saySequence([forgeChapter ? 'forgeCheckpoint' : ruinsChapter ? 'ruinsCheckpoint' : coastChapter ? 'coastCheckpoint' : 'checkpoint', 'heroOath']); else if (B.Audio.say) B.Audio.say(forgeChapter ? 'forgeCheckpoint' : ruinsChapter ? 'ruinsCheckpoint' : coastChapter ? 'coastCheckpoint' : 'checkpoint'); }
     else if (name === 'encounter') { if (d.name) announce(d.name, 'KARŞILAŞMA'); }
     else if (name === 'encounterCleared') { announce('Mühür açıldı', d.roomName || d.name || 'SALON TEMİZLENDİ', 'seal'); }
-    else if (name === 'boss') { if (d.active !== false) { announce(d.name || 'Zincir Celladı', 'KURBAN SALONU', 'boss'); if (B.Audio.saySequence) B.Audio.saySequence(['boss', 'cellat']); else if (B.Audio.say) B.Audio.say('boss'); } }
+    else if (name === 'boss') { if (d.active !== false) { announce(d.name || 'Zincir Celladı', forgeChapter ? 'SON DÖKÜM' : ruinsChapter ? 'SESSİZ TAHT' : coastChapter ? 'BOĞULMUŞ ÇANLIK' : 'KURBAN SALONU', 'boss'); if (B.Audio.saySequence) B.Audio.saySequence(forgeChapter ? ['forgeBoss'] : ruinsChapter ? ['ruinsBoss'] : coastChapter ? ['coastBoss'] : ['boss', 'cellat']); else if (B.Audio.say) B.Audio.say(forgeChapter ? 'forgeBoss' : ruinsChapter ? 'ruinsBoss' : coastChapter ? 'coastBoss' : 'boss'); } }
     else if (name === 'death') death(d);
     else if (name === 'win') victory(d);
     else if (name === 'toast') notify(d.text);
@@ -413,6 +450,16 @@
     [/kavrayış|pençe|hücum/i, 'Mahkûmlar ikili pençe vurur. İlk darbeden sonra hemen yuvarlan, ikincisi arkandan gelir.'],
     [/kalkan|balta|yarma/i, 'Muhafızın gecikmeli baltası bir an bekler. Erken kaçınma; ışık dolmak üzereyken yuvarlan.']
   ];
+  const COAST_DEATH_TIPS = [
+    [/medcezir/i,'Deniz halkasının iç boşluğu ve dışı güvenlidir. Işık dolarken halkayı yuvarlanarak geç.'],
+    [/mezar kök|derin kök|çürük taç/i,'Köklerin yeri ışık görünürken sabitlenir. Çizgilerin arasına geç; erken kaçıp işarete geri girme.'],
+    [/boğulmuş çan/i,'Çanlar sırayla düşer. İlk halkadan çıkınca sonraki işaretlerin arasındaki boşluğu kullan.'],
+    [/çapa|omurga|kıyıyı yar/i,'Çancı yakınındaki alanı biçer. Çifte savuruşun ikincisini bekle, sonra yaklaş.'],
+    [/fener/i,'Fenercinin ışığı seni çağırır. Çizginin yanına çık; kızıl dairelere geri basma.'],
+    [/tuz|diken/i,'Dikenler iki dar çizgide gelir. Aralarına geç veya atış dolarken yana yuvarlan.'],
+    [/sıçray|çene|ayak/i,'Sürüngenin yere işaretlediği noktadan yana çık. Pençenin ikinci darbesini de bekle.'],
+    [/kürek|son nefes|boğulma/i,'Boğulmuş küreğini kaldırınca savuruş yönünden çık. Çığlığın halkasının ortası güvenlidir.']
+  ];
   const GENERAL_TIPS = ['Darbe inmeden hemen önce yuvarlanarak kaçın.', 'Kaçınmanın koruması hareketin başındadır. Geç kalırsan hasar alırsın.', 'Canın azaldığında can iksiri kullan; saldırırken de içebilirsin.', 'Ağır saldırı kalkanlıların gardını kırar ama dayanıklılığını hızla tüketir.'];
   // Cruel omens shown under the death card, rotated by death count and picked by the killer's name.
   const DEATH_OMENS = {
@@ -427,20 +474,20 @@
   function death(d = {}) {
     if (deathShown) return; deathShown = true; deaths++;
     hud(0); hudTimer = 0;
-    if (B.Audio.say) B.Audio.say('death', true);
+    if (B.Audio.say) B.Audio.say(coastChapter ? 'coastDeath' : 'death', true);
     const enemy = d.enemy || game.lastDeath?.enemy, attack = d.attack || game.lastDeath?.attack;
     $('death-cause').textContent = enemy || 'Son darbeyi karanlık vurdu.';
     $('death-attack').textContent = attack || '';
-    const tip = (attack && DEATH_TIPS.find(([re]) => re.test(attack))) || null;
+    const tip = (attack && (coastChapter ? COAST_DEATH_TIPS : DEATH_TIPS).find(([re]) => re.test(attack))) || null;
     $('death-tip').textContent = tip ? tip[1] : GENERAL_TIPS[(deaths - 1) % GENERAL_TIPS.length];
     const omens = DEATH_OMENS[enemy] || DEATH_OMENS_ANY;
-    $('death-detail').textContent = omens[(deaths - 1) % omens.length] + ' ' + (game.checkpointIndex ? 'Yemin seni taşa geri bağlıyor.' : 'Yemin seni tapınağın girişine geri sürüklüyor.');
+    $('death-detail').textContent = 'Eşyaların, seviyen ve yeteneklerin korundu. ' + (game.checkpointIndex ? 'Son yemin taşından devam edeceksin.' : 'Bölümün girişinden devam edeceksin.');
     setTimeout(() => { if (game.state === 'dead') show('death'); }, 750);
   }
   function victory(d = {}) {
     if (wonShown) return; wonShown = true;
     hud(0); hudTimer = 0;
-    if (B.Audio.say) B.Audio.say('win', true);
+    if (B.Audio.say) B.Audio.say(forgeChapter ? 'forgeWin' : ruinsChapter ? 'ruinsWin' : coastChapter ? 'coastWin' : 'win', true);
     const t = d.time ?? game.elapsed ?? elapsed, k = d.kills ?? game.kills ?? 0;
     const stat = (icon, value, label) => `<div><svg class="icon" aria-hidden="true"><use href="#${icon}"/></svg><b>${value}</b><small>${label}</small></div>`;
     $('victory-stats').innerHTML = stat('i-hourglass', timeText(t), 'SÜRE') + stat('i-cross', Math.round(k), 'ALT EDİLEN') + stat('i-skull', deaths, 'ÖLÜM');
@@ -503,6 +550,8 @@
   function applySettings() {
     if (!renderer) return;
     deriveSettings();
+    if (game && game.setDifficulty) game.setDifficulty(cfg.difficulty);
+    $('pause-difficulty').textContent = 'Zorluk: ' + (cfg.difficulty === 'easy' ? 'Kolay' : cfg.difficulty === 'normal' ? 'Normal' : 'Zor');
     rig.setQuality(cfg); post.setQuality(cfg);
     if (world.setQuality) world.setQuality(cfg);
     B.Audio.set({ master: cfg.master, music: cfg.music, sfx: cfg.sfx, ambient: cfg.ambient, voice: cfg.voice });
@@ -551,6 +600,7 @@
     buttons.forEach((b, i) => b.addEventListener('click', () => {
       if (values[i] === cfg[key]) return;
       cfg[key] = values[i];
+      paint();
       applySettings();
       $('settings-video').querySelectorAll('.setting').forEach(r => { if (r.repaint) r.repaint(); });
       paintGraphicsNotes();
@@ -574,6 +624,10 @@
   }
   function renderSettings() {
     const video = $('settings-video'), audio = $('settings-audio');
+    $('settings-game').replaceChildren(choiceRow('difficulty', 'Zorluk', ['easy','normal','hard'],v=>v==='easy'?'Kolay':v==='normal'?'Normal':'Zor'));
+    $('difficulty-note').textContent = 'Kolay: daha az tehlike. Normal: dengeli bir yolculuk. Zor: daha sert savaşlar. Seçimin oyun sırasında da uygulanır.';
+    const gameHeading = document.createElement('h3'); gameHeading.textContent = 'Yolculuğun'; $('settings-game').prepend(gameHeading);
+    const saveInfo = document.createElement('div'); saveInfo.className = 'settings-save-info'; saveInfo.innerHTML = '<strong>Yeminin sürüyor</strong><p>Ölümde son yemin noktasına dönersin. Eşyaların, tecrüben ve öğrendiğin yetenekler korunur.</p>'; $('settings-game').append(saveInfo);
     video.querySelectorAll('.advanced-graphics, .setting').forEach(n => n.remove()); audio.querySelectorAll('.setting').forEach(n => n.remove());
     const q = document.createElement('div'); q.className = 'setting quality';
     q.innerHTML = `<div class="setting-head"><label id="quality-label">Grafik kalitesi</label></div><div class="segmented" role="radiogroup" aria-labelledby="quality-label">${Object.keys(QUALITY).map(k => `<button type="button" role="radio" data-quality="${k}">${QUALITY_TEXT[k][0]}</button>`).join('')}</div><small id="quality-note"></small>`;
@@ -594,9 +648,16 @@
     const box = sub.querySelector('input'); box.checked = cfg.subtitles;
     box.addEventListener('change', () => { cfg.subtitles = box.checked; applySettings(); });
     audio.append(sub);
-    $('settings-note').textContent = B.Audio.silent ? 'Sessiz test modu · ses kapalı.' : 'Ayarlar hemen uygulanır ve bu cihazda saklanır.';
+    $('settings-note').textContent = B.Audio.silent ? 'Test modu · sessiz' : 'Ayarlar bu cihazda saklanır.';
   }
-  function openSettings() { open('settings'); renderSettings(); }
+  function selectSettingsPage(page) {
+    if (!['game', 'video', 'audio', 'input'].includes(page)) return;
+    document.querySelectorAll('[data-settings-page]').forEach(button => { const active = button.dataset.settingsPage === page; button.classList.toggle('active', active); button.setAttribute('aria-pressed', String(active)); });
+    for (const name of ['game', 'video', 'audio', 'input']) $('settings-' + name).classList.toggle('hidden', name !== page);
+    $('settings').dataset.page = page;
+    const pages = document.querySelector('#settings .settings-pages'); if (pages) pages.scrollTop = 0;
+  }
+  function openSettings() { open('settings'); renderSettings(); selectSettingsPage($('settings').dataset.page || 'video'); }
   function openControls() { open('controls'); }
   function openKeybinds() { open('keybinds'); renderBinds(); }
   function fillPause() {
@@ -610,6 +671,9 @@
 
   /* ───────────── UI wiring ───────────── */
   function setupUI() {
+    document.querySelectorAll('[data-settings-page]').forEach(button => { button.onclick = () => selectSettingsPage(button.dataset.settingsPage); });
+    $('pause-talents').onclick = () => openCharacter('skills');
+    $('pause-character').onclick = $('victory-character').onclick = () => openCharacter();
     $('play').onclick = () => begin(false);
     $('new').onclick = () => open('confirm');
     $('title-settings').onclick = $('pause-settings').onclick = openSettings;
@@ -617,7 +681,7 @@
     $('pause-button').onclick = () => { if (view === 'playing') show('pause'); };
     $('resume').onclick = () => show('playing');
     $('settings-close').onclick = $('settings-done').onclick = $('controls-close').onclick = $('confirm-no').onclick = back;
-    $('settings-reset').onclick = () => { const q = cfg.quality; Object.assign(cfg, DEFAULTS); applySettings(); renderSettings(); if (q !== cfg.quality) warmShaders(true); };
+    $('settings-reset').onclick = () => { const q = cfg.quality; Object.assign(cfg, DEFAULTS); applySettings(); renderSettings(); selectSettingsPage($('settings').dataset.page || 'video'); if (q !== cfg.quality) warmShaders(true); };
     $('restart').onclick = () => open('confirm');
     $('confirm-yes').onclick = () => { clearFX(); begin(true); };
     for (const id of ['return-title', 'death-title', 'victory-title']) $(id).onclick = () => {
@@ -680,6 +744,7 @@
         }
         return;
       }
+      if (['KeyI', 'KeyC', 'KeyT'].includes(e.code) && !browserChord && !e.repeat && ['playing', 'pause', 'character'].includes(view)) { e.preventDefault(); if (view === 'character' && e.code !== 'KeyT') back(); else openCharacter(e.code === 'KeyT' ? 'skills' : 'inventory'); return; }
       if (view !== 'playing' || browserChord) return;
       if (e.code === 'KeyH' && !e.repeat) { show('pause'); openControls(); return; }
       if (e.repeat) keys.add(normCode(e.code)); else pressBind(normCode(e.code));
@@ -719,8 +784,14 @@
     setupBindUI();
     window.addEventListener('resize', resize);
     watchPixelDensity();
-    window.addEventListener('gamepadconnected', () => notify('Gamepad bağlandı.'));
-    window.addEventListener('gamepaddisconnected', () => { lastPad.length = 0; clearInput(); if (view === 'playing') show('pause'); notify('Gamepad bağlantısı kesildi. Oyun duraklatıldı.'); });
+    controller = B.Controller.create({
+      getView: () => view, getMenuRoot: () => $(view), notify,
+      onPause: () => { if (view === 'playing') show('pause'); else if (view === 'pause') show('playing'); else if (['settings', 'controls', 'keybinds', 'character'].includes(view)) back(); },
+      onBack: () => { if (view === 'pause') show('playing'); else if (view !== 'title' && view !== 'death' && view !== 'victory') back(); },
+      onCharacter: () => openCharacter(),
+      onDisconnect: () => { clearInput(); if (view === 'playing') show('pause'); }
+    });
+    controller.mount($('settings-input'));
     // Menu clicks get a short iron tick (Audio stays silent under ?sessiz).
     document.addEventListener('click', e => { if (e.target.closest('.screen button')) B.Audio.play('ui', { volume: .5 }); });
   }
@@ -822,7 +893,7 @@
       const sec = $(id); if (!sec) continue;
       sec.querySelectorAll('.bindrow, .bind-cols').forEach(n => n.remove());
       const head = document.createElement('div'); head.className = 'bind-cols'; head.innerHTML = '<span></span><span>Ana tuş</span><span>Yedek</span><span></span>'; sec.append(head);
-      const fixed = id === 'bind-misc' ? [['Mola', 'Menü ve ayarlar', 'ESC'], ['Yardım', 'Kontroller ekranı', 'H']] : [];
+      const fixed = id === 'bind-misc' ? [['Mola', 'Menü ve ayarlar', 'ESC'], ['Karakter ve çanta', 'Yetenek ağacı: T', 'I / C'], ['Yardım', 'Kontroller ekranı', 'H']] : [];
       for (const a of list) {
         const row = document.createElement('div'); row.className = 'setting bindrow'; row.dataset.bindRow = a;
         row.innerHTML = `<div class="bind-name"><label>${BIND_INFO[a][0]}</label><small>${BIND_INFO[a][1]}</small></div><button type="button" class="bind-slot" data-slot="0"></button><button type="button" class="bind-slot" data-slot="1"></button><button type="button" class="bind-reset" title="Varsayılana dön" aria-label="${BIND_INFO[a][0]}: varsayılana dön">↺</button>`;
@@ -908,7 +979,7 @@
     if (prev && !prev.dead && prevScore <= soft * 1.8 && (!cursor.target || bestScore > 0)) cursor.target = prev;
   }
   function pollInput() {
-    input.aimX = input.aimZ = input.aimFoe = null;   // only the pad's right stick sets an aim, and only for this frame
+    input.aimX = input.aimZ = input.aimFoe = null; input.padActive = false;   // controller aim never inherits a stale mouse cursor
     // Like Diablo IV on PC: the keyboard does not walk the hero (the mouse does); only the touch stick and the gamepad stick give a direction.
     let x = joy.x, z = joy.z;
     updatePointer();
@@ -917,38 +988,18 @@
     input.clickLight = clicks.light; input.clickHeavy = clicks.heavy; clicks.light = clicks.heavy = false;
     input.target = cursor.target;
     if (cursor.touch && touchHold === null) cursor.has = false;   // a finger that has lifted no longer points at anything
-    const pad = connectedPad();
-    if (pad) {
-      const left = stickScale(pad.axes[0] || 0, pad.axes[1] || 0);
-      x += (pad.axes[0] || 0) * left; z += (pad.axes[1] || 0) * left;
-      const right = stickScale(pad.axes[2] || 0, pad.axes[3] || 0);
-      const ax = (pad.axes[2] || 0) * right, az = (pad.axes[3] || 0) * right;
+    if (controllerState && controllerState.connected && !controllerState.binding) {
+      input.padActive = Math.hypot(controllerState.x, controllerState.z, controllerState.aimX, controllerState.aimZ) > .08 || controllerState.lightHeld || Object.values(controllerState.actions).some(Boolean);
+      x += controllerState.x; z += controllerState.z;
+      const ax = controllerState.aimX, az = controllerState.aimZ;
       if (Math.hypot(ax, az) > .2) { input.aimX = game.player.x + ax * 8; input.aimZ = game.player.z + az * 8; }
-      for (let i = 0; i < PAD_ACTIONS.length; i++) if (pad.buttons[i]?.pressed && !lastPad[i]) actions[PAD_ACTIONS[i]] = true;
-      if (pad.buttons[9]?.pressed && !lastPad[9]) show(view === 'playing' ? 'pause' : 'playing');
-      rememberPad(pad);
-    } else lastPad.length = 0;
+      for (const action of Object.keys(controllerState.actions)) if (controllerState.actions[action]) actions[action] = true;
+    }
     const len = Math.hypot(x, z); if (len > 1) { x /= len; z /= len; }
     input.x = x; input.z = z;
     for (const a of ['light', 'heavy', 'near', 'dodge', 'heal', 'rage', 'special', 'interact']) { input[a] = !!actions[a]; delete actions[a]; }
     return input;
   }
-  const PAD_ACTIONS = ['dodge', 'heal', 'light', 'heavy', 'special', 'rage'];
-  function connectedPad() {
-    const pads = navigator.getGamepads && navigator.getGamepads();
-    if (pads) for (let i = 0; i < pads.length; i++) if (pads[i] && pads[i].connected !== false) return pads[i];
-    return null;
-  }
-  // A radial, rescaled dead zone removes idle drift without a sudden speed jump.
-  function stickScale(x, z) {
-    const length = Math.hypot(x, z);
-    return length <= .16 ? 0 : Math.min(1, (length - .16) / .84) / length;
-  }
-  function rememberPad(pad) {
-    for (let i = 0; i < pad.buttons.length; i++) lastPad[i] = !!pad.buttons[i].pressed;
-    lastPad.length = pad.buttons.length;
-  }
-
   /* ───────────── HUD ───────────── */
   // The HUD portrait is a painted adaptation of the real hero's original model portrait.
   // Loading it once avoids a second live GL context and repeated character shader work.
@@ -1095,7 +1146,7 @@
     x.fillStyle = miniBg; x.fillRect(0, 0, 256, 256);
     x.save(); x.translate(cx, cy); x.scale(scale, scale); x.translate(-p.x, -p.z);
     x.strokeStyle = '#3a302a'; x.lineWidth = 6.8; x.lineCap = 'round'; x.beginPath();
-    world.rooms.forEach((r, i) => { if (i) x.lineTo(r.x, r.z); else x.moveTo(r.x, r.z); }); x.stroke();
+    world.paths.forEach(path => { x.moveTo(path.a.x,path.a.z);x.lineTo(path.b.x,path.b.z); }); x.stroke();
     for (const r of world.rooms) {
       x.fillStyle = here === r ? '#4a3a2e' : '#2a2320'; x.fillRect(r.x - r.w / 2, r.z - r.d / 2, r.w, r.d);
       x.strokeStyle = here === r ? '#d0ae7a' : '#65574a'; x.lineWidth = here === r ? .5 : .32; x.strokeRect(r.x - r.w / 2, r.z - r.d / 2, r.w, r.d);
@@ -1118,14 +1169,16 @@
     const p = game.player, total = game.enemies.length;
     let kills = 0; for (const e of game.enemies) if (e.dead) kills++;
     hudText('kill-progress', kills + ' / ' + total);
-    hudTransform('chapter-progress', `scaleX(${kills / Math.max(total, 1)})`);
+
     hq('.hero-card').classList.toggle('sealed', !!game.checkpointIndex);
     hq('.flask-button').classList.toggle('empty', p.flasks === 0);
+    const selectedSkills = game.skills();
     for (const pad of padList()) {
       const b = pad.el, key = pad.key;
       const active = key === 'light' ? p.attack && !p.attack.heavy : key === 'heavy' ? p.attack && p.attack.heavy && !p.attack.special : key === 'dodge' ? p.dodge > 0 : key === 'special' ? !!(p.attack && p.attack.special) : cryEffect.remaining > 0;
       b.classList.toggle('pressed', !!active);
-      const cost = B.Game.resources.costs[key];
+      const skillSlot=key==='heavy'?0:key==='special'?1:key==='rage'?2:-1, chosen=skillSlot>=0?selectedSkills[skillSlot]:null;
+      const cost = chosen ? chosen.cost : B.Game.resources.costs[key];
       b.classList.toggle('unavailable', cost > 0 && p.stamina < cost && !active);
       if (key === 'light' || key === 'heavy') {
         const progress = String(active && p.attack ? clamp(p.attack.age / p.attack.duration, 0, 1) : 0);
@@ -1134,7 +1187,19 @@
     }
     drawMinimap(p);
   }
+  function formatObjective(text) { return text.replace(/\. (?=\S)/, '.\n'); }
   function chapterObjective(room) {
+    if(chapter < 3 && room && room.id >= 7){const n=game.enemies.filter(e=>!e.dead&&e.encounter.room===room.id).length;return n?'Bu yan alanda '+n+' düşman var.':'Alan temizlendi. Ana yola geri dön.';}
+    if(forgeChapter){if(game.state==='won')return 'Ocak söndü. Zincirlerin kaynağı yok oldu.';if(!room)return 'Dökümhanenin içinden kuzeye ilerle.';if(room.id===11)return game.checkpointIndex?'Köz Yemini mühürlendi. Son Döküm’e ilerle.':'Köz Yemini taşına yaklaş ve '+capName(binds.interact[0])+' ile dokun.';if(room.id===13)return 'Ocağın Kalbi’ni yen. Kızgın halkalardaki boşlukları kullan.';const n=game.enemies.filter(e=>!e.dead&&e.encounter.room===room.id).length;return n?'Bu alanda '+n+' düşman var.':'Kuzeydeki döküm salonuna ilerle.';}
+    if(ruinsChapter){if(game.state==='won')return 'Taht yıkıldı. Kralın sesi sustu.';if(!room)return 'Harabelerin içinden kuzeye ilerle.';if(room.id===11)return game.checkpointIndex?'Son yemin mühürlendi. Tahtın nöbetini aş.':'Son Yemin taşına yaklaş ve '+capName(binds.interact[0])+' ile dokun.';if(room.id===13)return 'Oyukların Kralı’nı yen. Taş halkalarının güvenli boşluklarını bul.';const n=game.enemies.filter(e=>!e.dead&&e.encounter.room===room.id).length;return n?'Bu alanda '+n+' düşman var.':room.id===5?'Yıkılmış anıtın altından mağaraya gir.':'Kuzeydeki geçide ilerle.';}
+    if (coastChapter) {
+      if (game.state === 'won') return 'Çan sustu. Kara Kıyı özgür.';
+      if (!room) return 'Kıyının kuzeyine ilerle.';
+      if (room.id === 5) return game.checkpointIndex ? 'Yeminin mühürlendi. Çanlığa ilerle.' : 'Fenerin yemin taşına yaklaş ve ' + capName(binds.interact[0]) + ' ile dokun.';
+      if (room.id === 6) return 'Derinliklerin Çancısı’nı yen. Deniz halkalarının boşluklarını kullan.';
+      const n = game.enemies.filter(e => !e.dead && e.encounter.room === room.id).length;
+      return n ? 'Bu alanda ' + n + ' düşman var. Savaş veya kuzeye ilerle.' : room.id === 4 ? 'Son Fener’in yemin taşını bul.' : 'Kuzeydeki patikaya ilerle.';
+    }
     if (game.state === 'won') return 'Geçit açıldı. Kurban Tapınağı sustu.';
     if (!room) return 'Kuzeydeki salona ilerle.';
     const idx = room.id;
@@ -1145,11 +1210,19 @@
     }
     let remaining = 0;
     for (const e of game.enemies) if (!e.dead && e.encounter && e.encounter.room === idx) remaining++;
-    if (remaining) return 'Çıkış mühürlü. Bu salonda ' + remaining + ' düşman kaldı.';
-    return idx === 4 ? 'Mühür açıldı. Şapeldeki yemin taşını bul.' : 'Mühür açıldı. Kuzeydeki salona ilerle.';
+    if (remaining) return 'Bu salonda ' + remaining + ' düşman var. Savaş veya kuzeye ilerle.';
+    return idx === 4 ? 'Şapeldeki yemin taşını bul.' : 'Kuzeydeki salona ilerle.';
   }
   function hud(dt) {
     const p = game.player;
+    const progression = game.progression, thresholds = B.Progression.thresholds, baseXp = thresholds[progression.level - 1], nextXp = progression.nextLevelXp();
+    hudText('hero-subtitle', 'Seviye ' + progression.level);
+    hq('.portrait-seal').textContent = progression.level;
+    const xpFraction = progression.level === B.Progression.MAX_LEVEL ? 1 : clamp((progression.xp - baseXp) / (nextXp - baseXp), 0, 1);
+    hudTransform('chapter-progress', `scaleX(${xpFraction})`);
+    const xpBar = hq('.chapter-progress');
+    xpBar.setAttribute('aria-valuenow', String(Math.round(xpFraction * 100)));
+    xpBar.title = progression.level === B.Progression.MAX_LEVEL ? 'En yüksek seviye' : (progression.xp - baseXp) + ' / ' + (nextXp - baseXp) + ' tecrübe';
     cryEffect.remaining = !p.dead && game.state === 'playing' ? p.rageTime || 0 : 0;
     buffUI.update(timedEffects);
     let buffCount = 0;
@@ -1169,20 +1242,17 @@
     if (lastFlasks !== null && p.flasks !== lastFlasks) tap(flaskBtn);
     lastFlasks = p.flasks; hudText('flask-count', p.flasks ?? 0);
     const rageBtn = hq('.action-rage');
-    const rageReady = p.stamina >= B.Game.resources.costs.rage && !(p.rageCd > 0) && !(p.rageTime > 0) && !p.roar && !p.dead;
-    rageBtn.classList.toggle('ready', rageReady);
-    rageBtn.classList.toggle('burning', cryEffect.remaining > 0);
     document.body.classList.toggle('raging', cryEffect.remaining > 0);
     updateOverview();
-    if (B.HUD && B.HUD.skills) B.HUD.skills(p, dt);   // cooldown sweeps, stamina cost hints (src/hud.js)
+    if (B.HUD && B.HUD.skills) B.HUD.skills(p, dt, game.skills());   // cooldown sweeps, stamina cost hints (src/hud.js)
     const targetEnemy = !p.dead && game.state === 'playing' ? game.attackTarget || game.enemies.find(e => e.boss && !e.dead && Math.hypot(e.x - p.x, e.z - p.z) < 28) : null;
     targetUI.update(targetEnemy);
     const r = world.roomAt(p.x, p.z);
-    if (r) hudText('objective', chapterObjective(r));
+    if (r) hudText('objective', formatObjective(chapterObjective(r)));
     if (r && r.id !== roomId) {
       roomId = r.id; $('location').textContent = r.name;
       const idx = typeof r.id === 'number' ? r.id : world.rooms.indexOf(r);
-      if (B.Audio.say && idx > 0) B.Audio.say(['intro', 'chains', 'ritual', 'crypt', 'rot', 'checkpoint', 'boss'][Math.min(6, idx)]);
+      if (B.Audio.say && chapter < 3 && idx > 0 && idx < 7) B.Audio.say((coastChapter ? ['coastIntro', 'coastRoots', 'coastStreet', 'coastPier', 'coastSquare', 'coastCheckpoint', 'coastBoss'] : ['intro', 'chains', 'ritual', 'crypt', 'rot', 'checkpoint', 'boss'])[Math.min(6, idx)]);
     }
     // Same reach as the stone's own auto-seal (combat.js): the button shows when enemies still keep it from sealing.
     const cp = world.checkpoint, near = cp && Math.hypot(p.x - cp.x, p.z - cp.z) < 6.1 && game.checkpointIndex === 0;
@@ -1283,7 +1353,7 @@
     return graphicsAdapter;
   }
   function performanceReport() {
-    return { schema: 4, game: 'Kabir Azabı', build: 71, capturedAt: new Date().toISOString(), view,
+    return { schema: 4, game: 'Kabir Azabı', build: 110, capturedAt: new Date().toISOString(), view,
       location: { room: world.rooms?.[roomId]?.name || roomId, x: game.player.x, z: game.player.z },
       display: { width: post.width, height: post.height, windowWidth: innerWidth, windowHeight: innerHeight,
         devicePixelRatio: window.devicePixelRatio || 1, renderPixelRatio: renderer.getPixelRatio() },
@@ -1323,9 +1393,11 @@
     if (measured) performanceMeter.callback(ts);
     const dt = clamp((ts - (last || ts)) / 1000, 0, .05); last = ts; elapsed += dt; frame++;
     visualDt = Math.min(.1, visualDt + dt);
+    // Controllers keep polling on every menu too, so reconnect, remapping and navigation never depend on combat.
+    controllerState = controller ? controller.poll(dt) : null;
     const playing = view === 'playing' && game.state === 'playing';
     if (playing) {
-      if (heldLight || keyDown('light')) { lightRepeat += dt; if (lightRepeat >= .12) { actions.light = true; if (heldLight) actions.near = true; lightRepeat = 0; } }
+      if (heldLight || keyDown('light') || controllerState?.lightHeld) { lightRepeat += dt; if (lightRepeat >= .12) { actions.light = true; if (heldLight) actions.near = true; lightRepeat = 0; } }
       const stopped = Math.min(dt, hitPause), simDt = dt - stopped; hitPause -= stopped;
       // Input events remain queued during contact emphasis; all combat clocks share simDt
       // so neither enemies nor i-frames gain a hidden time advantage.
@@ -1333,8 +1405,9 @@
       hudTimer += dt; if (hudTimer > .08) { hud(hudTimer); hudTimer = 0; }
     }
     else if ((game.state === 'dead' || game.state === 'won') && view === 'playing') { game.update(dt, { ...input, x: 0, z: 0, light: false, heavy: false, clickLight: false, clickHeavy: false, holdLight: false, holdHeavy: false, target: null, dodge: false, heal: false, rage: false }); fxStep(dt); }
-    if (view === 'pause') { const pad = connectedPad(); if (pad) { if (pad.buttons[9]?.pressed && !lastPad[9]) show('playing'); rememberPad(pad); } else lastPad.length = 0; }
+
     if (announceTimer > 0) { announceTimer -= dt; if (announceTimer <= 0) $('announcement').classList.remove('show'); }
+    if (levelUpTimer > 0 && view === 'playing') { levelUpTimer -= dt; if (levelUpTimer <= 0) $('level-up').classList.remove('show'); }
     flash = Math.max(0, flash - dt * 1.7);
     syncWarnings(dt);
     const fighting = game.enemies.some(e => !e.dead && e.active && Math.hypot(e.x - game.player.x, e.z - game.player.z) < 10);
@@ -1526,10 +1599,13 @@
       if (batch.list.length) renderer.compile(batch, camera, shadowScene);
     };
     let next = 0, postDone = false, tex = 0, geo = 0, pending = [];
-    let total = 1;
     const frame = () => new Promise(res => { let done = false; const go = () => { if (!done) { done = true; res(); } }; requestAnimationFrame(go); setTimeout(go, 120); });
-    const progress = k => { if (onProgress) onProgress(k); if (fill) fill.style.transform = `scaleX(${Math.max(.04, k)})`; };
-    const report = () => progress(.15 + .85 * Math.min(1, (next + tex / 3 + geo / 12) / total));
+    let lastProgress = 0;
+    const progress = (k, text) => { k = Math.max(lastProgress,k); lastProgress = k; if (onProgress) onProgress(k,text); if (fill) fill.style.transform = `scaleX(${Math.max(.04, k)})`; };
+    // Separate real preparation phases; uploads can take longer than shader compilation.
+    const report = () => progress(.25 + .17 * Math.min(1,next / Math.max(1,work.jobs.length))
+      + .36 * Math.min(1,tex / Math.max(1,work.textures.length))
+      + .18 * Math.min(1,geo / Math.max(1,work.geometryObjects.length)));
     async function run() {
       checkContext();
       // Cut meshes are expensive to build on a foe's first killing blow. Prepare
@@ -1537,15 +1613,19 @@
       if (game.limbs && game.limbs.prepare) {
         const cutStart = performance.now();
         await game.limbs.prepare(game.enemies, async (done, count) => {
-          progress(.15 * done / Math.max(1, count));
+          progress(.18 * done / Math.max(1, count), 'Düşmanlar hazırlanıyor…');
           if (!WARM_SYNC) await frame();
         });
         warmStats.cuts = Math.round(performance.now() - cutStart);
         warmStats.cutVariants = game.limbs.stats().cached;
       }
+      progress(.18, 'Kaplamalar hazırlanıyor…');
+      if (B.CoastMaterials) await B.CoastMaterials.ready();
+      progress(.21);
+      if (characterPreview && characterPreview.warm) await characterPreview.warm();
+      progress(.25, 'Işıklar ve gölgeler hazırlanıyor…');
       checkContext(); work = prepareWarmScene();
       warmStats.jobs = work.jobs.length;
-      total = work.jobs.length + work.textures.length / 3 + work.geometryObjects.length / 12 + 1;
       report();
       if (WARM_SYNC) {
         // Headless screenshot tools with a virtual clock (tools/shot_win.sh) cannot wait for background compiles:
@@ -1584,6 +1664,7 @@
       });
       warmStats.programs = Math.round(performance.now() - t0);
       // Big character and surface maps: a few uploads per frame instead of all on the first draw.
+      progress(.42, 'Kaplamalar belleğe aktarılıyor…');
       while (tex < work.textures.length) {
         checkContext();
         for (let i = 0; i < 3 && tex < work.textures.length; i++) safe(() => renderer.initTexture(work.textures[tex++]));
@@ -1592,6 +1673,7 @@
       warmStats.textures = Math.round(performance.now() - t0);
       // compile() prepares materials only. Upload the hidden rooms' vertex,
       // index and instance data now so entering a room cannot first allocate it.
+      progress(.78, 'Mekân ve eşyalar hazırlanıyor…');
       const geometryStart = performance.now();
       if (renderer.initGeometry) while (geo < work.geometryObjects.length) {
         checkContext();
@@ -1599,9 +1681,11 @@
         report(); if (!WARM_SYNC) await frame();
       }
       warmStats.geometryObjects = geo; warmStats.geometryUploads = Math.round(performance.now() - geometryStart);
+      progress(.96, 'Son görüntü hazırlanıyor…');
       // One real frame (shadow-map variants) while the cover is still up.
       checkContext(); safe(() => { cameraStep(0); atmosphereStep(0); post.render(elapsed); });
       // Automatic-resolution sizes are built now, so a later step is only a reference swap. Skipped on 120 Hz-class targets.
+      progress(.98);
       prewarmScaler();
       warmStats.total = Math.round(performance.now() - t0); warmStats.count = renderer.info.programs.length;
       if (WARM_LOG) console.warn('[warm] done', JSON.stringify(warmStats));
@@ -1639,9 +1723,10 @@
       : a.material.id !== b.material.id ? a.material.id - b.material.id : variantOf(a.object) !== variantOf(b.object) ? variantOf(a.object) - variantOf(b.object)
       : a.z !== b.z ? a.z - b.z : a.id - b.id);
     multiDraw = renderer.extensions.has('WEBGL_multi_draw') && !Q.has('nobatch');
-    world = B.World.build(scene, { multiDraw });
+    world = (forgeChapter ? B.ForgeWorld : ruinsChapter ? B.RuinsWorld : coastChapter ? B.CoastWorld : B.World).build(scene, { multiDraw });
     game = B.Game.create(world, { scene, emit: event, sound: (n, o) => B.Audio.play(n, o), fx });
-    makeFX(); postProcess(); setupUI();
+    characterUI = B.CharacterUI.create({ game, onPreview: (canvas,nowMs) => characterPreview.draw(canvas,nowMs), onPreviewTurn: direction => characterPreview.turn(direction), onClose: back, onChange: () => { game.syncProgression(); if (game.saveProfileChoices) game.saveProfileChoices(); hud(0); } });
+    makeFX(); postProcess(); characterPreview = B.CharacterPreview.create({ renderer, camera, game, post }); setupUI();
     titleCamera();
     const placeNotices = () => {
       const height = Math.max($('narration').offsetHeight, $('tutorial').offsetHeight);
@@ -1660,6 +1745,7 @@
     safe(() => assignDepthMaterials(scene));
     ready = true; applySettings();
     B.app = { scene, camera, renderer, world, game, post, rig, scaler, resetPerformance, settings: cfg, input, get view() { return view; }, begin, show, fx, applySettings, clearFX, warmShaders,
+      characterUI, openCharacter, controller, characterPreview,
       get warming() { return !!warming; }, get warmStats() { return warmStats; },
       get performance() { return performanceReport(); },
       // Deterministic frame stepping for headless QA pages (virtual time barely runs requestAnimationFrame).
@@ -1685,29 +1771,31 @@
         notify('Grafikler yeniden hazır. Devam et ile yolculuğa dönebilirsin.');
       }).catch(e => { if (graphicsEpoch === epoch) { console.warn('[Kabir Azabı]', e); notify('Grafikler hazırlanamadı. Sayfayı yeniden yükle.'); } });
     });
-    loadProgress(.96, 'Işıklar ve gölgeler hazırlanıyor…');
-    return warmShaders(false, k => loadProgress(.96 + .04 * k)).then(() => {
+    loadProgress(.43, 'Işıklar ve gölgeler hazırlanıyor…');
+    return warmShaders(false, (k, text) => loadProgress(.43 + .57 * k, text)).then(() => {
       loadProgress(1, 'Hazır.');
       $('loading').classList.add('hidden');
       show('title');
+      if (Q.get('yolculuk') === 'devam' && chapter > 1 && campaign.transition) { const url = new URL(location.href); url.searchParams.delete('yolculuk'); safe(() => history.replaceState(null, '', url)); begin(false); }
       safe(makePortrait);
       requestAnimationFrame(loop);
       if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js').catch(() => {});
     });
   }
-  loadProgress(.92, 'Karakterler hazırlanıyor…');
+  loadProgress(.18, 'Karakterler hazırlanıyor…');
   // Düşük loads the character textures at half size and touch tablets cap them at 1024 px (up to ~88 MB less video memory).
   lowTextures = cfg.quality === 'low';
   Promise.resolve().then(async () => {
     await Promise.all([
       B.Models.prepare({ textureScale: lowTextures ? .5 : 1, maxTexture: coarsePointer ? 1024 : 2048 }),
-      B.TargetHUD.prepare()
+      B.TargetHUD.prepare(),
+      B.GroundLoot.prepare()
     ]);
     if (B.Audio.prepare) {
-      loadProgress(.94, 'Tapınağın sesleri hazırlanıyor…');
-      try { await B.Audio.prepare(k => loadProgress(.94 + .01 * k)); }
+      loadProgress(.30, forgeChapter ? 'Ocağın sesleri hazırlanıyor…' : ruinsChapter ? 'Mağaranın sesleri hazırlanıyor…' : coastChapter ? 'Kıyının sesleri hazırlanıyor…' : 'Tapınağın sesleri hazırlanıyor…');
+      try { await B.Audio.prepare(k => loadProgress(.30 + .08 * k)); }
       catch (e) { console.warn('[Kabir Azabı] Ses hazırlığı tamamlanamadı.', e); }
     }
   })
-    .then(() => { loadProgress(.95, 'Mahzen aydınlanıyor…'); return boot(); }).catch(fatal);
+    .then(() => { loadProgress(.38, forgeChapter ? 'Kızıl Ocak beliriyor…' : ruinsChapter ? 'Sessiz Taht beliriyor…' : coastChapter ? 'Kara Kıyı beliriyor…' : 'Mahzen aydınlanıyor…'); return boot(); }).catch(fatal);
 })();

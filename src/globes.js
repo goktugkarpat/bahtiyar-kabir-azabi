@@ -129,7 +129,7 @@
 
     function collect(g) {
       const p = player; if (!p || p.dead) return;
-      const amt = Math.round(p.maxHp * (HEAL + (p.rageTime > 0 ? HEAL_RAGE : 0))), got = Math.max(0, Math.min(amt, p.maxHp - p.hp));
+      const amt = (Math.round((p.effectiveMaxHp || p.maxHp) * (HEAL + (p.rageTime > 0 ? HEAL_RAGE : 0))) * p.maxHp / (p.effectiveMaxHp || p.maxHp)), got = Math.max(0, Math.min(amt, p.maxHp - p.hp));
       p.hp = Math.min(p.maxHp, p.hp + amt); picked++;
       emit('heal', { hp: p.hp, flasks: p.flasks, source: 'globe', amount: got });
       sound('globe', { x: p.x, z: p.z }); fx('glowBurst', { x: p.x, y: .05, z: p.z, radius: 2.8, color: 0xff2418, duration: .6 });

@@ -1,6 +1,6 @@
 /* KARA GEÇİT — "Kor ve Kül" (ember and ash): diegetic attack tells.
    The attacker tells first (an ember rim building on its body, the weapon heating like forge iron, a glint at the tip),
-   then the floor: soft light pooling where the blow will land, singed ash-broken edges, rune glyphs that ignite one
+   then the floor: soft light pooling where the blow will land, continuous feathered edges, rune glyphs that ignite one
    by one, cracks that glow, a faint blade-arc ribbon, and a short flare .18 s before contact.
    Reading rules (the hero has no block, every blow is avoided by rolling): one soft gold edge + embers drifting out = an ordinary blow, avoid it
    if you can; crimson edge + a pale inner hairline + ash drawn inward (+ a bell) = a severe blow, dodge it. The fill moves the way the blow travels and carries the timing.
@@ -12,17 +12,13 @@
   const B = window.BABA = window.BABA || {}, T = window.THREE;
   const TAU = Math.PI * 2, clamp = (v, a, b) => Math.max(a, Math.min(b, v)), smooth = x => { x = clamp(x, 0, 1); return x * x * (3 - 2 * x); };
   const LEAD = .18;
-  const NOISE = `float hash(vec2 p){ p = fract(p*vec2(123.34,456.21)); p += dot(p, p+45.32); return fract(p.x*p.y); }
-float vnoise(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.-2.*f);
-  return mix(mix(hash(i),hash(i+vec2(1,0)),f.x), mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),f.x), f.y); }`;
+  const groundY = (x,z,r) => { const w=B.app && B.app.world; return w && w.effectHeightAt ? w.effectHeightAt(x,z,r||0) : .035; };
   // Pool: the shader works in world XZ; the quad only has to cover the shape. Output is linear HDR (the app tone-maps later).
   const POOL_VS = 'varying vec2 vW; void main(){ vec4 w = modelMatrix*vec4(position,1.); vW = w.xz; gl_Position = projectionMatrix*viewMatrix*w; }';
   const POOL_FS = `uniform vec2 uOrigin; uniform float uFace; uniform int uShape; uniform vec4 uDim;
 uniform float uU,uFlare,uHit,uFade,uGain,uSweepDir,uUnblock,uDetail,uTime,uSeed,uCalm; uniform int uFill,uStyle;
 uniform vec3 uEdge,uFillCol,uFront; uniform vec4 uK,uE; uniform float uBreak,uF,uCk; uniform vec3 uHl; uniform sampler2D uRune,uCrack; varying vec2 vW;
-${NOISE}
 float rmax(float a, float b, float k){ return length(max(vec2(a+k, b+k), 0.)) + min(max(a, b)+k, 0.) - k; }
-float fbm(vec2 p){ float s=0.,a=.5,n=0.; for(int i=0;i<3;i++){ if(float(i)>=uDetail) break; s+=a*vnoise(p); n+=a; p=p*2.03+7.1; a*=.5; } return s/n; }
 void main(){
   vec2 d = vW - uOrigin; float cs = cos(uFace), sn = sin(uFace);
   float side = cs*d.x - sn*d.y, fwd = sn*d.x + cs*d.y;
@@ -38,10 +34,12 @@ void main(){
          sd = span < 6.28 ? rmax(ring, a > 0. ? r*sin(min(a,1.5708)) : a*r, rc) : ring;
          t = (r-uDim.x)/max(.01, uDim.y-uDim.x); R = uDim.y; }
   if (sd > .7) discard;
-  float n = fbm(vW*2.4 + uSeed), aa = fwidth(sd)+.004, inside = 1.-smoothstep(-aa, aa, sd);
+  // Continuous curved bands: no lattice cells or texture-resolution steps in warning light.
+  float n = .5+.14*sin(dot(vW,vec2(1.13,.79))+uSeed)+.10*sin(dot(vW,vec2(-.67,1.41))-.7*uSeed);
+  float aa = max(fwidth(sd),.004), inside = 1.-smoothstep(-aa, aa, sd);
   if (uStyle == 12) {   // settled bile: murky liquid with a wet meniscus (normal blending)
-    float wob = fbm(vW*1.1 + vec2(uTime*.07, -uTime*.05) + uSeed);
-    float men = exp(-abs(sd+.06)/(.05+.03*n)) * (.35+.65*smoothstep(.3,.7,vnoise(vW*5.1+uTime*.2)));
+    float wob = .5+.20*sin(dot(vW,vec2(.73,.91))+uTime*.07+uSeed)+.12*sin(dot(vW,vec2(-1.31,.59))-uTime*.05);
+    float men = exp(-abs(sd+.06)/(.05+.03*n)) * (.8+.2*sin(dot(vW,vec2(2.31,3.17))+uTime*.2));
     vec3 c = mix(vec3(.006,.011,.003), vec3(.028,.05,.009), wob) + uEdge*men*.6;
     float al = clamp(inside*(.62+.22*wob) + men*.35, 0., .9);
     gl_FragColor = vec4(c, al*uFade*uGain); return; }
@@ -52,8 +50,7 @@ void main(){
   // A full-circle sweep starts and ends on the same radius: feather the start so the wrap never reads as a straight seam.
   // The bright front band also fades out over the last few degrees, where it would meet the start line.
   if (uFill == 2 && span > 6.2) { float fe = mix(smoothstep(0., .09, ft), 1., e*e); lit *= fe; band *= fe * (1.-smoothstep(.9, 1., ft)); }
-  float edge = exp(-abs(sd)/(uE.w+.03*n)) * (.5+.5*smoothstep(.3,.7,n)); float n2 = vnoise(vW*7.3 + uSeed*3.);
-  edge *= mix(1., .15 + .85*smoothstep(.35,.75,n2), uBreak);
+  float edge = exp(-abs(sd)/max(uE.w,fwidth(sd)*1.5));
   float edgeK = uE.x + uE.y*uU*uU + uE.z*uFlare;
   if (uStyle == 5) {    // stalker landing shadow (normal blending): the floor darkens where it will land
     // A dark disc gathers where it will land, a ring of gold light closes in on the centre as it drops.
@@ -61,21 +58,21 @@ void main(){
     float al = clamp(inside*(.26+.5*uU*uU)*(.65+.35*n)*(.55+.45*core) + edge*(.55+.4*uFlare) + ringIn*.5, 0., .9);
     vec3 c = uEdge*(edge*(.12 + edgeK*3.) + ringIn*(.05+.25*uU*uU+.6*uFlare)*(.6+.4*n) + edge*uHit*.8);
     gl_FragColor = vec4(c, al*uFade); return; }
-  // Burning-ground look: no hard outline or box border. The rim is an irregular, feathered ember glow that hugs the inside of
-  // the true edge (jittered by noise), a short soft glow spills outside, cracks of energy run through the lit part and a soft
-  // dark halo keeps it readable on bright stone. Edges stay anti-aliased (fwidth); gold / crimson only differ by colour and glow.
-  float px = max(fwidth(sd), 1e-4), n3 = vnoise(vW*5.3 + uSeed*3.);
-  float sdj = sd + (n-.5)*.17 + (n3-.5)*.06, inJ = 1.-smoothstep(-px, px, sdj), depth = max(-sdj, 0.);
+  // The exact danger boundary is a continuous light line with a soft Gaussian halo.
+  // Texture stays inside the area; it never breaks the rim into cloudy chunks.
+  float px = max(fwidth(sd), 1e-4);
+  float sdj = sd, inJ = 1.-smoothstep(-px, px, sdj), depth = max(-sdj, 0.);
   float perim = uShape==2 ? fwd : ang*R;
-  float dash = uUnblock > .5 ? (uCalm > .5 ? 1. : .7+.3*sin(perim*2.4 - uTime*2.2 + n*6.)) : 1.;
-  float flick = uCalm > .5 ? 1. : .86+.14*sin(uTime*6.3 + n*17.);
-  float ember = mix(.5, 1., smoothstep(.2, .8, n3))*flick;
-  float inner = exp(-depth/(.17+.1*n))*inJ, outer = exp(-max(sdj, 0.)/.1)*(1.-inJ);
+  float dash = 1.;
+  float flick = uCalm > .5 ? 1. : .94+.06*sin(uTime*3.);
+  float ember = 1.;
+  float inner = exp(-pow(sd/max(.055,px*1.5),2.)), outer = exp(-pow(sd/.18,2.));
   float coordT = (uShape==0||uShape==3) ? (uFill==3 ? -r : r) : (uShape==2 ? fwd : r);
   float chev = (uShape==1||uShape==2) ? abs(side)*.55 : 0.;
   float mv = uCalm > .5 ? 0. : uTime*.5*(uFill==3 ? -1. : 1.);
-  float g = fract(coordT*.8 - chev - mv), stripe = smoothstep(0., .08, g)*(1.-smoothstep(.12, .3, g));
-  float vein = 1.-smoothstep(0., .05, abs(vnoise(vW*2.4 + uSeed*2.)-.5)*2.);
+  float g = cos((coordT*.8 - chev - mv)*6.2832), stripe = smoothstep(.35,.92,g);
+  float veinPhase=vW.x*2.3+vW.y*1.71+sin(vW.x*1.2-vW.y*.83+uSeed)*1.3;
+  float vein = smoothstep(.65-fwidth(veinPhase),.96+fwidth(veinPhase),.5+.5*sin(veinPhase));
   float lamp = uU*uU*(3.-2.*uU), core = .45+.55*exp(-depth/.9);
   vec3 col = vec3(0.); float dark = 0.;
   dark += inJ*(uK.x + uK.y*uU)*.8 + exp(-max(sdj, 0.)/.4)*(1.-inJ)*.2*(1.-smoothstep(.25, .68, sd));
@@ -84,12 +81,13 @@ void main(){
   col += uFront*band*inJ*uK.w*(.6+.4*n)*(.75+.25*flick);
   col += uFront*inJ*uFlare*uF*(.5+.5*n);
   float rimK = edgeK*flick;
-  col += uEdge*inner*rimK*ember*dash*.95 + uEdge*outer*rimK*ember*.5;
+  col += uEdge*inner*rimK*ember*dash*.85 + uEdge*outer*rimK*ember*.25;
   col += uEdge*exp(-max(sdj, 0.)/.5)*(1.-inJ)*(uUnblock > .5 ? .13 : .06)*(.4+.6*lamp+uFlare)*(1.-smoothstep(.3, .69, sd));
-  if (uUnblock > .5) { float crawl = uCalm > .5 ? 1. : .6+.4*sin(perim*3.2 - uTime*3.);
+  if (uUnblock > .5) { float crawl = 1.;
     col += vec3(1.25,1.05,.9)*exp(-abs(sd+.19)/.045)*crawl*(uHl.x+uHl.y*uU*uU+uHl.z*uFlare)*inJ*.8; }
   if (uStyle == 4) { vec2 cuv = uShape==2 ? vec2(side/uDim.x*.25+.5, fwd/uDim.y) : vec2(side,fwd)/(2.*R)+.5;
-    float crack = uShape==2 ? texture2D(uCrack,cuv).g : texture2D(uCrack,cuv).r;
+    float texEdge=min(min(cuv.x,1.-cuv.x),min(cuv.y,1.-cuv.y));
+    float crack = (uShape==2 ? texture2D(uCrack,cuv).g : texture2D(uCrack,cuv).r)*smoothstep(0.,.04,texEdge);
     col += uEdge*crack*inside*(.1 + uCk*lit*uU + 2.*uHit); }
   if (uStyle == 2 && uShape == 0) { float glyph = texture2D(uRune, vec2(side,fwd)/(2.*R)+.5).r;
     float slot = (floor(fract(ang/6.2832+.5)*16.)+.5)/16.;
@@ -97,7 +95,8 @@ void main(){
   // Contact: the whole area snaps white-hot for an instant, the rim flares.
   col += uFront*inJ*uHit*(.9+.4*n) + uEdge*inner*uHit*1.6;
   dark *= 1.-uHit;
-  col *= uFade*uGain; dark *= uFade;
+  float support=1.-smoothstep(.55,.69,max(sd,0.));
+  col *= uFade*uGain*support; dark *= uFade*support;
   if (max(col.r,max(col.g,col.b)) < .002 && dark < .004) discard;
   gl_FragColor = vec4(col, clamp(dark, 0., .85));
 }`;
@@ -136,18 +135,23 @@ void main(){ float f = clamp(1. - abs(dot(tellUnit(vN), tellUnit(vV))), 0., 1.);
   float w2 = vn3(vP * 21. + vec3(uVTime * .7, -uVTime * 2.4, 0.)); a += uVein * (veins * 2.6 + .5 * pow(1. - abs(w2 * 2. - 1.), 7.) + .1); }
  a *= uGlow;
  if (a < .003) discard; gl_FragColor = vec4(uColor * a, 1.); }`;
-  // Shockwave through the floor (war cry, roars): an ash-broken ring of heat running outward, glowing cracks at its heart.
+  // Shockwave through the floor (war cry, roars): a continuous ring of heat running outward, glowing cracks at its heart.
   const WAVE_VS = 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.); }';
   const WAVE_FS = `uniform float uR,uW,uA,uSeed,uMax,uCrackA,uCrackR,uSoft; uniform vec3 uCol; uniform sampler2D uCrack; varying vec2 vUv;
-${NOISE}
 void main(){ vec2 p = (vUv-.5)*2.*uMax; float r = length(p), a = r > 1e-6 ? atan(p.x, p.y) : 0.;
- float n = vnoise(vec2(a*5.+uSeed, r*1.3)), n2 = vnoise(vec2(a*13.+uSeed*2., r*3.1));
- float ringD = (r-uR)/max(1e-5,uW*(.7+.6*n));
- float ring = exp(-(ringD*ringD)) * (.3+.7*smoothstep(.3,.75,n2));
+ if(r>=uMax)discard;
+ // Integer angular frequencies join seamlessly at the full-circle wrap.
+ float n=.5+.5*sin(a*5.+sin(r*1.3)+uSeed), n2=.5+.5*sin(a*13.+r*3.1+uSeed*2.);
+ float px=max(fwidth(r),1e-4),ringD=(r-uR)/max(px*1.5,uW*(.95+.10*n));
+ float ring=exp(-(ringD*ringD))*(.9+.1*n2);
  float heat = (1.-smoothstep(0., max(.01,uR), r)) * .18 * (.6+.4*n);
  vec3 col = uCol*(ring + heat*uSoft)*uA;
- vec2 cuv = p/(2.*uCrackR)+.5; float crack = (cuv.x > 0. && cuv.x < 1. && cuv.y > 0. && cuv.y < 1.) ? texture2D(uCrack, cuv).r : 0.;
+ vec2 cuv=p/(2.*max(.01,uCrackR))+.5;float texEdge=min(min(cuv.x,1.-cuv.x),min(cuv.y,1.-cuv.y));
+ float crack=texture2D(uCrack,clamp(cuv,vec2(0.),vec2(1.))).r*smoothstep(0.,.045,texEdge)*(1.-smoothstep(.87,1.,r/max(.01,uCrackR)));
  col += uCol*crack*uCrackA;
+ // A Gaussian never reaches zero: fade its distant tail inside a circular support,
+ // before it can expose the rectangular carrier, even for very broad water waves.
+ col *= 1.-smoothstep(uMax-max(.12,uW*.65),uMax,r);
  if (max(col.r,max(col.g,col.b)) < .002) discard; gl_FragColor = vec4(col, 1.); }`;
   // Soft pooled floor light (glowBurst) and aura sprites.
   const GLOW_FS = `uniform vec3 uCol; uniform float uA; varying vec2 vUv; void main(){ float r = length(vUv-.5)*2.; float a = pow(max(0.,1.-r),2.2)*uA; if (a < .002) discard; gl_FragColor = vec4(uCol*a, 1.); }`;
@@ -192,12 +196,20 @@ void main(){ vec2 p = (vUv-.5)*2.*uMax; float r = length(p), a = r > 1e-6 ? atan
     }, false, 512);
   }
   // Dark scars left in the floor by quakes and falling hooks (white on transparent; tinted by the material).
+  function featherScar(x) {
+    x.globalCompositeOperation='destination-in';
+    [[0,0,12,512,0,0,12,0],[500,0,12,512,512,0,500,0],[0,0,512,12,0,0,0,12],[0,500,512,12,0,512,0,500]].forEach(v=>{
+      x.save();x.beginPath();x.rect(v[0],v[1],v[2],v[3]);x.clip();const g=x.createLinearGradient(v[4],v[5],v[6],v[7]);g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(1,'rgba(0,0,0,1)');x.fillStyle=g;x.fillRect(v[0],v[1],v[2],v[3]);x.restore();
+    });
+    x.globalCompositeOperation='source-over';
+  }
   function scarTex(radial, S) {
     return canvasTex(S, (x, sz, k) => {
       x.clearRect(0, 0, 512, 512); x.lineCap = 'round';
       [['blur(' + 2 * k + 'px)'], ['none']].forEach(pass => { x.filter = pass[0]; crackWalks(x, '#fff', radial, !radial); });
       x.filter = 'none';
       if (radial) { const g = x.createRadialGradient(256, 256, 0, 256, 256, 90); g.addColorStop(0, 'rgba(255,255,255,.55)'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(0, 0, 512, 512); }
+      featherScar(x);
     }, false, 512);
   }
   function starTex() {
@@ -212,7 +224,7 @@ void main(){ vec2 p = (vUv-.5)*2.*uMax; float r = length(p), a = r > 1e-6 ? atan
 
   const SHAPE = { circle: 0, cone: 1, line: 2, ring: 3 };
   const FILL = { radial: 0, forward: 1, sweep: 2, inward: 3, converge: 4 };
-  const STYLE = { blade: 0, blunt: 1, rune: 2, bile: 3, quake: 4, shadow: 5, chain: 6, ember: 7, fall: 8, thrust: 9, grab: 10, roar: 11 };
+  const STYLE = { blade: 0, blunt: 1, rune: 2, bile: 3, quake: 4, shadow: 5, chain: 6, ember: 7, fall: 8, thrust: 9, grab: 10, roar: 11, root: 4, tide: 6 };
   const DETAIL = { low: 1, medium: 3, high: 3 }, PFACTOR = { low: .3, medium: .675, high: .8 };
   const GOLD = { edge: [1.6, 1.05, .5], fill: [.7, .28, .07], front: [1.5, .95, .5] }, CRIMSON = { edge: [1.9, .16, .1], fill: [.85, .05, .04], front: [1.5, .3, .2] };
   const AMBER_RIM = [1.6, .7, .25], CRIMSON_RIM = [1.7, .12, .08], BILE_RIM = [1.2, .5, .12], RAGE_RIM = [1.9, .26, .07], COOL_RIM = [.9, .1, .04];
@@ -266,16 +278,18 @@ void main(){ vec2 p = (vUv-.5)*2.*uMax; float r = length(p), a = r > 1e-6 ? atan
       if (shape === 0) u.uDim.value.set(h.radius, 0, 0, 0); else if (shape === 1) u.uDim.value.set(h.radius, h.arc, 0, 0);
       else if (shape === 2) u.uDim.value.set(h.width, h.length, 0, 0); else u.uDim.value.set(h.inner || 0, h.radius, h.arc || TAU, 0);
       u.uFill.value = FILL[h.fill] != null ? FILL[h.fill] : 0; u.uSweepDir.value = h.sweepDir || 1; u.uUnblock.value = unb ? 1 : 0;
-      // Ordinary (gold) = one soft, ash-broken gold edge; severe / `unblockable` (crimson) = a steadier crimson edge with a pale inner hairline (reads without colour).
+      // Gold = continuous ordinary boundary; crimson = severe boundary plus a pale inner hairline.
       u.uBreak.value = unb ? .1 : .3; u.uHl.value.set(unb ? .4 : .08, .5, 1);
       u.uSeed.value = ((h.x * 3.1 + h.z) % 7 + 7) % 7;
       if (liquid) { vec(u.uEdge.value, [.35, .55, .12]); vec(u.uFront.value, [.12, .2, .04]); vec(u.uFillCol.value, [.1, .18, .03]); }
       // A flying vial lands inside a gold (or crimson) ring like every other blow; only its olive fill hints at the bile.
       else { vec(u.uEdge.value, pal.edge); vec(u.uFront.value, pal.front); vec(u.uFillCol.value, h.style === 'bile' ? [pal.fill[0] * .85, pal.fill[1] * .9 + .05, pal.fill[2]] : pal.fill); }
+      if(h.style==='tide') u.uFillCol.value.set(.10,.25,.27);
+      else if(h.style==='root') u.uFillCol.value.set(.17,.14,.06);
       t.mat.blending = style === 5 || liquid ? T.NormalBlending : T.CustomBlending;
       const m = t.mesh; m.rotation.set(0, 0, 0);
-      if (shape === 2) { m.scale.set(h.width + 1.4, 1, h.length + 1.4); m.rotation.y = h.face; m.position.set(h.x + Math.sin(h.face) * h.length / 2, .035, h.z + Math.cos(h.face) * h.length / 2); }
-      else { const R = h.radius; m.scale.set(2 * R + 1.4, 1, 2 * R + 1.4); m.position.set(h.x, .035, h.z); }
+      if (shape === 2) { m.scale.set(h.width + 1.4, 1, h.length + 1.4); m.rotation.y = h.face; m.position.set(h.x + Math.sin(h.face) * h.length / 2, groundY(h.x,h.z,h.length), h.z + Math.cos(h.face) * h.length / 2); }
+      else { const R = h.radius; m.scale.set(2 * R + 1.4, 1, 2 * R + 1.4); m.position.set(h.x, groundY(h.x,h.z,h.radius), h.z); }
       // Ribbon: slashes/whips/grabs along the blade arc, thrusts and chains along their line.
       const ribbon = !h.persistent && ((shape === 1 || shape === 3) && /blade|chain|grab/.test(h.style) || shape === 2 && /thrust|chain/.test(h.style));
       t.ribbon = ribbon;
@@ -522,7 +536,7 @@ void main(){ vec2 p = (vUv-.5)*2.*uMax; float r = length(p), a = r > 1e-6 ? atan
       let w = waves.find(v => !v.used);
       if (!w) { const mat = waveBase.clone(); mat.uniforms.uCrack.value = textures.crack; const m = new T.Mesh(plane, mat); m.renderOrder = 2; m.frustumCulled = false; m.visible = false; group.add(m); w = { m, mat, used: false }; waves.push(w); }
       w.used = true; w.age = 0; w.o = Object.assign({ radius: 5, life: .6, width: .35, color: [1.6, .45, .12], crack: 0, crackR: 2.2, crackLife: 1.4, soft: 1, delay: 0 }, o);
-      const R = w.o.radius + 1.5; w.m.scale.set(2 * R, 1, 2 * R); w.m.position.set(x, .04, z); w.mat.uniforms.uMax.value = R; w.mat.uniforms.uSeed.value = Math.random() * 10;
+      const R = Math.max(w.o.radius + Math.max(1.5,w.o.width*1.4*3.3),w.o.crack ? w.o.crackR+.2 : 0); w.m.scale.set(2 * R, 1, 2 * R); w.m.position.set(x, groundY(x,z,w.o.radius), z); w.mat.uniforms.uMax.value = R; w.mat.uniforms.uSeed.value = Math.random() * 10;
       w.mat.uniforms.uCol.value.set(w.o.color[0], w.o.color[1], w.o.color[2]); w.mat.uniforms.uCrackR.value = w.o.crackR; w.mat.uniforms.uSoft.value = w.o.soft; w.m.visible = false;
       return w;
     }
@@ -530,7 +544,7 @@ void main(){ vec2 p = (vUv-.5)*2.*uMax; float r = length(p), a = r > 1e-6 ? atan
       let g = glows.find(v => !v.used);
       if (!g) { const mat = glowBase.clone(); const m = new T.Mesh(plane, mat); m.renderOrder = 1; m.frustumCulled = false; m.visible = false; group.add(m); g = { m, mat, used: false }; glows.push(g); }
       g.used = true; g.age = 0; g.o = Object.assign({ radius: 2, life: .6, color: [1.4, .9, .5], peak: .6, y: .05 }, o);
-      const R = g.o.radius * 1.25; g.m.scale.set(2 * R, 1, 2 * R); g.m.position.set(x, g.o.y, z); g.mat.uniforms.uCol.value.set(g.o.color[0], g.o.color[1], g.o.color[2]); g.m.visible = true; g.mat.uniforms.uA.value = 0;
+      const R = g.o.radius * 1.25; g.m.scale.set(2 * R, 1, 2 * R); g.m.position.set(x, Math.max(g.o.y,groundY(x,z,g.o.radius)), z); g.mat.uniforms.uCol.value.set(g.o.color[0], g.o.color[1], g.o.color[2]); g.m.visible = true; g.mat.uniforms.uA.value = 0;
       return g;
     }
     // A roar uses three fronts at once. Reserve their materials before loading finishes so the first ability

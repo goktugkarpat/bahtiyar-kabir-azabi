@@ -566,6 +566,20 @@
         { every: [16, 24], first: [5, 8], fn: (p, t) => brassNote(p, D2, t, { vel: .2, att: 2.5, dur: 5, rel: 3, bright: .6 }) }
       ] }
   ];
+  // A separate coastal score: unsettled low strings, drowned choir and the distant bell.
+  const COAST_SCENES = SCENES.map((sc, i) => ({
+    name: ['Yanmış Mezarlık','Köklerin Yolu','Boğulmuş Sokak','Çürük İskele','Kara Kök Meydanı','Son Fener','Boğulmuş Çanlık'][i],
+    drone: {d1:.8, d2:.4, fifth:i === 5 ? .3 : .12, rub:.25, trit:i === 4 ? .22 : .08, cut:125 + i * 7},
+    pads: {bus: i === 2 || i === 5 ? 'choirA' : 'strings', vowel:'u', inst:i === 2 || i === 5 ? 'choir' : 'string',
+      chords:[[D2,A2,Eb3],[Bb1,D2,Ab2],[D2,Ab2,E3],[D2,A2,D3]], len:[16,25], rest:.38, att:4, rel:6, vel:.07, bright:.38, trem:.15},
+    gens: [
+      {every:[21,34],first:[5,9],fn:(p,t)=>toll(p,t,{vel:i === 6 ? .45 : .23,rate:.72,pan:rr(-.5,.7)})},
+      {every:[16,29],first:[3,8],fn:(p,t)=>stringNote(p,'cello',i === 4 ? Eb2 : D2,t,{vel:.17,att:2,dur:5,rel:3,n:2,gliss:-65,glissAt:2,glissTime:3})},
+      {every:[13,23],first:[1,5],fn:(p,t)=>noiseSwell(p,'fx',t,rr(5,9),140,450,.20)}
+    ]
+  }));
+  const coastalScore = new URLSearchParams(location.search).get('bolum') === '2';
+  const roomScore = i => coastalScore ? COAST_SCENES[i] : SCENES[i];
   const DRONE_OFF = { d1: 0, d2: 0, fifth: 0, rub: 0, trit: 0, cut: 90, lvl: 0 }, DRONE_QUIET = { d1: .3, d2: .2, fifth: 0, rub: 0, trit: 0, cut: 95, lvl: .6 };
   const DRONE_BOSS = { 1: { d1: 1, d2: .4, fifth: .2, rub: .2, trit: .25, cut: 190 }, 2: { d1: 1, d2: .45, fifth: 0, rub: .35, trit: .45, cut: 240 } };
 
@@ -588,7 +602,7 @@
     sc.gens.forEach((g, i) => { while (p.gt[i] < until) { const at = Math.max(p.gt[i], t); g.fn(p, at); p.gt[i] = at + rr(g.every[0], g.every[1]); } });
   }
   function sceneLife(p, i, t) {
-    const sc = SCENES[i];
+    const sc = roomScore(i);
     if (p.target > 0 && !p.on) { p.on = true; p.gt = null; p.pad = null; if (sc.enter) sc.enter(p, t); }
     else if (p.target === 0 && p.on && p.level < .015) { p.on = false; if (sc.exit) sc.exit(p, t); releaseAll(p, t, .2); p.pad = null; p.gt = null; }
   }
@@ -809,15 +823,15 @@
     setPart(PC, !quiet && (combatOn || CB.ending || t < (CB.tail || 0)) ? 1 : 0, quiet ? .2 : combatOn ? .05 : 1.3, dt);
     setPart(PB, boss && !quiet ? .85 : 0, boss ? .2 : quiet ? .25 : 2.5, dt);
     const late = (S.wonAt >= 0 && t > S.wonAt + 50) || (dead && t > S.deathAt + 7);
-    droneSet(quiet ? (late ? DRONE_QUIET : DRONE_OFF) : boss ? DRONE_BOSS[BS.phase] : room >= 0 ? SCENES[room].drone : DRONE_QUIET, t, quiet && !late ? .6 : 2.5);
+    droneSet(quiet ? (late ? DRONE_QUIET : DRONE_OFF) : boss ? DRONE_BOSS[BS.phase] : room >= 0 ? roomScore(room).drone : DRONE_QUIET, t, quiet && !late ? .6 : 2.5);
     if (susp) return; // faded out: schedule nothing new
     const until = t + LOOKAHEAD;
     transport(t, until);
-    for (let i = 0; i < 7; i++) { const p = SCP[i]; if (p.target > 0) { runPads(p, SCENES[i], t, until); runGens(p, SCENES[i], t, until); } }
+    for (let i = 0; i < 7; i++) { const p = SCP[i]; if (p.target > 0) { runPads(p, roomScore(i), t, until); runGens(p, roomScore(i), t, until); } }
     tensionRun(PT, t, until); runLater(until);
   }
   function onStep(st, t) {
-    for (let i = 0; i < 7; i++) { const p = SCP[i], sc = SCENES[i]; if (sc.steps && p.target > 0) sc.steps(p, st, t); }
+    for (let i = 0; i < 7; i++) { const p = SCP[i], sc = roomScore(i); if (sc.steps && p.target > 0) sc.steps(p, st, t); }
     combatStep(PC, st, t); bossStep(PB, st, t);
   }
   function sting(name) {

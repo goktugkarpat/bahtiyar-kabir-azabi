@@ -20,12 +20,13 @@ Gerekenler: Python 3.9+, `pip install edge-tts`, ffmpeg + ffprobe
 (librubberband ve libmp3lame ile; Homebrew ve gyan.dev derlemelerinde vardır).
 İndirilen paketler ve TTS kayıtları proje dışında önbelleğe alınır:
   $KARA_AUDIO_CACHE  ya da  ~/.cache/kara-gecit-audio
-Anlatıcı sesi: edge-tts tr-TR-AhmetNeural. Varsayılan N stili her kaydı bütün cümleler halinde seslendirir:
-doğal Türkçe vurgu ve sözcük geçişleri korunur, tempo -4%, perde doğal (0 Hz) kalır. Baş/son sessizliği kırpılır;
-hafif eşitleme, sibilans denetimi ve ölçülü sıkıştırma uygulanır; -16 LUFS. Konuşmaya yankı eklenmez.
+Anlatıcı sesi: edge-tts tr-TR-AhmetNeural. Varsayılan D stili bütün düşünceyi tek kayıtta seslendirir:
+doğal Türkçe vurgu ve sözcük geçişleri korunur; tempo -8%, perde yalnız -3 Hz. Durakları noktalama ve
+cümle anlamı belirler. Baş/son sessizliği kırpılır; hafif göğüs EQ'su, sibilans denetimi ve düşük oranlı
+sıkıştırma uygulanır; -16 LUFS, 32 kHz/96 kbps. Konuşmaya yankı eklenmez.
 Formant düşürme, yapay fısıltı ve her cümlenin sonunu ayrıca yavaşlatma kullanılmaz. Bahtiyar (H) ve
 Zincir Celladı (E) aynı sesi hafif tempo/ton farkıyla kullanır; farklı gerçek oyuncularmış gibi sunulmaz.
-Eski A/B/C işleme adayları karşılaştırma için korunur. `voice --style N|A|B|C` anlatıcı stilini seçer;
+Eski N/A/B/C işleme adayları karşılaştırma için korunur. `voice --style D|N|A|B|C` anlatıcı stilini seçer;
 karakter cümleleri kendi H/E stillerinde üretilir. `voice --samples DIR` örnekleri üretir.
 Efekt kaynaklarının hepsi CC0'dır (liste ve değişiklikler: ASSET-LICENSES.md). Her sprite'ın
 başında bir eşitleme tonu vardır (MARK_AT); audio.js MP3 çözücü gecikmesini buna göre düzeltir.
@@ -50,10 +51,31 @@ FFPROBE = os.environ.get('KABIR_FFPROBE') or shutil.which('ffprobe')
 #   rot: Kemik Geçidi (oda 4)             checkpoint: Sessiz Şapel / yemin taşı
 #   boss: Zincir Mahkemesi / cellat       seal: ilk mühür açılınca (audio.js)
 #   death, death2, death3: ölüm ekranı (sırayla)   win: bölüm sonu
+#   ruinsIntro/Checkpoint/Boss/Win: Sessiz Taht (III), forgeIntro/Checkpoint/Boss/Win: Kızıl Ocak (IV)
 # Yeni konuşma çatışmada başlamaz; başlamış cümle, oda değişse de tamamlanır.
 # ---------------------------------------------------------------------------
 LINES = {
-    'intro':      'Bu tapınakta ölüm bir son değil. Celladın zinciri kırılmadan kimse mezarında kalamıyor.',
+    'ruinsIntro': 'Kıyının ardında bir krallık gömülü. Kül harabelerinde duran taşlar bile ölülerin adını taşıyor. Yol, yıkılmış anıtın altından mağaraya iniyor... Orada hâlâ bir kral bekliyor.',
+    'ruinsCheckpoint': 'Son Yemin taşı seni hatırlayacak. Canını tazele. Tahtın nöbetini aşınca geri dönecek bir yol bulamayabilirsin.',
+    'ruinsBoss': 'Oyukların kralı. Tacının altında bir yüz yok; yalnızca aç bir boşluk var. Tahtında oturan şeyi sustur. Yoksa bu mağara senin sesinle konuşacak.',
+    'ruinsWin': 'Taht parçalandı... Ama kralın altında bir kapı açıldı. İçeriden gün ışığı değil, kızgın demirin soluğu geliyor. Celladın zincirleri orada dövülmüş.',
+    'forgeIntro': 'Bu ocak yıllar önce unutuldu. Körükler hâlâ çalışıyor; ateşi besleyenler çoktan kül oldu. Celladın zincirleri burada dövülüyor. Kaynağı yok etmeden bu yemin bitmeyecek.',
+    'forgeCheckpoint': 'Köz Yemini mühürlendi. Son Döküm’e giden yol açık. Canını tazele... Ocağın kalbi hâlâ atıyor ve buraya kadar taşıdığın bütün yaraları istiyor.',
+    'forgeBoss': 'Ocağın kalbi. Demir halkaların içinde tutsak bir alev... Zincirleri yeniden dövmek için senin kanını bekliyor. Bu ateşi söndür.',
+    'forgeWin': 'Ocak sustu... Son zincir de eridi. Geride bıraktığın ölüler artık seni izleyemeyecek. Dışarıda kimse seni beklemiyor. Yine de yürümek zorundasın.',
+    'coastIntro': 'Kapıyı aştın, ama dışarıda güneş yok. Deniz bütün kasabayı yutmuş; kıyıya vuran ölüler köklere takılı kalmış. Burada da seni kimse beklemiyor.',
+    'coastRoots': 'Yanmış ağaçların altında hâlâ kalpler atıyor. Her kök, toprağa gömülmüş birine uzanıyor.',
+    'coastStreet': 'Kapılar içeriden kilitlendi. Su yükselirken kimse birbirine yardım etmedi. Şimdi hepsi aynı sokakta bekliyor.',
+    'coastPier': 'Fenerleri takip etme. O ışıklar tekneleri kıyıya değil, derinliğe çağırdı.',
+    'coastSquare': 'Meydanın altında yüzlerce mezar var. Çancı onların adlarını unuttu. Kökler unutmadı.',
+    'coastCheckpoint': 'Son fener hâlâ yanıyor. Yeminin burada seni bulacak. Ardındaki çanlığa hazır git.',
+    'coastBoss': 'Derinliklerin çancısı. Deniz onun göğsünde, mezarlar sırtında. Çanı sustur. Yoksa kıyı yeniden boğulacak.',
+    'coastDeath': 'Deniz seni henüz almadı. Yemin seni kıyıya geri çağırıyor. Ayağa kalk.',
+    'coastDeath2': 'Kökler bu kez tutamadı. Ama karanlık adını öğrendi. Yeniden yürü.',
+    'coastDeath3': 'Çan hâlâ senin için çalıyor. Bu kıyıdan çıkmak istiyorsan onu sustur.',
+    'coastSeal': 'Kökler gevşedi. Kıyının içlerine ilerle.',
+    'coastWin': 'Çan sustu... Deniz çekilirken yüzler ortaya çıkıyor. Kimse kurtulmamış. Sen hâlâ nefes alıyorsun; bu kıyının sana verebildiği tek şey bu.',
+    'intro':      'Seni buraya ölü sanıp attılar. Kör bir kılıç ve yırtık bezlerle uyandın... Yukarıda kimse seni beklemiyor. Çıkmak istiyorsan celladın zincirini kır.',
     'chains':     'Bu nöbetçiler celladın ilk kurbanlarıydı. Boyunlarındaki zincir onları bugün bile celladın emrinde tutuyor.',
     'ritual':     'Yaralıları buraya iyileşsinler diye getirdiler. Rahipler onların acısıyla ayini besledi.',
     'crypt':      'Sunağa dökülen kan, cellada güç veriyor. Bu ayin bitmeden tapınak susmayacak.',
@@ -66,11 +88,11 @@ LINES = {
     'death':      'Yemin henüz bozulmadı. Taş seni geri çağırıyor.',
     'death2':     'Bu mezar seni tutamayacak. Ayağa kalk.',
     'death3':     'Bir kez daha düştün. Ama yemin bozulmadı. Zinciri kırmak için yeniden ayağa kalk.',
-    'win':        'Cellat öldü. Hükmü sona erdi. Tapınağın ölüleri artık huzur bulabilir. Ama aşağıdan gelen o nefes henüz kesilmedi.',
+    'win':        'Cellat sustu... Zincir kırıldı; ölüler sonunda mezarlarında kalabilecek. Ama açılan kapıdan gün ışığı gelmiyor. Dışarıda yalnızca çan sesi var.',
 }
 TTS_RATE, TTS_PITCH = '-12%', '-11Hz'   # ilahiler (chant) için düz TTS ayarı
 VOICE_LUFS, VOICE_TP = -16.0, -1.5
-VOICE_ENC = ['-ar', '32000', '-ac', '1', '-c:a', 'libmp3lame', '-b:a', '64k']
+VOICE_ENC = ['-ar', '32000', '-ac', '1', '-c:a', 'libmp3lame', '-b:a', '96k']
 
 # ---------------------------------------------------------------------------
 # Kaynak paketleri (hepsi CC0). ASSET-LICENSES.md ile aynı liste.
@@ -358,6 +380,7 @@ STYLES = {
     # Full sentences keep the native voice's coarticulation and emphasis.
     # No formant shift, artificial whisper or forced slower final syllable.
     'N': dict(BASE_FX, rate='-4%', rate_last='-4%', tts_pitch='+0Hz', pitch_last='+0Hz', ell=320, gap=180, whole=True),
+    'D': dict(BASE_FX, rate='-8%', rate_last='-8%', tts_pitch='-3Hz', pitch_last='-3Hz', ell=320, gap=180, whole=True, dark=True),
     'H': dict(BASE_FX, rate='-1%', rate_last='-1%', tts_pitch='+0Hz', pitch_last='+0Hz', ell=320, gap=180, whole=True),
     'E': dict(BASE_FX, rate='-6%', rate_last='-6%', tts_pitch='+0Hz', pitch_last='+0Hz', ell=320, gap=180, whole=True),
     'A': dict(BASE_FX, rate='-20%', rate_last='-28%', tts_pitch='-6Hz', ell=650, comma=180, gap=380, reverb=-19, pres=5),
@@ -366,7 +389,7 @@ STYLES = {
     'C': dict(BASE_FX, rate='-24%', rate_last='-32%', ell=900, comma=240, gap=520, pitch=0.96, whisper=-13, wdelay=12,
               reverb=-20, low=1, pres=5, air=3, ir=(.9, 6.0, 3600, .010)),
 }
-DEFAULT_STYLE = 'N'
+DEFAULT_STYLE = 'D'
 CHARACTER_LINES = {'heroOath': ('Bahtiyar', 'H'), 'cellat': ('Zincir Celladı', 'E')}
 
 def process_voice(raw, key, work, style=None):
@@ -385,10 +408,14 @@ def process_voice(raw, key, work, style=None):
         if end < boundary_end - .08:
             raise RuntimeError('TTS son sözcüğün zamanından önce bitiyor: ' + key)
         ff(['-i', raw, '-af', f'atrim=start={start:.6f}:end={end:.6f},asetpts=PTS-STARTPTS', trimmed])
-        ff(['-i', trimmed, '-af', 'aresample=48000,highpass=f=72,'
-            'equalizer=f=260:t=q:w=1.2:g=-0.6,equalizer=f=2200:t=q:w=0.9:g=0.8,'
-            'deesser=i=0.1:m=0.2:f=0.5,acompressor=threshold=0.14:ratio=1.4:attack=15:release=140,'
-            'apad=pad_dur=0.12', '-ac', '1', wet])
+        # Native voice and its consonants stay intact. The dark reading gains a little chest body,
+        # while the gentler compressor preserves the actual rise and fall of the spoken thought.
+        tone = ('highpass=f=62,lowshelf=f=145:g=1.0,equalizer=f=290:t=q:w=1.2:g=-0.7,'
+                'equalizer=f=2250:t=q:w=0.9:g=0.6,deesser=i=0.08:m=0.18:f=0.5,'
+                'acompressor=threshold=0.16:ratio=1.25:attack=18:release=160') if fx.get('dark') else (
+                'highpass=f=72,equalizer=f=260:t=q:w=1.2:g=-0.6,equalizer=f=2200:t=q:w=0.9:g=0.8,'
+                'deesser=i=0.1:m=0.2:f=0.5,acompressor=threshold=0.14:ratio=1.4:attack=15:release=140')
+        ff(['-i', trimmed, '-af', 'aresample=48000,' + tone + ',apad=pad_dur=0.12', '-ac', '1', wet])
         verification = dict(meta, raw_duration=len(samples) / 48000, trim_start=start, trim_end=end,
                             last_active=last_active, last_word_end=boundary_end,
                             source_tail=end-last_active, fade=False, echo=False)
@@ -437,7 +464,8 @@ def build_voice(only=None, wav_dir=None, style=None):
             if os.path.exists(meta):
                 shutil.copy(meta, os.path.join(wav_dir, 'voice_' + key + '.json'))
         data = open(mp3, 'rb').read()
-        out[key] = {'text': text, 'speaker': speaker, 'duration': round(duration(mp3), 3), 'audio': base64.b64encode(data).decode()}
+        out[key] = {'text': text, 'speaker': speaker, 'voice': VOICE, 'style': own_style,
+                    'duration': round(duration(mp3), 3), 'audio': base64.b64encode(data).decode()}
         log(f'  {key:10s} {out[key]["duration"]:5.2f} sn  {len(data) // 1024:3d} KB')
     shutil.rmtree(work, ignore_errors=True)
     return out
@@ -629,7 +657,7 @@ def read_existing():
 
 def write_js(narration, bank):
     head = ('// KARA GEÇİT - gömülü sesler. Bu dosya tools/gen_narration.py ile üretilir; elle düzenleme.\n'
-            '// Narration: tr-TR-AhmetNeural anlatıcı cümleleri (işlenmiş). SoundBank: CC0 paketlerden efektler\n'
+            '// Narration: tr-TR-AhmetNeural, doğal Türkçe okumalar. SoundBank: CC0 paketlerden efektler\n'
             '// (kaynaklar ve lisanslar: ASSET-LICENSES.md). file:// ile çalışması için base64 MP3 olarak gömülüdür.\n'
             'window.BABA = window.BABA || {};\n')
     with open(OUT_JS, 'w', encoding='utf-8', newline='\n') as o:

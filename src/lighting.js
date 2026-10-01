@@ -1,5 +1,5 @@
 /* KARA GEÇİT — light design: key/fill/rim rig per room, volumetric fog (low mist + light in-scattering),
-   character rim/wrap light, contact shadows under characters, heat-haze sources and the scripted light of the
+   character rim/wrap light, heat-haze sources and the scripted light of the
    ritual hall, the oath stone and the executioner's court. Classic script; publishes BABA.Lighting.
    Must load before the app builds its first material (the fog shader chunks are replaced at load). */
 (function () {
@@ -180,9 +180,9 @@
 
   // ---------------------------------------------------------------- presets
   var PRESET = {
-    low:  { scatter: 2, moonShadow: 0,    shadowHz: 0, blob: .42, rimWrap: .8, mistDetail: 0 },
-    medium: { scatter: 8, moonShadow: 1024, shadowHz: 30, blob: .28, rimWrap: .95, mistDetail: 1 },
-    high: { scatter: 10, moonShadow: 1536, shadowHz: 60, blob: .26, rimWrap: 1, mistDetail: 1 }
+    low:  { scatter: 2, moonShadow: 0,    shadowHz: 0, rimWrap: .8, mistDetail: 0 },
+    medium: { scatter: 8, moonShadow: 1024, shadowHz: 30, rimWrap: .95, mistDetail: 1 },
+    high: { scatter: 10, moonShadow: 1536, shadowHz: 60, rimWrap: 1, mistDetail: 1 }
   };
 
   function smooth(t) { t = Math.max(0, Math.min(1, t)); return t * t * (3 - 2 * t); }
@@ -214,22 +214,6 @@
       cards.forEach(function (m) { m.geometry.dispose(); m.material.dispose(); }); pmrem.dispose();
     }());
 
-    // Contact shadows: a soft dark disc under every living character (all presets; stronger without shadow maps).
-    var blobTex = (function () {
-      var c = document.createElement('canvas'); c.width = c.height = 64; var x = c.getContext('2d');
-      var g = x.createRadialGradient(32, 32, 0, 32, 32, 32);
-      g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(.38, 'rgba(255,255,255,.82)'); g.addColorStop(.7, 'rgba(255,255,255,.3)'); g.addColorStop(1, 'rgba(255,255,255,0)');
-      x.fillStyle = g; x.fillRect(0, 0, 64, 64);
-      var t = new T.CanvasTexture(c); return t;
-    }());
-    var blobMat = new T.MeshBasicMaterial({ color: 0x000000, alphaMap: blobTex, transparent: true, depthWrite: false, opacity: .4,
-      polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 });
-    blobMat.defines = { KARA_FULLMIST: '' };
-    var blobGeo = new T.PlaneGeometry(1, 1); blobGeo.rotateX(-Math.PI / 2);
-    var BLOBS = 48, blobs = new T.InstancedMesh(blobGeo, blobMat, BLOBS); blobs.frustumCulled = false; blobs.renderOrder = -5; blobs.count = 0;
-    blobs.name = 'kara-contact-shadows'; scene.add(blobs);
-    var blobM = new T.Matrix4(), blobQ = new T.Quaternion(), blobS = new T.Vector3(), blobP = new T.Vector3();
-
     // Scripted moments.
     var director = { bossSeen: false, bossActiveAt: -1, phase2At: -1, bossDeadAt: -1, checkpointAt: -1, lastCheckpoint: null, ritualLive: 1, wasBoss: false };
     var grade = { lift: new T.Vector3(), gain: new T.Vector3(1, 1, 1), saturation: 1, contrast: .12, shadowTint: new T.Vector3(1, 1, 1), highTint: new T.Vector3(1, 1, 1),
@@ -259,7 +243,6 @@
         moon.shadow.mapSize.set(preset.moonShadow, preset.moonShadow);
         if (moon.shadow.map) { moon.shadow.map.dispose(); moon.shadow.map = null; }
       }
-      blobMat.opacity = preset.blob;
       if (!scene.fog) scene.fog = new T.FogExp2('#0b1116', .02);
       if (typeof cfgRef.reducedMotion === 'boolean') reducedMotion = cfgRef.reducedMotion;
     }
@@ -371,22 +354,6 @@
       }
     }
     function prepare(game) { patchCharacters(game); splitShared(scene); splitCharacters(game); }
-
-    function updateBlobs(game, dt) {
-      if (!game || !game.player) { blobs.count = 0; return; }
-      var n = 0, enemies = game.enemies || [];
-      for (var i = -1; i < enemies.length && n < BLOBS; i++) {
-        var e = i < 0 ? game.player : enemies[i]; if (!e || !e.model) continue;
-        var fade = e.__karaBlob == null ? 1 : e.__karaBlob;
-        fade += ((e.dead ? 0 : 1) - fade) * Math.min(1, dt * 4); e.__karaBlob = fade;
-        if (fade < .02) continue;
-        var root = e.model.root; if (!root.visible) continue;
-        var r = (e.model.radius || .45) * (e.boss ? 2.7 : 2.4) * (.55 + .45 * fade);
-        blobP.set(root.position.x, .012, root.position.z); blobS.set(r, 1, r * .92);
-        blobM.compose(blobP, blobQ, blobS); blobs.setMatrixAt(n++, blobM);
-      }
-      blobs.count = n; blobs.instanceMatrix.needsUpdate = true;
-    }
 
     // Fog in-scattering: the brightest sources near the view centre (real or not) glow in the air.
     var scatterList = [];
@@ -603,10 +570,10 @@
       if (boss) {
         if (boss.active && !boss.dead && d.bossActiveAt < 0) d.bossActiveAt = time;
         if (!boss.active && !boss.dead && game.state !== 'playing') { /* keep */ }
-        if (boss.phase === 2 && d.phase2At < 0) d.phase2At = time;
+        if (boss.phase >= 2 && d.phase2At < 0) d.phase2At = time;
         if (boss.dead && d.bossDeadAt < 0) d.bossDeadAt = time;
         if (!boss.dead && !boss.active && d.bossActiveAt >= 0 && boss.hp >= boss.maxHp) { d.bossActiveAt = -1; d.phase2At = -1; }
-        if (!boss.dead && boss.phase !== 2 && d.phase2At >= 0) d.phase2At = -1;
+        if (!boss.dead && boss.phase < 2 && d.phase2At >= 0) d.phase2At = -1;
         if (!boss.dead && d.bossDeadAt >= 0) d.bossDeadAt = -1;
       }
       var tA = d.bossActiveAt >= 0 ? time - d.bossActiveAt : -1;
@@ -723,12 +690,10 @@
       if (opts.post) { updateHeat(opts.post.heat(), fx, fz); if (opts.post.pulse) warCryPost(opts.post.heat(), opts.post.pulse(), p); opts.post.setGrade(grade); }
       if (!ab.stepped) abilityStep(dt, game, time);
       ab.stepped = false;
-      updateBlobs(game, dt);
     }
     function dispose() {
-      [hemi, moon, rim, moonTarget, rim.target, blobs].forEach(function (o) { scene.remove(o); });
+      [hemi, moon, rim, moonTarget, rim.target].forEach(function (o) { scene.remove(o); });
       if (moon.shadow.map) moon.shadow.map.dispose();
-      blobGeo.dispose(); blobMat.dispose(); blobTex.dispose();
       if (scene.environment) { scene.environment.dispose(); scene.environment = null; }
     }
     setQuality(opts.cfg || {});

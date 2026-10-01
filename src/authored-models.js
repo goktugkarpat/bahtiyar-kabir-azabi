@@ -454,7 +454,8 @@
     A.contact = function () {
       if (!hash) buildHash();
       var cell = .03, gear = new Map();
-      parts.forEach(function (part) { if (part.body) return; var p = part.geometry.attributes.position; for (var i = 0; i < p.count; i++) { var k = Math.floor(p.getX(i) / cell) + ',' + Math.floor(p.getY(i) / cell) + ',' + Math.floor(p.getZ(i) / cell); if (!gear.has(k)) gear.set(k, []); gear.get(k).push(p.getX(i), p.getY(i), p.getZ(i)); } });
+      // Optional armour must not paint the bare body with shadows from every unequipped variant.
+      parts.forEach(function (part) { if (part.body || part.equipment) return; var p = part.geometry.attributes.position; for (var i = 0; i < p.count; i++) { var k = Math.floor(p.getX(i) / cell) + ',' + Math.floor(p.getY(i) / cell) + ',' + Math.floor(p.getZ(i) / cell); if (!gear.has(k)) gear.set(k, []); gear.get(k).push(p.getX(i), p.getY(i), p.getZ(i)); } });
       function near(map, c, x, y, z) { var cx = Math.floor(x / c), cy = Math.floor(y / c), cz = Math.floor(z / c), best = c * c; for (var i = -1; i <= 1; i++) for (var j = -1; j <= 1; j++) for (var k = -1; k <= 1; k++) { var l = map.get((cx + i) + ',' + (cy + j) + ',' + (cz + k)); if (!l) continue; for (var q = 0; q < l.length; q += 3) { var dx = l[q] - x, dy = l[q + 1] - y, dz = l[q + 2] - z, d = dx * dx + dy * dy + dz * dz; if (d < best) best = d; } } return Math.sqrt(best); }
       var bodyMap = new Map(); hash.map.forEach(function (list) { list.forEach(function (r) { var k = Math.floor(r.x / cell) + ',' + Math.floor(r.y / cell) + ',' + Math.floor(r.z / cell); if (!bodyMap.has(k)) bodyMap.set(k, []); bodyMap.get(k).push(r.x, r.y, r.z); }); });
       parts.forEach(function (part) {
@@ -546,7 +547,8 @@
     var group = new T.Group(); group.name = 'weapon_art';
     Object.keys(piece.parts).forEach(function (key) {
       var list = piece.parts[key]; if (!list.length) return; list.forEach(function (q) { if (!q.attributes.kwear) G.wear(q, wearDefaults(key)); });
-      var mesh = new T.Mesh(G.merge(list), gearMaterial((piece.materialKeys && piece.materialKeys[key]) || key)); mesh.castShadow = true; mesh.receiveShadow = true; mesh.name = key; group.add(mesh);
+      var mat = piece.materials && piece.materials[key] || gearMaterial((piece.materialKeys && piece.materialKeys[key]) || key);
+      var mesh = new T.Mesh(G.merge(list), mat); mesh.castShadow = true; mesh.receiveShadow = true; mesh.name = key; group.add(mesh);
     });
     return group;
   }
@@ -793,6 +795,149 @@
     });
   }
 
+  // Equipment uses the same packaged CC0 scans as the world. Colour grading sits over their albedo,
+  // relief and ARM maps; changing an item never allocates a texture, a material or geometry.
+  function equipmentMaterial(key) {
+    var name = 'equipment-' + key; if (library[name]) return library[name];
+    var scan = 'rust', cls = 'metal', tint = [.78, .78, .8], sat = .08, rough = .68, metalness = .76, wear = 1, grime = .25;
+    if (key === 'rust') { tint = [.65, .47, .32]; sat = .55; rough = .88; metalness = .52; grime = .46; }
+    else if (key === 'steel') { tint = [1.12, 1.12, 1.18]; rough = .48; wear = 1.35; }
+    else if (key === 'salt') { tint = [.83, .98, 1.02]; rough = .57; wear = 1.4; }
+    else if (key === 'edge') { tint = [1.6, 1.63, 1.7]; rough = .3; metalness = .9; wear = .6; grime = .12; }
+    else if (key === 'brass') { tint = [1.12, .76, .34]; sat = .18; rough = .48; }
+    else if (key === 'dark') { tint = [.28, .3, .32]; rough = .82; }
+    else if (key === 'leather' || key === 'strap') { scan = 'leather'; cls = 'leather'; tint = key === 'strap' ? [.44, .34, .26] : [.8, .66, .52]; sat = .6; rough = .88; metalness = 0; }
+    else if (key === 'cloth' || key === 'rag') { scan = 'linen'; cls = 'cloth'; tint = key === 'rag' ? [.36, .28, .22] : [.62, .57, .49]; sat = .35; rough = 1; metalness = 0; grime = .4; }
+    else if (key === 'wood') { scan = 'wood'; cls = 'wood'; tint = [.78, .62, .45]; sat = .7; rough = .84; metalness = 0; }
+    else if (key === 'bone') { scan = 'masonry'; cls = 'bone'; tint = [1.2, 1.05, .8]; sat = .15; rough = .85; metalness = 0; }
+    var m = std(surfaceProps(scan === 'rust' ? 'iron' : scan, { roughness: rough, metalness: metalness, side: cls === 'cloth' ? T.DoubleSide : T.FrontSide }),
+      { cls: cls, sat: sat, tint: tint, grime: grime, wear: wear, blood: cls === 'metal' ? .12 : .06, tear: key === 'rag', scale: 9 });
+    m.normalScale.set(cls === 'metal' ? .48 : .75, cls === 'metal' ? .48 : .75);
+    m.name = 'kara-' + name; library[name] = m; return m;
+  }
+  var EQUIPMENT_FINISHES = ['ash', 'rust', 'brine', 'blood', 'bone'], equipmentPalette = {};
+  function equipmentFinish(source, finish) {
+    if (EQUIPMENT_FINISHES.indexOf(finish) < 0 || !/^kara-equipment-/.test(source.name)) return source;
+    // Keep bright cutting edges, buckles and dark seams readable against the main surface.
+    if (/-(edge|brass|dark|strap|bone)$/.test(source.name)) return source;
+    var cls = source.defines && source.defines.KARA_CLASS, kind = cls === 1 ? 'metal' : cls === 2 ? 'leather' : cls === 3 ? 'cloth' : cls === 6 ? 'wood' : null;
+    if (!kind) return source;
+    var tear = source.defines.KARA_TEAR !== undefined, key = kind + (tear ? '-torn' : '') + '-' + finish;
+    if (equipmentPalette[key]) return equipmentPalette[key];
+    var tones = { ash: [.46, .5, .56], rust: [.82, .48, .27], brine: [.7, 1.05, 1.16], blood: [.68, .3, .25], bone: [1.25, 1.12, .83] };
+    var tint = tones[finish].slice();
+    if (kind === 'leather' || kind === 'wood') { tint[0] *= .75; tint[1] *= .62; tint[2] *= .5; }
+    var m = source.clone();
+    m.userData = {};
+    grade(m, { cls: kind === 'metal' ? 'metal' : kind, tint: tint, sat: finish === 'rust' ? .55 : .15,
+      grime: finish === 'ash' ? .42 : .25, blood: finish === 'blood' ? .52 : .08,
+      rust: finish === 'rust' && kind === 'metal' ? .28 : .02, wear: finish === 'brine' ? 1.35 : 1,
+      tear: tear, scale: 9 });
+    if (kind === 'metal') m.roughness = finish === 'rust' ? .86 : finish === 'brine' ? .56 : .65;
+    m.name = 'kara-equipment-' + key; equipmentPalette[key] = m; return m;
+  }
+  function equipmentItem(id, slot) {
+    var item = id && B.Progression && B.Progression.catalog[id];
+    return item && item.slot === slot ? item : null;
+  }
+  function equipmentWeapon(piece, id, type, finish, scale) {
+    var mats = {}; Object.keys(piece.parts).forEach(function (key) {
+      var material = /^(blade|iron|steel)$/.test(key) ? finish : key === 'edge' ? (finish === 'rust' ? 'rust' : 'edge') : key;
+      mats[key] = equipmentMaterial(material);
+      if (scale) piece.parts[key].forEach(function (g) { g.scale(scale[0], scale[1], scale[2]); });
+    });
+    if (scale) piece.tip.multiply(new T.Vector3().fromArray(scale));
+    piece.materials = mats; piece.id = id; piece.type = type; return piece;
+  }
+  function equipmentSpear(bell) {
+    var P = { wood: [], steel: [], edge: [], dark: [], leather: [], bone: [], brass: [] }, top = bell ? 1.86 : 1.66;
+    P.wood.push(G.tube([[0, -.55, 0], [.008, .05, -.003], [-.006, .75, .004], [0, top - .38, 0]], .026, 12, 36, true));
+    var leaf = G.blade(top - .42, top, 40, function (y) { var t = (y - top + .42) / .42, w = .014 + Math.sin(t * PI) * (bell ? .083 : .067); if (t > .9) w *= (1 - t) * 10; return [-w, w]; }, .024, .3);
+    P.steel.push(leaf.body); P.edge.push(leaf.edge);
+    [-.48, .34, top - .41].forEach(function (y, i) { P.dark.push(G.ring(.031, .006, [0, y, 0], null, 6, 20)); if (i > 0) P.bone.push(G.ring(.035, .008, [0, y + .02, 0], null, 7, 24)); });
+    var wrap = []; for (var i = 0; i <= 96; i++) { var t = i / 96, a = t * TAU * 8; wrap.push([Math.cos(a) * .029, -.22 + t * .35, Math.sin(a) * .029]); }
+    P.leather.push(G.tube(wrap, .0045, 5, 96, true));
+    P.dark.push(G.cyl(.019, .036, .15, 8, [0, -.6, 0]));
+    if (bell) {
+      // A silent, cracked bell with a suspended iron clapper, seated below the long leaf blade.
+      P.brass.push(G.lathe([[.024, -.1], [.029, -.07], [.034, -.015], [.054, .035], [.071, .05], [.073, .065]], 24).translate(0, top - .54, 0));
+      P.dark.push(G.tube([[0, top - .6, 0], [0, top - .49, 0]], .006, 6, 10, true), G.sphere(.015, [0, top - .49, 0], [1, 1.25, 1], 10, 8));
+      [-1, 1].forEach(function (s) { P.steel.push(G.extrude([[s * .02, top - .42], [s * .14, top - .5], [s * .17, top - .44], [s * .075, top - .31]], .018, .004)); });
+      P.brass.push(G.chain([[.03, .38, 0], [.085, .18, .01], [.045, .04, .025]], .032));
+    } else {
+      for (i = 0; i < 3; i++) P.bone.push(G.ring(.036 + i * .0015, .01, [0, top - .39 + i * .03, 0], null, 7, 20));
+    }
+    return { parts: P, tip: new T.Vector3(0, top, 0) };
+  }
+  function heroEquipment(A) {
+    var data = { armor: {}, weapons: {}, materials: {} }, BODY = ['skin', 'leather'], TORSO = ['pelvis', 'spine01', 'spine02', 'spine03', 'shoulderL', 'shoulderR'];
+    function part(slot, id, material, geometry, bone, opts) {
+      var key = 'equipment:' + slot + ':' + id + ':' + material;
+      KEY_CLASS[key] = material === 'cloth' || material === 'rag' ? 'cloth' : material === 'leather' || material === 'strap' ? 'leather' : 'metal';
+      data.materials[key] = equipmentMaterial(material); data.armor[key] = { slot: slot, id: id };
+      if (!geometry.attributes.kwear) G.wear(geometry, material === 'rag' ? { edge: .3, tear: { amount: .6, width: .04, bottom: .25, base: .04 } } : { edge: material === 'cloth' ? .3 : .85 });
+      if (bone) A.rigid(key, geometry, bone); else A.transfer(key, geometry, BODY, opts || { bones: TORSO });
+      A.parts[A.parts.length - 1].equipment = true;
+    }
+    var headCloud = A.cloud(['head'], ['skin'], .6), headBox = A.box(headCloud), hc = headBox.getCenter(new T.Vector3()), hs = headBox.getSize(new T.Vector3()), headRay = rayRadius(headCloud, hc, .022), hd = new T.Vector3();
+    function hoodPoint(u, v) { var az = mix(.65, TAU - .65, u), el = mix(-.55, PI * .5, v); hd.set(Math.sin(az) * Math.cos(el), Math.sin(el), Math.cos(az) * Math.cos(el)); var r = headRay(hd) + .013; return hc.clone().addScaledVector(hd, r).toArray(); }
+    part('head', 'cloth-hood', 'cloth', G.shell(32, 12, hoodPoint, .009, false), 'head');
+    var hoodEdge = []; for (var j = 0; j <= 12; j++) hoodEdge.push(hoodPoint(0, j / 12)); for (j = 12; j >= 0; j--) hoodEdge.push(hoodPoint(1, j / 12));
+    part('head', 'cloth-hood', 'strap', G.tube(hoodEdge, .004, 5, 40, true), 'head');
+    ['iron-helm', 'drowned-helm'].forEach(function (id, k) {
+      var helm = G.greatHelm(Math.max(hs.x, hs.z) * .5 + .009, hs.y * .83), m = T4(hc.x, hc.y + hs.y * .08, hc.z + .003);
+      Object.keys(helm.parts).forEach(function (key) { if (!helm.parts[key].length) return; var g = G.merge(helm.parts[key]); g.applyMatrix4(m); part('head', id, key === 'iron' ? (k ? 'salt' : 'steel') : key === 'void' ? 'dark' : key, g, 'head'); });
+      if (k) { var crest = G.extrude([[-.037, 0], [.037, 0], [.048, .13], [0, .185], [-.048, .13]], .013, .003); crest.translate(hc.x, hc.y + hs.y * .46, hc.z); part('head', id, 'brass', crest, 'head'); }
+    });
+    var torso = A.cloud(['spine01', 'spine02', 'spine03'], BODY, .3), cz = A.P('spine03').z - .01, field = radialField(torso, 0, cz, .04, .23);
+    function chestPoint(u, v, offset) { var a = u * TAU, side = Math.abs(Math.sin(a)), low = 1.10 - .022 * Math.cos(a), high = 1.48 - .15 * side + .018 * Math.cos(a), y = mix(low, high, v), r = Math.max(.11, field(a, y)) + offset; return [Math.sin(a) * r, y, cz + Math.cos(a) * r]; }
+    ['torn-chest', 'grave-chest', 'coast-chest'].forEach(function (id, k) {
+      var offset = k ? .023 : .012, shell = G.shell(36, 12, function (u, v) { var p = chestPoint(u, v, offset); if (!k) { p[1] += Math.pow(1 - v, 8) * (G.hash(u * 29, 8, 3) - .5) * .055; p[2] += (G.fbm(u * 12, v * 8, 3) - .5) * .012; } return p; }, k ? .013 : .006, true);
+      G.uvScale(shell, 2, 1.1); part('chest', id, k ? (k === 2 ? 'salt' : 'steel') : 'rag', shell);
+      var fittings = [], borders = [];
+      for (var i = 0; i <= 36; i++) { var u = i / 36; borders.push(chestPoint(u, .03, offset + .004)); if (i < 36 && i % (k ? 2 : 4) === 0) { var p = chestPoint(u, .07, offset + .006), n = new T.Vector3(Math.sin(u * TAU), 0, Math.cos(u * TAU)); fittings.push(G.stud(k ? .006 : .0038, p, n)); } }
+      part('chest', id, k ? 'dark' : 'strap', G.tube(borders, k ? .006 : .0035, 5, 60, true));
+      if (fittings.length) part('chest', id, k ? 'brass' : 'strap', G.merge(fittings));
+      [-1, 1].forEach(function (s) { var p = chestPoint(s > 0 ? .23 : .77, .35, offset + .006), buckle = G.buckle(.023, .034, .003); buckle.applyMatrix4(onBody(A, p, BODY, null, offset + .012)); part('chest', id, 'strap', buckle, null, { bones: TORSO, pin: true }); });
+      if (k === 2) {
+        var emblem = G.lathe([[.004, -.018], [.023, -.01], [.03, .01], [.027, .015]], 20).rotateX(PI / 2); var ep = chestPoint(0, .64, offset + .014); emblem.translate(ep[0], ep[1], ep[2]); part('chest', id, 'brass', emblem, 'spine03');
+        var chain = G.chain([chestPoint(.07, .85, offset + .01), chestPoint(0, .4, offset + .028), chestPoint(.93, .85, offset + .01)], .034); part('chest', id, 'dark', chain);
+      }
+    });
+    ['L', 'R'].forEach(function (s) {
+      var fore = 'forearm' + s, hand = 'hand' + s, shin = 'shin' + s, foot = 'tarsal' + s;
+      ['rag-wraps', 'chain-gloves', 'salt-gauntlets'].forEach(function (id, k) {
+        var cover = sleeve(A, fore, hand, k ? .33 : .4, .96, .012 + k * .003, .007, BODY);
+        G.uvScale(cover.geometry, 1.6, 1); part('hands', id, k ? 'leather' : 'cloth', cover.geometry, fore);
+        var bindings = []; for (var i = 0; i <= 84; i++) { var t = i / 84, p = cover.at(t * TAU * (k ? 4 : 6), mix(k ? .36 : .43, .93, t), .006)[0]; bindings.push(p); }
+        part('hands', id, k ? 'dark' : 'rag', G.tube(bindings, k ? .0045 : .006, 5, 84, true), fore);
+        if (k) {
+          var steel = sleeve(A, fore, hand, .4, .84, .025, .01, BODY); part('hands', id, k === 2 ? 'salt' : 'steel', steel.geometry, fore);
+          var hp = A.P(hand), cap = G.box(.074, .013, .07, [hp.x + (s === 'L' ? .032 : -.032), hp.y + .026, hp.z]); part('hands', id, k === 2 ? 'salt' : 'dark', cap, hand);
+          var rivets = []; for (i = 0; i < 6; i++) { var q = steel.at(i / 6 * TAU, .45, .006); rivets.push(G.stud(.004, q[0], q[1])); } part('hands', id, 'brass', G.merge(rivets), fore);
+        }
+      });
+      var feet = A.cloud([foot, 'toe' + s], ['skin'], .35), fb = A.box(feet), fc = fb.getCenter(new T.Vector3()), fs = fb.getSize(new T.Vector3());
+      ['worn-boots', 'grave-boots', 'tide-boots'].forEach(function (id, k) {
+        var cover = sleeve(A, shin, foot, k ? .54 : .69, 1.03, .015, .008, BODY); G.uvScale(cover.geometry, 1.3, 1.4); part('boots', id, 'leather', cover.geometry, shin);
+        var shoe = G.sphere(1, fc.toArray(), [Math.max(fs.x * .53, .055), Math.max(fs.y * .54, .04), Math.max(fs.z * .54, .1)], 24, 16);
+        var p = shoe.attributes.position; for (var i = 0; i < p.count; i++) p.setY(i, Math.max(fb.min.y, p.getY(i))); shoe.computeVertexNormals(); part('boots', id, 'leather', shoe, foot);
+        var buckleAt = cover.at(PI / 2, .83, .01), buckle = G.buckle(.028, .028, .003); G.orient(buckle, buckleAt[0], buckleAt[1]); part('boots', id, 'brass', buckle, shin);
+        if (k) {
+          var plate = sleeve(A, shin, foot, k === 2 ? .48 : .66, .89, .027, .01, BODY); part('boots', id, k === 2 ? 'salt' : 'steel', plate.geometry, shin);
+          var studs = []; for (i = 0; i < 8; i++) { var q = plate.at(i / 8 * TAU, .75, .005); studs.push(G.stud(.0045, q[0], q[1])); } part('boots', id, 'brass', G.merge(studs), shin);
+        }
+      });
+    });
+    data.weapons['dull-sword'] = equipmentWeapon(G.falchion(), 'dull-sword', 'sword', 'rust', [.86, .94, .92]);
+    data.weapons['grave-sword'] = equipmentWeapon(G.cleaver(), 'grave-sword', 'sword', 'steel');
+    data.weapons['rust-axe'] = equipmentWeapon(G.bossAxe(), 'rust-axe', 'axe', 'rust', [.58, .65, .75]);
+    data.weapons['executioner-axe'] = equipmentWeapon(G.bossAxe(), 'executioner-axe', 'axe', 'steel', [.77, .82, .9]);
+    data.weapons['bone-spear'] = equipmentWeapon(equipmentSpear(false), 'bone-spear', 'spear', 'steel');
+    data.weapons['bell-spear'] = equipmentWeapon(equipmentSpear(true), 'bell-spear', 'spear', 'salt');
+    return data;
+  }
+
   // Baba — the father-warrior: thecubber barbarian with a shaggy fur mantle (tufts, iron brooches), healed scars,
   // a hip pouch and a bone charm on a thong, a torn red war sash, forged cleaver greatsword with engraved runes.
   R.hero = function (A) {
@@ -800,7 +945,7 @@
     var body = A.addFrom(base, function (n) { return /LOW_body/.test(n.name); }, 'skin')[0];
     var eyes = A.addFrom(base, function (n) { return /LOW_eyes/.test(n.name); }, 'eye');
     openEyes(body.geometry, eyes[0].geometry, .22); eyes.forEach(function (p) { heroEyes(p.geometry); });
-    A.addFrom(base, function (n) { return /LOW_(cloth|leather)/.test(n.name); }, 'leather');
+    A.addFrom(base, function (n) { return /LOW_(cloth|leather)/.test(n.name) && !/leather_(boots|forearm)/.test(n.name); }, 'leather');
     A.addFrom(base, function (n) { return /LOW_metal/.test(n.name); }, 'iron');
     fitBeard(A, A.addFrom(base, function (n) { return /Beard/.test(n.name); }, 'beard'), A.addFrom(base, function (n) { return /Moustache/.test(n.name); }, 'moustache'));
     A.rigid('brow', browHair(A), 'head'); A.rigid('beardmass', beardMass(A), 'head');
@@ -871,7 +1016,8 @@
       { pts: [[.2, 1.47, .1], [.11, 1.37, .14]], w: .005 },
       { pts: [[-.29, 1.37, .03], [-.32, 1.29, .02]], w: .0045 }
     ], ['skin']);
-    return { weapon: G.cleaver(), materials: {
+    var equipment = heroEquipment(A);
+    var materials = {
       skin: bodyMaterial(A.srcMaterial('LOW_body'), 'hero-skin', { cls: 'skin', skin: 1, skinMap: true, sat: .62, tint: [.94, .86, .74], contrast: 1.06, grime: .3, blood: .18, scars: scars, face: true }),
       brow: library['hero-brow'] || (library['hero-brow'] = Object.assign(std({ map: browTexture(), alphaTest: .4, roughness: .8, side: T.DoubleSide }, { sat: 1 }), { name: 'kara-hero-brow' })),
       eye: library['hero-eye'] || (library['hero-eye'] = Object.assign(new T.MeshPhysicalMaterial({ map: eyeTexture(), roughness: .4, clearcoat: .6, clearcoatRoughness: .18 }), { name: 'kara-hero-eye' })),
@@ -882,7 +1028,9 @@
       beard: bodyMaterial(A.srcMaterial('Beard'), 'hero-beard', { sat: 1, tint: 0xffffff, hair: [.05, 1.1, 600, .8] }, { color: new T.Color(0xb4a494) }),
       beardmass: library['hero-beardmass'] || (library['hero-beardmass'] = Object.assign(std({ color: 0x3a2c22, roughness: .92, side: T.DoubleSide }, { hair: [.2, 1, 600, 1], mass: true }), { name: 'kara-hero-beardmass' })),
       moustache: bodyMaterial(A.srcMaterial('Moustache'), 'hero-moustache', { sat: 1, hair: [-.25, 1.1, 600, .7] }, { color: new T.Color(0xa09080) })
-    } };
+    };
+    Object.assign(materials, equipment.materials);
+    return { weapon: equipment.weapons['dull-sword'], equipment: equipment, materials: materials };
   };
   // Zincirli Mahkûm — starved, hooded in a stitched, bloodied sack (eyes glinting in the holes), fresh lash wounds on
   // the back, torn trousers, riveted iron collar with a padlock and hanging chain, shackles with a live chain, rope belt.
@@ -1268,12 +1416,34 @@
     // body height from body parts only (helmets, horns and crowns may rise above it)
     var box = new T.Box3(); built.meshes.forEach(function (m) { if (A.parts.some(function (p) { return p.body && p.key === m.name; })) { m.geometry.computeBoundingBox(); box.union(m.geometry.boundingBox); } });
     var h = box.max.y - box.min.y, scale = cfg.height / h;
-    built.meshes.forEach(function (m) { m.boundingSphere = new T.Sphere(new T.Vector3(0, h * .5, 0), h * 1.1); });
+    built.meshes.forEach(function (m) {
+      m.boundingSphere = new T.Sphere(new T.Vector3(0, h * .5, 0), h * 1.1);
+      var equipment = recipe.equipment && recipe.equipment.armor[m.name];
+      if (equipment) { m.userData.equipmentSlot = equipment.slot; m.userData.equipmentId = equipment.id; m.visible = false; }
+      if (type === 'hero' && m.name === 'iron') { m.userData.equipmentSlot = 'chest'; m.userData.equipmentId = 'base-iron'; m.visible = false; }
+    });
     var anchors = {};
     function anchor(boneName, frac, toward) { var a = A.P(boneName), t = toward ? A.P(toward) : (A.tail(boneName) || a); var p = a.clone().lerp(t, frac); return { bone: boneName, local: p.applyMatrix4(new T.Matrix4().copy(A.world(A.index[boneName])).invert()) }; }
     if (recipe.chainBetween) { var c = recipe.chainBetween; anchors.chainA = anchor(c[0], .86, c[1]); anchors.chainB = anchor(c[2], .86, c[3]); }
     if (recipe.dragChain) anchors.drag = anchor(recipe.dragChain, .5);
-    var bp = { type: type, scene: built.scene, scale: scale, yOffset: -box.min.y * scale, weapon: recipe.weapon ? { art: weaponGroup(recipe.weapon), tip: recipe.weapon.tip } : null, anchors: anchors, recipe: recipe };
+    var equipmentWeapons = null;
+    if (recipe.equipment) {
+      equipmentWeapons = {};
+      Object.keys(recipe.equipment.weapons).forEach(function (id) {
+        var piece = recipe.equipment.weapons[id], art = weaponGroup(piece);
+        art.name = 'equipment-weapon-' + id;
+        art.traverse(function (n) { if (n.isMesh) { n.userData.equipmentSlot = 'weapon'; n.userData.equipmentId = id; } });
+        equipmentWeapons[id] = { art: art, tip: piece.tip, type: piece.type };
+      });
+      // A small shared material palette serves all catalog aliases. Geometry and texture Sources stay shared.
+      built.meshes.forEach(function (m) { if (m.userData.equipmentId) EQUIPMENT_FINISHES.forEach(function (finish) { equipmentFinish(m.material, finish); }); });
+      Object.keys(equipmentWeapons).forEach(function (id) { equipmentWeapons[id].art.traverse(function (m) {
+        if (m.isMesh) EQUIPMENT_FINISHES.forEach(function (finish) { equipmentFinish(m.material, finish); });
+      }); });
+    }
+    var bp = { type: type, scene: built.scene, scale: scale, yOffset: -box.min.y * scale,
+      weapon: equipmentWeapons ? equipmentWeapons['dull-sword'] : recipe.weapon ? { art: weaponGroup(recipe.weapon), tip: recipe.weapon.tip } : null,
+      equipmentWeapons: equipmentWeapons, anchors: anchors, recipe: recipe };
     blueprints[type] = bp; return bp;
   }
   // Character maps are resized once, before their first upload: Düşük halves them (2048 -> 1024, 1024 -> 512) and
@@ -1297,8 +1467,11 @@
   }
   function prepare(opts) {
     if (prepared) return prepared;
-    var data = B.CharacterData || {};
-    prepared = Promise.all(Object.keys(data).map(function (name) {
+    var data = B.CharacterData || {}, activeChapter = B.ActiveChapter || 1;
+    var coastal = activeChapter !== 1;
+    var types = Object.keys(TYPES).filter(function(type){return type === 'hero' || (TYPES[type].chapter || 1) === activeChapter;});
+    var neededBases = new Set(types.map(function(type){return TYPES[type].base;}));
+    prepared = Promise.all(Object.keys(data).filter(function(name){return !coastal || neededBases.has(name);}).map(function (name) {
       return new T.GLTFLoader().parseAsync(decode(data[name]), '').then(function (gltf) {
         var model = gltf.scene; model.updateMatrixWorld(true); bases[name] = model;
         model.traverse(function (n) { if (!n.isMesh) return; var ms = Array.isArray(n.material) ? n.material : [n.material]; ms.forEach(function (m) { ['map', 'normalMap', 'roughnessMap', 'aoMap', 'metalnessMap'].forEach(function (k) { if (m[k]) m[k].anisotropy = 8; }); }); });
@@ -1306,7 +1479,7 @@
       });
     })).then(function () {
       if (B.Materials) ['rust', 'leather', 'linen', 'wood', 'masonry'].forEach(function (s) { surfaces[s === 'rust' ? 'iron' : s] = B.Materials.createSurface(s, surfaceTextures, 1); });
-      Object.keys(TYPES).forEach(blueprint);
+      types.forEach(blueprint);
       // Every blueprint owns its own merged geometry now; release the imported source meshes (materials/textures stay shared).
       Object.keys(bases).forEach(function (name) { bases[name].traverse(function (n) { if (n.isMesh) { n.geometry.dispose(); n.geometry = new T.BufferGeometry(); } }); });
       delete B.CharacterData;
@@ -1469,7 +1642,32 @@
     var rightHand = find(['hand_r', 'hand.R', 'handR']); if (!rightHand) throw Error('Karakterin sağ el kemiği eksik.');
     var weapon = new T.Group(); weapon.name = 'weapon'; rightHand.add(weapon);
     var marker = new T.Object3D(); marker.name = 'weapon_tip';
-    if (bp.weapon) { weapon.add(bp.weapon.art.clone()); marker.position.copy(bp.weapon.tip); } else marker.position.set(0, .08, .22);
+    var equipment = null, equipmentMeshes = [], equipmentArms = {}, armorMeshes = [], baseIron = null, equipmentMaterials = new Map();
+    if (bp.equipmentWeapons) {
+      equipment = { weaponType: 'sword', weaponId: 'dull-sword', headId: null, chestId: 'torn-chest', handsId: null, bootsId: null };
+      Object.keys(bp.equipmentWeapons).forEach(function (id) {
+        var src = bp.equipmentWeapons[id], art = src.art.clone(), meshes = [];
+        art.traverse(function (n) { if (n.isMesh) { n.visible = false; meshes.push(n); equipmentMeshes.push(n); equipmentMaterials.set(n, n.material); } });
+        art.visible = false; weapon.add(art); equipmentArms[id] = { art: art, meshes: meshes, tip: src.tip, type: src.type };
+      });
+      scene.traverse(function (n) {
+        if (!n.isMesh || !n.userData.equipmentSlot) return;
+        equipmentMeshes.push(n); equipmentMaterials.set(n, n.material); if (n.userData.equipmentId === 'base-iron') baseIron = n; else armorMeshes.push(n);
+      });
+      marker.position.copy(bp.weapon.tip);
+      // Hidden warm-up proxies share existing buffers and the actor skeleton. They never enter afterimage pools.
+      var warmEquipment = new T.Group(); warmEquipment.name = 'equipment-material-warm'; warmEquipment.visible = false; root.add(warmEquipment);
+      var skinSource = armorMeshes[0], rigidSource = equipmentArms['dull-sword'].meshes[0];
+      Object.keys(equipmentPalette).forEach(function (key) {
+        var mat = equipmentPalette[key];
+        [skinSource, rigidSource].forEach(function (source) {
+          var m = source.isSkinnedMesh ? new T.SkinnedMesh(source.geometry, mat) : new T.Mesh(source.geometry, mat);
+          if (source.isSkinnedMesh) { m.skeleton = source.skeleton; m.bindMatrix.copy(source.bindMatrix); m.bindMatrixInverse.copy(source.bindMatrixInverse); m.boundingSphere = source.boundingSphere.clone(); }
+          m.name = 'equipment-warm-' + key; m.visible = false; m.castShadow = false; m.frustumCulled = false;
+          m.userData.equipmentWarm = true; warmEquipment.add(m); equipmentMeshes.push(m);
+        });
+      });
+    } else if (bp.weapon) { weapon.add(bp.weapon.art.clone()); marker.position.copy(bp.weapon.tip); } else marker.position.set(0, .08, .22);
     weapon.add(marker); weapon.scale.setScalar(1 / bp.scale);
     var extras = [], disposables = [];
     function anchorObject(a) { var o = new T.Object3D(); o.position.copy(a.local); native[a.bone].add(o); return o; }
@@ -1522,8 +1720,9 @@
         hookArt.position.copy(last).applyMatrix4(inv); hookArt.quaternion.copy(q2).premultiply(inverseQ);
       });
     }
-    var motion = B.AuthoredMotion.create({ root: root, modelScene: scene, type: type, bones: native, weapon: weapon, weaponTip: marker, scale: bp.scale });
+    var motion = B.AuthoredMotion.create({ root: root, modelScene: scene, type: cfg.motionType || type, bones: native, weapon: weapon, weaponTip: marker, scale: bp.scale });
     var aliases = motion.bones; aliases.weapon = weapon;
+    var detailMotion = cfg.detailMotion ? cfg.detailMotion(native, scene, bp.scale) : null;
     var disposed = false, trail = type === 'hero' && bp.weapon ? bladeTrail() : null, trailA = new T.Vector3(), trailB = new T.Vector3(), trailInv = new T.Matrix4();
     if (flareMats.length) extras.push(function () { flareU.value = clamp(root.userData.whirlFlare || 0, 0, 1); });
     if (trail) extras.push(function (dt, state) {
@@ -1535,9 +1734,50 @@
       marker.getWorldPosition(trailA).applyMatrix4(trailInv); weapon.getWorldPosition(trailB); trailB.applyMatrix4(trailInv); trailB.lerp(trailA, .3);
       trail.update(dt, trailA, trailB, c.on && !state.dead, c);
     });
+    function setEquipment(next) {
+      if (!equipment || disposed) return false;
+      next = next || {};
+      var changed = false, weaponId = Object.prototype.hasOwnProperty.call(next, 'weaponId') ? next.weaponId : equipment.weaponId;
+      var weaponItem = equipmentItem(weaponId, 'weapon'), weaponModel = weaponItem && weaponItem.modelId || weaponId;
+      if (weaponId !== null && !equipmentArms[weaponModel]) { weaponId = next.weaponType === 'axe' ? 'rust-axe' : next.weaponType === 'spear' ? 'bone-spear' : 'dull-sword'; weaponModel = weaponId; weaponItem = equipmentItem(weaponId, 'weapon'); }
+      var fields = ['headId', 'chestId', 'handsId', 'bootsId'];
+      if (equipment.weaponId !== weaponId) changed = true;
+      equipment.weaponId = weaponId; equipment.weaponType = weaponId === null ? 'sword' : equipmentArms[weaponModel].type;
+      fields.forEach(function (field) {
+        if (!Object.prototype.hasOwnProperty.call(next, field)) return;
+        var slot = field.slice(0, -2), id = next[field] || null;
+        var item = equipmentItem(id, slot), model = item && item.modelId || id;
+        if (id && !armorMeshes.some(function (m) { return m.userData.equipmentSlot === slot && m.userData.equipmentId === model; })) id = null;
+        if (equipment[field] !== id) changed = true;
+        equipment[field] = id;
+      });
+      Object.keys(equipmentArms).forEach(function (id) {
+        var item = equipmentArms[id], visible = weaponId !== null && id === weaponModel; item.art.visible = visible;
+        var scale = visible && weaponItem && weaponItem.visualScale;
+        if (scale) item.art.scale.fromArray(scale); else item.art.scale.set(1, 1, 1);
+        item.meshes.forEach(function (m) { m.visible = visible; m.material = equipmentFinish(equipmentMaterials.get(m), visible && weaponItem && weaponItem.finish); });
+      });
+      armorMeshes.forEach(function (m) {
+        var slot = m.userData.equipmentSlot, id = equipment[slot + 'Id'], item = equipmentItem(id, slot), model = item && item.modelId || id;
+        m.visible = model === m.userData.equipmentId;
+        m.material = equipmentFinish(equipmentMaterials.get(m), m.visible && item && item.finish);
+      });
+      var chestItem = equipmentItem(equipment.chestId, 'chest'), chestModel = chestItem && chestItem.modelId || equipment.chestId;
+      if (baseIron) baseIron.visible = chestModel === 'grave-chest' || chestModel === 'coast-chest';
+      marker.visible = weaponId !== null;
+      if (weaponId !== null) marker.position.copy(equipmentArms[weaponModel].tip).multiply(equipmentArms[weaponModel].art.scale);
+      else marker.position.set(0, 0, 0);
+      if (changed && trail) trail.clear();
+      if (changed) root.userData.equipmentRevision = (root.userData.equipmentRevision || 0) + 1;
+      return changed;
+    }
+    if (equipment) setEquipment(equipment);
     return {
       root: root, height: cfg.height, radius: cfg.radius, weaponTip: marker, bones: aliases, type: type, ownTrail: !!trail,
-      animate: function (dt, state) { state = state || {}; motion.animate(dt, state); for (var i = 0; i < extras.length; i++) extras[i](dt, state); },
+      equipment: equipment, setEquipment: equipment ? setEquipment : undefined,
+      // Existing actor objects, including hidden variants: warm their shaders and buffers during loading.
+      warmEquipmentObjects: equipment ? function () { return equipmentMeshes; } : undefined,
+      animate: function (dt, state) { state = state || {}; motion.animate(dt, state); if (detailMotion) detailMotion(dt, state); for (var i = 0; i < extras.length; i++) extras[i](dt, state); },
       dispose: function () {
         if (disposed) return; disposed = true; motion.dispose(); if (trail) trail.dispose(); flareMats.forEach(function (fm) { fm.dispose(); }); if (root.parent) root.parent.remove(root);
         var skeletons = new Set(); scene.traverse(function (n) { if (n.isSkinnedMesh) skeletons.add(n.skeleton); }); skeletons.forEach(function (s) { s.dispose(); });
@@ -1549,5 +1789,5 @@
       }
     };
   }
-  B.Models = { create: create, prepare: prepare, templates: bases, blueprints: blueprints, types: TYPES };
+  B.Models = { register: function (type, cfg, recipe) { if (prepared) throw Error('Karakter kaydı hazırlıktan önce yapılmalı.'); TYPES[type] = cfg; R[type] = function (A) { return recipe(A, { bases: bases, bodyMaterial: bodyMaterial, gearMaterial: gearMaterial, clothWeights: clothWeights }); }; }, create: create, prepare: prepare, templates: bases, blueprints: blueprints, types: TYPES };
 })();

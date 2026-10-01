@@ -411,7 +411,7 @@
   }
 
   // ------------------------------------------------------------------ oyun bilgisi
-  const MATERIAL = { prisoner: 'flesh', cultist: 'flesh', stalker: 'bone', carrier: 'wet', guard: 'armor', boss: 'armor' };
+  const MATERIAL = { prisoner: 'flesh', cultist: 'flesh', stalker: 'bone', carrier: 'wet', guard: 'armor', boss: 'armor', drowned: 'wet', rootborn: 'bone', crawler: 'bone', urchin: 'wet', lantern: 'flesh', bell: 'armor' };
   function player() { const g = game(); return g && g.player; }
   function struckEnemies() {
     const g = game(), p = player(); if (!g || !p || !g.enemies) return [];
@@ -606,6 +606,12 @@
     // Unblockable blow coming: a deep bell under the usual wind-up.
     if (o.unblockable && throttle('ubell', .45)) { const s = spatial(o.x, o.z); sample('bell', { vol: .32 * k, rate: .55, at, send: .5, prio: 1 }); ring(t, { f: 98, partials: [1, 2.4, 3.9, 5.3], decay: 2.2, vol: .05 * k * s.gain, pan: s.pan, send: .6 }); }
     switch (type) {
+      case 'drowned': vocal('carrierGurgle', .7, {rate:.7}); break;
+      case 'rootborn': sample('winch',{vol:.3*k,at,rate:.55}); break;
+      case 'crawler': vocal('stalkerShriek', .5, {rate:1.15}); break;
+      case 'urchin': vocal('carrierGurgle', .7, {rate:.55}); break;
+      case 'lantern': vocal('tortWhisper', .35, {rate:.75,lp:1800,send:.5}); break;
+      case 'bell': vocal('bossRoar',.7,{rate:.62}); if(/Çan|YEMİN/.test(o.attack||''))sample('bell',{vol:.4*k,at,rate:.45,send:.6}); break;
       case 'prisoner': vocal('prisonerYell', 1.15, { rate: rand(.95, 1.1) }); sample('chain', { vol: .22 * k, at, rate: rand(1, 1.25) }); break;
       case 'guard': vocal('guardGrunt', .8); sample('armorStep', { vol: .35 * k, at, rate: .75 }); break;
       case 'cultist':
@@ -628,6 +634,12 @@
   H.enemyAttack = (o, k) => {
     const at = { x: o.x, z: o.z }, t = now(), a = o.attack || '', s = spatial(o.x, o.z), pan = s.pan;
     switch (o.type) {
+      case 'drowned': sample('swish',{vol:.45*k,at,rate:.75});sample('wetStep',{vol:.20*k,at,rate:.6});break;
+      case 'rootborn': sample('debris',{vol:.40*k,at,rate:.7});sample('winch',{vol:.2*k,at,rate:.6});break;
+      case 'crawler': sample('swish',{vol:.4*k,at,rate:1.25});sample('bone',{vol:.17*k,at,rate:1.1});break;
+      case 'urchin': sample('spit',{vol:.55*k,at,rate:.8});break;
+      case 'lantern': sample('rune',{vol:.45*k,at,rate:.7,send:.3});break;
+      case 'bell': sample(o.style==='root'?'debris':o.style==='tide'?'carrierGurgle':'metal',{vol:.55*k,at,rate:.6});sample('bell',{vol:.24*k,at,rate:.5,send:.5});thud(t,{f0:65,f1:25,dur:.35,vol:.45*k*s.gain,pan});break;
       case 'prisoner': whoosh(t - .05, { dur: .2, peak: .6, f0: 700, f1: 2400, f2: 900, q: 1.6, vol: .3 * k * s.gain, pan0: pan - .2, pan1: pan + .2 }); sample('swish', { vol: .4 * k, at, rate: 1.25 }); break;
       case 'guard':
         if (/Kalkan|Darbe/i.test(a)) { sample('shield', { vol: .8 * k, at, rate: .8 }); thud(t, { f0: 110, f1: 45, dur: .18, vol: .45 * k * s.gain, pan }); }
@@ -787,6 +799,13 @@
     burst(t + .1, 1.6, .16 * k, 180, { q: .7, attack: .3, bus: 'amb', send: .3, buf: N.brown });
     thud(t + .05, { f0: 55, f1: 30, dur: 1, vol: .4 * k, send: .3 });
   };
+  // One swelling air-and-bass sweep: no bells or stepped musical notes.
+  H.levelUp = (o, k) => {
+    const t = now();
+    whoosh(t, {dur:.95,peak:.32,f0:230,f1:820,f2:160,q:1.1,low:200,vol:.65*k,send:.15});
+    tone(t,140,.43,.14*k,{type:'sine',attack:.20,bend:2,send:.12,lp:700});
+    tone(t+.28,280,.64,.13*k,{type:'sine',attack:.04,bend:.45,send:.14,lp:700});
+  };
   H.checkpoint = (o, k) => {
     if (extMusic) B.Music.sting('checkpoint');
     const t = now();
@@ -805,7 +824,7 @@
 
   function play(name, opts = {}) {
     if (TELLS.has(name)) lastTellN = nclock;
-    if (name === 'sealOpen' && B.Narration && B.Narration.seal) say('seal');   // anlatıcı/altyazı sessiz modda da çalışır
+    if (name === 'sealOpen' && B.Narration && B.Narration.seal) say(B.app && B.app.world.chapter === 2 ? 'coastSeal' : 'seal');   // anlatıcı/altyazı sessiz modda da çalışır
     if (!ctx || !unlocked || suspended || (silent && !offline) || volume.master <= 0) return;
     if ((name === 'enemyWindup' && opts.unblockable) || name === 'warning' || name === 'tellCommit') {
       warningUntil = Math.max(warningUntil, ctx.currentTime + .8);
@@ -962,7 +981,7 @@
     const g = game(), p = g && g.player, w = B.app && B.app.world;
     if (testGame && testGame.room != null) return testGame.room;
     if (!p || !w || !w.roomAt) return -1;
-    const r = w.roomAt(p.x, p.z); return r ? (typeof r.id === 'number' ? r.id : w.rooms.indexOf(r)) : -1;
+    const r = w.roomAt(p.x, p.z); if(!r)return -1; if(Number.isInteger(r.parent))return r.parent; const id=typeof r.id==='number'?r.id:w.rooms.indexOf(r);return w.chapter>=3?Math.min(6,Math.floor(id/2)):Math.min(6,id);
   }
   function drip(t, pan, vol) {
     const f = rand(900, 1900), osc = ctx.createOscillator(), g = gainNode(0), p = panner(pan, N.amb), s = gainNode(.55, N.wetAmb);
@@ -970,8 +989,25 @@
     g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + .003); g.gain.exponentialRampToValueAtTime(.0001, t + .07);
     osc.connect(g); g.connect(p); g.connect(s); osc.start(t); osc.stop(t + .1); track(osc, [g, p, s]);
   }
+  function coastAmbience(t, r, st) {
+    targetParam(A.wind.gain, .055 + Math.sin(t * .16) * .008, t, 2);
+    if (!st.playing && !st.title) return;
+    // Slow surf is scheduled sparingly; no audio nodes are created on every frame.
+    if (t > A.coastWaveNext || A.coastWaveNext == null) {
+      A.coastWaveNext = t + rand(5, 8);
+      burst(t, rand(4, 6), .09, 420, { attack: 1.7, f1: 110, q: .45, buf: N.brown, bus: 'amb', pan: .45, send: .18 });
+      burst(t + .8, 3.1, .021, 2300, { attack: .9, f1: 700, q: .6, bus: 'amb', pan: .7 });
+    }
+    if (t > A.next) {
+      A.next = t + (st.combat ? rand(24, 38) : rand(12, 24));
+      const n = r === 1 || r === 4 ? 'winch' : chance(.5) ? 'carrierGurgle' : 'moan';
+      sample(n, { bus: 'amb', vol: .13, rate: rand(.55, .72), lp: 950, send: .8, pan: rand(-.85, .85) });
+      if (r === 3 && !st.combat) sample('chain', { bus: 'amb', vol: .11, rate: .6, lp: 1200, delay: .6, send: .65, pan: -.5 });
+    }
+  }
   function ambienceStep(dt, st) {
     const t = ctx.currentTime, r = room();
+    if (B.app && B.app.world.chapter === 2) { coastAmbience(t, r, st); return; }
     targetParam(A.wind.gain, r === 4 ? .075 : r === 6 ? .065 : .05, t, 2);
     if (!st.playing && !st.title) return;
     const far = (n, o) => sample(n, Object.assign({ bus: 'amb', send: .7, lp: 1300, pan: rand(-.8, .8) }, o));
@@ -1168,6 +1204,7 @@
     3: { whisper: 3, moan: 2, scream: 3, wet: 2, sob: 2, scrape: 1, gurgle: 1 },
     4: { scrape: 3, whisper: 2, hammer: 2, moan: 2, chain: 1 }
   };
+  const COAST_MIX = { 0: {whisper: 3, moan: 2, sob: 1}, 1: {scrape: 3, whisper: 2, scream: 1}, 2: {gurgle: 4, moan: 2, sob: 2}, 3: {gurgle: 4, chain: 2, scream: 1}, 4: {scrape: 3, whisper: 3, moan: 2} };
   const T = { clock: 0, next: 0, player: null, resetSerial: null, until: 0, recent: [], gate: 1, log: [] };
   function tortEvent(kind, near) {
     const side = chance(.5) ? -1 : 1, pan = side * rand(.35, .95), V = .45 + .55 * near, lpB = 650 + 1700 * near, sendB = .78 - .34 * near;
@@ -1208,7 +1245,7 @@
     if (!p || !st.playing || st.title || st.dead || st.won) return;
     T.clock += dt;
     if (T.clock < T.next) return;
-    const near = TORT_NEAR[r], mix = TORT_MIX[r];
+    const near = TORT_NEAR[r], mix = B.app && B.app.world.chapter === 2 ? COAST_MIX[r] : TORT_MIX[r];
     if (!mix || !near || st.boss) { T.next = T.clock + rand(3, 6); return; }
     if (st.combat || A.calm < 4 || nclock - lastTellN < 4 || current || queue.length || t < T.until) { T.next = T.clock + rand(2, 4); return; }
     let sum = 0; const list = Object.keys(mix).filter(k => !T.recent.includes(k)); list.forEach(k => sum += mix[k]);
@@ -1245,6 +1282,11 @@
   function enemyStep(e, n, kind) {
     const at = e;
     switch (e.type) {
+      case 'drowned': case 'urchin': sample('wetStep', { vol: .30, at, rate: rand(.65, .85) }); break;
+      case 'crawler': sample('bone', { vol: .13, at, rate: 1.15 }); sample('wetStep', { vol: .15, at, rate: 1.1 }); break;
+      case 'rootborn': sample('winch', { vol: .15, at, rate: .8 }); break;
+      case 'lantern': sample('step', { vol: .17, at, rate: .65 }); break;
+      case 'bell': sample('stomp', { vol: .65, at, rate: .65, send: .3 }); sample('chain', { vol: .15, at, rate: .6 }); break;
       case 'guard': sample('armorStep', { vol: .32, at, rate: rand(.75, .85) }); if (n % 2) sample('step', { vol: .3, at, rate: .8 }); break;
       case 'boss': sample('stomp', { vol: .75, at, rate: rand(.85, .95), send: .3 }); thud(now(), { f0: 55, f1: 30, dur: .3, vol: .45 * spatial(e.x, e.z).gain }); if (n % 3 === 0) sample('chain', { vol: .24, at, rate: rand(.75, .9) }); break;
       case 'carrier': sample('wetStep', { vol: .45, at, rate: rand(.75, .9) }); break;
@@ -1260,6 +1302,11 @@
       case 'guard': sample('guardGrunt', Object.assign({ vol: .22, rate: rand(.8, .9) }, o)); break;
       case 'cultist': sample(chance(.5) ? 'chant1' : 'chant2', Object.assign({ vol: .2, lp: 2200, send: .5 }, o)); break;
       case 'stalker': if (chance(.4)) sample('stalkerShriek', Object.assign({ vol: .12, rate: rand(.6, .7), lp: 1800 }, o)); break;
+      case 'drowned': case 'urchin': sample('carrierGurgle', Object.assign({ vol: .2, rate: .8 }, o)); break;
+      case 'crawler': sample('stalkerShriek', Object.assign({ vol: .12, rate: .85 }, o)); break;
+      case 'rootborn': sample('winch', Object.assign({ vol: .1, rate: .55 }, o)); break;
+      case 'lantern': sample('tortWhisper', Object.assign({ vol: .12, rate: .65 }, o)); break;
+      case 'bell': sample('bossRoar', Object.assign({ vol: .22, rate: .6 }, o)); break;
       case 'carrier': sample('carrierGurgle', Object.assign({ vol: .3 }, o)); break;
       case 'boss': sample('bossRoar', Object.assign({ vol: .25, rate: rand(.7, .8), lp: 2000 }, o)); sample('chain', { vol: .25, at, delay: .3 }); break;
     }
@@ -1272,7 +1319,7 @@
   // değiştirir. Ölüm ve zafer sırada önceliklidir, mevcut cümle bittikten sonra başlar. Saldırı uyarısı sırasında
   // anlatıcı kısa süre hafif kısılır, kayıt ve altyazı sürer. Zamanlama ses bağlamından bağımsızdır:
   // ?sessiz ve ses kapalıyken altyazılar aynı anlarda görünür.
-  const ROOM_LINES = new Set(['chains', 'ritual', 'crypt', 'rot', 'checkpoint']), URGENT = new Set(['intro', 'boss', 'cellat']);
+  const ROOM_LINES = new Set(['chains', 'ritual', 'crypt', 'rot', 'checkpoint', 'coastRoots', 'coastStreet', 'coastPier', 'coastSquare', 'coastCheckpoint']), URGENT = new Set(['intro', 'boss', 'cellat', 'coastIntro', 'coastBoss']);
   const TELLS = new Set(['enemyWindup', 'enemyAttack', 'slam', 'explosion', 'poison', 'warning', 'hurt', 'guardBreak', 'tellCommit']);
   let caption = null, voiceNode = null, voiceGain = null, current = null, queue = [], nclock = 0, lastTellN = -9;
   const heard = new Set(), recent = {}, voiceBuffers = {};
@@ -1295,14 +1342,14 @@
   }
   function say(key, force = false) {
     const lines = B.Narration || {};
-    if (key === 'death' && force) { const v = ['death', 'death2', 'death3'].filter(k => lines[k]); key = v[deathTurn++ % v.length] || key; }
+    if ((key === 'death' || key === 'coastDeath') && force) { const v = (key === 'coastDeath' ? ['coastDeath', 'coastDeath2', 'coastDeath3'] : ['death', 'death2', 'death3']).filter(k => lines[k]); key = v[deathTurn++ % v.length] || key; }
     const line = lines[key]; if (!line) return;
     if (!force && (heard.has(key) || queue.some(q => q.key === key) || current && current.key === key)) return;
     if (!force && key !== 'intro' && recent[key] && Date.now() - recent[key] < 150000) return;   // yeniden doğunca aynı oda cümlesi tekrar etmesin
     if (force) queue = [];   // öncelik sıradadır; başlamış cümleye dokunma
-    if (key === 'seal' && queue.some(q => ROOM_LINES.has(q.key))) return;                       // bir oda cümlesi zaten bekliyor
+    if ((key === 'seal' || key === 'coastSeal') && queue.some(q => ROOM_LINES.has(q.key))) return;                       // bir oda cümlesi zaten bekliyor
     if (key !== 'seal') queue = queue.filter(q => q.key !== 'seal');
-    if (ROOM_LINES.has(key) || key === 'boss') queue = queue.filter(q => !ROOM_LINES.has(q.key)); // yalnızca son odanın cümlesi bekler
+    if (ROOM_LINES.has(key) || key === 'boss' || key === 'coastBoss') queue = queue.filter(q => !ROOM_LINES.has(q.key)); // yalnızca son odanın cümlesi bekler
     queue.push({ key, line, force, age: 0, ready: false, buffer: null });
     if (queue.length > 2) queue.shift();
     prepare(queue[queue.length - 1]);
@@ -1377,7 +1424,7 @@
     }
     return { room: r ? r.id : testGame && testGame.room != null ? testGame.room : -1, danger, combat,
       boss: !!boss && !boss.dead && !!(boss.active || boss.activated) && g.state === 'playing',
-      bossPhase: boss && boss.phase === 2 ? 2 : 1, dead: g.state === 'dead', won: g.state === 'won', paused: false };
+      bossPhase: boss && boss.phase >= 2 ? 2 : 1, dead: g.state === 'dead', won: g.state === 'won', paused: false };
   }
   function update(dt, raw = {}) {
     if (suspended) return;

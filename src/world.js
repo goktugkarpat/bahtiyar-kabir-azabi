@@ -703,8 +703,11 @@
 
       rooms.forEach(function (room, i) {
         tileFloor(room.x, room.z, room.w, room.d, i);
-        wallRun(room.x - room.w / 2, room.z, room.d, 'z', i === 6 ? 5.8 : 4.25);
-        wallRun(room.x + room.w / 2, room.z, room.d, 'z', i === 6 ? 5.8 : 4.25);
+        [-1,1].forEach(function(side){
+          var portal = i < 6 && side === ([1,-1,-1,1,1,-1][i]);
+          if(portal) [-1,1].forEach(function(s){var len=(room.d-6)/2;wallRun(room.x+side*room.w/2,room.z+s*(3+len/2),len,'z',4.25);});
+          else wallRun(room.x+side*room.w/2,room.z,room.d,'z',i===6?5.8:4.25);
+        });
         endWall(room, room.z + room.d / 2, i !== 0, true);
         endWall(room, room.z - room.d / 2, i !== 6, false);
         var pilasterZ = [room.z - room.d * 0.33, room.z + room.d * 0.33];
@@ -1409,6 +1412,7 @@
           if (devotional) funeraryEffigy(nx, north + .07, 0, room.id === 6 ? 1.22 : 1.03);
           var wall = room.x + side * (room.w / 2 - .49);
           for (var bay = 0; bay < 3; bay++) {
+            if(bay === 1 && room.id < 6 && side === [1,-1,-1,1,1,-1][room.id]) continue;
             var atZ = room.z + (bay - 1) * room.d * .29;
             var saint = devotional && bay === 1;
             alcove(wall, atZ, room.id === 4 ? 2.6 : 2.1, room.id === 4 ? 3.1 : 3.8,
@@ -2224,6 +2228,9 @@
       }
       // A static broad-phase grid keeps collision work independent of the
       // decorative instance count. Circle/rectangle checks have no corner cut.
+      var expansion = window.BABA.ChapterExpansion.build(root,materials,rooms,encounters,colliders,1,lightSources);
+      floors.push.apply(floors,expansion.floors);
+      var allRooms=rooms.concat(expansion.rooms);
       var grid = Object.create(null), cellSize = 8;
       colliders.forEach(function (c, index) {
         for (var gx = Math.floor((c.x - c.w / 2) / cellSize); gx <= Math.floor((c.x + c.w / 2) / cellSize); gx++) {
@@ -2411,6 +2418,7 @@
         return route.length ? route : [{ x: to.x, z: to.z }];
       }
       function roomAt(x, z) {
+        for(var j=0;j<expansion.rooms.length;j++){var extra=expansion.rooms[j];if(Math.abs(x-extra.x)<=extra.w/2&&Math.abs(z-extra.z)<=extra.d/2)return extra;}
         var closest = rooms[0], best = Infinity;
         for (var i = 0; i < rooms.length; i++) {
           var r = rooms[i];
@@ -2516,6 +2524,7 @@
         }
       }
       function update(dt, time, focusPoint) {
+        expansion.update(focusPoint);
         time = time || 0; dt = Math.max(0, Math.min(.1, dt || 0));
         var p = focusPoint;
         if (!p || !Number.isFinite(p.x)) { var app = BABA.app, g = app && app.game; p = g && g.player; }
@@ -2724,6 +2733,7 @@
         return atmosphere;
       }
       function dispose() {
+        expansion.dispose();
         if (isDisposed) return;
         isDisposed = true;
         scene.remove(root);
@@ -2750,7 +2760,7 @@
       });
       return {
         root: root, spawn: spawn, checkpoint: checkpoint, bossSpawn: bossSpawn,
-        rooms: rooms, encounters: encounters, colliders: colliders,
+        rooms: allRooms, paths: expansion.paths, encounters: encounters, colliders: colliders,
         move: move, isWalkable: isWalkable, hasClearPath: hasClearPath, pathTo: pathTo, roomAt: roomAt,
         update: update, dispose: dispose, setQuality: setQuality,
         atmosphereAt: atmosphereAt,
