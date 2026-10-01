@@ -948,22 +948,22 @@
       vertexShader: 'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
       fragmentShader: `varying vec2 vUv;uniform float uK;void main(){float y=vUv.y;
         float phase=vUv.x*75.3982;
-        float crown=exp(-pow((y-(.10+uK*.70))/.009,2.));
-        float echo=exp(-pow((y-(.035+uK*.53))/.006,2.))*.32;
+        float crown=exp(-pow((y-(.10+uK*.70))/.022,2.));
+        float echo=exp(-pow((y-(.035+uK*.53))/.014,2.))*.40;
         float jewels=pow(max(0.,cos(phase*.5)),20.)*exp(-pow((y-(.10+uK*.70))/.04,2.));
         float envelope=smoothstep(0.,.025,y)*(1.-smoothstep(.88,1.,y));
         float life=smoothstep(0.,.06,uK)*(1.-smoothstep(.28,.92,uK));
-        float a=(crown*.36+echo*.6+jewels*.18)*envelope*life;
+        float a=(crown*.62+echo*.65+jewels*.22)*envelope*life;
         if(a<.004)discard;vec3 col=mix(vec3(2.5,1.35,.32),vec3(2.6,2.15,1.3),crown*.75);
         gl_FragColor=vec4(col,a);}` });
-    const ascent = new T.Mesh(ascentGeo, ascentMat); ascent.name = 'level-gold-ascent'; ascent.visible = false; root.add(ascent);
+    const ascent = new T.Mesh(ascentGeo, ascentMat); ascent.renderOrder = 6; ascent.name = 'level-gold-ascent'; ascent.visible = false; root.add(ascent);
     const levelGroundMat = new T.ShaderMaterial({ transparent: true, depthWrite: false, blending: T.AdditiveBlending,
       uniforms: ascentMat.uniforms,
       vertexShader: 'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
       fragmentShader: `varying vec2 vUv;uniform float uK;void main(){
         float r=length(vUv-.5)*2.;float reach=.20+.50*uK;
-        float haze=exp(-pow(r/max(.12,reach*.65),2.))* .10;
-        float wave=exp(-pow((r-reach)/.10,2.))*.035;
+        float haze=exp(-pow(r/max(.12,reach*.65),2.))* .16;
+        float wave=exp(-pow((r-reach)/.10,2.))*.055;
         float life=smoothstep(0.,.06,uK)*(1.-smoothstep(.18,.80,uK));
         float a=(haze+wave)*life*(1.-smoothstep(.88,1.,r));
         if(a<.003)discard;gl_FragColor=vec4(vec3(2.1,1.25,.30),a);}` });
@@ -971,7 +971,8 @@
     levelGround.rotation.x = -Math.PI / 2; levelGround.scale.setScalar(1.7); levelGround.visible = false; root.add(levelGround);
     function placeLevelGround(x, z) {
       const world = B.app && B.app.world;
-      levelGround.position.set(x, world && world.effectHeightAt ? world.effectHeightAt(x, z, .85) + .015 : .065, z);
+      const floor = world && world.effectHeightAt ? world.effectHeightAt(x, z, .85) + .015 : .065;
+      levelGround.position.set(x, floor, z); ascent.position.y = floor + .90;
     }
     let ascentTime = 3;
     function signatureStep(dt) {

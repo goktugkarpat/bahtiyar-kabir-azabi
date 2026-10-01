@@ -31,7 +31,7 @@
       return true;
     }
     function draw(canvas, now) {
-      if (disposed || !canvas || !canvas.isConnected || !game.player.model || !canvas.width || !canvas.height) return false;
+      if (document.body.dataset.view !== 'character' || disposed || !canvas || !canvas.isConnected || !game.player.model || !canvas.width || !canvas.height) return false;
       const changed = syncEquipment(), time = Number.isFinite(now) ? now : performance.now();
       if (!changed && canvas === lastCanvas && lastTime !== null && time - lastTime < 1000 / 30) return false;
       const dt = lastTime !== null ? Math.min(.08, Math.max(0, (time - lastTime) / 1000)) : 1 / 30;

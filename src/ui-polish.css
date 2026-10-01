@@ -1,7 +1,7 @@
 /* Obsidian, tempered steel and restrained bronze. Static decoration only:
    no animated backdrop filters or additional work in the gameplay render loop. */
 :root { --ui-ink: #0c1014; --ui-field: #14191f; --ui-metal: #786650; --ui-bronze: #c6a779; --ui-ivory: #e9e4d7; --ui-muted: #a5a5a3; }
-.modal { background: radial-gradient(ellipse at 50% 32%, #18202845, #030508bc 85%); backdrop-filter: blur(3px) saturate(.65); padding: 22px; }
+.modal { background: radial-gradient(ellipse at 50% 32%, #18202845, #030508bc 85%); backdrop-filter: none; -webkit-backdrop-filter: none; padding: 22px; }
 .panel { border-image: none; border: 1px solid #8c745473; padding: 30px; background: radial-gradient(ellipse at 22% 0, #67788a17, transparent 60%), linear-gradient(145deg, #161b20f7, #090c10fc 70%), url(../assets/ui/iron.webp) center / 360px; box-shadow: 0 24px 90px #000c, 0 0 0 4px #080b0ec9, inset 0 1px 0 #d6c6a326, inset 0 0 0 6px #02040735; border-radius: 3px; }
 .panel::before { content: ''; position: absolute; inset: 8px; pointer-events: none; background: linear-gradient(#c6a779aa,#c6a779aa) left top/26px 1px no-repeat, linear-gradient(#c6a779aa,#c6a779aa) left top/1px 26px no-repeat, linear-gradient(#c6a779aa,#c6a779aa) right top/26px 1px no-repeat, linear-gradient(#c6a779aa,#c6a779aa) right top/1px 26px no-repeat, linear-gradient(#c6a77966,#c6a77966) left bottom/26px 1px no-repeat, linear-gradient(#c6a77966,#c6a77966) left bottom/1px 26px no-repeat, linear-gradient(#c6a77966,#c6a77966) right bottom/26px 1px no-repeat, linear-gradient(#c6a77966,#c6a77966) right bottom/1px 26px no-repeat; }
 .panel h2 { color: var(--ui-ivory); letter-spacing: .015em; font-weight: 600; text-transform: none; text-shadow: 0 2px 5px #000; }

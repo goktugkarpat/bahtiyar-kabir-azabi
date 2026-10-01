@@ -268,10 +268,14 @@
   const touchDevice = () => cfg.touch === 'on' || (cfg.touch === 'auto' && touchSeen);
 
   /* ───────────── Views ───────────── */
+  const menuStyle = document.querySelector('link[href*="ui-polish.css"]');
   function show(next) {
     if ((graphicsLost || graphicsRecovering || warming) && next === 'playing') next = 'pause';
     if (next !== view) resetPerformance();
     view = next;
+    // The menu artwork must not add CSS filters/compositing or selector work to gameplay.
+    // Keep the original gameplay HUD; enable the new art only when a menu is visible.
+    if (menuStyle) menuStyle.disabled = next === 'playing';
     if (next === 'playing' || next === 'title') stack = [];
     for (const v of views) $(v).classList.toggle('hidden', v !== next);
     $('hud').classList.toggle('hidden', next === 'title' || !game);
@@ -401,7 +405,7 @@
     if (B.Audio.say && !game.checkpointIndex) B.Audio.say(forgeChapter ? 'forgeIntro' : ruinsChapter ? 'ruinsIntro' : coastChapter ? 'coastIntro' : 'intro');
   }
   function event(name, d = {}) {
-    if (name === 'progression') { if (d.levels > 0) { announceTimer = 0; $('announcement').classList.remove('show'); const el = $('level-up'); el.querySelector('small').textContent = 'SEVİYE ATLADIN'; el.querySelector('strong').textContent = 'SEVİYE ' + d.level; el.querySelector('span').textContent = '+' + d.levels + ' YETENEK PUANI · T'; el.classList.remove('show'); void el.offsetWidth; el.classList.add('show'); levelUpTimer = 6; } if (characterUI) characterUI.refresh(); return; }
+    if (name === 'progression') { if (d.levels > 0) { B.Audio.play('levelUp'); fx('heroSkill', { skill: 'level', phase: 'release', x: game.player.x, z: game.player.z }); announceTimer = 0; $('announcement').classList.remove('show'); const el = $('level-up'); el.querySelector('small').textContent = 'SEVİYE ATLADIN'; el.querySelector('strong').textContent = 'SEVİYE ' + d.level; el.querySelector('span').textContent = '+' + d.levels + ' YETENEK PUANI · T'; el.classList.remove('show'); void el.offsetWidth; el.classList.add('show'); levelUpTimer = 6; } if (characterUI) characterUI.refresh(); return; }
     if (name === 'loot') { for (const item of d.items || []) { const def = B.Progression.catalog[item.id]; if (def) notify(B.Progression.qualities[def.rarity].name + ' ganimet · ' + def.name + ' · Çantaya eklendi [I]', 'rarity-' + def.rarity); } return; }
     if (name === 'hit') {
       // combat.js sizes the hit-stop itself (d.hitstop is set) and reports how hard the contact was (d.impact 0..1),
@@ -1217,12 +1221,15 @@
     const p = game.player;
     const progression = game.progression, thresholds = B.Progression.thresholds, baseXp = thresholds[progression.level - 1], nextXp = progression.nextLevelXp();
     hudText('hero-subtitle', 'Seviye ' + progression.level);
-    hq('.portrait-seal').textContent = progression.level;
+    const seal = hq('.portrait-seal'), levelText = String(progression.level);
+    if (seal.textContent !== levelText) seal.textContent = levelText;
     const xpFraction = progression.level === B.Progression.MAX_LEVEL ? 1 : clamp((progression.xp - baseXp) / (nextXp - baseXp), 0, 1);
     hudTransform('chapter-progress', `scaleX(${xpFraction})`);
     const xpBar = hq('.chapter-progress');
-    xpBar.setAttribute('aria-valuenow', String(Math.round(xpFraction * 100)));
-    xpBar.title = progression.level === B.Progression.MAX_LEVEL ? 'En yüksek seviye' : (progression.xp - baseXp) + ' / ' + (nextXp - baseXp) + ' tecrübe';
+    const xpValue = String(Math.round(xpFraction * 100));
+    if (xpBar.getAttribute('aria-valuenow') !== xpValue) xpBar.setAttribute('aria-valuenow', xpValue);
+    const xpTitle = progression.level === B.Progression.MAX_LEVEL ? 'En yüksek seviye' : (progression.xp - baseXp) + ' / ' + (nextXp - baseXp) + ' tecrübe';
+    if (xpBar.title !== xpTitle) xpBar.title = xpTitle;
     cryEffect.remaining = !p.dead && game.state === 'playing' ? p.rageTime || 0 : 0;
     buffUI.update(timedEffects);
     let buffCount = 0;
@@ -1353,7 +1360,7 @@
     return graphicsAdapter;
   }
   function performanceReport() {
-    return { schema: 4, game: 'Kabir Azabı', build: 110, capturedAt: new Date().toISOString(), view,
+    return { schema: 4, game: 'Kabir Azabı', build: 111, capturedAt: new Date().toISOString(), view,
       location: { room: world.rooms?.[roomId]?.name || roomId, x: game.player.x, z: game.player.z },
       display: { width: post.width, height: post.height, windowWidth: innerWidth, windowHeight: innerHeight,
         devicePixelRatio: window.devicePixelRatio || 1, renderPixelRatio: renderer.getPixelRatio() },
@@ -1416,7 +1423,7 @@
     B.Audio.update(dt, { playing: view === 'playing' && game.state === 'playing', combat: fighting, boss: game.enemies.some(e => e.boss && !e.dead && Math.hypot(e.x - game.player.x, e.z - game.player.z) < 25) });
     const simulationEnd = measured ? performance.now() : 0;
     // While new shader programs compile in the background the last frame stays on screen (drawing would block the page).
-    if (!warming && renderClock.due(ts, cfg.fps)) {
+    if (!warming && renderClock.due(ts, paused && view !== 'title' ? Math.min(cfg.fps || 30, 30) : cfg.fps)) {
       // A size change clears the browser canvas. Apply it before drawing the
       // visible frame, so a completed frame is never erased before presentation.
       // Automatic resolution: only while really playing, and never on 120 Hz-class targets (see Display.createScaler).
@@ -1465,7 +1472,7 @@
       const submissionEnd = measured ? performance.now() : 0;
       document.body.classList.toggle('in-combat', fighting && view === 'playing');
       drawWarnings();
-      if (B.HUD && B.HUD.frame) B.HUD.frame(drawDt);
+      if (view === 'playing' && B.HUD && B.HUD.frame) B.HUD.frame(drawDt);
       if (measured) {
         const cpuEnd = performance.now();
         performanceMeter.record(ts, { simulation: simulationEnd - cpuStart, presentation: presentationEnd - simulationEnd,

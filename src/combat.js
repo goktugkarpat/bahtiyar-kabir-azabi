@@ -1201,9 +1201,8 @@
       enemy.dead = true; enemy.hp = 0; enemy.deadAge = 0; enemy.action = null; enemy.shield = false; enemy.active = false; enemy.stagger = 0;
       if (game.attackTarget === enemy) game.attackTarget = null;
       cancelHazards(enemy, false); game.kills++;
-      const reward = progression.grantEnemy(enemy.id, enemy.type, enemy.boss, chapter, game.difficulty, enemy.elite, enemy);
+      progression.grantEnemy(enemy.id, enemy.type, enemy.boss, chapter, game.difficulty, enemy.elite, enemy);
       syncProgression();
-      if (reward.levels > 0) { sound('levelUp'); fx('heroSkill', { skill: 'level', phase: 'release', x: player.x, y: .1, z: player.z, radius: 2.5 }); }
       const seal = seals.find(seal => seal.encounter === enemy.encounter);
       if (seal && !seal.open && seal.encounter.enemies.every(e => e.dead)) {
         seal.open = true; sound('sealOpen');

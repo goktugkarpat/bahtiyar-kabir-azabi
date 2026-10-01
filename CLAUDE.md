@@ -24,3 +24,5 @@ Sessiz Taht / Kızıl Ocak dünya kodu src/ruins-world.js içinde ortak örnekle
 
 ## Arayüz — sürüm 110
 Son ortak görsel katman src/ui-polish.css içinde; eski dosyalara gelişigüzel yeni override eklemek yerine bu katmanın ilgili bölümünü düzenle. Ayar kategorileri app.js selectSettingsPage ile yönetilir; yeni kategori gizlenirken hem DOM görünürlüğü hem aria-pressed güncellenir. Xbox yapılandırması settings-input içine kurulur. Masaüstünde çanta ve yetenek ağacı kendi içinde kayar; refresh aynı sayfada kaydırma konumunu korumalıdır. Canlı portre sabit en-boy oranıyla en fazla 512×768 çizilir, ayrı renderer yoktur; karakter döndürme yalnız portre modeline etki eder.
+
+Sürüm 111: ui-polish.css yalnız menü görünümlerinde etkin; show('playing') bunu devre dışı bırakır. Yeni menü stilini oyun döngüsüne geri ekleme. Level-up ses/efekt tetiklemesi app.js progression olayındadır, killEnemy içinde tekrar etme. Menü arkasındaki dünya 30 Hz ile sınırlı; oyuncunun oyun içi kare hızı değişmez.

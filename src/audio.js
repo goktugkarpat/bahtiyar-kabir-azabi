@@ -802,9 +802,9 @@
   // One swelling air-and-bass sweep: no bells or stepped musical notes.
   H.levelUp = (o, k) => {
     const t = now();
-    whoosh(t, {dur:.95,peak:.32,f0:230,f1:820,f2:160,q:1.1,low:200,vol:.65*k,send:.15});
-    tone(t,140,.43,.14*k,{type:'sine',attack:.20,bend:2,send:.12,lp:700});
-    tone(t+.28,280,.64,.13*k,{type:'sine',attack:.04,bend:.45,send:.14,lp:700});
+    whoosh(t, {dur:1.05,peak:.30,f0:320,f1:1450,f2:240,q:.85,low:240,vol:1.05*k,send:.15});
+    tone(t,140,.43,.20*k,{type:'sine',attack:.20,bend:2,send:.12,lp:700});
+    tone(t+.28,280,.64,.19*k,{type:'sine',attack:.04,bend:.45,send:.14,lp:700});
   };
   H.checkpoint = (o, k) => {
     if (extMusic) B.Music.sting('checkpoint');

@@ -101,3 +101,11 @@ Karakter, çanta, yetenek ağacı, mola, ayarlar ve tuş atamaları koyu çelik 
 Yeteneklerde özgün metal görünümlü vektör simgeleri, üç ayrı dal rengi, öğrenilmiş bağlantılar ve masaüstünde sabit aktif yuvalar bulunur. Ayarlar Oynanış / Görüntü / Ses / Kontroller olarak ayrılır; Xbox yeniden atamaları Kontroller bölümündedir. Yeni stil dosyası internetsiz önbelleğe dahildir.
 
 Sessiz yerel testlerde 1280×720 ve 1440×900 masaüstü, 768×1024 tablet, 390×844 telefon düzenleri incelendi; çift tıkla kuşanma / çıkarma, istatistik yenilenmesi, yetenek öğrenme / atama, ayar sekmeleri ve klavye ataması penceresine gidip geri dönme denendi. Bu arayüz geçişi savaş dengesini veya oyun dünyasının çizimini değiştirmez. Bu turda baştan sona oynanış testi yapılmadı; dosyadan açılış testi test tarayıcısının güvenlik kısıtı nedeniyle tamamlanamadı. Bütün cihazlar için FPS garantisi verilmez.
+
+### Arayüz yükü ve seviye geri bildirimi — sürüm 111
+
+Yeni menü stili yalnız menüler açıkken etkinleşir; oynarken önceki HUD görünümü kullanılır. Menülerin arkasındaki dünya en fazla 30 kare/sn çizilir; can/dayanıklılık küreleri menülerde yeniden çizilmez. Menülerde tam ekran bulanıklık filtresi kaldırıldı. Canlı karakter çizimi yalnız karakter ekranında çalışır. Sabit seviye/tecrübe metinleri değişmedikçe DOM'a tekrar yazılmaz.
+
+Seviye duyurusu, altın halkalar ve hava/bas sesi aynı ilerleme olayından bir kez tetiklenir. Halkalar kalınlaştırıldı ve zeminin yüksekliğine yerleştirildi; küçük zemin parıltısı korunur. Sesin orta frekansları savaşta duyulacak biçimde belirginleştirildi.
+
+Sessiz yerel kontrolde yeni stilin oynarken kapalı, menüde açık olduğu doğrulandı; oyun 60 FPS, menü arkasındaki dünya 30 FPS çizildi. Gerçek düşman ödülüyle seviye duyurusu / ses / efekt tetiklemeleri kontrol edildi. Hoparlörden ses çalmadan işlenen seviye sesinin RMS değeri 0,047, tepe değeri 0,75 oldu; sessiz örnek veya kırpılma yok. Kullanıcının RTX 4090 cihazındaki ağır kasılma bu test ortamında yeniden üretilemedi; bu ölçümler sorunun o cihazda tamamen giderildiğini kanıtlamaz.
