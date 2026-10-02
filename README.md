@@ -14,7 +14,7 @@ Bölümler birbirinin devamıdır: boss düşünce bir sonrakine kendiliğinden 
 
 ## Nasıl açılır
 
-- **Bilgisayarda:** `index.html` dosyasına çift tıklamanız yeterli. Kurulum ya da internet gerekmez. Mac'te `OYNA.command` da oyunu tarayıcıda açar.
+- **Bilgisayarda:** `index.html` dosyasına çift tıklamanız yeterli. Kurulum ya da internet gerekmez.
 - **İnternette:** https://goktugkarpat.github.io/bahtiyar-kabir-azabi/ adresini açın. İlk açılıştan sonra internet olmadan da çalışır.
 - **iPad'de:** Safari ile adresi açıp Paylaş › **Ana Ekrana Ekle** deyin.
 
