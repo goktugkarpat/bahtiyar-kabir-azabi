@@ -100,12 +100,13 @@ float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
 void main(){
   float k=clamp(vAge/uLife,0.,1.);float e=1.-abs(vS*2.-1.);
   float core=pow(e,3.2),soft=pow(e,1.3);
+  float wake=exp(-pow((abs(vS*2.-1.)-(.48+.07*sin(vU*2.8-uNow*8.)))/.09,2.));
   float fl=1.-uFl*(.5-.5*sin(vU*15.+vS*7.+uNow*22.)*sin(vU*4.7-vS*3.1+uNow*5.));
   vec2 g=vec2(vU*7.,vS*3.4+floor(vU*7.)*.37);vec2 id=floor(g);vec2 f=fract(g)-.5;
   float speck=step(uSpeck,h(id))*pow(max(0.,1.-length(f)*2.),2.2)*(.6+.4*h(id+3.1));
   float life=pow(1.-k,1.05)*smoothstep(0.,.07,vAge);
   vec3 col=mix(uC0,uC1,smoothstep(0.,.3,k));col=mix(col,uC2,smoothstep(.25,.95,k));col*=mix(uE,vec3(1.),core);
-  float a=(core*.85+soft*.3)*fl+speck*1.6*soft;a*=life*uA*.5;
+  float a=(core*.66+soft*.22+wake*.29)*fl+speck*1.3*soft;a*=life*uA*.5;
   if(a<.004)discard;gl_FragColor=vec4(col*a,1.);
 }`;
   // Impact quad (one mesh, premultiplied alpha so fissures can be DARK): wind-up gather ring, slam shock ring + soft heat, stone fissures (tier II six, tier III eight + branches,
@@ -121,10 +122,10 @@ void fissure(float r,float a,float N,float R,float Lm,float t,float so,float thi
   float j=.11*tri(r*.8+id*1.7+so)+.05*tri(r*2.1+id*.9+so*2.);
   float dist=abs(da+j)*(2.*PI/N)*r;
   float L=R*(.55+.5*hs(id+so))*Lm;
-  float run=smoothstep(L,L*.82,r)*step(r,L*clamp(t/.14,0.,1.1));
+  float run=(1.-smoothstep(L*.82,L,r))*step(r,L*clamp(t/.14,0.,1.1));
   float wid=(.16*(1.-.72*r/max(L,.1))+.035)*thick*clamp(r*.8,.12,1.);
-  float halo=smoothstep(wid*2.6,wid*1.0,dist)*run;   // broken stone: a wide dark rim round a narrow lit core
-  float core=smoothstep(wid*.8,wid*.3,dist)*run;
+  float halo=(1.-smoothstep(wid, wid*2.6, dist))*run;   // broken stone: a wide dark rim round a narrow lit core
+  float core=(1.-smoothstep(wid*.3,wid*.8,dist))*run;
   float heat=pow(max(0.,1.-t/1.1),1.4);float fade=1.-smoothstep(2.3,3.3,t);
   CC+=mix(uCc*vec3(.3,.08,.08),uCc,heat)*core*(.08+.3*heat)*fade;
   CA=max(CA,halo*.8*fade);
@@ -135,14 +136,14 @@ void main(){
   if(uT1>=0.){
     float k=clamp(uT1/.5,0.,1.);float e=uR*(1.-pow(1.-k,3.));float w=.11+.2*k*uR*.35;
     float life=pow(1.-k,1.35)*smoothstep(0.,.02,uT1);
-    col+=(uCa*ring(r,e,w)+uCb*ring(r,e,w*4.)*.2)*life;
+    col+=(uCa*ring(r,e,w*.58)+uCb*ring(r,e,w*3.2)*.18)*life;
     col+=uCa*.5*exp(-r*r/(uR*uR*.22))*pow(1.-k,2.2)*.04*smoothstep(0.,.015,uT1);
     float k2=clamp((uT1-.05)/.5,0.,1.);col+=uCb*.9*ring(r,uR*.62*(1.-pow(1.-k2,2.5)),.07+.1*k2)*pow(1.-k2,1.6)*step(.05,uT1)*.6;
     if(uTier>1.5){fissure(r,a,uTier>2.5?8.:6.,uR,uTier>2.5?1.05:.85,uT1,0.,1.);}
   }
   if(uT2>=0.){
     float k=clamp(uT2/.5,0.,1.);float e=uR2*(1.-pow(1.-k,3.));float w=.13+.22*k*uR2*.3;float life=pow(1.-k,1.3)*smoothstep(0.,.02,uT2);
-    col+=(uCa*1.1*ring(r,e,w)+uCb*1.3*ring(r,e,w*4.5)*.2)*life;
+    col+=(uCa*1.1*ring(r,e,w*.62)+uCb*1.3*ring(r,e,w*3.6)*.18)*life;
     float k3=clamp((uT2-.07)/.5,0.,1.);col+=uCb*ring(r,uR2*.7*(1.-pow(1.-k3,2.5)),.1+.12*k3)*pow(1.-k3,1.5)*step(.07,uT2)*.55;
     col+=uCa*.5*exp(-r*r/(uR2*uR2*.2))*pow(1.-k,2.4)*.03*smoothstep(0.,.015,uT2);
     fissure(r,a,9.,uR2,1.0,uT2,7.,1.2);
@@ -166,7 +167,7 @@ void main(){
     const tMat = new T.ShaderMaterial({ transparent: true, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide, fog: false, uniforms: TU, vertexShader: TRAIL_VS, fragmentShader: TRAIL_FS, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -3 });
     const trail = new T.Mesh(tg, tMat); trail.frustumCulled = false; trail.renderOrder = 3; trail.visible = false; trail.name = 'charge-trail'; root.add(trail);
     // circular buffers of trail points (x, z, birth, cumulative distance)
-    const px = new Float32Array(TN), pz = new Float32Array(TN), pb = new Float32Array(TN), pu = new Float32Array(TN); let head = 0, cnt = 0, uAcc = 0, lastX = 0, lastZ = 0, haveLast = false;
+    const px = new Float32Array(TN), pz = new Float32Array(TN), py = new Float32Array(TN), pb = new Float32Array(TN), pu = new Float32Array(TN); let head = 0, cnt = 0, uAcc = 0, lastX = 0, lastZ = 0, haveLast = false;
     // ---- impact quad
     const IU = { uT1: { value: -1 }, uT2: { value: -1 }, uR: { value: 2.2 }, uR2: { value: 5 }, uSize: { value: 10 }, uTier: { value: 1 }, uG: { value: 0 }, uGR: { value: 1.6 }, uSeed: { value: 1 }, uCa: { value: v3(PAL[1].hot) }, uCb: { value: v3(PAL[1].ring2) }, uCc: { value: v3(PAL[1].crack) } };
     const iGeo = new T.PlaneGeometry(1, 1);
@@ -186,7 +187,7 @@ void main(){
     function trailPush(x, z) {
       if (haveLast) { const d = Math.hypot(x - lastX, z - lastZ); if (d < .2) return; uAcc += d; }
       lastX = x; lastZ = z; haveLast = true;
-      px[head] = x; pz[head] = z; pb[head] = clock; pu[head] = uAcc; head = (head + 1) % TN; if (cnt < TN) cnt++;
+      px[head] = x; pz[head] = z; py[head] = heightAt(x, z) + .035; pb[head] = clock; pu[head] = uAcc; head = (head + 1) % TN; if (cnt < TN) cnt++;
       trail.visible = true; trailLive = true;
     }
     function trailFill() {
@@ -194,7 +195,7 @@ void main(){
       const life = TRAIL_LIFE[tier];
       while (cnt > 0 && clock - pb[(head - cnt + TN) % TN] > life + .02) cnt--;
       if (cnt < 2) { tg.setDrawRange(0, 0); if (cnt === 0) { trail.visible = false; trailLive = false; } return; }
-      const y = floorY + .035, comet = tier === 3, uW = TU.uW.value; let n = 0;
+      const comet = tier === 3, uW = TU.uW.value; let n = 0;
       for (let k = 0; k < cnt; k++) {
         const i = (head - cnt + k + TN) % TN, a = (head - cnt + Math.max(0, k - 1) + TN) % TN, b = (head - cnt + Math.min(cnt - 1, k + 1) + TN) % TN;
         let tx = px[b] - px[a], tz = pz[b] - pz[a]; const l = Math.hypot(tx, tz) || 1; tx /= l; tz /= l;
@@ -203,7 +204,7 @@ void main(){
         const w = (comet ? (.4 + .55 * (1 - an) * (1 - an)) * Math.min(1, .45 + age * 8) : (.16 + .6 * Math.sqrt(an) * (1 - age * .3)) * Math.min(1, .12 + age * 8)) * uW;
         for (let s = 0; s < 2; s++) {
           const v = n * 2 + s, o2 = (s * 2 - 1) * w;
-          posA[v * 3] = px[i] - tz * o2; posA[v * 3 + 1] = y; posA[v * 3 + 2] = pz[i] + tx * o2;
+          posA[v * 3] = px[i] - tz * o2; posA[v * 3 + 1] = py[i]; posA[v * 3 + 2] = pz[i] + tx * o2;
           dA[v * 4] = s; dA[v * 4 + 1] = pb[i]; dA[v * 4 + 2] = 0; dA[v * 4 + 3] = 0; uA[v] = pu[i];
         }
         n++;

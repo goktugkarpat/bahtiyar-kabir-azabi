@@ -1,16 +1,12 @@
-/* KABİR AZABI — boss gate (round 7). The way to the boss room stays SEALED until the hero has beaten GATE_RATIO of the chapter's regular foes
-   (mini-bosses / wardens count, the final boss does not). Per chapter the door is built once from the world's own surface materials
-   (world.materials: shared programs, no new lights, no runtime geometry / material / texture creation) into two merged groups:
-   a static frame and a leaf that grinds upwards when the gate opens. State is DERIVED from the dead flags (so checkpoints, saves and respawns
-   need no extra field): sync() after every reset, kill() after every kill.
-   Contract with combat.js: create(api) -> gate { info, sync(instant), kill(), update(dt, player), clamp(body, prevZ, radius), dispose() };
-   info { room, need, total, kills, open, bossName } is exposed as game.gate and read by the HUD (app.js). Needs: api.root, api.world, api.chapter,
-   api.enemies, api.emit / sound / fx. */
+/* KABİR AZABI — story boss gate. The geometry stays chapter-specific and shares
+   the world's scanned materials. Two completed story objectives release the leaf;
+   defeated enemies never replace either objective. sync() follows restored quest
+   state, refresh() handles an accepted interaction, kill() only updates QA counts.
+   All resources are built before warm-up; no new lights or runtime GPU resources. */
 (function () {
   'use strict';
   var B = window.BABA, T = window.THREE;
-  var GATE_KILLS = 45;            // the same kill count in every chapter (about 60 foes each)
-  var GATE_RATIO = .75;           // share of the regular foes that must fall before the gate opens (one constant for all chapters)
+  var LEGACY_KILLS = 45; // only for migrating already-open pre-quest saves
   var OPEN_TIME = 2.6, HEIGHT = 3.5, UVM = 1.5;
   var HINT_RANGE = 6.5, HINT_EVERY = 7;
 
@@ -23,9 +19,9 @@
     for (i = 0; i < world.rooms.length; i++) { var rm = world.rooms[i]; if (String(rm.id) === String(boss.encounter.room)) bossRoom = rm; }
     if (!bossRoom) return null;
     for (i = 0; i < world.rooms.length; i++) if (world.rooms[i].id === bossRoom.id - 1) prevRoom = world.rooms[i];
-    var need = GATE_KILLS;                                   // 45 of the ~60 foes in every chapter (no need to clear every room)
-    need = Math.max(1, Math.min(need, regular - 3));        // always leave a few spare foes so the threshold stays reachable
-    var info = { chapter: chapter, room: bossRoom.id, need: need, total: regular, kills: 0, open: false, bossName: boss.name || '', ratio: GATE_RATIO };
+    var need = 2;
+    var info = { chapter: chapter, room: bossRoom.id, need: need, total: 2, kills: 0, completed: 0,
+      open: false, bossName: boss.name || '', mode: 'quests' };
 
     // Where the door stands: in the passage between the last room and the boss room, as wide as the passage is.
     var bossEdge = bossRoom.z + bossRoom.d / 2, z = bossEdge + .6;
@@ -168,16 +164,16 @@
     function count() { var c = 0, e; for (var q = 0; q < enemies.length; q++) { e = enemies[q]; if (e.dead && !e.boss && !e.reserve) c++; } return c; }
     function setLeaf(y, shown) { leafGroup.position.y = y; leafGroup.position.x = 0; if (shown !== leafShown) { leafShown = shown; leafGroup.visible = shown; } }
     var gate = { info: info };
-    // After every reset / load: the state follows the dead flags, instantly and without effects.
+    // After every reset / load: restored objective completion opens the leaf without replaying its sound.
     gate.sync = function () {
-      info.kills = count(); info.open = info.kills >= need; opening = false; hintCd = 0;
+      info.kills = count(); info.completed = api.quests ? api.quests.completed : 0;
+      info.open = !!boss.dead || !!(api.quests && api.quests.ready); opening = false; hintCd = 0;
       if (info.open) { openT = OPEN_TIME + 1; blocking = false; setLeaf(H + .4, false); }
       else { openT = 0; blocking = true; setLeaf(0, true); }
     };
-    gate.kill = function (enemy) {
-      if (enemy && (enemy.boss || enemy.reserve)) return;
-      info.kills = count();
-      if (!info.open && info.kills >= need) {
+    gate.refresh = function () {
+      info.kills = count(); info.completed = api.quests ? api.quests.completed : 0;
+      if (!info.open && (boss.dead || api.quests && api.quests.ready)) {
         info.open = true; opening = true; openT = 0; burstCd = 0;
         var p = api.player;
         api.sound('gateOpen'); api.emit('gateOpen', { name: info.bossName, x: cx, z: z, need: need });
@@ -185,6 +181,19 @@
         api.fx('parry', { x: cx - hw * .5, y: 1.8, z: z + .4 }); api.fx('parry', { x: cx + hw * .5, y: 2.6, z: z + .4 });
         api.fx('slam', { x: cx, z: z + .5, radius: Math.min(5, hw * 1.3) });
       }
+    };
+    gate.kill = function () { info.kills = count(); };
+    // The visual seal is also a combat obstacle: ranged strikes and travelling tells stop here.
+    gate.blocks = function (ax, az, bx, bz, radius) {
+      if (!blocking || Math.abs(bz - az) < 1e-7) return false;
+      var u = (z - az) / (bz - az);
+      return u > 0 && u < 1 && Math.abs(ax + (bx - ax) * u - cx) < hw + (radius || 0);
+    };
+    gate.clipLine = function (x, z0, face, length) {
+      if (!blocking) return length;
+      var dz = Math.cos(face); if (Math.abs(dz) < 1e-7) return length;
+      var distance = (z - z0) / dz;
+      return distance > 0 && distance < length && Math.abs(x + Math.sin(face) * distance - cx) < hw + .15 ? Math.max(.05, distance - .18) : length;
     };
     gate.clamp = function (body, prevZ, radius) {
       if (!blocking || Math.abs(body.x - cx) > hw + radius) return;
@@ -212,7 +221,7 @@
       if (!info.open) {
         hintCd -= dt;
         if (hintCd <= 0 && p.z > z && p.z - z < HINT_RANGE && Math.abs(p.x - cx) < hw + 2.5) {
-          hintCd = HINT_EVERY; api.emit('toast', { text: 'Kapı mühürlü · ' + (need - info.kills) + ' düşman daha yen' });
+          hintCd = HINT_EVERY; api.emit('toast', { text: 'Kapı mühürlü · ' + info.completed + ' / 2 görev tamamlandı. ' + (api.quests ? api.quests.objective : '') });
         }
       }
     };
@@ -223,5 +232,5 @@
     return gate;
   }
 
-  B.Gate = { RATIO: GATE_RATIO, create: create };
+  B.Gate = { LEGACY_KILLS: LEGACY_KILLS, create: create };
 })();

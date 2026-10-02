@@ -21,7 +21,7 @@
       pieces.push(G.tube([arr(b), arr(c), arr(d)], function(t){return (.031+(i%3)*.012)*Math.pow(1-t,.75)+.003;}, 9, 22, true));
       var tip = d.clone().add(new T.Vector3(s * .06, size * .15, -.04)); pieces.push(G.spike(.025, d, tip));
     }
-    A.rigid('wood', G.merge(pieces), bone);
+    var bark=G.merge(pieces);G.uvScale(bark,1.6,.7);A.rigid('wood',bark,bone);
   }
   function grin(A, head, p, size) {
     var teeth = [], rim = [], jaw = p.clone().add(new T.Vector3(0, -.07, .09));
@@ -33,7 +33,18 @@
     }
     A.rigid('bone', G.merge(teeth), head); tube(A, 'flesh', head, rim, .016);
   }
-  function eye(A, head, p, size, material) { [-1, 1].forEach(function (s) { A.rigid('void', G.sphere(size * 1.4, [p.x + s * .054, p.y + .035, p.z + .10], [1, .75, .5], 12, 8), head); A.rigid(material || 'sea-glow', G.sphere(size, [p.x + s * .054, p.y + .035, p.z + .117], [1, .7, .35], 12, 8), head); }); }
+  function eye(A, head, p, size, material) {
+    [-1,1].forEach(function(s){
+      var q=head==='head'?null:A.nearest(new T.Vector3(p.x+s*.054,p.y+.035,p.z+.12),['skin']),
+        center=q?new T.Vector3(q.x,q.y,q.z):p.clone().add(new T.Vector3(s*.054,.035,.10)),
+        n=q?new T.Vector3(q.nx,q.ny,q.nz).normalize():new T.Vector3(0,0,1),turn=new T.Quaternion().setFromUnitVectors(new T.Vector3(0,0,1),n);
+      // Recess each eye into the actual skull; a head turn must not leave the glowing eye floating beside it.
+      var socket=G.sphere(size*1.4,null,[1,.75,.5],12,8),iris=G.sphere(size,null,[1,.7,.35],12,8);
+      socket.applyQuaternion(turn);iris.applyQuaternion(turn);socket.translate(center.x,center.y,center.z);
+      center.addScaledVector(n,q?size*.48:.017);iris.translate(center.x,center.y,center.z);
+      A.rigid('void',socket,head);A.rigid(material||'sea-glow',iris,head);
+    });
+  }
   // Project accessories and wounds onto the actual licensed body's surface, in bind space.
   function skinPoint(A,p,lift){var q=A.nearest(p,['skin']);return q?new T.Vector3(q.x+q.nx*(lift||0),q.y+q.ny*(lift||0),q.z+q.nz*(lift||0)):v(p);}
   function wounds(A,c,exec){var lines=[],step=exec?.10:.075;for(var i=0;i<3;i++){var a=skinPoint(A,c.clone().add(new T.Vector3(-.16+i*.11,-.02-i*step,.55))),b=skinPoint(A,c.clone().add(new T.Vector3(-.08+i*.10,-.14-i*step,.55)));lines.push([a,b,.004+i*.0006,false]);}return lines;}
@@ -41,23 +52,22 @@
   function plate(A,bone,target,r,stretch,key,seed){
     var q=A.nearest(target,['skin']);if(!q)return;var p=new T.Vector3(q.x+q.nx*.013,q.y+q.ny*.013,q.z+q.nz*.013),n=new T.Vector3(q.nx,q.ny,q.nz).normalize();
     var ey=new T.Vector3(0,1,0);ey.addScaledVector(n,-ey.dot(n));if(ey.lengthSq()<.01)ey.set(0,0,1);ey.normalize();var ex=new T.Vector3().crossVectors(ey,n).normalize();
-    function point(a,t){var theta=t*Math.PI*.5,rr=r*(1+.035*Math.sin(a*9+seed)),lift=Math.cos(theta)*r*.42+.006*Math.pow(Math.max(0,Math.sin(a*12)),4)*Math.sin(theta);return p.clone().addScaledVector(ex,Math.cos(a)*Math.sin(theta)*rr).addScaledVector(ey,Math.sin(a)*Math.sin(theta)*rr*stretch).addScaledVector(n,lift);}
+    function point(a,t){var theta=t*Math.PI*.5,rr=r*(1+.035*Math.sin(a*9+seed)),lift=Math.cos(theta)*r*.42+.009*Math.pow(Math.max(0,Math.sin(a*12+seed*.3)),4)*Math.sin(theta);return p.clone().addScaledVector(ex,Math.cos(a)*Math.sin(theta)*rr).addScaledVector(ey,Math.sin(a)*Math.sin(theta)*rr*stretch).addScaledVector(n,lift);}
     var g=G.shell(24,8,function(u,v){return arr(point(u*TAU,v));},.012,true,true);G.uvScale(g,2,2);A.rigid(key||'ash',g,bone);
     var lip=[];for(var j=0;j<=32;j++)lip.push(arr(point(j/32*TAU,1)));tube(A,'bone',bone,lip,.008);
   }
   function oar() {
-    var blade=G.extrude([[-.055,-.24],[.048,-.24],[.11,-.10],[.105,.21],[.065,.25],[-.04,.23],[-.105,.16],[-.12,-.08]],.055,.006);blade.rotateZ(-.09);blade.translate(0,1.22,0);return {parts:{wood:[G.tube([[0,-.145,0],[.014,.48,0],[0,1.16,0]],function(t){return .034-.008*t+.002*Math.sin(t*28);},12,28,true),blade],iron:[G.ring(.04,.008,[0,.15,0],[Math.PI/2,0,0],6,20),G.box(.22,.035,.068,[0,1.10,0]),G.stud(.012,[.055,1.10,.04],[0,0,1]),G.stud(.012,[-.055,1.10,.04],[0,0,1])]},tip:new T.Vector3(.02,1.48,0)};
+    var blade=G.extrude([[-.055,-.24],[.048,-.24],[.11,-.10],[.105,.21],[.065,.25],[-.04,.23],[-.105,.16],[-.12,-.08]],.055,.006),
+      haft=G.tube([[0,-.145,0],[.014,.48,0],[0,1.16,0]],function(t){return .034-.008*t+.002*Math.sin(t*28);},12,28,true);
+    // Crop one weathered plank from the existing scan; grain follows the oar instead of crossing it like floorboards.
+    [blade,haft].forEach(function(g,j){var uv=g.attributes.uv;for(var i=0;i<uv.count;i++){var u=uv.getX(i),v=uv.getY(i);uv.setXY(i,v*(j?.16:.65)+.18,u*(j?.04:.30)+.43);}});
+    blade.rotateZ(-.09);blade.translate(0,1.22,0);
+    return {parts:{wood:[haft,blade],iron:[G.ring(.04,.008,[0,.15,0],[Math.PI/2,0,0],6,20),G.box(.22,.035,.068,[0,1.10,0]),G.stud(.012,[.055,1.10,.04],[0,0,1]),G.stud(.012,[-.055,1.10,.04],[0,0,1])]},tip:new T.Vector3(.02,1.48,0)};
   }
   function anchor() {
     var p = { iron: [G.cyl(.042, .065, 1.55, 12, [0, .5, 0]), G.ring(.14, .038, [0, 1.3, 0], [0, 0, 0], 8, 24), G.box(.75, .09, .10, [0, 1.04, 0])], dark: [], brass: [] };
     [-1, 1].forEach(function (s) { p.iron.push(G.tube([[0, -.25, 0], [s * .26, -.17, 0], [s * .48, .12, 0]], .065, 8, 24, true), G.spike(.16, new T.Vector3(s * .47, .1, 0), new T.Vector3(s * .45, .47, 0))); });
     p.brass.push(G.cyl(.082, .082, .10, 12, [0, .3, 0])); return { parts: p, tip: new T.Vector3(.46, .43, 0) };
-  }
-  var corpseTexture=null;
-  function corpseMap(){if(corpseTexture)return corpseTexture;var n=B.Materials.noise().image.data,c=document.createElement('canvas');c.width=c.height=512;var ctx=c.getContext('2d'),im=ctx.createImageData(512,512),d=im.data;
-    for(var y=0;y<512;y++)for(var x=0;x<512;x++){var p=(y*512+x)*4,a=n[(((y>>1)*256+(x>>1))*4)],b=n[(((y&255)*256+(x&255))*4)+1],f=n[(((y&255)*256+(x&255))*4)+2],m=(a-128)*.20+(b-128)*.11+(f-128)*.06;d[p]=152+m;d[p+1]=161+m;d[p+2]=147+m;d[p+3]=255;}ctx.putImageData(im,0,0);
-    ctx.strokeStyle='rgba(47,70,66,.18)';ctx.lineWidth=1.4;for(var i=0;i<28;i++){var x=(i*173)%512,y=(i*127)%512;ctx.beginPath();ctx.moveTo(x,y);ctx.bezierCurveTo(x+13,y+22,x-16,y+44,x+7,y+72);ctx.stroke();}
-    corpseTexture=new T.CanvasTexture(c);corpseTexture.colorSpace=T.SRGBColorSpace;corpseTexture.wrapS=corpseTexture.wrapT=T.RepeatWrapping;corpseTexture.minFilter=T.LinearMipmapLinearFilter;corpseTexture.anisotropy=8;corpseTexture.name='coast-original-corpse-skin';return corpseTexture;
   }
   B.CoastClothClock={value:0};
   function coastMotion(type){return function(bones,scene,scale){
@@ -81,6 +91,8 @@
       var lens = {}; lens[neck] = type === 'lantern' ? 1.35 : type === 'crawler' ? 1.1 : 1.04;
       if (!exec) { lens.lowerarm_l = lens.lowerarm_r = type === 'crawler' ? 1.5 : 1.12; lens.hand_l = lens.hand_r = type === 'crawler' ? 1.5 : 1.13; }
       A.lengthen(lens);
+      if(type==='drowned'){A.slim(skin,{spine_01:.84,spine_02:.88,upperarm_l:.91,upperarm_r:.91,thigh_l:.94,thigh_r:.94},1);}
+      else if(type==='lantern'){A.slim(skin,{upperarm_l:.82,upperarm_r:.82,lowerarm_l:.88,lowerarm_r:.88},1);}
       if (type === 'lantern' || type === 'crawler') { var slim = {}; slim[spine] = .7; slim.pelvis = .75; A.slim(skin, slim, 1); }
       var headCloud=A.cloud([head],['skin'],.65), headBox=A.box(headCloud);
       var p = headCloud.length ? headBox.getCenter(new T.Vector3()) : A.P(head), chest = A.P(spine), hip = A.P('pelvis');
@@ -91,23 +103,34 @@
         var cranium=skull.bone.shift(),cv=cranium.attributes.position;for(var j=0;j<cv.count;j++){var x=cv.getX(j),y=cv.getY(j),z=cv.getZ(j);if(z>0){var eyeDip=Math.exp(-Math.pow((Math.abs(x)-.054)/.038,2)-Math.pow((y-.026)/.03,2))*.023,nose=Math.exp(-Math.pow(x/.022,2)-Math.pow((y+.022)/.046,2))*.022;cv.setZ(j,z-eyeDip+nose);}}cranium.computeVertexNormals();cranium.translate(p.x,p.y+.01,p.z+.02);A.rigid('flesh',cranium,head);
         ['bone','void'].forEach(function(key){var g=G.merge(skull[key]);g.translate(p.x,p.y+.01,p.z+.02);A.rigid(key,g,head);});
       }
-      var mat = new T.MeshStandardMaterial({ color: 0x273c39, emissive: 0x6bcbbb, emissiveIntensity: .9, roughness: .35 });
+      var mat = new T.MeshStandardMaterial({ color: 0x273c39, emissive: 0x559f8b, emissiveIntensity: .72, roughness: .42 });
       var materials = { skin: C.bodyMaterial(A.srcMaterial(exec ? 'Exec_mesh' : 'SuperHero_Male', C.bases[cfg.base]), 'coast-' + type + '-skin',
         { cls: 'skin', skin: 1, skinMap: exec, sat: .36, tint: type==='bell'?[1.12,1.04,.84]:type==='rootborn'?[.91,.98,.74]:type==='urchin'?[1.05,1.02,.84]:type==='crawler'?[.76,1.03,.86]:type==='drowned'?[1.11,1.20,.84]:[1.00,1.18,1.12], grime: .32, blood: .30, contrast: 1.03, scale: 8, scatter:[.42,.36,.28], scars: wounds(A,chest,exec), fresh:true }, { roughness: type==='drowned'?.42:type==='crawler'?.46:.59 }), 'sea-glow': mat, wood: C.bodyMaterial(C.gearMaterial('wood'), 'coast-bark', {cls:'wood',sat:.55,tint:[1.22,1.15,.91],grime:.28,blood:.08,scale:7}, {roughness:.68}), brass: C.bodyMaterial(C.gearMaterial('brass'), 'coast-bronze', {cls:'metal',sat:.4,tint:[.70,.47,.22],grime:.24,rust:.18,wear:.9,scale:8}, {roughness:.48}) };
       materials.skin.normalScale.multiplyScalar(exec?.72:.58);
       materials.bone=C.bodyMaterial(C.gearMaterial('bone'),'coast-salt-bone',{cls:'bone',tint:[1.36,1.38,1.24],grime:.22,blood:.08,scale:10},{roughness:.70});materials.bone.normalScale.set(.32,.32);
-      materials.flesh=C.bodyMaterial(C.gearMaterial('bone'),'coast-rotten-flesh',{cls:'skin',skin:1,sat:.25,tint:[.93,1.18,1.06],grime:.30,blood:.26,scatter:[.36,.40,.30],scale:11},{roughness:.59,color:new T.Color(0xffffff),map:corpseMap()});materials.flesh.normalScale.set(.23,.23);
-      materials.ash=C.bodyMaterial(C.gearMaterial('leather'),'coast-chitin',{cls:'bone',sat:.15,tint:[.91,1.12,1.03],grime:.27,blood:.08,scale:9},{roughness:.49});materials.ash.normalScale.set(.44,.44);materials.ash.map=corpseMap();materials.ash.color.setRGB(.55,.67,.63);materials.bone.map=corpseMap();materials.bone.color.setRGB(.72,.69,.57);if(C.whiteMap&&C.whiteMap()){materials.bone.aoMap=materials.bone.roughnessMap=materials.bone.metalnessMap=C.whiteMap();}
+      materials.flesh=C.bodyMaterial(C.gearMaterial('leather'),'coast-rotten-flesh',{cls:'skin',skin:1,sat:.25,tint:[.93,1.18,1.06],grime:.30,blood:.26,scatter:[.36,.40,.30],scale:11},{roughness:.55,color:new T.Color(0xffffff)});materials.flesh.normalScale.set(.23,.23);
+      materials.ash=C.bodyMaterial(C.gearMaterial('leather'),'coast-chitin',{cls:'bone',sat:.15,tint:[.91,1.12,1.03],grime:.27,blood:.08,scale:9},{roughness:.49});materials.ash.normalScale.set(.44,.44);materials.ash.color.setRGB(.73,.83,.77);materials.bone.color.setRGB(.94,.89,.76);
+      // Reuse the packaged leather and limestone albedo/relief scans for rotten hide and salt shell.
+      // No flat procedural corpse map: fine pores, mineral grain and cracks remain attached to the mesh.
       materials.rope=C.bodyMaterial(C.gearMaterial('rope'),'coast-hemp-net',{cls:'cloth',sat:.7,tint:[1.30,.87,.42],grime:.18,scale:12},{roughness:.94});
       // Salt-stained sailcloth hangs in strips and follows the hips and thighs, not a rigid skirt.
-      materials.rag = C.bodyMaterial(C.gearMaterial('rag'), 'coast-sailcloth-'+type, {cls:'cloth',tear:true,sat:.75,tint:type==='drowned'?[.64,.27,.11]:type==='lantern'?[.40,.13,.20]:type==='rootborn'?[.39,.30,.12]:type==='bell'?[.23,.18,.12]:[.29,.39,.31],grime:.30,blood:.20,scale:6}, {roughness:.86,side:T.DoubleSide});
+      materials.rag = C.bodyMaterial(C.gearMaterial('rag'), 'coast-sailcloth-'+type, {cls:'cloth',tear:true,sat:.42,tint:type==='drowned'?[.49,.32,.18]:type==='lantern'?[.40,.13,.20]:type==='rootborn'?[.39,.30,.12]:type==='bell'?[.23,.18,.12]:[.29,.39,.31],grime:.30,blood:.20,scale:6}, {roughness:.92,side:T.DoubleSide});materials.rag.normalScale.set(1.1,1.1);
       if(!materials.rag.userData.coastWind){var oldCompile=materials.rag.onBeforeCompile,oldKey=materials.rag.customProgramCacheKey;materials.rag.onBeforeCompile=function(sh){oldCompile.call(this,sh);sh.uniforms.coastClothClock=B.CoastClothClock;sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nuniform float coastClothClock;').replace('#include <begin_vertex>','#include <begin_vertex>\nfloat cw=1.-smoothstep(.6,1.35,position.y);transformed.z+=sin(position.y*8.+position.x*11.+coastClothClock*1.4)*.009*cw;transformed.x+=sin(position.z*9.+coastClothClock*1.1)*.004*cw;');};materials.rag.customProgramCacheKey=function(){return oldKey.call(this)+'-coast-wind-1';};materials.rag.userData.coastWind=true;}
       var top = hip.y + .08, bottom = hip.y - (type === 'lantern' ? .68 : type === 'bell' ? .52 : .36);
-      var cloth = G.sheet(40, 16, function(u,v) {
-        var a=u*TAU, r=.20+v*.065+Math.sin(a*9+v*2)*.012*v, hem=Math.sin(a*13)*.06*v*v;
+      // Outer/inner eight-row shell replaces the former sixteen-row single sheet.
+      // Same main face budget, with a real hem and overlapping front edges instead of a paper-thin cutout.
+      var cloth = G.shell(40, 8, function(u,v) {
+        var a=-.15+u*(TAU+.30),hang=v*v*(3-2*v),
+          // Cloth pulls tight at the rope belt, then breaks into deep, uneven folds.
+          // Broad folds read at the game camera; the licensed linen supplies the fine weave.
+          fold=(Math.sin(a*7+.3+v*.65)*.023+Math.sin(a*11-v*1.3)*.009)*hang,
+          r=.20+v*.055+fold+Math.pow(u,12)*.005,hem=(Math.sin(a*7+.3)*.035+Math.sin(a*13)*.018)*hang;
         return [hip.x+Math.sin(a)*r,top+(bottom-top)*v+hem,hip.z+Math.cos(a)*r];
-      }, true);
-      G.uvScale(cloth,3,2);G.wear(cloth,{edge:0,cavity:0,border:0,curv:0,tear:{amount:.72,width:.06,bottom:.12,base:.03}});
+      }, .003, false, true);
+      G.uvScale(cloth,.42,.28);G.wear(cloth,{edge:0,cavity:0,border:0,curv:0,tear:{amount:.72,width:.06,bottom:.12,base:.03}});
+      // A closed hem has no open border for wear() to detect: bake its frayed lower fringe explicitly.
+      var cp=cloth.attributes.position,cw=cloth.attributes.kwear;
+      for(var ci=0;ci<cp.count;ci++){var ct=Math.max(0,Math.min(1,(cp.getY(ci)-bottom+.035)/.085));cw.setW(ci,.03+.52*(1-ct*ct*(3-2*ct)));}
       A.weighted('rag',cloth,C.clothWeights(A,'pelvis',exec?'thighL':'thigh_l',exec?'thighR':'thigh_r',top,bottom,.68));
       if(type==='lantern') {
         var mantle=G.sheet(28,20,function(u,v){var a=Math.PI*.55+u*Math.PI*.9,r=.23+v*.07+Math.sin(u*35+v*3)*.018;return [chest.x+Math.sin(a)*r,chest.y+.1-v*.95+Math.sin(u*45)*.07*v*v,chest.z+Math.cos(a)*r];},false);
@@ -120,7 +143,7 @@
         growth(A, 'lowerarm_l', A.P('lowerarm_l'), .09, 10);
         [-1,1].forEach(function(s){for(var j=0;j<4;j++){var path=[];for(var k=0;k<=8;k++){var a=s*(.32+k*.085),q=skinPoint(A,chest.clone().add(new T.Vector3(Math.sin(a)*.4,-.10-j*.058,Math.cos(a)*.45)),.009);path.push(arr(q));}tube(A,'bone',spine,path,.014);}});
         grin(A, head, p.clone().add(new T.Vector3(0, -.01, .035)), .092); eye(A, head, p, .012);
-        tube(A, 'rope', 'pelvis', [[-.19, hip.y, hip.z], [0, hip.y - .07, hip.z + .17], [.19, hip.y, hip.z], [0, hip.y + .04, hip.z - .17], [-.19, hip.y, hip.z]], .027);
+        var belt=[];for(var b=0;b<=24;b++){var ba=b/24*TAU;belt.push([hip.x+Math.sin(ba)*.205,top-.022+Math.sin(ba*2)*.006,hip.z+Math.cos(ba)*.205]);}tube(A,'rope','pelvis',belt,.012);
         // Torn fishing net draped behind the shoulder, each strand has actual thickness.
         for (var i = 0; i < 7; i++) tube(A, 'rope', spine, [[-.22 + i * .07, chest.y + .12, chest.z - .12], [-.28 + i * .08, chest.y - .24, chest.z - .24], [-.33 + i * .10, hip.y - .17, hip.z - .23]], .007);
         for (var j = 0; j < 5; j++) tube(A, 'rope', spine, [[-.25 - j * .013, chest.y - j * .13, chest.z - .18], [.2 + j * .025, chest.y - j * .13, chest.z - .2]], .007);

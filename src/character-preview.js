@@ -2,13 +2,21 @@
 (() => {
   'use strict';
   const B = window.BABA, T = window.THREE;
-  function create({ renderer, game }) {
+  function create({ renderer, game, worldScene }) {
     const scene = new T.Scene(), camera = new T.PerspectiveCamera(34, .7, .1, 20), model = B.Models.create('hero');
     scene.name = 'character-preview'; scene.background = new T.Color('#101820'); scene.add(model.root);
+    // Share the already prepared world reflections. Metallic blades otherwise turn black
+    // at most portrait angles; no second environment render or texture allocation is needed.
+    function syncEnvironment() {
+      if (worldScene && scene.environment !== worldScene.environment) scene.environment = worldScene.environment;
+      scene.environmentIntensity = .65;
+    }
+    syncEnvironment();
     model.root.rotation.y = -.22;
     scene.add(new T.HemisphereLight(0xd7deea, 0x332322, 1.7));
     const key = new T.DirectionalLight(0xffe0b8, 2.7); key.position.set(-3, 4, 5); scene.add(key);
-    const rim = new T.DirectionalLight(0x8fabc7, 1.7); rim.position.set(3, 3, -2); scene.add(rim);
+    // The resting blade tilts down; the existing fill reveals its metal from below eye level.
+    const rim = new T.DirectionalLight(0x8fabc7, 1.15); rim.position.set(3, .3, 4); scene.add(rim);
     const owned = [], stageGeometry = [], stageMaterials = [];
     const stone = new T.MeshStandardMaterial({ ...B.CoastMaterials.createSurface('crypt', owned), color: 0x44596a, roughness: .94, metalness: 0, normalScale: new T.Vector2(.6, .6) });
     stageMaterials.push(stone);
@@ -32,6 +40,7 @@
     }
     function draw(canvas, now) {
       if (document.body.dataset.view !== 'character' || disposed || !canvas || !canvas.isConnected || !game.player.model || !canvas.width || !canvas.height) return false;
+      syncEnvironment();
       const changed = syncEquipment(), time = Number.isFinite(now) ? now : performance.now();
       // The portrait is rendered into the main (non-preserved) drawing buffer, so it may only draw in a tick where the
       // world itself drew; otherwise that presented buffer holds only the portrait crop and the whole backdrop flashes.
@@ -69,6 +78,7 @@
     }
     async function warm() {
       if (disposed) return;
+      syncEnvironment();
       const visibility = [];
       model.root.traverse(o => { visibility.push([o, o.visible]); o.visible = true; });
       renderer.getViewport(viewport); renderer.getScissor(scissor); renderer.getClearColor(clearColor);

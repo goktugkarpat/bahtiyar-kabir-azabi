@@ -163,6 +163,9 @@
               { id: 'lanterns', sp: 1, ok: ph >= 3 && d < 16 && f('lanterns', 42), w: 3, move: function () { return lanterns(e); } }
             ];
           }
+          if(e.type==='bell' && m && (m.majorActive(e) || m.floorCount(e)>0 || m.liveOrbs()>0)) {
+            for(var li=0;li<list.length;li++)if(list[li].id!=='anchor'&&list[li].id!=='keel')list[li].ok=false;
+          }
           return api.pick(e, list);
         },
         phase: function (e) {

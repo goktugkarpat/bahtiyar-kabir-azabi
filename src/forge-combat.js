@@ -21,7 +21,7 @@
     function crown(e,count){var hits=[],origin={x:e.x,z:e.z};for(var i=0;i<count;i++)hits.push(hit(1.35+i*.75,i?.75:1.35,'ring',4.8+i*2.9,23,'roar',{origin:origin,inner:2.5+i*2.9,arc:TAU,style:'ember',unblockable:true}));return{id:'furnaceCrown',name:'Kızıl Basınç',duration:2.0+count*.75,pose:'roar',hits:hits,cooldown:2.1};}
 
     // ---- round 7 ------------------------------------------------------------------------------------------------------------
-    var core=null,self;
+    var core=null,self,clockDeadly=[false,false,false,false];
     function track(id){var m=B.Boss2&&B.Boss2.moves;if(m)m[id]=(m[id]||0)+1;}
     function cd(e,id,sec){var c=e.b2cd||(e.b2cd={});c[id]=(core?core.time:0)+sec;}
     function ready(e,id){return !e.b2cd||!(e.b2cd[id]>(core?core.time:0));}
@@ -30,7 +30,7 @@
     function lane(hits,org,a,L,w,t,dmg,i,lasting,name){
       hits.push(hit(t,t,'line',0,dmg,'overhead',{origin:org,face:a,width:w,length:L,style:'quake',fill:'forward',unblockable:true,beat:i===0,attack:name,
         onActive:function(){api.fx('boss2Geyser',{x:org.x,z:org.z,face:a,length:L,width:w,forge:true});}}));
-      hits.push(hit(t+.17,.3,'line',0,4,'overhead',{origin:org,face:a,width:w,length:L,persistent:true,periodic:true,interval:.8,duration:lasting,b2ground:true,style:'ember',fill:'forward',beat:false,near:false,attack:'Kor Seli'}));
+      hits.push(hit(t+.17,.3,'line',0,4,'overhead',{origin:org,face:a,width:w,length:L,persistent:true,periodic:true,interval:.8,duration:lasting,b2ground:true,pool:'lava',style:'ember',fill:'forward',beat:false,near:false,attack:'Kor Seli'}));
     }
     // Lava geysers: parallel lanes across the hero's side of the court, then they keep burning.
     function lava(e,count,id,name,lasting){
@@ -48,7 +48,7 @@
     function whip(e,n){
       track('chainWhip');
       var f0=e.face+.15,hits=[],gap=Math.PI*2/n;
-      for(var i=0;i<n;i++){var t=1.1+i*.62;hits.push(hit(t,t,'cone',9.2,19,i%2?'sweepBack':'sweep',{arc:n>3?1.05:1.25,face:f0+i*gap*1.0+i*.0,style:'chain',fill:'sweep',sweepDir:i%2?-1:1,beat:true,unblockable:false}));}
+      for(var i=0;i<n;i++){var t=1.1+i*.62;hits.push(hit(t,1.1,'cone',9.2,19,i%2?'sweepBack':'sweep',{arc:n>3?1.05:1.25,face:f0+i*gap*1.0+i*.0,style:'chain',fill:'sweep',sweepDir:i%2?-1:1,beat:true,unblockable:false}));}
       return {id:'chainWhip',name:'Erimiş Zincir Kırbacı',duration:1.1+n*.62+.8,pose:'chainWhip',hits:hits};
     }
     function orbs(e,n,hold){
@@ -62,8 +62,8 @@
       var p=point(),a=Math.atan2(p.x-e.x,p.z-e.z),end={x:p.x-Math.sin(a),z:p.z-Math.cos(a)};
       return {id:'anvilSlam',name:'Örs Sarsıntısı',duration:3.5,pose:'crouch',movement:{start:.95,duration:.34,fromX:e.x,fromZ:e.z,x:end.x,z:end.z,leap:true},hits:[
         hit(1.3,1.3,'circle',2.4,22,'leap',{origin:p,style:'quake',fill:'inward',unblockable:true,scar:true}),
-        hit(2.0,2.0,'ring',6.4,17,'overhead',{origin:p,inner:4.3,arc:TAU,style:'quake',fill:'radial',unblockable:true,beat:false,attack:'Örs Sarsıntısı · birinci'}),
-        hit(2.7,2.7,'ring',10.6,15,'overhead',{origin:p,inner:8.4,arc:TAU,style:'quake',fill:'radial',unblockable:true,beat:false,attack:'Örs Sarsıntısı · ikinci'})]};
+        hit(2.0,1.1,'ring',6.4,17,'overhead',{origin:p,inner:4.3,arc:TAU,style:'quake',fill:'radial',unblockable:true,beat:false,attack:'Örs Sarsıntısı · birinci'}),
+        hit(2.7,1.1,'ring',10.6,15,'overhead',{origin:p,inner:8.4,arc:TAU,style:'quake',fill:'radial',unblockable:true,beat:false,attack:'Örs Sarsıntısı · ikinci'})]};
     }
     // The furnace clock: the court is cut in four wedges; one (phase 3) or two (phase 2) stay safe, the safe wedge turns clockwise.
     function clock(e){
@@ -88,7 +88,7 @@
       var end={x:e.x+Math.sin(f)*run,z:e.z+Math.cos(f)*run};
       return {id:id,name:name,duration:2.5,pose:'charge',movement:{start:1.15,duration:.4,fromX:e.x,fromZ:e.z,x:end.x,z:end.z},hits:[
         hit(1.15,1.15,'line',0,19,'charge',{face:f,width:2.3,length:L,style:'blunt',fill:'forward',unblockable:true,knockback:2.2,duration:.5}),
-        hit(1.55,.3,'line',0,4,'charge',{face:f,width:2.0,length:L,persistent:true,periodic:true,interval:.7,duration:4.2,b2ground:true,style:'ember',fill:'forward',beat:false,near:false,attack:'Kor İzi'})]};
+        hit(1.55,.3,'line',0,4,'charge',{face:f,width:2.0,length:L,persistent:true,periodic:true,interval:.7,duration:4.2,b2ground:true,pool:'lava',style:'ember',fill:'forward',beat:false,near:false,attack:'Kor İzi'})]};
     }
     // Add wave: two gold circles, the dormant thralls of the furnace climb out (forced after every phase change).
     function call(e){
@@ -109,12 +109,13 @@
         var list=core.ext.enemies,hz=core.ext.hazards,clockOn=false;
         for(var c=0;c<list.length;c++){
           var ce=list[c];if(ce.dead||!ce.action||ce.action.moveId!=='furnaceClock')continue;
-          var best=9,deadly=[false,false,false,false],j;
+          var best=9,deadly=clockDeadly,j;deadly[0]=deadly[1]=deadly[2]=deadly[3]=false;
           for(j=0;j<hz.length;j++){var h=hz[j];if(h.owner===ce&&h.moveId==='furnaceClock'&&!h.active&&h.age>=0&&h.warn-h.age<best)best=h.warn-h.age;}
           if(best<9){
             for(j=0;j<hz.length;j++){var g=hz[j];if(g.owner===ce&&g.moveId==='furnaceClock'&&!g.active&&g.age>=0&&g.warn-g.age<best+.06)deadly[((Math.round(g.face/(Math.PI/2))%4)+4)%4]=true;}
             var shown=0,ar=core.arena;
-            for(var q=0;q<4&&shown<2;q++)if(!deadly[q]){core.fanSet(shown,ar.x,ar.z,21,q*Math.PI/2-Math.PI/4,q*Math.PI/2+Math.PI/4);shown++;}
+            // Combat extends each dangerous sector by .05 radians; blue stays inside the true safe boundary.
+            for(var q=0;q<4&&shown<2;q++)if(!deadly[q]){core.fanSet(shown,ar.x,ar.z,21,q*Math.PI/2-Math.PI/4+.05,q*Math.PI/2+Math.PI/4-.05);shown++;}
             for(;shown<2;shown++)core.fans[shown].visible=false;
             clockOn=true;
           }
@@ -169,7 +170,14 @@
         {id:'furnaceCall',sp:1,ok:false,w:1,move:function(){return call(e);}},
         {id:'bellows',ok:d>2&&d<9,w:2,move:function(){return bellows(e,9);}},
         {id:'furnaceKick',ok:d<2.5,w:2,move:function(){return cone('furnaceKick','Demir Topuk',3.2,2.5,18,.72,'kick');}}
-      ];return api.pick(e,list);},
+      ];
+      if(core&&(e.boss||e.type==='ashwarden')&&(core.orbs.count()>0||core.groundCount()>0)){
+        for(var li=0;li<list.length;li++)if(list[li].id!=='furnaceHammer'&&list[li].id!=='furnaceKick'&&list[li].id!=='wardenForge')list[li].ok=false;
+      }
+      if(e.summoned&&core&&core.ext.game.boss&&core.ext.game.boss.action&&core.ext.game.boss.action.moveId==='furnaceClock'){
+        for(var li=0;li<list.length;li++)if(list[li].sp)list[li].ok=false;
+      }
+      return api.pick(e,list);},
       phase:function(e){if(!e.boss||e.dead)return;var f=e.hp/e.maxHp,next=f<.25?3:f<.60?2:1;if(next<=e.phase)return;e.phase=next;e.enraged=next===3;e.action=null;e.stagger=0;e.faceLocked=false;api.cancelHazards(e,false);if(core){var hz=core.ext.hazards;for(var i=hz.length-1;i>=0;i--)if(hz[i].b2ground&&hz[i].owner===e&&!hz[i].active)hz.splice(i,1);}e.forceMove='furnaceCall';if(next===3){e.overheat=true;api.fx('boss2Overheat',{x:e.x,z:e.z});}api.bonus(e.x,e.z,2);api.emit('warning',{x:e.x,z:e.z,text:next===2?'OCAK BASINCI YÜKSELİYOR':'SON DÖKÜM'});api.sound('bossPhase');api.fx('bossPhase',{x:e.x,y:1.5,z:e.z,phase:next});api.emit('impact',{x:e.x,z:e.z,strength:1,radius:9});api.beginMove(e,{id:'roar',name:'Kızıl Ant',duration:2.2,pose:'roar',hits:[hit(1.3,1.3,'ring',5,0,'roar',{inner:0,arc:TAU,harmless:true})]});}
     };
   }};

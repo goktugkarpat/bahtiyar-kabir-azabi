@@ -25,6 +25,53 @@
       var player = api.player, hazards = api.hazards, root = new T.Group(), time = 0, fightT = 0;
       root.name = 'boss1_mech'; api.root.add(root);
       var calm = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : { matches: false };
+      // One stable record for the HUD; text changes are revision-driven, clocks never allocate DOM/data.
+      var instruction = api.game.bossMechanic = { active:false, revision:0, kind:'', title:'', instruction:'', progress:0, remaining:0, duration:0, safe:false, targets:0, ownerId:'' };
+      function say(kind,title,text,age,duration,safe,targets,owner) {
+        var active=!!title;
+        if(instruction.active!==active||instruction.kind!==kind||instruction.title!==title||instruction.instruction!==text||instruction.safe!==!!safe||instruction.targets!==(targets||0))instruction.revision++;
+        instruction.active=active;instruction.kind=kind;instruction.title=title;instruction.instruction=text;instruction.duration=duration||0;
+        instruction.remaining=Math.max(0,(duration||0)-(age||0));instruction.progress=duration>0?Math.min(1,Math.max(0,age/duration)):0;
+        instruction.safe=!!safe;instruction.targets=targets||0;instruction.ownerId=owner&&owner.id||'';
+      }
+      function floorCount(owner,pool) {var n=0;for(var i=0;i<hazards.length;i++){var h=hazards[i];if(h.owner===owner&&h.persistent&&(!pool||h.pool===pool)&&h.age<h.warn+h.duration)n++;}return n;}
+      function sheltered(source,x,z,margin) {
+        for(var i=0;i<hazards.length;i++){var h=hazards[i];if(h.pool!=='dark'||h.owner!==source.owner||h.age<0||h.age>h.warn+h.duration)continue;
+          if((h.active||h.warn-h.age<=1)&&hypot(x-h.x,z-h.z)<h.inner-(margin||0))return true;
+        }return false;
+      }
+      function updateInstruction() {
+        var boss=api.game.boss, core=B.Boss2&&B.Boss2.current, a=boss&&boss.action, i,h,dark=null,next=null;
+        if(api.game.state!=='playing'||player.dead){say('','','',0,0);return;}
+        if(!boss||boss.dead||!boss.active){boss=null;var foes=api.game.enemies||[],nearest=18*18;
+          for(i=0;i<foes.length;i++){var foe=foes[i];if(foe.dead||!foe.active||!(foe.elite||foe.type==='ruinwarden'||foe.type==='ashwarden'))continue;var dx=foe.x-player.x,dz=foe.z-player.z,d2=dx*dx+dz*dz;if(d2<nearest){nearest=d2;boss=foe;}}
+          if(!boss){say('','','',0,0);return;}a=boss.action;
+        }
+        for(i=0;i<hazards.length;i++){h=hazards[i];if(h.owner!==boss||h.pool!=='dark')continue;if(h.active&&h.age<h.warn+h.duration)dark=h;else if(h.age>=0&&!h.active&&(!next||h.warn-h.age<next.warn-next.age))next=h;}
+        if(dark||next){h=dark||next;var safe=sheltered(h,player.x,player.z,.43),handoff=next&&dark&&next.warn-next.age<=1;
+          say('shelter','Karanlık Gelgit',handoff?'Yeni siper açıldı; diğer mavi halkaya geç.':next&&dark?'Kesikli halka hazırlanıyor; sınırı dolunca geç.':safe?'Siperdesin. Soluk mavi halkanın içinde kal.':'Soluk mavi halkanın içine gir; dışarıdaki su hasar verir.',h.active?h.age-h.warn:h.age,h.active?h.duration:h.warn,safe,0,boss);return;}
+        if(rite&&!rite.done){say('strike','Yemin Çapaları','Yanan çapaları vur veya yanında bekleyerek söndür.',rite.age,rite.seconds,false,litCount(),boss);return;}
+        if(core&&core.ext.game===api.game&&core.nova.on&&core.nova.owner===boss){var covered=!!core.pillars.blocks(core.nova.x,core.nova.z,player.x,player.z),limit=0;
+          for(i=0;i<hazards.length;i++)if(hazards[i].owner===boss&&hazards[i].attack==='Sessiz Nova')limit=hazards[i].warn;
+          say('shelter','Sessiz Nova',covered?'Siperdesin. Sütun darbeyi yutana kadar bekle.':'Taş sütunun arkasındaki mavi sipere geç. Sütuna vurma.',core.nova.t,limit||4.6,covered,core.pillars.up(),boss);return;}
+        if(a&&a.moveId==='furnaceClock'){say('move','Ocağın Saati','Mavi açık dilime geç; kırmızı dilimler sırayla patlar.',a.age,a.duration,false,0,boss);return;}
+        var flying=liveOrbs();if(flying){say('strike',boss.type==='bell'?'Boğulmuş Fenerler':'Kor Mühürler','Havada süzülürken vurup kır; kızıl çember çıkınca uzaklaş.',0,0,false,flying,boss);return;}
+        if(core&&core.ext.game===api.game&&core.orbs.count()){say('dodge',core.chapter===3?'Soluk Küreler':'Cüruf Küreleri',core.chapter===3?'Kürelere vurulmaz. Yana kaç veya taş sipere çarptır.':'Kürelere vurulmaz. Yana kaç; bıraktıkları közden uzak dur.',0,0,false,core.orbs.count(),boss);return;}
+        var id=a&&a.moveId, text='';
+        if(id==='pull')text='Zincir seni çeker; merkeze düştüğünde hemen yana kaç.';
+        else if(id==='hooks'||id==='hook')text='Kancanın çizgisinden yana çık; ardından gelen savuruşu bekle.';
+        else if(id==='tides')text='Dalgaların arasındaki açık koridoru kullan.';
+        else if(id==='toll'||id==='tide'||id==='hollowPulse'||id==='furnaceCrown'||id==='anvilSlam'||id==='cyclone')text='Halkalar sırayla patlar. İşaretsiz aralığa geç.';
+        else if(id==='crystalStar'||id==='lavaLanes'||id==='chainWhip'||id==='fissures'||id==='vents'||id==='fall'||id==='bells'||id==='ashLava'||id==='chainLanes'||id==='piston'||id==='wardenStar')text='İşaretler sırayla vurur. Parlayan sınırların dışına çık.';
+        else if(id==='hollowBurrow'||id==='kingRush'||id==='overheatDash'||id==='bellRush'||id==='wardenBurrow'||id==='ashDash'||id==='slam'||id==='leap'||id==='charge')text='Kızıl alanı boşalt. Darbeden sonra karşılık ver.';
+        else if(id==='hollowCall'||id==='furnaceCall')text='Çağrı çemberinden uzak dur; çıkan yaratıkları yen.';
+        else if(id==='hollowEcho')text='Yankılar sırayla vurur. Altın dilimlerin dışına çık.';
+        if(text){say(id==='hollowCall'||id==='furnaceCall'?'adds':'move',a.attack||'Boss saldırısı',text,a.age,a.duration,false,0,boss);return;}
+        if(id==='lanterns'){say('shelter','Karanlık Gelgit','Mavi siper hazırlanıyor; sınırı dolunca içinde kal.',a.age,1.9,false,0,boss);return;}
+        if(id==='brine'&&boss.type==='bell'){say('move','Tuzlu Havuzlar','Dairelerden uzaklaş; kızıl kenarlı su hasar vermeyi sürdürür.',a.age,a.duration,false,0,boss);return;}
+        if(floorCount(boss)){say('move','Tehlikeli Zemin','Sınırı kızıl olan su ve köz birikintilerinden uzak dur.',0,0,false,0,boss);return;}
+        say('','','',0,0);
+      }
 
       // ---------------------------------------------------------------- shared geometry / materials (setup only)
       var orbGeo = new T.IcosahedronGeometry(.3, 2), haloGeo = new T.SphereGeometry(.66, 14, 10), markGeo = new T.RingGeometry(.55, .72, 28).rotateX(-Math.PI / 2);
@@ -32,9 +79,9 @@
       var baseGeo = new T.CylinderGeometry(.5, .6, .18, 12), ringGeo = new T.RingGeometry(1.35, 1.62, 40).rotateX(-Math.PI / 2), chainGeo = new T.CylinderGeometry(.05, .05, 1, 5);
       chainGeo.translate(0, .5, 0);
       var ironMat = new T.MeshStandardMaterial({ color: 0x2c2724, roughness: .52, metalness: .85 });
-      var flameMat = new T.MeshBasicMaterial({ color: new T.Color(3.4, 1.05, .22), transparent: true, opacity: .85, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide, fog: false });
-      var litRingMat = new T.MeshBasicMaterial({ color: new T.Color(1.6, .16, .08), transparent: true, opacity: .55, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide, fog: false });
-      var chainMat = new T.MeshBasicMaterial({ color: new T.Color(1.9, .3, .12), transparent: true, opacity: .8, depthWrite: false, blending: T.AdditiveBlending, fog: false });
+      var flameMat = new T.MeshBasicMaterial({ color: new T.Color(1.5, .52, .12), transparent: true, opacity: .65, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide, fog: false });
+      var litRingMat = new T.MeshBasicMaterial({ color: new T.Color(.92, .67, .27), transparent: true, opacity: .42, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide, fog: false });
+      var chainMat = new T.MeshBasicMaterial({ color: new T.Color(.58, .21, .07), transparent: true, opacity: .55, depthWrite: false, blending: T.AdditiveBlending, fog: false });
 
       // ---------------------------------------------------------------- orbs
       var orbs = [], i;
@@ -59,7 +106,7 @@
         for (var k = 0; k < MAX_ORB && made < n; k++) {
           var o = orbs[k]; if (o.live) continue;
           var a = base + (made - (n - 1) / 2) * 1.15 + (made % 2 ? .25 : -.25);
-          o.live = true; o.state = 0; o.age = 0; o.owner = owner; o.hazard = null; o.speed = cfg.speed || 3.05; o.life = cfg.life || 8.5; o.fuse = 0;
+          o.live = true; o.state = 0; o.age = 0; o.owner = owner; o.hazard = null; o.burst = false; o.speed = cfg.speed || 3.05; o.life = cfg.life || 8.5; o.fuse = 0;
           o.x = owner.x + Math.sin(a) * 1.5; o.z = owner.z + Math.cos(a) * 1.5; o.y = 2.3; o.vx = Math.sin(a) * 4.2; o.vz = Math.cos(a) * 4.2; o.trail = 0;
           setOrbKind(o, kind); showOrb(o, true); made++;
           api.fx('boss1Orb', { x: o.x, y: o.y, z: o.z, kind: kind, phase: 'spawn' });
@@ -108,6 +155,9 @@
           o.core.position.set(o.x, gy + o.y, o.z); o.core.scale.setScalar(pulse * flick);
           o.halo.position.copy(o.core.position); o.halo.scale.setScalar((1.05 + (o.state === 2 ? o.fuse * .75 : 0)) * flick);
           o.mark.position.set(o.x, gy + .05, o.z); o.mark.scale.setScalar(o.state === 2 ? 1.2 + o.fuse * 1.6 : 1);
+          // Pale gold target ring only while a real hero blow can destroy it; crimson means leave.
+          o.mm.color.setRGB(o.state===2?1.15:.95,o.state===2?.12:.72,o.state===2?.07:.34);
+          o.hm.opacity=o.state===2?.24:.18;
           o.trail -= dt; if (o.trail <= 0 && o.state < 2) { o.trail = .07; api.fx('boss1Orb', { x: o.x, y: gy + o.y, z: o.z, kind: o.kind, phase: 'trail' }); }
         }
       }
@@ -227,10 +277,11 @@
       function bump(e, id) { counts[e.id + id] = (counts[e.id + id] || 0) + 1; }
       var mech = {
         launchOrbs: launchOrbs, liveOrbs: liveOrbs, startRite: startRite, ready: ready, mark: mark, count: count, bump: bump, frenzied: frenzied, blow: blow,
+        floorCount:floorCount, sheltered:sheltered, majorActive:function(owner){return floorCount(owner,'dark')>0;},
         state: function () { return { anchors: anchors.filter(function (a) { return a.live && a.lit; }).map(function (a) { return { x: a.x, z: a.z }; }), orbs: orbs.filter(function (o) { return o.live; }).map(function (o) { return { x: o.x, z: o.z, state: o.state }; }), fight: fightT }; },   // QA only
         riteLit: litCount, riteActive: function () { return !!rite; }, time: function () { return time; }, fightTime: function () { return fightT; },
         clear: function () {
-          time = 0; fightT = 0; for (var k in last) delete last[k]; for (k in counts) delete counts[k];
+          time = 0; fightT = 0; say('','','',0,0); for (var k in last) delete last[k]; for (k in counts) delete counts[k];
           for (var q = 0; q < MAX_ORB; q++) { orbs[q].live = false; orbs[q].hazard = null; showOrb(orbs[q], false); }
           endRite(); for (q = 0; q < MAX_ANCHOR; q++) { anchors[q].live = false; anchors[q].g.visible = false; anchors[q].chain.visible = false; }
           if (api.game.boss) api.game.boss.b1Frenzy = 0;
@@ -240,13 +291,13 @@
           var boss = api.game.boss;
           if (boss && boss.active && !boss.dead && api.game.state === 'playing' && !player.dead) {
             fightT += dt;
-            if (fightT > FRENZY_AT && !boss.b1Frenzy) {
+            if (fightT > FRENZY_AT && !boss.b1Frenzy && !(boss.stats && (boss.stats.ruins || boss.stats.forge))) {
               boss.b1Frenzy = 1; api.emit('toast', { text: boss.type === 'bell' ? 'Çan kudurdu. Gelgit hızlanıyor.' : 'Cellat kudurdu. Darbeleri sıklaşıyor.' });
               api.fx('boss1Orb', { x: boss.x, y: 1.4, z: boss.z, kind: boss.type === 'bell' ? 'brine' : 'ember', phase: 'blast', radius: 5 });
               api.sound('bossPhase');
             }
           }
-          heroBlows(); stepOrbs(dt); stepAnchors(dt);
+          heroBlows(); stepOrbs(dt); stepAnchors(dt); updateInstruction();
         },
         dispose: function () { api.root.remove(root); [orbGeo, haloGeo, markGeo, postGeo, bowlGeo, flameGeo, baseGeo, ringGeo, chainGeo, ironMat, flameMat, litRingMat, chainMat].forEach(function (r) { r.dispose(); });
           orbs.forEach(function (o) { o.cm.dispose(); o.hm.dispose(); o.mm.dispose(); }); if (B.BossMech.current === mech) B.BossMech.current = null; }

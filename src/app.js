@@ -210,10 +210,10 @@
   B.Audio.set({ master: cfg.master, music: cfg.music, sfx: cfg.sfx, ambient: cfg.ambient, voice: cfg.voice });
 
   /* ───────────── State ───────────── */
-  const views = ['title', 'pause', 'settings', 'controls', 'keybinds', 'death', 'victory', 'confirm', 'character'];
-  const overlays = new Set(['settings', 'controls', 'keybinds', 'confirm', 'character']);
+  const views = ['title', 'pause', 'settings', 'controls', 'keybinds', 'death', 'victory', 'confirm', 'character', 'journal'];
+  const overlays = new Set(['settings', 'controls', 'keybinds', 'confirm', 'character', 'journal']);
   let view = 'title', stack = [];
-  let renderer, scene, camera, world, game, rig, post, characterUI, characterPreview;
+  let renderer, scene, camera, world, game, rig, post, characterUI, characterPreview, questUI;
   let scalerWarmTimer = 0, limbRoot = null, limbLookup = -1e9;
   const rawDepthTwins = [];
   // Title shot culling (only visible foes are animated there).
@@ -309,6 +309,8 @@
       $('new').classList.toggle('hidden', !game || !game.hasSave);
     }
     if (next === 'pause') fillPause();
+    if (next === 'journal' && questUI) questUI.open();
+    if (next !== 'journal' && questUI) questUI.close();
     if (characterUI && next !== 'character') characterUI.close(true);
     return next;
   }
@@ -338,7 +340,7 @@
   }
   function clearNotices() {
     levelUpTimer = 0; $('level-up').classList.remove('show'); if (B.LevelUp) B.LevelUp.cancel(); if (B.Charge && B.Charge.cancel) B.Charge.cancel();
-    buffUI.clear();
+    buffUI.clear(); if (questUI) questUI.clear();
     targetUI.clear();
     $('toasts').replaceChildren();
     for (const w of warnings) w.el.remove(); warnings.length = 0;
@@ -418,7 +420,9 @@
     announce(chapterNames[chapter-1],'BÖLÜM '+chapterNumbers[chapter-1],'chapter');
     if (B.Audio.say && !game.checkpointIndex) B.Audio.say(forgeChapter ? 'forgeIntro' : ruinsChapter ? 'ruinsIntro' : coastChapter ? 'coastIntro' : 'intro');
   }
+  const questVoices = { 'lost-names': 'questNames', 'blood-verdict': 'questVerdict', 'last-voice': 'questBell', 'root-memory': 'questMemory', 'kings-name': 'questKing', 'cave-breath': 'questEcho', 'last-prisoner': 'questPrisoner', 'heart-feeds': 'questHeart' };
   function event(name, d = {}) {
+    if (name === 'quest') { if (questUI) questUI.event(d); if (d.complete && questVoices[d.id] && B.Audio.sayQuest) B.Audio.sayQuest(questVoices[d.id]); return; }
     if (name === 'progression') { if (d.levels > 0) { B.Audio.play('levelUp'); fx('heroSkill', { skill: 'level', phase: 'release', x: game.player.x, z: game.player.z }); announceTimer = 0; $('announcement').classList.remove('show'); if (B.LevelUp) B.LevelUp.trigger(d, game.player); levelUpTimer = 2.7; } if (characterUI) characterUI.refresh(); return; }
     if (name === 'loot') { for (const item of d.items || []) { const def = B.Progression.catalog[item.id]; if (def) notify(B.Progression.qualities[def.rarity].name + ' ganimet · ' + def.name + ' · Çantaya eklendi [I]', 'rarity-' + def.rarity); } return; }
     if (name === 'hit') {
@@ -712,6 +716,8 @@
   /* ───────────── UI wiring ───────────── */
   function setupUI() {
     document.querySelectorAll('[data-settings-page]').forEach(button => { button.onclick = () => selectSettingsPage(button.dataset.settingsPage); });
+    $('pause-journal').onclick = $('hud-journal').onclick = () => open('journal');
+    $('journal-close').onclick = $('journal-done').onclick = back;
     $('pause-talents').onclick = () => openCharacter('skills');
     $('pause-character').onclick = $('victory-character').onclick = () => openCharacter();
     $('play').onclick = () => begin(false);
@@ -826,7 +832,7 @@
     watchPixelDensity();
     controller = B.Controller.create({
       getView: () => view, getMenuRoot: () => $(view), notify,
-      onPause: () => { if (view === 'playing') show('pause'); else if (view === 'pause') show('playing'); else if (['settings', 'controls', 'keybinds', 'character'].includes(view)) back(); },
+      onPause: () => { if (view === 'playing') show('pause'); else if (view === 'pause') show('playing'); else if (['settings', 'controls', 'keybinds', 'character', 'journal'].includes(view)) back(); },
       onBack: () => { if (view === 'pause') show('playing'); else if (view !== 'title' && view !== 'death' && view !== 'victory') back(); },
       onCharacter: () => openCharacter(),
       onDisconnect: () => { clearInput(); if (view === 'playing') show('pause'); }
@@ -1157,6 +1163,11 @@
       const fill = i ? '#a8c49a' : '#c2a878';
       return miniSprite(.85 * u + 6 * 1.6 + 3, x => { x.rotate(Math.PI / 4); x.fillStyle = fill; x.shadowColor = fill; x.shadowBlur = 6; x.fillRect(-.6 * u, -.6 * u, 1.2 * u, 1.2 * u); });
     });
+    s.quest = [0, 1].map(i => miniSprite(13 * k, x => {
+      x.scale(k, k); x.fillStyle = '#17130e'; x.strokeStyle = '#e6c78d'; x.lineWidth = 1.5;
+      x.beginPath(); x.moveTo(0, -9); x.lineTo(8, 0); x.lineTo(0, 9); x.lineTo(-8, 0); x.closePath(); x.fill(); x.stroke();
+      x.fillStyle = '#efdab3'; x.font = 'bold 9px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(i ? 'II' : 'I', 0, .5);
+    }));
     s.hero = miniSprite(1.35 * u + 8 * 1.6 + 3, x => {
       x.scale(u, u); x.fillStyle = '#f3e3c3'; x.shadowColor = '#f0c27a'; x.shadowBlur = 8;
       x.beginPath(); x.moveTo(0, 1.3); x.lineTo(-.85, -.8); x.lineTo(0, -.42); x.lineTo(.85, -.8); x.closePath(); x.fill();
@@ -1185,6 +1196,7 @@
       key += '|' + Math.round(e.x * 40) + ',' + Math.round(e.z * 40) + (e.boss ? 'B' : '') + (e.active ? 'a' : '');
       if (e.active) anyActive = true;
     }
+    if (game.quests) key += '|q' + game.quests.revision;
     if (anyActive) key += '|b' + beatIndex;
     if (key === miniKey) return;
     miniKey = key;
@@ -1212,6 +1224,13 @@
       const set = e.boss ? 'boss' : 'enemy';
       stamp(x, e.active ? miniSprites[set][beatIndex] : miniSprites[set + 'Idle'], sx(e.x), sy(e.z));
     }
+    if (game.quests) for (let qi = 0; qi < game.quests.entries.length; qi++) {
+      const goal = game.quests.entries[qi].target; if (!goal) continue;
+      // Targets outside the small map remain as an edge marker. No full-screen map is needed.
+      let dx = (goal.x - p.x) * scale, dz = (goal.z - p.z) * scale;
+      const length = Math.hypot(dx, dz); if (length > 91) { dx *= 91 / length; dz *= 91 / length; }
+      stamp(x, miniSprites.quest[qi], cx + dx, cy + dz);
+    }
     stamp(x, miniSprites.hero, sx(p.x), sy(p.z), -p.face);
   }
   // Each minimap glow is a small canvas whose blur only runs (and the browser only builds its blur program) the first time that sprite is drawn:
@@ -1220,7 +1239,7 @@
     const c = $('minimap'); if (!c) return;
     const x = c.getContext('2d'), k = c.width / 256;
     if (!miniSprites || miniSpriteK !== k) { miniSpriteK = k; miniSprites = buildMiniSprites(k); }
-    const list = [...miniSprites.enemy, ...miniSprites.boss, miniSprites.enemyIdle, miniSprites.bossIdle, ...miniSprites.checkpoint, miniSprites.hero];
+    const list = [...miniSprites.enemy, ...miniSprites.boss, miniSprites.enemyIdle, miniSprites.bossIdle, ...miniSprites.checkpoint, ...miniSprites.quest, miniSprites.hero];
     x.setTransform(1, 0, 0, 1, 0, 0); x.clearRect(0, 0, c.width, c.height);
     list.forEach((sprite, i) => stamp(x, sprite, 30 + (i % 8) * 28, 40 + Math.floor(i / 8) * 40, i % 2 ? .4 : 0));
     miniKey = '';
@@ -1228,8 +1247,9 @@
   function updateOverview() {
     const p = game.player, total = game.totalKills || game.enemies.length;
     let kills = 0; for (const e of game.enemies) if (e.dead && !e.reserve) kills++;
-    const gt = game.gate;   // boss gate (src/gate.js): the counter shows progress toward opening it
-    hudText('kill-progress', gt ? (gt.open ? gt.need + ' / ' + gt.need + ' ✓' : Math.min(gt.kills, gt.need) + ' / ' + gt.need) : kills + ' / ' + total);
+    const story = game.quests;
+    hudText('kill-progress', story ? story.completed + ' / 2 bağ çözüldü' : kills + ' / ' + total);
+    if (questUI) questUI.update();
 
     hq('.hero-card').classList.toggle('sealed', !!game.checkpointIndex);
     hq('.flask-button').classList.toggle('empty', p.flasks === 0);
@@ -1250,12 +1270,13 @@
     drawMinimap(p);
   }
   function formatObjective(text) { return text.replace(/\. (?=\S)/, '.\n'); }
-  // Boss gate objective (short, one sentence): the count while sealed, then the open gate, then the boss's name inside the arena.
+  // The two story threads replace the old kill quota. Boss combat keeps its own clear goal.
   function gateObjective(room) {
-    const gt = game.gate; if (!gt || game.state === 'won' || !game.boss || game.boss.dead) return null;
-    if (room && room.id === gt.room) return gt.bossName;
-    if (room && room.id === (chapter < 3 ? 5 : 11) && !game.checkpointIndex) return null;   // the oath stone prompt below
-    return gt.open ? 'Boss kapısı açıldı. Boss seni bekliyor.' : gt.need + ' düşman öldür, boss kapısı açılsın.';
+    const gt = game.gate, story = game.quests;
+    if (!gt || game.state === 'won' || !game.boss || game.boss.dead) return null;
+    if (room && room.id === gt.room) return gt.bossName + ' — bu bölümün son bağını kır.';
+    if (story) return gt.open ? 'Kapı açıldı. ' + gt.bossName + ' seni bekliyor.' : story.objective;
+    return null;
   }
   function chapterObjective(room) {
     const gateText = gateObjective(room); if (gateText) return gateText;
@@ -1282,6 +1303,23 @@
     for (const e of game.enemies) if (!e.dead && e.encounter && e.encounter.room === idx) remaining++;
     if (remaining) return 'Bu salonda ' + remaining + ' düşman var. Savaş veya kuzeye ilerle.';
     return idx === 4 ? 'Şapeldeki yemin taşını bul.' : 'Kuzeydeki salona ilerle.';
+  }
+  let mechanicRecord = null, mechanicRevision = -1;
+  function updateMechanic() {
+    const info = game.bossMechanic, box = hq('#boss-mechanic');
+    const active = !!(info && info.active && !game.player.dead && game.state === 'playing');
+    box.classList.toggle('hidden', !active);
+    if (!active) return;
+    if (mechanicRecord !== info || mechanicRevision !== info.revision) {
+      mechanicRecord = info; mechanicRevision = info.revision;
+      hudText('boss-mechanic-title', info.title);
+      hudText('boss-mechanic-instruction', info.instruction);
+      box.dataset.kind = info.kind;
+    }
+    box.classList.toggle('safe', info.safe);
+    box.classList.toggle('timed', info.duration > 0);
+    // A fixed-width transform, quantized to 1%, avoids a layout/text update every frame.
+    hudTransform('boss-mechanic-progress', 'scaleX(' + Math.round(clamp(1 - info.progress, 0, 1) * 100) / 100 + ')');
   }
   function hud(dt) {
     const p = game.player;
@@ -1320,6 +1358,7 @@
     if (B.HUD && B.HUD.skills) B.HUD.skills(p, dt, game.skills());   // cooldown sweeps, stamina cost hints (src/hud.js)
     const targetEnemy = !p.dead && game.state === 'playing' ? game.attackTarget || game.enemies.find(e => e.boss && !e.dead && Math.hypot(e.x - p.x, e.z - p.z) < 28) : null;
     targetUI.update(targetEnemy);
+    updateMechanic();
     const r = world.roomAt(p.x, p.z);
     if (r) hudText('objective', formatObjective(chapterObjective(r)));
     if (r && r.id !== roomId) {
@@ -1329,7 +1368,10 @@
     }
     // Same reach as the stone's own auto-seal (combat.js): the button shows when enemies still keep it from sealing.
     const cp = world.checkpoint, near = cp && Math.hypot(p.x - cp.x, p.z - cp.z) < 6.1 && game.checkpointIndex === 0;
-    $('interact').classList.toggle('hidden', !near);
+    const prompt = game.quests && game.quests.prompt;
+    $('interact').classList.toggle('hidden', !near && !prompt);
+    hudText('interact-label', prompt ? prompt.text : 'Yemin taşına dokun');
+    if (questUI) questUI.update(dt);
     if (firstHint > 0) { firstHint -= dt; if (firstHint <= 0) $('tutorial').classList.add('hidden'); }
     if (game.state === 'dead') death(game.lastDeath || {});
     if (game.state === 'won') victory();
@@ -1426,7 +1468,7 @@
     return graphicsAdapter;
   }
   function performanceReport() {
-    return { schema: 4, game: 'Kabir Azabı', build: 126, capturedAt: new Date().toISOString(), view,
+    return { schema: 4, game: 'Kabir Azabı', build: BUILD_TAG, capturedAt: new Date().toISOString(), view,
       location: { room: world.rooms?.[roomId]?.name || roomId, x: game.player.x, z: game.player.z },
       display: { width: post.width, height: post.height, windowWidth: innerWidth, windowHeight: innerHeight,
         devicePixelRatio: window.devicePixelRatio || 1, renderPixelRatio: renderer.getPixelRatio() },
@@ -1441,7 +1483,7 @@
   }
   // Gaps between presented frames (last ~600), so the counter can also show the longest frame: a few slow frames are
   // what the eye reads as stutter even when the FPS average looks fine.
-  const BUILD_TAG = 125, fpsGaps = new Float32Array(600);
+  const BUILD_TAG = 135, fpsGaps = new Float32Array(600);
   let fpsGapAt = 0, fpsGapLast = 0;
   function frameStats() {
     let longest = 0, slow = 0;
@@ -1828,7 +1870,7 @@
   window.addEventListener('error', e => { if (!ready) fatal(e.error || e.message); });
   // After a jump across the map (title, respawn) the rooms, pooled lights and the room grade arrive at once
   // instead of fading in over a second of darkness.
-  function snapScene() { safe(() => { for (let i = 0; i < 4; i++) world.update(.1, elapsed, game.player); if (rig.snap) rig.snap(); }); }
+  function snapScene() { safe(() => { for (let i = 0; i < 4; i++) world.update(.1, elapsed, game.player); if (game.updateQuestVisibility) game.updateQuestVisibility(); if (rig.snap) rig.snap(); }); }
   function titleCamera() {
     if (camera.fov !== BASE_FOV) { camera.fov = BASE_FOV; camera.updateProjectionMatrix(); }
     cameraPos.set(world.spawn.x + TITLE_CAM[0], TITLE_CAM[1] + .35, world.spawn.z + TITLE_CAM[2] + .6);
@@ -1880,7 +1922,8 @@
     world = (forgeChapter ? B.ForgeWorld : ruinsChapter ? B.RuinsWorld : coastChapter ? B.CoastWorld : B.World).build(scene, { multiDraw });
     game = B.Game.create(world, { scene, emit: event, sound: (n, o) => B.Audio.play(n, o), fx });
     characterUI = B.CharacterUI.create({ game, keyLabels: () => ['heavy', 'special', 'rage', 'fourth'].map(a => { const c = binds[a][0] || binds[a][1]; return c ? capName(c) : '—'; }), onPreview: (canvas,nowMs) => characterPreview.draw(canvas,nowMs), onPreviewTurn: direction => characterPreview.turn(direction), onClose: back, onChange: () => { game.syncProgression(); if (game.saveProfileChoices) game.saveProfileChoices(); hud(0); } });
-    makeFX(); postProcess(); characterPreview = B.CharacterPreview.create({ renderer, camera, game, post }); setupUI();
+    questUI = B.QuestUI.create({ game });
+    makeFX(); postProcess(); characterPreview = B.CharacterPreview.create({ renderer, camera, game, post, worldScene: scene }); setupUI();
     titleCamera();
     const placeNotices = () => {
       const height = Math.max($('narration').offsetHeight, $('tutorial').offsetHeight);
@@ -1899,7 +1942,7 @@
     safe(() => assignDepthMaterials(scene));
     ready = true; applySettings();
     B.app = { scene, camera, renderer, world, game, post, rig, scaler, resetPerformance, settings: cfg, input, get view() { return view; }, begin, show, fx, applySettings, clearFX, warmShaders,
-      characterUI, openCharacter, controller, characterPreview,
+      characterUI, openCharacter, controller, characterPreview, questUI,
       get warming() { return !!warming; }, get warmStats() { return warmStats; },
       get performance() { return performanceReport(); }, frameStats,
       // Deterministic frame stepping for headless QA pages (virtual time barely runs requestAnimationFrame).
@@ -1943,7 +1986,8 @@
     await Promise.all([
       B.Models.prepare({ textureScale: lowTextures ? .5 : 1, maxTexture: coarsePointer ? 1024 : 2048 }),
       B.TargetHUD.prepare(),
-      B.GroundLoot.prepare()
+      B.GroundLoot.prepare(),
+      B.SkillArt.prepare()
     ]);
     if (B.Audio.prepare) {
       loadProgress(.30, forgeChapter ? 'Ocağın sesleri hazırlanıyor…' : ruinsChapter ? 'Mağaranın sesleri hazırlanıyor…' : coastChapter ? 'Kıyının sesleri hazırlanıyor…' : 'Tapınağın sesleri hazırlanıyor…');

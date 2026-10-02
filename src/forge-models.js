@@ -37,7 +37,7 @@
     GLOW.push({mat:materials.glow,base:materials.glow.emissiveIntensity,type:type});
     function lames(key,count,top,gap,height,pad,flare){
       var list=[];
-      for(var i=0;i<count;i++)(function(i){var yTop=top-i*gap;list.push(plateWear(G.shell(24,2,function(u,v){return fitted.at(u*TAU,yTop-v*height,pad+i*.004+v*flare);},.011,true,true),.38));})(i);
+      for(var i=0;i<count;i++)(function(i){var yTop=top-i*gap;list.push(plateWear(G.shell(24,2,function(u,v){var a=u*TAU,front=Math.max(0,Math.cos(a)),rib=.010*Math.pow(Math.max(0,Math.cos(a*4)),4)*Math.sin(v*Math.PI);return fitted.at(a,yTop-v*height-.01*front*front,pad+i*.004+v*flare+rib);},.011,true,true),.38));})(i);
       fitted.attach(key,G.merge(list));
     }
     // bone-straight crack of light along a limb bone (a seam through the skin or the plates)
@@ -149,8 +149,8 @@
     }
     var weapon;
     if(type==='chainseer'){weapon={parts:{iron:[G.cyl(.025,.035,1.08,10,[0,.40,0]),G.ring(.15,.026,[0,1.02,0],[0,0,0],8,24)],glow:[G.sphere(.045,[0,1.02,0],[1,1,1],10,8),G.ring(.15,.01,[0,1.02,0],[0,0,0],5,26),G.sphere(.03,[0,1.02,.14],[1,1,1],8,6)]},tip:new T.Vector3(0,1.2,0)};}
-    else if(type==='forgesentinel'||type==='furnaceheart'){weapon={parts:{wood:[G.cyl(.04,.055,1.2,12,[0,.38,0])],iron:[G.box(.52,.27,.25,[0,1.02,0]),G.box(.42,.08,.29,[0,.87,0])],glow:[G.box(.36,.02,.02,[0,1.10,.133]),G.box(.36,.02,.02,[0,.95,.133])]},tip:new T.Vector3(0,1.17,0)};}
-    else if(type!=='slagcrawler'){weapon={parts:{iron:[G.extrude([[-.05,0],[.06,0],[.08,.70],[.28,.79],[.20,.98],[-.06,.94]],.055,.008),G.box(.33,.05,.075,[0,.05,0])],leather:[G.cyl(.03,.035,.25,10,[0,-.13,0])],glow:[G.box(.014,.6,.062,[.03,.43,0],[0,0,.04])]},tip:new T.Vector3(.20,.98,0)};}
+    else if(type==='forgesentinel'||type==='furnaceheart'){weapon={parts:{wood:[G.cyl(.04,.055,1.2,12,[0,.38,0])],iron:[C.forgedBlock(.52,.27,.25,[0,1.02,0],.052),C.forgedBlock(.42,.08,.29,[0,.87,0],.019),G.ring(.071,.012,[0,.80,0],[Math.PI/2,0,0],5,16)],glow:[G.box(.36,.02,.02,[0,1.10,.133]),G.box(.36,.02,.02,[0,.95,.133])]},tip:new T.Vector3(0,1.17,0)};}
+    else if(type!=='slagcrawler'){weapon={parts:{iron:[C.forgedBlade(.98,.14,true),C.forgedBlock(.33,.05,.075,[0,.05,0],.010),G.cyl(.043,.048,.04,8,[0,-.27,0])],leather:[C.forgedGrip(.033,.25,-.255)],glow:[G.extrude([[-.008,.14],[.005,.14],[.018,.40],[.008,.60],[.012,.73],[.002,.68],[.0,.41]],.038,.001)]},tip:new T.Vector3(.20,.98,0)};}
     if(weapon)weapon.materials={iron:materials.iron,leather:materials.leather,glow:materials.glow};
     return {materials:materials,weapon:weapon};
   });}

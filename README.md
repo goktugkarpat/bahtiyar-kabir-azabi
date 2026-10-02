@@ -10,7 +10,7 @@ Bahtiyar, kör bir mahkûm kılıcıyla Kurban Tapınağı'nda uyanır ve dört 
 3. **Kül Harabeleri / Sessiz Taht:** Mezar avlularından kristalli mağaraya, Oyukların Kralı.
 4. **Kızıl Ocak:** Zincir kuyuları ve dökümhane, Ocağın Kalbi.
 
-Bölümler birbirinin devamıdır: boss düşünce bir sonrakine kendiliğinden geçilir. Boss kapısı, bölümdeki düşmanlardan 45'ini yenince açılır.
+Bölümler birbirinin devamıdır: boss düşünce bir sonrakine kendiliğinden geçilir. Her bölümde iki hikâye görevi tamamlanınca boss kapısı açılır. Görevler nesne bulma, eski yeminleri çözme ve mekanizmaları doğru sırada çalıştırma üzerine kuruludur; ilerleme ölümde korunur. Mola menüsündeki **Görev günlüğü** adımları gösterir.
 
 ## Nasıl açılır
 
@@ -22,10 +22,10 @@ Bölümler birbirinin devamıdır: boss düşünce bir sonrakine kendiliğinden 
 
 - **Fare:** Boş yere tıkla, Bahtiyar oraya yürür (basılı tutarsan fareyi izler). Düşmana sol tıkla: ona koşar ve vurur. Shift + tık: yürümeden fareye doğru vurur.
 - **Yetenekler:** Sağ tık, **1**, **2**, **3** yuvaları. Dört yol vardır (sert vuruş, bağırma, dönme, Charge); her yolda üç aşama, aşağıdaki aşama yukarıdakinin yerine geçer. Yetenek ağacı **T** ile açılır.
-- **Space:** Fareye doğru yuvarlanma. **Q:** can iksiri. **E:** yemin taşı. **I:** karakter ve çanta (eşyaya çift tıkla: giy). **ESC:** mola.
+- **Space:** Fareye doğru yuvarlanma. **Q:** can iksiri. **E:** yakındaki görev nesnesi veya yemin taşı. **I:** karakter ve çanta (eşyaya çift tıkla: giy). **ESC:** mola.
 - Tuşları Ayarlar › Kontroller ekranından değiştirebilirsin.
 - **Xbox kolu:** sol çubuk hareket, A saldırı, B kaçınma, RT / X / Y / LT yetenekler. **Dokunmatik:** düşmana dokun, ona vurur; yere dokun, oraya yürür.
-- Düşman vurmadan önce zemine işaret çıkar: **altın kenar** sıradan darbe, **kızıl kenar** ağır darbe, kızıllardan mutlaka kaç.
+- Düşman vurmadan önce zemine işaret çıkar: **altın kenar** sıradan darbe, **kızıl kenar** ağır darbe, kızıllardan mutlaka kaç. Büyük boss saldırılarında can çubuğunun altındaki kısa açıklama neye vuracağını, nereden kaçacağını veya hangi siperi kullanacağını söyler; soluk mavi alan siper/güvenli yerdir.
 - Ölen düşmanlardan kırmızı sağlık küreleri ve eşyalar düşer.
 - Kare hızını görmek için oyun sırasında **.** (nokta) tuşuna bas. Adresin sonuna `?sessiz` eklersen oyun sessiz açılır.
 

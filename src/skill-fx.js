@@ -9,7 +9,7 @@
    Events: strikeGather {tier, x, z, face, reach, radius, strike, air}, strikeImpact {tier, skill, x, z, ox, oz, face, radius, arc, hits},
            shoutGather {tier, x, z, life, radius}, shoutRelease {tier, x, z, radius, far}, shoutWave {x, z, radius, n}.
    Screen layer (wall clock, so a hit-stop cannot stretch it): Post.setAbilityFx (edge flash / vignette / saturation / fringe / floor ring), B.SkillFx.push() = camera zoom pulse
-   (app.js subtracts it from the camera `near` factor), B.SkillFx.timeScale() = a 40-110 ms hit-stop (multiplies the simulation dt in app.js).
+   (app.js subtracts it from the camera `near` factor), B.SkillFx.timeScale() applies only the shout climax hit-stop; heavy strikes keep simulation flowing and use the combat engine’s brief confirmed-hit response.
    Reduced motion (and ?lvcalm): no zoom, no hit-stop, no fringe / ring, a much weaker flash, no wisps or spark streaks; the cracks, rings and embers stay (they do not move fast).
    No lights, no per-frame allocations, all geometry / materials are made here once and warmed through effects.js warm() (parts / warmObjects). */
 (() => {
@@ -49,9 +49,11 @@
       if(max(col.r,max(col.g,col.b))<.01)discard;gl_FragColor=vec4(col,1.);}`;
   // Shock ring (analytic, additive): a bright edge with a trailing glow; uTeeth > 0 cuts the front into bone-like teeth. The quad only grows as far as the ring has travelled.
   const RING_FS = `varying vec2 vUv;uniform float uK,uHalf,uMax,uThick,uTeeth,uA;uniform vec3 uCol;
-    void main(){vec2 q=(vUv-.5)*2.;float rw=length(q)*uHalf;float e=(1.-pow(1.-uK,2.4))*uMax;float w=uThick*(.5+.9*e/uMax)+.04;float x=(rw-e)/w;float ring=exp(-x*x);
-      float tail=(rw<e)?exp(-(e-rw)/(w*3.5))*.32:0.;float a=atan(q.x,-q.y);float tooth=uTeeth>0.?(.35+.65*pow(abs(sin(a*uTeeth*.5)),.6)):1.;
-      float edge=1.-smoothstep(.92*uMax,uMax,rw);float life=(1.-uK)*(1.-uK)*smoothstep(0.,.04,uK);float k=(ring*tooth+tail*tooth*.8)*edge*life*uA*.8;if(k<.004)discard;gl_FragColor=vec4(uCol*k,1.);}`;
+    void main(){vec2 q=(vUv-.5)*2.;float rw=length(q)*uHalf;float e=(1.-pow(1.-uK,2.4))*uMax;float w=uThick*(.5+.9*e/uMax)+.04;
+      float a=atan(q.x,-q.y);float fluting=uTeeth>0.?(.78+.22*sin(a*uTeeth)):1.;float x=(rw-e)/w;float edgeLine=exp(-x*x*2.8);
+      float wake=clamp(1.-(e-rw)/(w*3.8),0.,1.);wake=wake*wake*step(rw,e);float echo=exp(-pow((rw-e+w*2.2)/(w*.45),2.))*.18;
+      float edge=1.-smoothstep(.94*uMax,uMax,rw);float life=(1.-uK)*(1.-uK)*smoothstep(0.,.04,uK);
+      float k=(edgeLine*fluting+wake*.2+echo)*edge*life*uA*.88;if(k<.004)discard;gl_FragColor=vec4(uCol*k,1.);}`;
   // Ember pillar: an open cylinder, vertical streaks drifting upward, thick at the foot and fading toward the top; additive and see-through (the hero stays readable).
   const PIL_VS = 'varying vec2 vUv;varying float vF;void main(){vUv=uv;vec4 mv=modelViewMatrix*vec4(position,1.);vF=abs(dot(normalize(normalMatrix*normal),normalize(-mv.xyz)));gl_Position=projectionMatrix*mv;}';
   const PIL_FS = `varying vec2 vUv;varying float vF;uniform float uT,uA;uniform vec3 uHot,uCold;
@@ -62,6 +64,8 @@
     const T = o.T, root = o.root, scaleCount = o.scaleCount, emit = o.emit, particle = o.particle, flash = o.flash, getGame = o.getGame, getSettings = o.getSettings;
     const streak = o.streak, scar = o.scar, tells = () => (o.tells ? o.tells() : null), skOn = o.streakOn;
     const plane = new T.PlaneGeometry(1, 1).rotateX(-Math.PI / 2);
+    // Sample once per cast; bridge boards sit above the soil in Kara Kıyı.
+    const floorAt = (x, z, radius) => { const w = B.app && B.app.world; return w && w.effectHeightAt ? w.effectHeightAt(x, z, radius || 0) : .055; };
     // ---- fissure quads (pool 3) and rings (pool 8): one program each, own uniforms per mesh
     const fisBase = new T.ShaderMaterial({ transparent: true, depthWrite: false, blending: T.AdditiveBlending, fog: false, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3,
       uniforms: { uT: { value: 1 }, uGrow: { value: 1 }, uSeed: { value: 0 }, uArms: { value: 7 }, uFace: { value: 0 }, uSpan: { value: 6.283 }, uLen: { value: 1 }, uR: { value: 5 }, uA: { value: 1 }, uHot: { value: new T.Vector3(3, 2, .6) }, uEdge: { value: new T.Vector3(1.6, .6, .12) } },
@@ -73,16 +77,18 @@
     const pillarMat = new T.ShaderMaterial({ transparent: true, depthWrite: false, side: T.DoubleSide, blending: T.AdditiveBlending, fog: false,
       uniforms: { uT: { value: 0 }, uA: { value: 0 }, uHot: { value: new T.Vector3(3.2, 1.0, .25) }, uCold: { value: new T.Vector3(.8, .06, .08) } }, vertexShader: PIL_VS, fragmentShader: PIL_FS });
     const pillar = new T.Mesh(new T.CylinderGeometry(1, 1, 1, 36, 1, true).translate(0, .5, 0), pillarMat); pillar.frustumCulled = false; pillar.renderOrder = 3; pillar.visible = false; root.add(pillar);
-    const pil = { on: false, t: 0, life: 1.7, x: 0, z: 0, R: 2.0, H: 5.2 };
+    const pil = { on: false, t: 0, life: 1.7, x: 0, z: 0, R: 2.0, H: 5.2, floor: .055 };
     // ---- skull wisps (pool 10): a soft canvas-drawn skull silhouette on additive sprites, flung outward along the floor
-    const skullMap = (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d');
-      const gr = g.createRadialGradient(32, 28, 4, 32, 28, 30); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(.7, 'rgba(255,255,255,.75)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
-      g.fillStyle = gr; g.beginPath(); g.ellipse(32, 26, 19, 20, 0, 0, 7); g.fill(); g.fillRect(21, 36, 22, 16);
-      g.globalCompositeOperation = 'destination-out'; g.fillStyle = 'rgba(0,0,0,.95)';
-      g.beginPath(); g.ellipse(24, 28, 5.5, 6.5, -.1, 0, 7); g.fill(); g.beginPath(); g.ellipse(40, 28, 5.5, 6.5, .1, 0, 7); g.fill();
-      g.beginPath(); g.moveTo(32, 33); g.lineTo(28.5, 41); g.lineTo(35.5, 41); g.fill();
-      for (let i = 0; i < 4; i++) g.fillRect(24.5 + i * 4.8, 46, 1.6, 7);
-      const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; return t; })();
+    const skullMap = (() => { const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d');
+      const gr = g.createRadialGradient(64, 54, 8, 64, 58, 57); gr.addColorStop(0, 'rgba(255,248,231,1)'); gr.addColorStop(.52, 'rgba(242,227,204,.84)'); gr.addColorStop(1, 'rgba(224,205,182,0)');
+      g.fillStyle = gr; g.beginPath(); g.moveTo(29,53); g.bezierCurveTo(20,16,104,12,100,51); g.lineTo(95,69); g.lineTo(84,78); g.lineTo(82,99); g.quadraticCurveTo(64,109,46,99); g.lineTo(43,79); g.lineTo(31,69); g.closePath(); g.fill();
+      g.strokeStyle='rgba(255,248,224,.6)';g.lineWidth=2;g.beginPath();g.moveTo(35,45);g.quadraticCurveTo(45,28,59,30);g.moveTo(72,29);g.lineTo(89,41);g.stroke();
+      g.globalCompositeOperation='destination-out';g.fillStyle='rgba(0,0,0,.95)';
+      for(const side of [-1,1]){g.beginPath();g.ellipse(64+side*17,57,11,13,side*.22,0,Math.PI*2);g.fill();}
+      g.beginPath();g.moveTo(64,65);g.lineTo(56,81);g.lineTo(70,81);g.closePath();g.fill();
+      g.beginPath();g.ellipse(64,93,12,8,0,0,Math.PI*2);g.fill();
+      for(let i=0;i<5;i++)g.fillRect(48+i*7,94,2,15);
+      const t=new T.CanvasTexture(c);t.colorSpace=T.SRGBColorSpace;return t; })();
     const wisps = Array.from({ length: 10 }, () => { const sp = new T.Sprite(new T.SpriteMaterial({ map: skullMap, color: 0xffffff, transparent: true, depthWrite: false, depthTest: false, blending: T.AdditiveBlending, fog: false, opacity: 0 }));
       sp.renderOrder = 28; sp.visible = false; root.add(sp); return { sp, on: false, t: 0, life: 1, x: 0, y: 0, z: 0, vx: 0, vz: 0, vy: 0, size: .8, spin: 0 }; });
     const sched = [];                      // delayed actions of one cast: { t, f } (a few per cast, never per frame)
@@ -94,13 +100,13 @@
     // ---- helpers
     function fissure(x, z, R, o2) {
       const f = fis.find(q => q.t >= q.life) || fis.reduce((a, b) => (b.t > a.t ? b : a)), u = f.mat.uniforms;
-      f.t = 0; f.life = o2.life || 1.6; f.grow = o2.grow || .3; f.m.position.set(x, .055, z); f.m.scale.set(R * 2, 1, R * 2); f.m.visible = true;
+      f.t = 0; f.life = o2.life || 1.6; f.grow = o2.grow || .3; f.m.position.set(x, floorAt(x, z, R) + .014, z); f.m.scale.set(R * 2, 1, R * 2); f.m.visible = true;
       u.uR.value = R; u.uSeed.value = Math.random() * 40; u.uArms.value = o2.arms || 7; u.uFace.value = o2.face || 0; u.uSpan.value = o2.span || 6.283; u.uLen.value = o2.len || 1; u.uGrow.value = 0; u.uT.value = 0; u.uA.value = o2.a == null ? 1 : o2.a;
       u.uHot.value.set(o2.hot[0], o2.hot[1], o2.hot[2]); u.uEdge.value.set(o2.edge[0], o2.edge[1], o2.edge[2]);
     }
     function ring(x, z, R, o2) {
       const r = rings.find(q => q.t >= q.life && !q.m.visible) || rings.find(q => q.t >= q.life) || rings[0];
-      r.r = R; r.life = o2.life || .55; r.t = -(o2.delay || 0); r.m.position.set(x, .06, z); r.m.visible = false; r.pend = true;
+      r.r = R; r.life = o2.life || .55; r.t = -(o2.delay || 0); r.m.position.set(x, floorAt(x, z, R) + .02, z); r.m.visible = false; r.pend = true;
       const u = r.mat.uniforms; u.uMax.value = R; u.uThick.value = o2.thick || .12; u.uTeeth.value = o2.teeth || 0; u.uA.value = o2.a == null ? 1 : o2.a; u.uCol.value.set(o2.col[0], o2.col[1], o2.col[2]); u.uK.value = 0;
       sizeRing(r, 0);
     }
@@ -163,7 +169,7 @@
         dustRing(x, z, 26, R * .9, [.11, .09, .07], .34);
         if (scar) scar(x, z, 0, { shape: 'circle', radius: R * .55, heat: .55, life: 2.2 });
         later(.2, () => { ring(x, z, R * .72, { life: .38, thick: .07, col: [2.2, 1.2, .3], a: .6 }); sparks(x, z, scaleCount(10), 5, [2.8, 1.6, .4], 2); floorGlow(x, z, R * .6, .35, [1.8, .9, .2], .3); });
-        pulse(.55, .025, .22, .07, .07); hitPause(70); kick(.02);
+        pulse(.55, .025, .22, .07, .07); kick(.02);
         S.ringAt = nowMs(); S.ringDur = .5; S.ringX = x; S.ringZ = z; S.ringR = R * 1.5; S.ringW = .8;
         return;
       }
@@ -184,7 +190,7 @@
       dustRing(ox, oz, 30, R * .8, [.12, .1, .1], .4);
       if (scar) { scar(ox, oz, 0, { shape: 'circle', radius: 3.2, heat: .35, life: 3 }); scar(ox + Math.sin(face) * R * .45, oz + Math.cos(face) * R * .45, face, { shape: 'circle', radius: R * .55, heat: .28, life: 3 }); }
       later(.28, () => { sparks(ox, oz, scaleCount(10), 5, [2.4, .5, .3], 3); embersUp(ox, oz, 18, 2.6, [[2.8, .5, .12], [1.6, .6, 2.6]], 2.8, 1.2, .055); });
-      pulse(.9, .03, .34, .1, .14); hitPause(110); kick(.04);
+      pulse(.9, .03, .34, .1, .14); kick(.04);
       S.ringAt = nowMs(); S.ringDur = .65; S.ringX = ox; S.ringZ = oz; S.ringR = R * 1.4; S.ringW = 1.1;
     }
 
@@ -231,7 +237,7 @@
       fissure(x, z, 3.6, { arms: 5, span: 6.283, len: .8, hot: [2.8, .5, .2], edge: [1.4, .12, .06], life: 2.0, grow: .25, face: Math.random() * 6 });
       floorGlow(x, z, near * .8, 1.0, [.9, .07, .08], .28);
       // the pillar of dark red embers around the hero
-      pil.on = true; pil.t = 0; pil.x = x; pil.z = z; pillar.visible = true; pillarMat.uniforms.uA.value = 0;
+      pil.on = true; pil.t = 0; pil.x = x; pil.z = z; pil.floor = floorAt(x, z, 2); pillar.visible = true; pillarMat.uniforms.uA.value = 0;
       embersUp(x, z, 70, 1.5, [[3.0, .5, .12], [2.4, .22, .08], [.9, .35, 1.6]], 4.4, 1.5, .06);
       for (let i = 0; i < 10 && !calm(); i++) wisp(x, 1.1, z, i / 10 * 6.283 + rnd(-.2, .2), rnd(3.4, 5.4), rnd(1.2, 1.9), rnd(.5, .7), i % 2 ? [.9, .85, 1.0] : [1.0, .45, .35]);
       sparks(x, z, scaleCount(36), 10, [2.8, .55, .25], 3.2); rubble(x, z, 16, 4.4, 5.4); dustRing(x, z, 34, V, [.1, .08, .09], .4);
@@ -264,7 +270,7 @@
       if (pil.on) {
         pil.t += dt; const k = pil.t / pil.life, u = pillarMat.uniforms; u.uT.value = pil.t; u.uA.value = (calm() ? .35 : 1) * Math.sin(Math.min(1, pil.t / .18) * 1.5708) * (1 - clamp((pil.t - pil.life * .55) / (pil.life * .45), 0, 1));
         const g = getGame(), p = g && g.player, grow = 1 - Math.pow(1 - clamp(pil.t / .3, 0, 1), 3);
-        if (p) { pil.x = p.x; pil.z = p.z; } pillar.position.set(pil.x, 0, pil.z); pillar.scale.set(pil.R * (.55 + .45 * grow), pil.H * grow, pil.R * (.55 + .45 * grow));
+        if (p) { pil.x = p.x; pil.z = p.z; } pillar.position.set(pil.x, pil.floor, pil.z); pillar.scale.set(pil.R * (.55 + .45 * grow), pil.H * grow, pil.R * (.55 + .45 * grow));
         if (k >= 1) { pil.on = false; pillar.visible = false; }
       }
       for (const w of wisps) if (w.on) {
@@ -338,7 +344,7 @@
     createWorld,
     // camera zoom pulse (0 .. ~.045): app.js subtracts it from the camera `near` factor
     push() { const a = (nowMs() - S.pushAt) / 1000; if (a < 0 || a > 1 || !S.pushAmp || calm()) return 0; return S.pushAmp * Math.sin(Math.min(1, a / .05) * Math.PI / 2) * Math.exp(-Math.max(0, a - .05) * 5.5); },
-    // simulation speed multiplier: a short hit-stop on the heavy beats
+    // Simulation speed multiplier for shout climaxes; weapon strikes never set this clock.
     timeScale() { return nowMs() < S.stopUntil ? .05 : 1; }
   };
 })();

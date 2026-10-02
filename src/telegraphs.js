@@ -16,7 +16,7 @@
   // Pool: the shader works in world XZ; the quad only has to cover the shape. Output is linear HDR (the app tone-maps later).
   const POOL_VS = 'varying vec2 vW; void main(){ vec4 w = modelMatrix*vec4(position,1.); vW = w.xz; gl_Position = projectionMatrix*viewMatrix*w; }';
   const POOL_FS = `uniform vec2 uOrigin; uniform float uFace; uniform int uShape; uniform vec4 uDim;
-uniform float uU,uFlare,uHit,uFade,uGain,uSweepDir,uUnblock,uDetail,uTime,uSeed,uCalm,uHitK; uniform int uFill,uStyle;
+uniform float uU,uFlare,uHit,uFade,uGain,uSweepDir,uUnblock,uDetail,uTime,uSeed,uCalm,uHitK,uActive,uSafeReady; uniform int uFill,uStyle;
 uniform vec3 uEdge,uFillCol,uFront; uniform vec4 uK,uE; uniform float uBreak,uF,uCk; uniform vec3 uHl; uniform vec3 uPA,uPB; uniform sampler2D uRune,uCrack; varying vec2 vW;
 float rmax(float a, float b, float k){ return length(max(vec2(a+k, b+k), 0.)) + min(max(a, b)+k, 0.) - k; }
 void main(){
@@ -33,10 +33,21 @@ void main(){
   else { span = uDim.z; float a = abs(ang)-span*.5, ring = max(uDim.x-r, r-uDim.y), rc = min(.4, (uDim.y-uDim.x)*.4);
          sd = span < 6.28 ? rmax(ring, a > 0. ? r*sin(min(a,1.5708)) : a*r, rc) : ring;
          t = (r-uDim.x)/max(.01, uDim.y-uDim.x); R = uDim.y; }
-  if (sd > .7) discard;
+  if (sd > .7 && uStyle != 13) discard;
   // Continuous curved bands: no lattice cells or texture-resolution steps in warning light.
   float n = .5+.14*sin(dot(vW,vec2(1.13,.79))+uSeed)+.10*sin(dot(vW,vec2(-.67,1.41))-.7*uSeed);
   float aa = max(fwidth(sd),.004), inside = 1.-smoothstep(-aa, aa, sd);
+  if (uStyle == 13) {   // shelter: blue is safe, muted red outside is damaging water
+    if (r > uDim.y+.3) discard;
+    float rimD = r-uDim.x, rimAA=max(fwidth(rimD),.015);
+    float safe=1.-smoothstep(-rimAA,rimAA,rimD), rim=exp(-pow(rimD/.07,2.));
+    float dashed=mix(.32,1.,smoothstep(-.1,.2,cos(ang*18.)));
+    float ready=max(uActive,uSafeReady), border=mix(dashed*.38,1.,ready);
+    float ink=(.035+.025*n)*uActive;
+    vec3 c=mix(vec3(.23,.045,.032),vec3(.10,.27,.34),safe);
+    c+=vec3(.19,.46,.57)*rim*border;
+    float al=(1.-safe)*ink + safe*(.025+.07*ready) + rim*(.18+.50*border);
+    gl_FragColor=vec4(c,al*uFade); return; }
   if (uStyle == 12) {   // settled bile: murky liquid with a wet meniscus (normal blending)
     float wob = .5+.20*sin(dot(vW,vec2(.73,.91))+uTime*.07+uSeed)+.12*sin(dot(vW,vec2(-1.31,.59))-uTime*.05);
     float men = exp(-abs(sd+.06)/(.05+.03*n)) * (.8+.2*sin(dot(vW,vec2(2.31,3.17))+uTime*.2));
@@ -240,7 +251,7 @@ void main(){ vec2 p = (vUv-.5)*2.*uMax; float r = length(p), a = r > 1e-6 ? atan
       blending: T.CustomBlending, blendEquation: T.AddEquation, blendSrc: T.OneFactor, blendDst: T.OneMinusSrcAlphaFactor, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4, fog: false,
       uniforms: { uOrigin: { value: new T.Vector2() }, uFace: { value: 0 }, uShape: { value: 0 }, uDim: { value: new T.Vector4() }, uU: { value: 0 }, uFlare: { value: 0 },
         uHit: { value: 0 }, uFade: { value: 0 }, uGain: { value: 1 }, uFill: { value: 0 }, uSweepDir: { value: 1 }, uUnblock: { value: 0 }, uStyle: { value: 0 }, uDetail: { value: 3 },
-        uTime: { value: 0 }, uSeed: { value: 0 }, uCalm: { value: 0 }, uHitK: { value: 1 }, uK: { value: new T.Vector4(.006, .012, .03, .10) }, uE: { value: new T.Vector4(.02, .14, .35, .07) },
+        uTime: { value: 0 }, uSeed: { value: 0 }, uCalm: { value: 0 }, uHitK: { value: 1 }, uActive: { value: 0 }, uSafeReady: { value: 0 }, uK: { value: new T.Vector4(.006, .012, .03, .10) }, uE: { value: new T.Vector4(.02, .14, .35, .07) },
         uBreak: { value: .85 }, uF: { value: .12 }, uCk: { value: .8 }, uHl: { value: new T.Vector3(.08, .25, .5) }, uPA: { value: new T.Vector3(.006, .011, .003) }, uPB: { value: new T.Vector3(.028, .05, .009) },
         uEdge: { value: new T.Vector3() }, uFillCol: { value: new T.Vector3() }, uFront: { value: new T.Vector3() }, uRune: { value: textures.rune }, uCrack: { value: textures.crack } } });
     const ribBase = new T.ShaderMaterial({ vertexShader: RIB_VS, fragmentShader: RIB_FS, transparent: true, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide, fog: false,
@@ -270,11 +281,11 @@ void main(){ vec2 p = (vUv-.5)*2.*uMax; float r = length(p), a = r > 1e-6 ? atan
     }
     function free(t) { t.busy = false; t.releasing = false; t.h = null; t.mesh.visible = false; t.rib.visible = false; }
     function vec(v, a) { v.set(a[0], a[1], a[2]); }
-    const POOLS = { lava: { a: [.04, .008, .003], b: [.19, .04, .008], edge: [2.4, .8, .18], bub: [3, 1, .2] }, dark: { a: [.002, .008, .011], b: [.007, .026, .03], edge: [.3, .9, .85], bub: [.2, .7, .6] }, brine: { a: [.003, .014, .014], b: [.014, .05, .044], edge: [.3, .95, .7], bub: [.3, .85, .6] } };   // round 7: hazard.pool tints persistent floor liquids (burning strips, brine, drowning dark)
-    const styleOf = h => (h.poison || h.pool) && h.persistent && h.active ? 12 : STYLE[h.style] != null ? STYLE[h.style] : 0;
+    const POOLS = { lava: { a: [.04, .008, .003], b: [.19, .04, .008], edge: [1.2, .22, .07], bub: [3, 1, .2] }, dark: { a: [.002, .008, .011], b: [.007, .026, .03], edge: [.3, .9, .85], bub: [.2, .7, .6] }, brine: { a: [.003, .014, .014], b: [.014, .05, .044], edge: [1.15, .19, .12], bub: [.3, .85, .6] } };   // round 7: hazard.pool tints persistent floor liquids (burning strips, brine, drowning dark)
+    const styleOf = h => h.pool === 'dark' ? 13 : (h.poison || h.pool) && h.persistent && h.active ? 12 : STYLE[h.style] != null ? STYLE[h.style] : 0;
     function place(t, h) {
       const u = t.mat.uniforms, shape = SHAPE[h.shape] != null ? SHAPE[h.shape] : 0, style = styleOf(h);
-      const liquid = style === 12, unb = !!h.unblockable && !liquid, pal = unb ? CRIMSON : GOLD;
+      const liquid = style === 12 || style === 13, unb = !!h.unblockable && !liquid, pal = unb ? CRIMSON : GOLD;
       u.uOrigin.value.set(h.x, h.z); u.uFace.value = h.face || 0; u.uShape.value = shape; u.uStyle.value = style;
       if (shape === 0) u.uDim.value.set(h.radius, 0, 0, 0); else if (shape === 1) u.uDim.value.set(h.radius, h.arc, 0, 0);
       else if (shape === 2) u.uDim.value.set(h.width, h.length, 0, 0); else u.uDim.value.set(h.inner || 0, h.radius, h.arc || TAU, 0);
@@ -311,14 +322,16 @@ void main(){ vec2 p = (vUv-.5)*2.*uMax; float r = length(p), a = r > 1e-6 ? atan
     }
     function update(t, h, cfg, calm) {
       if (t.placed !== styleOf(h)) place(t, h);
-      const u = t.mat.uniforms, s = tellState(h, t.state), liquid = u.uStyle.value === 12;
+      const u = t.mat.uniforms, s = tellState(h, t.state), liquid = u.uStyle.value === 12 || u.uStyle.value === 13;
       let fade = clamp(h.age / .08, 0, 1);
       if (liquid) fade *= clamp((h.warn + h.duration - h.age) / .6, 0, 1);
+      u.uActive.value = h.active ? 1 : 0; u.uSafeReady.value = h.warn-h.age <= 1 ? 1 : 0;
       u.uU.value = liquid ? 1 : s.u; u.uFlare.value = liquid ? 0 : s.flare; u.uHit.value = liquid ? 0 : s.hit; u.uFade.value = fade;
       u.uGain.value = (liquid ? (h.poolGain || .55) : (h.tellGain || 1)) * (cfg.tellGain || 1) * (u.uStyle.value === 5 && u.uShape.value !== 0 ? .4 : 1);   // narrow 'shadow' lanes (shard volleys, pulses) would bloom to white: keep their light well under the bloom knee
       // Big areas (boss sweeps, rings) cover a lot of screen: their interior light is scaled down so it never reads as paint.
       const R = h.shape === 'line' ? Math.max(h.width, h.length * .35) : h.radius, big = clamp(2.8 / Math.max(.5, R), .38, 1);
-      u.uK.value.set(.07 * big, .08 * big, .30 * big, .6 * (.5 + .5 * big)); u.uF.value = .35 * big; u.uHitK.value = .75 * (.35 + .65 * clamp((big - .38) / .62, 0, 1));
+      const open = h.owner && h.owner.boss && R > 8 ? .48 : 1;
+      u.uK.value.set(.07 * big, .08 * big, .30 * big * open, .6 * (.5 + .5 * big) * open); u.uF.value = .35 * big; u.uHitK.value = .75 * (.35 + .65 * clamp((big - .38) / .62, 0, 1));
       // Gold edges read from the first moments of the warning; in the executioner's second phase (red court) the gold
       // edge and the pale unblockable hairline are lifted further so "gold = ordinary, crimson = severe" still holds.
       const unbT = u.uUnblock.value > .5, rs = h.owner && h.owner.boss && B.app && B.app.rig && B.app.rig.state, p2 = rs ? rs.phase2 || 0 : 0;

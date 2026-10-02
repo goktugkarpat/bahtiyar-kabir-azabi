@@ -34,10 +34,14 @@
       return buckets[k] || (buckets[k] = { room: room, key: key, cast: cast, pos: new Grow(Float32Array), nor: new Grow(Float32Array), uv: new Grow(Float32Array), col: new Grow(Float32Array), idx: new Grow(Uint32Array), n: 0 });
     }
     function smooth(a, b, x) { x = Math.min(1, Math.max(0, (x - a) / (b - a))); return x * x * (3 - 2 * x); }
-    function bake(room, key, geo, m, tint, ao, aoH, cast) {
+    function bake(room, key, geo, m, tint, ao, aoH, cast, kind) {
       var b = bucket(room, key, cast), P = geo.attributes.position, N = geo.attributes.normal, U = geo.attributes.uv, I = geo.index, e = m.elements;
       nm.getNormalMatrix(m); var n = nm.elements, base = b.n, special = key === 'lava';
       var tr = tint ? tint[0] : 1, tg = tint ? tint[1] : 1, tb = tint ? tint[2] : 1;
+      // Wear belongs to the real chamfers, not to a new decal or a brighter room.
+      // Bake it into the existing colour stream once; the runtime shader and draw list stay identical.
+      var cut = (key === 'stone' || key === 'wall' || key === 'floor') && (kind === 'block' || kind === 'tile');
+      var turned = (key === 'stone' || key === 'iron') && (kind === 'column' || kind === 'vat');
       for (var v = 0; v < P.count; v++) {
         var x = P.getX(v), y = P.getY(v), z = P.getZ(v);
         var wx = e[0] * x + e[4] * y + e[8] * z + e[12], wy = e[1] * x + e[5] * y + e[9] * z + e[13], wz = e[2] * x + e[6] * y + e[10] * z + e[14];
@@ -47,7 +51,14 @@
         b.uv.add2(U ? U.getX(v) : 0, U ? U.getY(v) : 0);
         if (special) { b.col.add3(tr, tg, tb); continue; }
         var f = (1 - ao * (1 - smooth(0, aoH, wy))) * (.9 + .2 * (.5 + .5 * Math.sin(wx * .71 + Math.sin(wz * .43) * 2.1 + wy * .8)));
-        b.col.add3(tr * f, tg * f, tb * f);
+        var edge = cut ? Math.min(1, (1 - Math.max(Math.abs(nx), Math.abs(ny), Math.abs(nz))) * 4.8) :
+          turned ? Math.min(1, Math.abs(ny) * (1 - Math.abs(ny)) * 4) : 0;
+        if (edge > 0) {
+          var broken = .64 + .36 * Math.sin(wx * 4.1 + wy * 3.7 + wz * 5.3) * Math.sin(wx * 1.9 - wz * 2.7);
+          var wear = edge * broken * (key === 'iron' ? .23 : .19);
+          // Slightly cooler rubbed metal; mineral edges retain their room's original colour.
+          b.col.add3(tr * f * (1 + wear * (key === 'iron' ? .78 : 1)), tg * f * (1 + wear * .97), tb * f * (1 + wear));
+        } else b.col.add3(tr * f, tg * f, tb * f);
       }
       if (I) for (var i = 0; i < I.count; i++) b.idx.add1(base + I.getX(i)); else for (var j = 0; j < P.count; j++) b.idx.add1(base + j);
       b.n += P.count;
@@ -57,7 +68,7 @@
       if (kind === 'box' && ['stone', 'wall'].indexOf(key) >= 0 && m.elements[5] > .2) kind = 'block';
       var g = shapes[kind]; if (!g) throw new Error('ruins-kit: shape ' + kind);
       var top = m.elements[13] + Math.abs(m.elements[5]) * .5;
-      bake(id, key, g, m, tint, ao == null ? .5 : ao, aoH || 1.6, cast == null ? (!NOCAST[key] && top > .55) : cast);
+      bake(id, key, g, m, tint, ao == null ? .5 : ao, aoH || 1.6, cast == null ? (!NOCAST[key] && top > .55) : cast, kind);
     };
     K.put = function (id, kind, key, x, y, z, w, h, d, a, rx, rz, tint, ao, aoH) {
       eo.position.set(x, y, z); eo.rotation.set(rx || 0, a || 0, rz || 0); eo.scale.set(w, h, d); eo.updateMatrix();
@@ -403,7 +414,15 @@
     // Slowly turning gears (a handful of real meshes per chapter, matrices updated by the world each frame).
     K.spinners = [];
     K.gear = function (id, shape, key, x, y, z, r, depth, orient, rate) {
-      var g = shapes[shape]; if (!g.attributes.color) { var n = g.attributes.position.count, c = new Float32Array(n * 3).fill(1); g.setAttribute('color', new T.BufferAttribute(c, 3)); }
+      var g = shapes[shape]; if (!g.attributes.color) {
+        var P = g.attributes.position, n = P.count, c = new Float32Array(n * 3);
+        for (var v = 0; v < n; v++) {
+          var radius = Math.hypot(P.getX(v), P.getY(v)), rim = smooth(.385, .49, radius), hub = 1 - smooth(.15, .29, radius);
+          var worn = .92 + rim * .20 - hub * .17;
+          c[v * 3] = worn * (1 - rim * .035); c[v * 3 + 1] = worn; c[v * 3 + 2] = worn * (1 + rim * .025);
+        }
+        g.setAttribute('color', new T.BufferAttribute(c, 3));
+      }
       var holder = new T.Group(); holder.position.set(x, y, z); if (orient) holder.rotation.set(orient[0], orient[1], orient[2]); holder.matrixAutoUpdate = true;
       var m = new T.Mesh(g, materials[key]); m.scale.set(r * 2, r * 2, depth); m.castShadow = true; m.receiveShadow = true; m.userData.rate = rate; m.rotation.z = Math.random() * 6;
       holder.add(m); groups[id].add(holder); K.spinners.push(m); return m;

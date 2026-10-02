@@ -578,8 +578,8 @@
       {every:[13,23],first:[1,5],fn:(p,t)=>noiseSwell(p,'fx',t,rr(5,9),140,450,.20)}
     ]
   }));
-  const coastalScore = new URLSearchParams(location.search).get('bolum') === '2';
-  const roomScore = i => coastalScore ? COAST_SCENES[i] : SCENES[i];
+  // app.js restores the campaign chapter after this script loads; chapter links no longer use ?bolum.
+  const roomScore = i => B.ActiveChapter === 2 ? COAST_SCENES[i] : SCENES[i];
   const DRONE_OFF = { d1: 0, d2: 0, fifth: 0, rub: 0, trit: 0, cut: 90, lvl: 0 }, DRONE_QUIET = { d1: .3, d2: .2, fifth: 0, rub: 0, trit: 0, cut: 95, lvl: .6 };
   const DRONE_BOSS = { 1: { d1: 1, d2: .4, fifth: .2, rub: .2, trit: .25, cut: 190 }, 2: { d1: 1, d2: .45, fifth: 0, rub: .35, trit: .45, cut: 240 } };
 

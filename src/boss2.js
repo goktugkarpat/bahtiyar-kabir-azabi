@@ -24,7 +24,12 @@
   var tg = B.Telegraphs;
   if (tg && tg.create && !tg.__boss2) {
     var tgCreate = tg.create;
-    tg.create = function (r, g, s, out) { Boss2.out = out; return tgCreate.apply(this, arguments); };
+    tg.create = function (r, g, s, out) {
+      Boss2.out = out;
+      var api = tgCreate.apply(this, arguments), dispose = api.dispose;
+      api.dispose = function () { dispose.apply(this, arguments); if (Boss2.out === out) Boss2.out = null; };
+      return api;
+    };
     tg.__boss2 = true;
   }
   var ef = B.Effects;
@@ -56,13 +61,13 @@
         emit(x + Math.sin(f) * t + Math.cos(f) * s, .15, z + Math.cos(f) * t - Math.sin(f) * s, i % 3 ? 4 : 1, i % 3 ? col : BONE, (Math.random() - .5) * .8, 1.6 + Math.random() * 2.4, (Math.random() - .5) * .8, .45 + Math.random() * .3, .1);
       }
     } else if (name === 'boss2Shatter') {         // a pillar bursts
-      burst('slam', { x: x, z: z, radius: 3.2, small: true });
-      if (tells) tells.wave(x, z, { radius: 4.2, life: .55, width: .15, color: [col[0] * .8, col[1] * .8, col[2] * .8], soft: 0 });
-      if (emit) for (i = 0, n = Math.round(28 * k); i < n; i++) { a = Math.random() * TAU; r = Math.random() * .7; emit(x + Math.sin(a) * r, .3 + Math.random() * 2.4, z + Math.cos(a) * r, i % 2 ? 1 : 4, i % 2 ? BONE : col, Math.sin(a) * (1.5 + Math.random() * 3), 1 + Math.random() * 3, Math.cos(a) * (1.5 + Math.random() * 3), .5 + Math.random() * .4, .1); }
+      // A consumed shelter sheds physical stone; it does not draw a false damage circle.
+      col=BONE;
+      if (emit) for (i = 0, n = Math.round(28 * k); i < n; i++) { a = Math.random() * TAU; r = Math.random() * .7; emit(x + Math.sin(a) * r, .3 + Math.random() * 2.4, z + Math.cos(a) * r, i % 2 ? 0 : 2, i % 2 ? BONE : ASH, Math.sin(a) * (1.5 + Math.random() * 3), 1 + Math.random() * 3, Math.cos(a) * (1.5 + Math.random() * 3), .5 + Math.random() * .4, .1); }
     } else if (name === 'boss2Echo') {            // a shadow column steps out of the floor
-      if (tells && !calm) tells.glowBurst(x, z, { radius: 2.4, life: .9, color: [.45, .3, 1.0], peak: .55 });
+      if (tells && !calm) tells.glowBurst(x, z, { radius: 1.1, life: .6, color: [.28, .24, .46], peak: .22 });
       if (tells) tells.wave(x, z, { radius: 3.2, life: .6, width: .14, color: [.8, .6, 1.7], soft: 0 });
-      if (emit) for (i = 0, n = Math.round(26 * k); i < n; i++) { a = Math.random() * TAU; r = Math.random() * .6; emit(x + Math.sin(a) * r, .1 + Math.random() * 2.4, z + Math.cos(a) * r, 5, i % 3 ? [.55, .42, 1.5] : [1.3, 1.15, 2.0], Math.sin(a) * .3, .5 + Math.random() * .9, Math.cos(a) * .3, 1.1 + Math.random() * .5, .22); }
+      if (emit) for (i = 0, n = Math.round(12 * k); i < n; i++) { a = Math.random() * TAU; r = Math.random() * .6; emit(x + Math.sin(a) * r, .1 + Math.random() * 2.4, z + Math.cos(a) * r, 5, i % 3 ? [.55, .42, 1.5] : [1.3, 1.15, 2.0], Math.sin(a) * .3, .5 + Math.random() * .9, Math.cos(a) * .3, 1.1 + Math.random() * .5, .22); }
     } else if (name === 'boss2Burrow') {          // dive / emerge: dust and gravel
       burst('slam', { x: x, z: z, radius: d.emerge ? 4.8 : 3.4, small: !d.emerge });
       if (tells) tells.wave(x, z, { radius: d.emerge ? 6.6 : 3.4, life: d.emerge ? .8 : .5, width: .2, color: [BONE[0], BONE[1], BONE[2]], soft: 0, crack: d.emerge ? .4 : 0, crackR: 3 });
@@ -74,9 +79,9 @@
       if (tells) tells.wave(x, z, { radius: 4.6, life: .6, width: .16, color: forge ? [1.6, .5, .12] : [.7, .5, 1.3], soft: 0 });
     } else if (name === 'boss2Nova') {            // channel charge (phase 'charge') and release
       if (d.phase === 'release') {
-        if (tells) { tells.wave(x, z, { radius: 17, life: .75, width: .3, color: [col[0] * .9, col[1] * .9, col[2] * .9], soft: .2 }); tells.glowBurst(x, z, { radius: 6, life: .8, color: [col[0] * .7, col[1] * .7, col[2] * .7], peak: .6 }); }
+        if (tells) { tells.wave(x, z, { radius: 17, life: .75, width: .18, color: [col[0] * .45, col[1] * .45, col[2] * .45], soft: .2 }); tells.glowBurst(x, z, { radius: 1.7, life: .35, color: [col[0] * .5, col[1] * .5, col[2] * .5], peak: .25 }); }
         burst('impact', { x: x, z: z });
-      } else if (emit) for (i = 0, n = Math.round(18 * k); i < n; i++) { a = Math.random() * TAU; r = 5 + Math.random() * 6; emit(x + Math.sin(a) * r, .3 + Math.random() * 1.6, z + Math.cos(a) * r, 3, col, -Math.sin(a) * r / .9, 0, -Math.cos(a) * r / .9, .85, .11); }
+      } else if (emit) for (i = 0, n = Math.round(6 * k); i < n; i++) { a = Math.random() * TAU; r = 5 + Math.random() * 6; emit(x + Math.sin(a) * r, .3 + Math.random() * 1.6, z + Math.cos(a) * r, 3, col, -Math.sin(a) * r / .9, 0, -Math.cos(a) * r / .9, .85, .11); }
     } else if (name === 'boss2Overheat') {
       if (tells) { tells.wave(x, z, { radius: 9, life: .9, width: .22, color: [2.0, .5, .1], soft: .1 }); tells.glowBurst(x, z, { radius: 5, life: 1.0, color: [1.8, .45, .1], peak: .6 }); }
       if (emit) for (i = 0, n = Math.round(28 * k); i < n; i++) { a = Math.random() * TAU; emit(x + Math.sin(a) * 1.2, .5 + Math.random() * 2, z + Math.cos(a) * 1.2, 4, i % 2 ? AMBER : [3.4, 1.8, .6], Math.sin(a) * 2, 1 + Math.random() * 2, Math.cos(a) * 2, .8, .12); }
@@ -119,14 +124,18 @@
       gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(.28, 'rgba(255,255,255,.5)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
       var t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; return t;
     }());
-    var ringGeo = new T.RingGeometry(.62, .86, 28).rotateX(-Math.PI / 2);
+    // A soft ribbon, with a smooth circumference; the maximum warning footprint is unchanged.
+    var ringGeo = new T.RingGeometry(.62, .86, 48, 2).rotateX(-Math.PI / 2);
+    var ringColor = new Float32Array(ringGeo.attributes.position.count * 4);
+    for (var ri = 0; ri < ringGeo.attributes.position.count; ri++) { var band = Math.floor(ri / 49); ringColor.set([1, 1, 1, band === 1 ? 1 : 0], ri * 4); }
+    ringGeo.setAttribute('color', new T.BufferAttribute(ringColor, 4));
     function sprite(color, scale) {
-      var m = new T.SpriteMaterial({ map: glowTex, transparent: true, depthWrite: false, depthTest: false, blending: T.AdditiveBlending, fog: false, color: color }), s = new T.Sprite(m);
+      var m = new T.SpriteMaterial({ map: glowTex, transparent: true, depthWrite: false, depthTest: true, blending: T.AdditiveBlending, fog: false, color: color }), s = new T.Sprite(m);
       s.scale.set(scale, scale, 1); s.visible = false; s.frustumCulled = false; s.renderOrder = 6; group.add(s); return s;
     }
     var pool = [];
     for (var oi = 0; oi < 6; oi++) {
-      var ring = new T.Mesh(ringGeo, new T.MeshBasicMaterial({ color: 0xffd08a, transparent: true, opacity: 0, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide }));
+      var ring = new T.Mesh(ringGeo, new T.MeshBasicMaterial({ color: 0xffd08a, vertexColors: true, transparent: true, opacity: 0, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide }));
       ring.visible = false; ring.frustumCulled = false; ring.renderOrder = 3; group.add(ring);
       pool.push({ on: false, glow: sprite(0xffffff, 1.4), core: sprite(0xffffff, .7), ring: ring, hz: { damage: 10, owner: null, enemy: '', attack: '', style: 'ember', x: 0, z: 0 }, trail: 0 });
     }
@@ -144,7 +153,7 @@
         var c = orb.kind === 'slag' ? [1, .45, .12] : [.5, .3, 1];
         orb.glow.material.color.setRGB(c[0] * .8, c[1] * .8, c[2] * .9); orb.core.material.color.setRGB(.95, .85, .9);
         orb.hz.damage = o.damage || 12; orb.hz.owner = owner; orb.hz.enemy = owner.name; orb.hz.attack = o.name || 'Küre';
-        orb.glow.visible = orb.core.visible = true; orb.ring.visible = true; orb.ring.material.color.setRGB(1, .82, .5);
+        orb.glow.visible = orb.core.visible = true; orb.ring.visible = true; orb.ring.material.color.setRGB(1, .19, .10);
         return orb;
       },
       kill: function (orb, quiet) {
@@ -165,13 +174,13 @@
         if (o.age < o.hold) {
           var u = o.age / o.hold, f = ow.face + o.off * (1 - u * .5);
           o.x = ow.x + Math.sin(f) * 1.5; o.z = ow.z + Math.cos(f) * 1.5; o.y = 1.9 + .5 * u;
-          o.glow.scale.setScalar(.5 + 1.5 * u); o.core.scale.setScalar(.2 + .6 * u);
+          o.glow.scale.setScalar(.45 + .65 * u); o.core.scale.setScalar(.16 + .3 * u);
           o.ring.material.opacity = .25 * u; o.ring.scale.setScalar(.4 + .6 * u);
         } else {
           if (!o.launched) {
             o.launched = true; o.h = Math.atan2(player.x - o.x, player.z - o.z) + o.off * .55; o.y = 1.1;
             ext.fx('boss2Orb', { x: o.x, z: o.z, y: 1.4, kind: o.kind }); ext.sound('enemyAttack', { x: o.x, z: o.z, type: ow.type });
-            o.glow.scale.setScalar(1.7); o.core.scale.setScalar(.8); o.ring.scale.setScalar(1); o.ring.material.opacity = .55;
+            o.glow.scale.setScalar(1.15); o.core.scale.setScalar(.48); o.ring.scale.setScalar(1); o.ring.material.opacity = .55;
           }
           var want = Math.atan2(player.x - o.x, player.z - o.z);
           o.h += clamp(angDiff(want, o.h), -o.turn * dt, o.turn * dt);
@@ -193,7 +202,7 @@
             Boss2.out.emit(o.x - Math.sin(o.h) * .3, o.y, o.z - Math.cos(o.h) * .3, 3, c, (Math.random() - .5) * .5, .1, (Math.random() - .5) * .5, .4, .13);
           }
         }
-        o.glow.position.set(o.x, o.y, o.z); o.core.position.set(o.x, o.y, o.z); o.ring.position.set(o.x, .07, o.z);
+        o.glow.position.set(o.x, o.y, o.z); o.core.position.set(o.x, o.y, o.z); o.ring.position.set(o.x, world.effectHeightAt ? world.effectHeightAt(o.x,o.z,1) : .07, o.z);
       }
     }
 
@@ -214,19 +223,20 @@
       shatter: function (p, why) {
         if (p.state !== 2 && p.state !== 1) return;
         p.state = 3; p.k = 1; p.timer = 12 + (why === 'nova' ? 2 : 0);
-        ext.fx('boss2Shatter', { x: p.x, z: p.z });
+        ext.fx('boss2Shatter', { x: p.x, z: p.z, shelter:why==='nova' });
       },
       // pillars within `radius` of (x,z) burst (resonance)
       shatterNear: function (x, z, radius) { for (var i = 0; i < pillars.list.length; i++) { var p = pillars.list[i]; if (Math.hypot(p.x - x, p.z - z) < radius) pillars.shatter(p, 'pulse'); } }
     };
-    if (chapter === 3 && world.materials && (world.materials.crystalV || world.materials.crystal)) {
-      var cm = world.materials.crystalV || world.materials.crystal;
+    var coverMaterial = null;
+    if (chapter === 3 && world.materials && (world.materials.stone || world.materials.rock || world.materials.crystal)) {
+      var cm = coverMaterial = world.materials.stone || world.materials.rock || world.materials.crystal;
       // one merged geometry (shaft, tip and three shards), shared by the four pillars: 4 draw calls in all
       var parts = [], pm = new T.Matrix4(), pq = new T.Quaternion(), pe = new T.Euler(), ps = new T.Vector3(), pp = new T.Vector3();
       function part(g, x, y, z, rx, rz, sx, sy, sz) { pe.set(rx, 0, rz); pq.setFromEuler(pe); pp.set(x, y, z); ps.set(sx, sy, sz); pm.compose(pp, pq, ps); var c = g.clone(); c.applyMatrix4(pm); parts.push(c); }
       var gBody = new T.CylinderGeometry(.46, .8, 1, 6, 1), gTip = new T.ConeGeometry(.46, 1, 6), gShard = new T.ConeGeometry(.2, 1, 5);
-      part(gBody, 0, 1.8, 0, 0, 0, 1, 3.6, 1); part(gTip, 0, 4.15, 0, 0, 0, 1, 1.1, 1);
-      for (var si = 0; si < 3; si++) { var a = si * 2.1; part(gShard, Math.sin(a) * .9, .6, Math.cos(a) * .9, Math.cos(a) * .35, -Math.sin(a) * .35, 1, 1.5 + si * .3, 1); }
+      part(gBody, 0, 1.08, 0, 0, 0, 1, 2.16, 1); part(gTip, 0, 2.27, 0, .09, -.08, 1, .36, 1);
+      for (var si = 0; si < 3; si++) { var a = si * 2.1; part(gShard, Math.sin(a) * .9, .6, Math.cos(a) * .9, Math.cos(a) * .35, -Math.sin(a) * .35, 1, .65 + si * .16, 1); }
       var pillarGeo = new T.BufferGeometry(), pos = [], nor = [], uvs = [], idx = [], off = 0;
       parts.forEach(function (g) {
         var P = g.attributes.position.array, N = g.attributes.normal.array, U = g.attributes.uv.array, I = g.index.array, k;
@@ -235,14 +245,20 @@
       });
       gBody.dispose(); gTip.dispose(); gShard.dispose();
       pillarGeo.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); pillarGeo.setAttribute('normal', new T.Float32BufferAttribute(nor, 3)); pillarGeo.setAttribute('uv', new T.Float32BufferAttribute(uvs, 2)); pillarGeo.setIndex(idx);
+      var wear = new Float32Array(pos.length);
+      for(var pv=0;pv<pos.length;pv+=3){var edge=.68+.16*Math.max(0,nor[pv+1])+.10*Math.min(1,pos[pv+1]/2.4);wear[pv]=edge;wear[pv+1]=edge*.96;wear[pv+2]=edge*.89;}
+      pillarGeo.setAttribute('color',new T.BufferAttribute(wear,3));
       for (var pi = 0; pi < 4; pi++) {
-        var pg = new T.Mesh(pillarGeo, cm); pg.visible = false; pg.frustumCulled = false;
+        var pg = new T.Mesh(pillarGeo, cm); pg.visible = false; pg.frustumCulled = false; pg.receiveShadow = true;
         group.add(pg); pillars.list.push({ x: 0, z: 0, r: .85, state: 0, k: 0, timer: 0, g: pg });
       }
       // safe-shadow trapezoids behind the pillars while the nova is channelled
-      var wmat = new T.MeshBasicMaterial({ color: 0x2a8fb8, transparent: true, opacity: .28, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide });
+      var wmat = new T.MeshBasicMaterial({ color: 0x4d9cba, vertexColors: true, transparent: true, opacity: .31, depthWrite: false, blending: T.NormalBlending, side: T.DoubleSide });
       for (var wi = 0; wi < 4; wi++) {
-        var wg = new T.BufferGeometry(); wg.setAttribute('position', new T.BufferAttribute(new Float32Array(12), 3)); wg.setIndex([0, 1, 2, 0, 2, 3]);
+        var wg = new T.BufferGeometry(), wc = new Float32Array(64), wi2 = [];
+        wg.setAttribute('position', new T.BufferAttribute(new Float32Array(48), 3).setUsage(T.DynamicDrawUsage));
+        for (var row = 0; row < 4; row++) for (var col = 0; col < 4; col++) { var v = row * 4 + col; wc.set([1, 1, 1, row > 0 && row < 3 && col > 0 && col < 3 ? .9 : 0], v * 4); if (row < 3 && col < 3) wi2.push(v, v + 4, v + 1, v + 1, v + 4, v + 5); }
+        wg.setAttribute('color', new T.BufferAttribute(wc, 4)); wg.setIndex(wi2);
         var wm = new T.Mesh(wg, wmat); wm.visible = false; wm.frustumCulled = false; wm.renderOrder = 2; group.add(wm); pillars.wedges.push(wm);
       }
       // the pillars are solid for everybody (hero, foes): wrap the world's collision once; the wrapper always asks the newest game's pillars
@@ -272,7 +288,7 @@
           p.x = x; p.z = z; p.state = 1; p.k = 0; p.g.position.set(x, 0, z); p.g.scale.set(1, .02, 1); p.g.visible = true;
         }
         pillars.armed = true;
-        ext.emit('toast', { text: 'Billur sütunlar yükseldi.' });
+        ext.emit('toast', { text: 'Taş siperler yükseldi. Nova geldiğinde arkalarına geç.' });
       };
     }
     function pillarsTick(dt) {
@@ -282,51 +298,65 @@
         else if (p.state === 3) { p.k = Math.max(0, p.k - dt / .25); p.g.scale.y = Math.max(.02, p.k); if (p.k <= 0) { p.state = 4; p.g.visible = false; } }
         else if (p.state === 4) { p.timer -= dt; if (p.timer <= 0 && Math.hypot(player.x - p.x, player.z - p.z) > 2.2) { p.state = 1; p.k = 0; p.g.scale.y = .02; p.g.visible = true; } }
       }
+      if (nova.on && (!nova.owner || nova.owner.dead || !nova.owner.action || nova.owner.action.moveId!=='hollowNova')) core.novaEnd();
       if (nova.on) {
         nova.t += dt;
-        if (Boss2.out && Boss2.out.emit && (nova.em -= dt) <= 0) { nova.em = reduced.matches ? .3 : .12; playFx('boss2Nova', { x: nova.x, z: nova.z, phase: 'charge', forge: false }, null, null); }
+        if (Boss2.out && Boss2.out.emit && (nova.em -= dt) <= 0) { nova.em = reduced.matches ? .4 : .22; playFx('boss2Nova', { x: nova.x, z: nova.z, phase: 'charge', forge: false }, null, null); }
       }
     }
     var nova = core.nova = { on: false, x: 0, z: 0, t: 0, em: 0 };
     // Begin a channel: show the safe shadows behind every standing pillar.
     core.novaBegin = function (owner) {
-      if (!core.novaHinted) { core.novaHinted = true; ext.emit('toast', { text: 'Sessiz Nova toplanıyor. Kristal sütunun arkasına geç.' }); }
-      nova.on = true; nova.x = owner.x; nova.z = owner.z; nova.t = 0; nova.em = 0;
+      if (!core.novaHinted) { core.novaHinted = true; ext.emit('toast', { text: 'Sessiz Nova toplanıyor. Taş sütunun arkasındaki mavi sipere geç.' }); }
+      nova.on = true; nova.owner = owner; nova.x = owner.x; nova.z = owner.z; nova.t = 0; nova.em = 0;
       var w = 0;
       for (var i = 0; i < pillars.list.length && w < pillars.wedges.length; i++) {
         var p = pillars.list[i]; if (p.state !== 2) continue;
         var dx = p.x - owner.x, dz = p.z - owner.z, D = Math.hypot(dx, dz) || 1, ux = dx / D, uz = dz / D, nx = uz, nz = -ux, L = 13, w0 = p.r + .12, w1 = (p.r + .12) * (D + L) / D;
-        var pos = pillars.wedges[w].geometry.attributes.position.array, y = .08;
-        pos[0] = p.x - nx * w0; pos[1] = y; pos[2] = p.z - nz * w0; pos[3] = p.x + nx * w0; pos[4] = y; pos[5] = p.z + nz * w0;
-        pos[6] = p.x + ux * L + nx * w1; pos[7] = y; pos[8] = p.z + uz * L + nz * w1; pos[9] = p.x + ux * L - nx * w1; pos[10] = y; pos[11] = p.z + uz * L - nz * w1;
+        var pos = pillars.wedges[w].geometry.attributes.position.array, y = world.effectHeightAt ? world.effectHeightAt(p.x,p.z,13)+.01 : .08;
+        // Keep the same trapezoid's four boundaries; a narrow inset gives its edge a soft falloff.
+        for (var row = 0; row < 4; row++) { var along = row === 0 ? 0 : row === 1 ? .025 : row === 2 ? .97 : 1, ww = w0 + (w1 - w0) * along;
+          for (var col = 0; col < 4; col++) { var side = col === 0 ? -1 : col === 1 ? -.94 : col === 2 ? .94 : 1, v = (row * 4 + col) * 3;
+            pos[v] = p.x + ux * L * along + nx * ww * side; pos[v + 1] = y; pos[v + 2] = p.z + uz * L * along + nz * ww * side;
+          }
+        }
         pillars.wedges[w].geometry.attributes.position.needsUpdate = true; pillars.wedges[w].visible = true; w++;
       }
     };
-    core.novaEnd = function () { nova.on = false; for (var i = 0; i < pillars.wedges.length; i++) pillars.wedges[i].visible = false; };
+    core.novaEnd = function () { nova.on = false; nova.owner = null; for (var i = 0; i < pillars.wedges.length; i++) pillars.wedges[i].visible = false; };
     // Resolve a nova: a standing pillar on the line of sight takes the blast (and shatters), otherwise the hero is hit.
     core.novaResolve = function (owner, damage, name) {
       core.novaEnd();
       ext.fx('boss2Nova', { x: owner.x, z: owner.z, phase: 'release', forge: forge });
       if (owner.dead || player.dead) return;
       var p = pillars.blocks(owner.x, owner.z, player.x, player.z);
-      if (p) { pillars.shatter(p, 'nova'); ext.emit('toast', { text: 'Kristal sütun darbeyi yuttu.' }); return; }
+      if (p) { pillars.shatter(p, 'nova'); ext.emit('toast', { text: 'Taş siper darbeyi yuttu.' }); return; }
       ext.hitPlayer({ damage: damage, owner: owner, enemy: owner.name, attack: name, unblockable: true, style: 'shadow', x: owner.x, z: owner.z, knockback: 0 });
     };
 
     /* ---------------- safe fans (chapter IV clock): cool translucent wedges on the floor ---------------- */
-    var FAN_N = 14, fanMat = new T.MeshBasicMaterial({ color: 0x5cc0ff, transparent: true, opacity: .2, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide });
+    var FAN_N = 32, fanMat = new T.MeshBasicMaterial({ color: 0x7dcced, vertexColors: true, transparent: true, opacity: .32, depthWrite: false, blending: T.NormalBlending, side: T.DoubleSide });
     core.fans = [];
     for (var fi = 0; fi < 2; fi++) {
-      var fg = new T.BufferGeometry(), idx = [];
-      fg.setAttribute('position', new T.BufferAttribute(new Float32Array((FAN_N + 2) * 3), 3));
-      for (var fk = 1; fk <= FAN_N; fk++) idx.push(0, fk, fk + 1);
-      fg.setIndex(idx);
+      var fg = new T.BufferGeometry(), idx = [], vc = new Float32Array((1 + (FAN_N + 1) * 2) * 4);
+      fg.setAttribute('position', new T.BufferAttribute(new Float32Array((1 + (FAN_N + 1) * 2) * 3), 3).setUsage(T.DynamicDrawUsage));
+      vc.set([1, 1, 1, .20], 0);
+      for (var fk = 0; fk <= FAN_N; fk++) { var vi = 1 + fk * 2, edge = Math.min(1, fk / 1.3, (FAN_N - fk) / 1.3); vc.set([1, 1, 1, (fk===1||fk===FAN_N-1?.98:.24)*edge], vi * 4); vc.set([1, 1, 1, 0], (vi + 1) * 4);
+        if (fk < FAN_N) idx.push(0, vi, vi + 2, vi, vi + 1, vi + 2, vi + 1, vi + 3, vi + 2);
+      }
+      fg.setAttribute('color', new T.BufferAttribute(vc, 4)); fg.setIndex(idx);
       var fm = new T.Mesh(fg, fanMat); fm.visible = false; fm.frustumCulled = false; fm.renderOrder = 2; group.add(fm); core.fans.push(fm);
     }
     core.fanSet = function (i, cx, cz, R, a0, a1) {
-      var m = core.fans[i], pos = m.geometry.attributes.position.array, y = .09;
+      var m = core.fans[i];
+      if(m.cx===cx&&m.cz===cz&&m.rad===R&&m.a0===a0&&m.a1===a1){m.visible=true;return;}
+      m.cx=cx;m.cz=cz;m.rad=R;m.a0=a0;m.a1=a1;
+      var pos = m.geometry.attributes.position.array, y = world.effectHeightAt ? world.effectHeightAt(cx,cz,R)+.02 : .09;
       pos[0] = cx; pos[1] = y; pos[2] = cz;
-      for (var k = 0; k <= FAN_N; k++) { var a = a0 + (a1 - a0) * k / FAN_N; pos[3 + k * 3] = cx + Math.sin(a) * R; pos[4 + k * 3] = y; pos[5 + k * 3] = cz + Math.cos(a) * R; }
+      for (var k = 0; k <= FAN_N; k++) { var at=k===1?.006:k===2?.016:k===FAN_N-2?.984:k===FAN_N-1?.994:k/FAN_N, a = a0 + (a1 - a0) * at, sx = Math.sin(a), sz = Math.cos(a), vi = (1 + k * 2) * 3;
+        pos[vi] = cx + sx * R * .975; pos[vi + 1] = y; pos[vi + 2] = cz + sz * R * .975;
+        pos[vi + 3] = cx + sx * R; pos[vi + 4] = y; pos[vi + 5] = cz + sz * R;
+      }
       m.geometry.attributes.position.needsUpdate = true; m.visible = true;
     };
     core.fanHide = function () { for (var i = 0; i < core.fans.length; i++) core.fans[i].visible = false; };
@@ -339,7 +369,7 @@
       var line = o.shape === 'line';
       return ext.hazardFrom(owner, { x: o.x, z: o.z, face: o.face || 0, shape: line ? 'line' : 'circle', radius: o.radius || 1.6, width: o.width || 1.6, length: o.length || 6,
         warn: o.warn || .5, duration: o.duration || 4, delay: o.delay || 0, damage: o.damage || 4, periodic: true, interval: .7, persistent: true, unblockable: false,
-        attack: o.name || 'Yanan Zemin', style: 'ember', fill: line ? 'forward' : 'radial', near: false, b2ground: true });
+        attack: o.name || 'Yanan Zemin', style: 'ember', fill: line ? 'forward' : 'radial', near: false, b2ground: true, pool: 'lava' });
     };
 
     /* ---------------- adds ---------------- */
@@ -424,10 +454,11 @@
     core.dispose = function () {
       orbs.clear(); glowTex.dispose(); ringGeo.dispose(); if (world.__boss2 && world.__boss2.p === pillars) world.__boss2.p = null;
       group.traverse(function (o) {
-        if (o.isSprite || (o.isMesh && o.material && o.material !== (world.materials && (world.materials.crystalV || world.materials.crystal)))) { if (o.material && !o.material.__shared) o.material.dispose(); }
+        if (o.isSprite || (o.isMesh && o.material && o.material !== coverMaterial)) { if (o.material && !o.material.__shared) o.material.dispose(); }
         if (o.isMesh && o.geometry && o.geometry !== ringGeo) o.geometry.dispose();
       });
       group.removeFromParent();
+      if (Boss2.current === core) Boss2.current = null;
     };
     return core;
   };

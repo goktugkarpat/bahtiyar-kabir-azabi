@@ -169,7 +169,7 @@
         if (!checkpointSnapshot || game.state === 'ready') return false;
         checkpointSnapshot = Object.assign({},checkpointSnapshot,{
           dead:enemies.filter(e=>e.dead).map(e=>e.id), kills:game.kills, elapsed:game.elapsed,
-          progression:progression.snapshot(), ongoing:true
+          progression:progression.snapshot(), quests:quests ? quests.snapshot() : null, ongoing:true
         });
         saveCheckpoint(); return true;
       }
@@ -629,13 +629,19 @@
       seal.group.add(chains);
       root.add(seal.group); seals.push(seal);
     });
-    // Boss gate (src/gate.js): sealed until GATE_RATIO of the regular foes are down; the state is derived from the dead flags (sync() after every reset).
-    const gate = BABA.Gate ? BABA.Gate.create({ root, world, chapter, enemies, player, emit, sound, fx }) : null;
+    // Story steps use the ordinary interaction input. Persist each step before its story beat is shown.
+    const quests = BABA.Quests ? BABA.Quests.create({ root, world, chapter, player, emit, sound, fx, onChange() {
+      if (gate) gate.refresh();
+      saveProfileChoices();
+    } }) : null;
+    game.quests = quests ? quests.info : null;
+    game.updateQuestVisibility = () => { if (quests) quests.update(0); };
+    const gate = BABA.Gate ? BABA.Gate.create({ root, world, chapter, enemies, player, emit, sound, fx, quests: game.quests }) : null;
     game.gate = gate ? gate.info : null;
 
     const initialProfile = progression.snapshot();
     function freshSnapshot(profile) {
-      return { chapter, index: 0, x: spawn.x, z: spawn.z, dead: [], kills: 0, elapsed: 0, progression: profile || initialProfile };
+      return { chapter, index: 0, x: spawn.x, z: spawn.z, dead: [], kills: 0, elapsed: 0, progression: profile || initialProfile, quests: { version: 1, chapter, progress: [0, 0] } };
     }
     function readSave() {
       try {
@@ -648,7 +654,7 @@
         if (!Array.isArray(saved.dead) || saved.dead.some(id => !validIds.has(id))) return null;
         const dead = Array.from(new Set(saved.dead));
         return { chapter, index: saved.index, x: saved.index ? checkpoint.x : spawn.x, z: saved.index ? checkpoint.z : spawn.z, ongoing:!!saved.ongoing, dead, kills: dead.length,
-          elapsed: clamp(Number(saved.elapsed) || 0, 0, 86400), progression: saved.progression };
+          elapsed: clamp(Number(saved.elapsed) || 0, 0, 86400), progression: saved.progression, quests: saved.quests || null };
       } catch (_) { return null; }
     }
     function saveCheckpoint() {
@@ -713,6 +719,14 @@
         enemy.model.animate(0, pose);
       });
       seals.forEach(seal => { seal.open = true; seal.fade = 1; seal.group.visible = false; });
+      if (quests) {
+        // Old saves that had already opened the gate keep their access. New saves always use the two objectives,
+        // even with every regular enemy defeated; a defeated boss must never be sealed behind a new quest gate.
+        const regular = enemies.filter(e => !e.boss && !e.reserve);
+        const completedChapter = !!snapshot.completed || enemies.some(e => e.boss && e.dead);
+        const legacyOpen = !snapshot.quests && regular.filter(e => e.dead).length >= Math.max(1, Math.min(BABA.Gate ? BABA.Gate.LEGACY_KILLS : 45, regular.length - 3));
+        quests.restore(completedChapter ? null : snapshot.quests, legacyOpen || completedChapter);
+      }
       if (gate) gate.sync();
       const heroPose = { reset: true, time: 0, move: 0, attack: 0, dead: false, face: player.face };
       hero.animate(0, heroPose);
@@ -757,7 +771,7 @@
       if (game.checkpointIndex || !atSafeCheckpoint()) return false;
       checkpointSnapshot = {
         index: 1, x: checkpoint.x, z: checkpoint.z,
-        dead: enemies.filter(e => e.dead).map(e => e.id), kills: game.kills, elapsed: game.elapsed, progression: progression.snapshot()
+        dead: enemies.filter(e => e.dead).map(e => e.id), kills: game.kills, elapsed: game.elapsed, progression: progression.snapshot(), quests: quests ? quests.snapshot() : null
       };
       game.checkpointIndex = 1;
       player.hp = player.maxHp; player.stamina = player.maxStamina; player.flasks = player.maxFlasks;
@@ -771,6 +785,7 @@
     }
     function interact() {
       if (game.state !== 'playing') return;
+      if (quests && quests.interact()) return;
       if (activateCheckpoint()) return;
       if (distance(player, checkpoint) < 6.1) emit('toast', { text: game.checkpointIndex ? (chapter === 4 ? 'Yemin mühürlü. Ocağın Kalbi ileride bekliyor.' : chapter === 3 ? 'Yemin mühürlü. Oyukların Kralı ileride bekliyor.' : world.chapter === 2 ? 'Yemin mühürlü. Çancı ileride bekliyor.' : 'Mühür açık. Cellat salonda bekliyor.') : 'Yakındaki tehlikeden uzaklaş; sonra yemin taşına dön.' });
     }
@@ -964,11 +979,13 @@
     const walkable = (x, z, r) => !world.isWalkable || world.isWalkable(x, z, r);
     // Lines that travel (spurs, the hook, rushes, charges) stop at the first wall along their path.
     function clipLine(o, face, L) {
+      if (gate) L = gate.clipLine(o.x, o.z, face, L);
       if (!world.isWalkable) return L;
       for (let s = .5; s < L; s += .25) if (!world.isWalkable(o.x + Math.sin(face) * s, o.z + Math.cos(face) * s, .15)) return Math.max(1, s + .15);
       return L;
     }
     function clearStrike(a, b) {
+      if (gate && gate.blocks(a.x, a.z, b.x, b.z, .15)) return false;
       const dz = b.z - a.z;
       if (Math.abs(dz) > 1e-6) for (const seal of seals) {
         if (seal.open) continue;
@@ -1257,10 +1274,11 @@
       const m = mech, ph = e.phase === 2 ? (e.enraged ? 3 : 2) : 1, hpf = e.hp / e.maxHp, last = e.lastMove;
       e.cdScale = (ph === 3 ? .86 : .9) * (m && m.frenzied(e) ? .82 : 1);
       // The ritual: at 40 % and again at 15 % of his health he roots himself, chains four braziers around him and channels the nova (rite).
-      if (m && e.phase === 2 && !m.riteActive() && m.count(e, 'rite') < 2 && hpf <= (m.count(e, 'rite') ? .15 : .40) && m.ready(e, 'rite', 28) && m.startRite(e, 4, 8.6, 11 * PACE())) {
+      if (m && e.phase === 2 && !m.riteActive() && m.liveOrbs() === 0 && m.count(e, 'rite') < 2 && hpf <= (m.count(e, 'rite') ? .15 : .40) && m.ready(e, 'rite', 28) && m.startRite(e, 4, 8.6, 11 * PACE())) {
         m.bump(e, 'rite'); m.mark(e, 'rite'); return beginMove(e, riteMove(e, 11));
       }
-      const fresh = (id, cd) => m && m.ready(e, id, cd), pullOk = d > 4.5 && d < 11 && fresh('pull', 15), leapOk = d > 7.5 && fresh('leap', 10), crackOk = d < 9 && fresh('fissures', 14);
+      const majorBusy = m && (m.liveOrbs() > 0 || m.riteActive());
+      const fresh = (id, cd) => m && !majorBusy && m.ready(e, id, cd), pullOk = d > 4.5 && d < 11 && fresh('pull', 15), leapOk = d > 7.5 && fresh('leap', 10), crackOk = d < 9 && fresh('fissures', 14);
       if (e.phase !== 2) return pick(e, [
         { id: 'hook', sp: 1, ok: d > 6, w: 3, move: () => ({ id: 'hook', name: 'Kanca Atışı', duration: 2.1, pose: 'hookSwing', hits: [
           hookLine(e, d, 1.25, 1.0, 'Kanca Atışı', { onHitPlayer(h) { neckStrike(e, h.face); } })] }) },
@@ -1286,7 +1304,7 @@
         { id: 'slam', sp: 1, ok: d > 2.5 && d < 8 && e.lastMove !== 'hooks', w: 2, move: () => slamMove(e, d, true) },
         { id: 'cyclone', sp: 1, ok: d < 7, w: 2, move: () => ({ id: 'cyclone', name: 'Zincir Kasırgası', duration: 3.2, pose: 'spin', cooldown: 1.9, hits: [1.2, 1.8, 2.4].map((at, i) => ({
           at, warn: i ? .6 : 1.2, shape: 'ring', inner: 2.4, radius: 6.2, arc: TAU, dmg: 11, guardPressure: 1.2, style: 'chain', fill: 'sweep', sweepDir: 1, pose: 'spin' })) }) },
-        { id: 'hooks', sp: 1, ok: e.hooksCd <= 0 && e.lastMove !== 'slam', w: 4, move: () => hooksMove(e) },
+        { id: 'hooks', sp: 1, ok: !majorBusy && e.hooksCd <= 0 && e.lastMove !== 'slam', w: 4, move: () => hooksMove(e) },
         { id: 'charge', ok: d > 6, w: 2, move: () => chargeMove(e, d, .9, true) },   // was d > 7.5: with the specials held back this is his plain blow at mid range
         { id: 'kick', ok: d < 2.4, w: last === 'sweep' ? 6 : 2, move: kickMove },   // the double sweep is followed by the kick when the hero is still close
         { id: 'pull', sp: 1, ok: !!m && pullOk, w: 3, move: () => pullMove(e) },
@@ -1304,7 +1322,7 @@
       for (const enc of encounterDefs) {
         let alive = 0, nearest = Infinity, isBoss = false;
         for (const e of enc.enemies) { if (e.dead) continue; alive++; const d = distance(e, player); if (d < nearest) nearest = d; if (e.boss) isBoss = true; }
-        if (!alive) continue;
+        if (!alive || isBoss && gate && !gate.info.open) continue;
         const arenaSeal = isBoss && seals.find(seal => seal.encounter === enc);
         const inArena = !arenaSeal || player.z < arenaSeal.z - .6;
         const nearbyRoom = !game.currentRoom || String(game.currentRoom.id) === String(enc.room) || nearest < 8;
@@ -1499,7 +1517,7 @@
     }
     // Returns { blocked, killed } so the strike can size hit-stop, sound and camera for the whole swing.
     function hurtEnemy(enemy, damage, heavy, attackFace, attack) {
-      if (enemy.dead) return null;
+      if (enemy.dead || gate && gate.blocks(player.x, player.z, enemy.x, enemy.z, .15)) return null;
       // Roll once per committed attack, shared by its targets/ticks; equipment never displays decorative crit stats.
       if (attack && attack.critical === undefined) attack.critical = Math.random() < game.criticalChance;
       const critical = !!(attack && attack.critical);
@@ -1620,6 +1638,7 @@
     }
     function playerInside(h) {
       const dx = player.x - h.x, dz = player.z - h.z, radius = .43;
+      if (h.pool === 'dark' && mech && mech.sheltered(h, player.x, player.z, radius)) return false;
       if (h.shape === 'line') {
         const forward = dx * Math.sin(h.face) + dz * Math.cos(h.face);
         const side = dx * Math.cos(h.face) - dz * Math.sin(h.face);
@@ -2408,6 +2427,7 @@
           seal.group.scale.y = Math.max(.001, 1 - seal.fade); seal.group.visible = seal.fade < 1;
         } else { seal.group.scale.y = 1; seal.group.visible = Math.abs(seal.z - player.z) < 45; }
       }
+      if (quests) quests.update(dt);
       if (gate) gate.update(dt, player);
     }
     function step(dt, input) {
@@ -2482,12 +2502,14 @@
       matrixGuards.length = 0;
       game.attackTarget = null;
       clearHazards();
+      if (mech) mech.dispose();
       if (limbs) limbs.dispose();
       if (globes) globes.dispose();
       if (groundLoot) groundLoot.dispose();
       hero.dispose(); enemies.forEach(enemy => { enemy.model.dispose(); disposeObject(enemy.bar.root); });
       disposeObject(targetRing); disposeObject(moveMark); if (boss2) boss2.dispose();
       seals.forEach(seal => disposeObject(seal.group));
+      if (quests) quests.dispose();
       if (gate) gate.dispose();
       scene.remove(root);
     }
@@ -2508,7 +2530,7 @@
             rageTime: player.rageTime, rageCd: player.rageCd, specialCd: player.specialCd, invulnerable: player.invulnerable },
           living: enemies.filter(e => !e.dead).map(e => ({ id: e.id, type: e.type, hp: e.hp, active: e.active, x: e.x, z: e.z, phase: e.phase, action: e.action && e.action.attack })),
           hazards: hazards.map(h => ({ enemy: h.enemy, attack: h.attack, shape: h.shape, x: h.x, z: h.z, warn: h.warn, age: h.age, active: h.active, unblockable: h.unblockable })),
-          gate: gate ? Object.assign({}, gate.info) : null, seals: seals.map(seal => ({ room: seal.encounter.room, open: seal.open, remaining: seal.encounter.enemies.filter(e => !e.dead).length })),
+          quests: quests ? quests.snapshot() : null, gate: gate ? Object.assign({}, gate.info) : null, seals: seals.map(seal => ({ room: seal.encounter.room, open: seal.open, remaining: seal.encounter.enemies.filter(e => !e.dead).length })),
           openingGrace,
           lastDeath: game.lastDeath, attackTarget: game.attackTarget ? game.attackTarget.id : null, sceneChildren: root.children.length, hasSave: game.hasSave
         };
@@ -2517,6 +2539,7 @@
       // QA: kills regular foes (in list order) until n of them are down; returns the gate state.
       setKills(n) { if (gate) { for (const e of enemies) { if (gate.info.kills >= n) break; if (!e.boss && !e.dead) killEnemy(e); } } return gate ? Object.assign({}, gate.info) : null; },
       gateInfo() { return gate ? Object.assign({}, gate.info) : null; },
+      questInfo() { return quests ? { state: quests.snapshot(), info: JSON.parse(JSON.stringify(quests.info)) } : null; },
       invincible(value) { debugInvincible = !!value; return debugInvincible; },
       setPlayer(values) {
         if (!values || typeof values !== 'object') return;

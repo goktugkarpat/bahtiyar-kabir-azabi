@@ -1,10 +1,12 @@
 /* KARA KIYI — pooled roots and shaped water impacts; no fight-time GPU allocations. */
 (function () {
   'use strict';
-  if (new URLSearchParams(location.search).get('bolum') !== '2') return;
   var B = window.BABA, T = window.THREE, original = B.Effects.create;
   B.Effects.create = function(scene,getGame,getSettings) {
-    var api = original(scene,getGame,getSettings), pool = new Array(96), cursor=0, textures=[];
+    var api = original(scene,getGame,getSettings);
+    // Campaign chapter is selected by app.js before FX setup; the URL need not contain a chapter.
+    if(B.ActiveChapter!==2)return api;
+    var pool = new Array(96), cursor=0, textures=[];
     var points=[new T.Vector3(0,0,0),new T.Vector3(.12,.28,0),new T.Vector3(-.06,.65,.08),new T.Vector3(.04,1.04,.04)];
     var geometry=new T.TubeGeometry(new T.CatmullRomCurve3(points),18,.085,7,false), p=geometry.attributes.position;
     for(var i=0;i<p.count;i++){var y=p.getY(i), k=Math.max(.10,1-y*.78);p.setXYZ(i,p.getX(i)*k,p.getY(i),p.getZ(i)*k);}
@@ -13,7 +15,7 @@
     var mesh=new T.InstancedMesh(geometry,material,pool.length);mesh.name='Kara Kıyı kök patlamaları';mesh.castShadow=false;mesh.receiveShadow=true;mesh.frustumCulled=false;mesh.visible=false;mesh.count=0;scene.add(mesh);
     var position=new T.Vector3(),scale=new T.Vector3(),rotation=new T.Quaternion(),matrix=new T.Matrix4(),axis=new T.Vector3(0,1,0);
     var calm=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    for(var i=0;i<pool.length;i++)pool[i]={live:false,x:0,z:0,angle:0,height:1,age:0,life:.85};
+    for(var i=0;i<pool.length;i++)pool[i]={live:false,x:0,y:.025,z:0,angle:0,height:1,age:0,life:.85};
     // Line casts remain narrow jets; the bell's tide stays an annulus with a safe centre.
     // Both have compact analytic support, rather than a broad Gaussian clipped by a square.
     var waterGeo=new T.PlaneGeometry(1,1).rotateX(-Math.PI/2),water=[],waterCursor=0;
@@ -40,13 +42,15 @@
       }`});
     for(var i=0;i<24;i++){var wm=waterBase.clone(),wo=new T.Mesh(waterGeo,wm);wo.visible=false;wo.frustumCulled=false;wo.renderOrder=2;wo.rotation.order='YXZ';wo.name='Kara Kıyı su darbesi';scene.add(wo);water.push({mesh:wo,mat:wm,age:1,live:false});}
     function waterBurst(d){
+      // The arena-wide dark tide already has its shelter/danger tell; do not wash it with a second surface.
+      if(d.radius>=24&&d.shape!=='line')return;
       var line=d.shape==='line';if(line&&!(d.length>.05))return;var w=water[waterCursor++%water.length],r=d.radius||2,L=line?d.length:2*r,W=line?d.width:2*r;
       w.live=true;w.age=0;w.mesh.visible=true;w.mesh.scale.set(W+.4,1,L+.4);w.mesh.rotation.set(0,line?d.face||0:0,0);
       var x=d.x+(line?Math.sin(d.face||0)*L*.5:0),z=d.z+(line?Math.cos(d.face||0)*L*.5:0),world=B.app&&B.app.world;
       var floor=world&&world.effectHeightAt?world.effectHeightAt(x,z,line?L*.5:r):.065,beam=line&&d.ownerType==='lantern';w.mesh.position.set(x,floor,z);if(beam){var tilt=Math.atan2(2.05-floor,L);w.mesh.rotation.x=tilt;w.mesh.scale.z=(L+.4)/Math.cos(tilt);w.mesh.position.y=(2.05+floor)*.5;}
       var u=w.mat.uniforms;u.uBeam.value=beam?1:0;u.uAge.value=0;u.uShape.value=line?0:1;u.uSpan.value.set(W+.4,L+.4);u.uWidth.value=d.width||1;u.uLength.value=L;u.uRadius.value=r;u.uInner.value=d.inner||0;u.uSeed.value=waterCursor*.73;
     }
-    function root(x,z,angle,height){var r=pool[cursor++%pool.length];r.live=true;r.x=x;r.z=z;r.angle=angle;r.height=height;r.age=0;}
+    function root(x,z,angle,height){var r=pool[cursor++%pool.length],world=B.app&&B.app.world;r.live=true;r.x=x;r.y=world&&world.effectHeightAt?world.effectHeightAt(x,z,.1):.025;r.z=z;r.angle=angle;r.height=height;r.age=0;}
     function burst(name,d){
       if(name!=='strike'||!d||d.style!=='root')return;
       var count=d.shape==='line'?Math.min(15,Math.ceil(d.length/.7)):12;
@@ -56,7 +60,7 @@
         root(x,z,i*2.4,.65+(i%3)*.18);
       }
     }
-    function update(dt){var n=0;for(var i=0;i<pool.length;i++){var r=pool[i];if(!r.live)continue;r.age+=dt;if(r.age>=r.life){r.live=false;continue;}var up=calm?1:Math.min(1,r.age/.12),down=Math.min(1,(r.life-r.age)/.3);position.set(r.x,.025,r.z);scale.set(.7,Math.max(.001,r.height*up*down),.7);rotation.setFromAxisAngle(axis,r.angle);matrix.compose(position,rotation,scale);mesh.setMatrixAt(n++,matrix);}mesh.count=n;mesh.visible=n>0;if(n)mesh.instanceMatrix.needsUpdate=true;
+    function update(dt){var n=0;for(var i=0;i<pool.length;i++){var r=pool[i];if(!r.live)continue;r.age+=dt;if(r.age>=r.life){r.live=false;continue;}var up=calm?1:Math.min(1,r.age/.12),down=Math.min(1,(r.life-r.age)/.3);position.set(r.x,r.y,r.z);scale.set(.7,Math.max(.001,r.height*up*down),.7);rotation.setFromAxisAngle(axis,r.angle);matrix.compose(position,rotation,scale);mesh.setMatrixAt(n++,matrix);}mesh.count=n;mesh.visible=n>0;if(n)mesh.instanceMatrix.needsUpdate=true;
       for(var i=0;i<water.length;i++){var w=water[i];if(!w.live)continue;w.age+=dt;w.mat.uniforms.uAge.value=w.age;if(w.age>=.62){w.live=false;w.mesh.visible=false;}}
     }
     var oldBurst=api.burst,oldUpdate=api.update,oldClear=api.clear,oldDispose=api.dispose;

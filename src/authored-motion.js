@@ -7,7 +7,7 @@
 (function () {
   'use strict';
   var B = window.BABA = window.BABA || {}, T = window.THREE, D = B.AuthoredClips;
-  var PI = Math.PI, TAU = PI * 2;
+  var PI = Math.PI, TAU = PI * 2, SPINE_WEIGHTS = [.28, .36, .36];
   function clamp(x, a, b) { return Math.max(a, Math.min(b, x)); }
   function finite(x, fallback) { return Number.isFinite(x) ? x : fallback; }
   function smooth(x) { x = clamp(x, 0, 1); return x * x * (3 - 2 * x); }
@@ -15,7 +15,7 @@
   function damp(rate, dt) { return 1 - Math.exp(-rate * dt); }
   function wrap(x) { return x - Math.floor(x); }
   function signedAngle(x) { return Math.atan2(Math.sin(x), Math.cos(x)); }
-  var decoded = Object.create(null), sourceRest = [], sourcePos = [];
+  var decoded = Object.create(null), sourceRest = [], sourcePos = [], crouchReference = null;
   if (!D) throw new Error('Authored animation data must load before authored-motion.js');
   D.rest.forEach(function (r) { sourceRest.push(new T.Quaternion().fromArray(r.q)); sourcePos.push(new T.Vector3().fromArray(r.p)); });
   function clip(name) {
@@ -65,13 +65,13 @@
     slashB: { clip: 'attackB', recover: 'attackBRecover', chamber: .20, contact: .25, follow: .317, end: .72, swing: .085, over: .5, twist: .40, bend: -.06, strikeBend: .2 },
     cleave: { clip: 'swordAttack', chamber: .30, contact: .44, follow: .50, end: .96, swing: .10, over: .3, twist: -.14, bend: -.26, strikeBend: .34, hold: .25 },
     spin: { clip: 'attackC', start: .24, chamber: .58, contact: .686, follow: .80, end: 1.2, swing: .135, over: .5, twist: -.55, bend: -.1, strikeBend: .18, hold: .2 },
-    // The hero's heavy blow: the same arc as spin, played for a .70 s / contact .35 s swing with no held coil (snapK: the wind-up
-    // uses 88% of its time, ease: a gentle deceleration into the chamber) and one continuous ease from contact to the end pose (flow).
-    heavy: { clip: 'attackC', start: .24, chamber: .58, contact: .686, follow: .80, end: 1.2, swing: .12, over: .5, twist: -.55, bend: -.1, strikeBend: .18, hold: 0, snapK: .88, ease: 1.7, flow: 1.5 },
-    // Heavy-strike tiers 2 / 3 (hero only, selected by state.skillTier): Kemik Kıran is an overhead chop - the cleaver is hauled up over the head, held there
-    // trembling, then driven straight down with the whole torso (deep strikeBend); Kabir Balyozu (pound) crouches, leaps and lands in the same chop (see poundPose).
-    strikeBrand: { clip: 'swordAttack', chamber: .30, contact: .44, follow: .50, end: .96, swing: .16, over: .12, twist: -.06, bend: -.62, strikeBend: .85, tremble: .045, hold: .42, snapK: .8, flow: 1.2 },
-    strikePound: { clip: 'swordAttack', chamber: .30, contact: .44, follow: .50, end: .96, swing: .13, over: .1, twist: 0, bend: -.4, strikeBend: 1.0, tremble: .05, hold: .5, snapK: .5, pound: true },
+    // The hero's heavy blow keeps the .70 s / .35 s damage clock. Its continuous curve carries
+    // the wind-up into the swing without a held coil, then flows through contact and recovery.
+    heavy: { clip: 'attackC', start: .24, chamber: .58, contact: .686, follow: .80, end: 1.2, swing: .12, over: .5, twist: -.55, bend: -.1, strikeBend: .18, hold: 0, snapK: .88, ease: 1.7, flow: 1.5, continuous: true },
+    // Heavy-strike tiers 2 / 3 (hero only): continuous overhead anticipation, committed swing and recovery.
+    // Kabir Balyozu also blends crouch, takeoff and landing; it never holds a frozen sword or jump frame in mid-air.
+    strikeBrand: { clip: 'swordAttack', chamber: .30, contact: .44, follow: .50, end: .96, swing: .16, over: .12, twist: -.06, bend: -.62, strikeBend: .85, tremble: 0, hold: 0, snapK: .8, flow: 1.2, continuous: true },
+    strikePound: { clip: 'swordAttack', chamber: .30, contact: .44, follow: .50, end: .96, swing: .13, over: .1, twist: 0, bend: -.4, strikeBend: 1.0, tremble: 0, hold: 0, snapK: .5, flow: 1.35, continuous: true, pound: true },
     // enemies (unarmed ones swing the same arcs with claws/hands)
     hook: { clip: 'meleeHook', chamber: .215, contact: .25, follow: .34, end: .4667, swing: .12, over: .5, twist: -.45, bend: -.12, strikeBend: .24, tremble: .05 },
     hookL: { clip: 'meleeHook', mirror: true, chamber: .215, contact: .25, follow: .34, end: .4667, swing: .12, over: .5, twist: .45, bend: -.12, strikeBend: .24, tremble: .05 },
@@ -153,7 +153,7 @@
   // Everyone runs on the same walk/jog/sprint cycle; monsters hunch into it (forward bend, radians).
   var HUNCH = { prisoner: .34, stalker: .5, carrier: .24, cultist: .06, boss: .08 };
   function create(options) {
-    var root = options.root, model = options.modelScene || root, type = options.type || 'hero', supplied = options.bones || {};
+    var root = options.root, model = options.modelScene || root, type = options.type || 'hero', style = options.style || type, supplied = options.bones || {};
     var weapon = options.weapon, all = Object.create(null), mapping = [], nativeRest = [], targetRef = [], targetPos = [], originalLocal = [];
     var armed = type === 'hero' || type === 'boss' || type === 'guard', boss = type === 'boss', hero = type === 'hero';
     var qRoot = new T.Quaternion(), invRoot = new T.Quaternion(), qParent = new T.Quaternion(), qa = new T.Quaternion(), qb = new T.Quaternion();
@@ -163,6 +163,20 @@
     var wanted = pose(), extra = pose(), output = pose(), transition = pose(), locomotion = pose(), mirrored = pose(), roarBuf = pose();
     var clock = 0, gait = 0, moveWeight = 0, speed = 0, mode = '', modeAge = 0, previousAttack = 0, comboMemory = -1, legacySerial = 0;
     var deathTime = 0, deathYaw = 0, deathKind = '', hurtTime = 2, previousHurt = 0, previousDodge = 0, previousYaw = 0, turnRate = 0, rollRecover = 9;
+    // One profile per rig instance; later chapters retain their own weight and character even
+    // when they share the same licensed skeleton. These feed the existing secondary-life layer.
+    var lifeRate = boss ? 1.5 : 2.1, lifeLean = .035, lifeSway = .07;
+    if (style === 'prisoner') { lifeRate=2.55;lifeLean=.048;lifeSway=.078; }
+    else if (style === 'guard') { lifeRate=1.65;lifeLean=.023;lifeSway=.028; }
+    else if (style === 'cultist') { lifeRate=1.32;lifeLean=.031;lifeSway=.042; }
+    else if (style === 'stalker') { lifeRate=2.8;lifeLean=.054;lifeSway=.081; }
+    else if (style === 'carrier') { lifeRate=1.32;lifeLean=.059;lifeSway=.043; }
+    else if (style === 'boss') { lifeRate=1.25;lifeLean=.043;lifeSway=.026; }
+    else if (style === 'hollowking') { lifeRate=1.05;lifeLean=.052;lifeSway=.025; }
+    else if (style === 'furnaceheart') { lifeRate=1.32;lifeLean=.046;lifeSway=.035; }
+    else if (style === 'shardseer' || style === 'chainseer') { lifeRate=1.65;lifeLean=.026;lifeSway=.048; }
+    else if (style === 'cavefang' || style === 'slagcrawler') { lifeRate=2.7;lifeLean=.050;lifeSway=.082; }
+    else if (style === 'gravemason' || style === 'forgesentinel') { lifeRate=1.45;lifeLean=.045;lifeSway=.038; }
     var initialized = false, disposed = false, wasDead = false, settled = false, lastHitAngle = 0, lookCur = 0, lookPitch = 0, lifeSeed = Math.random() * 40, shiftCur = 0, legYawCur = 0, backwardMotion = false;
     var footfall = root.userData.footfall = { serial: 0, side: 0, x: 0, z: 0, strength: 0, kind: 'step' };
     var motionInfo = root.userData.authoredMotion = { clip: '', source: 'Quaternius CC0', phase: 0, strike: '' };
@@ -288,7 +302,7 @@
     // Rigid torso layer distributed over the three spine joints: twist (about up), bend (forward +), side lean (right +).
     function spineLayer(p, twist, bend, side) {
       if (Math.abs(twist) + Math.abs(bend) + Math.abs(side || 0) < 1e-4) return;
-      var w = [.28, .36, .36];
+      var w = SPINE_WEIGHTS;
       for (var k = 0; k < 3; k++) { euler.set(bend * w[k], twist * w[k], (side || 0) * w[k], 'YXZ'); qa.setFromEuler(euler); rotateSubtree(p, 1 + k, qa); }
     }
     function yawPose(p, angle) {
@@ -331,6 +345,23 @@
       var swing = Math.min(m.swing, Tc * .62), A = Math.max(.001, Tc - swing), follow = Math.min(swing * 1.7, Math.max(.03, Tend - Tc) * .55);
       var snap = Math.min(A * (m.snapK || .72), hero ? A * (m.snapK || .72) : .3), c0 = m.start || 0, u;
       curve.hold = 0;
+      if (m.continuous) {
+        // Hero heavy skills never park at the chamber. Match clip velocity at the wind/swing
+        // junction, then carry straight through the exact contact frame into the recovery.
+        if (t < A) {
+          u=clamp(t/A,0,1);var wind=u*(1.6-.6*u);
+          curve.ct=c0+(m.chamber-c0)*wind;curve.coil=smooth(u);curve.strike=0;curve.phase='wind';
+        } else if (t < Tc) {
+          u=clamp((t-A)/swing,0,1);var slope=clamp((m.chamber-c0)*.4/A*swing/Math.max(.001,m.contact-m.chamber),.1,1.8);
+          curve.ct=m.chamber+(m.contact-m.chamber)*u*(slope+(1-slope)*u);
+          curve.coil=1-smooth(u);curve.strike=smooth(u);curve.phase='swing';
+        } else {
+          u=clamp((t-Tc)/Math.max(.001,Tend-Tc),0,1);
+          curve.ct=m.contact+(m.end-m.contact)*easeOut(u,m.flow||1.35);
+          curve.coil=-m.over*Math.sin(u*PI)*(1-u);curve.strike=1-smooth(u);curve.phase=u<.3?'follow':'recover';
+        }
+        return curve;
+      }
       if (t < snap) { u = easeOut(t / snap, m.ease); curve.ct = c0 + (m.chamber - c0) * u; curve.coil = .8 * u; curve.strike = 0; curve.phase = 'wind'; }
       else if (t < A) { u = (t - snap) / Math.max(.001, A - snap); curve.ct = m.chamber; curve.coil = .8 + .2 * u * u; curve.strike = 0; curve.hold = u; curve.phase = 'hold'; }
       else if (t < Tc) { u = (t - A) / swing; curve.ct = m.chamber + (m.contact - m.chamber) * u * u; curve.coil = 1 - u; curve.strike = u * u; curve.phase = 'swing'; }
@@ -407,21 +438,24 @@
       // Head thrown back with the roar.
       euler.set(-.55 * rel * fade + shake * 2, 0, 0, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(p, 4, qa);
     }
-    // Kabir Balyozu: crouch (legs from the crouch clip, the cleaver already overhead), the leap (legs tucked, back arched while rising, the arc comes from combat.js lifting the root),
-    // then the landing chop through the normal curve with a squat that rises over ~.4 s.
+    // Read-only source pose, shared by rigs. Cache during construction, never on the first attack.
+    if(!crouchReference){crouchReference=pose();sample('crouch',0,crouchReference,true);}
+    // Kabir Balyozu follows the combat-owned airborne arc; the blade keeps moving toward the
+    // same contact frame. Legs compress, tuck and extend continuously instead of swapping fixed poses.
     function poundPose(m, c, p, t, Tc, Tend, state) {
-      var air = clamp(finite(state.leapAir, .38), .1, .6), A0 = Math.max(.05, Tc - air);
+      var air = clamp(finite(state.leapAir, .38), .1, .6), A0 = Math.max(.05, Tc - air), inv=1/Math.max(.4,characterScale);
+      sampleMove(m,c.ct,p);
       if (t < Tc) {
-        var cu = smooth(clamp(t / A0, 0, 1)), au = clamp((t - A0) / air, 0, 1);
-        sample('swordAttack', .30, p, false);
-        if (t < A0) { sample('crouch', 0, extra, true); blendPose(p, extra, .85 * cu, 14, 22); spineLayer(p, 0, .3 * cu, 0); p.p.y -= .15 * cu / Math.max(.4, characterScale); }
-        else { sample('jump', 0, extra, false); blendPose(p, extra, 1, 14, 22); spineLayer(p, 0, .3 - .7 * smooth(Math.min(1, au * 2)) + .95 * smooth(clamp((au - .55) / .45, 0, 1)), 0); p.p.y -= .15 * (1 - smooth(Math.min(1, au * 3))) / Math.max(.4, characterScale); }
-        curve.phase = t < A0 ? 'wind' : 'hold'; return;
+        var cu=smooth(t/A0),au=clamp((t-A0)/air,0,1),rise=smooth(au/.32),land=smooth((au-.55)/.45);
+        blendPose(p,crouchReference,t<A0?.85*cu:.85*(1-rise)+.8*land,14,22);
+        if(t>=A0){sample('jump',clip('jump').duration*(.08+.65*au),extra,false);blendPose(p,extra,rise*(1-land),14,22);}
+        var bend=t<A0?.3*cu:.3-.90*Math.pow(Math.sin(au*PI),2)+.70*smooth(au);
+        spineLayer(p,0,bend,0);p.p.y-=(t<A0?.15*cu:.15*(1-rise)+.17*land)*inv;
+        curve.phase=t<A0?'wind':au<.55?'rise':'swing';return;
       }
-      sampleMove(m, c.ct, p);
-      spineLayer(p, m.twist * c.coil, m.bend * Math.max(0, c.coil) + m.strikeBend * c.strike, 0);
-      var sink = 1 - smooth(clamp((t - Tc) / .45, 0, 1));
-      sample('crouch', 0, extra, true); blendPose(p, extra, .8 * sink, 14, 22); p.p.y -= .17 * sink / Math.max(.4, characterScale);
+      spineLayer(p,m.twist*c.coil,m.bend*Math.max(0,c.coil)+m.strikeBend*c.strike,0);
+      var sink=1-smooth((t-Tc)/.45);
+      blendPose(p,crouchReference,.8*sink,14,22);p.p.y-=.17*sink*inv;
     }
     // Whirlwind (Zincir Kasırgası, hero only). The game turns the whole root (unwrapped yaw, accelerating to ~3 turns/s); this layer is everything the body does
     // inside that turn, on a nominal 1.3 s timeline (tt): a .12 s coil (crouch, torso wound back, cleaver hauled behind), the release into the spin (knees bent, torso
@@ -550,6 +584,19 @@
       sampleMove(m, c.ct, destination);
       var tremble = (m.tremble || 0) * c.hold * (boss ? .7 : 1), shake = tremble ? Math.sin(clock * 53) * tremble : 0;
       spineLayer(destination, m.twist * c.coil + shake * .7, m.bend * Math.max(0, c.coil) + m.strikeBend * c.strike + shake, 0);
+      // The blow is still sampled at the exact gameplay contact. Only AFTER contact, the neck
+      // follows the shoulder mass and the free arm catches the body's weight before settling.
+      // Analytic envelopes are independent of frame rate; scratch quaternions are already pooled.
+      if (hero && t > Tc && t < Tend && !m.still) {
+        var recovery = clamp((t - Tc) / Math.max(.04,Tend - Tc),0,1),
+          weight = Math.sin(recovery * PI) * (1 - recovery),
+          heft = m === MOVES.strikeBrand ? 1.4 : m === MOVES.heavy ? 1.0 : .52,
+          side = m.twist < 0 ? 1 : -1;
+        euler.set(-.095 * weight * heft,-.12 * weight * heft * side,.025 * weight * side,'YXZ');
+        qa.setFromEuler(euler);rotateSubtree(destination,4,qa);
+        euler.set(-.055 * weight * heft,0,.11 * weight * heft,'YXZ');
+        qa.setFromEuler(euler);rotateSubtree(destination,7,qa);
+      }
       if (m.kick) kickLayer(destination, c);
       // Moves cut from a held pose (shield bash / shove, charge crouch) get a weight shift so the wind-up reads: the body sinks and draws back in the
       // coil and drives forward through the blow (the pelvis only; the strike frame and timing are unchanged).
@@ -732,9 +779,9 @@
       }
       // Secondary life: slow breathing, a shifting stance, the head drifting and turning toward the foe (never while striking or falling).
       if (!state.dead && !dodge && !strikePhase && !roaring && !whirling && !charging && dt > 0) {
-        var still = 1 - moveWeight * .7, lt2 = clock + lifeSeed, breath = Math.sin(lt2 * (boss ? 1.5 : 2.1)), sway = Math.sin(lt2 * .55) * Math.sin(lt2 * .31 + 1);
+        var still = 1 - moveWeight * .7, lt2 = clock + lifeSeed, breath = Math.sin(lt2 * lifeRate), sway = Math.sin(lt2 * .55) * Math.sin(lt2 * .31 + 1);
         shiftCur += (sway - shiftCur) * damp(3, dt);
-        spineLayer(wanted, .05 * Math.sin(lt2 * .7) * still, .035 * breath * still, .07 * shiftCur * still);
+        spineLayer(wanted, .05 * Math.sin(lt2 * .7) * still, lifeLean * breath * still, lifeSway * shiftCur * still);
         euler.set(-.03 * breath * still, 0, 0, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(wanted, 7, qa); rotateSubtree(wanted, 11, qa);
         wanted.p.x += .03 * shiftCur * still / Math.max(.4, characterScale); wanted.p.y += .012 * breath * still / Math.max(.4, characterScale);
         var lookWant = Number.isFinite(state.lookYaw) && !stagger ? clamp(state.lookYaw, -1.1, 1.1) : 0, lookP = Number.isFinite(state.lookYaw) && !stagger ? .06 : 0;

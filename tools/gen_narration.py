@@ -55,6 +55,14 @@ FFPROBE = os.environ.get('KABIR_FFPROBE') or shutil.which('ffprobe')
 # Yeni konuşma çatışmada başlamaz; başlamış cümle, oda değişse de tamamlanır.
 # ---------------------------------------------------------------------------
 LINES = {
+    'questNames': 'İsimler sahiplerine döndü. Celladın hükmünü taşıyan zincirlerden biri artık suskun.',
+    'questVerdict': 'Kurbanın yemini celladına döndü. Kanla yazılan hüküm artık onu koruyamıyor.',
+    'questBell': 'Yas çanı bu kez ölüler için çalıyor. Derinliklerden gelen ses ilk kez titredi.',
+    'questMemory': 'Köklerin sakladığı hatıralar serbest. Bu kıyının acısı, boş bir tahtın altında başladı.',
+    'questKing': 'Kralın adı geri döndü. Taşın içine sakladığı yalan artık onu koruyamayacak.',
+    'questEcho': 'Mağara kendi sessizliğine kavuştu. Tahtın altında artık yalnız körüklerin soluğu duyuluyor.',
+    'questPrisoner': 'Kuyu zincirleri çözüldü. Ocak artık yeni bir mahkûmun nefesini çekemeyecek.',
+    'questHeart': 'Kalbin ana beslemesi kesildi. Tutsaklardan çaldığı nefes tükendi; geriye kendi ateşi kaldı.',
     'ruinsIntro': 'Kıyının ardında bir krallık gömülü. Kül harabelerinde duran taşlar bile ölülerin adını taşıyor. Yol, yıkılmış anıtın altından mağaraya iniyor... Orada hâlâ bir kral bekliyor.',
     'ruinsCheckpoint': 'Son Yemin taşı seni hatırlayacak. Canını tazele. Tahtın nöbetini aşınca geri dönecek bir yol bulamayabilirsin.',
     'ruinsBoss': 'Oyukların kralı. Tacının altında bir yüz yok; yalnızca aç bir boşluk var. Tahtında oturan şeyi sustur. Yoksa bu mağara senin sesinle konuşacak.',

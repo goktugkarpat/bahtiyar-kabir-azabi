@@ -32,13 +32,13 @@
       leather:C.bodyMaterial(C.gearMaterial('leather'),'ruins-'+type+'-leather',{cls:'leather',tint:stone?[.74,.52,.36]:type==='shardseer'?[.30,.25,.34]:[.62,.31,.16],grime:.32,blood:.12,scale:7},{roughness:.86}),
       rag:C.bodyMaterial(C.gearMaterial('rag'),'ruins-'+type+'-linen',{cls:'cloth',tear:true,sat:.3,tint:clothTint,grime:.32,blood:.2,scale:7},{roughness:.92,side:T.DoubleSide}),
       bone:C.bodyMaterial(C.gearMaterial('bone'),'ruins-'+type+'-bone',{cls:'bone',tint:type==='hollowking'?[.74,.66,.54]:[1.1,1.0,.78],grime:type==='hollowking'?.5:.34,blood:.15,scale:9},{roughness:.76}),
-      glow:new T.MeshStandardMaterial({color:0x241d3e,emissive:0x7a5cf0,emissiveIntensity:type==='hollowking'?1.25:.9,roughness:.4,metalness:.1}),
+      glow:new T.MeshStandardMaterial({color:0x302a48,emissive:0x7552b4,emissiveIntensity:type==='hollowking'?1.1:.78,roughness:.48,metalness:.15}),
       ash:C.bodyMaterial(C.gearMaterial('ash'),'ruins-'+type+'-ash',{cls:'bone',tint:[.5,.48,.46],grime:.75,scale:6},{roughness:.92})};
     GLOW.push({mat:materials.glow,base:materials.glow.emissiveIntensity,type:type});
     // Banded plate that hugs the real torso, no floating bricks: n lames, each a rolled-rim shell flaring at its lower edge.
     function lames(key,count,top,gap,height,pad,flare){
       var list=[];
-      for(var i=0;i<count;i++)(function(i){var yTop=top-i*gap;list.push(plateWear(G.shell(24,2,function(u,v){return fitted.at(u*TAU,yTop-v*height,pad+i*.004+v*flare);},.011,true,true),.38));})(i);
+      for(var i=0;i<count;i++)(function(i){var yTop=top-i*gap;list.push(plateWear(G.shell(24,2,function(u,v){var a=u*TAU,front=Math.max(0,Math.cos(a)),crest=Math.pow(front,8)*.014*Math.sin(v*Math.PI);return fitted.at(a,yTop-v*height-.014*front*front*Math.sin(v*Math.PI),pad+i*.004+v*flare+crest);},.011,true,true),.38));})(i);
       fitted.attach(key,G.merge(list));
     }
     var torsoTop=fb.max.y-.07,torsoH=fb.max.y-fb.min.y;
@@ -107,7 +107,7 @@
     if(type==='gravemason'){
       safe('gravemason',function(){
         // A carved headstone strapped to the back, rope-lashed: the mason carries the next grave.
-        var slab=G.box(.42,.5,.1,[fitted.cx,chest.y-.22,fb.min.z-.13],[-.3,0,.05]);plateWear(slab,.25);
+        var slab=C.forgedBlock(.42,.5,.1,[0,0,0],.037).rotateX(-.3).rotateZ(.05).translate(fitted.cx,chest.y-.22,fb.min.z-.13);plateWear(slab,.25);
         A.rigid('ash',G.merge([slab,G.box(.33,.06,.13,[fitted.cx+.005,chest.y-.01,fb.min.z-.205],[-.3,0,.05])]),spine);
         var ropes=[];[0,1].forEach(function(i){ropes.push(G.tube([[chest.x-.25,chest.y+.28-i*.30,fb.min.z-.07],[chest.x,chest.y+.31-i*.30,fb.min.z-.24],[chest.x+.25,chest.y+.28-i*.30,fb.min.z-.07]],.016,6,14,false));});
         ropes.push(G.tube([[chest.x-.2,chest.y+.26,chest.z+.15],[chest.x,chest.y+.02,chest.z+.2],[chest.x+.2,chest.y-.22,chest.z+.15]],.02,6,14,false));
@@ -141,8 +141,8 @@
     }
     var weapon;
     if(type==='shardseer'){weapon={parts:{wood:[G.cyl(.025,.035,1.25,10,[0,.45,0])],glow:[G.spike(.075,new T.Vector3(0,1.04,0),new T.Vector3(0,1.48,0)),G.spike(.045,new T.Vector3(.06,1.02,0),new T.Vector3(.18,1.30,.0)),G.spike(.045,new T.Vector3(-.06,1.02,0),new T.Vector3(-.18,1.26,.02)),G.spike(.035,new T.Vector3(0,1.02,.06),new T.Vector3(.02,1.22,.16))],iron:[G.ring(.058,.013,[0,1.04,0],[Math.PI/2,0,0],6,20),G.cyl(.04,.032,.10,8,[0,1.0,0])]},tip:new T.Vector3(0,1.48,0)};}
-    else if(type==='gravemason'){weapon={parts:{wood:[G.cyl(.035,.05,1.18,10,[0,.40,0])],iron:[G.box(.44,.24,.22,[0,.99,0]),G.ring(.056,.012,[0,.75,0],[Math.PI/2,0,0],6,20),G.spike(.05,V(0,1.11,0),V(0,1.25,0),4)]},tip:new T.Vector3(0,1.11,0)};}
-    else if(type!=='cavefang'){weapon={parts:{iron:[G.extrude([[-.06,0],[.06,0],[.11,.82],[0,1.05],[-.11,.82]],.045,.007),G.box(.38,.055,.07,[0,.06,0])],leather:[G.cyl(.03,.035,.25,10,[0,-.125,0])]},tip:new T.Vector3(0,1.05,0)};}
+    else if(type==='gravemason'){weapon={parts:{wood:[G.cyl(.035,.05,1.18,10,[0,.40,0])],iron:[C.forgedBlock(.44,.24,.22,[0,.99,0],.043),G.ring(.056,.012,[0,.75,0],[Math.PI/2,0,0],6,20),G.spike(.05,V(0,1.11,0),V(0,1.25,0),4)]},tip:new T.Vector3(0,1.11,0)};}
+    else if(type!=='cavefang'){weapon={parts:{iron:[C.forgedBlade(1.05,.12,false),C.forgedBlock(.38,.055,.07,[0,.06,0],.012),G.cyl(.042,.048,.043,8,[0,-.27,0])],leather:[C.forgedGrip(.033,.25,-.25)]},tip:new T.Vector3(0,1.05,0)};}
     if(weapon) weapon.materials = { glow: materials.glow, iron: materials.iron, leather: materials.leather };
     return {materials:materials,weapon:weapon};
   });}

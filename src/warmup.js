@@ -47,6 +47,7 @@
     const an = root.querySelector('#announcement');
     if (an) { an.classList.add('show'); text(an.querySelector('small'), 'KARA KIYI'); text(an.querySelector('strong'), 'Boğulmuş Çanlık'); }
     const nar = root.querySelector('#narration p'); text(nar, 'Anlatıcı konuşuyor, sesi sulara karışıyor.');
+    if (B.app && B.app.questUI) B.app.questUI.warm(root);
     const toasts = root.querySelector('#toasts'); if (toasts) toastStates(toasts);
     const warns = root.querySelector('#warnings'); if (warns) warningStates(warns);
     const buffs = root.querySelector('#timed-effects'); if (buffs) buffStates(buffs);
@@ -58,7 +59,7 @@
     // Elements the HUD code only creates on demand (hud.js: skill hint, parry callout) with their real ids so the same CSS applies.
     if (!root.querySelector('#skill-feedback')) { const f = document.createElement('div'); f.id = 'skill-feedback'; f.textContent = 'Dayanıklılık yetmiyor · kaçınma bitince'; root.appendChild(f); }
     if (!root.querySelector('#callout')) { const k = document.createElement('div'); k.id = 'callout'; k.textContent = 'Savuşturdun'; k.style.cssText = 'animation:none;opacity:1'; k.className = 'show'; root.appendChild(k); }
-    const tgt = root.querySelector('#target-hud'); if (tgt) { text(tgt.querySelector('.target-name'), 'Zincir Celladı'); text(tgt.querySelector('.target-count'), '1234 / 5678'); const f = tgt.querySelector('.target-fill'); if (f) f.style.transform = 'scaleX(.6)'; }
+    const tgt = root.querySelector('#target-hud'); if (tgt) { tgt.classList.remove('hidden'); tgt.classList.add('boss-target'); const bm=tgt.querySelector('#boss-mechanic'); if(bm){bm.className='timed';bm.dataset.kind='strike';text(bm.querySelector('strong'),'Yemin Çapaları');text(bm.querySelector('span'),'Yanan çapaları vur veya yanında bekleyerek söndür.');const p=bm.querySelector('i');if(p)p.style.transform='scaleX(.65)';} text(tgt.querySelector('.target-name'), 'Zincir Celladı'); text(tgt.querySelector('.target-count'), '1234 / 5678'); const f = tgt.querySelector('.target-fill'); if (f) f.style.transform = 'scaleX(.6)'; }
   }
   /* The clones above are still pictures. The real fight changes the same page content WHILE it animates (the attack sweep running round a slot, the
      slot "press" pop, the enemy bar filling, the title fading, toasts sliding in and out) on the live elements, and every one of those first frames
@@ -67,7 +68,7 @@
   async function rehearse() {
     const $ = id => document.getElementById(id);
     const hud = $('hud'); if (!hud || hud.classList.contains('hidden')) return 0;
-    const t0 = performance.now(), undo = [], made = [];
+    const t0 = performance.now(), undo = [], made = [], attrs = [];
     const keep = (el, text) => { if (el) undo.push([el, el.getAttribute('class'), el.getAttribute('style'), text ? el.textContent : null, el.tagName === 'IMG' ? el.getAttribute('src') : undefined]); return el; };
     const run = async (ms, fn) => { const t = performance.now(); for (let k = 0; ; k++) { const e = performance.now() - t; if (e >= ms) break; fn(e / ms, k); await frame(); } fn(1, -1); };
     const body = document.body, had = ['in-combat', 'raging', 'low-hp'].filter(c => body.classList.contains(c));
@@ -113,6 +114,15 @@
         fill.style.transform = 'scaleX(' + (1 - (i % 5) * .17).toFixed(2) + ')';
         i++; await frame(); await frame();
       }
+      const bm=$('boss-mechanic');
+      if(bm){const title=bm.querySelector('strong'),instruction=bm.querySelector('span'),progress=bm.querySelector('i');
+        keep(bm);keep(title,true);keep(instruction,true);keep(progress);attrs.push([bm,'data-kind',bm.getAttribute('data-kind')]);root.classList.add('boss-target');
+        for(const kind of ['strike','shelter','move','dodge','adds']){
+          bm.className='timed'+(kind==='shelter'?' safe':'');bm.dataset.kind=kind;
+          title.textContent=kind==='shelter'?'Sessiz Nova':'Yemin Çapaları';instruction.textContent=kind==='shelter'?'Siperdesin. Sütun darbeyi yutana kadar bekle.':'Yanan çapaları vur veya yanında bekleyerek söndür.';
+          await run(100,p=>{progress.style.transform='scaleX('+(1-p*.8)+')';});
+        }
+      }
       fill.style.transform = 'scaleX(.33)'; await wait(120); fill.style.transform = 'scaleX(.31)'; await wait(120);
       root.classList.add('hidden');
     };
@@ -130,6 +140,13 @@
         for (const kind of ['', 'rarity-rare']) { const d = document.createElement('div'); d.className = 'toast ' + kind; d.textContent = kind ? 'Nadir ganimet · Çelik pala' : 'Öfke söndü'; box.appendChild(d); made.push(d); }
         await wait(380); for (const d of made) d.classList.add('out'); await wait(300); for (const d of made) d.remove(); made.length = 0;
       }
+      const questNotice = $('quest-notice');
+      if (questNotice) {
+        keep(questNotice); for (const c of questNotice.children) keep(c, true);
+        const qs=questNotice.querySelector('small'),qt=questNotice.querySelector('strong'),qp=questNotice.querySelector('p');
+        if(qs)qs.textContent='GÖREV TAMAMLANDI';if(qt)qt.textContent='Mezarın susturduğu yemin';if(qp)qp.textContent='Mühür çözüldü. Yolun devamı açıldı.';
+        questNotice.classList.add('show');await wait(120);questNotice.classList.add('complete');await wait(120);questNotice.classList.remove('show');await wait(160);
+      }
       const fb = $('skill-feedback'), nar = $('narration'), warns = $('warnings'), buffs = $('timed-effects');
       if (fb) { keep(fb, true); fb.textContent = 'Dayanıklılık yetmiyor · kaçınma bitince'; fb.classList.remove('hidden'); }
       if (nar) { keep(nar); const p = nar.querySelector('p'); keep(p, true); p.textContent = 'Anlatıcı konuşuyor, sesi sulara karışıyor.'; nar.classList.remove('hidden'); nar.classList.add('tap'); }
@@ -137,6 +154,7 @@
       if (buffs) for (const [ic, ex] of [['rage', false], ['special', true]]) { const n = document.createElement('div'); n.className = 'timed-buff' + (ex ? ' expiring' : ''); const i = document.createElement('i'); i.className = 'skill ' + ic; const b = document.createElement('b'); b.className = 'buff-seconds'; b.textContent = '5'; n.append(i, b); buffs.appendChild(n); made.push(n); }
       safe(() => B.HUD && B.HUD.callout && B.HUD.callout('Savuşturdun'));
       await wait(500);
+      for(const [el,key,value] of attrs){if(value===null)el.removeAttribute(key);else el.setAttribute(key,value);}
       for (const el of made) el.remove(); made.length = 0;
     };
     const orbs = async () => {
@@ -163,6 +181,7 @@
         if (tx !== null) el.textContent = tx;
         if (src !== undefined) { if (src === null) el.removeAttribute('src'); else el.setAttribute('src', src); }
       }
+      for(const [el,key,value] of attrs){if(value===null)el.removeAttribute(key);else el.setAttribute(key,value);}
       for (const el of made) el.remove();
       for (const c of ['in-combat', 'raging', 'low-hp']) if (!had.includes(c)) body.classList.remove(c);
     }
@@ -173,6 +192,7 @@
   async function paintDom(live) {
     if (Q.has('nowarmdom') || !document.body) return 0;
     const t0 = performance.now();
+    if (B.SkillArt) await B.SkillArt.prepare();
     const wrap = document.createElement('div');
     wrap.setAttribute('aria-hidden', 'true'); wrap.inert = true;
     wrap.style.cssText = 'position:fixed;left:0;top:0;width:100%;height:100%;z-index:2147483000;opacity:.012;pointer-events:none;overflow:hidden;contain:layout paint';
@@ -187,6 +207,16 @@
       if (c.id === 'hud') { c.style.opacity = ''; c.style.zIndex = ''; safe(() => richState(c)); }
       wrap.appendChild(c);
     }
+    // All artwork and the exact slot state paints are submitted before play, including future tiers.
+    if (B.SkillArt) {
+      const tray=document.createElement('div');tray.style.cssText='position:absolute;inset:0;display:flex;flex-wrap:wrap;align-content:flex-start';
+      for(const id of B.SkillArt.ids)for(const state of ['', 'cooling', 'locked', 'pressed']) {
+        const slot=document.createElement('div');slot.className='action '+state;slot.style.cssText='position:relative;width:64px;height:64px;--cd:.5;--progress:.45';
+        const icon=document.createElement('i');icon.className='skill';icon.style.cssText='position:absolute;inset:0;width:100%;height:100%;background-size:100% 100%;background-image:url("'+B.SkillArt.url(id)+'")';
+        slot.appendChild(icon);tray.appendChild(slot);
+      }
+      wrap.appendChild(tray);
+    }
     const body = document.body, had = ['in-combat', 'raging', 'low-hp'].filter(c => body.classList.contains(c));
     body.classList.add('in-combat', 'raging', 'low-hp');       // the fighting look of the HUD (CSS keyed on body classes)
     body.appendChild(wrap);
@@ -196,7 +226,7 @@
   }
 
   /* ───────────── WebGL: every effect kind, then every object, through the real passes ───────────── */
-  const SKILLS = ['quake', 'cleave', 'reap', 'charge', 'temper', 'chainstorm', 'rend', 'brand', 'grasp', 'level', 'roar', 'whirl'];
+  const SKILLS = ['quake', 'cleave', 'reap', 'charge', 'temper', 'chainstorm', 'rend', 'brand', 'grasp', 'level', 'roar', 'whirl', 'havoc'];
   function effectList(x, z, face) {
     const at = { x, z, face }, list = [];
     for (const skill of SKILLS) {
@@ -210,6 +240,11 @@
     for (const tier of [2, 3]) list.push(['skillAccent', { ...at, line: 'cleave', tier, skill: tier === 2 ? 'brand' : 'temper', radius: tier === 2 ? 3.2 : 7, arc: 2.5 }]);
     list.push(['strike', { ...at, style: 'quake', shape: 'circle', radius: 3, scar: true, unblockable: true }]);
     list.push(['strike', { ...at, style: 'blade', shape: 'arc', radius: 3, arc: 1.6, scar: true }]);
+    if(B.ActiveChapter===2)list.push(
+      ['strike',{...at,style:'root',shape:'line',face,length:6,width:.95}],
+      ['strike',{...at,style:'root',shape:'ring',inner:1,radius:2.5}],
+      ['strike',{...at,style:'tide',shape:'line',face,length:6,width:.85,ownerType:'lantern'}],
+      ['strike',{...at,style:'tide',shape:'ring',inner:2,radius:4}]);
     list.push(['glowBurst', { ...at, y: .05, radius: 2.6, color: 0xff2418, duration: .6 }]);
     list.push(['warCryGather', { ...at, life: .5 }], ['warCry', { ...at, radius: 5 }]);
     list.push(['whirlStart', { ...at, radius: 3.6 }], ['whirlTick', { ...at, radius: 3.6, last: false }], ['whirlTick', { ...at, radius: 3.6, last: true }], ['whirlHit', { ...at, last: true }]);

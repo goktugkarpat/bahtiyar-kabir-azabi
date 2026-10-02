@@ -68,7 +68,7 @@
         for(var i=0;i<n;i++){
           var a=base+i*Math.PI/n,lf=api.clipLine(p,a,9),lb=api.clipLine(p,a+Math.PI,9),org={x:p.x-Math.sin(a)*lb,z:p.z-Math.cos(a)*lb},t=1.25+i*.42;
           (function(org,a,len){
-            hits.push(hit(t,t,'line',0,e.phase>=3?18:16,'castHigh',{origin:org,face:a,width:1.5,length:len,style:'root',fill:'forward',beat:i===0,unblockable:e.phase>=3,
+            hits.push(hit(t,1.25,'line',0,e.phase>=3?18:16,'castHigh',{origin:org,face:a,width:1.5,length:len,style:'root',fill:'forward',beat:i===0,unblockable:e.phase>=3,
               onActive:function(){api.fx('boss2Shards',{x:org.x,z:org.z,face:a,length:len,width:1.5});}}));
           }(org,a,lf+lb));
         }
@@ -85,7 +85,7 @@
         var T=e.phase>=3?3.9:4.6,o={x:e.x,z:e.z};core.novaBegin(e);cd(e,'hollowNova',e.phase>=3?17:21);
         return {id:'hollowNova',name:'Sessiz Nova',duration:T+1.5,pose:'roar',cooldown:1.3,hits:[
           hit(.85,.85,'ring',3,0,'roar',{origin:o,inner:0,arc:TAU,harmless:true,style:'shadow'}),
-          hit(T,T,'circle',15.5,0,'roar',{origin:o,style:'shadow',fill:'inward',unblockable:true,hit:true,attack:'Sessiz Nova',onActive:function(){core.novaResolve(e,e.phase>=3?32:28,'Sessiz Nova');}})]};
+          hit(T,T,'circle',Math.hypot(core.arena.w,core.arena.d),0,'roar',{origin:o,style:'blunt',tellGain:.55,fill:'inward',unblockable:true,hit:true,attack:'Sessiz Nova',onActive:function(){core.novaResolve(e,e.phase>=3?32:28,'Sessiz Nova');}})]};
       }
       // Burrow: the king sinks, travels under the floor and bursts up where the hero stood (circle first, then a debris ring).
       function burrow(e,mini){
@@ -171,6 +171,8 @@
             {id:'hollowCall',sp:1,ok:false,w:1,move:function(){return call(e);}},
             {id:'kingHeel',ok:d<2.4,w:2,move:function(){return cone('kingHeel','Taş Topuk',3,2.5,17,.7,'kick');}}
           ];
+          if(core&&(e.boss||e.type==='ruinwarden')&&core.orbs.count()>0){for(var li=0;li<list.length;li++)if(list[li].sp||list[li].id==='kingRush')list[li].ok=false;}
+          if(e.summoned&&core&&core.nova.on){for(var li=0;li<list.length;li++)if(list[li].sp)list[li].ok=false;}
           return api.pick(e,list);
         },
         tick:function(){

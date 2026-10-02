@@ -246,7 +246,11 @@
     el.insertBefore(cd, el.querySelector('kbd'));
     if (key === 'heavy' || key === 'special' || key === 'rage' || key === 'fourth') { const t = document.createElement('b'); t.className = 'tier-badge'; t.setAttribute('aria-hidden', 'true'); t.hidden = true; el.appendChild(t); }
     if (SLOT_COST[key]) { const c = document.createElement('em'); c.className = 'cost'; c.setAttribute('aria-hidden', 'true'); c.textContent = Math.round(SLOT_COST[key]); el.appendChild(c); }
-    return slots[key] = { el, txt: cd.firstChild, cost: el.querySelector('em.cost'), icon: el.querySelector('i.skill'), skillId: undefined, cd: -1, shown: '', prevCd: 0, lackSerial: 0 };
+    const icon = el.querySelector('i.skill');
+    if (icon && B.SkillArt && ['light', 'dodge', 'heal'].includes(key)) {
+      icon.style.backgroundImage = 'url("' + B.SkillArt.url(key) + '")'; icon.style.backgroundSize = '100% 100%'; icon.style.backgroundPosition = 'center'; icon.style.filter = 'none';
+    }
+    return slots[key] = { el, txt: cd.firstChild, cost: el.querySelector('em.cost'), icon, skillId: undefined, cd: -1, shown: '', prevCd: 0, lackSerial: 0 };
   }
   function pulse(el, cls) { el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); }
   // fraction = share of the wait still to come (0 = ready), text = seconds to write over the slot.
@@ -274,10 +278,7 @@
     feedbackEl.classList.toggle('waiting', !!queued);
   }
   const SKILL_ART = {};
-  const skillArtImages = Object.entries({"brand": "<path d=\"m24 5 14 19-14 19L10 24Zm0 9 7 10-7 10-7-10ZM5 24h7m24 0h7M24 3v9m0 24v9\"/>", "grasp": "<path d=\"m12 38-5-13 4-11 4 8 2-15 4 13 4-16 3 17 6-12 1 18 7-5-6 16-10 5ZM17 27l3 9m8-9-2 9\"/>", "rend": "<path d=\"M5 12h38M8 24h32M12 36h24m-11-31-7 16 11 7-8 15m-13-30 6 3m20 7 7-4m-24 18-6 4\"/>", "temper": "<path d=\"M24 4c2 10 12 11 10 21 9-5 7-12 7-12 8 17-2 29-17 29S-.5 30 7 13c0 9 6 12 7 12-3-11 10-13 10-21Z\"/><path d=\"M24 23c0 7-8 9-5 14 3 5 11 3 11-2 0-4-4-6-6-12Z\"/>", "charge": "<path d=\"m6 11 11 12L6 35m13-24 11 12-11 12m13-24 11 12-11 12\"/>", "quake": "<path d=\"m23 5 2 17-6 7 7 4-5 11M5 33l11-7m13 0 14 7M8 42l8-6m15 0 9 6\"/>", "reap": "<path d=\"M5 32C6 11 19 6 28 9 17 12 13 21 12 34Zm12 6c1-21 14-26 23-23-11 3-15 12-16 25Z\"/>", "havoc": "<path d=\"m5 10 10 10-10 10m12-20 10 10-10 10m12-20 10 10-10 10M4 40h40M10 44l6-4m10 4 4-4m10 4 3-4\"/>", "chainstorm": "<ellipse cx=\"24\" cy=\"25\" rx=\"19\" ry=\"15\"/><ellipse cx=\"24\" cy=\"25\" rx=\"12\" ry=\"9\"/><ellipse cx=\"24\" cy=\"25\" rx=\"5\" ry=\"4\"/><path d=\"m10 12 4 5m20-5-4 5M5 25h7m24 0h7M11 37l4-5m18 5-4-5M24 7v10m0 16v10\"/>"}).map(([id,path]) => {
-    const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><defs><radialGradient id="g"><stop stop-color="#3c2421"/><stop offset="1" stop-color="#0c0a0b"/></radialGradient></defs><rect width="64" height="64" rx="6" fill="url(#g)"/><g transform="translate(8 8)" fill="none" stroke="#dcc6a0" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">'+path+'</g></svg>';
-    const image = new Image(); image.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg); SKILL_ART[id] = image.src; return image;
-  });
+  if (B.SkillArt) for (const id of B.SkillArt.ids) SKILL_ART[id] = B.SkillArt.url(id);
   const SKILL_ICONS = { cleave: 'heavy', roar: 'rage', whirl: 'special', charge: 'dodge', quake: 'heavy', reap: 'special', brand:'rage', grasp:'dodge', rend:'heavy',temper:'rage',chainstorm:'special', havoc:'dodge' };
   const ROMAN = ['', 'I', 'II', 'III'];
   function updateSkillSlot(sl, row) {
@@ -297,7 +298,7 @@
     sl.el.classList.toggle('locked', !id);
     sl.el.dataset.skill = id || '';
     if (sl.cost) { sl.cost.textContent = id ? Math.round(row.cost) : ''; sl.cost.hidden = !id; }
-    if (sl.icon) { sl.icon.className = 'skill ' + (SKILL_ICONS[id] || 'heavy'); sl.icon.style.backgroundImage = SKILL_ART[id] ? 'url("' + SKILL_ART[id] + '")' : ''; sl.icon.style.backgroundSize = SKILL_ART[id] ? '100% 100%' : ''; sl.icon.style.backgroundPosition = SKILL_ART[id] ? 'center' : '';  sl.icon.style.opacity = id ? '' : '.18'; sl.icon.style.filter = id && row.line !== 'roar' ? 'none' : ''; }
+    if (sl.icon) { sl.icon.className = 'skill ' + (SKILL_ICONS[id] || 'heavy'); sl.icon.style.backgroundImage = SKILL_ART[id] ? 'url("' + SKILL_ART[id] + '")' : ''; sl.icon.style.backgroundSize = SKILL_ART[id] ? '100% 100%' : ''; sl.icon.style.backgroundPosition = SKILL_ART[id] ? 'center' : '';  sl.icon.style.opacity = id ? '' : '.18'; sl.icon.style.filter = id ? 'none' : '';  }
   }
   function skills(p, dt, skillRows) {
     const st = p.stamina || 0, lack = p.lack;
@@ -419,5 +420,5 @@
   function force(redraw = false) { if (!ensure()) return; for (const k in orbs) orbs[k].force(); if (redraw || !warmDrawn) { warmDrawn = true; render(); } }
   B.HUD = { frame, vitals, skills, reset, dismissTips, damageCanvas, callout, prepare: ensure, force, get webgl() { return !!(orbs.health && orbs.health.webgl); },
     // Ready once compiled; the first draw is made here too (some drivers finish the program only on its first draw).
-    get ready() { const ok = skillArtImages.every(image => image.complete) && (!orbs.health || Object.keys(orbs).every(k => orbs[k].ready)); if (ok && orbs.health && !warmDrawn) { warmDrawn = true; render(); } return ok; } };
+    get ready() { const ok = (!B.SkillArt || B.SkillArt.ready) && (!orbs.health || Object.keys(orbs).every(k => orbs[k].ready)); if (ok && orbs.health && !warmDrawn) { warmDrawn = true; render(); } return ok; } };
 })();

@@ -51,29 +51,8 @@
     }
     return '<svg class="char-icon char-gear-icon" viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="' + id + '-steel" x1="0" y1="0" x2="1" y2="1"><stop stop-color="' + tone[0] + '"/><stop offset=".38" stop-color="' + tone[1] + '"/><stop offset=".55" stop-color="' + tone[0] + '"/><stop offset="1" stop-color="' + tone[2] + '"/></linearGradient><linearGradient id="' + id + '-leather" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#765341"/><stop offset=".5" stop-color="#42392e"/><stop offset="1" stop-color="#1d211f"/></linearGradient></defs><g stroke="#0b1013" stroke-width="1.2" stroke-linejoin="round">' + art + '</g><g fill="none" stroke="#e6d7bb" stroke-opacity=".55" stroke-width=".8" stroke-linecap="round">' + etch + '</g></svg>';
   }
-  // Original engraved ability miniatures. These are vectors, so no downloads,
-  // extra WebGL scenes or image decoding are needed when opening the tree.
-  function skillArt(type) {
-    const drawings = {
-      cleave: ['<path d="M37 5 42 8 34 24 19 37 14 32Z"/><path d="m10 31 7 6-8 8-5-5Z"/><path d="m10 27 5-2 11 10-3 4Z"/><path opacity=".45" d="M5 25C4 10 22 1 37 4 21 7 12 14 9 29Z"/>', 'M37 10 19 31m-9 6 5 4M9 16l5-4m4-3 5-2'],
-      roar: ['<path d="M10 20C7 6 39 5 38 20l-3 9-5 3-2 8h-8l-2-8-5-3Z"/><path fill="#15202a" d="m12 19 9 2-3 6-6-3Zm15 2 9-2v5l-6 3Zm-6 9 3-5 3 5Z"/><path fill="#442b2a" d="M21 34h6v6h-6Z"/>', 'M13 12l7-2m7 0 6 2M21 34v4m6-4v4M4 17l-2 8m42-8 2 8'],
-      whirl: ['<path d="M25 3c13 2 21 13 17 22-2-10-8-14-16-15l-2 8-7-10Z"/><path d="M42 27c-5 12-17 18-25 12 10 0 15-5 18-12l-7-4 12-4Z"/><path d="M14 38C2 32-1 17 7 10c-3 10 0 16 6 21l6-5-1 13Z"/><path d="m23 19 6 4-3 7-8-2-1-6Z"/>', 'M27 6c8 3 12 7 13 13M36 30l-7 6M7 19l2 8'],
-      charge: ['<path d="m6 12 9 11-9 12 4 2 14-14L10 9Z"/><path d="m22 11 9 12-9 13 4 2 17-15L26 8Z"/><path opacity=".5" d="M3 21h10v4H3Z"/>', 'm9 13 9 10-9 11m17-21 10 10-10 11M4 6l9 1m-9 34 9-1'],
-      quake: ['<path d="m21 4 8 3-1 14-9 1Z"/><path d="m13 18 4-5 21 3-1 12-21 1-5-6Z"/><path opacity=".7" d="m23 29-8 8 6 1-5 7 11-9-5-2 5-5Zm-8-1-12 6 7 2-5 6 13-7-6-2 6-4Zm17 0 13 7-7 2 6 6-13-7 5-3-6-4Z"/>', 'm17 17 17 2M18 26h15m-8-17-1 7'],
-      reap: ['<path d="M8 16C16 1 34 2 44 9 28 6 18 13 13 22Z"/><path d="m25 9 4 1-9 35-5-1Z"/><path d="m20 9 13 4-2 4-12-4Z"/><path opacity=".4" d="M4 34c3-3 5-4 9-4l-3 6 3 8c-7-1-10-4-9-10Z"/>', 'M13 15c8-7 17-8 24-7m-20 27 5 1m-6 4 5 1'],
-      brand: ['<path d="m24 3 17 21-17 21L7 24Z"/><path fill="#18252d" d="m24 9 12 15-12 15-12-15Z"/><path d="m24 14 7 10-7 10-7-10Z"/><path opacity=".7" d="m2 22 8 2-8 2Zm36 2 8-2v4ZM22 2h4l-2 8Zm2 36 2 8h-4Z"/>', 'M24 18v12m-4-6h8M11 24l4-5m18 5-4 5'],
-      grasp: ['<path d="m13 35-6-11 4-7 5 8 1-18 4 2 1 15 3-20 4 1-1 20 6-17 4 3-5 18 9-9 3 4-10 14-5 8-15-1Z"/><path fill="#18242c" d="m16 32 11-3 6 6-7 6-9-1Z"/>', 'm17 16 4 1m5-3 3 1m7 2 3 1m-22 18 8 1m-5 5h7'],
-      rend: ['<path d="m14 3 2 11-7 13 1 17 5-22 7-10Z"/><path d="m28 2 2 13-7 14 1 17 5-23 7-11Z"/><path d="m41 4 2 13-7 13 1 15 5-22 5-10Z"/>', 'm14 15-3 8m17-8-3 8m15-5-3 8'],
-      temper: ['<path d="M24 2c1 10 9 11 10 19 5-2 7-6 7-6 5 9 6 19-2 26-12 9-30 3-33-9-2-6 0-13 3-17 0 8 4 10 6 11-2-10 8-14 9-24Z"/><path fill="#2b2023" d="M25 19c0 10 7 10 7 17 0 8-16 8-16 0 0-6 7-9 9-17Z"/><path d="m19 34 8-3 3 5-3 4h-8Z"/>', 'M25 8c1 5 4 8 6 11M10 26c-1 7 2 11 6 14m16-2 5-3'],
-      havoc: ['<path d="m4 8 11 12-11 13h7l11-13L11 8Z"/><path d="m24 8 11 12-11 13h7l11-13L31 8Z"/><path opacity=".55" d="M3 38h42l-5 5H8Z"/>', 'M5 41l7-3m8 3 3-3m10 3 5-3'],
-      chainstorm: ['<path d="m5 13 8-8 9 3-3 8-8 5Zm3 1 4 4 5-4 2-5-5-1Z"/><path d="m26 8 8-3 9 8-5 8-8-4Zm3 3 3 5 5 2 3-4-6-6Z"/><path d="m8 27 9 3 5 8-8 6-9-8Zm3 3-3 5 6 6 5-4-4-5Z"/><path d="m30 30 8-3 5 9-9 8-8-6Zm2 2-3 5 5 4 6-6-3-5Z"/><path d="m22 18 7 4-3 8-8-3Z"/>', 'm12 12 3-2m18 0 3 2m-24 22 3 3m18 0 3-3m-14-12 3 1']
-    };
-    if (!drawings[type]) return '';
-    const id = 'power-art-' + (++gearSerial), [shape, lines] = drawings[type];
-    const warm = ['roar','quake','grasp','temper','chainstorm','havoc'].includes(type);
-    const top = warm ? '#e0c2a0' : '#d6e1df', mid = warm ? '#b58a68' : '#9cbbb8', bottom = warm ? '#5a3935' : '#3f5664';
-    return '<svg class="char-icon power-art" viewBox="0 0 48 48" aria-hidden="true"><defs><linearGradient id="' + id + '" x1="0" y1="0" x2=".6" y2="1"><stop stop-color="' + top + '"/><stop offset=".4" stop-color="' + mid + '"/><stop offset=".56" stop-color="' + top + '"/><stop offset="1" stop-color="' + bottom + '"/></linearGradient></defs><g fill="url(#' + id + ')" stroke="#09121a" stroke-width=".7" stroke-linejoin="round">' + shape + '</g><path d="' + lines + '" fill="none" stroke="#f0dfbb" stroke-opacity=".6" stroke-width=".7" stroke-linecap="round"/></svg>';
-  }
+  // The tree and the action bar share the same decoded, prepainted miniature.
+  function skillArt(type) { return B.SkillArt ? B.SkillArt.markup(type) : ''; }
   function icon(type) {
     const painted = skillArt(type); if (painted) return painted;
     const paths = {
@@ -215,7 +194,7 @@
       const primary = '<div class="cd-primary"><span class="cd-plabel">' + lines.main.label + '</span><div class="cd-pline"><strong>' + lines.main.text + '</strong>' + lines.main.arrow + '</div></div>';
       const rest = lines.rest.length ? '<div class="cd-rest">' + lines.rest.map(r => '<div class="cd-row"><span>' + r.label + '</span><strong>' + r.text + '</strong>' + r.arrow + '</div>').join('') + '</div>' : '';
       const req = '<div class="cd-chips"><span class="cd-chip ' + (locked ? 'bad' : 'ok') + '">' + (locked ? def.level + '. seviye gerekli' : 'Seviye ' + def.level) + '</span><span class="cd-chip power" title="Eşya gücü">Güç ' + def.power + '</span>' + (def.roll ? '<span class="cd-chip ' + (def.roll > 0 ? 'ok' : 'bad') + '" title="İşçilik">İşçilik ' + (def.roll > 0 ? '+' : '−') + Math.abs(def.roll) + '</span>' : '') + '</div>';
-      const worn = equipped ? '<div class="cd-worn"><i aria-hidden="true">✦</i> KUŞANILDI</div>' : '';
+      const worn = equipped ? '<div class="cd-worn"><i aria-hidden="true">✓</i> Kuşanılmış parça</div>' : '';
       if (compact) return head + worn + primary + rest + req + '<p class="cd-hint">' + (equipped ? 'Çift tıkla: çıkar' : locked ? 'Henüz giyemezsin' : 'Çift tıkla: kuşan') + '</p>';
       const note = equipped ? '' : '<p class="cd-note">' + (old ? 'Giydiğinle karşılaştırma: <b>' + escape(old.name) + '</b>' : 'Bu yuva şu anda boş') + '</p>';
       const action = equipped ? '<button class="cd-btn calm" data-char="unequip" data-slot="' + def.slot + '">Çıkar</button>' : '<button class="cd-btn go" data-char="equip" data-uid="' + escape(entry.uid) + '" ' + (locked ? 'disabled' : '') + '>' + (locked ? def.level + '. seviye gerekli' : def.slot === 'weapon' ? 'Silahı kuşan' : 'Kuşan') + '</button>';
@@ -238,11 +217,11 @@
       const damageScale = difficulty === 'normal' || difficulty === 'easy' ? 1.18 : 1;
       const equipment = B.Progression.slots.map(slot => {
         const def = state.itemForSlot(slot), uid = state.equipment[slot], active = uid ? uid === selected : slot === selectedSlot;
-        return '<button class="char-equipment ' + (def ? 'worn rarity-' + def.rarity : 'empty') + (active ? ' selected' : '') + '" data-slot="' + slot + '" data-char="select" data-uid="' + escape(uid || '') + '" aria-pressed="' + active + '" aria-label="' + escape(LABELS[slot] + ' · ' + (def ? def.name + ' · Kuşanıldı · Çift tıkla çıkar' : 'Boş yuva')) + '">' + (def ? '<i class="eq-ribbon">KUŞANILDI</i>' : '') + '<span class="char-item-art">' + (def ? gearIcon(def) : icon(slot)) + '</span><span class="eq-label">' + LABELS[slot] + '</span><span class="eq-name">' + escape(def ? def.name : 'Boş') + '</span></button>';
+        return '<button class="char-equipment ' + (def ? 'worn rarity-' + def.rarity : 'empty') + (active ? ' selected' : '') + '" data-slot="' + slot + '" data-char="select" data-uid="' + escape(uid || '') + '" aria-pressed="' + active + '" aria-label="' + escape(LABELS[slot] + ' · ' + (def ? def.name + ' · Kuşanıldı · Çift tıkla çıkar' : 'Boş yuva')) + '">' + (def ? '<i class="eq-ribbon" aria-hidden="true" title="Kuşanıldı">✓</i>' : '') + '<span class="char-item-art">' + (def ? gearIcon(def) : icon(slot)) + '</span><span class="eq-label">' + LABELS[slot] + '</span><span class="eq-name">' + escape(def ? def.name : 'Boş') + '</span></button>';
       }).join('');
       const list = visible.map(entry => {
         const def = B.Progression.resolveItem(entry), equipped = state.equipment[def.slot] === entry.uid, upgrade = state.isUpgrade(entry), locked = def.level > state.level;
-        return '<button class="char-item rarity-' + def.rarity + (entry.uid === selected ? ' selected' : '') + (equipped ? ' equipped' : '') + (locked ? ' too-high' : '') + '" data-char="select" data-uid="' + escape(entry.uid) + '" data-item-slot="' + def.slot + '" aria-pressed="' + (entry.uid === selected) + '" aria-label="' + escape(def.name + ' · ' + RARITY[def.rarity] + ' · Seviye ' + def.level + ' · Güç ' + def.power + (equipped ? ' · Kuşanıldı' : upgrade ? ' · Kuşandığından daha iyi' : '')) + '"><span class="char-item-art">' + gearIcon(def) + '</span><span class="char-item-level" aria-hidden="true">' + (locked ? 'Sv ' + def.level : def.power) + '</span><strong class="char-item-name">' + escape(def.name) + '</strong>' + (upgrade && !locked ? '<b class="char-item-upgrade" title="Kuşandığından daha iyi" aria-label="Kuşandığından daha iyi">▲</b>' : '') + (equipped ? '<i class="char-item-ribbon">KUŞANILDI</i>' : '') + '</button>';
+        return '<button class="char-item rarity-' + def.rarity + (entry.uid === selected ? ' selected' : '') + (equipped ? ' equipped' : '') + (locked ? ' too-high' : '') + '" data-char="select" data-uid="' + escape(entry.uid) + '" data-item-slot="' + def.slot + '" aria-pressed="' + (entry.uid === selected) + '" aria-label="' + escape(def.name + ' · ' + RARITY[def.rarity] + ' · Seviye ' + def.level + ' · Güç ' + def.power + (equipped ? ' · Kuşanıldı' : upgrade ? ' · Kuşandığından daha iyi' : '')) + '"><span class="char-item-art">' + gearIcon(def) + '</span><span class="char-item-level" aria-hidden="true">' + (locked ? 'Sv ' + def.level : def.power) + '</span><strong class="char-item-name">' + escape(def.name) + '</strong>' + (upgrade && !locked ? '<b class="char-item-upgrade" title="Kuşandığından daha iyi" aria-label="Kuşandığından daha iyi">▲</b>' : '') + (equipped ? '<i class="char-item-ribbon" aria-hidden="true" title="Kuşanıldı">✓</i>' : '') + '<i class="char-quality" aria-hidden="true" title="' + RARITY[def.rarity] + '"></i></button>';
       }).join('') + '<span class="char-item-empty" aria-hidden="true"></span>'.repeat(Math.max(0, (bagFilter === 'all' ? 30 : 15) - visible.length));
       const entry = state.inventory.find(i => i.uid === selected), def = B.Progression.resolveItem(entry);
       const filters = ['all', ...B.Progression.slots].map(slot => '<button class="char-filter' + (bagFilter === slot ? ' active' : '') + '" data-char="filter" data-filter="' + slot + '" aria-pressed="' + (bagFilter === slot) + '" title="' + (slot === 'all' ? 'Bütün eşyalar' : LABELS[slot]) + '" aria-label="' + (slot === 'all' ? 'Bütün eşyalar' : LABELS[slot] + ' eşyaları') + '">' + (slot === 'all' ? 'Tümü' : icon(slot)) + '</button>').join('');
@@ -269,9 +248,10 @@
         const list = P.skillsByLine(line.id);
         const nodes = list.map((s, i) => {
           const known = state.learned.includes(s.id), prior = byId.get(s.requires), blocked = state.level < s.level || (prior && !state.learned.includes(prior.id)), slot = slotOf(s.id);
-          const stateText = slot >= 0 ? 'Yuvada · ' + escape(slot === 0 ? 'SAĞ TIK' : keys[slot]) : known ? 'Öğrenildi' : state.level < s.level ? 'Seviye ' + s.level : prior && !state.learned.includes(prior.id) ? 'Önce ' + escape(prior.name) : 'Öğrenilebilir · seviye ' + s.level;
-          const link = i ? '<i class="skt-link ' + (known ? 'lit' : !blocked ? 'ready' : '') + '" aria-hidden="true"></i>' : '';
-          return link + '<button data-char="skill" data-skill="' + s.id + '" data-line="' + line.id + '" data-tier="' + s.tier + '" class="skt-node ' + (known ? 'learned' : blocked ? 'locked' : 'available') + (slot >= 0 ? ' slotted' : '') + (s.id === chosen.id ? ' selected' : '') +
+          const canLearn = !known && !blocked && state.points > 0, superseded = known && slot < 0 && list.some(next => next.tier > s.tier && state.learned.includes(next.id));
+          const stateText = slot >= 0 ? 'Etkin aşama' : superseded ? 'Önceki aşama' : known ? 'Öğrenildi' : state.level < s.level ? 'Seviye ' + s.level : prior && !state.learned.includes(prior.id) ? 'Önce ' + escape(prior.name) : canLearn ? '1 puanla öğren' : '1 puan gerekli';
+          const link = i ? '<i class="skt-link ' + (known ? 'lit' : canLearn ? 'ready' : '') + '" aria-hidden="true"></i>' : '';
+          return link + '<button data-char="skill" data-skill="' + s.id + '" data-line="' + line.id + '" data-tier="' + s.tier + '" class="skt-node ' + (known ? 'learned' : blocked ? 'locked' : canLearn ? 'available' : 'pending') + (superseded ? ' superseded' : '') + (slot >= 0 ? ' slotted' : '') + (s.id === chosen.id ? ' selected' : '') +
             '" aria-pressed="' + (s.id === chosen.id) + '" title="' + escape(s.name) + ' · ' + ROMAN[s.tier] + '. aşama · seviye ' + s.level + '">' +
             '<i class="skt-emblem">' + icon(s.id) + '<b class="skt-tier">' + ROMAN[s.tier] + '</b></i><strong>' + escape(s.name) + '</strong><small class="skt-state">' + stateText + '</small>' +
             (slot >= 0 ? '<span class="skt-slotcap">' + capHtml(slot === 0 ? 'SAĞ TIK' : keys[slot]) + '</span>' : '') + '</button>';
@@ -288,13 +268,13 @@
       }).join('') + '</div></div>' : '';
       const loadout = state.loadout.map((id, slot) => {
         const s = byId.get(id), label = slot === 0 ? 'SAĞ TIK' : keys[slot];
-        return '<div class="skt-slot' + (s ? '' : ' empty') + '"' + (s ? ' data-line="' + s.line + '" style="--line:' + lineOf(s.line).color + '"' : '') + '><span class="skt-cap">' + capHtml(label) + '</span><button data-char="skill" data-skill="' + (id || chosen.id) + '">' + (s ? icon(s.id) + '<span><strong>' + escape(s.name) + '</strong><small>' + ROMAN[s.tier] + '. aşama · ' + escape(lineOf(s.line).short) + '</small></span>' : '<span><strong>Boş yuva</strong><small>Yetenek öğren ve ata</small></span>') + '</button>' + (s ? '<button class="skt-remove" data-char="assign" data-slot="' + slot + '" data-skill="" aria-label="' + escape(s.name) + ' yuvasını boşalt">×</button>' : '') + '</div>';
+        return '<div class="skt-slot' + (s ? '' : ' empty') + '"' + (s ? ' data-line="' + s.line + '" style="--line:' + lineOf(s.line).color + '"' : '') + '><span class="skt-cap">' + capHtml(label) + '</span><button data-char="skill" data-skill="' + (id || chosen.id) + '">' + (s ? icon(s.id) + '<span><strong>' + escape(s.name) + '</strong><small>' + ROMAN[s.tier] + '. aşama</small></span>' : '<span><strong>Boş yuva</strong><small>Yetenek öğren ve ata</small></span>') + '</button>' + (s ? '<button class="skt-remove" data-char="assign" data-slot="' + slot + '" data-skill="" aria-label="' + escape(s.name) + ' yuvasını boşalt">×</button>' : '') + '</div>';
       }).join('');
       const line = lineOf(chosen.line);
       return '<div class="skt-wrap"><div class="skt-top"><div class="skt-loadout"><h4>Yetenek yuvaları <small>' + capHtml('SAĞ TIK') + ' · ' + escape(keys[1]) + ' · ' + escape(keys[2]) + ' · ' + escape(keys[3]) + '</small></h4><div class="skt-slots">' + loadout + '</div></div>' +
         '<span class="skt-points"><b>' + state.points + '</b> yetenek puanı</span></div>' +
-        '<div class="skt-workspace"><div class="skt-tree"><div class="skt-cols">' + columns + '</div><p class="skt-note">Dört yol, her yolda aşağı doğru güçlenen üç aşama: alttaki, üsttekinin güçlenmiş hâlidir ve öğrenince yuvadaki yeteneğin yerine geçer (tuş aynı kalır). Normal vuruş (sol tık) her zaman vardır. Dört yolu aynı anda takabilirsin: her yolun kendi yuvası olur.</p></div>' +
-        '<aside class="skt-inspect talent-inspect" data-line="' + chosen.line + '" style="--line:' + line.color + '"><small class="skt-kicker"><span class="skt-tiernum" data-tier="' + chosen.tier + '">' + ROMAN[chosen.tier] + '. AŞAMA</span> ' + escape(line.name) + ' · seviye ' + chosen.level + '</small>' +
+        '<div class="skt-workspace"><div class="skt-tree"><div class="skt-cols">' + columns + '</div><p class="skt-note">Her yol aşağı doğru güçlenir. Yeni aşama aynı tuşta öncekinin yerini alır. Dört yolu birden kullanabilirsin; normal vuruş her zaman açıktır.</p></div>' +
+        '<aside class="skt-inspect" data-line="' + chosen.line + '" style="--line:' + line.color + '"><small class="skt-kicker"><span class="skt-tiernum" data-tier="' + chosen.tier + '">' + ROMAN[chosen.tier] + '. AŞAMA</span> ' + escape(line.name) + ' · seviye ' + chosen.level + '</small>' +
         '<header>' + icon(chosen.id) + '<h3>' + escape(chosen.name) + '</h3></header><p>' + escape(chosen.description) + '</p>' +
         (chosen.delta ? '<p class="skt-delta"><b>▲ ' + ROMAN[chosen.tier] + '. aşama:</b> ' + escape(chosen.delta) + '</p>' : '') +
         '<div class="skt-facts">' + facts + '</div>' +
@@ -365,9 +345,10 @@
       // Keep the clicked tile and live canvas in place. Replacing them on the first
       // click prevents browsers from delivering a genuine second click to that item.
       if (inspectScroll) clearTimeout(inspectScroll); inspectScroll = 0;
+      // Leave the tile under the pointer through a normal mouse double-click.
       if (window.innerWidth <= 1050 && event.detail > 0) inspectScroll = setTimeout(() => {
         inspectScroll = 0; if (opened && tab === 'inventory') detail?.scrollIntoView({ block: 'nearest' });
-      }, lastPointerType === 'touch' || lastPointerType === 'pen' ? 420 : 0);
+      }, lastPointerType === 'touch' || lastPointerType === 'pen' ? 420 : 600);
     }
     function change(result, message) {
       if (!result) return;
@@ -467,7 +448,7 @@
         }
         case 'equip': if (state) doEquip(button.dataset.uid, null); break;
         case 'unequip': if (state) doUnequip(button.dataset.slot, null); break;
-        case 'skill': selectedSkill = button.dataset.skill; refresh(true); if (window.innerWidth <= 900) content.querySelector('.talent-inspect').scrollIntoView({ block: 'nearest' }); break;
+        case 'skill': selectedSkill = button.dataset.skill; refresh(true); if (window.innerWidth <= 900) content.querySelector('.skt-inspect').scrollIntoView({ block: 'nearest' }); break;
         case 'assign': if (state) change(state.assign(Number(button.dataset.slot), button.dataset.skill || null)); break;
         case 'unlock': if (state) change(state.unlock(button.dataset.skill)); break;
       }

@@ -1483,6 +1483,7 @@
   // anlatıcı kısa süre hafif kısılır, kayıt ve altyazı sürer. Zamanlama ses bağlamından bağımsızdır:
   // ?sessiz ve ses kapalıyken altyazılar aynı anlarda görünür.
   const ROOM_LINES = new Set(['chains', 'ritual', 'crypt', 'rot', 'checkpoint', 'coastRoots', 'coastStreet', 'coastPier', 'coastSquare', 'coastCheckpoint', 'ruinsCheckpoint', 'forgeCheckpoint']), URGENT = new Set(['intro', 'boss', 'cellat', 'coastIntro', 'coastBoss', 'ruinsBoss', 'forgeBoss']);
+  const QUEST_CHAPTER = Object.freeze({ questNames: 1, questVerdict: 1, questBell: 2, questMemory: 2, questKing: 3, questEcho: 3, questPrisoner: 4, questHeart: 4 });
   const TELLS = new Set(['enemyWindup', 'enemyAttack', 'slam', 'explosion', 'poison', 'warning', 'hurt', 'guardBreak', 'tellCommit']);
   let caption = null, voiceNode = null, voiceGain = null, current = null, queue = [], nclock = 0, lastTellN = -9;
   const heard = new Set(), recent = {}, voiceBuffers = {};
@@ -1515,10 +1516,19 @@
     if (ROOM_LINES.has(key) || key === 'boss' || key === 'coastBoss' || key === 'ruinsBoss' || key === 'forgeBoss') queue = queue.filter(q => !ROOM_LINES.has(q.key)); // yalnızca son odanın cümlesi bekler
     // III/IV yemin noktasının henüz başlamamış yanıtı savaşta boss'u bekletmesin; current cümlesi korunur.
     if (key === 'ruinsBoss' || key === 'forgeBoss') queue = queue.filter(q => q.key !== 'heroOath');
-    queue.push({ key, line, force, age: 0, ready: false, buffer: null });
-    if (queue.length > 2) queue.shift();
-    prepare(queue[queue.length - 1]);
+    const entry = { key, line, force, age: 0, ready: false, buffer: null };
+    // Each chapter has two one-shot completions. Keep them through room changes,
+    // but never put a calm-only quest line in front of a boss/death announcement.
+    const at = QUEST_CHAPTER[key] ? queue.findIndex(q => !q.force && !URGENT.has(q.key) && !QUEST_CHAPTER[q.key]) : URGENT.has(key) ? queue.findIndex(q => QUEST_CHAPTER[q.key]) : -1;
+    if (at < 0) queue.push(entry); else queue.splice(at, 0, entry);
+    while (queue.filter(q => QUEST_CHAPTER[q.key]).length > 2) queue.splice(queue.findIndex(q => QUEST_CHAPTER[q.key]), 1);
+    while (queue.filter(q => !QUEST_CHAPTER[q.key]).length > 2) {
+      const discard = queue.findIndex(q => !QUEST_CHAPTER[q.key] && !q.force && !URGENT.has(q.key));
+      queue.splice(discard < 0 ? queue.findIndex(q => !QUEST_CHAPTER[q.key]) : discard, 1);
+    }
+    prepare(entry);
   }
+  function sayQuest(key) { if (QUEST_CHAPTER[key]) say(key); }
   async function prepare(entry) {
     if (!ctx || (silent && !offline)) { entry.ready = true; return; }
     try {
@@ -1665,7 +1675,9 @@
     if (ctx !== my) return false;
     if (progress) progress(.4);
     if (extMusic && B.Music.prepare) await B.Music.prepare(v => { if (progress) progress(.4 + .25 * v); });
-    const lines = Object.entries(B.Narration || {});
+    // Only this chapter's two added quest voices need decoded buffers. Existing
+    // narration keeps its established preparation; chapter transitions reload.
+    const lines = Object.entries(B.Narration || {}).filter(([key]) => !QUEST_CHAPTER[key] || QUEST_CHAPTER[key] === (B.ActiveChapter || 1));
     for (let i = 0; i < lines.length; i++) {
       const [key, line] = lines[i];
       if (!voiceBuffers[key] && line.audio) {
@@ -1737,7 +1749,7 @@
     for (const ev of ['click', 'keydown', 'touchend']) window.addEventListener(ev, first, true);
   }
   B.Audio = {
-    say, saySequence, prepare: prepareAudio, onCaption(fn) { caption = fn; },
+    say, saySequence, sayQuest, prepare: prepareAudio, onCaption(fn) { caption = fn; },
     resetNarration() { queue = []; heard.clear(); },   // yeni yolculukta bekleyenleri at; mevcut cümle bitsin
     unlock, set, play, update,
     sample(name, o) { if (ctx && unlocked && !suspended && (!silent || offline)) return sample(name, o || {}); return 0; },   // tek bir kayıtlı parça (test ve ileride oyun kodu için)

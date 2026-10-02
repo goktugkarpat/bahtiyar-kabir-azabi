@@ -97,11 +97,26 @@
       }
       next.focus({ preventScroll: true }); if (next.scrollIntoView) next.scrollIntoView({ block: 'nearest', inline: 'nearest' });
     }
+    function menuMove(direction, ledger) {
+      if (ledger && document.activeElement === ledger && (direction === 'up' || direction === 'down')) {
+        const next = clamp(ledger.scrollTop + (direction === 'down' ? 96 : -96), 0, Math.max(0, ledger.scrollHeight - ledger.clientHeight));
+        if (Math.abs(next - ledger.scrollTop) > 1) { ledger.scrollTop = next; return; }
+      }
+      navigate(direction);
+    }
     function menu(pad, down, edges, dt) {
+      // The ledger has a long, focusable reading region. Keep its scrolling local
+      // to this menu; other screens retain the existing spatial navigation.
+      const root = o.getView && o.getView() === 'journal' && o.getMenuRoot && o.getMenuRoot();
+      const ledger = root && root.querySelector('#journal-content');
+      if (ledger) {
+        const axis = Number.isFinite(pad.axes[3]) ? pad.axes[3] : 0;
+        if (Math.abs(axis) > .2) ledger.scrollTop += Math.sign(axis) * (Math.abs(axis) - .2) / .8 * 560 * dt;
+      }
       const left = stick(pad.axes[0], pad.axes[1]);
       const dir = down[12] || left[1] < -.55 ? 'up' : down[13] || left[1] > .55 ? 'down' : down[14] || left[0] < -.55 ? 'left' : down[15] || left[0] > .55 ? 'right' : '';
-      if (dir !== repeatDirection) { repeatDirection = dir; repeatTime = .38; if (dir) navigate(dir); }
-      else if (dir) { repeatTime -= dt; if (repeatTime <= 0) { repeatTime = .14; navigate(dir); } }
+      if (dir !== repeatDirection) { repeatDirection = dir; repeatTime = .38; if (dir) menuMove(dir, ledger); }
+      else if (dir) { repeatTime -= dt; if (repeatTime <= 0) { repeatTime = .14; menuMove(dir, ledger); } }
       if (edges[0]) {
         const elements = menuElements(); let focused = document.activeElement;
         if (!elements.includes(focused)) { focused = elements[0]; if (focused) focused.focus(); }

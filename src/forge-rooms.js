@@ -576,7 +576,8 @@
       K.put(i, 'box', 'iron', X(0), .5, Z(-9), 4.8, 1.0, 1.6, 0, 0, 0, IRONT, .4); K.put(i, 'box', 'hot', X(0), 1.02, Z(-9), 4.2, .04, 1.2, 0, 0, 0, [1.3, .46, .1], 0);
       [-1, 1].forEach(function (s) { K.put(i, 'box', 'iron', X(s * 6.8), 1.1, Z(-7), 3.2, 2.2, 2.2, 0, 0, 0, IRONT, .5); K.put(i, 'cyl', 'iron', X(s * 6.8), 2.9, Z(-7), 1.2, 1.4, 1.2, 0, 0, 0, [.7, .64, .6], .3); K.spr(i, S.smoke, X(s * 6.8), 3.6, Z(-7), 1.2, 1.2, [.4, .32, .28], .25, R(), .12, 3); });
       [-1, 1].forEach(function (s) { for (var q = 0; q < 2; q++) { var x = s * (3.2 + q * 3.6); K.put(i, 'box', 'hot', X(x), .08, Z(fz + 3), .7, .04, 4, 0, 0, 0, [2, .7, .16], 0); } });
-      K.dec(i, 5, X(0), Z(3), 13, 13, .2, [.9, .3, .06], .32, 'glow');
+      // Ancient floor engraving stays below the live attack tells in contrast.
+      K.dec(i, 5, X(0), Z(3), 13, 13, .2, [.52, .22, .08], .10, 'glow');
       decals({ cracks: 6, soot: 8, chips: 6, plates: 4, heat: 1, blood: 2 });
       brazierF(X(-5.2), Z(6), 1.2, 20); brazierF(X(5.2), Z(6), 1.2, 20);
       smoke(9, [.4, .3, .22], .26, .6, 4, 5.5); embers(60, -13, 13, -10, 10, 7, 1.4);

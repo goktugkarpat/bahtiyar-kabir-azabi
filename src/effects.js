@@ -6,6 +6,7 @@
   const B = window.BABA, T = THREE, clamp = (v, a, b) => Math.max(a, Math.min(b, v)), rnd = (a, b) => a + Math.random() * (b - a);
   B.Effects = { create(scene, getGame, getSettings) {
     const root = new T.Group(); root.name = 'combat_feedback'; scene.add(root);
+    const floorAt = (x, z, radius) => { const w = B.app && B.app.world; return w && w.effectHeightAt ? w.effectHeightAt(x, z, radius || 0) : .055; };
     // ------------------------------------------------------------ particles (one draw call)
     const count = 1600, positions = new Float32Array(count * 3), colors = new Float32Array(count * 3), sizes = new Float32Array(count), alphas = new Float32Array(count), kinds = new Float32Array(count), slots = new Array(count);
     const decals = [], waves = [], labels = [], flashes = [], trails = new Map(), ghosts = [], ghostSources = new Map();
@@ -448,8 +449,8 @@
       dark.map = hot.map = map; dark.opacity = .6; hot.opacity = 1; hot.color.setRGB(2.2 * heat, .55 * heat, .16 * heat);
       // The line art runs bottom -> top of the canvas; after rotation.x the canvas top points to local -Z, so flip it along +Z.
       a.rotation.z = b.rotation.z = line ? Math.PI : 0;
-      if (line) { group.scale.set(o.width * 2.2, 1, o.length); group.rotation.y = face; group.position.set(x + Math.sin(face) * o.length / 2, .037, z + Math.cos(face) * o.length / 2); }
-      else { const s = (o.radius || 1.5) * 1.9; group.scale.set(s, 1, s); group.rotation.y = Math.random() * 6; group.position.set(x, .037, z); }
+      if (line) { group.scale.set(o.width * 2.2, 1, o.length); group.rotation.y = face; group.position.set(x + Math.sin(face) * o.length / 2, floorAt(x, z, o.length) + .008, z + Math.cos(face) * o.length / 2); }
+      else { const s = (o.radius || 1.5) * 1.9; group.scale.set(s, 1, s); group.rotation.y = Math.random() * 6; group.position.set(x, floorAt(x, z, o.radius || 1.5) + .008, z); }
       e.time = 0; e.life = o.life || 0; root.add(group); scars.push(e);
       const limit = Math.max(6, Math.min(40, Math.round((getSettings().decals || 90) / 4)));
       while (scars.length > limit) releaseScar(scars.shift());
@@ -564,7 +565,7 @@
         tells.wave(x, z, { radius: V * .55, life: .4, width: .16, color: [2.2, .4, .1], crack: .45, crackR: R * .28, crackLife: 1.1, soft: 0, delay: .16 });
         tells.glowBurst(x, z, { radius: 2.4, life: .7, color: [2.2, .35, .1], peak: .12 });
       }
-      chRing(x, z, V * 1.05, .55, [1.0, .3, .08]); chRing(x, z, V * .6, .38, [1.2, .7, .4]); chRing(x, z, V * .95, .8, [.28, .12, .07]);   // last: the slow dust ring
+      chRing(x, z, V * 1.05, .55, [1.15, .13, .08]); chRing(x, z, V * .6, .38, [1.25, .63, .38]); chRing(x, z, V * .95, .8, [.28, .12, .07]);   // last: the slow dust ring
       scar(x, z, 0, { shape: 'circle', radius: 1.6, life: 2, heat: .5 });
       flash(x, 1.2, z, 2.0, new T.Color('#e07040'), .18, 0, softMap);
       const ringDust = scaleCount(28); for (let i = 0; i < ringDust; i++) { const a = i / ringDust * Math.PI * 2; particle(x + Math.sin(a) * .7, .1, z + Math.cos(a) * .7, 2, DUST, 2.0, a, .4); }
@@ -661,7 +662,7 @@
     // motion-blur disc at chest height: two comet tails (one per chain) that lengthen with the turning speed
     const chDiscMat = new T.ShaderMaterial({ transparent: true, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide, fog: false, uniforms: { uHead: { value: 0 }, uP: { value: 0 }, uRate: { value: 0 }, uR: { value: 4 }, uT: { value: 0 }, uTail: { value: 1 }, uC1: { value: new T.Vector3(2.2, .55, .14) }, uC2: { value: new T.Vector3(1.9, 1.1, .55) } },
       vertexShader: 'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
-      fragmentShader: 'varying vec2 vUv;uniform float uHead,uP,uRate,uR,uT,uTail;uniform vec3 uC1,uC2;void main(){vec2 q=(vUv-.5)*2.;float r=length(q)*uR;float a=atan(q.x,q.y);float rad=smoothstep(1.3,2.1,r)*(1.-smoothstep(3.0,3.9,r));float d=mod(uHead-a,3.14159265);float tail=exp(-d*(6.5-2.6*uRate)*uTail);float fine=.8+.2*sin(d*46.+r*5.-uT*30.);float k=rad*tail*fine*uP*smoothstep(0.,.07,d);if(k<.004)discard;vec3 col=mix(uC1,uC2,tail*tail*tail);gl_FragColor=vec4(col*k*.24,1.);}' });
+      fragmentShader: 'varying vec2 vUv;uniform float uHead,uP,uRate,uR,uT,uTail;uniform vec3 uC1,uC2;void main(){vec2 q=(vUv-.5)*2.;float r=length(q)*uR;float a=atan(q.x,q.y);float rad=smoothstep(1.3,2.1,r)*(1.-smoothstep(3.0,3.9,r));float d=mod(uHead-a,3.14159265);float tail=exp(-d*(6.5-2.6*uRate)*uTail);float fine=.88+.12*sin(d*31.+r*6.-uT*22.);float edge=exp(-pow((r-3.25+d*.13)/.10,2.));float k=(rad*.62+edge*.48)*tail*fine*uP*smoothstep(0.,.07,d);if(k<.004)discard;vec3 col=mix(uC1,uC2,max(tail*tail*tail,edge*.65));gl_FragColor=vec4(col*k*.24,1.);}' });
     const chDisc = new T.Mesh(new T.RingGeometry(1.2, 4, 64, 1).rotateX(-Math.PI / 2), chDiscMat); chDisc.frustumCulled = false; chDisc.renderOrder = 7; chDisc.visible = false; root.add(chDisc);
     // floor swirl: spiral arms of light that turn with the spin, plus a hot rim at the reach of the blow
     const chFloorMat = new T.ShaderMaterial({ transparent: true, depthWrite: false, blending: T.AdditiveBlending, fog: false, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3, uniforms: { uP: { value: 0 }, uT: { value: 0 }, uRim: { value: 3.6 }, uR: { value: 4.5 }, uHead: { value: 0 }, uCres: { value: 0 }, uCol: { value: new T.Vector3(1, .3, .08) } },
@@ -672,11 +673,11 @@
     const chRings = [0, 1, 2, 3].map(() => {
       const mat = new T.ShaderMaterial({ transparent: true, depthWrite: false, blending: T.AdditiveBlending, fog: false, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4, uniforms: { uK: { value: 1 }, uHalf: { value: 3 }, uMax: { value: 3 }, uCol: { value: new T.Vector3(1, .3, .09) } },
         vertexShader: 'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
-        fragmentShader: 'varying vec2 vUv;uniform float uK,uHalf,uMax;uniform vec3 uCol;void main(){float rw=length(vUv-.5)*2.*uHalf;float e=(1.-pow(1.-uK,2.6))*uMax;float w=.16+.3*e/uMax;float x=(rw-e)/w;float ring=exp(-x*x);float disc=(1.-smoothstep(0.,max(.05,e),rw))*.05*(1.-uK)*(1.-uK);float edge=1.-smoothstep(.9*uMax,uMax,rw);float a=(ring*(1.-uK)+disc)*edge;if(a<.004)discard;gl_FragColor=vec4(uCol*a,1.);}' });
+        fragmentShader: 'varying vec2 vUv;uniform float uK,uHalf,uMax;uniform vec3 uCol;void main(){float rw=length(vUv-.5)*2.*uHalf;float e=(1.-pow(1.-uK,2.6))*uMax;float w=.10+.18*e/uMax;float x=(rw-e)/w;float ring=exp(-x*x);float wake=clamp(1.-(e-rw)/(w*3.5),0.,1.);wake=wake*wake*step(rw,e)*.18;float edge=1.-smoothstep(.93*uMax,uMax,rw);float a=(ring+wake)*(1.-uK)*edge;if(a<.004)discard;gl_FragColor=vec4(uCol*a,1.);}' });
       const m = new T.Mesh(new T.PlaneGeometry(1, 1).rotateX(-Math.PI / 2), mat); m.frustumCulled = false; m.renderOrder = 2; m.visible = false; root.add(m); return { m, mat, t: 9, life: .5, r: 1 };
     });
     // The ring quad only grows as far as the ring has travelled (plus its width), so young rings cost almost no fill.
-    function chRing(x, z, r, life, col) { const o = chRings.find(q => q.t >= q.life) || chRings[0]; o.t = 0; o.life = life; o.r = r; o.m.position.set(x, .06, z); o.mat.uniforms.uCol.value.set(col[0], col[1], col[2]); o.mat.uniforms.uMax.value = r; o.m.visible = true; ringSize(o, 0); }
+    function chRing(x, z, r, life, col) { const o = chRings.find(q => q.t >= q.life) || chRings[0]; o.t = 0; o.life = life; o.r = r; o.m.position.set(x, floorAt(x, z, r) + .02, z); o.mat.uniforms.uCol.value.set(col[0], col[1], col[2]); o.mat.uniforms.uMax.value = r; o.m.visible = true; ringSize(o, 0); }
     function ringSize(o, k) { const e = (1 - Math.pow(1 - k, 2.6)) * o.r, half = Math.min(o.r, e + 1.3 + .3 * e / o.r * 3); o.m.scale.set(half * 2, 1, half * 2); o.mat.uniforms.uHalf.value = half; }
     function advRing(r, dt) { r.t += dt; const k = clamp(r.t / r.life, 0, 1); r.mat.uniforms.uK.value = k; ringSize(r, k); if (r.t >= r.life) r.m.visible = false; }
     // velocity-stretched spark streaks: one camera-facing quad per spark, hot head, tapering tail (one draw call)
@@ -687,8 +688,11 @@
       vertexShader: 'attribute vec4 aCol;varying vec2 vUv;varying vec4 c;void main(){vUv=uv;c=aCol;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
       fragmentShader: 'varying vec2 vUv;varying vec4 c;void main(){float ac=max(0.,1.-abs(vUv.y*2.-1.));float across=ac*sqrt(ac);float ux=clamp(vUv.x,0.,1.);float along=ux*ux*sqrt(ux);float tip=1.-smoothstep(.9,1.,ux)*.5;float a=across*along*tip*c.a;if(a<.004)discard;gl_FragColor=vec4(c.rgb*a*(.7+along),1.);}' }));
     skMesh.frustumCulled = false; skMesh.renderOrder = 8; skMesh.visible = false; root.add(skMesh);
+    const skPool = Array.from({ length: SK }, () => ({ x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, t: 0, life: 0, w: 0, col: null }));
     let skCursor = 0;
-    function streak(x, y, z, vx, vy, vz, life, w, col) { sk[skCursor++ % SK] = { x, y, z, vx, vy, vz, t: 0, life, w, col }; }
+    function streak(x, y, z, vx, vy, vz, life, w, col) {
+      const i = skCursor++ % SK, s = skPool[i]; s.x = x; s.y = y; s.z = z; s.vx = vx; s.vy = vy; s.vz = vz; s.t = 0; s.life = life; s.w = w; s.col = col; sk[i] = s;
+    }
     const cv1 = new T.Vector3(), cv2 = new T.Vector3(), cv3 = new T.Vector3(), camDir = new T.Vector3(0, -.8, -.6), qa = new T.Vector3(), qb = new T.Vector3();
     function streaksStep(dt) {
       if (!skMesh.visible) return;
@@ -702,8 +706,11 @@
         qa.set(s.x, s.y, s.z); cv1.set(s.vx, s.vy, s.vz).multiplyScalar(1 / sp); qb.copy(qa).addScaledVector(cv1, -len);
         cv2.crossVectors(cv1, camDir); if (cv2.lengthSq() < 1e-6) cv2.set(1, 0, 0); cv2.normalize().multiplyScalar(s.w * .5);
         const k = 1 - s.t / s.life, a = Math.min(1, s.t * 40) * k * k;
-        skPos.set([qb.x - cv2.x, qb.y - cv2.y, qb.z - cv2.z, qb.x + cv2.x, qb.y + cv2.y, qb.z + cv2.z, qa.x + cv2.x, qa.y + cv2.y, qa.z + cv2.z, qa.x - cv2.x, qa.y - cv2.y, qa.z - cv2.z], o);
-        for (let j = 0; j < 4; j++) skCol.set([s.col[0], s.col[1], s.col[2], a], i * 16 + j * 4);
+        skPos[o] = qb.x - cv2.x; skPos[o + 1] = qb.y - cv2.y; skPos[o + 2] = qb.z - cv2.z;
+        skPos[o + 3] = qb.x + cv2.x; skPos[o + 4] = qb.y + cv2.y; skPos[o + 5] = qb.z + cv2.z;
+        skPos[o + 6] = qa.x + cv2.x; skPos[o + 7] = qa.y + cv2.y; skPos[o + 8] = qa.z + cv2.z;
+        skPos[o + 9] = qa.x - cv2.x; skPos[o + 10] = qa.y - cv2.y; skPos[o + 11] = qa.z - cv2.z;
+        for (let j = 0; j < 4; j++) { const c = i * 16 + j * 4; skCol[c] = s.col[0]; skCol[c + 1] = s.col[1]; skCol[c + 2] = s.col[2]; skCol[c + 3] = a; }
         live++;
       }
       skGeo.attributes.position.needsUpdate = true; skGeo.attributes.aCol.needsUpdate = true; skMesh.visible = live > 0;
@@ -725,13 +732,13 @@
     }
     function chCrack(x, z, R, tier) {
       const c = chCracks.reduce((a, b) => (b.t > a.t ? b : a)), g = c.m.geometry, pos = g.attributes.position.array, av = g.attributes.aV.array, at = g.attributes.aT.array, idx = g.index.array;
-      let vi = 0, ii = 0; const spokes = 7, base = Math.random() * 6.28;
+      let vi = 0, ii = 0; const spokes = 7, base = Math.random() * 6.28, floor = floorAt(x, z, R) + .014;
       for (let sI = 0; sI < spokes; sI++) {
         const segs = 12, len = R * (.7 + Math.random() * .4); let a = base + sI / spokes * 6.283 + (Math.random() - .5) * .5, px = x, pz = z;
         for (let k = 0; k <= segs && vi + 2 <= CKV; k++) {
           const f = k / segs, w = .3 * (1 - f * .85) * .5 * (tier === 3 ? 1.7 : tier === 2 ? 1.25 : 1), nx = Math.cos(a), nz = -Math.sin(a);
-          pos[vi * 3] = px - nx * w; pos[vi * 3 + 1] = .05; pos[vi * 3 + 2] = pz - nz * w; av[vi] = 0; at[vi] = f; vi++;
-          pos[vi * 3] = px + nx * w; pos[vi * 3 + 1] = .05; pos[vi * 3 + 2] = pz + nz * w; av[vi] = 1; at[vi] = f; vi++;
+          pos[vi * 3] = px - nx * w; pos[vi * 3 + 1] = floor; pos[vi * 3 + 2] = pz - nz * w; av[vi] = 0; at[vi] = f; vi++;
+          pos[vi * 3] = px + nx * w; pos[vi * 3 + 1] = floor; pos[vi * 3 + 2] = pz + nz * w; av[vi] = 1; at[vi] = f; vi++;
           if (k > 0) { const q = vi - 4; idx.set([q, q + 1, q + 2, q + 1, q + 3, q + 2], ii); ii += 6; }
           px += Math.sin(a) * len / segs; pz += Math.cos(a) * len / segs; a += (Math.random() - .5) * .7;
         }
@@ -804,7 +811,7 @@
       }
       chLinks.count = CH_MAX; chLinks.instanceMatrix.needsUpdate = true; chLinks.visible = pe > .06; chLinks.material.emissiveIntensity = .02 + .28 * P * (.5 + .5 * wh.rate);
       // ---- disc and floor swirl
-      chDisc.visible = chFloor.visible = true; chDisc.position.set(px, 1.0, pz); chFloor.position.set(px, .05, pz);
+      chDisc.visible = chFloor.visible = true; chDisc.position.set(px, 1.0, pz); chFloor.position.set(px, floorAt(px, pz, wh.R) + .014, pz);
       chDiscMat.uniforms.uHead.value = th; chDisc.scale.setScalar(wh.k); chFloor.scale.setScalar(wh.k); chDiscMat.uniforms.uP.value = P * (1 - wh.end) * (calm ? .3 : .6) * (1 + .12 * (wh.tier - 1)); chDiscMat.uniforms.uRate.value = wh.rate; chDiscMat.uniforms.uT.value = t % 100;
       chFloorMat.uniforms.uHead.value = th; chFloorMat.uniforms.uP.value = P * (.7 + .05 * (wh.tier - 1)); chFloorMat.uniforms.uT.value = t % 100; chFloorMat.uniforms.uRim.value = 3.6 * Math.pow(P, .5);
       // ---- the vortex: ash and embers drawn in and around, by time (not by frame)
@@ -1005,12 +1012,18 @@
         vertexShader: 'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
         fragmentShader: `varying vec2 vUv;uniform float uK,uFace,uArc;
           void main(){vec2 p=(vUv-.5)*2.4;float r=length(p);float a=atan(p.x,-p.y)-uFace;a=atan(sin(a),cos(a));
-          float end=1.-smoothstep(uArc*.5-.24,uArc*.5,abs(a));float reach=.72+.28*(1.-pow(1.-uK,3.));
-          float band=exp(-pow((r-reach)/.074,2.));float core=exp(-pow((r-reach)/.019,2.));
-          float echo=exp(-pow((r-reach+.17)/.038,2.))*.25;
-          float rune=exp(-pow((r-reach+.29)/.065,2.))*pow(max(0.,cos(a*17.)),16.)*.42;
-          float life=pow(1.-uK,1.3)*smoothstep(0.,.065,uK);float alpha=(band+echo+rune)*end*life;
-          if(alpha<.004)discard;vec3 col=vec3(3.4,.08,.025)*(band+echo)+vec3(5.2,1.3,.55)*core+vec3(2.5,.38,.1)*rune;
+          float along=clamp((a/uArc)+.5,0.,1.);float end=smoothstep(0.,.15,along)*(1.-smoothstep(.91,1.,along));float reach=.72+.28*(1.-pow(1.-uK,3.));
+          // A forged, asymmetric blade sweep: a fine leading edge and a broad crimson wake
+          // combed into curved strands. All layers stay in this one prewarmed surface.
+          float belly=sin(along*3.14159);float width=.025+.24*belly*(.35+.65*along);float dr=r-reach;
+          float grain=sin(a*37.+dr*48.)*sin(a*11.-dr*67.);float tooth=.008*grain*belly;
+          float edge=dr+tooth;float core=exp(-edge*edge/.00027)*(.28+.72*along);
+          float band=smoothstep(-width-.018,-width*.68,dr)*(1.-smoothstep(-.012,.038,edge));
+          float strands=.43+.57*pow(.5+.5*sin((dr/width)*19.+a*2.4),2.);band*=strands;
+          float wake=exp(-pow((dr+width+.062)/.02,2.))*.28*belly;
+          float flecks=exp(-pow((dr+width+.135)/.025,2.))*pow(max(0.,cos(a*19.-uK*2.)),8.)*.19*belly;
+          float life=pow(1.-uK,1.3)*smoothstep(0.,.065,uK);float alpha=(band+core+wake+flecks)*end*life;
+          if(alpha<.004)discard;vec3 col=vec3(2.6,.11,.035)*band+vec3(3.8,1.55,.55)*core+vec3(2.,.25,.08)*(wake+flecks);
           gl_FragColor=vec4(col*end*life,alpha);}` });
       const m = new T.Mesh(plane, mat); m.name = 'mezar-yaran-crescent'; m.rotation.x = -Math.PI / 2; m.visible = false; root.add(m);
       return { m, mat, time: 1, life: .56 };
