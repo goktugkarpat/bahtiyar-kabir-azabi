@@ -6,6 +6,7 @@
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const Q = new URLSearchParams(location.search);
   const CAMPAIGN_KEY = 'baba.kabir.campaign.v1';
+  const CHAPTER_SETTINGS_KEY = 'karaGecit.chapterSettings.v1';
   let campaign = null;
   try {
     const saved=JSON.parse(localStorage.getItem(CAMPAIGN_KEY));
@@ -21,7 +22,15 @@
   const chapter=campaign?campaign.chapter:1,coastChapter=chapter===2,ruinsChapter=chapter===3,forgeChapter=chapter===4;
   B.ActiveChapter=chapter;
   const chapterNames=['Kurban Tapınağı','Kara Kıyı','Sessiz Taht','Kızıl Ocak'],chapterNumbers=['I','II','III','IV'];
-  function chapterLink(continueJourney = false) { const u = new URL(location.href); u.searchParams.delete('bolum'); if (continueJourney) u.searchParams.set('yolculuk', 'devam'); else u.searchParams.delete('yolculuk'); location.href = u.href; }
+  function chapterLink(continueJourney = false) {
+    const u = new URL(location.href); u.searchParams.delete('bolum');
+    if (continueJourney) {
+      u.searchParams.set('yolculuk', 'devam');
+      // Carry current choices through this internal chapter load, never a later launch.
+      safe(() => sessionStorage.setItem(CHAPTER_SETTINGS_KEY, JSON.stringify({ chapter: chapter + 1, at: Date.now(), difficulty: cfg.difficulty, uiScale: cfg.uiScale })));
+    } else { u.searchParams.delete('yolculuk'); safe(() => sessionStorage.removeItem(CHAPTER_SETTINGS_KEY)); }
+    location.href = u.href;
+  }
   $('next-chapter').onclick = () => chapterLink(true);
   $('next-chapter').classList.toggle('hidden',forgeChapter);
   if(chapter>1){
@@ -63,7 +72,7 @@
   const TEXTURE_NOTE = ' Karakter kaplamaları oyun yeniden açılınca bu ayara geçer.';
   const coarsePointer = matchMedia('(pointer:coarse)').matches;
   // Desktop defaults follow the current display's pixel density. Extra AA is opt-in.
-  const DEFAULTS = { difficulty: 'normal', quality: 'high', qualityVersion: 4, ...DISPLAY.defaults, frameRate: FRAME_LIMIT, exposure: 1.15, shake: .55, master: .65, music: .42, sfx: .75, voice: .85, subtitles: true, uiScale: 1 };
+  const DEFAULTS = { difficulty: 'normal', quality: 'high', qualityVersion: 4, ...DISPLAY.defaults, frameRate: FRAME_LIMIT, exposure: 1.15, shake: .55, master: .65, music: .42, sfx: .75, voice: .85, subtitles: true, uiScale: .85 };
   const FRAME_RATES = [60, 90, 120, 0];   // 0 = follow the display (every refresh; best with G-Sync / FreeSync / ProMotion)
   const UI_STEPS = [.85, 1];
   const LIMITS = { exposure: [.7, 1.7], shake: [0, 1], master: [0, 1], music: [0, 1], sfx: [0, 1], voice: [0, 1] };
@@ -171,14 +180,12 @@
       }
       if (raw.qualityVersion !== DEFAULTS.qualityVersion) migrated = true;
       if (Object.prototype.hasOwnProperty.call(QUALITY, raw.quality)) cfg.quality = raw.quality;
-      cfg.difficulty = ['easy','normal','hard'].includes(raw.difficulty) ? raw.difficulty : 'normal';
+      // Difficulty and HUD size always start from the launch defaults.
       for (const k of Object.keys(LIMITS)) if (Number.isFinite(raw[k])) cfg[k] = clamp(raw[k], LIMITS[k][0], LIMITS[k][1]);
       if (typeof raw.subtitles === 'boolean') cfg.subtitles = raw.subtitles;
       // Preserve valid display choices; retired choices fall back to Auto.
       Object.assign(cfg, DISPLAY.settings(raw));
       if (raw.displayVersion !== DISPLAY.defaults.displayVersion || raw.displayMode !== cfg.displayMode) migrated = true;
-      cfg.uiScale = UI_STEPS.includes(raw.uiScale) ? raw.uiScale : DEFAULTS.uiScale;
-      if (raw.uiScale !== cfg.uiScale) migrated = true;
       cfg.frameRate = FRAME_RATES.includes(raw.frameRate) ? raw.frameRate : raw.frameRate === 144 ? 0 : DEFAULTS.frameRate;
       if (raw.frameRate !== cfg.frameRate) migrated = true;
       cfg.shake = DEFAULTS.shake;   // camera shake is no longer a setting
@@ -186,6 +193,17 @@
     if (raw && typeof raw === 'object' && raw.bindVersion !== BIND_VERSION) {
       setBinds(migrateNumberedBinds(raw.binds)); migrated = true;
     } else setBinds(raw && raw.binds);
+    cfg.difficulty = DEFAULTS.difficulty; cfg.uiScale = DEFAULTS.uiScale;
+    try {
+      const pending = sessionStorage.getItem(CHAPTER_SETTINGS_KEY);
+      sessionStorage.removeItem(CHAPTER_SETTINGS_KEY);
+      const handoff = JSON.parse(pending || 'null');
+      const age = handoff ? Date.now() - handoff.at : -1;
+      if (handoff && Q.get('yolculuk') === 'devam' && handoff.chapter === chapter && age >= 0 && age < 120000) {
+        if (['easy', 'normal', 'hard'].includes(handoff.difficulty)) cfg.difficulty = handoff.difficulty;
+        if (UI_STEPS.includes(handoff.uiScale)) cfg.uiScale = handoff.uiScale;
+      }
+    } catch (_) {}
     deriveSettings();
     if (migrated) { saveSettings(); safe(() => localStorage.removeItem(OLD_KEY)); }
   }
@@ -669,7 +687,7 @@
   function renderSettings() {
     const video = $('settings-video'), audio = $('settings-audio');
     $('settings-game').replaceChildren(choiceRow('difficulty', 'Zorluk', ['easy','normal','hard'],v=>v==='easy'?'Kolay':v==='normal'?'Normal':'Zor'));
-    $('difficulty-note').textContent = 'Kolay: daha az tehlike. Normal: dengeli bir yolculuk. Zor: daha sert savaşlar. Seçimin oyun sırasında da uygulanır.';
+    $('difficulty-note').textContent = 'Kolay: daha az tehlike. Normal: dengeli bir yolculuk. Zor: daha sert savaşlar. Seçimin hemen uygulanır; yeniden açılışta Normal başlar.';
     const gameHeading = document.createElement('h3'); gameHeading.textContent = 'Yolculuğun'; $('settings-game').prepend(gameHeading);
     const saveInfo = document.createElement('div'); saveInfo.className = 'settings-save-info'; saveInfo.innerHTML = '<strong>Yeminin sürüyor</strong><p>Ölümde son yemin noktasına dönersin. Eşyaların, tecrüben ve öğrendiğin yetenekler korunur.</p>'; $('settings-game').append(saveInfo);
     video.querySelectorAll('.advanced-graphics, .setting').forEach(n => n.remove()); audio.querySelectorAll('.setting').forEach(n => n.remove());
@@ -684,7 +702,7 @@
       choiceRow('uiScale', 'Arayüz boyutu', UI_STEPS, v => v < 1 ? 'Küçük' : 'Normal'));
     // Edge smoothing (SMAA post pass in post.js) is always on: no settings row.
     paintGraphicsNotes();
-    $('uiScale-note').textContent = 'Alt çubuk, küreler, harita ve yazıları ölçekler.';
+    $('uiScale-note').textContent = 'Alt çubuk, küreler, harita ve yazıları ölçekler. Yeniden açılışta Küçük başlar.';
     for (const f of SLIDERS.video) video.append(sliderRow(f));
     for (const f of SLIDERS.audio) audio.append(sliderRow(f));
     const sub = document.createElement('div'); sub.className = 'setting toggle';
@@ -692,7 +710,7 @@
     const box = sub.querySelector('input'); box.checked = cfg.subtitles;
     box.addEventListener('change', () => { cfg.subtitles = box.checked; applySettings(); });
     audio.append(sub);
-    $('settings-note').textContent = B.Audio.silent ? 'Test modu · sessiz' : 'Ayarlar bu cihazda saklanır.';
+    $('settings-note').textContent = B.Audio.silent ? 'Test modu · sessiz' : 'Seçimler hemen uygulanır.';
   }
   function selectSettingsPage(page) {
     if (!['game', 'video', 'audio', 'input'].includes(page)) return;
@@ -1483,7 +1501,7 @@
   }
   // Gaps between presented frames (last ~600), so the counter can also show the longest frame: a few slow frames are
   // what the eye reads as stutter even when the FPS average looks fine.
-  const BUILD_TAG = 135, fpsGaps = new Float32Array(600);
+  const BUILD_TAG = 136, fpsGaps = new Float32Array(600);
   let fpsGapAt = 0, fpsGapLast = 0;
   function frameStats() {
     let longest = 0, slow = 0;
