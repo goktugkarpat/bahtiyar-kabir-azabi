@@ -41,16 +41,5 @@ Grafik kalitesi (Düşük / Orta / Yüksek), çözünürlük çarpanı, kare hı
 | `src/` | Oyunun kodu: savaş, dünya, karakterler, ses, arayüz |
 | `assets/` | Karakter modelleri, kaplamalar, arayüz resimleri |
 | `vendor/` | 3D kütüphanesi (three.js r170, MIT lisansı) |
-| `tools/gen_narration.py` | Anlatıcı sesini yeniden üretmek için |
 | `manifest.webmanifest`, `sw.js`, `icons/` | Uygulama gibi açılma, simge ve internetsiz çalışma |
-| `serve.py`, `OYNA.command` | İsteğe bağlı yerel sunucu |
 | `ASSET-LICENSES.md`, `credits.html` | Kaynaklar ve lisanslar |
-
-## Anlatıcıyı değiştirmek
-
-Anlatıcı pes ve ağır bir erkek sesiyle (`tr-TR-AhmetNeural`) seslendirildi:
-
-```bash
-python3 -m pip install edge-tts
-python3 tools/gen_narration.py voice
-```
