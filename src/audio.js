@@ -583,6 +583,66 @@
     sample('gear', { vol: .2 * b, rate: rand(.85, 1), delay: .012 });
     if (dmg >= 18) { sample('hitSub', { vol: .35 * b, send: .1 }); sample('hitCrack', { vol: .28 * b, rate: .8, delay: .006 }); muffle(dmg >= 28 ? 700 : 1300, .08, .35, .05); }
   };
+  // Hücum wind-up: a quiet, short rising breath and cloth rustle (src/charge.js); the dash itself uses 'dodge', the impact 'specialHit' / 'slam'.
+  H.chargeWind = (o, k) => {
+    const t = now(), tier = o.tier || 1; swell(t, .13 + .05 * tier, (.1 + .04 * tier) * k, { f0: 160 - 30 * tier, f1: 900 - 120 * tier, send: .08 }); sample('cloth', { vol: .3 * k, rate: .8 });
+    if (tier === 2) { burst(t, .16, .07 * k, 3200, { q: 1.5, attack: .1, send: .1 }); tone(t, 90, .2, .06 * k, { type: 'sawtooth', bend: 1.6, lp: 420, attack: .15, send: .1 }); }
+    if (tier === 3) { tone(t, 52, .26, .16 * k, { type: 'sawtooth', bend: 1.8, lp: 300, attack: .2, send: .25 }); sample('chain', { vol: .5 * k, rate: .7, delay: .05 }); }
+  };
+  // Tier III roar at the start of Mahşer Hücumu: a deep throat growl, a gut thud and a dark dissonant ring.
+  H.chargeRoar = (o, k) => {
+    const t = now() + .02; growl(t, .55, .3 * k, { f: 64, send: .35 }); thud(t + .03, { f0: 60, f1: 24, dur: .6, vol: .6 * k, send: .3 });
+    ring(t + .05, { f: 98, partials: [1, 2.03, 2.97, 4.2], decay: 1.4, vol: .05 * k, send: .5 }); burst(t, .5, .1 * k, 700, { q: .6, f1: 180, send: .3 });
+  };
+  // Dash layers: I the plain rush (dodge), II + hissing molten crackle and a brighter whoosh, III + a heavy battering-ram rumble and iron scrape.
+  H.chargeDash = (o, k) => {
+    const tier = o.tier || 1, t = now(); H.dodge(o, k * (1 + .12 * (tier - 1)));
+    if (tier >= 2) {
+      burst(t, .4, .1 * k, 3800, { q: 1.1, f1: 1400, send: .1 }); whoosh(t, { dur: .45, peak: .3, f0: 500, f1: 3000, f2: 700, q: 1.2, vol: .3 * k, edge: .4, send: .1 });
+      for (let i = 0; i < 6; i++) burst(t + .04 + i * .055, .03, .05 * k, rand(3000, 7000), { q: 2.5 });
+    }
+    if (tier === 3) {
+      tone(t, 56, .55, .2 * k, { type: 'sawtooth', bend: .75, lp: 260, attack: .06, send: .3 }); sample('chain', { vol: .6 * k, rate: .6, delay: .02 }); sample('metal', { vol: .35 * k, rate: .55, delay: .08 });
+      thud(t + .04, { f0: 70, f1: 26, dur: .5, vol: .5 * k, send: .25 });
+    }
+  };
+  // Impact layers: I the old iron crack and floor thud; II + stone fissures cracking and a molten ring; III a deep, long boom with tumbling rubble.
+  H.chargeImpact = (o, k) => {
+    const tier = o.tier || 1, t = now(), at = { x: o.x, z: o.z }; H.specialHit(o, k * (tier === 3 ? 1.1 : .95));
+    if (tier >= 2) {
+      sample('debris', { vol: .8 * k, at, rate: .7, delay: .03 }); sample('hitCrack', { vol: .6 * k, rate: .7, delay: .01 }); sample('bone', { vol: .4 * k, at, rate: .6, delay: .06 });
+      burst(t + .02, .5, .13 * k, 2600, { q: 1, f1: 700, send: .2 }); ring(t + .04, { f: 262, partials: [1, 2.4, 3.9, 5.7], decay: 1.1, vol: .035 * k, send: .5 });
+    }
+    if (tier === 3) {
+      thud(t, { f0: 56, f1: 18, dur: 1.1, vol: 1.25 * k, send: .4 }); sample('stomp', { vol: .9 * k, at, rate: .6, prio: 1 }); sample('debris', { vol: .7 * k, at, rate: .6, delay: .22 });
+      burst(t, .9, .3 * k, 240, { q: .45, f1: 70, send: .45 }); ring(t + .03, { f: 110, partials: [1, 2.03, 3.05, 4.1], decay: 1.6, vol: .05 * k, send: .55 }); muffle(1500, .06, .3);
+    }
+  };
+  H.chargeSlam2 = (o, k) => {
+    const t = now(), at = { x: o.x, z: o.z };
+    thud(t, { f0: 52, f1: 16, dur: 1.3, vol: 1.5 * k, send: .45 }); sample('stomp', { vol: 1 * k, at, rate: .55, prio: 1 }); sample('debris', { vol: .9 * k, at, rate: .55, delay: .03 }); sample('debris', { vol: .6 * k, at, rate: .8, delay: .24 });
+    sample('hitCrack', { vol: .8 * k, rate: .6 }); sample('metal', { vol: .5 * k, at, rate: .5, delay: .02 }); burst(t, 1, .34 * k, 200, { q: .4, f1: 60, send: .5 });
+    ring(t + .03, { f: 87, partials: [1, 2.03, 3.05, 4.1, 5.9], decay: 2, vol: .06 * k, send: .6 }); muffle(1100, .1, .4);
+  };
+  // Whirlwind tier layers: II Ölüm Biçeni = bright scythe whooshes and gold ringing steel; III Son Hüküm = dark drone, violent thuds and a final boom.
+  H.whirlStart = (o, k) => {
+    const tier = o.tier || 2, t = now();
+    if (tier === 2) { whoosh(t, { dur: .5, peak: .5, f0: 400, f1: 3000, f2: 600, q: 1.3, vol: .4 * k, edge: .5, send: .15 }); ring(t + .02, { f: 392, partials: [1, 2.76, 5.4], decay: .9, vol: .03 * k, send: .5 }); }
+    else { growl(t, .5, .22 * k, { f: 70, send: .35 }); tone(t, 49, 1.6, .16 * k, { type: 'sawtooth', bend: 1.4, lp: 240, attack: .5, send: .35 }); thud(t, { f0: 62, f1: 24, dur: .7, vol: .8 * k, send: .3 }); sample('debris', { vol: .6 * k, rate: .6, delay: .03 }); }
+  };
+  H.whirlTick = (o, k) => {
+    const tier = o.tier || 2, t = now(), at = { x: o.x, z: o.z };
+    if (tier === 2) {
+      whoosh(t - .05, { dur: .25, peak: .5, f0: 700, f1: 3400, f2: 800, q: 1.6, vol: .32 * k, edge: .6 });
+      ring(t, { f: 523, partials: [1, 2.76, 5.4], decay: .6, vol: .022 * k, send: .4 });
+      if (o.last) { thud(t, { f0: 66, f1: 22, dur: .8, vol: .9 * k, send: .35 }); sample('debris', { vol: .7 * k, at, rate: .65, delay: .02 }); ring(t, { f: 262, partials: [1, 2.4, 3.9], decay: 1.3, vol: .05 * k, send: .5 }); }
+    } else {
+      thud(t, { f0: 58 + (o.last ? 0 : 10), f1: 20, dur: o.last ? 1.3 : .35, vol: (o.last ? 1.5 : .6) * k, send: o.last ? .45 : .2 });
+      sample('debris', { vol: (o.last ? .9 : .4) * k, at, rate: .6 + .05 * (o.n || 0), delay: .02 }); sample('chain', { vol: .5 * k, at, rate: .55 });
+      whoosh(t - .05, { dur: .3, peak: .5, f0: 160, f1: 1200, f2: 220, q: 1, vol: .4 * k, low: 220 });
+      if (o.last) { burst(t, 1, .38 * k, 220, { q: .4, f1: 60, send: .5 }); ring(t + .02, { f: 82, partials: [1, 2.03, 3.05, 4.1, 5.9], decay: 2.2, vol: .07 * k, send: .6 }); sample('hitCrack', { vol: .8 * k, rate: .55 }); muffle(1000, .1, .45); }
+    }
+  };
   H.dodge = (o, k) => {
     const t = now(), p = player(), pan = p && Number.isFinite(p.face) ? Math.sin(p.face) * .45 : 0;
     sample('cloth', { vol: .75 * k, rate: rand(.9, 1.05) });
@@ -714,6 +774,7 @@
       swell(t, .6, .15 * k, { f0: 200, f1: 1800, send: .4 }); tone(t + .55, 73.4, 1.6, .12 * k, { type: 'sawtooth', lp: 500, send: .4 });
       ring(t + .6, { f: 146.8, partials: [1, 2.02, 3.6], decay: 1.8, vol: .06 * k, send: .5 }); return;
     }
+    if (o.tier > 1 && H['shoutT' + o.tier]) return H['shoutT' + o.tier](o, k);   // tiers II / III have their own layers (below)
     // The father's war cry: a breath drawn in, then the roar (CC0 roar clip pitched down and doubled, a synthesized
     // throat growl and a sub drop) lands with the shockwave at o.release (combat.js ROAR.release, .3 s by default);
     // the cleaver rings and the heart pounds after.
@@ -740,6 +801,66 @@
     thud(t + .02, { f0: 72, f1: 26, dur: .6, vol: 1 * k, send: .3 }); burst(t + .02, .35, .22 * k, 420, { q: .5, f1: 120, send: .3 });
     if (o.hits) { sample('debris', { vol: .5 * k, at, delay: .08 }); sample('flesh', { vol: .6 * k, at, rate: .8, delay: .04 }); }
     ring(t + .03, { f: 174, partials: [1, 2.4, 3.9], decay: 1.0, vol: .04 * k, send: .5 });
+  };
+  // ---- Skill tiers (round 7): every tier of the heavy-strike and shout lines gets its own layers, so they can be told apart with the eyes shut.
+  // Tier II strike: wind-up scrape of metal on bone and a rising wind, impact = deep thud + bright metal ring + bone crack.
+  // Tier III strike: crouch grunt and a low rumble, a fast whoosh at take-off and a falling wind in the air, impact = sub-bass boom, stone crack, low choir-like open fifth.
+  H.strikeWind2 = (o, k) => {
+    const t = now(), w = o.strike > 0 ? o.strike : .72;
+    sample('chain', { vol: .35 * k, rate: 1.3, send: .1, delay: .02 }); swell(t + .05, w - .1, .13 * k, { f0: 240, f1: 2200, send: .15 });
+    ring(t + w * .45, { f: 880, partials: [1, 2.76], decay: .5, vol: .012 * k, send: .3 }); sample('effort', { vol: .35 * k, rate: .75, delay: w * .5, send: .1 });
+  };
+  H.strikeWind3 = (o, k) => {
+    const t = now(), w = o.strike > 0 ? o.strike : .7, air = o.air > 0 ? o.air : .38, up = t + w - air;
+    sample('strain', { vol: .5 * k, rate: .7, send: .12 }); swell(t, w - air, .11 * k, { f0: 50, f1: 520, send: .2 });
+    thud(up, { f0: 120, f1: 40, dur: .22, vol: .55 * k, send: .15 }); burst(up, .12, .12 * k, 500, { q: .6, f1: 150 });
+    whoosh(up + .02, { dur: air + .05, peak: .25, f0: 900, f1: 1600, f2: 260, q: .8, vol: .5 * k, low: 300, send: .12 });
+  };
+  H.strikeHit2 = (o, k) => {
+    const t = now(), at = { x: o.x, z: o.z };
+    thud(t, { f0: 92, f1: 28, dur: .75, vol: 1.05 * k, send: .3 }); thud(t + .01, { f0: 190, f1: 70, dur: .18, vol: .5 * k });
+    ring(t + .004, { f: 330, partials: [1, 2.76, 5.4, 8.9], decay: 1.5, vol: .075 * k, send: .45 }); sample('hitClang', { vol: .6 * k, at, rate: .78, delay: .006, send: .3 });
+    sample('bone', { vol: .7 * k, at, rate: .8, delay: .02 }); burst(t + .01, .35, .24 * k, 380, { q: .5, f1: 110, send: .3 }); sample('debris', { vol: .5 * k, at, delay: .06, rate: .9 });
+    for (let i = 0; i < 2; i++) ring(t + .17 + i * .05, { f: 230, partials: [1, 2.4], decay: .5, vol: .02 * k, send: .4 });   // the aftershock ring
+  };
+  H.strikeHit3 = (o, k) => {
+    const t = now(), at = { x: o.x, z: o.z };
+    thud(t, { f0: 56, f1: 18, dur: 1.5, vol: 1.5 * k, send: .35 }); thud(t + .02, { f0: 130, f1: 36, dur: .4, vol: .7 * k }); thud(t + .24, { f0: 64, f1: 24, dur: .8, vol: .6 * k, send: .35 });
+    burst(t, .28, .45 * k, 1700, { q: .5, f1: 240, send: .3 }); sample('debris', { vol: .8 * k, at, rate: .7, delay: .01 }); sample('debris', { vol: .6 * k, at, rate: .55, delay: .09 });
+    sample('stomp', { vol: .8 * k, at, rate: .6, delay: .005 }); sample('bone', { vol: .5 * k, at, rate: .6, delay: .03 });
+    growl(t + .02, 1.4, .13 * k, { f: 52, send: .45 });
+    for (const [f, d] of [[65.4, 0], [98, .05], [130.8, .1]]) tone(t + .08 + d, f, 2.2, .05 * k, { type: 'sawtooth', lp: 520, attack: .35, send: .5 });   // low open-fifth choir
+    ring(t + .03, { f: 110, partials: [1, 2.4, 3.9], decay: 2.2, vol: .05 * k, send: .55 });
+    burst(t + .35, 1.1, .1 * k, 160, { q: .6, attack: .2, bus: 'amb', send: .3, buf: N.brown });
+    duck(N.musicDuck, .5, .5, .5);
+  };
+  // Tier II shout "Ölüm Çığlığı": a high wail rises over the roar (sawtooth bending upward through a formant), bright bone-like ring, hiss of air.
+  H.shoutT2 = (o, k) => {
+    k *= 1.15; const t = now(), r = o.release > 0 ? o.release : .44;
+    swell(t, r - .02, .12 * k, { f0: 220, f1: 1500, send: .15 }); sample('strain', { vol: .4 * k, rate: 1.0, send: .1 });
+    sample('roar', { vol: 1 * k, rate: .98, delay: r - .03, send: .4, prio: 1, detune: .01 }); sample('roar', { vol: .6 * k, rate: .76, delay: r, send: .5, prio: 1, detune: .01 });
+    growl(t + r - .02, 1.1, .16 * k, { f: 118, send: .4 });
+    tone(t + r, 360, .95, .05 * k, { type: 'sawtooth', bend: 1.9, lp: 2600, q: 2, attack: .05, send: .4 }); tone(t + r + .02, 540, .8, .03 * k, { type: 'sawtooth', bend: 1.6, lp: 3200, q: 2, attack: .06, send: .4 });
+    thud(t + r, { f0: 84, f1: 26, dur: .9, vol: 1 * k, send: .35 }); burst(t + r, .8, .2 * k, 2400, { q: .5, f1: 500, send: .4 });
+    ring(t + r + .01, { f: 587, partials: [1, 2.4, 3.9, 5.4], decay: 1.7, vol: .06 * k, send: .55 });
+    for (let i = 0; i < 3; i++) ring(t + r + .12 + i * .14, { f: 440 - i * 40, partials: [1, 2.76], decay: .7, vol: .025 * k, send: .5 });   // the spreading rings
+    duck(N.musicDuck, .45, .7, .4); duck(N.ambDuck, .5, .7, .4); stinger('rage', .25);
+  };
+  // Tier III shout "Kıyamet Narası": stage 1 = very low roar + sub-boom + choir fifth + rumble; stage 2 (+.34 s) a second blast; the third ring (+.68 s) closes with a stone crack.
+  H.shoutT3 = (o, k) => {
+    const t = now(), r = o.release > 0 ? o.release : .62;
+    swell(t, r - .02, .15 * k, { f0: 70, f1: 900, send: .2 }); sample('strain', { vol: .5 * k, rate: .72, send: .1 });
+    sample('roar', { vol: 1.15 * k, rate: .66, delay: r - .03, send: .45, prio: 1, detune: .01 }); sample('roar', { vol: .9 * k, rate: .52, delay: r + .01, send: .55, prio: 1, detune: .01 });
+    sample('bossRoar', { vol: .45 * k, rate: .78, delay: r + .03, send: .5, prio: 1 });
+    growl(t + r - .03, 1.5, .2 * k, { f: 56, send: .45 });
+    thud(t + r, { f0: 54, f1: 17, dur: 1.9, vol: 1.5 * k, send: .35 }); burst(t + r, .9, .3 * k, 300, { q: .5, f1: 70, send: .4 });
+    for (const [f, d] of [[65.4, 0], [98, .05], [196, .1]]) tone(t + r + d, f, 2.6, .05 * k, { type: 'sawtooth', lp: 560, attack: .4, send: .55 });
+    ring(t + r, { f: 98, partials: [1, 2.02, 2.97, 4.1], decay: 2.4, vol: .06 * k, send: .55 });
+    thud(t + r + .34, { f0: 70, f1: 24, dur: .9, vol: 1.1 * k, send: .3 }); sample('roar', { vol: .7 * k, rate: .58, delay: r + .34, send: .5, prio: 1 }); burst(t + r + .34, .3, .2 * k, 1400, { q: .5, f1: 300, send: .3 });
+    thud(t + r + .68, { f0: 76, f1: 28, dur: .8, vol: 1 * k, send: .3 }); sample('debris', { vol: .7 * k, rate: .6, delay: r + .68 }); sample('stomp', { vol: .6 * k, rate: .55, delay: r + .68 });
+    burst(t + r + .1, 1.6, .12 * k, 150, { q: .6, attack: .25, bus: 'amb', send: .3, buf: N.brown });
+    for (let i = 0; i < 4; i++) thud(t + r + 1.1 + i * .42, { f0: 60, f1: 38, dur: .2, vol: .4 * k });   // the heart
+    duck(N.musicDuck, .4, .9, .5); duck(N.ambDuck, .45, .9, .5); stinger('rage', .25);
   };
   // Rage ends: the fire gutters out with an exhale and a falling ember hiss, so the hero knows the bonus is gone.
   H.rageEnd = (o, k) => {
@@ -799,12 +920,26 @@
     burst(t + .1, 1.6, .16 * k, 180, { q: .7, attack: .3, bus: 'amb', send: .3, buf: N.brown });
     thud(t + .05, { f0: 55, f1: 30, dur: 1, vol: .4 * k, send: .3 });
   };
-  // One swelling air-and-bass sweep: no bells or stepped musical notes.
-  H.levelUp = (o, k) => {
+  // Boss gate opening (src/gate.js): winch and chains grinding, falling rubble, one deep stone thud. Existing samples only.
+  H.gateOpen = (o, k) => {
     const t = now();
-    whoosh(t, {dur:1.05,peak:.30,f0:320,f1:1450,f2:240,q:.85,low:240,vol:1.05*k,send:.15});
-    tone(t,140,.43,.20*k,{type:'sine',attack:.20,bend:2,send:.12,lp:700});
-    tone(t+.28,280,.64,.19*k,{type:'sine',attack:.04,bend:.45,send:.14,lp:700});
+    sample('winch', { vol: .6 * k, rate: .72, send: .4, prio: 1 }); sample('chain', { vol: .5 * k, delay: .12, rate: .78 }); sample('chain', { vol: .4 * k, delay: .7, rate: .7 });
+    sample('debris', { vol: .5 * k, delay: 1.5, rate: .8 });
+    thud(t + 2.1, { f0: 62, f1: 26, dur: .8, vol: .7 * k, send: .3 });
+  };
+  // Level-up: ONE dramatic event on the effects channel (no bells, no melody): sub-bass impact, stone crack, rough metallic shimmer, rising air,
+  // low choir-like open fifth, short low-passed gust and spark crackle. Synthesised in src/levelup.js (B.LevelUp.sound); the music dips a little.
+  H.levelUp = (o, k) => {
+    const t = now(), LU = B.LevelUp;
+    if (LU && LU.sound) {
+      const [bus, wet] = busOf();
+      LU.sound(ctx, bus, wet, t, .5 * k, { white: N.noise, pink: N.pink });
+      if (!current) { duck(N.musicDuck, .62, .6, .55); duck(N.ambDuck, .75, .6, .55); }
+      return;
+    }
+    whoosh(t, { dur: 1.05, peak: .30, f0: 320, f1: 1450, f2: 240, q: .85, low: 240, vol: 1.05 * k, send: .15 });
+    tone(t, 140, .43, .20 * k, { type: 'sine', attack: .20, bend: 2, send: .12, lp: 700 });
+    tone(t + .28, 280, .64, .19 * k, { type: 'sine', attack: .04, bend: .45, send: .14, lp: 700 });
   };
   H.checkpoint = (o, k) => {
     if (extMusic) B.Music.sting('checkpoint');
@@ -818,6 +953,34 @@
     const at = Number.isFinite(o.x) ? spatial(o.x, o.z) : { pan: 0 };
     for (const [d, v] of [[0, .36], [.11, .3]]) ring(t + d, { f: 1180, partials: [1, 2.32, 3.9], decay: .4, vol: v * k, send: .3, pan: at.pan });
     thud(t, { f0: 170, f1: 70, dur: .18, vol: 1 * k, pan: at.pan }); burst(t, .05, .2 * k, 3200, { q: 1.4, pan: at.pan });
+  };
+  // Round 7 boss mechanics (boss-mech.js, coast-combat.js): synthesized only. Orbs hum (ember = low and dry, brine = higher and wet), the fuse is four rising blips, anchors clang and snap.
+  H.boss1Orb = (o, k) => {
+    if (!throttle('b1orb', .25)) return;
+    const t = now(), s = spatial(o.x, o.z), brine = o.kind === 'brine';
+    swell(t, .7, .1 * k * s.gain, { f0: brine ? 220 : 130, f1: brine ? 1100 : 640, pan: s.pan, send: .3 });
+    tone(t + .6, brine ? 247 : 98, 1.0, .08 * k * s.gain, { type: 'triangle', lp: 900, pan: s.pan, send: .4 }); thud(t + .6, { f0: 110, f1: 48, dur: .3, vol: .35 * k * s.gain, pan: s.pan });
+  };
+  H.boss1OrbFuse = (o, k) => {
+    const t = now(), s = spatial(o.x, o.z), brine = o.kind === 'brine';
+    for (let i = 0; i < 4; i++) tone(t + i * .2, (brine ? 392 : 220) * (1 + i * .12), .16, .1 * k * s.gain, { type: 'triangle', lp: 2400, pan: s.pan, send: .3 });
+  };
+  H.boss1Pop = (o, k) => { const t = now(), s = spatial(o.x, o.z); burst(t, .18, .22 * k * s.gain, 1800, { q: 1, f1: 500, pan: s.pan }); tone(t, 340, .2, .06 * k * s.gain, { bend: .4, pan: s.pan }); };
+  H.boss1Rite = (o, k) => {
+    const t = now(), at = { x: o.x, z: o.z }, s = spatial(o.x, o.z);
+    sample('chain', { vol: .9 * k, at, rate: .7, prio: 1 }); sample('chain', { vol: .6 * k, at, rate: .85, delay: .2 }); sample('winch', { vol: .5 * k, at, delay: .1 });
+    thud(t + .3, { f0: 70, f1: 26, dur: .9, vol: 1 * k * s.gain, pan: s.pan, send: .35 }); ring(t + .32, { f: 98, partials: [1, 2.4, 3.9, 5.3], decay: 2.6, vol: .06 * k, pan: s.pan, send: .6 });
+  };
+  H.boss1Anchor = (o, k) => { const at = { x: o.x, z: o.z }; sample('metal', { vol: .55 * k, at, rate: 1.05 }); sample('chain', { vol: .4 * k, at, rate: 1.1, delay: .03 }); };
+  H.boss1Snap = (o, k) => {
+    const t = now(), at = { x: o.x, z: o.z }, s = spatial(o.x, o.z);
+    sample('metal', { vol: .8 * k, at, rate: .7, prio: 1 }); sample('chain', { vol: .9 * k, at, rate: .8, delay: .02 }); sample('debris', { vol: .5 * k, at, delay: .05 });
+    thud(t, { f0: 90, f1: 34, dur: .5, vol: .7 * k * s.gain, pan: s.pan }); burst(t, .3, .2 * k * s.gain, 1400, { q: .6, f1: 300, pan: s.pan });
+  };
+  H.boss1Toll = (o, k) => {   // the drowned bell: one deep, wet toll (a long inharmonic ring with a thud and a gurgle under it)
+    const t = now(), at = { x: o.x, z: o.z }, s = spatial(o.x, o.z);
+    ring(t, { f: 82.4, partials: [1, 2.4, 3.9, 5.3, 6.9], decay: 3.2, vol: .1 * k * s.gain, pan: s.pan, send: .65 }); sample('bell', { vol: .5 * k, at, rate: .5, send: .5 });
+    thud(t, { f0: 70, f1: 30, dur: .55, vol: .7 * k * s.gain, pan: s.pan, send: .3 }); sample('carrierGurgle', { vol: .25 * k, at, rate: .55, delay: .05 });
   };
   // Menü: taş üstünde kısa, kuru bir tık.
   H.ui = (o, k) => { const t = now(); burst(t, .02, .4 * k, 2300, { q: 1.1 }); thud(t, { f0: 190, f1: 90, dur: .07, vol: .4 * k }); };

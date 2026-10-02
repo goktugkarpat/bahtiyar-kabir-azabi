@@ -33,6 +33,10 @@
     $('victory-title-text').textContent=forgeChapter?'Kızıl Ocak söndü':coastChapter?'Kıyının ardındaki yol':'Tahtın altındaki ocak';
     if(coastChapter)$('next-chapter').textContent='Harabelere ilerle';if(ruinsChapter)$('next-chapter').textContent='Kızıl Ocak’a in';
   }
+  // Chapters I-III continue automatically (see advanceChapter); the victory screen is only the final ending after chapter IV.
+  $('next-chapter').classList.add('hidden'); $('victory-character').classList.add('hidden');
+  if(forgeChapter){ $('victory').classList.add('final'); $('again').querySelector('span').textContent='Yeni yolculuk'; document.querySelector('#victory .eyebrow').textContent='Yolculuk sona erdi'; }
+  let advancing = false;
   const safe = f => { try { return f(); } catch (e) { console.warn('[Kabir Azabı]', e); } };
   const timeText = t => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
   const loadProgress = (p, text) => { if (window.KG_LOAD) window.KG_LOAD(p, text); };
@@ -59,8 +63,8 @@
   const TEXTURE_NOTE = ' Karakter kaplamaları oyun yeniden açılınca bu ayara geçer.';
   const coarsePointer = matchMedia('(pointer:coarse)').matches;
   // Desktop defaults follow the current display's pixel density. Extra AA is opt-in.
-  const DEFAULTS = { difficulty: 'normal', quality: FRAME_LIMIT === 60 ? 'medium' : 'high', qualityVersion: 3, ...DISPLAY.defaults, frameRate: FRAME_LIMIT, exposure: 1.15, shake: .55, master: .65, music: .42, sfx: .75, voice: .85, subtitles: true, uiScale: 1 };
-  const FRAME_RATES = [60, 120, 0];   // 0 = follow the display (every refresh; best with G-Sync / FreeSync / ProMotion)
+  const DEFAULTS = { difficulty: 'normal', quality: 'high', qualityVersion: 4, ...DISPLAY.defaults, frameRate: FRAME_LIMIT, exposure: 1.15, shake: .55, master: .65, music: .42, sfx: .75, voice: .85, subtitles: true, uiScale: 1 };
+  const FRAME_RATES = [60, 90, 120, 0];   // 0 = follow the display (every refresh; best with G-Sync / FreeSync / ProMotion)
   const UI_STEPS = [.85, 1];
   const LIMITS = { exposure: [.7, 1.7], shake: [0, 1], master: [0, 1], music: [0, 1], sfx: [0, 1], voice: [0, 1] };
   // `cfg` is shared with effects.js / world.js / combat.js (they read the technical fields).
@@ -70,17 +74,25 @@
      Saved with the settings (field `binds`). Esc (pause) and H (help) are fixed. Menu: the 'keybinds' screen (setupBindUI). */
   const BIND_INFO = {
     up: ['Yukarı', ''], down: ['Aşağı', ''], left: ['Sola', ''], right: ['Sağa', ''],
-    light: ['Hafif saldırı', 'Düşmana tıkla, basılı tut · boşluğa tık: yürü'], heavy: ['Yetenek I', 'Yetenek ağacından sağ tuşa bir güç ata'], stand: ['Yerinde vur', 'Basılıyken tıkla: yürümeden vurur'], dodge: ['Kaçınma', 'Yürüdüğün yöne'],
-    heal: ['Can iksiri', 'Anında iyileşir'], rage: ['Yetenek III', 'Üçüncü seçili aktif yetenek'], special: ['Yetenek II', 'İkinci seçili aktif yetenek'], interact: ['Etkileşim', 'Yemin taşı']
+    light: ['Hafif saldırı', 'Düşmana tıkla, basılı tut · boşluğa tık: yürü'], heavy: ['Yetenek · Sağ tık', 'Yetenek ağacından bu yuvaya bir güç ata'], stand: ['Yerinde vur', 'Basılıyken tıkla: yürümeden vurur'], dodge: ['Kaçınma', 'Yürüdüğün yöne'],
+    heal: ['Can iksiri', 'Anında iyileşir'], rage: ['Yetenek · 2 tuşu', 'Yetenek ağacından bu yuvaya bir güç ata'], special: ['Yetenek · 1 tuşu', 'Yetenek ağacından bu yuvaya bir güç ata'], fourth: ['Yetenek · 3 tuşu', 'Yetenek ağacından bu yuvaya bir güç ata'], interact: ['Etkileşim', 'Yemin taşı']
   };
   const BIND_VERSION = 1;
-  const BIND_GROUPS = [['bind-combat', ['special', 'rage', 'dodge', 'heal', 'light', 'heavy', 'stand']], ['bind-misc', ['interact']]];
+  // The four skill slots are named by their CURRENT key (right mouse button, 1, 2, 3 by default), never "Yetenek I / II / III", and list the equipped skill.
+  const SKILL_SLOT = { heavy: 0, special: 1, rage: 2, fourth: 3 };
+  function bindInfo(a) {
+    if (!(a in SKILL_SLOT)) return BIND_INFO[a];
+    const code = binds[a] && (binds[a][0] || binds[a][1]), cap = code ? capName(code) : '—', row = game && game.skills ? game.skills()[SKILL_SLOT[a]] : null;
+    return ['Yetenek · ' + (code === 'Mouse2' ? 'Sağ tık' : code === 'Mouse0' ? 'Sol tık' : cap + ' tuşu'),
+      row && row.skill ? 'Takılı: ' + row.skill.name + ' (' + ['', 'I', 'II', 'III'][row.skill.tier] + '. aşama)' : 'Boş yuva · T ile yetenek öğren ve ata'];
+  }
+  const BIND_GROUPS = [['bind-combat', ['heavy', 'special', 'rage', 'fourth', 'light', 'stand', 'dodge', 'heal']], ['bind-misc', ['interact']]];
   const BIND_DEFAULTS = {
     up: ['KeyW', 'ArrowUp'], down: ['KeyS', 'ArrowDown'], left: ['KeyA', 'ArrowLeft'], right: ['KeyD', 'ArrowRight'],
     light: ['Mouse0', 'KeyJ'], heavy: ['Mouse2', 'KeyK'], stand: ['ShiftLeft', ''], dodge: ['Space', ''],
-    heal: ['KeyQ', ''], rage: ['Digit2', ''], special: ['Digit1', ''], interact: ['KeyE', '']
+    heal: ['KeyQ', ''], rage: ['Digit2', ''], special: ['Digit1', ''], interact: ['KeyE', ''], fourth: ['Digit3', '']
   };
-  const BIND_MOUSE_OK = ['light', 'heavy', 'dodge', 'heal', 'rage', 'special'];   // walking and interact stay on the keyboard
+  const BIND_MOUSE_OK = ['light', 'heavy', 'dodge', 'heal', 'rage', 'special', 'fourth'];   // walking and interact stay on the keyboard
   const BIND_RESERVED = ['Escape', 'KeyH', 'KeyI', 'KeyC', 'KeyT', 'KeyM', 'Tab', 'MetaLeft', 'MetaRight', 'ContextMenu'];
   const CAP_NAMES = { Space: 'SPACE', ShiftLeft: 'SHIFT', ControlLeft: 'CTRL', AltLeft: 'ALT', ArrowUp: '↑', ArrowDown: '↓', ArrowLeft: '←', ArrowRight: '→', Enter: 'ENTER', Backspace: 'SİL', CapsLock: 'CAPS',
     Mouse0: 'SOL TIK', Mouse1: 'ORTA TIK', Mouse2: 'SAĞ TIK', Mouse3: 'FARE 4', Mouse4: 'FARE 5' };
@@ -98,7 +110,7 @@
   // Fills `binds` from a saved value; anything invalid or double-used falls back to the default for that action.
   function setBinds(saved, first) {   // `first`: the action whose keys win a double use
     const used = new Set(), processed = [], src = saved && typeof saved === 'object' ? saved : {};
-    for (const a of [first, 'special', 'rage', ...Object.keys(BIND_DEFAULTS)].filter((x, i, l) => x && l.indexOf(x) === i)) {
+    for (const a of [first, 'special', 'rage', 'fourth', ...Object.keys(BIND_DEFAULTS)].filter((x, i, l) => x && l.indexOf(x) === i)) {
       const ok = c => typeof c === 'string' && /^[A-Za-z0-9]{2,20}$/.test(c) && !BIND_RESERVED.includes(c) && !used.has(c) && (!c.startsWith('Mouse') || BIND_MOUSE_OK.includes(a) && mouseCode(c));
       let pair = Array.isArray(src[a]) ? [src[a][0], src[a][1]].map(c => ok(c) ? c : '') : ['', ''];
       if (pair[0] && pair[0] === pair[1]) pair[1] = '';
@@ -152,10 +164,10 @@
     }
     if (raw && typeof raw === 'object') {
       if (raw.quality === 'ultra') { raw.quality = 'high'; migrated = true; }
-      else if (!legacySettings && raw.qualityVersion !== DEFAULTS.qualityVersion && raw.quality === 'high') {
-        // The two-level High was this exact balanced preset. Keep its appearance
-        // under the new Medium name; the restored full High is a separate choice.
-        raw.quality = 'medium';
+      else if (!legacySettings && raw.qualityVersion !== DEFAULTS.qualityVersion && raw.quality === 'medium') {
+        // Version 4: the old Mac default was Medium, and nobody could tell it from a real choice.
+        // Everyone moves to High once; a later Medium choice (saved with version 4) is kept.
+        raw.quality = 'high';
       }
       if (raw.qualityVersion !== DEFAULTS.qualityVersion) migrated = true;
       if (Object.prototype.hasOwnProperty.call(QUALITY, raw.quality)) cfg.quality = raw.quality;
@@ -236,6 +248,7 @@
     post.setOverlay(flash * .8, ovRage, lv);
   }
   let ready = false, paused = true, frame = 0, last = 0, qaClock = 0, visualDt = 0;
+  let calmSince = 0, calmX = 0, calmZ = 0;   // see the draw-rate rule in frameStep
   let resumeAudioOnVisible = null;
   let graphicsLost = false, graphicsRecovering = false, graphicsEpoch = 0;
   const renderClock = B.Pacing.create();
@@ -253,7 +266,7 @@
   const keys = new Set(), actions = {}, cameraPos = new THREE.Vector3(), look = new THREE.Vector3(), target = new THREE.Vector3(), projected = new THREE.Vector3();
   // D4 controls: light / heavy = the attack KEY (J, K, pad, on-screen button: only swings at a foe in the front cone); clickLight / clickHeavy = a mouse press or tap this frame,
   // holdLight / holdHeavy = the mouse button (or the finger) is still down, stand = the "stand still" modifier, target = the foe under the cursor, pointX / pointZ = the floor under it.
-  const input = { x: 0, z: 0, aimX: null, aimZ: null, aimFoe: null, light: false, heavy: false, near: false, clickLight: false, clickHeavy: false, holdLight: false, holdHeavy: false, stand: false, target: null, pointX: null, pointZ: null, dodge: false, heal: false, rage: false, special: false, interact: false };
+  const input = { x: 0, z: 0, aimX: null, aimZ: null, aimFoe: null, light: false, heavy: false, near: false, clickLight: false, clickHeavy: false, holdLight: false, holdHeavy: false, stand: false, target: null, pointX: null, pointZ: null, dodge: false, heal: false, rage: false, special: false, fourth: false, interact: false };
   let lightPointer = null, hitPause = 0;
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
   const cameraKick = { x: 0, z: 0, vx: 0, vz: 0 }, cameraLead = new THREE.Vector3(), introFrom = new THREE.Vector3(), introLook = new THREE.Vector3(), lookTarget = new THREE.Vector3();
@@ -270,6 +283,7 @@
   /* ───────────── Views ───────────── */
   const menuStyle = document.querySelector('link[href*="ui-polish.css"]');
   function show(next) {
+    if (advancing && next !== 'playing') next = 'playing';   // the chapter hand-over cannot be interrupted by menus
     if ((graphicsLost || graphicsRecovering || warming) && next === 'playing') next = 'pause';
     if (next !== view) resetPerformance();
     view = next;
@@ -300,14 +314,14 @@
   }
   function open(next) { stack.push(view); show(next); }
   function back() { show(stack.pop() || 'title'); }
-  function openCharacter(tab = 'inventory') { if (!game || !['playing', 'pause', 'victory', 'character'].includes(view)) return; if (view !== 'character') open('character'); characterUI.open(tab); }
+  function openCharacter(tab = 'inventory') { if (advancing || !game || !['playing', 'pause', 'victory', 'character'].includes(view)) return; if (view !== 'character') open('character'); characterUI.open(tab); }
   function clearInput() {
     keys.clear(); for (const k in actions) delete actions[k];
     heldLight = false; lightPointer = null; touchHold = null; zoneTap = null; clicks.light = clicks.heavy = false; cursor.target = null;
     joy.x = joy.z = 0; joy.id = null; resetStick();
     input.aimX = input.aimZ = input.aimFoe = null;
     input.x = input.z = 0; input.target = input.pointX = input.pointZ = null;
-    for (const a of ['light', 'heavy', 'near', 'clickLight', 'clickHeavy', 'holdLight', 'holdHeavy', 'stand', 'dodge', 'heal', 'rage', 'special', 'interact']) input[a] = false;
+    for (const a of ['light', 'heavy', 'near', 'clickLight', 'clickHeavy', 'holdLight', 'holdHeavy', 'stand', 'dodge', 'heal', 'rage', 'special', 'fourth', 'interact']) input[a] = false;
   }
 
   /* ───────────── Messages ───────────── */
@@ -323,7 +337,7 @@
     setTimeout(() => d.remove(), kind.startsWith('rarity-') ? 6600 : 4200);
   }
   function clearNotices() {
-    levelUpTimer = 0; $('level-up').classList.remove('show');
+    levelUpTimer = 0; $('level-up').classList.remove('show'); if (B.LevelUp) B.LevelUp.cancel(); if (B.Charge && B.Charge.cancel) B.Charge.cancel();
     buffUI.clear();
     targetUI.clear();
     $('toasts').replaceChildren();
@@ -405,7 +419,7 @@
     if (B.Audio.say && !game.checkpointIndex) B.Audio.say(forgeChapter ? 'forgeIntro' : ruinsChapter ? 'ruinsIntro' : coastChapter ? 'coastIntro' : 'intro');
   }
   function event(name, d = {}) {
-    if (name === 'progression') { if (d.levels > 0) { B.Audio.play('levelUp'); fx('heroSkill', { skill: 'level', phase: 'release', x: game.player.x, z: game.player.z }); announceTimer = 0; $('announcement').classList.remove('show'); const el = $('level-up'); el.querySelector('small').textContent = 'SEVİYE ATLADIN'; el.querySelector('strong').textContent = 'SEVİYE ' + d.level; el.querySelector('span').textContent = '+' + d.levels + ' YETENEK PUANI · T'; el.classList.remove('show'); void el.offsetWidth; el.classList.add('show'); levelUpTimer = 6; } if (characterUI) characterUI.refresh(); return; }
+    if (name === 'progression') { if (d.levels > 0) { B.Audio.play('levelUp'); fx('heroSkill', { skill: 'level', phase: 'release', x: game.player.x, z: game.player.z }); announceTimer = 0; $('announcement').classList.remove('show'); if (B.LevelUp) B.LevelUp.trigger(d, game.player); levelUpTimer = 2.7; } if (characterUI) characterUI.refresh(); return; }
     if (name === 'loot') { for (const item of d.items || []) { const def = B.Progression.catalog[item.id]; if (def) notify(B.Progression.qualities[def.rarity].name + ' ganimet · ' + def.name + ' · Çantaya eklendi [I]', 'rarity-' + def.rarity); } return; }
     if (name === 'hit') {
       // combat.js sizes the hit-stop itself (d.hitstop is set) and reports how hard the contact was (d.impact 0..1),
@@ -432,6 +446,7 @@
     else if (name === 'rageEnd') notify('Öfke söndü');
     else if (name === 'checkpoint') { $('objective').textContent = formatObjective(forgeChapter ? 'Son Döküm’e ilerle. Ocağın Kalbi’ni söndür.' : ruinsChapter ? 'Sessiz Taht’a ilerle. Oyukların Kralı’nı yen.' : coastChapter ? 'Çanlığa ilerle. Çancıyı sustur.' : 'Celladı bul. Geçidi aç.'); announce('Yemin mühürlendi', 'KONTROL NOKTASI', 'checkpoint'); notify('Canın ve iksirlerin yenilendi. Buradan geri döneceksin.', 'seal'); if (B.Audio.saySequence) B.Audio.saySequence([forgeChapter ? 'forgeCheckpoint' : ruinsChapter ? 'ruinsCheckpoint' : coastChapter ? 'coastCheckpoint' : 'checkpoint', 'heroOath']); else if (B.Audio.say) B.Audio.say(forgeChapter ? 'forgeCheckpoint' : ruinsChapter ? 'ruinsCheckpoint' : coastChapter ? 'coastCheckpoint' : 'checkpoint'); }
     else if (name === 'encounter') { if (d.name) announce(d.name, 'KARŞILAŞMA'); }
+    else if (name === 'gateOpen') { announce('Kapı açıldı', 'BOSS KAPISI', 'seal'); }
     else if (name === 'encounterCleared') { announce('Mühür açıldı', d.roomName || d.name || 'SALON TEMİZLENDİ', 'seal'); }
     else if (name === 'boss') { if (d.active !== false) { announce(d.name || 'Zincir Celladı', forgeChapter ? 'SON DÖKÜM' : ruinsChapter ? 'SESSİZ TAHT' : coastChapter ? 'BOĞULMUŞ ÇANLIK' : 'KURBAN SALONU', 'boss'); if (B.Audio.saySequence) B.Audio.saySequence(forgeChapter ? ['forgeBoss'] : ruinsChapter ? ['ruinsBoss'] : coastChapter ? ['coastBoss'] : ['boss', 'cellat']); else if (B.Audio.say) B.Audio.say(forgeChapter ? 'forgeBoss' : ruinsChapter ? 'ruinsBoss' : coastChapter ? 'coastBoss' : 'boss'); } }
     else if (name === 'death') death(d);
@@ -491,11 +506,32 @@
   function victory(d = {}) {
     if (wonShown) return; wonShown = true;
     hud(0); hudTimer = 0;
-    if (B.Audio.say) B.Audio.say(forgeChapter ? 'forgeWin' : ruinsChapter ? 'ruinsWin' : coastChapter ? 'coastWin' : 'win', true);
+    const winKey = forgeChapter ? 'forgeWin' : ruinsChapter ? 'ruinsWin' : coastChapter ? 'coastWin' : 'win';
+    if (B.Audio.say) B.Audio.say(winKey, true);
+    if (!forgeChapter) { advanceChapter(winKey); return; }
     const t = d.time ?? game.elapsed ?? elapsed, k = d.kills ?? game.kills ?? 0;
     const stat = (icon, value, label) => `<div><svg class="icon" aria-hidden="true"><use href="#${icon}"/></svg><b>${value}</b><small>${label}</small></div>`;
     $('victory-stats').innerHTML = stat('i-hourglass', timeText(t), 'SÜRE') + stat('i-cross', Math.round(k), 'ALT EDİLEN') + stat('i-skull', deaths, 'ÖLÜM');
     setTimeout(() => { if (game.state === 'won') show('victory'); }, 1500);
+  }
+  // Chapters I-III: the boss reward has been collected (combat.js win()) and the next chapter's save is written.
+  // Fade to the chapter card while the closing narration plays, then load the next chapter's world (its loading cover
+  // is the same dark colour) and begin it automatically (?yolculuk=devam).
+  function advanceChapter(winKey) {
+    if (advancing) return; advancing = true;
+    clearInput(); B.HUD && B.HUD.dismissTips && B.HUD.dismissTips();
+    const fade = $('chapter-fade'), narr = B.Narration && B.Narration[winKey];
+    const hold = (Q.has('sessiz') ? 3.2 : Math.min(14, (narr && narr.duration) || 9) + 1) * 1000;
+    fade.querySelector('.eyebrow').textContent = 'Bölüm ' + chapterNumbers[chapter - 1] + ' tamamlandı';
+    fade.querySelector('h2').textContent = $('victory-title-text').textContent;
+    fade.querySelector('.end-quote').textContent = document.querySelector('#victory .end-quote').textContent;
+    fade.querySelector('.next').textContent = 'BÖLÜM ' + chapterNumbers[chapter] + ' · ' + chapterNames[chapter];
+    setTimeout(() => { fade.classList.remove('hidden'); void fade.offsetWidth; fade.classList.add('show'); document.body.classList.add('chapter-fading'); }, 1500);
+    // Music and ambience sink under the card so the swap on the next page is not a hard cut.
+    setTimeout(() => {
+      let n = 0; const timer = setInterval(() => { n++; B.Audio.set({ music: cfg.music * Math.max(0, 1 - n / 10), ambient: cfg.ambient * Math.max(0, 1 - n / 10) }); if (n >= 10) clearInterval(timer); }, 100);
+    }, 1500 + 1700 + hold - 1100);
+    setTimeout(() => chapterLink(true), 1500 + 1700 + hold);
   }
 
   /* ───────────── Effects bridge ───────────── */
@@ -624,7 +660,7 @@
         ? 'Otomatik: yüksek çözünürlüklü ekranlarda grafik kalitesine uygun boyut seçer. Düşük ayar bilgisayarı daha az çalıştırır. Yazılar net kalır.'
         : 'Ekranın bütün piksellerini kullanır. Retina ekranda Düşük kalite seçilse de çizim boyutu azalmaz.';
     }
-    if (rate) rate.textContent = cfg.fps ? 'En fazla ' + cfg.fps + ' kare/sn. Ekranın yenileme hızına uymayan bir sınır kare atlamalarına yol açabilir; en düzgünü "Ekran hızı"dır.' : 'Ekranın her yenilemesinde çizer (G-Sync / FreeSync / ProMotion ile en düzgünü).';
+    if (rate) rate.textContent = cfg.fps ? 'En fazla ' + cfg.fps + ' kare/sn. Ekranın yenileme hızına uymayan bir sınır kare atlamalarına yol açabilir (G-Sync/FreeSync varsa sorun olmaz). Düşük sınır işlemci yükünü ve fan sesini azaltır: 90 FPS yaklaşık %25, 60 FPS yaklaşık %35 daha az işlemci kullanır.' : 'Ekranın her yenilemesinde çizer (G-Sync / FreeSync / ProMotion ile en düzgünü).';
   }
   function renderSettings() {
     const video = $('settings-video'), audio = $('settings-audio');
@@ -666,7 +702,7 @@
   function openKeybinds() { open('keybinds'); renderBinds(); }
   function fillPause() {
     if (!game) return;
-    const total = game.enemies.length, kills = game.enemies.filter(e => e.dead).length;
+    const total = game.enemies.filter(e => !e.reserve).length, kills = game.enemies.filter(e => e.dead && !e.reserve).length;   // reserve = dormant boss adds (boss2.js)
     const r = world && world.roomAt(game.player.x, game.player.z);
     $('pause-room').textContent = r ? r.name : 'Kurban Tapınağı';
     $('pause-time').textContent = timeText(game.elapsed || 0);
@@ -845,7 +881,7 @@
   const bindsChanged = () => { rebuildBindMap(); safe(saveSettings); paintCaps(); renderBinds(); };
   // Gives `code` to binds[action][slot]. A code that is already used elsewhere swaps places with what this slot held.
   function assignBind(action, slot, code) {
-    const label = a => BIND_INFO[a][0], mouseOk = a => BIND_MOUSE_OK.includes(a);
+    const label = a => bindInfo(a)[0], mouseOk = a => BIND_MOUSE_OK.includes(a);
     const walkNote = 'Tıklayarak yürümek için Hafif saldırıda en az bir fare tuşu kalmalı. Önce yedek kutuya bir fare tuşu ata.';
     if (!code) {
       if (!slot) return { ok: false, msg: 'Ana tuş boş bırakılamaz.' };
@@ -881,7 +917,7 @@
   function startRebind(action, slot) {
     if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
     rebind = { action, slot };
-    $('bind-capture-what').textContent = `${BIND_INFO[action][0]} · ${slot ? 'yedek tuş' : 'ana tuş'}`;
+    $('bind-capture-what').textContent = `${bindInfo(action)[0]} · ${slot ? 'yedek tuş' : 'ana tuş'}`;
     $('bind-capture-hint').textContent = BIND_MOUSE_OK.includes(action) ? 'Klavyeden bir tuşa ya da fare tuşuna bas · Esc iptal' : 'Esc iptal';
     $('bind-capture-clear').classList.toggle('hidden', !slot);
     $('bind-capture').classList.remove('hidden'); renderBinds();
@@ -895,19 +931,24 @@
   function renderBinds() {
     for (const [id, list] of BIND_GROUPS) {
       const sec = $(id); if (!sec) continue;
-      sec.querySelectorAll('.bindrow, .bind-cols').forEach(n => n.remove());
+      sec.querySelectorAll('.bindrow, .bind-cols, .bind-subhead').forEach(n => n.remove());
       const head = document.createElement('div'); head.className = 'bind-cols'; head.innerHTML = '<span></span><span>Ana tuş</span><span>Yedek</span><span></span>'; sec.append(head);
       const fixed = id === 'bind-misc' ? [['Mola', 'Menü ve ayarlar', 'ESC'], ['Karakter ve çanta', 'Yetenek ağacı: T', 'I / C'], ['Yardım', 'Kontroller ekranı', 'H']] : [];
       for (const a of list) {
+        if (a === 'heavy' || a === 'light') {
+          const sub = document.createElement('div'); sub.className = 'bind-subhead'; sub.setAttribute('role', 'presentation');
+          sub.innerHTML = a === 'heavy' ? `<b>Yetenekler</b><span>${['heavy', 'special', 'rage', 'fourth'].map(k => { const c = binds[k][0] || binds[k][1]; return c ? capName(c) : '—'; }).join(' · ')}</span>` : '<b>Diğer savaş tuşları</b>';
+          sec.append(sub);
+        }
         const row = document.createElement('div'); row.className = 'setting bindrow'; row.dataset.bindRow = a;
-        row.innerHTML = `<div class="bind-name"><label>${BIND_INFO[a][0]}</label><small>${BIND_INFO[a][1]}</small></div><button type="button" class="bind-slot" data-slot="0"></button><button type="button" class="bind-slot" data-slot="1"></button><button type="button" class="bind-reset" title="Varsayılana dön" aria-label="${BIND_INFO[a][0]}: varsayılana dön">↺</button>`;
+        row.innerHTML = `<div class="bind-name"><label>${bindInfo(a)[0]}</label><small>${bindInfo(a)[1]}</small></div><button type="button" class="bind-slot" data-slot="0"></button><button type="button" class="bind-slot" data-slot="1"></button><button type="button" class="bind-reset" title="Varsayılana dön" aria-label="${BIND_INFO[a][0]}: varsayılana dön">↺</button>`;
         row.querySelectorAll('.bind-slot').forEach((b, i) => {
           const c = binds[a][i]; b.textContent = capName(c); b.classList.toggle('empty', !c); b.classList.toggle('listening', !!rebind && rebind.action === a && rebind.slot === i);
-          b.setAttribute('aria-label', `${BIND_INFO[a][0]}, ${i ? 'yedek' : 'ana'} tuş: ${c ? capName(c) : 'boş'}. Değiştirmek için tıkla.`);
+          b.setAttribute('aria-label', `${bindInfo(a)[0]}, ${i ? 'yedek' : 'ana'} tuş: ${c ? capName(c) : 'boş'}. Değiştirmek için tıkla.`);
           b.onclick = () => startRebind(a, i);
         });
         const same = binds[a].join() === BIND_DEFAULTS[a].join(), rs = row.querySelector('.bind-reset'); rs.disabled = same;
-        rs.onclick = () => { setBinds(Object.assign({}, binds, { [a]: BIND_DEFAULTS[a] }), a); bindsChanged(); bindNote(`${BIND_INFO[a][0]} varsayılana döndü.`); };
+        rs.onclick = () => { setBinds(Object.assign({}, binds, { [a]: BIND_DEFAULTS[a] }), a); bindsChanged(); bindNote(`${bindInfo(a)[0]} varsayılana döndü.`); };
         sec.append(row);
       }
       for (const [name, note, cap] of fixed) {
@@ -1001,7 +1042,7 @@
     }
     const len = Math.hypot(x, z); if (len > 1) { x /= len; z /= len; }
     input.x = x; input.z = z;
-    for (const a of ['light', 'heavy', 'near', 'dodge', 'heal', 'rage', 'special', 'interact']) { input[a] = !!actions[a]; delete actions[a]; }
+    for (const a of ['light', 'heavy', 'near', 'dodge', 'heal', 'rage', 'special', 'fourth', 'interact']) { input[a] = !!actions[a]; delete actions[a]; }
     return input;
   }
   /* ───────────── HUD ───────────── */
@@ -1011,9 +1052,12 @@
   function makePortrait() {
     const canvas = $('hero-portrait'), N = 384, context = canvas.getContext('2d');
     canvas.width = canvas.height = N;
+    if (!('filter' in context)) canvas.style.filter = 'contrast(1.1) saturate(.8)';   // browsers without canvas filters keep the old CSS grade
     if (!Q.has('portrait')) {
       const img = new Image();
-      img.onload = () => { context.clearRect(0, 0, N, N); context.drawImage(img, 0, 0, N, N); };
+      // The grade (contrast 1.1, saturation .8) used to be a CSS filter on the canvas: a two-matrix filter surface that the browser built a new drawing program for
+      // when the HUD dimmed at the start of the first fight (100-200 ms stall). It is applied once when the picture is drawn instead; the look is the same.
+      img.onload = () => { context.clearRect(0, 0, N, N); context.filter = 'contrast(1.1) saturate(.8)'; context.drawImage(img, 0, 0, N, N); context.filter = 'none'; };
       img.src = 'assets/ui/portrait-v47.webp';
       return;
     }
@@ -1071,6 +1115,7 @@
     }
     for (let i = 0; i < N * N; i++) for (let k = 0; k < 3; k++) d[i * 4 + k] += (d[i * 4 + k] - blur[i * 3 + k]) * .6;
     context.putImageData(px, 0, 0);
+    { const g = document.createElement('canvas'); g.width = g.height = N; g.getContext('2d').drawImage(canvas, 0, 0); context.clearRect(0, 0, N, N); context.filter = 'contrast(1.1) saturate(.8)'; context.drawImage(g, 0, 0); context.filter = 'none'; }   // same grade as the painted portrait
     model.dispose(); r.dispose(); r.forceContextLoss();
   }
   function hudText(id, value) {
@@ -1169,19 +1214,32 @@
     }
     stamp(x, miniSprites.hero, sx(p.x), sy(p.z), -p.face);
   }
+  // Each minimap glow is a small canvas whose blur only runs (and the browser only builds its blur program) the first time that sprite is drawn:
+  // 6 pulse sizes + idle + boss + checkpoint + hero, so the first active enemy beat stalled the fight for up to 300 ms. Draw each once while the cover is up.
+  function warmMiniSprites() {
+    const c = $('minimap'); if (!c) return;
+    const x = c.getContext('2d'), k = c.width / 256;
+    if (!miniSprites || miniSpriteK !== k) { miniSpriteK = k; miniSprites = buildMiniSprites(k); }
+    const list = [...miniSprites.enemy, ...miniSprites.boss, miniSprites.enemyIdle, miniSprites.bossIdle, ...miniSprites.checkpoint, miniSprites.hero];
+    x.setTransform(1, 0, 0, 1, 0, 0); x.clearRect(0, 0, c.width, c.height);
+    list.forEach((sprite, i) => stamp(x, sprite, 30 + (i % 8) * 28, 40 + Math.floor(i / 8) * 40, i % 2 ? .4 : 0));
+    miniKey = '';
+  }
   function updateOverview() {
-    const p = game.player, total = game.enemies.length;
-    let kills = 0; for (const e of game.enemies) if (e.dead) kills++;
-    hudText('kill-progress', kills + ' / ' + total);
+    const p = game.player, total = game.totalKills || game.enemies.length;
+    let kills = 0; for (const e of game.enemies) if (e.dead && !e.reserve) kills++;
+    const gt = game.gate;   // boss gate (src/gate.js): the counter shows progress toward opening it
+    hudText('kill-progress', gt ? (gt.open ? gt.need + ' / ' + gt.need + ' ✓' : Math.min(gt.kills, gt.need) + ' / ' + gt.need) : kills + ' / ' + total);
 
     hq('.hero-card').classList.toggle('sealed', !!game.checkpointIndex);
     hq('.flask-button').classList.toggle('empty', p.flasks === 0);
     const selectedSkills = game.skills();
     for (const pad of padList()) {
       const b = pad.el, key = pad.key;
-      const active = key === 'light' ? p.attack && !p.attack.heavy : key === 'heavy' ? p.attack && p.attack.heavy && !p.attack.special : key === 'dodge' ? p.dodge > 0 : key === 'special' ? !!(p.attack && p.attack.special) : cryEffect.remaining > 0;
+      const skillSlot=key==='heavy'?0:key==='special'?1:key==='rage'?2:key==='fourth'?3:-1, chosen=skillSlot>=0?selectedSkills[skillSlot]:null;
+      // A slot is lit while ITS skill runs (any slot can hold any line); the roar stays lit for its whole fury.
+      const active = chosen && chosen.id ? (chosen.line === 'roar' ? cryEffect.remaining > 0 || !!p.roar : !!(p.attack && p.attack.skill === chosen.id)) : key === 'light' ? p.attack && !p.attack.heavy : key === 'dodge' ? p.dodge > 0 : false;
       b.classList.toggle('pressed', !!active);
-      const skillSlot=key==='heavy'?0:key==='special'?1:key==='rage'?2:-1, chosen=skillSlot>=0?selectedSkills[skillSlot]:null;
       const cost = chosen ? chosen.cost : B.Game.resources.costs[key];
       b.classList.toggle('unavailable', cost > 0 && p.stamina < cost && !active);
       if (key === 'light' || key === 'heavy') {
@@ -1192,7 +1250,15 @@
     drawMinimap(p);
   }
   function formatObjective(text) { return text.replace(/\. (?=\S)/, '.\n'); }
+  // Boss gate objective (short, one sentence): the count while sealed, then the open gate, then the boss's name inside the arena.
+  function gateObjective(room) {
+    const gt = game.gate; if (!gt || game.state === 'won' || !game.boss || game.boss.dead) return null;
+    if (room && room.id === gt.room) return gt.bossName;
+    if (room && room.id === (chapter < 3 ? 5 : 11) && !game.checkpointIndex) return null;   // the oath stone prompt below
+    return gt.open ? 'Boss kapısı açıldı. Boss seni bekliyor.' : gt.need + ' düşman öldür, boss kapısı açılsın.';
+  }
   function chapterObjective(room) {
+    const gateText = gateObjective(room); if (gateText) return gateText;
     if(chapter < 3 && room && room.id >= 7){const n=game.enemies.filter(e=>!e.dead&&e.encounter.room===room.id).length;return n?'Bu yan alanda '+n+' düşman var.':'Alan temizlendi. Ana yola geri dön.';}
     if(forgeChapter){if(game.state==='won')return 'Ocak söndü. Zincirlerin kaynağı yok oldu.';if(!room)return 'Dökümhanenin içinden kuzeye ilerle.';if(room.id===11)return game.checkpointIndex?'Köz Yemini mühürlendi. Son Döküm’e ilerle.':'Köz Yemini taşına yaklaş ve '+capName(binds.interact[0])+' ile dokun.';if(room.id===13)return 'Ocağın Kalbi’ni yen. Kızgın halkalardaki boşlukları kullan.';const n=game.enemies.filter(e=>!e.dead&&e.encounter.room===room.id).length;return n?'Bu alanda '+n+' düşman var.':'Kuzeydeki döküm salonuna ilerle.';}
     if(ruinsChapter){if(game.state==='won')return 'Taht yıkıldı. Kralın sesi sustu.';if(!room)return 'Harabelerin içinden kuzeye ilerle.';if(room.id===11)return game.checkpointIndex?'Son yemin mühürlendi. Tahtın nöbetini aş.':'Son Yemin taşına yaklaş ve '+capName(binds.interact[0])+' ile dokun.';if(room.id===13)return 'Oyukların Kralı’nı yen. Taş halkalarının güvenli boşluklarını bul.';const n=game.enemies.filter(e=>!e.dead&&e.encounter.room===room.id).length;return n?'Bu alanda '+n+' düşman var.':room.id===5?'Yıkılmış anıtın altından mağaraya gir.':'Kuzeydeki geçide ilerle.';}
@@ -1230,7 +1296,7 @@
     if (xpBar.getAttribute('aria-valuenow') !== xpValue) xpBar.setAttribute('aria-valuenow', xpValue);
     const xpTitle = progression.level === B.Progression.MAX_LEVEL ? 'En yüksek seviye' : (progression.xp - baseXp) + ' / ' + (nextXp - baseXp) + ' tecrübe';
     if (xpBar.title !== xpTitle) xpBar.title = xpTitle;
-    cryEffect.remaining = !p.dead && game.state === 'playing' ? p.rageTime || 0 : 0;
+    cryEffect.remaining = !p.dead && game.state === 'playing' ? p.rageTime || 0 : 0; if (p.rageMax > 0) cryEffect.duration = p.rageMax;
     buffUI.update(timedEffects);
     let buffCount = 0;
     for (const effect of timedEffects) if (Number.isFinite(effect.remaining) && effect.remaining > 0) buffCount++;
@@ -1289,7 +1355,7 @@
       const lead = reducedMotion.matches ? 0 : p.move > .1 ? .55 : .18;
       target.set(Math.sin(p.face) * lead, 0, Math.cos(p.face) * lead);
       cameraLead.lerp(target, 1 - Math.exp(-dt * 3));
-      const push = ragePush > 0 ? Math.sin(Math.min(1, (1 - ragePush) / .18) * Math.PI / 2) * Math.min(1, ragePush / .6) : 0, near = 1 - .17 * push;
+      const push = ragePush > 0 ? Math.sin(Math.min(1, (1 - ragePush) / .18) * Math.PI / 2) * Math.min(1, ragePush / .6) : 0, near = 1 - .17 * push - (B.LevelUp ? B.LevelUp.push() : 0) - (B.Charge && B.Charge.cameraPush ? B.Charge.cameraPush() : 0) - (B.SkillFx ? B.SkillFx.push() : 0);
       target.set(p.x + cameraLead.x, (wide ? 19 : touch ? 15.6 : 13.8) * CAM_NEAR * near, p.z + (wide ? 16 : 11.4) * CAM_NEAR * near + cameraLead.z);   // (parent: closer to the hero; CAM_NEAR .78 = 22 % nearer, ?cam=1 restores the old distance)
       lookTarget.set(p.x + cameraLead.x, .7, p.z - .8 + cameraLead.z);
       if (introBlend < 1) {
@@ -1343,7 +1409,7 @@
   /* ───────────── Frame loop ───────────── */
   // Measurements are session-only and off by default. No GPU queries while the meter is hidden.
   function resetPerformance() {
-    fpsStart = fpsFrames = 0;
+    fpsStart = fpsFrames = 0; fpsGaps.fill(0); fpsGapLast = 0;
     performanceMeter.reset();
     if (post && post.resetTiming) post.resetTiming();
   }
@@ -1360,7 +1426,7 @@
     return graphicsAdapter;
   }
   function performanceReport() {
-    return { schema: 4, game: 'Kabir Azabı', build: 111, capturedAt: new Date().toISOString(), view,
+    return { schema: 4, game: 'Kabir Azabı', build: 126, capturedAt: new Date().toISOString(), view,
       location: { room: world.rooms?.[roomId]?.name || roomId, x: game.player.x, z: game.player.z },
       display: { width: post.width, height: post.height, windowWidth: innerWidth, windowHeight: innerHeight,
         devicePixelRatio: window.devicePixelRatio || 1, renderPixelRatio: renderer.getPixelRatio() },
@@ -1373,13 +1439,26 @@
       loading: warmStats,
       measurementScope: 'CPU samples describe the JavaScript and draw submission of presented callbacks; callbacks skipped by the Mac frame cap are not included in CPU stages. GPU scene includes shadows; GPU post includes AO, bloom and composition. GPU excludes HUD contexts and screen presentation. CPU and GPU run concurrently; do not add their times.' };
   }
+  // Gaps between presented frames (last ~600), so the counter can also show the longest frame: a few slow frames are
+  // what the eye reads as stutter even when the FPS average looks fine.
+  const BUILD_TAG = 125, fpsGaps = new Float32Array(600);
+  let fpsGapAt = 0, fpsGapLast = 0;
+  function frameStats() {
+    let longest = 0, slow = 0;
+    for (let i = 0; i < fpsGaps.length; i++) { const g = fpsGaps[i]; if (g > longest) longest = g; if (g > 12) slow++; }
+    return { longestMs: Math.round(longest), over12Ms: slow, build: BUILD_TAG, width: post.width, height: post.height, frameLimit: cfg.fps };
+  }
   function drawFps(fps) {
-    // Player-facing: frame rate and render resolution only (details stay in B.app.performance).
+    // Player-facing: only the frame rate and the render resolution. Long-frame counters stay in B.app.frameStats() (or add ?perf to the URL to print them).
     const rate = Number.isFinite(fps) ? `${Math.round(fps)} FPS` : 'FPS ölçülüyor…';
-    $('fps-values').textContent = `${rate}\n${post.width} × ${post.height}`;
+    let text = `${rate}\n${post.width} × ${post.height}`;
+    if (Q.has('perf')) { const s = frameStats(); text += `\nen uzun kare ${s.longestMs} ms · 12 ms üstü ${s.over12Ms} · v${s.build}`; }
+    $('fps-values').textContent = text;
   }
   function fpsTick(ts) {
     if (!cfg.showFps) return;
+    if (fpsGapLast) { fpsGaps[fpsGapAt] = ts - fpsGapLast; fpsGapAt = (fpsGapAt + 1) % fpsGaps.length; }
+    fpsGapLast = ts;
     if (!fpsStart) { fpsStart = ts; fpsFrames = 0; return; }
     fpsFrames++;
     const span = ts - fpsStart;
@@ -1400,12 +1479,20 @@
     if (measured) performanceMeter.callback(ts);
     const dt = clamp((ts - (last || ts)) / 1000, 0, .05); last = ts; elapsed += dt; frame++;
     visualDt = Math.min(.1, visualDt + dt);
+    // Decide first whether this callback will draw, so the simulation can skip posing characters nobody will see
+    // (a 200 Hz screen under a 120 FPS cap runs three callbacks of five without a draw; the skipped time is handed to the next pose).
+    // Draw rate by situation (CPU/fan): menus 30 (as before), the title screen 60, and a hero who has stood still for 2.5 s with no foe awake
+    // nearby 60 (nothing moves, the screen is static); everything else keeps the configured rate (120 locked). Input or a foe restores it at once.
+    const calmIdle = calmSince !== 0 && ts - calmSince > 2500 && (cfg.fps === 0 || cfg.fps > 60);
+    const drawing = !warming && renderClock.due(ts, paused ? (view === 'title' ? (cfg.fps ? Math.min(cfg.fps, 60) : 60) : Math.min(cfg.fps || 30, 30)) : calmIdle ? 60 : cfg.fps);
+    game.drawing = drawing;
     // Controllers keep polling on every menu too, so reconnect, remapping and navigation never depend on combat.
     controllerState = controller ? controller.poll(dt) : null;
+    if (B.LevelUp) B.LevelUp.step(dt);   // level-up screen layer: banner timeline, edge flash / colour fringe via Post.setAbilityFx (real time)
     const playing = view === 'playing' && game.state === 'playing';
     if (playing) {
       if (heldLight || keyDown('light') || controllerState?.lightHeld) { lightRepeat += dt; if (lightRepeat >= .12) { actions.light = true; if (heldLight) actions.near = true; lightRepeat = 0; } }
-      const stopped = Math.min(dt, hitPause), simDt = dt - stopped; hitPause -= stopped;
+      const stopped = Math.min(dt, hitPause), simDt = (dt - stopped) * (B.LevelUp ? B.LevelUp.timeScale() : 1) * (B.Charge && B.Charge.timeScale ? B.Charge.timeScale() : 1) * (B.SkillFx ? B.SkillFx.timeScale() : 1); hitPause -= stopped;
       // Input events remain queued during contact emphasis; all combat clocks share simDt
       // so neither enemies nor i-frames gain a hidden time advantage.
       if (simDt > .000001) { const inp = pollInput(); if (view === 'playing') { game.update(simDt, inp); fxStep(simDt); footstepFeedback(); } }
@@ -1418,12 +1505,18 @@
     flash = Math.max(0, flash - dt * 1.7);
     syncWarnings(dt);
     const fighting = game.enemies.some(e => !e.dead && e.active && Math.hypot(e.x - game.player.x, e.z - game.player.z) < 10);
+    {
+      const pl = game.player, still = view === 'playing' && game.state === 'playing' && !fighting && !input.x && !input.z && !input.target
+        && Math.hypot(pl.x - calmX, pl.z - calmZ) < .02;
+      calmX = pl.x; calmZ = pl.z;
+      if (!still) calmSince = 0; else if (!calmSince) calmSince = ts;
+    }
     if (fighting) announceTimer = Math.min(announceTimer, .35);
     if (fighting && firstHint > 0) { $('tutorial').classList.add('hidden'); firstHint = 0; }
     B.Audio.update(dt, { playing: view === 'playing' && game.state === 'playing', combat: fighting, boss: game.enemies.some(e => e.boss && !e.dead && Math.hypot(e.x - game.player.x, e.z - game.player.z) < 25) });
     const simulationEnd = measured ? performance.now() : 0;
     // While new shader programs compile in the background the last frame stays on screen (drawing would block the page).
-    if (!warming && renderClock.due(ts, paused && view !== 'title' ? Math.min(cfg.fps || 30, 30) : cfg.fps)) {
+    if (drawing) {
       // A size change clears the browser canvas. Apply it before drawing the
       // visible frame, so a completed frame is never erased before presentation.
       // Automatic resolution: only while really playing, and never on 120 Hz-class targets (see Display.createScaler).
@@ -1499,7 +1592,11 @@
       if (!o.isMesh || !o.material || Array.isArray(o.material) || o.customDepthMaterial) return;
       const m = o.material;
       if (!o.castShadow && (m.transparent || m.depthWrite === false || !m.colorWrite)) return;
-      const key = m.uuid + (o.isSkinnedMesh ? 's' : o.isBatchedMesh ? 'b' : o.isInstancedMesh ? 'i' : 'm');
+      // Plain opaque casters (no cutout, displacement or clipping) draw the same depth in any material, so they share one depth material
+      // per caster type and side: the shadow pass then keeps one program/uniform state instead of changing material ~200 times per map.
+      const side = m.shadowSide !== null ? m.shadowSide : m.side === THREE.FrontSide ? THREE.BackSide : m.side === THREE.BackSide ? THREE.FrontSide : THREE.DoubleSide;
+      const plain = !m.alphaMap && !(m.alphaTest > 0) && !m.displacementMap && !m.clippingPlanes && !m.clipShadows && !Q.has('depthown');
+      const key = (plain ? 'plain' + side : m.uuid) + (o.isSkinnedMesh ? 's' : o.isBatchedMesh ? 'b' : o.isInstancedMesh ? 'i' : 'm');
       let dm = depthMaterials.get(key);
       if (!dm) {
         dm = new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking });
@@ -1583,6 +1680,18 @@
       for (const lv of scaler.levels) { const pl = DISPLAY.plan(v, { ...cfg, dynScale: lv }); if (!sizes.some(z => z[0] === pl.width && z[1] === pl.height)) sizes.push([pl.width, pl.height]); }
       post.prewarm(sizes);
     });
+  }
+  // Paints the real (normally hidden) HUD at 1 % opacity above the loading cover so its canvases, orbs and minimap are rasterised once (warmup.js).
+  let liveHudState = null;
+  function liveHudPaint(on) {
+    const el = $('hud'); if (!el || !game) return;
+    if (on === 'sprites') { safe(warmMiniSprites); return; }
+    if (on === 'map') { safe(() => { miniKey = ''; drawMinimapNow(game.player); }); return; }
+    if (on === true) {
+      if (!el.classList.contains('hidden')) return;
+      liveHudState = el.style.cssText; el.classList.remove('hidden'); el.style.opacity = '.012'; el.style.zIndex = '2147483000';
+      safe(() => { if (B.HUD) { B.HUD.vitals(game.player, 0); B.HUD.force(true); if (B.HUD.skills) B.HUD.skills(game.player, 0, game.skills()); } drawMinimapNow(game.player); });
+    } else if (liveHudState !== null) { el.style.cssText = liveHudState; el.classList.add('hidden'); liveHudState = null; }
   }
   function warmShaders(overlay, onProgress) {
     if (!renderer || graphicsLost) return Promise.resolve(false);
@@ -1688,6 +1797,17 @@
         report(); if (!WARM_SYNC) await frame();
       }
       warmStats.geometryObjects = geo; warmStats.geometryUploads = Math.round(performance.now() - geometryStart);
+      // Effects, hidden rooms and page content are first used mid-fight otherwise: draw/paint all of it once now (see warmup.js).
+      if (!WARM_SYNC && B.Warmup) {
+        progress(.93, 'Efektler ve arayüz hazırlanıyor…');
+        checkContext();
+        warmStats.roomTour = await B.Warmup.roomTour({ scene, camera, renderer, game, world, target: post.target, snap: snapScene });
+        checkContext();
+        warmStats.fxDraw = await B.Warmup.drawAll({ scene, camera, renderer, post, feedback, game, step: () => { cameraStep(0); atmosphereStep(0); }, elapsed: () => elapsed });
+        checkContext();
+        warmStats.domPaint = await B.Warmup.paintDom(liveHudPaint);
+        warmStats.newPrograms = B.Warmup.stats.programs;
+      }
       progress(.96, 'Son görüntü hazırlanıyor…');
       // One real frame (shadow-map variants) while the cover is still up.
       checkContext(); safe(() => { cameraStep(0); atmosphereStep(0); post.render(elapsed); });
@@ -1698,7 +1818,8 @@
       if (WARM_LOG) console.warn('[warm] done', JSON.stringify(warmStats));
       return true;
     }
-    warming = run().catch(e => { console.warn('[Kabir Azabı]', e); return false; }).then(ok => { warming = null; if (box) box.classList.add('hidden'); if (onProgress) onProgress(1); return ok; });
+    document.body.classList.add('warming-cover');
+    warming = run().catch(e => { console.warn('[Kabir Azabı]', e); return false; }).then(ok => { warming = null; document.body.classList.remove('warming-cover'); if (box) box.classList.add('hidden'); if (onProgress) onProgress(1); return ok; });
     return warming;
   }
 
@@ -1726,13 +1847,39 @@
     // alternate between its shader variants dozens of times per frame; each switch rebuilds the program parameters and cache key
     // (about 1 ms and 350 KB of garbage per frame). Same order otherwise; opaque, depth-tested draws look identical in any order.
     const variantOf = o => o.isSkinnedMesh ? 2 : o.isBatchedMesh ? 3 : o.isInstancedMesh ? 1 : 0;
-    renderer.setOpaqueSort((a, b) => a.groupOrder !== b.groupOrder ? a.groupOrder - b.groupOrder : a.renderOrder !== b.renderOrder ? a.renderOrder - b.renderOrder
+    // Program-major: a program switch re-uploads the whole 12-light / fog / shadow uniform block (about 1.7 ms of a combat frame at
+    // 90 switches), so every material with the same shader features is drawn together (then per mesh kind, then per material).
+    const progClasses = new Map();
+    const progClass = m => m.__karaPcV === m.version ? m.__karaPc : progClassOf(m);
+    const progClassOf = m => {
+      let ck = ''; try { ck = m.customProgramCacheKey ? m.customProgramCacheKey() : ''; } catch (_) { }
+      const k = m.type + '|' + ck + '|' + (m.isShaderMaterial ? m.uuid : '') + '|' + (m.map ? 1 : 0) + (m.normalMap ? 1 : 0) + (m.roughnessMap ? 1 : 0) + (m.metalnessMap ? 1 : 0) + (m.aoMap ? 1 : 0)
+        + (m.emissiveMap ? 1 : 0) + (m.alphaMap ? 1 : 0) + (m.bumpMap ? 1 : 0) + (m.lightMap ? 1 : 0) + (m.displacementMap ? 1 : 0) + (m.envMap ? 1 : 0) + (m.alphaTest > 0 ? 1 : 0)
+        + (m.vertexColors ? 1 : 0) + (m.flatShading ? 1 : 0) + (m.fog === false ? 0 : 1) + '|' + m.side + '|' + (m.defines ? JSON.stringify(m.defines) : '');
+      let c = progClasses.get(k); if (!c) progClasses.set(k, c = progClasses.size + 1);
+      m.__karaPc = c; m.__karaPcV = m.version; return c;
+    };
+    const sortById = (a, b) => a.groupOrder !== b.groupOrder ? a.groupOrder - b.groupOrder : a.renderOrder !== b.renderOrder ? a.renderOrder - b.renderOrder
       : a.material.id !== b.material.id ? a.material.id - b.material.id : variantOf(a.object) !== variantOf(b.object) ? variantOf(a.object) - variantOf(b.object)
-      : a.z !== b.z ? a.z - b.z : a.id - b.id);
+      : a.z !== b.z ? a.z - b.z : a.id - b.id;
+    const sortByProgram = (a, b) => {
+      if (a.groupOrder !== b.groupOrder) return a.groupOrder - b.groupOrder;
+      if (a.renderOrder !== b.renderOrder) return a.renderOrder - b.renderOrder;
+      if (a.material !== b.material) {
+        const pa = progClass(a.material), pb = progClass(b.material);
+        if (pa !== pb) return pa - pb;
+      }
+      const va = variantOf(a.object), vb = variantOf(b.object);
+      if (va !== vb) return va - vb;
+      if (a.material.id !== b.material.id) return a.material.id - b.material.id;
+      return a.z !== b.z ? a.z - b.z : a.id - b.id;
+    };
+    B.sortModes = { id: sortById, program: sortByProgram };
+    renderer.setOpaqueSort(Q.has('idsort') ? sortById : sortByProgram);
     multiDraw = renderer.extensions.has('WEBGL_multi_draw') && !Q.has('nobatch');
     world = (forgeChapter ? B.ForgeWorld : ruinsChapter ? B.RuinsWorld : coastChapter ? B.CoastWorld : B.World).build(scene, { multiDraw });
     game = B.Game.create(world, { scene, emit: event, sound: (n, o) => B.Audio.play(n, o), fx });
-    characterUI = B.CharacterUI.create({ game, onPreview: (canvas,nowMs) => characterPreview.draw(canvas,nowMs), onPreviewTurn: direction => characterPreview.turn(direction), onClose: back, onChange: () => { game.syncProgression(); if (game.saveProfileChoices) game.saveProfileChoices(); hud(0); } });
+    characterUI = B.CharacterUI.create({ game, keyLabels: () => ['heavy', 'special', 'rage', 'fourth'].map(a => { const c = binds[a][0] || binds[a][1]; return c ? capName(c) : '—'; }), onPreview: (canvas,nowMs) => characterPreview.draw(canvas,nowMs), onPreviewTurn: direction => characterPreview.turn(direction), onClose: back, onChange: () => { game.syncProgression(); if (game.saveProfileChoices) game.saveProfileChoices(); hud(0); } });
     makeFX(); postProcess(); characterPreview = B.CharacterPreview.create({ renderer, camera, game, post }); setupUI();
     titleCamera();
     const placeNotices = () => {
@@ -1754,7 +1901,7 @@
     B.app = { scene, camera, renderer, world, game, post, rig, scaler, resetPerformance, settings: cfg, input, get view() { return view; }, begin, show, fx, applySettings, clearFX, warmShaders,
       characterUI, openCharacter, controller, characterPreview,
       get warming() { return !!warming; }, get warmStats() { return warmStats; },
-      get performance() { return performanceReport(); },
+      get performance() { return performanceReport(); }, frameStats,
       // Deterministic frame stepping for headless QA pages (virtual time barely runs requestAnimationFrame).
       step(n = 1) { for (let i = 0; i < n; i++) { qaClock = Math.max(qaClock, last || performance.now()) + 1000 / 60; frameStep(qaClock); } renderClock.reset(); } };
     $('game').addEventListener('webglcontextlost', e => {

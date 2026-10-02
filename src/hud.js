@@ -244,6 +244,7 @@
     const el = document.querySelector(key === 'heal' ? '.flask-button' : `.action-${key}`); if (!el) return null;
     const cd = document.createElement('i'); cd.className = 'cd'; cd.setAttribute('aria-hidden', 'true'); cd.innerHTML = '<b></b>';
     el.insertBefore(cd, el.querySelector('kbd'));
+    if (key === 'heavy' || key === 'special' || key === 'rage' || key === 'fourth') { const t = document.createElement('b'); t.className = 'tier-badge'; t.setAttribute('aria-hidden', 'true'); t.hidden = true; el.appendChild(t); }
     if (SLOT_COST[key]) { const c = document.createElement('em'); c.className = 'cost'; c.setAttribute('aria-hidden', 'true'); c.textContent = Math.round(SLOT_COST[key]); el.appendChild(c); }
     return slots[key] = { el, txt: cd.firstChild, cost: el.querySelector('em.cost'), icon: el.querySelector('i.skill'), skillId: undefined, cd: -1, shown: '', prevCd: 0, lackSerial: 0 };
   }
@@ -273,11 +274,12 @@
     feedbackEl.classList.toggle('waiting', !!queued);
   }
   const SKILL_ART = {};
-  const skillArtImages = Object.entries({"brand": "<path d=\"m24 5 14 19-14 19L10 24Zm0 9 7 10-7 10-7-10ZM5 24h7m24 0h7M24 3v9m0 24v9\"/>", "grasp": "<path d=\"m12 38-5-13 4-11 4 8 2-15 4 13 4-16 3 17 6-12 1 18 7-5-6 16-10 5ZM17 27l3 9m8-9-2 9\"/>", "rend": "<path d=\"M5 12h38M8 24h32M12 36h24m-11-31-7 16 11 7-8 15m-13-30 6 3m20 7 7-4m-24 18-6 4\"/>", "temper": "<path d=\"M24 4c2 10 12 11 10 21 9-5 7-12 7-12 8 17-2 29-17 29S-.5 30 7 13c0 9 6 12 7 12-3-11 10-13 10-21Z\"/><path d=\"M24 23c0 7-8 9-5 14 3 5 11 3 11-2 0-4-4-6-6-12Z\"/>", "chainstorm": "<ellipse cx=\"24\" cy=\"25\" rx=\"19\" ry=\"15\"/><ellipse cx=\"24\" cy=\"25\" rx=\"12\" ry=\"9\"/><ellipse cx=\"24\" cy=\"25\" rx=\"5\" ry=\"4\"/><path d=\"m10 12 4 5m20-5-4 5M5 25h7m24 0h7M11 37l4-5m18 5-4-5M24 7v10m0 16v10\"/>"}).map(([id,path]) => {
+  const skillArtImages = Object.entries({"brand": "<path d=\"m24 5 14 19-14 19L10 24Zm0 9 7 10-7 10-7-10ZM5 24h7m24 0h7M24 3v9m0 24v9\"/>", "grasp": "<path d=\"m12 38-5-13 4-11 4 8 2-15 4 13 4-16 3 17 6-12 1 18 7-5-6 16-10 5ZM17 27l3 9m8-9-2 9\"/>", "rend": "<path d=\"M5 12h38M8 24h32M12 36h24m-11-31-7 16 11 7-8 15m-13-30 6 3m20 7 7-4m-24 18-6 4\"/>", "temper": "<path d=\"M24 4c2 10 12 11 10 21 9-5 7-12 7-12 8 17-2 29-17 29S-.5 30 7 13c0 9 6 12 7 12-3-11 10-13 10-21Z\"/><path d=\"M24 23c0 7-8 9-5 14 3 5 11 3 11-2 0-4-4-6-6-12Z\"/>", "charge": "<path d=\"m6 11 11 12L6 35m13-24 11 12-11 12m13-24 11 12-11 12\"/>", "quake": "<path d=\"m23 5 2 17-6 7 7 4-5 11M5 33l11-7m13 0 14 7M8 42l8-6m15 0 9 6\"/>", "reap": "<path d=\"M5 32C6 11 19 6 28 9 17 12 13 21 12 34Zm12 6c1-21 14-26 23-23-11 3-15 12-16 25Z\"/>", "havoc": "<path d=\"m5 10 10 10-10 10m12-20 10 10-10 10m12-20 10 10-10 10M4 40h40M10 44l6-4m10 4 4-4m10 4 3-4\"/>", "chainstorm": "<ellipse cx=\"24\" cy=\"25\" rx=\"19\" ry=\"15\"/><ellipse cx=\"24\" cy=\"25\" rx=\"12\" ry=\"9\"/><ellipse cx=\"24\" cy=\"25\" rx=\"5\" ry=\"4\"/><path d=\"m10 12 4 5m20-5-4 5M5 25h7m24 0h7M11 37l4-5m18 5-4-5M24 7v10m0 16v10\"/>"}).map(([id,path]) => {
     const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><defs><radialGradient id="g"><stop stop-color="#3c2421"/><stop offset="1" stop-color="#0c0a0b"/></radialGradient></defs><rect width="64" height="64" rx="6" fill="url(#g)"/><g transform="translate(8 8)" fill="none" stroke="#dcc6a0" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">'+path+'</g></svg>';
     const image = new Image(); image.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg); SKILL_ART[id] = image.src; return image;
   });
-  const SKILL_ICONS = { cleave: 'heavy', roar: 'rage', whirl: 'special', charge: 'dodge', quake: 'heavy', reap: 'special', brand:'rage', grasp:'dodge', rend:'heavy',temper:'rage',chainstorm:'special' };
+  const SKILL_ICONS = { cleave: 'heavy', roar: 'rage', whirl: 'special', charge: 'dodge', quake: 'heavy', reap: 'special', brand:'rage', grasp:'dodge', rend:'heavy',temper:'rage',chainstorm:'special', havoc:'dodge' };
+  const ROMAN = ['', 'I', 'II', 'III'];
   function updateSkillSlot(sl, row) {
     const id = row.id || null;
     if (id === sl.skillId) return;
@@ -285,17 +287,21 @@
     const name = row.skill ? row.skill.name : 'Boş yetenek yuvası';
     const description = row.skill ? row.skill.description : 'Seviye atlayınca yetenek puanı kazanırsın. Yetenek ağacından bir aktif yetenek öğren ve bu yuvaya yerleştir.';
     const foot = row.skill ? Math.round(row.cost) + ' dayanıklılık · ' + row.maxCooldown + ' sn bekleme' : 'Yetenek ekranını aç: T';
-    TIPS[row.key] = [name, description, foot];
+    const facts = row.skill && B.Progression && B.Progression.skillFacts ? B.Progression.skillFacts(row.skill).filter(f => f[0] !== 'Maliyet' && f[0] !== 'Bekleme') : null;
+    TIPS[row.key] = [name, description, foot, row.skill ? { tier: row.tier, line: row.line, delta: row.skill.delta, facts } : null];
+    const badge = sl.el.querySelector('.tier-badge');
+    if (badge) { badge.hidden = !(row.tier > 1); badge.textContent = ROMAN[row.tier] || ''; badge.dataset.tier = row.tier || ''; badge.dataset.line = row.line || ''; }
+    sl.el.dataset.tier = row.tier || ''; sl.el.dataset.line = row.line || '';
     sl.el.setAttribute('aria-label', name);
     sl.el.setAttribute('aria-disabled', id ? 'false' : 'true');
     sl.el.classList.toggle('locked', !id);
     sl.el.dataset.skill = id || '';
     if (sl.cost) { sl.cost.textContent = id ? Math.round(row.cost) : ''; sl.cost.hidden = !id; }
-    if (sl.icon) { sl.icon.className = 'skill ' + (SKILL_ICONS[id] || 'heavy'); sl.icon.style.backgroundImage = SKILL_ART[id] ? 'url("' + SKILL_ART[id] + '")' : ''; sl.icon.style.backgroundSize = SKILL_ART[id] ? '100% 100%' : ''; sl.icon.style.backgroundPosition = SKILL_ART[id] ? 'center' : '';  sl.icon.style.opacity = id ? '' : '.18'; sl.icon.style.filter = id && id !== 'roar' ? 'none' : ''; }
+    if (sl.icon) { sl.icon.className = 'skill ' + (SKILL_ICONS[id] || 'heavy'); sl.icon.style.backgroundImage = SKILL_ART[id] ? 'url("' + SKILL_ART[id] + '")' : ''; sl.icon.style.backgroundSize = SKILL_ART[id] ? '100% 100%' : ''; sl.icon.style.backgroundPosition = SKILL_ART[id] ? 'center' : '';  sl.icon.style.opacity = id ? '' : '.18'; sl.icon.style.filter = id && row.line !== 'roar' ? 'none' : ''; }
   }
   function skills(p, dt, skillRows) {
     const st = p.stamina || 0, lack = p.lack;
-    for (const key of ['light', 'heavy', 'dodge', 'special', 'rage', 'heal']) {
+    for (const key of ['light', 'heavy', 'dodge', 'special', 'rage', 'fourth', 'heal']) {
       const sl = slotFor(key); if (!sl) continue;
       // A respawn clears p.lack and starts its serial again; forget the old run's alert.
       if (!lack) sl.lackSerial = 0;
@@ -307,13 +313,13 @@
         f = clamp(cd / (row.maxCooldown || 1), 0, 1); text = row.id ? secs(cd) : '—'; dim = !row.id || st < row.cost;
         if (sl.prevCd > 0 && cd <= 0 && row.id && !reduced.matches) pulse(sl.el, 'ready-flash');
         sl.prevCd = cd;
-        const active = !!row.id && (row.id === 'roar' ? !!p.roar : p.attack?.skill === row.id);
+        const active = !!row.id && (row.line === 'roar' ? !!p.roar : p.attack?.skill === row.id);
         sl.el.classList.toggle('pressed', active);
         sl.el.classList.toggle('unavailable', !!row.id && dim && !active);
-        sl.el.style.setProperty('--progress', active ? clamp(row.id === 'roar' ? p.roar.age / .36 : p.attack.age / p.attack.duration, 0, 1) : 0);
-        if (sl.icon) sl.icon.style.filter = row.id && !dim && row.id !== 'roar' ? 'none' : '';
-        sl.el.classList.toggle('ready', !!row.id && cd <= 0 && row.id === 'roar' && p.rageTime <= 0);
-        sl.el.classList.toggle('burning', row.id === 'roar' && p.rageTime > 0);
+        sl.el.style.setProperty('--progress', active ? clamp(row.line === 'roar' ? p.roar.age / .36 : p.attack.age / p.attack.duration, 0, 1) : 0);
+        if (sl.icon) sl.icon.style.filter = row.id && !dim && row.line !== 'roar' ? 'none' : '';
+        sl.el.classList.toggle('ready', !!row.id && cd <= 0 && row.line === 'roar' && p.rageTime <= 0);
+        sl.el.classList.toggle('burning', row.line === 'roar' && p.rageTime > 0);
       } else if (key === 'special' || key === 'rage') {
         const cd = (key === 'special' ? p.specialCd : p.rageCd) || 0;
         const max = (key === 'special' ? p.specialMax : p.rageMaxCd) || RESOURCE.cooldowns[key];
@@ -338,12 +344,24 @@
   /* ───────────── Skill cards: hover / keyboard focus / long press on a slot shows name, key, what it does, cost and cooldown ───────────── */
   const TIPS = {
     light: ['Hafif saldırı', 'Atanmış fare düğmesiyle düşmanı seç: yaklaşır ve üç vuruşluk kombo yapar; basılı tutunca sürdürür. Klavye tuşu önündeki yakın düşmana vurur. Kalkanlı düşmanın gardını kıramaz. Yerinde vur tuşuyla birlikte fareden saldırırsan yürümez.', 'Dayanıklılık harcamaz'],
-    heavy: ['Ağır saldırı', 'Yavaş ama çok sert vurur; kalkanlı düşmanın gardını kırar, hafif düşmanları sendeletir. Atanmış fare düğmesiyle düşmanı seç; boş yere tıklamak saldırmaz. Klavye tuşu önündeki yakın düşmana vurur. Yerinde vur tuşuyla birlikte fareden saldırırsan yürümez.', Math.round(SLOT_COST.heavy) + ' dayanıklılık'],
+    heavy: ['Yetenek yuvası · sağ tık', 'Yavaş ama çok sert vurur; kalkanlı düşmanın gardını kırar, hafif düşmanları sendeletir. Atanmış fare düğmesiyle düşmanı seç; boş yere tıklamak saldırmaz. Klavye tuşu önündeki yakın düşmana vurur. Yerinde vur tuşuyla birlikte fareden saldırırsan yürümez.', Math.round(SLOT_COST.heavy) + ' dayanıklılık'],
     dodge: ['Kaçınma', 'Yürüdüğün yöne (yürümüyorsan fareye doğru) yuvarlanır. Yuvarlanmanın başında darbelerden korunursun; sondaki kalkışta koruma biter. Kızıl ve altın kenarlı darbelerden böyle kaç.', Math.round(SLOT_COST.dodge) + ' dayanıklılık'],
     heal: ['Can iksiri', 'Anında can yeniler. Yemin taşında yeniden dolar.', 'sınırlı sayıda'],
     special: ['Zincir Girdabı', 'Zincirli pala ile etrafında dönersin ve yakındaki herkese 4 kez vurursun. Hafif düşmanlar içeri çekilir, son vuruş onları savurur. Dönerken yürüyebilirsin.', Math.round(SLOT_COST.special) + ' dayanıklılık · ' + RESOURCE.cooldowns.special + ' sn bekleme'],
     rage: ['Kan Öfkesi', 'Dayanıklılık harcayıp bağırırsın: yakındaki düşmanlar sendeler. ' + RESOURCE.durations.rage + ' sn boyunca %48 daha sert vurur, %25 az hasar alır ve vurduğun hasarın bir kısmı can olarak geri döner.', Math.round(SLOT_COST.rage) + ' dayanıklılık · ' + RESOURCE.cooldowns.rage + ' sn bekleme']
   };
+  // Tier badge on a slot (II / III), and the tier / numbers block of the skill card. Plain colours only (no gradients or filters: nothing new to warm up).
+  (function () {
+    const st = document.createElement('style'); st.id = 'hud-skill-style';
+    st.textContent = '.action .tier-badge{position:absolute;right:calc(-4 * var(--a));bottom:calc(46 * var(--a));z-index:4;min-width:max(18px,calc(19 * var(--a)));height:max(16px,calc(17 * var(--a)));padding:0 4px;display:grid;place-items:center;border-radius:3px;font:800 max(10px,calc(11 * var(--a)))/1 var(--text);color:#201505;background:#c4952f;box-shadow:0 0 0 1px #1a130c,0 2px 4px #000a;pointer-events:none}' +
+      '.action .tier-badge[data-tier="3"]{background:#b9a6ff;color:#120a2a}.action .tier-badge[hidden]{display:none}' +
+      '#skill-tip .tip-tier{margin-left:auto;padding:2px 7px;border-radius:3px;background:#6d5a3f;color:#fff3da;font:800 11px/1.2 var(--text);letter-spacing:.04em}' +
+      '#skill-tip .tip-tier[data-tier="2"]{background:#c4952f;color:#201505}#skill-tip .tip-tier[data-tier="3"]{background:#b9a6ff;color:#120a2a}' +
+      '#skill-tip .tip-facts{display:grid;gap:1px;margin:6px 0 4px}#skill-tip .tip-facts span{display:flex;justify-content:space-between;gap:10px;padding:2px 6px;background:#ffffff0a;font:500 12px/1.3 var(--text);color:#bdb09a}#skill-tip .tip-facts b{color:#ffd77a;font-weight:700;font-variant-numeric:tabular-nums}' +
+      'body.touch .action .tier-badge{bottom:auto;top:-4px;right:-2px}' +
+      '.bind-subhead{display:flex;align-items:baseline;gap:10px;margin:12px 0 2px;padding:4px 2px;border-bottom:1px solid #8a704866;font:700 12px/1.2 var(--text);letter-spacing:.08em;text-transform:uppercase;color:#d8c9a8}.bind-subhead span{color:#ffe3a8;letter-spacing:.04em}';
+    document.head.appendChild(st);
+  })();
   let dismissSkillTips = () => {};
   function dismissTips() { dismissSkillTips(); }
   function initTips() {
@@ -358,9 +376,17 @@
       const head = document.createElement('div'); head.className = 'tip-head';
       const name = document.createElement('b'); name.textContent = t[0]; head.appendChild(name);
       if (cap) { const k = document.createElement('kbd'); k.textContent = cap; head.appendChild(k); }
+      const meta = t[3];
+      if (meta && meta.tier) { const tr = document.createElement('span'); tr.className = 'tip-tier'; tr.dataset.tier = meta.tier; tr.textContent = ROMAN[meta.tier] + '. aşama'; name.after(tr); }
       const body = document.createElement('p'); body.textContent = t[1];
       const foot = document.createElement('small'); foot.textContent = t[2];
-      tip.append(head, body, foot);
+      tip.append(head, body);
+      if (meta && meta.facts && meta.facts.length) {
+        const list = document.createElement('div'); list.className = 'tip-facts';
+        for (const [label, value] of meta.facts) { const row = document.createElement('span'); const l = document.createElement('i'); l.textContent = label; const v = document.createElement('b'); v.textContent = value; row.append(l, v); list.appendChild(row); }
+        tip.appendChild(list);
+      }
+      tip.appendChild(foot);
       tip.classList.add('show');
       const r = btn.getBoundingClientRect(), w = tip.offsetWidth, h = tip.offsetHeight;
       tip.style.left = Math.max(8, Math.min(innerWidth - w - 8, r.left + r.width / 2 - w / 2)) + 'px';

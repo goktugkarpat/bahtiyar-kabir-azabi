@@ -97,11 +97,19 @@
       const mat = new T.SpriteMaterial({ map: tex, transparent: true, depthWrite: false, depthTest: false }), m = new T.Sprite(mat);
       m.visible = false; m.renderOrder = 22; m.scale.set(1.5, .75, 1); group.add(m); return { m, c, tex, t: 9, x: 0, z: 0 };
     });
-    function label(text, x, z) {
-      const l = labels.find(o => o.t >= 1.2) || labels.reduce((a, b) => a.t > b.t ? a : b);
-      const g = l.c.getContext('2d'); g.clearRect(0, 0, 128, 64); g.font = '800 40px "Source Sans 3", Arial'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    function paintLabel(g, text) {
+      g.clearRect(0, 0, 128, 64); g.font = '800 40px "Source Sans 3", Arial'; g.textAlign = 'center'; g.textBaseline = 'middle';
       g.lineWidth = 7; g.strokeStyle = '#1a0708'; g.lineJoin = 'round'; g.strokeText(text, 64, 34);
       const gr = g.createLinearGradient(0, 14, 0, 54); gr.addColorStop(0, '#6dff7c'); gr.addColorStop(.55, '#ff5a3c'); gr.addColorStop(1, '#e01818'); g.fillStyle = gr; g.fillText(text, 64, 34);
+    }
+    // The first pickup built the stroked-text + gradient drawing programs in the middle of the fight: draw the label once now on a spare canvas and read one pixel back (finishes the drawing).
+    (() => {
+      const run = () => { try { const c = document.createElement('canvas'); c.width = 128; c.height = 64; const g = c.getContext('2d'); paintLabel(g, '+12'); g.getImageData(64, 34, 1, 1); } catch (e) { /* warm-up only */ } };
+      try { if (document.fonts && document.fonts.load) document.fonts.load("800 40px 'Source Sans 3'").then(run, run); else run(); } catch (e) { run(); }
+    })();
+    function label(text, x, z) {
+      const l = labels.find(o => o.t >= 1.2) || labels.reduce((a, b) => a.t > b.t ? a : b);
+      paintLabel(l.c.getContext('2d'), text);
       l.tex.needsUpdate = true; l.t = 0; l.x = x; l.z = z; l.m.visible = true; l.m.material.opacity = 1; l.m.position.set(x, 1.9, z);
     }
     // ---- state

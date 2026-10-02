@@ -27,6 +27,16 @@
     }
     return decoded[name];
   }
+  // Unit quaternions of every frame, normalised once (same arithmetic as Quaternion.normalize) instead of twice per bone per sample.
+  function normalised(c) {
+    var nb = D.bones.length, out = new Float64Array(c.frames * nb * 4), s = D.rotationScale, v = c.values;
+    for (var f = 0; f < c.frames; f++) for (var j = 0; j < nb; j++) {
+      var ia = f * D.stride + 3 + j * 4, o = (f * nb + j) * 4, x = v[ia] / s, y = v[ia + 1] / s, z = v[ia + 2] / s, w = v[ia + 3] / s, l = Math.sqrt(x * x + y * y + z * z + w * w);
+      if (l === 0) { x = 0; y = 0; z = 0; w = 1; } else { l = 1 / l; x = x * l; y = y * l; z = z * l; w = w * l; }
+      out[o] = x; out[o + 1] = y; out[o + 2] = z; out[o + 3] = w;
+    }
+    return out;
+  }
   function pose() { return { q: D.bones.map(function () { return new T.Quaternion(); }), p: new T.Vector3(), sole: [0, 0] }; }
   function copyPose(to, from) {
     for (var i = 0; i < to.q.length; i++) to.q[i].copy(from.q[i]);
@@ -58,6 +68,10 @@
     // The hero's heavy blow: the same arc as spin, played for a .70 s / contact .35 s swing with no held coil (snapK: the wind-up
     // uses 88% of its time, ease: a gentle deceleration into the chamber) and one continuous ease from contact to the end pose (flow).
     heavy: { clip: 'attackC', start: .24, chamber: .58, contact: .686, follow: .80, end: 1.2, swing: .12, over: .5, twist: -.55, bend: -.1, strikeBend: .18, hold: 0, snapK: .88, ease: 1.7, flow: 1.5 },
+    // Heavy-strike tiers 2 / 3 (hero only, selected by state.skillTier): Kemik Kıran is an overhead chop - the cleaver is hauled up over the head, held there
+    // trembling, then driven straight down with the whole torso (deep strikeBend); Kabir Balyozu (pound) crouches, leaps and lands in the same chop (see poundPose).
+    strikeBrand: { clip: 'swordAttack', chamber: .30, contact: .44, follow: .50, end: .96, swing: .16, over: .12, twist: -.06, bend: -.62, strikeBend: .85, tremble: .045, hold: .42, snapK: .8, flow: 1.2 },
+    strikePound: { clip: 'swordAttack', chamber: .30, contact: .44, follow: .50, end: .96, swing: .13, over: .1, twist: 0, bend: -.4, strikeBend: 1.0, tremble: .05, hold: .5, snapK: .5, pound: true },
     // enemies (unarmed ones swing the same arcs with claws/hands)
     hook: { clip: 'meleeHook', chamber: .215, contact: .25, follow: .34, end: .4667, swing: .12, over: .5, twist: -.45, bend: -.12, strikeBend: .24, tremble: .05 },
     hookL: { clip: 'meleeHook', mirror: true, chamber: .215, contact: .25, follow: .34, end: .4667, swing: .12, over: .5, twist: .45, bend: -.12, strikeBend: .24, tremble: .05 },
@@ -201,6 +215,41 @@
       return { node: node, i: poseIndex.has(node) ? poseIndex.get(node) : -1, depth: depth };
     }).sort(function (a, b) { return a.depth - b.depth; });
     var parentPosition = new T.Vector3(), parentScale = new T.Vector3();
+    // Every pose node gets its quaternion rewritten (copy + normalize) each frame; three mirrors every write into the Euler
+    // 'rotation' (a matrix build + decomposition per write, ~0.15 ms per frame over a crowd). The mirror is only needed by
+    // code that reads node.rotation, so it is recomputed lazily on the first read after a change. Values read are identical.
+    poseNodes.forEach(function (node) {
+      var q = node.quaternion, e = node.rotation, stale = false;
+      q._onChangeCallback = function () { stale = true; };
+      Object.defineProperty(node, 'rotation', { configurable: true, enumerable: true, get: function () { if (stale) { stale = false; e.setFromQuaternion(q, undefined, false); } return e; } });
+    });
+    // The ordered loop in animate() already refreshed every pose node; only the nodes hanging off them (skinned parts, accessories,
+    // anchors) still need their world matrix, so walk past the pose nodes instead of recomputing them a second time.
+    function refreshRest(node) {
+      var c = node.children, pw = node.matrixWorld;
+      for (var i = 0; i < c.length; i++) {
+        var ch = c[i];
+        if (poseNodes.has(ch)) refreshRest(ch);
+        // A skinned part with an untouched identity transform and no children has exactly its parent's world matrix: copy it.
+        else if (ch.isSkinnedMesh && ch.children.length === 0 && ch.matrixAutoUpdate && identityLocal(ch)) { ch.matrixWorld.copy(pw); ch.matrixWorldNeedsUpdate = false; }
+        else ch.updateWorldMatrix(false, true);
+      }
+    }
+    function identityLocal(n) {
+      var p = n.position, s = n.scale, q = n.quaternion;
+      return p.x === 0 && p.y === 0 && p.z === 0 && s.x === 1 && s.y === 1 && s.z === 1 && q.x === 0 && q.y === 0 && q.z === 0 && q.w === 1;
+    }
+    // World position / rotation of a node whose matrixWorld is already current (everything below the pose nodes is refreshed in
+    // animate() before it is read): the same numbers as getWorldPosition / getWorldQuaternion, without re-walking the ancestors each call.
+    var wScratchP = new T.Vector3(), wScratchS = new T.Vector3();
+    function wpos(node, out) { return out.setFromMatrixPosition(node.matrixWorld); }
+    function wquat(node, out) { node.matrixWorld.decompose(wScratchP, out, wScratchS); return out; }
+    var rootInChain = false; for (var rc = mapping[0].parent; rc; rc = rc.parent) if (rc === root) { rootInChain = true; break; }
+    // A vertical shift of the pelvis moves its whole subtree by exactly that amount in world space.
+    function shiftWorldY(node, dy) {
+      node.matrixWorld.elements[13] += dy;
+      var c = node.children; for (var i = 0; i < c.length; i++) shiftWorldY(c[i], dy);
+    }
     var legRatio = (targetPos[14].distanceTo(targetPos[15]) + targetPos[15].distanceTo(targetPos[16])) /
       (sourcePos[14].distanceTo(sourcePos[15]) + sourcePos[15].distanceTo(sourcePos[16]));
     var characterScale = clamp(legRatio, .35, 4), pelvis = mapping[0], hipRest = targetPos[0].clone();
@@ -220,10 +269,11 @@
       destination.p.set((values[ia] + (values[ib] - values[ia]) * t) / D.positionScale,
         (values[ia + 1] + (values[ib + 1] - values[ia + 1]) * t) / D.positionScale,
         (values[ia + 2] + (values[ib + 2] - values[ia + 2]) * t) / D.positionScale);
-      for (var j = 0; j < D.bones.length; j++) {
-        var aa = ia + 3 + j * 4, bb = ib + 3 + j * 4, s = D.rotationScale;
-        destination.q[j].set(values[aa] / s, values[aa + 1] / s, values[aa + 2] / s, values[aa + 3] / s).normalize();
-        qa.set(values[bb] / s, values[bb + 1] / s, values[bb + 2] / s, values[bb + 3] / s).normalize(); destination.q[j].slerp(qa, t);
+      var nq = c.norm || (c.norm = normalised(c)), nbones = D.bones.length, na = a * nbones * 4, nbb = b * nbones * 4;
+      for (var j = 0; j < nbones; j++) {
+        var oa = na + j * 4, ob = nbb + j * 4;
+        destination.q[j].set(nq[oa], nq[oa + 1], nq[oa + 2], nq[oa + 3]);
+        if (t !== 0) destination.q[j].slerp(qa.set(nq[ob], nq[ob + 1], nq[ob + 2], nq[ob + 3]), t);
       }
       var soleOffset = 3 + D.bones.length * 4;
       for (var k = 0; k < 2; k++) destination.sole[k] = (values[ia + soleOffset + k] + (values[ib + soleOffset + k] - values[ia + soleOffset + k]) * t) / D.positionScale;
@@ -248,20 +298,20 @@
       p.p.sub(sourcePos[0]).applyQuaternion(qTurn).add(sourcePos[0]);
     }
     function emit(foot, strength, kind) {
-      foot.ankle.getWorldPosition(va); footfall.serial++; footfall.side = foot.side;
+      wpos(foot.ankle, va); footfall.serial++; footfall.side = foot.side;
       footfall.x = va.x; footfall.z = va.z; footfall.strength = clamp(strength, .15, 1); footfall.kind = kind || 'step';
     }
     function moveHipY(amount) {
       if (Math.abs(amount) < .00001) return;
-      pelvis.getWorldPosition(va); va.y += amount; inverse.copy(pelvis.parent.matrixWorld).invert(); pelvis.position.copy(va.applyMatrix4(inverse));
-      pelvis.updateWorldMatrix(false, true);
+      wpos(pelvis, va); va.y += amount; inverse.copy(pelvis.parent.matrixWorld).invert(); pelvis.position.copy(va.applyMatrix4(inverse));
+      shiftWorldY(pelvis, amount);
     }
     var hipPoint = new T.Vector3(), kneePoint = new T.Vector3(), anklePoint = new T.Vector3(), reach = new T.Vector3(), bend = new T.Vector3(), kneeGoal = new T.Vector3();
     // A small contact correction preserves the authored pose while holding the
     // supporting sole in world space as the gameplay capsule moves over it.
     function lockFoot(foot, weight) {
       if (!foot.upper || !foot.lower || !foot.ankle || weight < .001) return;
-      foot.upper.getWorldPosition(hipPoint); foot.lower.getWorldPosition(kneePoint); foot.ankle.getWorldPosition(anklePoint); foot.ankle.getWorldQuaternion(foot.orientation);
+      wpos(foot.upper, hipPoint); wpos(foot.lower, kneePoint); wpos(foot.ankle, anklePoint); wquat(foot.ankle, foot.orientation);
       desired.copy(anklePoint).lerp(foot.anchor, weight); desired.y = anklePoint.y;
       var a = hipPoint.distanceTo(kneePoint), b = kneePoint.distanceTo(anklePoint);
       reach.copy(desired).sub(hipPoint); var length = clamp(reach.length(), Math.abs(a - b) + .001, a + b - .002 * characterScale); reach.normalize();
@@ -270,10 +320,10 @@
       bend.normalize(); var along = (a * a + length * length - b * b) / (2 * length);
       kneeGoal.copy(hipPoint).addScaledVector(reach, along).addScaledVector(bend, Math.sqrt(Math.max(0, a * a - along * along)));
       va.copy(kneePoint).sub(hipPoint).normalize(); vb.copy(kneeGoal).sub(hipPoint).normalize(); qa.setFromUnitVectors(va, vb);
-      foot.upper.getWorldQuaternion(qDesired); qDesired.premultiply(qa); foot.upper.parent.getWorldQuaternion(qParent).invert(); foot.upper.quaternion.copy(qParent.multiply(qDesired)); foot.upper.updateWorldMatrix(false, true);
-      foot.lower.getWorldPosition(kneePoint); foot.ankle.getWorldPosition(anklePoint); va.copy(anklePoint).sub(kneePoint).normalize(); vb.copy(desired).sub(kneePoint).normalize(); qa.setFromUnitVectors(va, vb);
-      foot.lower.getWorldQuaternion(qDesired); qDesired.premultiply(qa); foot.lower.parent.getWorldQuaternion(qParent).invert(); foot.lower.quaternion.copy(qParent.multiply(qDesired)); foot.lower.updateWorldMatrix(false, true);
-      foot.ankle.parent.getWorldQuaternion(qParent).invert(); foot.ankle.quaternion.copy(qParent.multiply(foot.orientation)); foot.ankle.updateWorldMatrix(false, true);
+      wquat(foot.upper, qDesired); qDesired.premultiply(qa); wquat(foot.upper.parent, qParent).invert(); foot.upper.quaternion.copy(qParent.multiply(qDesired)); foot.upper.updateWorldMatrix(false, true);
+      wpos(foot.lower, kneePoint); wpos(foot.ankle, anklePoint); va.copy(anklePoint).sub(kneePoint).normalize(); vb.copy(desired).sub(kneePoint).normalize(); qa.setFromUnitVectors(va, vb);
+      wquat(foot.lower, qDesired); qDesired.premultiply(qa); wquat(foot.lower.parent, qParent).invert(); foot.lower.quaternion.copy(qParent.multiply(qDesired)); foot.lower.updateWorldMatrix(false, true);
+      wquat(foot.ankle.parent, qParent).invert(); foot.ankle.quaternion.copy(qParent.multiply(foot.orientation)); foot.ankle.updateWorldMatrix(false, true);
     }
     // Clip time and layer weights of a move at time t (s) whose contact is at Tc and which ends at Tend.
     var curve = { ct: 0, coil: 0, strike: 0, hold: 0, phase: '' };
@@ -311,11 +361,40 @@
     }
     // War cry / roar: breath drawn in low and tight, then released at Tr with the chest thrown out, head back,
     // the right arm and weapon hauled overhead and the free arm flung wide; it settles over the last .22 s (less for a short roar).
-    function roarPose(p, t, Tr, Td) {
+    function roarPose(p, t, Tr, Td, tier) {
+      tier = tier || 1;
       var span = Math.max(.05, Td - Tr), rw = Math.min(.14, span * .5), fw = Math.min(.22, span * .6);   // release ramp and settle scale with a short roar
       var g = smooth(t / Math.max(.05, Tr)), rel = t >= Tr ? easeOut((t - Tr) / rw, 2) : 0, fade = t > Td - fw ? smooth((Td - t) / fw) : 1;
-      var shake = rel > 0 && t < Td - fw * 1.1 ? Math.sin(clock * 47) * .035 * fade : 0;
+      var shake = rel > 0 && t < Td - fw * 1.1 ? Math.sin(clock * 47) * (.035 + .02 * (tier - 1)) * fade : 0;
       var gather = g * (1 - rel);
+      if (tier === 2) {
+        // Ölüm Çığlığı: a scream - crouched and clenched in the gather, then the chest arches right back, the head is thrown up and BOTH arms fly wide.
+        spineLayer(p, 0, .55 * gather - .95 * rel * fade + shake * 1.4, 0);
+        p.p.y -= (.09 * gather + .02 * rel * fade) / Math.max(.4, characterScale);
+        sample('swordAttack', .30, roarBuf, false);
+        var w2 = Math.max(.2 * gather, rel * fade * .5);
+        blendPose(p, roarBuf, w2, 10, 14); blendPose(p, roarBuf, w2, 37, 52);
+        euler.set(-.3 * rel * fade, 0, (1.35 * rel - .3 * gather) * fade, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(p, 7, qa);
+        euler.set(-.3 * rel * fade, 0, (-1.35 * rel + .3 * gather) * fade, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(p, 11, qa);
+        euler.set(0, 0, -.55 * rel * fade, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(p, 8, qa);
+        euler.set(0, 0, .55 * rel * fade, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(p, 12, qa);
+        euler.set(-1.0 * rel * fade + shake * 2.5, 0, 0, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(p, 4, qa);
+        return;
+      }
+      if (tier >= 3) {
+        // Kıyamet Narası: deep crouch with the fists drawn in, stage one explodes upward (cleaver and free arm overhead, chest thrown back, head up),
+        // stage two (.34 s later, the second ring) drives the whole body down into a slam and back up.
+        var pulse = t > Tr + .3 ? Math.sin(clamp((t - Tr - .3) / .5, 0, 1) * PI) : 0;
+        spineLayer(p, 0, .75 * gather - .75 * rel * fade + .55 * pulse * fade + shake * 1.5, 0);
+        p.p.y -= (.16 * gather + .03 * rel * fade + .1 * pulse) / Math.max(.4, characterScale);
+        sample('swordAttack', .30, roarBuf, false);
+        var w3 = Math.max(.5 * gather, rel * fade);
+        blendPose(p, roarBuf, w3, 10, 14); blendPose(p, roarBuf, w3, 37, 52);
+        euler.set(-1.55 * rel * fade * (1 - .6 * pulse), 0, (1.0 * rel - .3 * gather) * fade, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(p, 7, qa);
+        euler.set(0, 0, -.5 * rel * fade, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(p, 8, qa);
+        euler.set((-.9 * rel + .7 * pulse) * fade + shake * 3, 0, 0, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(p, 4, qa);
+        return;
+      }
       spineLayer(p, .1 * gather, .38 * gather - .5 * rel * fade + shake, 0);
       p.p.y -= (.05 * gather + .03 * rel * fade) / Math.max(.4, characterScale);
       // Right arm (and weapon) raised: blend in the overhead chamber of the downward cut.
@@ -327,6 +406,22 @@
       euler.set(0, 0, -.5 * rel * fade, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(p, 8, qa);
       // Head thrown back with the roar.
       euler.set(-.55 * rel * fade + shake * 2, 0, 0, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(p, 4, qa);
+    }
+    // Kabir Balyozu: crouch (legs from the crouch clip, the cleaver already overhead), the leap (legs tucked, back arched while rising, the arc comes from combat.js lifting the root),
+    // then the landing chop through the normal curve with a squat that rises over ~.4 s.
+    function poundPose(m, c, p, t, Tc, Tend, state) {
+      var air = clamp(finite(state.leapAir, .38), .1, .6), A0 = Math.max(.05, Tc - air);
+      if (t < Tc) {
+        var cu = smooth(clamp(t / A0, 0, 1)), au = clamp((t - A0) / air, 0, 1);
+        sample('swordAttack', .30, p, false);
+        if (t < A0) { sample('crouch', 0, extra, true); blendPose(p, extra, .85 * cu, 14, 22); spineLayer(p, 0, .3 * cu, 0); p.p.y -= .15 * cu / Math.max(.4, characterScale); }
+        else { sample('jump', 0, extra, false); blendPose(p, extra, 1, 14, 22); spineLayer(p, 0, .3 - .7 * smooth(Math.min(1, au * 2)) + .95 * smooth(clamp((au - .55) / .45, 0, 1)), 0); p.p.y -= .15 * (1 - smooth(Math.min(1, au * 3))) / Math.max(.4, characterScale); }
+        curve.phase = t < A0 ? 'wind' : 'hold'; return;
+      }
+      sampleMove(m, c.ct, p);
+      spineLayer(p, m.twist * c.coil, m.bend * Math.max(0, c.coil) + m.strikeBend * c.strike, 0);
+      var sink = 1 - smooth(clamp((t - Tc) / .45, 0, 1));
+      sample('crouch', 0, extra, true); blendPose(p, extra, .8 * sink, 14, 22); p.p.y -= .17 * sink / Math.max(.4, characterScale);
     }
     // Whirlwind (Zincir Kasırgası, hero only). The game turns the whole root (unwrapped yaw, accelerating to ~3 turns/s); this layer is everything the body does
     // inside that turn, on a nominal 1.3 s timeline (tt): a .12 s coil (crouch, torso wound back, cleaver hauled behind), the release into the spin (knees bent, torso
@@ -363,7 +458,7 @@
       wv.set(0, 0, 1).applyQuaternion(p.q[13]); wq.setFromUnitVectors(wv, bv); qa.identity().slerp(wq, w * wrist); rotateSubtree(p, 13, qa);
     }
     function whirlPose(p, u, t, dt, yaw) {
-      var D = u > .001 ? t / u : WHIRL_D, tt = t * WHIRL_D / clamp(D, .4, 3), inv = 1 / Math.max(.4, characterScale);
+      var D = u > .001 ? t / u : WHIRL_D, tt = t * WHIRL_D / clamp(D, .4, 3), inv = 1 / Math.max(.4, characterScale), wt3 = D > 1.8 ? 2 : D > 1.45 ? 1 : 0;   // wt3: tier from the spin length (1.3 / 1.6 / 2.05 s): bigger lean, deeper crouch, faster feet
       if (!wLive) { wLive = true; wYawPrev = yaw; wOmega = 0; wLag = 0; wLock = yaw; wGait = 0; }
       var om = dt > 0 ? signedAngle(yaw - wYawPrev) / dt : 0; wYawPrev = yaw;
       wOmega += (om - wOmega) * (dt > 0 ? damp(28, dt) : 1);
@@ -374,12 +469,12 @@
       // the first three hit ticks (WHIRL_TICK + n * WHIRL_GAP) land as a short body punch: a dip of the hips and a snap of the torso into the blow
       var punch = 0; for (var pn = 0; pn < 3; pn++) { var pd = tt - (WHIRL_TICK + WHIRL_GAP * pn); if (pd > 0 && pd < .16) punch = Math.max(punch, (1 - pd / .16) * (1 - pd / .16) * smooth(pd / .025)); }
       // legs: crouch, a quick pitter-patter cycle on top, planted and wide for the slam
-      var legW = clamp(.5 * Math.max(spin, coil) + .35 * hold, 0, .85);
+      var legW = clamp((.5 + .1 * wt3) * Math.max(spin, coil) + .35 * hold, 0, .88);
       sample('crouch', 0, wLegs, false); blendPose(p, wLegs, legW, 14, 22); blendPose(p, wLegs, legW * .8, 0, 0);
-      wGait += dt * 1.9; sample('jog', wrap(wGait) * clip('jog').duration, wArm, true); blendPose(p, wArm, .3 * spin * (1 - hold), 14, 22);
+      wGait += dt * (1.9 + .75 * wt3); sample('jog', wrap(wGait) * clip('jog').duration, wArm, true); blendPose(p, wArm, .3 * spin * (1 - hold), 14, 22);
       // torso: wound back in the coil, trailing in the spin, leaning forward and into the turn, bowed over the slam
-      spineLayer(p, -.7 * coil - .55 * wLag * spin, .16 * coil + .28 * spin * (1 - fin) - .2 * raise * (1 - slam) + .5 * hold + .1 * punch * spin, .13 * spin * (1 - fin));
-      p.p.y -= (.07 * Math.max(spin, coil * .7) + .06 * hold + .035 * punch * spin) * inv;
+      spineLayer(p, -.7 * coil - .55 * wLag * spin, .16 * coil + (.28 + .11 * wt3) * spin * (1 - fin) - .2 * raise * (1 - slam) + .5 * hold + .1 * punch * spin, (.13 + .13 * wt3) * spin * (1 - fin));   // lean into the turn grows with the tier
+      p.p.y -= ((.07 + .03 * wt3) * Math.max(spin, coil * .7) + .06 * hold + .035 * punch * spin) * inv;
       // free arm: thrown wide and leading the turn (counter-swing), drawn in for the slam
       var wide = smooth((tt - .04) / .16) * (1 - .8 * fin);
       euler.set(-.15 * wide, 0, 1.25 * wide, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(p, 7, qa);
@@ -387,7 +482,7 @@
       yawSub(p, 7, wLag * .9 * wide);
       // cleaver arm: hauled back in the coil -> out level, trailing the turn -> overhead -> slam; the target directions are slerped, the rotation from the ready pose is a weight
       var phi = .2 - wLag * 1.3;
-      wt.copy(W_COIL_T); wu.set(-Math.cos(phi), .04, Math.sin(phi)).normalize(); slerpV(wt, wt, wu, smooth((tt - .1) / .14)); slerpV(wt, wt, W_OVER_T, raise); slerpV(wt, wt, W_SLAM_T, slam);
+      wt.copy(W_COIL_T); wu.set(-Math.cos(phi), .04 + (wt3 ? .14 : 0) + (wt3 > 1 ? .3 * Math.sin(wGait * 6.283 * 1.5) * spin : 0), Math.sin(phi)).normalize(); slerpV(wt, wt, wu, smooth((tt - .1) / .14)); slerpV(wt, wt, W_OVER_T, raise); slerpV(wt, wt, W_SLAM_T, slam);
       wb.copy(W_COIL_B); wu2.set(-Math.cos(phi + .12), .07, Math.sin(phi + .12)).normalize(); slerpV(wb, wb, wu2, smooth((tt - .1) / .14)); slerpV(wb, wb, W_OVER_B, raise); slerpV(wb, wb, W_SLAM_B, slam);
       aimCleaver(p, smooth(tt / .1) * keep, wt, wb, 1);
       // head: counter-turned against the body yaw (a smooth 'lock' on the start heading, sin keeps it continuous through the turn), chin tucked
@@ -396,9 +491,49 @@
       wFlare = spin * clamp(Math.abs(wOmega) / 14, 0, 1);
       root.userData.whirlFlare = wFlare;
     }
+    // Charge (Hücum, hero only; src/charge.js BABA.Charge.poseState merged into the hero state): state.chargeTime (s since the skill began), chargeWind (crouch length),
+    // chargeDash (dash length) and impactTime (s since the impact, -1 before). Wind-up: deep crouch, torso coiled, cleaver hauled back. Dash: a low forward lean with the
+    // lead shoulder dropped, cleaver trailing behind, free arm swept back, a sprint cycle on the legs. Impact: a big lunge, the cleaver slams through ahead of the hero
+    // and follows through, planted wide, then the pose hands back to idle. Everything is a weight on the normal pose (no pops).
+    var cGait = 0, cLive = false, C_RUN_T = new T.Vector3(-.7, -.15, -.7).normalize(), C_RUN_B = new T.Vector3(-.4, .05, -.9).normalize();
+    // Tier looks (src/charge.js poseState.chargeTier): I low sprint with the cleaver trailing; II shoulder-first ram (torso twisted so the lead shoulder drives forward, chin tucked,
+    // free arm guarding across the chest, a tilted fast sprint); III upright charging lunge (chest up, cleaver raised high for the slam, long strides), the first slam, the cleaver
+    // hauled up again and a heavier second slam (state.slam2Time).
+    var C_OVER_B3 = new T.Vector3(-.1, .7, -.7).normalize();
+    function chargePose(p, state, dt) {
+      var t = finite(state.chargeTime, 0), wind = Math.max(.04, finite(state.chargeWind, .12)), it = finite(state.impactTime, -1), s2 = finite(state.slam2Time, -1), inv = 1 / Math.max(.4, characterScale), tier = clamp(Math.round(finite(state.chargeTier, 1)), 1, 3);
+      if (!cLive) { cLive = true; cGait = 0; }
+      var coil = smooth(t / wind) * (it < 0 ? 1 : 0), run = it < 0 ? smooth((t - wind) / .07) : 0, strike = it >= 0 ? smooth(it / .06) : 0;
+      var lift = tier === 3 && it >= 0 ? smooth((it - .08) / .14) * (s2 < 0 ? 1 : 1 - smooth(s2 / .04)) : 0, strike2 = s2 >= 0 ? smooth(s2 / .05) : 0;
+      var rec = tier === 3 ? (s2 >= 0 ? smooth((s2 - .12) / .3) : 0) : it >= 0 ? smooth((it - .1) / .3) : 0, hold = strike * (1 - rec), keep = 1 - rec, rs = run * (1 - strike);
+      // legs: crouch in the wind-up, a sprint cycle in the dash (faster for II, long strides for III), planted wide for the lunge
+      sample('crouch', 0, wLegs, false); blendPose(p, wLegs, clamp((tier === 3 ? .9 : .8) * coil * (1 - run) + (tier === 3 ? .7 : .65) * hold, 0, .88), 14, 22); blendPose(p, wLegs, clamp(.7 * coil * (1 - run) + .6 * hold, 0, .8), 0, 0);
+      cGait += dt * (tier === 1 ? 3.2 : tier === 2 ? 4.1 : 2.5); sample('sprint', wrap(cGait) * clip('sprint').duration, wArm, true); blendPose(p, wArm, .95 * rs, 14, 22); blendPose(p, wArm, (tier === 3 ? .75 : .5) * rs, 0, 0);
+      // torso: coiled back, then driven forward (I) / twisted shoulder-first and tilted (II) / chest up and slightly arched (III), then bowed over the lunge
+      var tw, bd, sd;
+      if (tier === 1) { tw = -.45 * coil - .3 * rs + .35 * hold; bd = .22 * coil + .52 * rs + .7 * hold; sd = .12 * rs - .1 * hold; }
+      else if (tier === 2) { tw = -.45 * coil + .7 * rs + .3 * hold; bd = .22 * coil + .66 * rs + .76 * hold; sd = .32 * rs - .1 * hold; }
+      else { tw = -.4 * coil - .1 * rs + .3 * hold * (1 - lift) - .25 * lift; bd = .22 * coil - .16 * rs + .78 * hold * (1 - lift) - .12 * lift + .2 * strike2; sd = .04 * rs; }
+      spineLayer(p, tw, bd, sd);
+      p.p.y -= ((tier === 3 ? .02 : tier === 2 ? .11 : .08) * rs + .1 * coil + .08 * hold) * inv; p.p.z += (.1 * hold + (tier === 3 ? .02 : .05) * run) * inv * keep;
+      // free arm: swept back and wide (I), guarding across the chest (II), thrown forward for balance (III); thrown out wide on the lunge
+      var wide = Math.max(rs, hold);
+      if (tier === 1) { euler.set(.5 * rs - .2 * hold, 0, (.35 * rs + 1.1 * hold) * wide, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(p, 7, qa); euler.set(0, 0, -.4 * wide, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(p, 8, qa); }
+      else if (tier === 2) { euler.set(-.85 * rs - .1 * hold, 0, -.35 * rs + 1.1 * hold, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(p, 7, qa); euler.set(-.9 * rs, 0, -.7 * rs, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(p, 8, qa); }
+      else { euler.set(-1.15 * rs - .1 * hold, 0, .45 * rs + 1.1 * hold, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(p, 7, qa); euler.set(-.4 * rs, 0, -.3 * wide, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(p, 8, qa); }
+      // cleaver arm: hauled back (wind-up) -> trailing low behind (I, II) or raised high overhead (III) -> slammed ahead (impact) -> (III) hauled up and slammed again -> back to the ready pose
+      wt.copy(W_COIL_T); wb.copy(W_COIL_B);
+      if (tier === 3) { slerpV(wt, wt, W_OVER_T, run); slerpV(wb, wb, C_OVER_B3, run); } else { slerpV(wt, wt, C_RUN_T, run); slerpV(wb, wb, C_RUN_B, run); }
+      slerpV(wt, wt, W_SLAM_T, strike); slerpV(wb, wb, W_SLAM_B, strike);
+      if (tier === 3) { slerpV(wt, wt, W_OVER_T, lift); slerpV(wb, wb, C_OVER_B3, lift); slerpV(wt, wt, W_SLAM_T, strike2); slerpV(wb, wb, W_SLAM_B, strike2); }
+      aimCleaver(p, smooth(t / .08) * keep, wt, wb, 1);
+      // head: up and looking along the line of the run (I), chin tucked behind the shoulder (II), high and defiant (III)
+      euler.set((tier === 2 ? .22 * rs - .1 * hold : -.28 * Math.max(rs, hold)) + .1 * coil, tier === 2 ? -.3 * rs : 0, 0, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(p, 4, qa);
+    }
     function applyMove(m, t, Tc, Tend, destination, state) {
       var c = moveCurve(m, t, Tc, Tend);
-      if (m.roar) { roarPose(destination, t, Tc, Tend); curve.phase = t < Tc ? 'hold' : 'follow'; return curve; }
+      if (m.pound) { poundPose(m, c, destination, t, Tc, Tend, state); if (t < Tc) return curve; return c; }
+      if (m.roar) { roarPose(destination, t, Tc, Tend, finite(state.roarTier, 1)); curve.phase = t < Tc ? 'hold' : 'follow'; return curve; }
       if (m.rush && t >= Tc) {
         // A charge: the body is thrown forward in a sprint while the capsule rushes along the telegraphed line.
         var run = clamp((t - Tc) / Math.max(.05, finite(state.rushTime, .3)), 0, 1);
@@ -429,6 +564,7 @@
     }
     function animate(dt, state) {
       if (disposed) return; state = state || {}; dt = clamp(finite(dt, 0), 0, .1); clock += dt;
+      motionInfo.refreshed = false;
       if (state.reset) {
         initialized = false; clock = finite(state.time, 0); gait = 0; speed = 0; moveWeight = 0; mode = ''; modeAge = 0; deathTime = 0; deathYaw = 0; deathKind = '';
         hurtTime = 2; previousHurt = 0; previousAttack = 0; comboMemory = -1; previousDodge = 0; wasDead = false; turnRate = 0; footfall.serial = 0; rollRecover = 9; lookCur = 0; lookPitch = 0; shiftCur = 0; legYawCur = 0; backwardMotion = false;
@@ -438,7 +574,7 @@
       // secondary life, no foot planting, the limbs.js death spasm long over), so recomputing it each frame changes nothing.
       // The bones are local to the root, so the renderer's own matrix pass still carries the corpse if the root moves.
       if (settled && state.dead && wasDead) { deathTime += dt; return; }
-      settled = false;
+      settled = false; motionInfo.serial = (motionInfo.serial | 0) + 1;   // a new pose: anything cached about this tree is out of date
       // Only the pelvis ancestry is read before applying the new pose. Keep
       // rigid root siblings (chains/hooks) current; the model subtree is refreshed
       // after retargeting, so visiting its old pose here would be duplicate work.
@@ -446,7 +582,8 @@
       for (var earlyChild = 0; earlyChild < root.children.length; earlyChild++) {
         if (root.children[earlyChild] !== model) root.children[earlyChild].updateWorldMatrix(false, true);
       }
-      root.getWorldPosition(rootNow); root.getWorldQuaternion(qRoot); invRoot.copy(qRoot).invert();
+      if (!rootInChain) root.updateWorldMatrix(true, false);
+      wpos(root, rootNow); wquat(root, qRoot); invRoot.copy(qRoot).invert();
       var rootYaw = Math.atan2(root.matrixWorld.elements[8], root.matrixWorld.elements[10]);
       var teleported = initialized && rootNow.distanceTo(rootBefore) > characterScale * 2.5;
       velocity.copy(rootNow).sub(rootBefore).setY(0).multiplyScalar(initialized && dt > 0 && !teleported ? 1 / dt : 0);
@@ -481,8 +618,8 @@
       var normalizedSpeed = speed / characterScale, walkJog = smooth((normalizedSpeed - 1.0) / 1.5), jogSprint = smooth((normalizedSpeed - 3.3) / 1.8);
       var gaitName = 'walk', walking = true;
       var stride = (STRIDE.walk + (STRIDE.jog - STRIDE.walk) * walkJog + (STRIDE.sprint - STRIDE.jog) * jogSprint) * characterScale, oldGait = gait;
-      var roaring = hero && finite(state.roarTime, -1) >= 0, whirling = hero && finite(state.whirl, -1) >= 0;
-      var swinging = attack > 0 || finite(state.attackTime, -1) >= 0 || finite(state.beatTime, -1) >= 0, acting = swinging || roaring || whirling;
+      var roaring = hero && finite(state.roarTime, -1) >= 0, whirling = hero && finite(state.whirl, -1) >= 0, charging = hero && finite(state.chargeTime, -1) >= 0;
+      var swinging = attack > 0 || finite(state.attackTime, -1) >= 0 || finite(state.beatTime, -1) >= 0, acting = swinging || roaring || whirling || charging;
       if (moveWeight > .02 && !swinging && !dodge && !state.dead) gait += dt * speed / Math.max(.3, stride) * (backward ? -1 : 1);
       var idleName = armed ? type === 'guard' ? 'shieldIdle' : 'combatIdle' : type === 'cultist' ? 'spellIdle' : 'zombieIdle';
       sample(idleName, clock, wanted, true);
@@ -491,7 +628,7 @@
         for (var readyHand = 11; readyHand < 14; readyHand++) wanted.q[readyHand].copy(extra.q[readyHand]);
         for (var readyFinger = 37; readyFinger < 52; readyFinger++) wanted.q[readyFinger].copy(extra.q[readyFinger]);
       }
-      if (moveWeight > .001 && !whirling) {
+      if (moveWeight > .001 && !whirling && !charging) {
         sample(gaitName, wrap(gait) * clip(gaitName).duration, extra, true);
         if (walking && walkJog > 0) { copyPose(locomotion, extra); sample('jog', wrap(gait + .05) * clip('jog').duration, extra, true); blendPose(locomotion, extra, walkJog); copyPose(extra, locomotion); }
         if (walking && jogSprint > 0) { copyPose(locomotion, extra); sample('sprint', wrap(gait) * clip('sprint').duration, extra, true); blendPose(locomotion, extra, jogSprint); copyPose(extra, locomotion); }
@@ -525,7 +662,7 @@
       var strikePhase = '';
       if (Number.isFinite(state.attackTime) && state.attackTime >= 0) {
         // Hero: exact gameplay clock (seconds), so the blade crosses the target on the damage frame.
-        var m = heroMove(combo, heavy); nextMode = 'attack' + finite(state.attackSerial, 0); fade = .06;
+        var m = state.skillTier > 1 ? (state.skillTier > 2 ? MOVES.strikePound : MOVES.strikeBrand) : heroMove(combo, heavy); nextMode = 'attack' + finite(state.attackSerial, 0); fade = .06;
         strikePhase = applyMove(m, state.attackTime, finite(state.attackStrike, .2), finite(state.attackDuration, .51), wanted, state).phase;
       } else if (Number.isFinite(state.beatTime) && state.beatTime >= 0) {
         var em = enemyMove(type, action, finite(state.beat, 0), state.pose); nextMode = 'act' + finite(state.attackSerial, 0) + ':' + finite(state.beat, 0); fade = .09;
@@ -537,9 +674,10 @@
       if (roaring) {
         // The father's war cry (Öfke).
         nextMode = 'roar' + finite(state.roarSerial, 0); fade = .07;
-        roarPose(wanted, state.roarTime, finite(state.roarRelease, .3), finite(state.roarDuration, .92)); strikePhase = state.roarTime < finite(state.roarRelease, .3) ? 'hold' : 'follow';
+        roarPose(wanted, state.roarTime, finite(state.roarRelease, .3), finite(state.roarDuration, .92), finite(state.roarTier, 1)); strikePhase = state.roarTime < finite(state.roarRelease, .3) ? 'hold' : 'follow';
       }
       if (whirling) { nextMode = 'whirl' + finite(state.attackSerial, 0); fade = .05; whirlPose(wanted, state.whirl, finite(state.whirlTime, 0), dt, rootYaw); strikePhase = 'follow'; } else if (wLive) { wLive = false; wFlare = 0; root.userData.whirlFlare = 0; }
+      if (charging) { nextMode = 'charge' + finite(state.chargeSerial, 0); fade = .04; chargePose(wanted, state, dt); strikePhase = 'follow'; } else if (cLive) cLive = false;
       var drinkT = hero ? finite(state.drinkTime, -1) : -1;
       if (drinkT >= 0 && !dodge && !stagger && !state.dead) {
         // Flask: a quick lift of the free hand to the mouth with the head tipped back, laid over whatever he is doing
@@ -593,7 +731,7 @@
         wanted.p.z -= slide; yawPose(wanted, deathYaw);
       }
       // Secondary life: slow breathing, a shifting stance, the head drifting and turning toward the foe (never while striking or falling).
-      if (!state.dead && !dodge && !strikePhase && !roaring && !whirling && dt > 0) {
+      if (!state.dead && !dodge && !strikePhase && !roaring && !whirling && !charging && dt > 0) {
         var still = 1 - moveWeight * .7, lt2 = clock + lifeSeed, breath = Math.sin(lt2 * (boss ? 1.5 : 2.1)), sway = Math.sin(lt2 * .55) * Math.sin(lt2 * .31 + 1);
         shiftCur += (sway - shiftCur) * damp(3, dt);
         spineLayer(wanted, .05 * Math.sin(lt2 * .7) * still, .035 * breath * still, .07 * shiftCur * still);
@@ -626,11 +764,11 @@
         }
         node.updateWorldMatrix(false, false);
       }
-      model.updateWorldMatrix(false, true);
+      if (model === root || poseNodes.has(model)) refreshRest(model); else model.updateWorldMatrix(false, true);
       var lowest = Infinity;
       for (var fi2 = 0; fi2 < feet.length; fi2++) {
         var foot = feet[fi2]; if (!foot.ankle || !foot.toe) continue;
-        foot.ankle.getWorldPosition(va); foot.toe.getWorldPosition(vb);
+        wpos(foot.ankle, va); wpos(foot.toe, vb);
         lowest = Math.min(lowest, va.y - foot.heel, vb.y - foot.toeHeight);
       }
       if (Number.isFinite(lowest)) {
@@ -642,7 +780,7 @@
         for (var floorJoint = 0; floorJoint < 3; floorJoint++) {
           var index = floorJoint === 0 ? 0 : floorJoint === 1 ? 3 : 5;
           var joint = mapping[index]; if (!joint) continue;
-          joint.getWorldPosition(va); joint.getWorldQuaternion(qa);
+          wpos(joint, va); wquat(joint, qa);
           if (index === 5) va.add(vb.set(0, .105 * characterScale, 0).applyQuaternion(qa));
           rollFloor = Math.min(rollFloor, va.y - (index === 5 ? .135 : .18) * characterScale);
         }
@@ -654,7 +792,7 @@
         if (canPlant) {
           var plantWeight = onGround ? .92 * (1 - smooth(output.sole[f] / .07)) * smooth(moveWeight / .4) : 0;
           planted.weight += (plantWeight - planted.weight) * damp(30, dt);
-          planted.ankle.getWorldPosition(va);
+          wpos(planted.ankle, va);
           if (!planted.locked && plantWeight > .02) { planted.anchor.copy(va); planted.locked = true; }
           if (planted.locked && planted.weight > .01) lockFoot(planted, planted.weight);
           else if (plantWeight === 0) planted.locked = false;
@@ -662,7 +800,7 @@
       }
       if (weapon && mapping[13]) {
         qDesired.copy(qRoot).multiply(output.q[13]).multiply(qBlade);
-        weapon.parent.getWorldQuaternion(qParent).invert(); weapon.quaternion.copy(qParent.multiply(qDesired)); weapon.updateWorldMatrix(false, true);
+        wquat(weapon.parent, qParent).invert(); weapon.quaternion.copy(qParent.multiply(qDesired)); weapon.updateWorldMatrix(false, true);
       }
       if (initialized && dt > 0 && !teleported) {
         if (canPlant && Math.floor(oldGait * 2) !== Math.floor(gait * 2)) {
@@ -676,6 +814,8 @@
         var settleAt = Math.max(2.2, .3 + (deathKind === 'blown' ? clip('hitKnockback').duration / 1.05 : clip('death').duration / (boss ? 1.05 : 1.75)));
         if (deathTime > settleAt) settled = true;
       }
+      // Every node below the root now carries its final world matrix for this pose (see combat.js guardRenderMatrices).
+      motionInfo.refreshed = true; motionInfo.px = root.position.x; motionInfo.py = root.position.y; motionInfo.pz = root.position.z; motionInfo.ry = root.rotation.y;
     }
     animate(0, {});
     return { animate: animate, bones: armAliases, dispose: function () { disposed = true; } };

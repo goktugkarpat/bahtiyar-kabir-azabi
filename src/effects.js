@@ -134,14 +134,20 @@
       const priCap = Math.min(GD - 40, Math.max(20, Math.round(cfg.decals * 1.4))), list = micro ? gdMic : gdPri, micCap = Math.min(GD - priCap, Math.round(cfg.decals * 1.6) + 20);
       list.push(o); while (gdPri.length > priCap) gdPri.shift(); while (gdMic.length > micCap) gdMic.shift(); return o;
     }
+    const gdLists = [gdMic, gdPri];
     function gdStep(dt) {
-      let n = 0; const arr = gdAttr.array;
-      for (const list of [gdMic, gdPri]) for (let i = 0; i < list.length; i++) {
+      let n = 0; const arr = gdAttr.array, marr = gdMesh.instanceMatrix.array;
+      for (let li = 0; li < 2; li++) for (let i = 0, list = gdLists[li]; i < list.length; i++) {
         const d = list[i]; d.t += dt; if (d.t > d.life) { list.splice(i--, 1); continue; }
-        let sx = d.sx, sy = d.sy, py = d.y;
-        if (d.grow) { const k = Math.min(1, d.t / d.grow.dur), f = d.grow.f0 + (d.grow.f1 - d.grow.f0) * (1 - Math.pow(1 - k, 3)); sx *= f; sy *= f; }
-        if (d.drip) { const k = Math.min(1, d.t / d.drip.dur), L = Math.max(.02, d.drip.len * (1 - Math.pow(1 - k, 2))); sx = L; py = d.drip.top - L * .5; }
-        gdTmp.position.set(d.x, py, d.z); gdTmp.rotation.set(d.rx, d.ry, d.rot); gdTmp.scale.set(sx, sy, 1); gdTmp.updateMatrix(); gdMesh.setMatrixAt(n, gdTmp.matrix);
+        // A decal whose growth / drip has finished never changes its matrix again: build it once, then copy the 16 numbers.
+        if (d.m && (!d.grow || d.t >= d.grow.dur) && (!d.drip || d.t >= d.drip.dur)) marr.set(d.m, n * 16);
+        else {
+          let sx = d.sx, sy = d.sy, py = d.y;
+          if (d.grow) { const k = Math.min(1, d.t / d.grow.dur), f = d.grow.f0 + (d.grow.f1 - d.grow.f0) * (1 - Math.pow(1 - k, 3)); sx *= f; sy *= f; }
+          if (d.drip) { const k = Math.min(1, d.t / d.drip.dur), L = Math.max(.02, d.drip.len * (1 - Math.pow(1 - k, 2))); sx = L; py = d.drip.top - L * .5; }
+          gdTmp.position.set(d.x, py, d.z); gdTmp.rotation.set(d.rx, d.ry, d.rot); gdTmp.scale.set(sx, sy, 1); gdTmp.updateMatrix(); gdMesh.setMatrixAt(n, gdTmp.matrix);
+          if ((!d.grow || d.t >= d.grow.dur) && (!d.drip || d.t >= d.drip.dur)) d.m = gdTmp.matrix.elements.slice();
+        }
         arr[n * 4] = d.cell % 3; arr[n * 4 + 1] = d.cell < 3 ? 1 : 0; arr[n * 4 + 2] = 1 - Math.exp(-d.t / (d.dryT || 26)); arr[n * 4 + 3] = d.a0 * Math.min(1, d.t / .05) * clamp((d.life - d.t) / 8, 0, 1); n++;
       }
       gdMesh.count = n; gdMesh.visible = n > 0; if (n) { gdMesh.instanceMatrix.needsUpdate = true; gdAttr.needsUpdate = true; }
@@ -191,7 +197,9 @@
         bstreak(x + rnd(-.06, .06), y + rnd(-.1, .1), z + rnd(-.06, .06), Math.sin(an) * s, (1.2 + Math.random() * 4.2) * lift, Math.cos(an) * s, .8 + Math.random() * .5, (jet ? .075 : .05) * w * rnd(.7, 1.3), jet && Math.random() < .5 ? BART : null, stick); }
     }
     // ---- actors (hero + living foes near him): droplets that hit a body stay on it and drip; bleeding actors shed drops for a while
-    const gActors = [], bleeders = [];
+    const gActors = [], gActorPool = [], bleeders = [];
+    // The actor list is rebuilt every frame; its records are recycled instead of allocated (no per-frame garbage).
+    function gActorAdd(e, r, h) { const a = gActorPool[gActors.length] || (gActorPool[gActors.length] = { e: null, r: 0, h: 0 }); a.e = e; a.r = r; a.h = h; gActors.push(a); }
     function bleedAdd(actor, amt) {
       let b = bleeders.find(q => q.a === actor); if (!b) { if (bleeders.length >= 14) bleeders.shift(); b = { a: actor, left: 0, rate: 0, acc: 0 }; bleeders.push(b); }
       b.left = Math.min(4.5, b.left + amt * 2.2); b.rate = Math.max(b.rate, 3 + amt * 8);
@@ -274,7 +282,7 @@
     let landBudget = 0;
     function goreStep(dt) {
       const game = getGame(), calm = reduced.matches; landBudget = 16;
-      gActors.length = 0; if (game && game.player) { const p = game.player; if (!p.dead) gActors.push({ e: p, r: .42, h: 1.9 }); for (const e of game.enemies) if (!e.dead && Math.abs(e.z - p.z) < 14 && Math.abs(e.x - p.x) < 14) gActors.push({ e, r: e.boss ? .95 : .48, h: e.boss ? 3.2 : 2 }); }
+      gActors.length = 0; if (game && game.player) { const p = game.player; if (!p.dead) gActorAdd(p, .42, 1.9); for (const e of game.enemies) if (!e.dead && Math.abs(e.z - p.z) < 14 && Math.abs(e.x - p.x) < 14) gActorAdd(e, e.boss ? .95 : .48, e.boss ? 3.2 : 2); }
       // spurts
       for (let i = spurts.length - 1; i >= 0; i--) {
         const s = spurts[i]; s.t += dt; if (s.t > s.dur) { spurts.splice(i, 1); continue; }
@@ -324,8 +332,9 @@
           qa.set(s.x, s.y, s.z); cv1.set(s.vx, s.vy, s.vz).multiplyScalar(1 / sp); qb.copy(qa).addScaledVector(cv1, -len);
           cv2.crossVectors(cv1, camDir); if (cv2.lengthSq() < 1e-6) cv2.set(1, 0, 0); cv2.normalize().multiplyScalar(s.w * .5);
           const a = Math.min(1, s.t * 40) * Math.min(1, (s.life - s.t) * 5) * .94;
-          bsPos.set([qb.x - cv2.x, qb.y - cv2.y, qb.z - cv2.z, qb.x + cv2.x, qb.y + cv2.y, qb.z + cv2.z, qa.x + cv2.x, qa.y + cv2.y, qa.z + cv2.z, qa.x - cv2.x, qa.y - cv2.y, qa.z - cv2.z], o);
-          for (let j = 0; j < 4; j++) bsCol.set([s.col[0], s.col[1], s.col[2], a], i * 16 + j * 4);
+          bsPos[o] = qb.x - cv2.x; bsPos[o + 1] = qb.y - cv2.y; bsPos[o + 2] = qb.z - cv2.z; bsPos[o + 3] = qb.x + cv2.x; bsPos[o + 4] = qb.y + cv2.y; bsPos[o + 5] = qb.z + cv2.z;
+          bsPos[o + 6] = qa.x + cv2.x; bsPos[o + 7] = qa.y + cv2.y; bsPos[o + 8] = qa.z + cv2.z; bsPos[o + 9] = qa.x - cv2.x; bsPos[o + 10] = qa.y - cv2.y; bsPos[o + 11] = qa.z - cv2.z;
+          for (let j = 0, c = i * 16, c0 = s.col[0], c1 = s.col[1], c2 = s.col[2]; j < 4; j++, c += 4) { bsCol[c] = c0; bsCol[c + 1] = c1; bsCol[c + 2] = c2; bsCol[c + 3] = a; }
           live++;
         }
         bsLive = live; bsGeo.attributes.position.needsUpdate = true; bsGeo.attributes.aCol.needsUpdate = true; bsMesh.visible = live > 0;
@@ -567,6 +576,17 @@
         emit(x + Math.sin(a) * r, .05, z + Math.cos(a) * r, 4, Math.random() < .3 ? [3.4, 1.8, .8] : [2.6, .6, .12], Math.sin(a) * 1.0, 1.6 + Math.random() * 2.2, Math.cos(a) * 1.0, .7 + Math.random() * .8, .045);
       }
       roarSpiral.on = true; roarSpiral.t = 0; roarSpiral.x = x; roarSpiral.z = z; roarSpiral.R = V;   // continuous ember spiral, see roarSpiralStep
+      // Tier accents (Ölüm Çığlığı / Kıyamet Narası): an amber ground-splitting wave, then a cold violet one with a column of sparks; same primitives, no new objects.
+      const tier = d.tier || 1;
+      if (tier > 1 && tells) {
+        tells.wave(x, z, { radius: VF * 1.12, life: .7, width: .2, color: [2.4, 1.5, .45], crack: .9, crackR: R * .5, crackLife: 1.6, soft: 0, delay: .08 });
+        tells.glowBurst(x, z, { radius: 3.2, life: .6, color: [2.6, 1.6, .5], peak: .3 });
+        for (let i = 0; i < (calm ? 4 : scaleCount(26)); i++) { const a = i / 26 * Math.PI * 2 + Math.random() * .2; streak(x + Math.sin(a) * V * .9, .2, z + Math.cos(a) * V * .9, Math.sin(a) * 2, 3 + Math.random() * 3, Math.cos(a) * 2, .45, .1, [2.6, 1.7, .6]); }
+      }
+      if (tier > 2 && tells) {
+        tells.wave(x, z, { radius: VF * 1.3, life: .85, width: .22, color: [1.5, .9, 2.8], soft: 0, delay: .16 });
+        tells.glowBurst(x, z, { radius: 4, life: .8, color: [1.2, .7, 2.6], peak: .3 });
+      }
       // Cowed foes: a dark shudder rises off each one the roar reached.
       if (game) for (const e of game.enemies) if (!e.dead && e.fear > 1 && e.model.root.visible) for (let i = 0; i < scaleCount(8); i++) emit(e.x + rnd(-.3, .3), 1.2 + Math.random() * .6, e.z + rnd(-.3, .3), 2, [.04, .03, .03], rnd(-.3, .3), .6, rnd(-.3, .3), .8, .3);
     }
@@ -583,6 +603,30 @@
       }
       rs.t += dt; if (rs.t > D) rs.on = false;
     }
+    // Follow-up rings of the tier-3 cry (Kıyamet Narası): each one is a pale violet front with a few chain-link sparks along it.
+    function warCryWave(d) {
+      const x = d.x, z = d.z, V = (d.radius || 6) * .6, calm = reduced.matches, n = d.n || 1;
+      if (tells) tells.wave(x, z, { radius: V + .6, life: .55, width: .2, color: n % 2 ? [1.6, 1.0, 2.8] : [2.4, 1.3, .6], crack: n === 1 ? .5 : 0, crackR: V * .6, crackLife: 1.1, soft: 0 });
+      for (let i = 0; i < (calm ? 4 : scaleCount(22)); i++) { const a = Math.random() * Math.PI * 2; streak(x + Math.sin(a) * V * .8, .25 + Math.random() * .4, z + Math.cos(a) * V * .8, Math.sin(a) * 3, 1.5 + Math.random() * 2.5, Math.cos(a) * 3, .35 + Math.random() * .25, .09, [1.8, 1.1, 2.6]); }
+      const ringDust = scaleCount(20); for (let i = 0; i < ringDust; i++) { const a = i / ringDust * Math.PI * 2; particle(x + Math.sin(a) * V * .7, .1, z + Math.cos(a) * V * .7, 2, DUST, 1.6, a, .3); }
+    }
+    // Tier accents of the heavy-strike line: the base blow keeps its crescent; Kemik Kıran adds a gold seal burst, Kabir Balyozu a cold-white flame fan.
+    function skillAccent(d) {
+      const tier = d.tier || 1, x = d.x, z = d.z, face = d.face || 0, R = d.radius || 3.2, calm = reduced.matches, sx = Math.sin(face), sz = Math.cos(face);
+      if (d.line !== 'cleave' || tier < 2) return;
+      if (tier === 2) {
+        if (tells) { tells.glowBurst(x, z, { radius: R * 1.1, life: .6, color: [2.6, 1.7, .5], peak: .4 }); tells.wave(x, z, { radius: R * 1.2, life: .5, width: .18, color: [2.4, 1.6, .5], crack: .7, crackR: R * .9, crackLife: 1.2, soft: 0, delay: .05 }); }
+        for (let i = 0; i < (calm ? 4 : scaleCount(26)); i++) { const a = Math.random() * Math.PI * 2, r = R * Math.random(); emit(x + Math.sin(a) * r, .1, z + Math.cos(a) * r, 4, [3.2, 2.0, .6], Math.sin(a) * .8, 2 + Math.random() * 3, Math.cos(a) * .8, .6 + Math.random() * .5, .05); }
+        return;
+      }
+      // tier 3: a fan of cold-white embers thrown along the cone, a pale shock front and a long scorch
+      if (tells) { tells.wave(x, z, { radius: R * .62, life: .5, width: .22, color: [1.6, 1.0, 2.6], soft: 0, crack: .6, crackR: R * .5, crackLife: 1.4 }); tells.glowBurst(x + sx * 3, z + sz * 3, { radius: 3.4, life: .7, color: [1.8, 1.0, 2.4], peak: .35 }); }
+      for (let i = 0; i < (calm ? 6 : scaleCount(46)); i++) {
+        const a = face + (Math.random() - .5) * (d.arc || 2.5), r = R * (.25 + Math.random() * .75);
+        emit(x + Math.sin(a) * r * .5, .2 + Math.random() * .7, z + Math.cos(a) * r * .5, 4, Math.random() < .4 ? [2.2, 1.4, 3.0] : [3.4, 1.4, .4], Math.sin(a) * r * 1.4, .8 + Math.random() * 1.6, Math.cos(a) * r * 1.4, .5 + Math.random() * .4, .06);
+      }
+      scar(x + sx * 3, z + sz * 3, face, { shape: 'circle', radius: R * .5, heat: .4 });
+    }
     function rageEnd(d) {
       const x = d.x, z = d.z;
       // The fire goes out of him: a gust of grey ash off the whole body, last embers sinking, a dull ring on the floor.
@@ -594,7 +638,12 @@
     // Two iron chains with cleaver hooks orbit the father at hip height. Links sit at a fixed pitch along a swept-back arc (hand -> orbit) so there is never a gap,
     // a smooth additive motion-blur disc follows the heads, a swirl of light turns on the floor, embers are shed by distance travelled (not per frame), and every
     // tick / hit adds a smooth ring, velocity-stretched spark streaks and dust. The orbit is driven from the hero's real body yaw, so it is always in step with him.
-    const CH_PITCH = .21, CH_ARM = 20, CH_MAX = CH_ARM * 2, CH_PTS = 40;
+    const CH_PITCH = .21, CH_ARM = 28, CH_MAX = CH_ARM * 2, CH_PTS = 40;
+    // Whirl look per tier (whirl* prefix): I ember orange chains, II molten gold reaping scythes with a sweeping ground trail, III dark violet / black-red storm with bone-white flashes.
+    const WT = [null,
+      { emis: [1, .32, .07], metal: '#3d3a37', glow: [.9, .36, .11], ember: [[2.8, .8, .2], [2.2, .4, .1]], d1: [2.2, .55, .14], d2: [1.9, 1.1, .55], floor: [1, .3, .08], ring: [.7, .22, .06], ringLast: [1, .34, .1], flash: '#ff9550', hit: '#ffb070', head: [1, 1, 1], tail: 1, cres: 0, lag: 1.3, hot: [3.0, 1.1, .3] },
+      { emis: [1, .62, .12], metal: '#4d3f2a', glow: [1, .72, .2], ember: [[4, 2.5, .5], [3.2, 1.5, .25]], d1: [3.3, 1.9, .4], d2: [2.6, 2.0, 1], floor: [1, .62, .14], ring: [.95, .58, .17], ringLast: [1.6, 1.0, .32], flash: '#ffd080', hit: '#ffd890', head: [2.6, 1.15, 1.7], tail: .85, cres: 1, lag: 2.3, hot: [4.2, 2.6, .6] },
+      { emis: [.55, .1, 1], metal: '#1a1520', glow: [.62, .16, 1], ember: [[2.4, .3, 3], [2.8, .12, .25]], d1: [1.4, .22, 2.6], d2: [2.6, 1.8, 2.8], floor: [.55, .1, 1], ring: [.42, .1, .85], ringLast: [.8, .28, 1.5], flash: '#d8c8ff', hit: '#d0c0ff', head: [2.2, 1.6, 1.5], tail: .75, cres: 1.4, lag: 2.9, hot: [3.4, .6, 3.2] }];
     const softMap = canvasTexture(128, (ctx, s) => { const g = ctx.createRadialGradient(64, 64, 0, 64, 64, 64); g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(.25, 'rgba(255,255,255,.55)'); g.addColorStop(.6, 'rgba(255,255,255,.14)'); g.addColorStop(1, 'rgba(255,255,255,0)'); ctx.fillStyle = g; ctx.fillRect(0, 0, s, s); });
     const chLinks = new T.InstancedMesh(new T.TorusGeometry(.085, .03, 8, 18),
       new T.MeshStandardMaterial({ color: '#3d3a37', metalness: .9, roughness: .42, emissive: new T.Color(1, .32, .07), emissiveIntensity: 0 }), CH_MAX);
@@ -610,14 +659,14 @@
     const chHeads = [0, 1].map(() => { const m = new T.Mesh(chHeadGeo, chLinks.material); m.frustumCulled = false; m.visible = false; root.add(m); return m; });
     const chGlow = [0, 1, 2].map(() => { const sp = new T.Sprite(new T.SpriteMaterial({ map: softMap, color: 0xffffff, transparent: true, depthWrite: false, depthTest: false, blending: T.AdditiveBlending, fog: false })); sp.renderOrder = 29; sp.visible = false; root.add(sp); return sp; });
     // motion-blur disc at chest height: two comet tails (one per chain) that lengthen with the turning speed
-    const chDiscMat = new T.ShaderMaterial({ transparent: true, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide, fog: false, uniforms: { uHead: { value: 0 }, uP: { value: 0 }, uRate: { value: 0 }, uR: { value: 4 }, uT: { value: 0 } },
+    const chDiscMat = new T.ShaderMaterial({ transparent: true, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide, fog: false, uniforms: { uHead: { value: 0 }, uP: { value: 0 }, uRate: { value: 0 }, uR: { value: 4 }, uT: { value: 0 }, uTail: { value: 1 }, uC1: { value: new T.Vector3(2.2, .55, .14) }, uC2: { value: new T.Vector3(1.9, 1.1, .55) } },
       vertexShader: 'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
-      fragmentShader: 'varying vec2 vUv;uniform float uHead,uP,uRate,uR,uT;void main(){vec2 q=(vUv-.5)*2.;float r=length(q)*uR;float a=atan(q.x,q.y);float rad=smoothstep(1.3,2.1,r)*(1.-smoothstep(3.0,3.9,r));float d=mod(uHead-a,3.14159265);float tail=exp(-d*(6.5-2.6*uRate));float fine=.8+.2*sin(d*46.+r*5.-uT*30.);float k=rad*tail*fine*uP*smoothstep(0.,.07,d);if(k<.004)discard;vec3 col=mix(vec3(2.2,.55,.14),vec3(1.9,1.1,.55),tail*tail*tail);gl_FragColor=vec4(col*k*.24,1.);}' });
+      fragmentShader: 'varying vec2 vUv;uniform float uHead,uP,uRate,uR,uT,uTail;uniform vec3 uC1,uC2;void main(){vec2 q=(vUv-.5)*2.;float r=length(q)*uR;float a=atan(q.x,q.y);float rad=smoothstep(1.3,2.1,r)*(1.-smoothstep(3.0,3.9,r));float d=mod(uHead-a,3.14159265);float tail=exp(-d*(6.5-2.6*uRate)*uTail);float fine=.8+.2*sin(d*46.+r*5.-uT*30.);float k=rad*tail*fine*uP*smoothstep(0.,.07,d);if(k<.004)discard;vec3 col=mix(uC1,uC2,tail*tail*tail);gl_FragColor=vec4(col*k*.24,1.);}' });
     const chDisc = new T.Mesh(new T.RingGeometry(1.2, 4, 64, 1).rotateX(-Math.PI / 2), chDiscMat); chDisc.frustumCulled = false; chDisc.renderOrder = 7; chDisc.visible = false; root.add(chDisc);
     // floor swirl: spiral arms of light that turn with the spin, plus a hot rim at the reach of the blow
-    const chFloorMat = new T.ShaderMaterial({ transparent: true, depthWrite: false, blending: T.AdditiveBlending, fog: false, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3, uniforms: { uP: { value: 0 }, uT: { value: 0 }, uRim: { value: 3.6 }, uR: { value: 4.5 } },
+    const chFloorMat = new T.ShaderMaterial({ transparent: true, depthWrite: false, blending: T.AdditiveBlending, fog: false, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3, uniforms: { uP: { value: 0 }, uT: { value: 0 }, uRim: { value: 3.6 }, uR: { value: 4.5 }, uHead: { value: 0 }, uCres: { value: 0 }, uCol: { value: new T.Vector3(1, .3, .08) } },
       vertexShader: 'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
-      fragmentShader: 'varying vec2 vUv;uniform float uP,uT,uRim,uR;void main(){vec2 q=(vUv-.5)*2.;float r=length(q)*uR;float a=atan(q.x,q.y);float ph=.5+.5*sin(a*3.+r*1.7-uT*9.);ph=ph*ph*ph;float m=smoothstep(.5,1.5,r)*(1.-smoothstep(uRim-.5,uRim+.7,r));float rw=(r-uRim)/.16;float rim=exp(-rw*rw);float k=(ph*m*.07+rim*.12)*uP;if(k<.004)discard;gl_FragColor=vec4(vec3(1.,.3,.08)*k,1.);}' });
+      fragmentShader: 'varying vec2 vUv;uniform float uP,uT,uRim,uR,uHead,uCres;uniform vec3 uCol;void main(){vec2 q=(vUv-.5)*2.;float r=length(q)*uR;float a=atan(q.x,q.y);float ph=.5+.5*sin(a*3.+r*1.7-uT*9.);ph=ph*ph*ph;float m=smoothstep(.5,1.5,r)*(1.-smoothstep(uRim-.5,uRim+.7,r));float rw=(r-uRim)/.16;float rim=exp(-rw*rw);float dh=mod(uHead-a,3.14159265);float wedge=exp(-dh*4.)*smoothstep(uRim*.35,uRim*.92,r)*(1.-smoothstep(uRim,uRim+.35,r))*smoothstep(0.,.05,dh);float lead=exp(-dh*9.)*exp(-pow((r-uRim*.97)/.28,2.))*smoothstep(0.,.03,dh);float k=(ph*m*(.07+.05*uCres)+rim*(.12+.1*uCres)+uCres*(wedge*.09+lead*.55))*uP;if(k<.004)discard;gl_FragColor=vec4(uCol*k,1.);}' });
     const chFloor = new T.Mesh(new T.RingGeometry(.4, 4.5, 64, 1).rotateX(-Math.PI / 2), chFloorMat); chFloor.frustumCulled = false; chFloor.renderOrder = 1; chFloor.visible = false; root.add(chFloor);
     // smooth shock rings (pool of 4): a bright edge and a faint hot disc, analytic (no noise, no texture seams)
     const chRings = [0, 1, 2, 3].map(() => {
@@ -666,21 +715,21 @@
     }
     // Jagged floor cracks that run out from the centre (a thin soft-edged ribbon each), glow white-hot and cool to a dark scar
     const CK = 3, CKV = 420, chCracks = [];
-    const ckMat = new T.ShaderMaterial({ transparent: true, depthWrite: false, fog: false, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3, uniforms: { uHeat: { value: 0 }, uRun: { value: 0 }, uA: { value: 1 } },
+    const ckMat = new T.ShaderMaterial({ transparent: true, depthWrite: false, fog: false, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3, uniforms: { uHeat: { value: 0 }, uRun: { value: 0 }, uA: { value: 1 }, uTint: { value: new T.Vector3(1, 1, 1) } },
       vertexShader: 'attribute float aV,aT;varying float v,t;void main(){v=aV;t=aT;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
-      fragmentShader: 'varying float v,t;uniform float uHeat,uRun,uA;void main(){float q=max(0.,1.-min(1.,abs(v*2.-1.)));float reveal=1.-smoothstep(uRun-.06,uRun,t);float core=q*q;float h=uHeat*(.35+.65*core);vec3 col=mix(vec3(.025,.018,.016),vec3(2.4,.75,.2),h);col=mix(col,vec3(3.,2.,1.2),core*core*uHeat);float a=(q*.9+.1*core)*reveal*uA;if(a<.01)discard;gl_FragColor=vec4(col,a);}' });
+      fragmentShader: 'varying float v,t;uniform float uHeat,uRun,uA;uniform vec3 uTint;void main(){float q=max(0.,1.-min(1.,abs(v*2.-1.)));float reveal=1.-smoothstep(uRun-.06,uRun,t);float core=q*q;float h=uHeat*(.35+.65*core);vec3 col=mix(vec3(.025,.018,.016),vec3(2.4,.75,.2),h);col=mix(col,vec3(3.,2.,1.2),core*core*uHeat);col*=uTint;float a=(q*.9+.1*core)*reveal*uA;if(a<.01)discard;gl_FragColor=vec4(col,a);}' });
     for (let i = 0; i < CK; i++) {
       const g = new T.BufferGeometry(), pos = new Float32Array(CKV * 3), av = new Float32Array(CKV), at = new Float32Array(CKV);
       g.setAttribute('position', new T.BufferAttribute(pos, 3)); g.setAttribute('aV', new T.BufferAttribute(av, 1)); g.setAttribute('aT', new T.BufferAttribute(at, 1)); g.setIndex(new T.BufferAttribute(new Uint16Array(CKV * 3), 1));
       const m = new T.Mesh(g, ckMat.clone()); m.frustumCulled = false; m.renderOrder = 0; m.visible = false; root.add(m); chCracks.push({ m, t: 99 });
     }
-    function chCrack(x, z, R) {
+    function chCrack(x, z, R, tier) {
       const c = chCracks.reduce((a, b) => (b.t > a.t ? b : a)), g = c.m.geometry, pos = g.attributes.position.array, av = g.attributes.aV.array, at = g.attributes.aT.array, idx = g.index.array;
       let vi = 0, ii = 0; const spokes = 7, base = Math.random() * 6.28;
       for (let sI = 0; sI < spokes; sI++) {
         const segs = 12, len = R * (.7 + Math.random() * .4); let a = base + sI / spokes * 6.283 + (Math.random() - .5) * .5, px = x, pz = z;
         for (let k = 0; k <= segs && vi + 2 <= CKV; k++) {
-          const f = k / segs, w = .3 * (1 - f * .85) * .5, nx = Math.cos(a), nz = -Math.sin(a);
+          const f = k / segs, w = .3 * (1 - f * .85) * .5 * (tier === 3 ? 1.7 : tier === 2 ? 1.25 : 1), nx = Math.cos(a), nz = -Math.sin(a);
           pos[vi * 3] = px - nx * w; pos[vi * 3 + 1] = .05; pos[vi * 3 + 2] = pz - nz * w; av[vi] = 0; at[vi] = f; vi++;
           pos[vi * 3] = px + nx * w; pos[vi * 3 + 1] = .05; pos[vi * 3 + 2] = pz + nz * w; av[vi] = 1; at[vi] = f; vi++;
           if (k > 0) { const q = vi - 4; idx.set([q, q + 1, q + 2, q + 1, q + 3, q + 2], ii); ii += 6; }
@@ -688,7 +737,7 @@
         }
       }
       g.index.array.fill(0, ii); g.index.needsUpdate = true; for (const n of ['position', 'aV', 'aT']) g.attributes[n].needsUpdate = true; g.setDrawRange(0, ii);
-      c.t = 0; c.m.visible = true; c.m.material.uniforms.uRun.value = 0; c.m.material.uniforms.uHeat.value = 1; c.m.material.uniforms.uA.value = 1;
+      c.m.material.uniforms.uTint.value.set(tier === 3 ? .55 : 1, tier === 3 ? .14 : tier === 2 ? .8 : 1, tier === 3 ? .4 : tier === 2 ? .45 : 1); c.t = 0; c.m.visible = true; c.m.material.uniforms.uRun.value = 0; c.m.material.uniforms.uHeat.value = 1; c.m.material.uniforms.uA.value = 1;
     }
     function cracksStep(dt) {
       for (const c of chCracks) {
@@ -698,7 +747,7 @@
       }
     }
     const smooth = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
-    const wh = { on: false, end: 0, power: 0, age: 0, prev: 0, rate: 0, have: false, dust: 0, vort: 0 };
+    const wh = { on: false, end: 0, power: 0, age: 0, prev: 0, rate: 0, have: false, dust: 0, vort: 0, k: 1, tier: 1, grow: 1, R: 3.6, matTier: 0, fire: 0 };
     const chPX = new Float32Array(CH_PTS), chPY = new Float32Array(CH_PTS), chPZ = new Float32Array(CH_PTS), chCum = new Float32Array(CH_PTS);
     const chM = new T.Matrix4(), chT = new T.Vector3(), chN1 = new T.Vector3(), chN2 = new T.Vector3(), chUp = new T.Vector3(0, 1, 0), chP = new T.Vector3();
     function whirlStep(dt) {
@@ -709,17 +758,20 @@
       // Parent: two chains stayed out at the sides at the end. They now draw back into the hands before the last blow lands (wh.end 0..1 over the braking part of the spin).
       wh.end = a ? (a.duration > 0 ? smooth(a.duration - .66, a.duration - .38, a.age) : 0) : wh.end;   // stays drawn in after the spin ends
       if (wh.power <= 0 && !wh.on) { chLinks.visible = chDisc.visible = chFloor.visible = false; chHeads.forEach(h => { h.visible = false; }); chGlow.forEach(s => { s.visible = false; }); wh.have = false; for (const r of chRings) if (r.t < r.life) advRing(r, dt); return; }
+      if (a) { wh.tier = a.tier || 1; const rad = a.radius || 3.6, gp = wh.grow < 1 ? wh.grow + (1 - wh.grow) * smooth(0, .9, a.duration > 0 ? a.age / a.duration : 0) : 1; wh.R = rad * gp; wh.k = clamp(wh.R / 3.6, 1, 1.8); }
+      const WTI = WT[wh.tier] || WT[1], t3 = wh.tier === 3 ? 1 : 0;
+      if (wh.matTier !== wh.tier) { wh.matTier = wh.tier; chLinks.material.color.set(WTI.metal); chLinks.material.emissive.setRGB(WTI.emis[0], WTI.emis[1], WTI.emis[2]); chDiscMat.uniforms.uC1.value.set(WTI.d1[0], WTI.d1[1], WTI.d1[2]); chDiscMat.uniforms.uC2.value.set(WTI.d2[0], WTI.d2[1], WTI.d2[2]); chDiscMat.uniforms.uTail.value = WTI.tail; chFloorMat.uniforms.uCol.value.set(WTI.floor[0], WTI.floor[1], WTI.floor[2]); chFloorMat.uniforms.uCres.value = WTI.cres; }
       const px = p.x, pz = p.z, root0 = p.model && p.model.root ? p.model.root.rotation.y : 0, th = root0 + 1.35, P = smooth(0, 1, wh.power);
       let dth = wh.have ? th - wh.prev : 0; while (dth > Math.PI) dth -= Math.PI * 2; while (dth < -Math.PI) dth += Math.PI * 2;
       const omega = dt > 0 ? dth / dt : 0; wh.rate += (clamp(omega / 26, 0, 1) - wh.rate) * (1 - Math.exp(-dt * 14));
-      const reach = 3.05 * Math.pow(P, .7) * (1 - wh.end), pe = P * (1 - wh.end), lag = .5 + 1.3 * wh.rate, t = performance.now() / 1000;
+      const reach = 3.05 * (wh.k || 1) * Math.pow(P, .7) * (1 - wh.end), pe = P * (1 - wh.end), lag = .5 + WTI.lag * wh.rate, t = performance.now() / 1000;
       // ---- two chains: hand -> swept-back arc -> head, links placed at a fixed pitch from the head
       const hy = 1.02; let li = 0;
       for (let arm = 0; arm < 2; arm++) {
         const ang = th + arm * Math.PI; let n = 0;
         for (let j = 0; j < CH_PTS; j++) {   // j = 0 head ... last = hand
           const s = j / (CH_PTS - 1), rr = reach * Math.pow(1 - s, .85) + .32 * s, aa = ang - lag * Math.pow(s, 1.25) * (P > 0 ? 1 : 0);
-          chPX[j] = px + Math.sin(aa) * rr; chPZ[j] = pz + Math.cos(aa) * rr; chPY[j] = hy + .16 * Math.sin(aa * 2 + t * 6 + arm * 2) * (1 - s) * P - .05 * s; n = j + 1;
+          const rs = rr * (1 + t3 * .09 * Math.sin(t * 5 + arm * 2.1) * (1 - s) * P); chPX[j] = px + Math.sin(aa) * rs; chPZ[j] = pz + Math.cos(aa) * rs; chPY[j] = hy + (wh.tier === 2 ? .05 : .16) * Math.sin(aa * 2 + t * 6 + arm * 2) * (1 - s) * P - .05 * s + t3 * .42 * Math.sin(t * 7 + arm * 3.1) * (1 - s) * P; n = j + 1;
           chCum[j] = j ? chCum[j - 1] + Math.hypot(chPX[j] - chPX[j - 1], chPY[j] - chPY[j - 1], chPZ[j] - chPZ[j - 1]) : 0;
         }
         let seg = 0;
@@ -735,50 +787,71 @@
           chM.setPosition(chP); chLinks.setMatrixAt(li, chM);
         }
         const h = chHeads[arm]; h.visible = pe > .08; h.position.set(chPX[0], chPY[0], chPZ[0]); chT.set(chPX[0] - chPX[1], chPY[0] - chPY[1], chPZ[0] - chPZ[1]); if (chT.lengthSq() < 1e-9) chT.set(1, 0, 0);
-        h.quaternion.setFromUnitVectors(cv1.set(1, 0, 0), chT.normalize()); h.scale.setScalar(.6 + .4 * pe);
-        const gl = chGlow[arm]; gl.visible = pe > .08; gl.position.set(chPX[0], chPY[0] + .05, chPZ[0]); gl.scale.setScalar(.3 + .35 * wh.rate + .12 * P); gl.material.color.setRGB(.9 * P, .36 * P, .11 * P);
+        h.quaternion.setFromUnitVectors(cv1.set(1, 0, 0), chT.normalize()); h.scale.set((.6 + .4 * pe) * WTI.head[0], (.6 + .4 * pe) * WTI.head[1], (.6 + .4 * pe) * WTI.head[2]);
+        const gl = chGlow[arm]; gl.visible = pe > .08; gl.position.set(chPX[0], chPY[0] + .05, chPZ[0]); gl.scale.setScalar((.3 + .35 * wh.rate + .12 * P) * (1 + .5 * (wh.tier - 1))); gl.material.color.setRGB(WTI.glow[0] * P, WTI.glow[1] * P, WTI.glow[2] * P);
         // embers by distance: every 10 cm the head travelled since the last frame sheds one (interpolated between the two angles)
         if (wh.have && !calm && Math.abs(dth) > 1e-4) {
-          const bud = clamp(budget() / 1100, .3, 1), arc = Math.abs(dth) * reach, cnt = Math.min(18, Math.ceil(arc / (.1 / bud)));
+          const bud = clamp(budget() / 1100, .3, 1), arc = Math.abs(dth) * reach, cnt = Math.min(18 + 6 * (wh.tier - 1), Math.ceil(arc / (.1 / bud / (1 + .5 * (wh.tier - 1)))));
           for (let k = 0; k < cnt; k++) { const aa2 = ang - dth * (1 - (k + Math.random()) / cnt), rr = reach * (.9 + Math.random() * .1);
-            emit(px + Math.sin(aa2) * rr, hy - .1 + Math.random() * .3, pz + Math.cos(aa2) * rr, 4, Math.random() < .5 ? [2.8, .8, .2] : [2.2, .4, .1], Math.cos(aa2) * Math.sign(dth) * 1.2 + rnd(-.3, .3), rnd(.1, .7), -Math.sin(aa2) * Math.sign(dth) * 1.2 + rnd(-.3, .3), .45 + Math.random() * .5, .05); }
+            emit(px + Math.sin(aa2) * rr, hy - .1 + Math.random() * .3 + t3 * (chPY[0] - hy), pz + Math.cos(aa2) * rr, 4, Math.random() < .5 ? WTI.ember[0] : WTI.ember[1], Math.cos(aa2) * Math.sign(dth) * 1.2 + rnd(-.3, .3), rnd(.1, .7) + t3 * rnd(.3, 1.1), -Math.sin(aa2) * Math.sign(dth) * 1.2 + rnd(-.3, .3), .45 + Math.random() * .5 + .2 * t3, .05 + .02 * t3); }
+          if (wh.tier > 1) {   // heads shed fire: molten sparks (II) / violet-black flames (III) straight off the blade
+            const hot = Math.random() < .5 ? WTI.ember[0] : WTI.hot;
+            if (wh.tier === 2) streak(chPX[0], chPY[0], chPZ[0], Math.cos(ang) * Math.sign(dth) * 6 + rnd(-2, 2), rnd(.5, 3), -Math.sin(ang) * Math.sign(dth) * 6 + rnd(-2, 2), .25 + Math.random() * .2, .05, WTI.hot);
+            else { emit(chPX[0], chPY[0], chPZ[0], 4, hot, rnd(-.5, .5), rnd(.6, 1.6), rnd(-.5, .5), .5 + Math.random() * .4, .09); emit(chPX[0], chPY[0] - .1, chPZ[0], 2, [.05, .035, .06], rnd(-.4, .4), rnd(.3, .9), rnd(-.4, .4), .7, .34); if (Math.random() < .5) skMesh.visible = true; }
+          }
+          if (wh.tier === 2) skMesh.visible = true;
         }
       }
       chLinks.count = CH_MAX; chLinks.instanceMatrix.needsUpdate = true; chLinks.visible = pe > .06; chLinks.material.emissiveIntensity = .02 + .28 * P * (.5 + .5 * wh.rate);
       // ---- disc and floor swirl
       chDisc.visible = chFloor.visible = true; chDisc.position.set(px, 1.0, pz); chFloor.position.set(px, .05, pz);
-      chDiscMat.uniforms.uHead.value = th; chDiscMat.uniforms.uP.value = P * (1 - wh.end) * (calm ? .3 : .6); chDiscMat.uniforms.uRate.value = wh.rate; chDiscMat.uniforms.uT.value = t % 100;
-      chFloorMat.uniforms.uP.value = P * .7; chFloorMat.uniforms.uT.value = t % 100; chFloorMat.uniforms.uRim.value = 3.6 * Math.pow(P, .5);
+      chDiscMat.uniforms.uHead.value = th; chDisc.scale.setScalar(wh.k); chFloor.scale.setScalar(wh.k); chDiscMat.uniforms.uP.value = P * (1 - wh.end) * (calm ? .3 : .6) * (1 + .12 * (wh.tier - 1)); chDiscMat.uniforms.uRate.value = wh.rate; chDiscMat.uniforms.uT.value = t % 100;
+      chFloorMat.uniforms.uHead.value = th; chFloorMat.uniforms.uP.value = P * (.7 + .05 * (wh.tier - 1)); chFloorMat.uniforms.uT.value = t % 100; chFloorMat.uniforms.uRim.value = 3.6 * Math.pow(P, .5);
       // ---- the vortex: ash and embers drawn in and around, by time (not by frame)
       if (wh.on && !calm) {
-        const bud = clamp(budget() / 1100, .3, 1); wh.dust += dt * 60 * bud; wh.vort += dt * 90 * bud;
-        while (wh.dust >= 1) { wh.dust--; const a2 = Math.random() * 6.283, r = 2.2 + Math.random() * 1.6; emit(px + Math.sin(a2) * r, .12, pz + Math.cos(a2) * r, 2, DUST, Math.cos(a2) * 4.5, .5 + Math.random(), -Math.sin(a2) * 4.5, .6 + Math.random() * .4, .3 + Math.random() * .3); }
-        while (wh.vort >= 1) { wh.vort--; const a2 = Math.random() * 6.283, r = 4 + Math.random() * 1.6, y = .2 + Math.random() * 1.3; emit(px + Math.sin(a2) * r, y, pz + Math.cos(a2) * r, 5, [2.4, .55, .13], -Math.sin(a2) * r * 1.5 + Math.cos(a2) * 3.4, .4, -Math.cos(a2) * r * 1.5 - Math.sin(a2) * 3.4, .5, .05); }
+        const bud = clamp(budget() / 1100, .3, 1); wh.dust += dt * 60 * bud * (1 + .5 * (wh.tier - 1)); wh.vort += dt * 90 * bud * (1 + .6 * (wh.tier - 1));
+        while (wh.dust >= 1) { wh.dust--; const a2 = Math.random() * 6.283, r = (2.2 + Math.random() * 1.6) * wh.k; emit(px + Math.sin(a2) * r, .12, pz + Math.cos(a2) * r, 2, t3 ? [.05, .04, .055] : DUST, Math.cos(a2) * 4.5, .5 + Math.random(), -Math.sin(a2) * 4.5, .6 + Math.random() * .4, .3 + Math.random() * .3); }
+        while (wh.vort >= 1) { wh.vort--; const a2 = Math.random() * 6.283, r = 4 + Math.random() * 1.6, y = .2 + Math.random() * 1.3; emit(px + Math.sin(a2) * r * wh.k, y, pz + Math.cos(a2) * r * wh.k, 5, WTI.ember[0], -Math.sin(a2) * r * 1.5 + Math.cos(a2) * 3.4, .4, -Math.cos(a2) * r * 1.5 - Math.sin(a2) * 3.4, .5, .05); }
       }
       wh.prev = th; wh.have = true;
       for (const r of chRings) if (r.t < r.life) advRing(r, dt);
     }
     function chainClear() { roarSpiral.on = false; wh.on = false; wh.power = 0; wh.end = 0; wh.have = false; chLinks.visible = chDisc.visible = chFloor.visible = skMesh.visible = false; chHeads.forEach(h => { h.visible = false; }); chGlow.forEach(s => { s.visible = false; }); for (const c of chCracks) { c.t = 99; c.m.visible = false; } sk.fill(null); skPos.fill(0); skGeo.attributes.position.needsUpdate = true; for (const r of chRings) { r.t = r.life = 9; r.m.visible = false; } }
     function whirlStart(d) {
-      const x = d.x, z = d.z, R = d.radius || 3.6;
-      chRing(x, z, R * .7, .4, [.9, .28, .08]);
-      flash(x, 1.0, z, 1.6, new T.Color('#ff9550'), .18, 0, softMap);
-      const ringDust = scaleCount(36); for (let i = 0; i < ringDust; i++) { const a = i / ringDust * Math.PI * 2; particle(x + Math.sin(a) * .8, .1, z + Math.cos(a) * .8, 2, DUST, 2.4, a, .4); }
-      for (let i = 0; i < scaleCount(16); i++) { const a = Math.random() * Math.PI * 2; emit(x + Math.sin(a) * .5, .3 + Math.random() * .8, z + Math.cos(a) * .5, 4, [2.6, .7, .15], Math.sin(a) * 2.2, rnd(.5, 1.6), Math.cos(a) * 2.2, .6 + Math.random() * .4, .05); }
+      const x = d.x, z = d.z, R = d.radius || 3.6, tier = d.tier || 1, W = WT[tier] || WT[1], calm = reduced.matches;
+      wh.grow = d.grow || 1;
+      chRing(x, z, R * (tier === 3 ? .9 : .7), tier === 3 ? .55 : .4, W.ring);
+      flash(x, 1.0, z, 1.6 + .3 * (tier - 1), new T.Color(W.flash), .18, 0, softMap);
+      const ringDust = scaleCount(36 + 14 * (tier - 1)); for (let i = 0; i < ringDust; i++) { const a = i / ringDust * Math.PI * 2; particle(x + Math.sin(a) * .8, .1, z + Math.cos(a) * .8, 2, tier === 3 ? [.05, .04, .055] : DUST, 2.4 + .6 * (tier - 1), a, .4); }
+      for (let i = 0; i < scaleCount(16 + 10 * (tier - 1)); i++) { const a = Math.random() * Math.PI * 2; emit(x + Math.sin(a) * .5, .3 + Math.random() * .8, z + Math.cos(a) * .5, 4, W.ember[i % 2], Math.sin(a) * 2.2, rnd(.5, 1.6), Math.cos(a) * 2.2, .6 + Math.random() * .4, .05); }
+      if (tier === 2) { streakBurst(x, .5, z, calm ? 3 : 14, d.face || 0, 6.3, 8, W.hot); }
+      if (tier === 3) {   // the ground shatters under the hero: dark ring, violet shock ring, stone fissures, camera pulse
+        chRing(x, z, R * 1.2, .7, [.3, .05, .6]); chCrack(x, z, R * .8, 3);
+        if (tells) tells.wave(x, z, { radius: R * .9, life: .6, width: .3, color: [.5, .12, .9], crack: .7, crackR: R * .75, crackLife: 1.6, soft: 0 });
+        scar(x, z, 0, { shape: 'circle', radius: R * .6, heat: .35 });
+        streakBurst(x, .5, z, calm ? 4 : 24, 0, 6.3, 9, W.hot);
+        if (B.Charge && B.Charge.punch) B.Charge.punch({ vig: .32, chroma: .1, flash: .02, push: .018, dur: .6, x, z, ringR: R * 1.1, ringW: 1 });
+      }
     }
     function whirlTick(d) {
-      const x = d.x, z = d.z, R = d.radius || 3.6, last = d.last, calm = reduced.matches;
-      chRing(x, z, R * (last ? 1.25 : 1), last ? .6 : .4, last ? [1.0, .34, .1] : [.7, .22, .06]);
-      if (last) { chRing(x, z, R * .75, .3, [.8, .45, .22]); flash(x, .9, z, 1.2, new T.Color('#d87840'), .16, 0, softMap); chCrack(x, z, R); scar(x, z, 0, { shape: 'circle', radius: R * .75, heat: .3 }); }
-      const nS = calm ? 4 : scaleCount(last ? 46 : 14);
-      for (let i = 0; i < nS; i++) { const a = Math.random() * Math.PI * 2; streakBurst(x + Math.sin(a) * R * .55, .6, z + Math.cos(a) * R * .55, 1, a + Math.PI / 2 * (Math.random() < .5 ? 1 : -1), .6, last ? 9 : 6); }
-      const dn = scaleCount(last ? 44 : 14); for (let i = 0; i < dn; i++) { const a = i / dn * Math.PI * 2; particle(x + Math.sin(a) * (R * .6), .1, z + Math.cos(a) * (R * .6), 2, DUST, last ? 2.4 : 1.4, a, .3); }
-      if (last) for (let i = 0; i < scaleCount(40); i++) { const a = Math.random() * Math.PI * 2, r = R * (.3 + Math.random() * .6); emit(x + Math.sin(a) * r, .1, z + Math.cos(a) * r, 4, [2.6, .6, .12], Math.sin(a) * 1.2, 1.5 + Math.random() * 2.5, Math.cos(a) * 1.2, .7 + Math.random() * .6, .05); }
+      const x = d.x, z = d.z, R = d.radius || 3.6, last = d.last, calm = reduced.matches, tier = d.tier || 1, W = WT[tier] || WT[1];
+      chRing(x, z, R * (last ? 1.25 : 1), last ? .6 : .4, last ? W.ringLast : W.ring);
+      if (tier === 3 && !last && (d.n % 2 === 0) && B.Charge && B.Charge.punch) B.Charge.punch({ vig: .1, push: .007, dur: .3 });
+      if (last && tier > 1 && tells) tells.wave(x, z, { radius: R * (tier === 3 ? 1.1 : .8), life: tier === 3 ? .7 : .55, width: tier === 3 ? .3 : .2, color: tier > 2 ? [.6, .22, 1.2] : [1.8, 1.1, .3], crack: .6, crackR: R * .6, crackLife: 1.3, soft: 0, delay: .05 });
+      if (last) { chRing(x, z, R * .75, .3, tier === 3 ? [.8, .5, 1.2] : [.8, .45, .22]); flash(x, .9, z, tier === 3 ? 2.2 : 1.2, new T.Color(tier === 3 ? '#efe6ff' : '#d87840'), tier === 3 ? .2 : .16, 0, softMap); chCrack(x, z, R * (tier === 3 ? 1.15 : 1), tier); scar(x, z, 0, { shape: 'circle', radius: R * .75, heat: tier === 3 ? .35 : .3 }); }
+      if (last && tier === 3) {   // Son Hüküm: the final slam, a second wide ring, a pulse through the whole screen
+        
+        if (B.Charge && B.Charge.punch) B.Charge.punch({ vig: .5, flash: .045, chroma: .18, sat: .15, push: .042, dur: .75, x, z, ringR: R * 1.5, ringW: 1.3 });
+      } else if (last && tier === 2 && B.Charge && B.Charge.punch) B.Charge.punch({ vig: .25, flash: .02, push: .018, dur: .5, x, z });
+      const nS = calm ? 4 : scaleCount(last ? 46 + 40 * (tier - 1) : 14 + 8 * (tier - 1));
+      for (let i = 0; i < nS; i++) { const a = Math.random() * Math.PI * 2; streakBurst(x + Math.sin(a) * R * .55, .6, z + Math.cos(a) * R * .55, 1, a + Math.PI / 2 * (Math.random() < .5 ? 1 : -1), .6, last ? 9 + 2 * tier : 6, tier > 1 ? W.hot : undefined); }
+      const dn = scaleCount(last ? 44 + 20 * (tier - 1) : 14); for (let i = 0; i < dn; i++) { const a = i / dn * Math.PI * 2; particle(x + Math.sin(a) * (R * .6), .1, z + Math.cos(a) * (R * .6), 2, tier === 3 ? [.05, .04, .055] : DUST, last ? 2.4 + .8 * (tier - 1) : 1.4, a, .3); }
+      if (last) for (let i = 0; i < scaleCount(40 + 20 * (tier - 1)); i++) { const a = Math.random() * Math.PI * 2, r = R * (.3 + Math.random() * .6); emit(x + Math.sin(a) * r, .1, z + Math.cos(a) * r, 4, W.ember[i % 2], Math.sin(a) * 1.2, 1.5 + Math.random() * 2.5 + (tier - 1), Math.cos(a) * 1.2, .7 + Math.random() * .6, .05); }
     }
     function whirlHit(d) {
-      const a = d.face || 0;
-      streakBurst(d.x, d.y || 1, d.z, reduced.matches ? 3 : d.last ? 14 : 7, a, 1.6, d.last ? 10 : 7);
-      flash(d.x, d.y || 1, d.z, d.last ? 1.2 : .8, new T.Color('#ffb070'), .1, 0, softMap);
+      const a = d.face || 0, W = WT[d.tier || 1] || WT[1], tier = d.tier || 1;
+      streakBurst(d.x, d.y || 1, d.z, reduced.matches ? 3 : d.last ? 14 + 6 * (tier - 1) : 7 + 3 * (tier - 1), a, 1.6, d.last ? 10 : 7, tier > 1 ? W.hot : undefined);
+      flash(d.x, d.y || 1, d.z, d.last ? 1.2 : .8, new T.Color(W.hit), .1, 0, softMap);
     }
     function rageEnd(d) {
       const x = d.x, z = d.z;
@@ -924,7 +997,7 @@
       trail.mesh.geometry.setDrawRange(0, v); trail.mesh.geometry.attributes.position.needsUpdate = true; trail.mesh.geometry.attributes.aAlpha.needsUpdate = true;
       if (!S.length && !w.on) { trail.active = false; trail.mesh.visible = false; }
     }
-    // Prepared signature effects: four crimson crescents and one gilded level ascent. These never
+    // Prepared signature effects: four crimson crescents (the level-up lives in src/levelup.js). These never
     // allocate a surface, texture, light or shader when a skill/level is earned.
     const skillCrescents = Array.from({ length: 4 }, () => {
       const mat = new T.ShaderMaterial({ transparent: true, depthWrite: false, side: T.DoubleSide, blending: T.AdditiveBlending,
@@ -942,47 +1015,56 @@
       const m = new T.Mesh(plane, mat); m.name = 'mezar-yaran-crescent'; m.rotation.x = -Math.PI / 2; m.visible = false; root.add(m);
       return { m, mat, time: 1, life: .56 };
     });
-    const ascentGeo = new T.CylinderGeometry(.48, .58, 1.8, 48, 1, true);
-    const ascentMat = new T.ShaderMaterial({ transparent: true, depthWrite: false, side: T.DoubleSide, blending: T.AdditiveBlending,
-      uniforms: { uK: { value: 1 } },
-      vertexShader: 'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
-      fragmentShader: `varying vec2 vUv;uniform float uK;void main(){float y=vUv.y;
-        float phase=vUv.x*75.3982;
-        float crown=exp(-pow((y-(.10+uK*.70))/.022,2.));
-        float echo=exp(-pow((y-(.035+uK*.53))/.014,2.))*.40;
-        float jewels=pow(max(0.,cos(phase*.5)),20.)*exp(-pow((y-(.10+uK*.70))/.04,2.));
-        float envelope=smoothstep(0.,.025,y)*(1.-smoothstep(.88,1.,y));
-        float life=smoothstep(0.,.06,uK)*(1.-smoothstep(.28,.92,uK));
-        float a=(crown*.62+echo*.65+jewels*.22)*envelope*life;
-        if(a<.004)discard;vec3 col=mix(vec3(2.5,1.35,.32),vec3(2.6,2.15,1.3),crown*.75);
-        gl_FragColor=vec4(col,a);}` });
-    const ascent = new T.Mesh(ascentGeo, ascentMat); ascent.renderOrder = 6; ascent.name = 'level-gold-ascent'; ascent.visible = false; root.add(ascent);
-    const levelGroundMat = new T.ShaderMaterial({ transparent: true, depthWrite: false, blending: T.AdditiveBlending,
-      uniforms: ascentMat.uniforms,
-      vertexShader: 'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
-      fragmentShader: `varying vec2 vUv;uniform float uK;void main(){
-        float r=length(vUv-.5)*2.;float reach=.20+.50*uK;
-        float haze=exp(-pow(r/max(.12,reach*.65),2.))* .16;
-        float wave=exp(-pow((r-reach)/.10,2.))*.055;
-        float life=smoothstep(0.,.06,uK)*(1.-smoothstep(.18,.80,uK));
-        float a=(haze+wave)*life*(1.-smoothstep(.88,1.,r));
-        if(a<.003)discard;gl_FragColor=vec4(vec3(2.1,1.25,.30),a);}` });
-    const levelGround = new T.Mesh(plane, levelGroundMat); levelGround.name = 'level-gold-ground';
-    levelGround.rotation.x = -Math.PI / 2; levelGround.scale.setScalar(1.7); levelGround.visible = false; root.add(levelGround);
-    function placeLevelGround(x, z) {
-      const world = B.app && B.app.world;
-      const floor = world && world.effectHeightAt ? world.effectHeightAt(x, z, .85) + .015 : .065;
-      levelGround.position.set(x, floor, z); ascent.position.y = floor + .90;
-    }
-    let ascentTime = 3;
+    // Level-up (src/levelup.js): rune rings, sigil, light shaft, hero aura and GPU-animated sparks. All materials are created here, at build time, and warmed in warm().
+    const chargeFx = B.Charge && B.Charge.createWorld ? B.Charge.createWorld({ T, root, getGame, getSettings, scaleCount, emit, particle, flash, scar, ring: chRing }) : null;   // src/charge.js
+    const levelFx = B.LevelUp && B.LevelUp.createWorld ? B.LevelUp.createWorld({ T, root, getGame, getSettings, scaleCount, emit, particle, flash }) : null;
+    const skillFx = B.SkillFx && B.SkillFx.createWorld ? B.SkillFx.createWorld({ T, root, getGame, getSettings, scaleCount, emit, particle, flash, streak, scar, tells: () => tells, streakOn: () => { skMesh.visible = true; } }) : null;   // src/skill-fx.js (strike / shout tiers II-III)
     function signatureStep(dt) {
       for (const o of skillCrescents) if (o.m.visible) { o.time += dt; o.mat.uniforms.uK.value = clamp(o.time / o.life, 0, 1); if (o.time >= o.life) o.m.visible = false; }
-      if (ascent.visible) { ascentTime += dt; ascent.position.x = getGame().player.x; ascent.position.z = getGame().player.z; ascentMat.uniforms.uK.value = clamp(ascentTime / 1.1, 0, 1); placeLevelGround(ascent.position.x, ascent.position.z); if (ascentTime >= 1.1) { ascent.visible = false; levelGround.visible = false; } }
+      if (levelFx) levelFx.step(dt);
+      if (chargeFx) chargeFx.step(dt);
+      if (skillFx) skillFx.step(dt);
     }
     // ------------------------------------------------------------ bursts
     const RED = [.17, .008, .014], DARK = [.09, .004, .008], SPARK = [4.5, 2.65, .9], STEEL = [3.2, 3.0, 2.6], DUST = [.10, .08, .065];
+    // Round 7 boss effects (boss-mech.js / coast-combat.js): pooled particles, floor waves and sprite flashes only; no lights, nothing created at fight time.
+    const B1 = { ember: { core: [3.6, 1.25, .3], soft: '#ff9a4a', dark: [.5, .09, .03] }, brine: { core: [.45, 2.3, 2.1], soft: '#6fe0d0', dark: [.03, .12, .12] } };
+    function boss1Fx(name, d, x, y, z) {
+      const k = B1[d.kind] || B1.ember, calm = reduced.matches, phase = d.phase || '';
+      if (name === 'boss1Orb') {
+        if (phase === 'trail') { emit(x + rnd(-.1, .1), y + rnd(-.1, .1), z + rnd(-.1, .1), 3, k.core, rnd(-.25, .25), rnd(.1, .4), rnd(-.25, .25), .4, .13); if (!calm) emit(x, .08, z, 5, k.dark, 0, .1, 0, .6, .22); return; }
+        if (phase === 'spawn') { flash(x, y, z, 1.5, new T.Color(k.soft), .22, 0, softMap); for (let i = 0; i < scaleCount(10); i++) particle(x, y, z, 3, k.core, .5, Math.random() * 6.28, .3); return; }
+        if (phase === 'pop') { flash(x, y, z, 1.7, new T.Color(k.soft), .14, 0, softMap); for (let i = 0; i < scaleCount(16); i++) particle(x, y, z, 3, k.core, .8, Math.random() * 6.28, .6); return; }
+        const r = d.radius || 3.2;   // blast
+        if (tells) tells.wave(x, z, { radius: r * 1.1, life: .5, width: .16, color: [k.core[0] * .45, k.core[1] * .45, k.core[2] * .45], crack: 0, soft: .2 });
+        flash(x, .9, z, r * .9, new T.Color(k.soft), .16, 0, softMap);
+        for (let i = 0; i < scaleCount(26); i++) { const a = Math.random() * 6.28, rr = Math.random() * r * .7; emit(x + Math.sin(a) * rr, .2, z + Math.cos(a) * rr, 4, k.core, Math.sin(a) * 1.2, .8 + Math.random() * 2, Math.cos(a) * 1.2, .5 + Math.random() * .4, .06); }
+        for (let i = 0; i < scaleCount(14); i++) particle(x, .2, z, 2, k.dark, 1.2, Math.random() * 6.28, .5);
+        return;
+      }
+      if (name === 'boss1Anchor') {
+        if (phase === 'hit') { flash(x, y, z, 1.1, new T.Color('#ffd29a'), .09); for (let i = 0; i < scaleCount(14); i++) particle(x, y, z, 1, [3, 1.8, .7], 1, Math.random() * 6.28, .7); return; }
+        if (phase === 'break') {
+          flash(x, y, z, 2.2, new T.Color('#ff8a50'), .16, 0, softMap);
+          if (tells) tells.wave(x, z, { radius: 2.8, life: .5, width: .14, color: [1.4, .3, .1], crack: 0, soft: .2 });
+          for (let i = 0; i < scaleCount(22); i++) emit(x + rnd(-.3, .3), y + rnd(0, 1), z + rnd(-.3, .3), 4, i % 2 ? [3, .9, .22] : [1.6, .3, .1], rnd(-1.4, 1.4), rnd(1, 3), rnd(-1.4, 1.4), .8 + Math.random() * .5, .06);
+          for (let i = 0; i < scaleCount(16); i++) particle(x, .3, z, 2, [.1, .085, .07], 1.3, Math.random() * 6.28, .6);
+          for (let i = 0; i < scaleCount(8); i++) particle(x, 1.2, z, 0, [.05, .045, .04], 1, Math.random() * 6.28, 1.2);
+          return;
+        }
+        if (tells) { tells.wave(x, z, { radius: 6, life: .6, width: .14, color: [1.3, .2, .08], crack: .4, crackR: 4, crackLife: 1, soft: .2 }); tells.wave(x, z, { radius: 9, life: .8, width: .14, color: [.9, .35, .15], soft: 0, delay: .1 }); }
+        flash(x, 1.2, z, 2.6, new T.Color('#d87950'), .16, 0, softMap);
+        const ring = scaleCount(30); for (let i = 0; i < ring; i++) { const a = i / ring * 6.28; emit(x + Math.sin(a) * .8, .3, z + Math.cos(a) * .8, 2, DUST, Math.sin(a) * 3, .4, Math.cos(a) * 3, .7, .3); }
+        return;
+      }
+      if (name === 'boss1Toll') {   // a bell toll: one slow, wide floor wave
+        if (tells) tells.wave(x, z, { radius: d.radius || 6, life: .7, width: .16, color: [.3, 1.1, 1.0], soft: .1 });
+        flash(x, 1.5, z, 2.2, new T.Color('#9fe6d8'), .12, 0, softMap);
+      }
+    }
     function burst(name, d = {}) {
       const game = getGame(); if (!game) return; const x = d.x ?? game.player.x, y = d.y ?? 1, z = d.z ?? game.player.z;
+      if (name.indexOf('boss1') === 0) { boss1Fx(name, d, x, y, z); return; }
       if (name === 'heroSkill') {
         const face = d.face || 0, sx = Math.sin(face), sz = Math.cos(face), r = d.radius || 3.2;
         const count = scaleCount(d.phase === 'gather' ? 20 : d.skill === 'reap' ? 65 : 40);
@@ -1007,22 +1089,22 @@
             emit(x + sx * depth + sz * lateral, py, z + sz * depth - sx * lateral, 4, d.skill === 'reap' ? [.8, .9, 2.4] : [3, .7, .18], sx * 3, .4, sz * 3, .45, .09); }
           return;
         }
-        if (d.skill === 'level') {
-          ascentTime = 0; ascentMat.uniforms.uK.value = 0; ascent.position.set(x, .90, z); ascent.visible = true; placeLevelGround(x, z); levelGround.visible = true;
-          // Ascending jeweled rings and a soft outward glow frame the character.
-          for (let i = 0; i < scaleCount(28); i++) { const a = i * 2.39996, rr = .25 + Math.random() * .35;
-            emit(x + Math.sin(a) * rr, .1 + Math.random() * 1.2, z + Math.cos(a) * rr, 4, i%3 ? [2.4, 1.35, .32] : [2.0, 1.8, 1.2], Math.sin(a) * .12, .6 + Math.random()*.3, Math.cos(a) * .12, .55 + Math.random() * .35, .05); }
-        }
+        if (d.skill === 'level') { if (levelFx) levelFx.start(x, z); }
         return;
       }
+      if (name === 'chargeFx') { if (chargeFx) chargeFx.demo(Object.assign({ x, z }, d)); return; }   // warm-up only (the skill drives chargeFx directly)
       if (name === 'slash') return; // the smear follows the actual blade
       if (name === 'strike') { strike(Object.assign({ x, z }, d)); return; }
       if (name === 'glowBurst') { if (tells) tells.glowBurst(x, z, { radius: d.radius || 1.5, life: d.duration || .5, color: linear(d.color == null ? '#f0d293' : d.color, 1.6), peak: .5 }); return; }
+      if (name === 'strikeGather' || name === 'strikeImpact' || name === 'shoutGather' || name === 'shoutRelease' || name === 'shoutWave') { if (skillFx) skillFx.event(name, Object.assign({ x, z }, d)); return; }
+      if (name === 'skillFxDemo') { if (skillFx) skillFx.demo(Object.assign({ x, z }, d)); return; }   // warm-up only
       if (name === 'warCryGather') { warCryGather({ x, z, life: d.life }); return; }
       if (name === 'whirlStart') { whirlStart(Object.assign({ x, z }, d)); return; }
       if (name === 'whirlTick') { whirlTick(Object.assign({ x, z }, d)); return; }
       if (name === 'whirlHit') { whirlHit(Object.assign({ x, z }, d)); return; }
       if (name === 'warCry') { warCry(Object.assign({ x, z }, d)); return; }
+      if (name === 'warCryWave') { warCryWave(Object.assign({ x, z }, d)); return; }
+      if (name === 'skillAccent') { skillAccent(Object.assign({ x, z }, d)); return; }
       if (name === 'rageEnd') { rageEnd({ x, z }); return; }
       if (name === 'footstep') {
         for (let i = 0; i < (d.heavy ? 8 : 3); i++) particle(x, .045, z, 2, [.08, .065, .05], d.heavy ? .38 : .15);
@@ -1160,7 +1242,7 @@
       for (const tr of trails.values()) { while (tr.samples.length) tr.free.push(tr.samples.pop()); tr.active = false; tr.mesh.visible = false; tr.mesh.geometry.setDrawRange(0, 0); }
       for (const g of ghosts) { g.active = false; g.group.visible = false; }
       for (const s of scars) releaseScar(s); scars.length = 0;
-      for (const o of skillCrescents) o.m.visible = false; ascent.visible = false; levelGround.visible = false;
+      for (const o of skillCrescents) o.m.visible = false; if (levelFx) levelFx.clear(); if (chargeFx) chargeFx.clear(); if (skillFx) skillFx.clear();
       if (tells) tells.clear(); chainClear();
       goreClear(); gearBlood = 0; gearApply();
     }
@@ -1206,10 +1288,11 @@
       add(new T.Mesh(new T.BufferGeometry(), trailMaterial.clone()));
       add(new T.InstancedMesh(chLinks.geometry, chLinks.material, 1)); add(new T.Mesh(chHeadGeo, chLinks.material)); add(new T.Mesh(chDisc.geometry, chDiscMat)); add(new T.Mesh(chFloor.geometry, chFloorMat)); add(new T.Mesh(skGeo, skMesh.material)); add(new T.Mesh(chRings[0].m.geometry, chRings[0].mat)); add(new T.Mesh(chCracks[0].m.geometry, ckMat));
       add(new T.Sprite(new T.SpriteMaterial({ map: softMap, transparent: true, depthWrite: false, depthTest: false, blending: T.AdditiveBlending, fog: false })));
-      for (const o of skillCrescents) add(new T.Mesh(plane, o.mat)); add(new T.Mesh(ascentGeo, ascentMat)); add(new T.Mesh(plane, levelGroundMat));
+      for (const o of skillCrescents) add(new T.Mesh(plane, o.mat)); if (levelFx) for (const part of levelFx.parts) add(part.points ? new T.Points(part.geo, part.mat) : new T.Mesh(part.geo, part.mat)); if (chargeFx) for (const part of chargeFx.parts) add(new T.Mesh(part.geo, part.mat));
+      if (skillFx) for (const obj of skillFx.warmObjects()) add(obj);
       add(new T.InstancedMesh(gdGeo, gdMat, 1)); add(new T.Mesh(bsGeo, bsMat)); add(new T.InstancedMesh(chGeoG, gcMat, 1));
     }
-    const api = { burst, update, clear, tells, warm, gore, debug: () => ({ pri: gdPri.length, walls: gdPri.concat(gdMic).filter(d => d.rx === 0).length, prints: gdMic.filter(d => d.cell === 3).length, p0: gdMic.filter(d => d.cell === 3).map(d => [+d.x.toFixed(2), +d.z.toFixed(2), +d.a0.toFixed(2)]), mic: gdMic.length, count: gdMesh.count, streaks: bsLive, gibs: gibs.length }), dispose() { if (B.Effects.current === api) B.Effects.current = null; clear(); for (const o of skillCrescents) o.mat.dispose(); ascentMat.dispose(); levelGroundMat.dispose(); ascentGeo.dispose(); bsGeo.dispose(); bsMat.dispose(); gdGeo.dispose(); gdMat.dispose(); goreAtlas.dispose(); chGeoG.dispose(); gcMat.dispose(); gcMesh.dispose(); gdMesh.dispose(); for (const s of scarFree) { s.dark.dispose(); s.hot.dispose(); } scarFree.length = 0; if (tells) tells.dispose(); disposeGhosts(); disposePools(); root.removeFromParent(); geometry.dispose(); material.dispose(); trailMaterial.dispose(); chLinks.geometry.dispose(); chLinks.material.dispose(); chLinks.dispose(); for (const s of chGlow) s.material.dispose(); chHeadGeo.dispose(); chDisc.geometry.dispose(); chDiscMat.dispose(); chFloor.geometry.dispose(); chFloorMat.dispose(); skGeo.dispose(); skMesh.material.dispose(); for (const c of chCracks) { c.m.geometry.dispose(); c.m.material.dispose(); } ckMat.dispose(); for (const r of chRings) { r.m.geometry.dispose(); r.mat.dispose(); } softMap.dispose(); bloodMap.dispose(); sprayMap.dispose(); flashMap.dispose(); plane.dispose(); } };
+    const api = { burst, update, clear, tells, warm, gore, debug: () => ({ pri: gdPri.length, walls: gdPri.concat(gdMic).filter(d => d.rx === 0).length, prints: gdMic.filter(d => d.cell === 3).length, p0: gdMic.filter(d => d.cell === 3).map(d => [+d.x.toFixed(2), +d.z.toFixed(2), +d.a0.toFixed(2)]), mic: gdMic.length, count: gdMesh.count, streaks: bsLive, gibs: gibs.length }), dispose() { if (B.Effects.current === api) B.Effects.current = null; clear(); for (const o of skillCrescents) o.mat.dispose(); if (levelFx) levelFx.dispose(); if (chargeFx) chargeFx.dispose(); if (skillFx) skillFx.dispose(); bsGeo.dispose(); bsMat.dispose(); gdGeo.dispose(); gdMat.dispose(); goreAtlas.dispose(); chGeoG.dispose(); gcMat.dispose(); gcMesh.dispose(); gdMesh.dispose(); for (const s of scarFree) { s.dark.dispose(); s.hot.dispose(); } scarFree.length = 0; if (tells) tells.dispose(); disposeGhosts(); disposePools(); root.removeFromParent(); geometry.dispose(); material.dispose(); trailMaterial.dispose(); chLinks.geometry.dispose(); chLinks.material.dispose(); chLinks.dispose(); for (const s of chGlow) s.material.dispose(); chHeadGeo.dispose(); chDisc.geometry.dispose(); chDiscMat.dispose(); chFloor.geometry.dispose(); chFloorMat.dispose(); skGeo.dispose(); skMesh.material.dispose(); for (const c of chCracks) { c.m.geometry.dispose(); c.m.material.dispose(); } ckMat.dispose(); for (const r of chRings) { r.m.geometry.dispose(); r.mat.dispose(); } softMap.dispose(); bloodMap.dispose(); sprayMap.dispose(); flashMap.dispose(); plane.dispose(); } };
     B.Effects.current = api; return api;
   },
   // Same call for code that does not hold the instance (dismemberment): B.Effects.gore('stump', x, y, z, dirX, dirZ, strength).

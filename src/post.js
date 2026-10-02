@@ -231,8 +231,56 @@
     '  gl_FragColor = vec4(overlays(c), 1.);',
     '}'].join('\n');
 
+  // At most ONE shadow map is rendered per presented frame. The lights' own schedulers (key moon at 60/30 Hz, spot and moon-spot
+  // slots round-robin at 60/30 Hz) are independent clocks, so on a 120 FPS / 200 Hz display about a third of the frames drew the
+  // 1536 and a 1024 map together (twice the shadow draws, 12 ms instead of 9). This arbiter runs right before the shadow pass:
+  // maps that do not exist yet always render at once; otherwise the pending map that has waited longest renders and the others
+  // stay pending (needsUpdate is restored) for the next frame. Nothing is ever dropped, so no map goes stale.
+  function installShadowArbiter(renderer) {
+    var sm = renderer.shadowMap;
+    if (!sm || sm.__karaArbiter || typeof sm.render !== 'function') return;
+    var orig = sm.render, tick = 0, cand = [], held = [];
+    var spotHz = +((/[?&]spothz=(\d+)/.exec(location.search) || [])[1] || 0), spotGap = spotHz > 0 ? 1000 / spotHz - 1 : 0;
+    sm.__karaArbiter = true;
+    sm.render = function (lights) {
+      if (B.arbiterOff) return orig.apply(this, arguments);
+      var n = lights.length, i, sh, c = cand, h = held;
+      c.length = 0; h.length = 0; tick++;
+      var now = spotGap ? performance.now() : 0;
+      for (i = 0; i < n; i++) {
+        sh = lights[i].shadow;
+        if (lights[i].castShadow && sh && sh.autoUpdate === false && sh.needsUpdate === true) {
+          // Torch-spot maps (not the moon key) are capped to spotHz refreshes per second each.
+          if (spotGap && !lights[i].isDirectionalLight && sh.map && now - (sh.__karaT || 0) < spotGap) { sh.needsUpdate = false; continue; }
+          c.push(sh);
+        }
+      }
+      if (c.length > 1) {
+        var best = null, bestAge = Infinity, must = false;
+        for (i = 0; i < c.length; i++) {
+          sh = c[i];
+          if (!sh.map) must = true;
+          else if ((sh.__karaAge || 0) < bestAge) { bestAge = sh.__karaAge || 0; best = sh; }
+        }
+        for (i = 0; i < c.length; i++) {
+          sh = c[i];
+          if (sh.map && (must || sh !== best)) { sh.needsUpdate = false; h.push(sh); }
+        }
+      }
+      for (i = 0; i < c.length; i++) if (h.indexOf(c[i]) < 0) { c[i].__karaAge = tick; c[i].__karaT = now; }
+      // Merged static shadow casters (world.js) exist only for the shadow pass: invisible in the main pass, shown while a map renders.
+      var px = B.shadowProxies, pn = px && c.length > h.length ? px.length : 0;
+      for (i = 0; i < pn; i++) px[i].visible = px[i].userData.want === true;
+      try { return orig.apply(this, arguments); }
+      finally {
+        for (i = 0; i < h.length; i++) h[i].needsUpdate = true;
+        for (i = 0; i < pn; i++) px[i].visible = false;
+      }
+    };
+  }
   function create(renderer, scene, camera, settings) {
     var gl = renderer.getContext();
+    if (!/[?&]noarb\b/.test(location.search)) installShadowArbiter(renderer);
     var quadScene = new T.Scene(), quadCamera = new T.OrthographicCamera(-1, 1, 1, -1, 0, 1);
     var tri = new T.BufferGeometry();
     tri.setAttribute('position', new T.BufferAttribute(new Float32Array([-1, -1, 0, 3, -1, 0, -1, 3, 0]), 3));

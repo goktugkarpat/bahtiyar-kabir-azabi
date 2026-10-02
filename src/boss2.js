@@ -1,0 +1,434 @@
+/* KABİR AZABI — bölüm III / IV boss düzenekleri (round 7).
+   Shared machinery for the chapter III boss (Oyukların Kralı), chapter IV boss (Ocağın Kalbi) and their two mini-bosses each:
+     orbs      homing orbs (pooled sprites + floor ring; hit through combat.hitPlayer, rolled i-frames beat them)
+     pillars   crystal cover pillars (chapter III): block line of sight of the channelled nova, absorb it, shatter, regrow
+     summon    wave adds taken from dormant reserve enemies of the boss encounter (revived, never created at run time)
+     ground    capped persistent burning ground (hazards with the engine's own tells)
+     tick      fight clock, cooldown acceleration (later phases), soft enrage (frenzy), per-module hooks
+   and the boss2* effect kinds (particles, waves, glow through the already pooled telegraph / particle systems).
+   Rules kept: every mesh / material / texture is built once in create() (setup) and warmed by warmup.js' full-scene draw; nothing is
+   allocated per frame; no lights. combat.js hands in `ext` (see bossExt in combat.js). */
+(function () {
+  'use strict';
+  var B = window.BABA = window.BABA || {}, T = window.THREE, TAU = Math.PI * 2;
+  var clamp = function (v, a, b) { return Math.max(a, Math.min(b, v)); };
+  var angDiff = function (a, b) { return Math.atan2(Math.sin(a - b), Math.cos(a - b)); };
+  var reduced = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : { matches: false };
+  var Boss2 = B.Boss2 = { out: null, moves: {}, baseSpeed: {}, current: null,
+    // balance knobs: extra rest-time shaved per phase (boss), per mini-boss, in frenzy; speed multipliers per phase; adds' health / damage vs. the room's foes
+    tune: { acc: [.03, .11, .18], accMini: .1, accFrenzy: .1, spd: [1, 1.03, 1.05], spdFrenzy: 1.06, addHp: .3, addDmg: .55 },
+    tune4: { acc: [.02, .07, .12], accMini: .1, accFrenzy: .1, spd: [1, 1.02, 1.05], spdFrenzy: 1.06, addHp: .4, addDmg: .65 } };
+
+  /* ---------------------------------------------------------------- hooks into the existing renderers (no edits to their files) */
+  // The telegraph renderer receives the shared particle emitter from effects.js: keep a handle on it.
+  var tg = B.Telegraphs;
+  if (tg && tg.create && !tg.__boss2) {
+    var tgCreate = tg.create;
+    tg.create = function (r, g, s, out) { Boss2.out = out; return tgCreate.apply(this, arguments); };
+    tg.__boss2 = true;
+  }
+  var ef = B.Effects;
+  if (ef && ef.create && !ef.__boss2) {
+    var efCreate = ef.create;
+    ef.create = function () {
+      var api = efCreate.apply(this, arguments), burst = api.burst, tells = api.tells;
+      api.burst = function (name, d) {
+        if (typeof name === 'string' && name.indexOf('boss2') === 0) { playFx(name, d || {}, burst, tells); return; }
+        return burst.apply(this, arguments);
+      };
+      return api;
+    };
+    ef.__boss2 = true;
+  }
+
+  var VIOLET = [.9, .62, 2.0], AMBER = [2.6, 1.0, .25], ASH = [.12, .1, .09], BONE = [.78, .68, .6];
+  function playFx(name, d, burst, tells) {
+    var out = Boss2.out, emit = out && out.emit, calm = reduced.matches, x = d.x || 0, z = d.z || 0, i, a, r, n;
+    var forge = d.kind === 'slag' || d.forge;
+    var col = forge ? AMBER : VIOLET, k = calm ? .5 : 1;
+    if (name === 'boss2Orb') {
+      if (tells && !calm) tells.glowBurst(x, z, { radius: d.end ? 1.7 : 1.4, life: .35, color: [col[0] * .6, col[1] * .6, col[2] * .6], peak: .5 });
+      if (emit) for (i = 0, n = Math.round(10 * k); i < n; i++) { a = Math.random() * TAU; emit(x, d.y || 1.2, z, 1, col, Math.sin(a) * 2.4, .5 + Math.random() * 1.3, Math.cos(a) * 2.4, .3, .07); }
+    } else if (name === 'boss2Shards') {          // crystal / slag spurts along a line: x,z origin, face, length, width
+      var f = d.face || 0, L = d.length || 8, W = d.width || 1.2;
+      if (emit) for (i = 0, n = Math.round(22 * k); i < n; i++) {
+        var t = Math.random() * L, s = (Math.random() - .5) * W;
+        emit(x + Math.sin(f) * t + Math.cos(f) * s, .15, z + Math.cos(f) * t - Math.sin(f) * s, i % 3 ? 4 : 1, i % 3 ? col : BONE, (Math.random() - .5) * .8, 1.6 + Math.random() * 2.4, (Math.random() - .5) * .8, .45 + Math.random() * .3, .1);
+      }
+    } else if (name === 'boss2Shatter') {         // a pillar bursts
+      burst('slam', { x: x, z: z, radius: 3.2, small: true });
+      if (tells) tells.wave(x, z, { radius: 4.2, life: .55, width: .15, color: [col[0] * .8, col[1] * .8, col[2] * .8], soft: 0 });
+      if (emit) for (i = 0, n = Math.round(28 * k); i < n; i++) { a = Math.random() * TAU; r = Math.random() * .7; emit(x + Math.sin(a) * r, .3 + Math.random() * 2.4, z + Math.cos(a) * r, i % 2 ? 1 : 4, i % 2 ? BONE : col, Math.sin(a) * (1.5 + Math.random() * 3), 1 + Math.random() * 3, Math.cos(a) * (1.5 + Math.random() * 3), .5 + Math.random() * .4, .1); }
+    } else if (name === 'boss2Echo') {            // a shadow column steps out of the floor
+      if (tells && !calm) tells.glowBurst(x, z, { radius: 2.4, life: .9, color: [.45, .3, 1.0], peak: .55 });
+      if (tells) tells.wave(x, z, { radius: 3.2, life: .6, width: .14, color: [.8, .6, 1.7], soft: 0 });
+      if (emit) for (i = 0, n = Math.round(26 * k); i < n; i++) { a = Math.random() * TAU; r = Math.random() * .6; emit(x + Math.sin(a) * r, .1 + Math.random() * 2.4, z + Math.cos(a) * r, 5, i % 3 ? [.55, .42, 1.5] : [1.3, 1.15, 2.0], Math.sin(a) * .3, .5 + Math.random() * .9, Math.cos(a) * .3, 1.1 + Math.random() * .5, .22); }
+    } else if (name === 'boss2Burrow') {          // dive / emerge: dust and gravel
+      burst('slam', { x: x, z: z, radius: d.emerge ? 4.8 : 3.4, small: !d.emerge });
+      if (tells) tells.wave(x, z, { radius: d.emerge ? 6.6 : 3.4, life: d.emerge ? .8 : .5, width: .2, color: [BONE[0], BONE[1], BONE[2]], soft: 0, crack: d.emerge ? .4 : 0, crackR: 3 });
+    } else if (name === 'boss2Geyser') {          // lava / slag erupts at a point (or along a line when length is given)
+      if (emit) for (i = 0, n = Math.round(24 * k); i < n; i++) { var tt = d.length ? Math.random() * d.length : 0, sf = d.face || 0; emit(x + Math.sin(sf) * tt + (Math.random() - .5) * (d.width || 1), .2, z + Math.cos(sf) * tt + (Math.random() - .5) * (d.width || 1), 4, i % 2 ? AMBER : [3.2, 1.6, .5], (Math.random() - .5) * .9, 3 + Math.random() * 3.4, (Math.random() - .5) * .9, .6 + Math.random() * .4, .11); }
+      if (tells && !calm && !d.length) tells.glowBurst(x, z, { radius: 2.2, life: .45, color: [2.0, .7, .2], peak: .5 });
+    } else if (name === 'boss2Summon') {
+      burst('slam', { x: x, z: z, radius: 3.6, small: true });
+      if (tells) tells.wave(x, z, { radius: 4.6, life: .6, width: .16, color: forge ? [1.6, .5, .12] : [.7, .5, 1.3], soft: 0 });
+    } else if (name === 'boss2Nova') {            // channel charge (phase 'charge') and release
+      if (d.phase === 'release') {
+        if (tells) { tells.wave(x, z, { radius: 17, life: .75, width: .3, color: [col[0] * .9, col[1] * .9, col[2] * .9], soft: .2 }); tells.glowBurst(x, z, { radius: 6, life: .8, color: [col[0] * .7, col[1] * .7, col[2] * .7], peak: .6 }); }
+        burst('impact', { x: x, z: z });
+      } else if (emit) for (i = 0, n = Math.round(18 * k); i < n; i++) { a = Math.random() * TAU; r = 5 + Math.random() * 6; emit(x + Math.sin(a) * r, .3 + Math.random() * 1.6, z + Math.cos(a) * r, 3, col, -Math.sin(a) * r / .9, 0, -Math.cos(a) * r / .9, .85, .11); }
+    } else if (name === 'boss2Overheat') {
+      if (tells) { tells.wave(x, z, { radius: 9, life: .9, width: .22, color: [2.0, .5, .1], soft: .1 }); tells.glowBurst(x, z, { radius: 5, life: 1.0, color: [1.8, .45, .1], peak: .6 }); }
+      if (emit) for (i = 0, n = Math.round(28 * k); i < n; i++) { a = Math.random() * TAU; emit(x + Math.sin(a) * 1.2, .5 + Math.random() * 2, z + Math.cos(a) * 1.2, 4, i % 2 ? AMBER : [3.4, 1.8, .6], Math.sin(a) * 2, 1 + Math.random() * 2, Math.cos(a) * 2, .8, .12); }
+    } else if (name === 'boss2Frenzy') {
+      if (tells) tells.wave(x, z, { radius: 11, life: 1.0, width: .24, color: forge ? [2.1, .45, .08] : [1.5, .3, .5], soft: 0 });
+      if (emit) for (i = 0, n = Math.round(30 * k); i < n; i++) { a = Math.random() * TAU; emit(x + Math.sin(a) * 1.5, .3 + Math.random() * 1.8, z + Math.cos(a) * 1.5, 4, col, Math.sin(a) * 2.5, 1 + Math.random() * 2, Math.cos(a) * 2.5, .9, .12); }
+    }
+  }
+  Boss2.playFx = playFx;
+
+  /* ---------------------------------------------------------------- dormant reserve enemies of the boss encounter */
+  Boss2.reserve = function (chapter, defs) {
+    var set = chapter === 3
+      ? [['cavefang', 'Oyuk Çenesi'], ['cavefang', 'Oyuk Çenesi'], ['ashbound', 'Taht Yeminlisi'], ['ashbound', 'Taht Yeminlisi']]
+      : [['slagcrawler', 'Döküm Kölesi'], ['slagcrawler', 'Döküm Kölesi'], ['emberbound', 'Kor Kölesi'], ['emberbound', 'Kor Kölesi']];
+    defs.forEach(function (enc) {
+      var boss = enc.spawns.find(function (s) { return s.boss; });
+      if (!boss || enc.spawns.some(function (s) { return s.reserve; })) return;
+      set.forEach(function (t, i) { enc.spawns.push({ type: t[0], name: t[1], x: boss.x + (i % 2 ? 5 : -5), z: boss.z + 3, reserve: true }); });
+    });
+  };
+
+  /* ---------------------------------------------------------------- the per-game controller */
+  Boss2.create = function (ext) {
+    var chapter = ext.chapter, player = ext.player, enemies = ext.enemies, hazards = ext.hazards, game = ext.game, world = ext.world;
+    var forge = chapter === 4, core = { chapter: chapter, ext: ext, hooks: [], time: 0 };
+    Boss2.current = core;
+    var room = (world.rooms || [])[13];
+    core.arena = room ? { x: room.x, z: room.z, w: room.w, d: room.d } : { x: 0, z: -330, w: 32, d: 26 };
+    var group = new T.Group(); group.name = 'boss2_props'; ext.root.add(group);
+    // inside the sealed court (margin m from the walls): add waves never appear behind the seal or in a wall niche
+    core.inArena = function (p, m) { var a = core.arena; return Math.abs(p.x - a.x) < a.w / 2 - m - 1 && Math.abs(p.z - a.z) < a.d / 2 - m; };
+
+    // dormant adds: thinner than the common foes of the room, never created later
+    enemies.forEach(function (e) { if (e.reserve) e.b2full = { hp: e.baseMaxHp || e.maxHp, dmg: e.campaignDamage || 1 }; });
+
+    /* ---------------- orbs ---------------- */
+    var glowTex = (function () {
+      var c = document.createElement('canvas'); c.width = c.height = 64; var g = c.getContext('2d'), gr = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+      gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(.28, 'rgba(255,255,255,.5)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
+      var t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; return t;
+    }());
+    var ringGeo = new T.RingGeometry(.62, .86, 28).rotateX(-Math.PI / 2);
+    function sprite(color, scale) {
+      var m = new T.SpriteMaterial({ map: glowTex, transparent: true, depthWrite: false, depthTest: false, blending: T.AdditiveBlending, fog: false, color: color }), s = new T.Sprite(m);
+      s.scale.set(scale, scale, 1); s.visible = false; s.frustumCulled = false; s.renderOrder = 6; group.add(s); return s;
+    }
+    var pool = [];
+    for (var oi = 0; oi < 6; oi++) {
+      var ring = new T.Mesh(ringGeo, new T.MeshBasicMaterial({ color: 0xffd08a, transparent: true, opacity: 0, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide }));
+      ring.visible = false; ring.frustumCulled = false; ring.renderOrder = 3; group.add(ring);
+      pool.push({ on: false, glow: sprite(0xffffff, 1.4), core: sprite(0xffffff, .7), ring: ring, hz: { damage: 10, owner: null, enemy: '', attack: '', style: 'ember', x: 0, z: 0 }, trail: 0 });
+    }
+    var orbs = core.orbs = {
+      pool: pool,
+      count: function () { var n = 0; for (var i = 0; i < pool.length; i++) if (pool[i].on) n++; return n; },
+      free: function () { return pool.length - orbs.count(); },
+      // o: { kind:'arc'|'slag', hold, speed, turn, life, damage, name, off (fan angle) }
+      spawn: function (owner, o) {
+        var orb = null; for (var i = 0; i < pool.length; i++) if (!pool[i].on) { orb = pool[i]; break; }
+        if (!orb) return null;
+        orb.on = true; orb.owner = owner; orb.kind = o.kind || 'arc'; orb.hold = o.hold || 1; orb.speed = o.speed || 4.4; orb.turn = o.turn || 1.4; orb.life = o.life || 5.2; orb.off = o.off || 0;
+        orb.age = 0; orb.launched = false; orb.cd = 0; orb.trail = 0; orb.h = owner.face;
+        orb.x = owner.x + Math.sin(owner.face + orb.off) * 1.5; orb.z = owner.z + Math.cos(owner.face + orb.off) * 1.5; orb.y = 1.9;
+        var c = orb.kind === 'slag' ? [1, .45, .12] : [.5, .3, 1];
+        orb.glow.material.color.setRGB(c[0] * .8, c[1] * .8, c[2] * .9); orb.core.material.color.setRGB(.95, .85, .9);
+        orb.hz.damage = o.damage || 12; orb.hz.owner = owner; orb.hz.enemy = owner.name; orb.hz.attack = o.name || 'Küre';
+        orb.glow.visible = orb.core.visible = true; orb.ring.visible = true; orb.ring.material.color.setRGB(1, .82, .5);
+        return orb;
+      },
+      kill: function (orb, quiet) {
+        if (!orb.on) return;
+        orb.on = false; orb.glow.visible = orb.core.visible = orb.ring.visible = false;
+        if (!quiet && orb.launched) {
+          ext.fx('boss2Orb', { x: orb.x, z: orb.z, y: 1, kind: orb.kind, end: true });
+          if (orb.kind === 'slag' && orb.owner && !orb.owner.dead && ext.walkable(orb.x, orb.z, .3)) core.ground(orb.owner, { x: orb.x, z: orb.z, radius: 1.7, duration: 3.6, damage: 4, name: 'Cüruf Birikintisi', warn: .55 });
+        }
+      },
+      clear: function () { for (var i = 0; i < pool.length; i++) orbs.kill(pool[i], true); }
+    };
+    function orbsTick(dt) {
+      for (var i = 0; i < pool.length; i++) {
+        var o = pool[i]; if (!o.on) continue;
+        var ow = o.owner; o.age += dt; o.cd = Math.max(0, o.cd - dt);
+        if (!ow || ow.dead) { orbs.kill(o, true); continue; }
+        if (o.age < o.hold) {
+          var u = o.age / o.hold, f = ow.face + o.off * (1 - u * .5);
+          o.x = ow.x + Math.sin(f) * 1.5; o.z = ow.z + Math.cos(f) * 1.5; o.y = 1.9 + .5 * u;
+          o.glow.scale.setScalar(.5 + 1.5 * u); o.core.scale.setScalar(.2 + .6 * u);
+          o.ring.material.opacity = .25 * u; o.ring.scale.setScalar(.4 + .6 * u);
+        } else {
+          if (!o.launched) {
+            o.launched = true; o.h = Math.atan2(player.x - o.x, player.z - o.z) + o.off * .55; o.y = 1.1;
+            ext.fx('boss2Orb', { x: o.x, z: o.z, y: 1.4, kind: o.kind }); ext.sound('enemyAttack', { x: o.x, z: o.z, type: ow.type });
+            o.glow.scale.setScalar(1.7); o.core.scale.setScalar(.8); o.ring.scale.setScalar(1); o.ring.material.opacity = .55;
+          }
+          var want = Math.atan2(player.x - o.x, player.z - o.z);
+          o.h += clamp(angDiff(want, o.h), -o.turn * dt, o.turn * dt);
+          var nx = o.x + Math.sin(o.h) * o.speed * dt, nz = o.z + Math.cos(o.h) * o.speed * dt;
+          if (!ext.walkable(nx, nz, .15)) { o.x = nx; o.z = nz; orbs.kill(o); continue; }
+          o.x = nx; o.z = nz;
+          if (pillars.list.length && pillars.hits(o.x, o.z, .35)) { orbs.kill(o); continue; }
+          if (o.cd <= 0 && !player.dead && Math.hypot(player.x - o.x, player.z - o.z) < .95) {
+            o.hz.x = o.x; o.hz.z = o.z;
+            if (player.invulnerable) { ext.hitPlayer(o.hz); o.cd = .6; }       // rolled through: the orb flies on
+            else if (ext.hitPlayer(o.hz)) { orbs.kill(o, true); ext.fx('boss2Orb', { x: o.x, z: o.z, y: 1, kind: o.kind, end: true }); continue; }
+          }
+          if (o.age - o.hold > o.life) { orbs.kill(o); continue; }
+          o.y = 1.1 + .12 * Math.sin(o.age * 7);
+          o.trail -= dt;
+          if (o.trail <= 0 && Boss2.out && Boss2.out.emit) {
+            o.trail = reduced.matches ? .12 : .045;
+            var c = o.kind === 'slag' ? AMBER : VIOLET;
+            Boss2.out.emit(o.x - Math.sin(o.h) * .3, o.y, o.z - Math.cos(o.h) * .3, 3, c, (Math.random() - .5) * .5, .1, (Math.random() - .5) * .5, .4, .13);
+          }
+        }
+        o.glow.position.set(o.x, o.y, o.z); o.core.position.set(o.x, o.y, o.z); o.ring.position.set(o.x, .07, o.z);
+      }
+    }
+
+    /* ---------------- crystal pillars (chapter III) ---------------- */
+    var pillars = core.pillars = { list: [], armed: false, wedges: [], arm: null,
+      hits: function (x, z, r) { var l = pillars.list; for (var i = 0; i < l.length; i++) { var p = l[i]; if (p.state === 2 || (p.state === 1 && p.k > .55)) { var dx = x - p.x, dz = z - p.z, m = p.r + r; if (dx * dx + dz * dz < m * m) return p; } } return null; },
+      up: function () { var n = 0; for (var i = 0; i < pillars.list.length; i++) if (pillars.list[i].state === 2) n++; return n; },
+      // the first standing pillar on the segment a->b (line of sight), else null
+      blocks: function (ax, az, bx, bz) {
+        var l = pillars.list, dx = bx - ax, dz = bz - az, L2 = dx * dx + dz * dz || 1;
+        for (var i = 0; i < l.length; i++) {
+          var p = l[i]; if (p.state !== 2) continue;
+          var t = clamp(((p.x - ax) * dx + (p.z - az) * dz) / L2, 0, 1), cx = ax + dx * t - p.x, cz = az + dz * t - p.z;
+          if (t > 0 && t < 1 && cx * cx + cz * cz < (p.r + .12) * (p.r + .12)) return p;
+        }
+        return null;
+      },
+      shatter: function (p, why) {
+        if (p.state !== 2 && p.state !== 1) return;
+        p.state = 3; p.k = 1; p.timer = 12 + (why === 'nova' ? 2 : 0);
+        ext.fx('boss2Shatter', { x: p.x, z: p.z });
+      },
+      // pillars within `radius` of (x,z) burst (resonance)
+      shatterNear: function (x, z, radius) { for (var i = 0; i < pillars.list.length; i++) { var p = pillars.list[i]; if (Math.hypot(p.x - x, p.z - z) < radius) pillars.shatter(p, 'pulse'); } }
+    };
+    if (chapter === 3 && world.materials && (world.materials.crystalV || world.materials.crystal)) {
+      var cm = world.materials.crystalV || world.materials.crystal;
+      // one merged geometry (shaft, tip and three shards), shared by the four pillars: 4 draw calls in all
+      var parts = [], pm = new T.Matrix4(), pq = new T.Quaternion(), pe = new T.Euler(), ps = new T.Vector3(), pp = new T.Vector3();
+      function part(g, x, y, z, rx, rz, sx, sy, sz) { pe.set(rx, 0, rz); pq.setFromEuler(pe); pp.set(x, y, z); ps.set(sx, sy, sz); pm.compose(pp, pq, ps); var c = g.clone(); c.applyMatrix4(pm); parts.push(c); }
+      var gBody = new T.CylinderGeometry(.46, .8, 1, 6, 1), gTip = new T.ConeGeometry(.46, 1, 6), gShard = new T.ConeGeometry(.2, 1, 5);
+      part(gBody, 0, 1.8, 0, 0, 0, 1, 3.6, 1); part(gTip, 0, 4.15, 0, 0, 0, 1, 1.1, 1);
+      for (var si = 0; si < 3; si++) { var a = si * 2.1; part(gShard, Math.sin(a) * .9, .6, Math.cos(a) * .9, Math.cos(a) * .35, -Math.sin(a) * .35, 1, 1.5 + si * .3, 1); }
+      var pillarGeo = new T.BufferGeometry(), pos = [], nor = [], uvs = [], idx = [], off = 0;
+      parts.forEach(function (g) {
+        var P = g.attributes.position.array, N = g.attributes.normal.array, U = g.attributes.uv.array, I = g.index.array, k;
+        for (k = 0; k < P.length; k++) { pos.push(P[k]); nor.push(N[k]); } for (k = 0; k < U.length; k++) uvs.push(U[k]);
+        for (k = 0; k < I.length; k++) idx.push(I[k] + off); off += P.length / 3; g.dispose();
+      });
+      gBody.dispose(); gTip.dispose(); gShard.dispose();
+      pillarGeo.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); pillarGeo.setAttribute('normal', new T.Float32BufferAttribute(nor, 3)); pillarGeo.setAttribute('uv', new T.Float32BufferAttribute(uvs, 2)); pillarGeo.setIndex(idx);
+      for (var pi = 0; pi < 4; pi++) {
+        var pg = new T.Mesh(pillarGeo, cm); pg.visible = false; pg.frustumCulled = false;
+        group.add(pg); pillars.list.push({ x: 0, z: 0, r: .85, state: 0, k: 0, timer: 0, g: pg });
+      }
+      // safe-shadow trapezoids behind the pillars while the nova is channelled
+      var wmat = new T.MeshBasicMaterial({ color: 0x2a8fb8, transparent: true, opacity: .28, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide });
+      for (var wi = 0; wi < 4; wi++) {
+        var wg = new T.BufferGeometry(); wg.setAttribute('position', new T.BufferAttribute(new Float32Array(12), 3)); wg.setIndex([0, 1, 2, 0, 2, 3]);
+        var wm = new T.Mesh(wg, wmat); wm.visible = false; wm.frustumCulled = false; wm.renderOrder = 2; group.add(wm); pillars.wedges.push(wm);
+      }
+      // the pillars are solid for everybody (hero, foes): wrap the world's collision once; the wrapper always asks the newest game's pillars
+      var hold = world.__boss2 || (world.__boss2 = { p: null, walk: world.isWalkable, move: world.move, on: false });
+      hold.p = pillars;
+      if (hold.walk && hold.move && !hold.on) {
+        hold.on = true;
+        world.isWalkable = function (x, z, r) { var P = hold.p; if (P && P.armed && P.hits(x, z, r == null ? .46 : r)) return false; return hold.walk.call(this, x, z, r); };
+        world.move = function (p, dx, dz, r) {
+          var P = hold.p;
+          if (!P || !P.armed) return hold.move.call(this, p, dx, dz, r);
+          var ox = p.x, oz = p.z; hold.move.call(this, p, dx, dz, r);
+          var rr = r == null ? .46 : r, hit = P.hits(p.x, p.z, rr);
+          if (hit) {   // slide along the pillar's rim instead of entering it
+            var ax = p.x - hit.x, az = p.z - hit.z, d = Math.hypot(ax, az) || 1, m = hit.r + rr + .01;
+            p.x = hit.x + ax / d * m; p.z = hit.z + az / d * m;
+            if (!hold.walk.call(this, p.x, p.z, r)) { p.x = ox; p.z = oz; }
+          }
+          return p;
+        };
+      }
+      pillars.arm = function () {
+        var a = core.arena, spots = [[-7.2, 5], [7.2, 5], [-7.2, -5], [7.2, -5]];
+        for (var i = 0; i < pillars.list.length; i++) {
+          var p = pillars.list[i], x = a.x + spots[i][0], z = a.z + spots[i][1];
+          for (var tries = 0; tries < 6 && !hold.walk.call(world, x, z, 1.1); tries++) z += (tries % 2 ? 1 : -1) * (1 + tries * .5);
+          p.x = x; p.z = z; p.state = 1; p.k = 0; p.g.position.set(x, 0, z); p.g.scale.set(1, .02, 1); p.g.visible = true;
+        }
+        pillars.armed = true;
+        ext.emit('toast', { text: 'Billur sütunlar yükseldi.' });
+      };
+    }
+    function pillarsTick(dt) {
+      for (var i = 0; i < pillars.list.length; i++) {
+        var p = pillars.list[i];
+        if (p.state === 1) { p.k = Math.min(1, p.k + dt / 1.2); p.g.scale.y = .02 + .98 * (1 - Math.pow(1 - p.k, 3)); if (p.k >= 1) p.state = 2; }
+        else if (p.state === 3) { p.k = Math.max(0, p.k - dt / .25); p.g.scale.y = Math.max(.02, p.k); if (p.k <= 0) { p.state = 4; p.g.visible = false; } }
+        else if (p.state === 4) { p.timer -= dt; if (p.timer <= 0 && Math.hypot(player.x - p.x, player.z - p.z) > 2.2) { p.state = 1; p.k = 0; p.g.scale.y = .02; p.g.visible = true; } }
+      }
+      if (nova.on) {
+        nova.t += dt;
+        if (Boss2.out && Boss2.out.emit && (nova.em -= dt) <= 0) { nova.em = reduced.matches ? .3 : .12; playFx('boss2Nova', { x: nova.x, z: nova.z, phase: 'charge', forge: false }, null, null); }
+      }
+    }
+    var nova = core.nova = { on: false, x: 0, z: 0, t: 0, em: 0 };
+    // Begin a channel: show the safe shadows behind every standing pillar.
+    core.novaBegin = function (owner) {
+      if (!core.novaHinted) { core.novaHinted = true; ext.emit('toast', { text: 'Sessiz Nova toplanıyor. Kristal sütunun arkasına geç.' }); }
+      nova.on = true; nova.x = owner.x; nova.z = owner.z; nova.t = 0; nova.em = 0;
+      var w = 0;
+      for (var i = 0; i < pillars.list.length && w < pillars.wedges.length; i++) {
+        var p = pillars.list[i]; if (p.state !== 2) continue;
+        var dx = p.x - owner.x, dz = p.z - owner.z, D = Math.hypot(dx, dz) || 1, ux = dx / D, uz = dz / D, nx = uz, nz = -ux, L = 13, w0 = p.r + .12, w1 = (p.r + .12) * (D + L) / D;
+        var pos = pillars.wedges[w].geometry.attributes.position.array, y = .08;
+        pos[0] = p.x - nx * w0; pos[1] = y; pos[2] = p.z - nz * w0; pos[3] = p.x + nx * w0; pos[4] = y; pos[5] = p.z + nz * w0;
+        pos[6] = p.x + ux * L + nx * w1; pos[7] = y; pos[8] = p.z + uz * L + nz * w1; pos[9] = p.x + ux * L - nx * w1; pos[10] = y; pos[11] = p.z + uz * L - nz * w1;
+        pillars.wedges[w].geometry.attributes.position.needsUpdate = true; pillars.wedges[w].visible = true; w++;
+      }
+    };
+    core.novaEnd = function () { nova.on = false; for (var i = 0; i < pillars.wedges.length; i++) pillars.wedges[i].visible = false; };
+    // Resolve a nova: a standing pillar on the line of sight takes the blast (and shatters), otherwise the hero is hit.
+    core.novaResolve = function (owner, damage, name) {
+      core.novaEnd();
+      ext.fx('boss2Nova', { x: owner.x, z: owner.z, phase: 'release', forge: forge });
+      if (owner.dead || player.dead) return;
+      var p = pillars.blocks(owner.x, owner.z, player.x, player.z);
+      if (p) { pillars.shatter(p, 'nova'); ext.emit('toast', { text: 'Kristal sütun darbeyi yuttu.' }); return; }
+      ext.hitPlayer({ damage: damage, owner: owner, enemy: owner.name, attack: name, unblockable: true, style: 'shadow', x: owner.x, z: owner.z, knockback: 0 });
+    };
+
+    /* ---------------- safe fans (chapter IV clock): cool translucent wedges on the floor ---------------- */
+    var FAN_N = 14, fanMat = new T.MeshBasicMaterial({ color: 0x5cc0ff, transparent: true, opacity: .2, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide });
+    core.fans = [];
+    for (var fi = 0; fi < 2; fi++) {
+      var fg = new T.BufferGeometry(), idx = [];
+      fg.setAttribute('position', new T.BufferAttribute(new Float32Array((FAN_N + 2) * 3), 3));
+      for (var fk = 1; fk <= FAN_N; fk++) idx.push(0, fk, fk + 1);
+      fg.setIndex(idx);
+      var fm = new T.Mesh(fg, fanMat); fm.visible = false; fm.frustumCulled = false; fm.renderOrder = 2; group.add(fm); core.fans.push(fm);
+    }
+    core.fanSet = function (i, cx, cz, R, a0, a1) {
+      var m = core.fans[i], pos = m.geometry.attributes.position.array, y = .09;
+      pos[0] = cx; pos[1] = y; pos[2] = cz;
+      for (var k = 0; k <= FAN_N; k++) { var a = a0 + (a1 - a0) * k / FAN_N; pos[3 + k * 3] = cx + Math.sin(a) * R; pos[4 + k * 3] = y; pos[5 + k * 3] = cz + Math.cos(a) * R; }
+      m.geometry.attributes.position.needsUpdate = true; m.visible = true;
+    };
+    core.fanHide = function () { for (var i = 0; i < core.fans.length; i++) core.fans[i].visible = false; };
+
+    /* ---------------- burning ground (capped) ---------------- */
+    core.groundCount = function () { var n = 0; for (var i = 0; i < hazards.length; i++) if (hazards[i].b2ground) n++; return n; };
+    // o: { x, z, radius | (face,width,length), duration, damage, warn, name, shape }
+    core.ground = function (owner, o) {
+      if (core.groundCount() >= 9) return null;
+      var line = o.shape === 'line';
+      return ext.hazardFrom(owner, { x: o.x, z: o.z, face: o.face || 0, shape: line ? 'line' : 'circle', radius: o.radius || 1.6, width: o.width || 1.6, length: o.length || 6,
+        warn: o.warn || .5, duration: o.duration || 4, delay: o.delay || 0, damage: o.damage || 4, periodic: true, interval: .7, persistent: true, unblockable: false,
+        attack: o.name || 'Yanan Zemin', style: 'ember', fill: line ? 'forward' : 'radial', near: false, b2ground: true });
+    };
+
+    /* ---------------- adds ---------------- */
+    core.freeReserve = function (owner) {
+      var n = 0; enemies.forEach(function (e) { if (e.reserve && e.dead && !e.used && e.encounter === owner.encounter) n++; }); return n;
+    };
+    core.aliveAdds = function () { var n = 0; enemies.forEach(function (e) { if (e.reserve && !e.dead && e.summoned) n++; }); return n; };
+    // Revive the next dormant reserve enemy at (x,z); returns it or null.
+    core.summon = function (owner, x, z) {
+      var e = null; for (var i = 0; i < enemies.length; i++) { var c = enemies[i]; if (c.reserve && c.dead && !c.used && c.encounter === owner.encounter) { e = c; break; } }
+      if (!e) return null;
+      var face = Math.atan2(player.x - x, player.z - z);
+      e.x = x; e.z = z; e.spawnX = x; e.spawnZ = z; e.face = face; e.hp = e.maxHp; e.dead = false; e.deadAge = 0; e.active = true; e.activated = true; e.returning = false;
+      var tn = forge ? Boss2.tune4 : Boss2.tune, fh = Math.round(e.b2full.hp * tn.addHp); e.maxHp = e.baseMaxHp = fh; e.hp = fh; e.campaignDamage = e.b2full.dmg * tn.addDmg;
+      e.action = null; e.stagger = 0; e.hurt = 0; e.cooldown = 2.0; e.faceLocked = false; e.push = null; e.navigation = null; e.spWait = 1; e.summoned = true; e.used = true;
+      e.model.root.visible = true; e.holder.visible = true; e.model.root.position.set(x, 0, z); e.model.root.rotation.y = face;
+      e.model.animate(0, { reset: true, time: 0, move: 0, attack: 0, dead: false, phase: 'idle', face: face });
+      ext.fx('boss2Summon', { x: x, z: z, forge: forge });
+      return e;
+    };
+
+    /* ---------------- fight clock, aggression, frenzy ---------------- */
+    var FRENZY_AT = forge ? 240 : 210;
+    function bossy(e) { return !e.dead && e.active && e.stats && (e.stats.ruins || e.stats.forge) && (e.boss || e.type === 'ruinwarden' || e.type === 'ashwarden'); }
+    function fightTick(e, dt) {
+      var b = e.b2 || (e.b2 = { t: 0, frenzy: false, base: 0 });
+      b.t += dt;
+      if (e.boss) {
+        if (!Boss2.baseSpeed[e.type]) Boss2.baseSpeed[e.type] = e.stats.speed;
+        if (!b.frenzy && b.t > FRENZY_AT) {
+          b.frenzy = true;
+          ext.emit('warning', { x: e.x, z: e.z, text: forge ? 'OCAK KIZIŞTI' : 'TAHT SABRINI YİTİRDİ' }); ext.sound('bossPhase'); ext.fx('boss2Frenzy', { x: e.x, z: e.z, forge: forge });
+        }
+        var tn = forge ? Boss2.tune4 : Boss2.tune;
+        e.stats.speed = Boss2.baseSpeed[e.type] * tn.spd[clamp(e.phase - 1, 0, 2)] * (b.frenzy ? tn.spdFrenzy : 1);
+      }
+      // later phases recover faster: the engine counts the rest down in real seconds, we shave extra off while no move runs
+      if (!e.action && e.cooldown > 0) {
+        var tn = forge ? Boss2.tune4 : Boss2.tune, k = e.boss ? tn.acc[clamp(e.phase - 1, 0, 2)] + (b.frenzy ? tn.accFrenzy : 0) : tn.accMini;
+        e.cooldown -= dt * k;
+      }
+    }
+
+    core.tick = function (dt) {
+      if (game.state !== 'playing') return;
+      core.time += dt;
+      var boss = game.boss;
+      for (var i = 0; i < enemies.length; i++) { var e = enemies[i]; if (!e.reserve && bossy(e)) fightTick(e, dt); }
+      if (boss && chapter === 3 && !pillars.armed && pillars.arm && boss.active && !boss.dead) pillars.arm();
+      if (boss && boss.dead) {
+        orbs.clear(); core.novaEnd();
+        for (var j = 0; j < enemies.length; j++) { var a = enemies[j]; if (a.reserve && !a.dead && a.summoned) { a.hp = 0; ext.killEnemy(a); } }
+      }
+      orbsTick(dt); pillarsTick(dt);
+      // embers over burning ground (a few per frame at most)
+      if (Boss2.out && Boss2.out.emit && !reduced.matches) {
+        core.emberT = (core.emberT || 0) - dt;
+        if (core.emberT <= 0) {
+          core.emberT = .12; var shown = 0;
+          for (var h = 0; h < hazards.length && shown < 6; h++) {
+            var z = hazards[h]; if (!z.b2ground || !z.active) continue;
+            var px = z.x, pz = z.z; if (z.shape === 'line') { var tt = Math.random() * z.length; px += Math.sin(z.face) * tt; pz += Math.cos(z.face) * tt; } else { var aa = Math.random() * TAU, rr = Math.sqrt(Math.random()) * z.radius; px += Math.sin(aa) * rr; pz += Math.cos(aa) * rr; }
+            Boss2.out.emit(px, .08, pz, 4, forge ? AMBER : VIOLET, (Math.random() - .5) * .4, .5 + Math.random() * .6, (Math.random() - .5) * .4, .7, .09); shown++;
+          }
+        }
+      }
+      for (var q = 0; q < core.hooks.length; q++) core.hooks[q].tick(dt);
+    };
+    core.reset = function () {
+      orbs.clear(); core.novaEnd(); core.fanHide();
+      pillars.armed = false; pillars.list.forEach(function (p) { p.state = 0; p.g.visible = false; });
+      enemies.forEach(function (e) {
+        if (e.reserve) { e.used = false; e.summoned = false; }
+        if (e.b2) { e.b2 = null; }
+        e.b2cd = null;
+        if (e.overheat) e.overheat = false;
+        if (e.stats && Boss2.baseSpeed[e.type]) e.stats.speed = Boss2.baseSpeed[e.type];
+      });
+      core.emberT = 0; core.novaHinted = false;
+      for (var q = 0; q < core.hooks.length; q++) if (core.hooks[q].reset) core.hooks[q].reset();
+    };
+    core.dispose = function () {
+      orbs.clear(); glowTex.dispose(); ringGeo.dispose(); if (world.__boss2 && world.__boss2.p === pillars) world.__boss2.p = null;
+      group.traverse(function (o) {
+        if (o.isSprite || (o.isMesh && o.material && o.material !== (world.materials && (world.materials.crystalV || world.materials.crystal)))) { if (o.material && !o.material.__shared) o.material.dispose(); }
+        if (o.isMesh && o.geometry && o.geometry !== ringGeo) o.geometry.dispose();
+      });
+      group.removeFromParent();
+    };
+    return core;
+  };
+}());

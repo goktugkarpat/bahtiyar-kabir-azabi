@@ -221,6 +221,11 @@
     m.customProgramCacheKey = function () { return cacheKey; };
     return m;
   }
+  // 1x1 white map: multiplies by exactly 1 (AO / roughness), but gives a variant that lacks those maps the sampler set of its siblings,
+  // so both share ONE shader program (fewer program switches per frame). Off with ?nowhite.
+  var WHITE_MAP = null;
+  function whiteMap() { if (!WHITE_MAP) { WHITE_MAP = new T.DataTexture(new Uint8Array([255, 255, 255, 255]), 1, 1, T.RGBAFormat); WHITE_MAP.name = 'kara:white'; WHITE_MAP.needsUpdate = true; } return WHITE_MAP; }
+  var NO_WHITE = /[?&]nowhite/.test(location.search);
   function std(props, g) { var m = new T.MeshStandardMaterial(props); if (g) grade(m, g); return m; }
   // Forged metal: rust-scan relief and roughness, flat albedo so the value is controlled (the rust albedo is too orange).
   function metal(value, metalness, roughness, g) {
@@ -238,7 +243,7 @@
       case 'dark': m = metal(.07, .62, .7, { rust: .1, grime: .2, wear: .75 }); break;
       case 'blade': m = metal(.19, .8, .42, { grime: .15, blood: .3, scale: 8, wear: 1.2 }); break;
       case 'blade-runes': m = metal(.19, .8, .42, { grime: .15, blood: .3, scale: 8, wear: 1.2, engrave: G.runeTexture() }); break;
-      case 'edge': m = std({ color: new T.Color().setRGB(.5, .505, .52), metalness: .9, roughness: .3, normalMap: surfaces.iron && surfaces.iron.normalMap }, { cls: 'metal', blood: .4, scale: 9, wear: .4 }); m.normalScale.set(.18, .18); break;
+      case 'edge': m = std({ color: new T.Color().setRGB(.5, .505, .52), metalness: .9, roughness: .3, normalMap: surfaces.iron && surfaces.iron.normalMap, roughnessMap: NO_WHITE ? null : whiteMap(), aoMap: NO_WHITE ? null : whiteMap() }, { cls: 'metal', blood: .4, scale: 9, wear: .4 }); m.normalScale.set(.18, .18); break;
       case 'brass': m = metal(1, .8, .4, { tint: [.46, .3, .12], grime: .35, wear: .7 }); break;
       case 'leather': m = std(surfaceProps('leather', { roughness: .88 }), { cls: 'leather', sat: .8, tint: [.9, .8, .72], grime: .35 }); break;
       case 'strap': m = std(surfaceProps('leather', { roughness: .82 }), { cls: 'leather', sat: .6, tint: [.5, .42, .36], grime: .2 }); break;
@@ -478,8 +483,26 @@
         var mesh = new T.SkinnedMesh(geo, mat); mesh.name = key; mesh.receiveShadow = true; mesh.castShadow = !HIDDEN_CASTER.test(key);
         mesh.frustumCulled = true; parent.add(mesh); mesh.bind(skeleton, new T.Matrix4()); meshes.push(mesh);
       });
+      // Shadow proxies: every plain opaque caster of one shadow-face class becomes ONE depth-only skinned draw
+      // (lean geometry: position + skin only). The visible parts keep casting only while a proxy is not armed.
+      var proxies = [], groups = {};
+      meshes.forEach(function (mesh) {
+        var m = mesh.material, key = mesh.name;
+        if (!mesh.castShadow || !m || Array.isArray(m) || m.transparent || m.alphaTest > 0 || m.alphaMap || m.displacementMap || m.visible === false || /^equipment:/.test(key)) return;
+        if (A.base === 'barbarian' && (PROXY_FLARE[key] || key === 'iron')) return;   // whirlwind-flared fur / cloth / beard and the swappable chest iron stay real casters
+        var side = m.shadowSide !== null && m.shadowSide !== undefined ? 'x' + m.shadowSide : 's' + m.side;
+        (groups[side] = groups[side] || []).push(mesh);
+      });
+      Object.keys(groups).forEach(function (side) {
+        var list = groups[side]; if (list.length < 2) return;
+        var proxy = new T.SkinnedMesh(mergeLean(list.map(function (m) { return m.geometry; })), list[0].material);
+        proxy.name = 'shadow-proxy:' + side; proxy.castShadow = true; proxy.receiveShadow = false; proxy.visible = false; proxy.frustumCulled = true;
+        proxy.userData.shadowProxy = true; proxy.userData.keys = list.map(function (m) { return m.name; });
+        list.forEach(function (m) { m.userData.proxyCast = 1; });
+        parent.add(proxy); proxy.bind(skeleton, new T.Matrix4()); proxies.push(proxy);
+      });
       scene.updateMatrixWorld(true);
-      return { scene: scene, skeleton: skeleton, meshes: meshes };
+      return { scene: scene, skeleton: skeleton, meshes: meshes, proxies: proxies };
     };
     return A;
   }
@@ -507,6 +530,60 @@
       out.setAttribute(name, new T.BufferAttribute(arr, n, a.normalized));
     });
     out.setIndex(indices.map(function (v) { return map[v]; })); g.dispose(); return out;
+  }
+  var PROXY_FLARE = { fur: 1, furfringe: 1, tabard: 1, beard: 1, beardmass: 1, moustache: 1 };
+  // Depth-only merge of already merged skinned geometries: position + skin attributes, nothing else.
+  function mergeLean(list, rigid) {
+    var total = 0, totalIndex = 0;
+    list.forEach(function (g) { total += g.attributes.position.count; totalIndex += g.index.count; });
+    var pos = new Float32Array(total * 3), si = rigid ? null : new Uint16Array(total * 4), sw = rigid ? null : new Float32Array(total * 4), index = new Uint32Array(totalIndex), v = 0, k = 0;
+    list.forEach(function (g) {
+      var c = g.attributes.position.count, I = g.index.array;
+      pos.set(g.attributes.position.array, v * 3); if (!rigid) { si.set(g.attributes.skinIndex.array, v * 4); sw.set(g.attributes.skinWeight.array, v * 4); }
+      for (var j = 0; j < I.length; j++) index[k + j] = I[j] + v;
+      v += c; k += I.length;
+    });
+    var out = new T.BufferGeometry();
+    out.setAttribute('position', new T.BufferAttribute(pos, 3)); if (!rigid) { out.setAttribute('skinIndex', new T.BufferAttribute(si, 4)); out.setAttribute('skinWeight', new T.BufferAttribute(sw, 4)); }
+    out.setIndex(new T.BufferAttribute(total > 65535 ? index : new Uint16Array(index), 1)); out.computeBoundingBox(); out.computeBoundingSphere();
+    return out;
+  }
+  // Shared depth materials of the shadow proxies, one per shadow-face class. Three copies side / alphaTest / map from the proxy's own
+  // material on every draw, so the colour map is blocked here exactly like app.js does for its shared depth materials.
+  var proxyDepth = {};
+  function proxyDepthMaterial(material, skinned) {
+    var key = (skinned ? 'k' : 'r') + (material.shadowSide !== null && material.shadowSide !== undefined ? 'x' + material.shadowSide : 's' + material.side);
+    if (proxyDepth[key]) return proxyDepth[key];
+    var dm = new T.MeshDepthMaterial({ depthPacking: T.RGBADepthPacking }); dm.name = 'kara-shadow-proxy-depth';
+    // The shadow pass writes the same side again on every draw; starting there keeps the warm-up compile on the program that is really used.
+    dm.side = material.shadowSide !== null && material.shadowSide !== undefined ? material.shadowSide : material.side === T.FrontSide ? T.BackSide : material.side === T.BackSide ? T.FrontSide : T.DoubleSide;
+    Object.defineProperty(dm, 'map', { get: function () { return null; }, set: function () { }, configurable: true });
+    return (proxyDepth[key] = dm);
+  }
+  // Armed proxies draw the characters into the shadow maps only: they are shown for the duration of shadowMap.render and hidden again,
+  // while their source parts stop casting. Disarmed records (limb cuts, no renderer yet) fall back to the individual parts.
+  var proxyRecords = new Set(), proxyShown = [], proxyHooked = false, proxyRenderer = null;
+  function proxyArm(rec, on) {
+    if (rec.active === on) return; rec.active = on; rec.mesh.visible = false;
+    for (var i = 0; i < rec.sources.length; i++) rec.sources[i].castShadow = on ? false : rec.mesh.castShadow;
+  }
+  function proxyHook() {
+    var r = B.app && B.app.renderer; if (!r || !r.shadowMap || typeof r.shadowMap.render !== 'function') return proxyHooked;
+    if (r === proxyRenderer) return true;
+    var sm = r.shadowMap, inner = sm.render; proxyHooked = true; proxyRenderer = r;
+    sm.render = function () {
+      var shown = proxyShown, n = 0;
+      proxyRecords.forEach(function (rec) {
+        var p = rec.mesh, s = rec.sources, i;
+        if (rec.active) {
+          if (s[0].castShadow) for (i = 0; i < s.length; i++) s[i].castShadow = false;   // a shadow-reach toggle that predates the proxy
+          if (p.castShadow) { p.visible = true; shown[n++] = p; }
+        } else for (i = 0; i < s.length; i++) s[i].castShadow = p.castShadow;
+      });
+      try { return inner.apply(this, arguments); } finally { for (var i = 0; i < n; i++) shown[i].visible = false; }
+    };
+    proxyRecords.forEach(function (rec) { if (!rec.held) proxyArm(rec, true); });
+    return true;
   }
   function mergeSkinned(list) {
     var total = 0, totalIndex = 0;
@@ -543,13 +620,28 @@
   }
   function T4(x, y, z, rx, ry, rz, s) { var m = new T.Matrix4(); m.compose(new T.Vector3(x || 0, y || 0, z || 0), new T.Quaternion().setFromEuler(new T.Euler(rx || 0, ry || 0, rz || 0)), new T.Vector3(s || 1, s || 1, s || 1)); return m; }
   // Weapons are ordinary meshes (not skinned) under bones.weapon; one merged mesh per material.
-  function weaponGroup(piece) {
-    var group = new T.Group(); group.name = 'weapon_art';
+  function weaponGroup(piece, withProxy) {
+    var group = new T.Group(), made = []; group.name = 'weapon_art';
     Object.keys(piece.parts).forEach(function (key) {
       var list = piece.parts[key]; if (!list.length) return; list.forEach(function (q) { if (!q.attributes.kwear) G.wear(q, wearDefaults(key)); });
       var mat = piece.materials && piece.materials[key] || gearMaterial((piece.materialKeys && piece.materialKeys[key]) || key);
-      var mesh = new T.Mesh(G.merge(list), mat); mesh.castShadow = true; mesh.receiveShadow = true; mesh.name = key; group.add(mesh);
+      var mesh = new T.Mesh(G.merge(list), mat); mesh.castShadow = true; mesh.receiveShadow = true; mesh.name = key; group.add(mesh); made.push(mesh);
     });
+    if (withProxy) {   // enemy weapons: one depth-only draw per shadow-face class instead of one per material (see A.build)
+      var groups = {};
+      made.forEach(function (mesh) {
+        var m = mesh.material; if (!m || Array.isArray(m) || m.transparent || m.alphaTest > 0 || m.alphaMap || m.displacementMap || m.visible === false) return;
+        var side = m.shadowSide !== null && m.shadowSide !== undefined ? 'x' + m.shadowSide : 's' + m.side; (groups[side] = groups[side] || []).push(mesh);
+      });
+      Object.keys(groups).forEach(function (side) {
+        var list = groups[side]; if (list.length < 2) return;
+        var proxy = new T.Mesh(mergeLean(list.map(function (m) { return m.geometry; }), true), list[0].material);
+        proxy.name = 'shadow-proxy:w' + side; proxy.castShadow = true; proxy.receiveShadow = false; proxy.visible = false; proxy.frustumCulled = true;
+        proxy.userData.shadowProxy = true; proxy.userData.keys = list.map(function (m) { return m.name; });
+        list.forEach(function (m) { m.userData.proxyCast = 1; });
+        group.add(proxy);
+      });
+    }
     return group;
   }
 
@@ -1065,7 +1157,7 @@
     var skin = bodyMaterial(A.srcMaterial('SuperHero_Male', bases.ubc), 'prisoner-skin', { cls: 'skin', skin: .8, sat: .32, tint: 0xd2cac0, contrast: 1.12, grime: .8, blood: .42, scale: 8, scars: scarLines(A, lash, ['skin']), fresh: true }); skin.normalScale.multiplyScalar(.5);
     return { chainBetween: ['lowerarm_l', 'hand_l', 'lowerarm_r', 'hand_r'], materials: {
       skin: skin,
-      trousers: bodyMaterial(A.srcMaterial('Male_Peasant_Legs', bases.peasant), 'prisoner-trousers', { cls: 'cloth', tear: true, sat: .35, tint: 0x9a9082, grime: .75, blood: .35 })
+      trousers: bodyMaterial(A.srcMaterial('Male_Peasant_Legs', bases.peasant), 'prisoner-trousers', { cls: 'cloth', tear: true, sat: .35, tint: 0x9a9082, grime: .75, blood: .35 }, NO_WHITE ? undefined : { aoMap: whiteMap() })
     } };
   };
   function sackHood(A, headBone) {
@@ -1416,6 +1508,7 @@
     // body height from body parts only (helmets, horns and crowns may rise above it)
     var box = new T.Box3(); built.meshes.forEach(function (m) { if (A.parts.some(function (p) { return p.body && p.key === m.name; })) { m.geometry.computeBoundingBox(); box.union(m.geometry.boundingBox); } });
     var h = box.max.y - box.min.y, scale = cfg.height / h;
+    (built.proxies || []).forEach(function (m) { m.boundingSphere = new T.Sphere(new T.Vector3(0, h * .5, 0), h * 1.1); });
     built.meshes.forEach(function (m) {
       m.boundingSphere = new T.Sphere(new T.Vector3(0, h * .5, 0), h * 1.1);
       var equipment = recipe.equipment && recipe.equipment.armor[m.name];
@@ -1442,7 +1535,7 @@
       }); });
     }
     var bp = { type: type, scene: built.scene, scale: scale, yOffset: -box.min.y * scale,
-      weapon: equipmentWeapons ? equipmentWeapons['dull-sword'] : recipe.weapon ? { art: weaponGroup(recipe.weapon), tip: recipe.weapon.tip } : null,
+      weapon: equipmentWeapons ? equipmentWeapons['dull-sword'] : recipe.weapon ? { art: weaponGroup(recipe.weapon, true), tip: recipe.weapon.tip } : null,
       equipmentWeapons: equipmentWeapons, anchors: anchors, recipe: recipe };
     blueprints[type] = bp; return bp;
   }
@@ -1720,9 +1813,24 @@
         hookArt.position.copy(last).applyMatrix4(inv); hookArt.quaternion.copy(q2).premultiply(inverseQ);
       });
     }
+    // Shadow proxies of this actor (see A.build): own depth material, registered with the shared shadow-pass hook.
+    var shadowRecs = [], bakeOnly = /corpseTemplate/.test(new Error().stack || ''), proxyNodes = [];   // coast-world.js bakes every skinned mesh of a posed actor into a static corpse: no proxies there
+    root.traverse(function (n) { if (n.isMesh && n.userData.shadowProxy) proxyNodes.push(n); });
+    proxyNodes.forEach(function (n) {
+      if (bakeOnly) { n.removeFromParent(); return; }
+      var keys = n.userData.keys || [], sources = [];
+      n.parent.children.forEach(function (c) { if (c.isMesh && c.userData.proxyCast && keys.indexOf(c.name) >= 0) sources.push(c); });
+      if (!sources.length) return;
+      n.customDepthMaterial = proxyDepthMaterial(n.material, n.isSkinnedMesh); n.visible = false;
+      var rec = { mesh: n, sources: sources, active: false, held: false }; shadowRecs.push(rec); proxyRecords.add(rec);
+    });
+    if (shadowRecs.length) { proxyHook(); if (proxyHooked) shadowRecs.forEach(function (rec) { proxyArm(rec, !rec.held); }); }
     var motion = B.AuthoredMotion.create({ root: root, modelScene: scene, type: cfg.motionType || type, bones: native, weapon: weapon, weaponTip: marker, scale: bp.scale });
     var aliases = motion.bones; aliases.weapon = weapon;
     var detailMotion = cfg.detailMotion ? cfg.detailMotion(native, scene, bp.scale) : null;
+    // 'staticTree': nothing moves the nodes below the root after authored-motion's pose (no detail motion, no dragged chain), so combat.js may
+    // trust the world matrices that animate() just computed instead of walking the tree again in the render pass.
+    root.userData.authoredMotion.staticTree = !detailMotion && !bp.anchors.drag;
     var disposed = false, trail = type === 'hero' && bp.weapon ? bladeTrail() : null, trailA = new T.Vector3(), trailB = new T.Vector3(), trailInv = new T.Matrix4();
     if (flareMats.length) extras.push(function () { flareU.value = clamp(root.userData.whirlFlare || 0, 0, 1); });
     if (trail) extras.push(function (dt, state) {
@@ -1777,9 +1885,11 @@
       equipment: equipment, setEquipment: equipment ? setEquipment : undefined,
       // Existing actor objects, including hidden variants: warm their shaders and buffers during loading.
       warmEquipmentObjects: equipment ? function () { return equipmentMeshes; } : undefined,
-      animate: function (dt, state) { state = state || {}; motion.animate(dt, state); if (detailMotion) detailMotion(dt, state); for (var i = 0; i < extras.length; i++) extras[i](dt, state); },
+      // limbs.js: a cut body no longer matches its merged shadow proxy, so the individual parts cast again until the foe is restored
+      shadowProxyHold: function (hold) { shadowRecs.forEach(function (rec) { rec.held = !!hold; if (proxyHooked) proxyArm(rec, !hold); }); },
+      animate: function (dt, state) { if (shadowRecs.length && (!proxyHooked || (B.app && B.app.renderer !== proxyRenderer))) proxyHook(); state = state || {}; motion.animate(dt, state); if (detailMotion) detailMotion(dt, state); for (var i = 0; i < extras.length; i++) extras[i](dt, state); },
       dispose: function () {
-        if (disposed) return; disposed = true; motion.dispose(); if (trail) trail.dispose(); flareMats.forEach(function (fm) { fm.dispose(); }); if (root.parent) root.parent.remove(root);
+        if (disposed) return; disposed = true; shadowRecs.forEach(function (rec) { proxyRecords.delete(rec); }); motion.dispose(); if (trail) trail.dispose(); flareMats.forEach(function (fm) { fm.dispose(); }); if (root.parent) root.parent.remove(root);
         var skeletons = new Set(); scene.traverse(function (n) { if (n.isSkinnedMesh) skeletons.add(n.skeleton); }); skeletons.forEach(function (s) { s.dispose(); });
         // Dragged hooks belong to this actor; gear materials and chain geometry stay shared.
         var ownedGeometry = new Set();
@@ -1789,5 +1899,5 @@
       }
     };
   }
-  B.Models = { register: function (type, cfg, recipe) { if (prepared) throw Error('Karakter kaydı hazırlıktan önce yapılmalı.'); TYPES[type] = cfg; R[type] = function (A) { return recipe(A, { bases: bases, bodyMaterial: bodyMaterial, gearMaterial: gearMaterial, clothWeights: clothWeights }); }; }, create: create, prepare: prepare, templates: bases, blueprints: blueprints, types: TYPES };
+  B.Models = { register: function (type, cfg, recipe) { if (prepared) throw Error('Karakter kaydı hazırlıktan önce yapılmalı.'); TYPES[type] = cfg; R[type] = function (A) { return recipe(A, { bases: bases, bodyMaterial: bodyMaterial, gearMaterial: gearMaterial, clothWeights: clothWeights, whiteMap: function () { return NO_WHITE ? null : whiteMap(); } }); }; }, create: create, prepare: prepare, templates: bases, blueprints: blueprints, types: TYPES };
 })();

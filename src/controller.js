@@ -3,9 +3,9 @@
   'use strict';
   const B = window.BABA = window.BABA || {};
   const KEY = 'baba.kabir.controller.v1';
-  const DEFAULTS = Object.freeze({ light: 0, dodge: 1, special: 2, rage: 3, heal: 4, interact: 5, heavy: 7, pause: 9, character: 10 });
+  const DEFAULTS = Object.freeze({ light: 0, dodge: 1, special: 2, rage: 3, heal: 4, interact: 5, heavy: 7, fourth: 6, pause: 9, character: 10 });
   const NAMES = Object.freeze(['A', 'B', 'X', 'Y', 'LB', 'RB', 'LT', 'RT', 'View', 'Menu', 'Sol çubuk', 'Sağ çubuk', 'Yukarı', 'Aşağı', 'Sol', 'Sağ', 'Xbox']);
-  const ACTIONS = Object.freeze({ light: 'Normal saldırı', heavy: 'Yetenek I', special: 'Yetenek II', rage: 'Yetenek III', dodge: 'Kaçınma', heal: 'Can iksiri', interact: 'Etkileşim', pause: 'Mola', character: 'Karakter ve çanta' });
+  const ACTIONS = Object.freeze({ light: 'Normal saldırı', heavy: 'Yetenek · sağ tık yuvası', special: 'Yetenek · 1 tuşu yuvası', rage: 'Yetenek · 2 tuşu yuvası', fourth: 'Yetenek · 3 tuşu yuvası', dodge: 'Kaçınma', heal: 'Can iksiri', interact: 'Etkileşim', pause: 'Mola', character: 'Karakter ve çanta' });
   const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
   function stick(x, y) {
     x = Number.isFinite(x) ? x : 0; y = Number.isFinite(y) ? y : 0;
@@ -24,7 +24,9 @@
       if (saved && saved.version === 1 && saved.bindings) {
         const used = new Set();
         for (const action of Object.keys(DEFAULTS)) {
-          const index = saved.bindings[action];
+          let index = saved.bindings[action];
+          // Saves from before the 4th skill slot carry no `fourth`: it takes LT, or another free button when LT is already used.
+          if (action === 'fourth' && index === undefined) index = [DEFAULTS.fourth, 8, 11, 16].find(n => !used.has(n) && !Object.values(saved.bindings).includes(n));
           if (!Number.isInteger(index) || index < 0 || index > 16 || used.has(index)) throw new Error('Geçersiz kontrol kaydı');
           used.add(index); bindings[action] = index;
         }
@@ -139,7 +141,7 @@
       if (edges[bindings.character] && o.onCharacter) { o.onCharacter(); return out; }
       const left = stick(pad.axes[0], pad.axes[1]), right = stick(pad.axes[2], pad.axes[3]);
       out.x = left[0]; out.z = left[1]; out.aimX = right[0]; out.aimZ = right[1]; out.lightHeld = !!down[bindings.light];
-      for (const action of ['light', 'heavy', 'special', 'rage', 'dodge', 'heal', 'interact']) out.actions[action] = !!edges[bindings[action]];
+      for (const action of ['light', 'heavy', 'special', 'rage', 'fourth', 'dodge', 'heal', 'interact']) out.actions[action] = !!edges[bindings[action]];
       return out;
     }
     function mount(root) {

@@ -65,11 +65,12 @@
       grasp: ['<path d="m13 35-6-11 4-7 5 8 1-18 4 2 1 15 3-20 4 1-1 20 6-17 4 3-5 18 9-9 3 4-10 14-5 8-15-1Z"/><path fill="#18242c" d="m16 32 11-3 6 6-7 6-9-1Z"/>', 'm17 16 4 1m5-3 3 1m7 2 3 1m-22 18 8 1m-5 5h7'],
       rend: ['<path d="m14 3 2 11-7 13 1 17 5-22 7-10Z"/><path d="m28 2 2 13-7 14 1 17 5-23 7-11Z"/><path d="m41 4 2 13-7 13 1 15 5-22 5-10Z"/>', 'm14 15-3 8m17-8-3 8m15-5-3 8'],
       temper: ['<path d="M24 2c1 10 9 11 10 19 5-2 7-6 7-6 5 9 6 19-2 26-12 9-30 3-33-9-2-6 0-13 3-17 0 8 4 10 6 11-2-10 8-14 9-24Z"/><path fill="#2b2023" d="M25 19c0 10 7 10 7 17 0 8-16 8-16 0 0-6 7-9 9-17Z"/><path d="m19 34 8-3 3 5-3 4h-8Z"/>', 'M25 8c1 5 4 8 6 11M10 26c-1 7 2 11 6 14m16-2 5-3'],
+      havoc: ['<path d="m4 8 11 12-11 13h7l11-13L11 8Z"/><path d="m24 8 11 12-11 13h7l11-13L31 8Z"/><path opacity=".55" d="M3 38h42l-5 5H8Z"/>', 'M5 41l7-3m8 3 3-3m10 3 5-3'],
       chainstorm: ['<path d="m5 13 8-8 9 3-3 8-8 5Zm3 1 4 4 5-4 2-5-5-1Z"/><path d="m26 8 8-3 9 8-5 8-8-4Zm3 3 3 5 5 2 3-4-6-6Z"/><path d="m8 27 9 3 5 8-8 6-9-8Zm3 3-3 5 6 6 5-4-4-5Z"/><path d="m30 30 8-3 5 9-9 8-8-6Zm2 2-3 5 5 4 6-6-3-5Z"/><path d="m22 18 7 4-3 8-8-3Z"/>', 'm12 12 3-2m18 0 3 2m-24 22 3 3m18 0 3-3m-14-12 3 1']
     };
     if (!drawings[type]) return '';
     const id = 'power-art-' + (++gearSerial), [shape, lines] = drawings[type];
-    const warm = ['roar','quake','grasp','temper','chainstorm'].includes(type);
+    const warm = ['roar','quake','grasp','temper','chainstorm','havoc'].includes(type);
     const top = warm ? '#e0c2a0' : '#d6e1df', mid = warm ? '#b58a68' : '#9cbbb8', bottom = warm ? '#5a3935' : '#3f5664';
     return '<svg class="char-icon power-art" viewBox="0 0 48 48" aria-hidden="true"><defs><linearGradient id="' + id + '" x1="0" y1="0" x2=".6" y2="1"><stop stop-color="' + top + '"/><stop offset=".4" stop-color="' + mid + '"/><stop offset=".56" stop-color="' + top + '"/><stop offset="1" stop-color="' + bottom + '"/></linearGradient></defs><g fill="url(#' + id + ')" stroke="#09121a" stroke-width=".7" stroke-linejoin="round">' + shape + '</g><path d="' + lines + '" fill="none" stroke="#f0dfbb" stroke-opacity=".6" stroke-width=".7" stroke-linecap="round"/></svg>';
   }
@@ -93,10 +94,95 @@
       grasp: '<path d="m12 38-5-13 4-11 4 8 2-15 4 13 4-16 3 17 6-12 1 18 7-5-6 16-10 5ZM17 27l3 9m8-9-2 9"/>',
       rend: '<path d="M5 12h38M8 24h32M12 36h24m-11-31-7 16 11 7-8 15m-13-30 6 3m20 7 7-4m-24 18-6 4"/>',
       temper: '<path d="M24 4c2 10 12 11 10 21 9-5 7-12 7-12 8 17-2 29-17 29S-.5 30 7 13c0 9 6 12 7 12-3-11 10-13 10-21Z"/><path d="M24 23c0 7-8 9-5 14 3 5 11 3 11-2 0-4-4-6-6-12Z"/>',
+      havoc: '<path d="m5 10 10 10-10 10m12-20 10 10-10 10m12-20 10 10-10 10M4 40h40M10 44l6-4m10 4 4-4m10 4 3-4"/>',
       chainstorm: '<ellipse cx="24" cy="25" rx="19" ry="15"/><ellipse cx="24" cy="25" rx="12" ry="9"/><ellipse cx="24" cy="25" rx="5" ry="4"/><path d="m10 12 4 5m20-5-4 5M5 25h7m24 0h7M11 37l4-5m18 5-4-5M24 7v10m0 16v10"/>'
     };
     return '<svg class="char-icon" viewBox="0 0 48 48" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">' + (paths[type === 'weapon' ? 'sword' : type] || paths.chest) + '</svg>';
   }
+  // Skill tree page styles (round 6). Own class names (skt-*), injected once, so the rest of the character page styling is not touched.
+  const SKILL_TREE_CSS = [
+    '.skt-wrap{display:grid;gap:10px;min-width:0}',
+    '.skt-top{display:flex;align-items:flex-end;justify-content:space-between;gap:16px}.skt-top .skt-loadout{flex:1;min-width:0}',
+    '.skt-points{flex:none;display:flex;align-items:baseline;gap:8px;padding:7px 14px;border:1px solid #b99458;background:linear-gradient(#3a2d1c,#17120d);color:#e8d3a6;font:600 13px/1 var(--text);letter-spacing:.04em;text-transform:uppercase;box-shadow:inset 0 0 0 2px #0006}',
+    '.skt-points b{font:700 24px/1 var(--text);color:#ffe0a0;font-variant-numeric:tabular-nums}',
+    '.skt-workspace{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:18px;min-width:0}',
+    '.skt-tree{position:relative;min-width:0;border:1px solid #725b3b88;background:radial-gradient(ellipse at 50% 0,#93753a22,transparent 65%),linear-gradient(#0c0c0be8,#10100de6),url(assets/ui/stone.webp) center/420px;box-shadow:inset 0 0 35px #000c;padding:10px 10px 8px}',
+    '.skt-cols{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}',
+    '.skt-col{--line:#bcbab0;display:flex;flex-direction:column;align-items:center;min-width:0;position:relative}',
+    '.skt-col>header{width:100%;text-align:center;padding:0 2px 8px;margin-bottom:6px;border-bottom:2px solid var(--line)}',
+    '.skt-col>header b{display:block;font:700 11px/1.2 var(--text);letter-spacing:.1em;color:var(--line)}',
+    '.skt-col>header small{display:block;margin-top:3px;font:600 13px/1.2 var(--text);color:#e9dcc2}',
+    '.skt-node{position:relative;display:flex;flex-direction:column;align-items:center;width:100%;min-height:112px;padding:6px 4px 4px;border:1px solid transparent;border-radius:4px;background:transparent;color:#cdbfa8;cursor:pointer;font-family:var(--text)}',
+    '.skt-node:hover,.skt-node:focus-visible{background:#ffffff0a;border-color:#ffffff1f;outline:none}',
+    '.skt-node.selected{background:color-mix(in srgb,var(--line) 14%,transparent);border-color:color-mix(in srgb,var(--line) 70%,#000)}',
+    '.skt-emblem{position:relative;display:grid;place-items:center;width:56px;height:56px;border-radius:50%;background:radial-gradient(circle at 44% 35%,#57442b 0,#17140f 49%,transparent 51%),url(assets/ui/medal.webp) center/100% 100% no-repeat;box-shadow:0 3px 9px #000b}',
+    '.skt-emblem .char-icon{width:37px;height:37px;color:#a89a84}',
+    '.skt-tier{position:absolute;left:-6px;top:-4px;min-width:22px;height:20px;padding:0 5px;display:grid;place-items:center;border:1px solid #1a130c;border-radius:3px;background:#6d5a3f;color:#fff3da;font:800 11px/1 var(--text);letter-spacing:.02em;box-shadow:0 1px 3px #000a}',
+    '.skt-node[data-tier="2"] .skt-tier{background:#c4952f;color:#201505}',
+    '.skt-node[data-tier="3"] .skt-tier{background:#b9a6ff;color:#120a2a}',
+    '.skt-node strong{margin-top:6px;max-width:100%;font:700 15px/1.15 var(--text);text-align:center;color:#e9dcc3}',
+    '.skt-state{margin-top:3px;font:600 11.5px/1.25 var(--text);color:#a99a80;text-align:center}',
+    '.skt-node.learned .skt-emblem{background:radial-gradient(circle at 44% 35%,color-mix(in srgb,var(--line) 38%,#251e16),#17140f 49%,transparent 51%),url(assets/ui/medal.webp) center/100% 100% no-repeat}',
+    '.skt-node.learned .char-icon{color:var(--line);filter:drop-shadow(0 2px 2px #000)}',
+    '.skt-node.learned .skt-state{color:#cbd8b4}',
+    '.skt-node.available .skt-emblem{box-shadow:0 3px 9px #000b,0 0 0 2px #e8c67a99,0 0 16px #e8c67a55}',
+    '.skt-node.available .skt-state{color:#f0d596}',
+    '.skt-node.available .char-icon{color:#e1cfa2}',
+    '.skt-node.locked .skt-emblem{filter:saturate(.2);opacity:.5}',
+    '.skt-node.locked strong{color:#9d927f}',
+    '.skt-node.locked .skt-state{color:#867b69}',
+    '.skt-node.slotted .skt-state{color:#ffe1a2}',
+    '.skt-slotcap{position:absolute;right:2px;top:2px;display:inline-flex;align-items:center;gap:3px;padding:2px 6px;border:1px solid #d9b266;border-radius:3px;background:#2a1e0f;color:#ffe3a8;font:800 10px/1.2 var(--text);letter-spacing:.04em;box-shadow:0 1px 4px #000a}',
+    '.skt-mouse{width:10px;height:14px;fill:currentColor;flex:none}',
+    '.skt-link{display:block;position:relative;width:2px;height:18px;margin:-1px 0;background:#5f5239;opacity:.8}',
+    '.skt-link::after{content:"";position:absolute;left:50%;bottom:-3px;transform:translateX(-50%);border:6px solid transparent;border-top:8px solid #5f5239;border-bottom:0}',
+    '.skt-link.ready{background:repeating-linear-gradient(#e8c67a 0 4px,transparent 4px 7px)}',
+    '.skt-link.ready::after{border-top-color:#e8c67a}',
+    '.skt-link.lit{background:var(--line);opacity:1;box-shadow:0 0 6px color-mix(in srgb,var(--line) 60%,transparent)}',
+    '.skt-link.lit::after{border-top-color:var(--line)}',
+    '.skt-inspect{--line:#bcbab0;position:relative;min-width:0;padding:12px 14px 12px;border:1px solid #796145;border-top:3px solid var(--line);background:linear-gradient(#12110ff2,#080807f5),url(assets/ui/stone.webp) center/280px;box-shadow:inset 0 0 0 3px #0005;display:flex;flex-direction:column;gap:6px;align-self:start}',
+    '.skt-kicker{font:700 11px/1.4 var(--text);letter-spacing:.08em;color:var(--line);text-transform:uppercase}',
+    '.skt-tiernum{display:inline-block;margin-right:6px;padding:2px 7px;border-radius:3px;background:#6d5a3f;color:#fff3da}',
+    '.skt-tiernum[data-tier="2"]{background:#c4952f;color:#201505}',
+    '.skt-tiernum[data-tier="3"]{background:#b9a6ff;color:#120a2a}',
+    '.skt-inspect header{display:flex;align-items:center;gap:12px}',
+    '.skt-inspect header .char-icon{flex:none;width:46px;height:46px;color:var(--line)}',
+    '.skt-inspect h3{margin:0;font:700 24px/1.1 var(--text);color:#f3e6c9}',
+    '.skt-inspect>p{margin:0;font:400 14px/1.4 var(--text);color:#d6c8ae}',
+    '.skt-inspect>.skt-delta{padding:7px 10px;border-left:3px solid #e0b85a;background:#e0b85a14;color:#f2dfae}',
+    '.skt-delta b{color:#ffd77a}',
+    '.skt-facts{display:grid;gap:2px}',
+    '.skt-fact{display:grid;grid-template-columns:1fr auto;align-items:baseline;column-gap:10px;padding:3px 8px;border-radius:3px;background:#ffffff08;font:500 13.5px/1.3 var(--text);color:#bdb09a}',
+    '.skt-fact b{font:700 15px/1.2 var(--text);color:#efe4cc;font-variant-numeric:tabular-nums}',
+    '.skt-fact.changed{background:#e0b85a1c;color:#e9d7a8}',
+    '.skt-fact.changed b{color:#ffd77a}',
+    '.skt-fact em{font:500 11.5px/1.2 var(--text);font-style:normal;color:#9c8e75}',
+    '.skt-learn{width:100%;min-height:40px;border:1px solid #b1925f;color:#f1dcb0;background:linear-gradient(#4a3822,#1a140d);font:700 15px/1.2 var(--text);letter-spacing:.02em;cursor:pointer;padding:6px 10px}',
+    '.skt-learn:hover:not(:disabled){filter:brightness(1.2)}',
+    '.skt-learn:disabled{opacity:.55;cursor:default}',
+    '.skt-inspect:has(.skt-assign) .skt-learn{display:none}',
+    '.skt-assign small{display:block;margin-bottom:6px;font:700 11px/1.2 var(--text);letter-spacing:.08em;text-transform:uppercase;color:#a99a80}',
+    '.skt-assign>div{display:grid;gap:4px}',
+    '.skt-assign button{display:flex;align-items:center;gap:10px;width:100%;min-height:32px;padding:2px 10px;border:1px solid #8a7048;background:linear-gradient(#35291b,#15110c);color:#ecd9b0;font:600 14px/1.2 var(--text);cursor:pointer;text-align:left}',
+    '.skt-assign button:hover:not(:disabled){filter:brightness(1.2)}',
+    '.skt-assign button:disabled{opacity:.6;cursor:default;border-color:#d9b266}',
+    '.skt-cap{display:inline-flex;align-items:center;justify-content:center;gap:4px;min-width:58px;padding:3px 8px;border:1px solid #d9b266;border-radius:3px;background:#2a1e0f;color:#ffe3a8;font:800 11.5px/1.2 var(--text);letter-spacing:.05em;white-space:nowrap}',
+    '.skt-loadout h4{margin:0 0 6px;font:700 13px/1.2 var(--text);letter-spacing:.08em;text-transform:uppercase;color:#d8c9a8;display:flex;align-items:center;gap:10px}',
+    '.skt-loadout h4 small{font:700 12px/1.2 var(--text);color:#ffe3a8;display:inline-flex;align-items:center;gap:6px}',
+    '.skt-slots{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}',
+    '.skt-slot{--line:#6c604c;position:relative;display:flex;align-items:center;gap:10px;padding:6px 10px;border:1px solid color-mix(in srgb,var(--line) 70%,#000);border-left:4px solid var(--line);background:linear-gradient(#17130e,#0c0a08)}',
+    '.skt-slot.empty{border-style:dashed;opacity:.8}',
+    '.skt-slot>button:not(.skt-remove){display:flex;align-items:center;gap:10px;flex:1;min-width:0;border:0;background:transparent;color:#e9dcc3;text-align:left;cursor:pointer;padding:0;font-family:var(--text)}',
+    '.skt-slot .char-icon{width:34px;height:34px;flex:none;color:var(--line)}',
+    '.skt-slot strong{display:block;font:700 14.5px/1.2 var(--text)}',
+    '.skt-slot small{display:block;font:500 11.5px/1.25 var(--text);color:#a99a80}',
+    '.skt-remove{flex:none;width:28px;height:28px;border:1px solid #6b573a;background:#1a140d;color:#cdb98f;cursor:pointer;font-size:16px;line-height:1}',
+    '.skt-tree .skt-note{margin:8px 4px 0;font:400 12.5px/1.45 var(--text);color:#a39379}',
+    '@media(max-width:1100px){.skt-workspace{grid-template-columns:minmax(0,1fr) 290px}.skt-emblem{width:54px;height:54px}.skt-emblem .char-icon{width:34px;height:34px}.skt-node strong{font-size:13.5px}}',
+    '@media(max-width:900px){.skt-workspace{grid-template-columns:1fr}.skt-slots{grid-template-columns:1fr}.skt-top{flex-direction:column;align-items:stretch}}',
+    '@media(max-width:560px){.skt-cols{gap:2px}.skt-emblem{width:44px;height:44px}.skt-emblem .char-icon{width:28px;height:28px}.skt-node{padding:6px 1px;min-height:112px}.skt-node strong{font-size:12px}.skt-state{font-size:10.5px}.skt-slotcap{display:none}}',
+    '@media(prefers-reduced-motion:no-preference){.skt-node.available .skt-emblem{animation:skt-pulse 2.2s ease-in-out infinite}@keyframes skt-pulse{50%{box-shadow:0 3px 9px #000b,0 0 0 2px #e8c67acc,0 0 22px #e8c67a77}}}'
+  ].join('\n');
   function create(options) {
     options = options || {};
     const getGame = () => typeof options.game === 'function' ? options.game() : options.game;
@@ -107,77 +193,112 @@
       '<nav class="char-tabs" aria-label="Karakter sayfaları"><button data-char="tab" data-tab="inventory">Karakter ve çanta</button><button data-char="tab" data-tab="skills">Yetenek ağacı</button></nav>' +
       '<div class="char-content"></div><footer class="char-footer"><span class="char-status" role="status" aria-live="polite"></span><button class="btn small" data-char="close">Oyuna dön</button></footer></div>';
     document.body.appendChild(overlay);
+    if (!document.getElementById('skill-tree-style')) { const st = document.createElement('style'); st.id = 'skill-tree-style'; st.textContent = SKILL_TREE_CSS; document.head.appendChild(st); }
     const progress = overlay.querySelector('.char-progress'), content = overlay.querySelector('.char-content'), status = overlay.querySelector('.char-status');
     let renderedFilter = 'all';
     let opened = false, tab = 'inventory', selected = null, lastRevision = -1, priorFocus = null, previewFrame = 0, selectedSkill = 'cleave', selectedSlot = null, bagFilter = 'all', lastPointerType = 'mouse', tap = null, inspectScroll = 0;
-    function comparison(def, old, compact) {
-      const attributes = [['Silah hasarı', 'damage', true], ['Hasar azaltma', 'defense', true], ['Can gücü', 'hp', false]];
-      return attributes.filter(a => a[1] !== 'damage' || def.slot === 'weapon').map(([label, key, isPercent]) => {
-        const value = def[key] || 0, previous = old ? old[key] || 0 : 0, delta = value - previous;
-        const amount = isPercent ? percent(value) : value;
-        const difference = Math.abs(delta) < .00001 ? '—' : (delta > 0 ? '+' : '−') + (isPercent ? percent(Math.abs(delta)) : Math.abs(delta));
-        return '<div class="char-comparison-row"><span>' + label + '</span><strong>' + amount + '</strong><b class="char-comparison-value ' + (delta > .00001 ? 'gain' : delta < -.00001 ? 'loss' : 'same') + '">' + difference + '</b></div>';
-      }).join('');
+    // ---- Item presentation: name, type line, one big primary stat with a difference arrow, then the rest. ----
+    const ATTR = { damage: ['Silah hasarı', true], defense: ['Hasar azaltma', true], hp: ['Can gücü', false] };
+    const arrow = (d, pct) => Math.abs(d) < .00001 ? '<b class="cmp same" title="Aynı">=</b>' : '<b class="cmp ' + (d > 0 ? 'gain' : 'loss') + '"><i aria-hidden="true">' + (d > 0 ? '▲' : '▼') + '</i>' + (d > 0 ? '+' : '−') + (pct ? percent(Math.abs(d)) : Math.abs(d)) + '</b>';
+    const amount = (v, pct) => v ? '+' + (pct ? percent(v) : v) : pct ? '0%' : '0';
+    function statLines(def, old, compare) {
+      const primary = def.slot === 'weapon' ? 'damage' : 'defense';
+      const line = key => { const v = def[key] || 0, d = v - (old ? old[key] || 0 : 0), pct = ATTR[key][1]; return { key, v, d, pct, label: ATTR[key][0], text: amount(v, pct), arrow: compare ? arrow(d, pct) : '' }; };
+      return { main: line(primary), rest: ['damage', 'defense', 'hp'].filter(k => k !== primary).map(line).filter(r => r.v || (compare && Math.abs(r.d) > .00001)) };
     }
     function itemDetail(state, entry, compact) {
       const def = B.Progression.resolveItem(entry);
-      if (!def) return '<div class="char-empty-detail">' + icon(selectedSlot || 'chest') + '<h3>' + (selectedSlot ? LABELS[selectedSlot] + ' yuvası boş' : 'Bir eşya seç') + '</h3><p>Çantadan bir parçaya dokun. Özelliklerini ve giyili parçaya göre farkını burada görebilirsin.</p></div>';
-      const old = state.itemForSlot(def.slot), equipped = state.equipment[def.slot] === entry.uid;
-      const header = '<div class="char-detail-head rarity-' + def.rarity + '"><span class="char-item-art">' + gearIcon(def) + '</span><div><small>' + RARITY[def.rarity] + ' · ' + (TYPE[def.type] || LABELS[def.slot]) + '</small><h3>' + escape(def.name) + '</h3></div></div>';
-      const meta = '<div class="char-detail-meta"><span>Güç <b>' + def.power + '</b></span><span class="' + (def.level > state.level ? 'loss' : '') + '">Seviye ' + def.level + '</span><span>İşçilik ' + (def.roll > 0 ? '+' : '') + def.roll + '</span></div>';
-      const compares = '<div class="char-comparison"><small>' + (equipped ? 'Kuşandığın parçanın özellikleri' : old ? 'Giyili parça · ' + escape(old.name) : 'Bu yuva şu anda boş') + '</small>' + comparison(def, equipped ? def : old, compact) + '</div>';
-      if (compact) return header + meta + compares + '<p class="char-equip-hint">' + (equipped ? 'Giyili · Çift tıkla çıkar' : def.level > state.level ? def.level + '. seviye gerekli' : 'Çift tıkla kuşan') + '</p>';
-      const action = equipped ? '<button class="btn small" data-char="unequip" data-slot="' + def.slot + '">Parçayı çıkar</button>' : '<button class="btn small primary" data-char="equip" data-uid="' + escape(entry.uid) + '" ' + (def.level > state.level ? 'disabled' : '') + '>' + (def.level > state.level ? def.level + '. seviye gerekli' : def.slot === 'weapon' ? 'Silahı kuşan' : 'Parçayı giy') + '</button>';
-      return header + meta + '<p class="char-item-lore">' + escape(def.description) + '</p>' + compares + '<div class="char-detail-actions">' + action + '</div><p class="char-equip-hint">' + (equipped ? 'Eşyaya veya donanım yuvasına çift tıkla ya da iki kez dokun: çıkar.' : 'Çantadaki eşyaya çift tıkla ya da iki kez dokun: kuşan.') + '</p>';
+      if (!def) return '<div class="char-empty-detail">' + icon(selectedSlot || 'chest') + '<h3>' + (selectedSlot ? LABELS[selectedSlot] + ' yuvası boş' : 'Bir eşya seç') + '</h3><p>Çantadan bir parçaya dokun. Özelliklerini ve giydiğinle farkını burada göreceksin.</p></div>';
+      const old = state.itemForSlot(def.slot), equipped = state.equipment[def.slot] === entry.uid, compare = !equipped && !!old, locked = def.level > state.level;
+      const lines = statLines(def, equipped ? null : old, compare);
+      const head = '<div class="cd-head"><span class="char-item-art cd-art">' + gearIcon(def) + '</span><div class="cd-title"><span class="cd-sub">' + RARITY[def.rarity] + ' · ' + (TYPE[def.type] || LABELS[def.slot]) + '</span><h3>' + escape(def.name) + '</h3></div></div>';
+      const primary = '<div class="cd-primary"><span class="cd-plabel">' + lines.main.label + '</span><div class="cd-pline"><strong>' + lines.main.text + '</strong>' + lines.main.arrow + '</div></div>';
+      const rest = lines.rest.length ? '<div class="cd-rest">' + lines.rest.map(r => '<div class="cd-row"><span>' + r.label + '</span><strong>' + r.text + '</strong>' + r.arrow + '</div>').join('') + '</div>' : '';
+      const req = '<div class="cd-chips"><span class="cd-chip ' + (locked ? 'bad' : 'ok') + '">' + (locked ? def.level + '. seviye gerekli' : 'Seviye ' + def.level) + '</span><span class="cd-chip power" title="Eşya gücü">Güç ' + def.power + '</span>' + (def.roll ? '<span class="cd-chip ' + (def.roll > 0 ? 'ok' : 'bad') + '" title="İşçilik">İşçilik ' + (def.roll > 0 ? '+' : '−') + Math.abs(def.roll) + '</span>' : '') + '</div>';
+      const worn = equipped ? '<div class="cd-worn"><i aria-hidden="true">✦</i> KUŞANILDI</div>' : '';
+      if (compact) return head + worn + primary + rest + req + '<p class="cd-hint">' + (equipped ? 'Çift tıkla: çıkar' : locked ? 'Henüz giyemezsin' : 'Çift tıkla: kuşan') + '</p>';
+      const note = equipped ? '' : '<p class="cd-note">' + (old ? 'Giydiğinle karşılaştırma: <b>' + escape(old.name) + '</b>' : 'Bu yuva şu anda boş') + '</p>';
+      const action = equipped ? '<button class="cd-btn calm" data-char="unequip" data-slot="' + def.slot + '">Çıkar</button>' : '<button class="cd-btn go" data-char="equip" data-uid="' + escape(entry.uid) + '" ' + (locked ? 'disabled' : '') + '>' + (locked ? def.level + '. seviye gerekli' : def.slot === 'weapon' ? 'Silahı kuşan' : 'Kuşan') + '</button>';
+      return head + worn + primary + rest + note + req + (def.description ? '<p class="cd-lore">' + escape(def.description) + '</p>' : '') + '<div class="cd-actions">' + action + '</div>';
     }
+    // Small filled stat icons (own vectors; no network, no textures).
+    const STAT = {
+      hp: ['#ef6b5e', '<path d="M24 42C8 31 4 22 4 15 4 9 9 6 14 6c4 0 8 2 10 6 2-4 6-6 10-6 5 0 10 3 10 9 0 7-4 16-20 27Z"/>'],
+      hit: ['#f3a24c', '<path d="M34 4h10v10L24 34l-6-6Z"/><path d="m14 28 6 6-5 5-4-1-2-4Z"/><path d="M8 36l4 4-5 5-4-4Z"/>'],
+      def: ['#6fb1f2', '<path d="M24 3 7 9v13c0 11 7 19 17 23 10-4 17-12 17-23V9Z"/>'],
+      crit: ['#f1d35a', '<path d="m24 2 6 15 16 1-12 10 4 16-14-9-14 9 4-16L2 18l16-1Z"/>'],
+      critx: ['#f08a5a', '<path d="M28 2 10 27h12l-4 19 20-27H26Z"/>'],
+      power: ['#c9a7ff', '<path d="m24 3 18 21-18 21L6 24Z"/>']
+    };
+    const statIcon = key => '<svg class="st-ico" viewBox="0 0 48 48" aria-hidden="true" fill="currentColor" style="color:' + STAT[key][0] + '">' + STAT[key][1] + '</svg>';
     function inventory(state) {
       const visible = state.inventory.filter(entry => bagFilter === 'all' || B.Progression.resolveItem(entry)?.slot === bagFilter);
       if (!selectedSlot && !visible.some(i => i.uid === selected)) selected = visible[0] && visible[0].uid;
       const stats = state.stats(), weapon = state.itemForSlot('weapon'), difficulty = getGame().difficulty;
-      const visibleMaxHp = Number.isFinite(getGame().player?.maxHp) ? getGame().player.maxHp : 100;
       const damageScale = difficulty === 'normal' || difficulty === 'easy' ? 1.18 : 1;
       const equipment = B.Progression.slots.map(slot => {
         const def = state.itemForSlot(slot), uid = state.equipment[slot], active = uid ? uid === selected : slot === selectedSlot;
-        return '<button class="char-equipment ' + (def ? 'rarity-' + def.rarity : 'empty') + (active ? ' selected' : '') + '" data-slot="' + slot + '" data-char="select" data-uid="' + escape(uid || '') + '" aria-pressed="' + active + '" aria-label="' + escape(LABELS[slot] + ' · ' + (def ? def.name + ' · Çift tıkla çıkar' : 'Boş yuva')) + '"><span class="char-item-art">' + (def ? gearIcon(def) : icon(slot)) + '</span><span><small>' + LABELS[slot] + '</small><strong>' + escape(def ? def.name : 'Boş yuva') + '</strong></span></button>';
+        return '<button class="char-equipment ' + (def ? 'worn rarity-' + def.rarity : 'empty') + (active ? ' selected' : '') + '" data-slot="' + slot + '" data-char="select" data-uid="' + escape(uid || '') + '" aria-pressed="' + active + '" aria-label="' + escape(LABELS[slot] + ' · ' + (def ? def.name + ' · Kuşanıldı · Çift tıkla çıkar' : 'Boş yuva')) + '">' + (def ? '<i class="eq-ribbon">KUŞANILDI</i>' : '') + '<span class="char-item-art">' + (def ? gearIcon(def) : icon(slot)) + '</span><span class="eq-label">' + LABELS[slot] + '</span><span class="eq-name">' + escape(def ? def.name : 'Boş') + '</span></button>';
       }).join('');
       const list = visible.map(entry => {
-        const def = B.Progression.resolveItem(entry), equipped = state.equipment[def.slot] === entry.uid, upgrade = state.isUpgrade(entry);
-        return '<button class="char-item rarity-' + def.rarity + (entry.uid === selected ? ' selected' : '') + (equipped ? ' equipped' : '') + (def.level > state.level ? ' too-high' : '') + '" data-char="select" data-uid="' + escape(entry.uid) + '" data-item-slot="' + def.slot + '" aria-pressed="' + (entry.uid === selected) + '" aria-label="' + escape(def.name + ' · ' + RARITY[def.rarity] + ' · Seviye ' + def.level + ' · Güç ' + def.power + (equipped ? ' · Giyili' : upgrade ? ' · Kuşandığından daha iyi' : '')) + '"><span class="char-item-art">' + gearIcon(def) + '</span><span class="char-item-level" aria-hidden="true">' + def.power + '</span><strong class="char-item-name">' + escape(def.name) + '</strong>' + (upgrade ? '<b class="char-item-upgrade" title="Kuşandığından daha iyi" aria-label="Kuşandığından daha iyi">↑</b>' : '') + (equipped ? '<b class="char-item-equipped" aria-label="Giyili">✓</b>' : '') + '</button>';
-      }).join('');
+        const def = B.Progression.resolveItem(entry), equipped = state.equipment[def.slot] === entry.uid, upgrade = state.isUpgrade(entry), locked = def.level > state.level;
+        return '<button class="char-item rarity-' + def.rarity + (entry.uid === selected ? ' selected' : '') + (equipped ? ' equipped' : '') + (locked ? ' too-high' : '') + '" data-char="select" data-uid="' + escape(entry.uid) + '" data-item-slot="' + def.slot + '" aria-pressed="' + (entry.uid === selected) + '" aria-label="' + escape(def.name + ' · ' + RARITY[def.rarity] + ' · Seviye ' + def.level + ' · Güç ' + def.power + (equipped ? ' · Kuşanıldı' : upgrade ? ' · Kuşandığından daha iyi' : '')) + '"><span class="char-item-art">' + gearIcon(def) + '</span><span class="char-item-level" aria-hidden="true">' + (locked ? 'Sv ' + def.level : def.power) + '</span><strong class="char-item-name">' + escape(def.name) + '</strong>' + (upgrade && !locked ? '<b class="char-item-upgrade" title="Kuşandığından daha iyi" aria-label="Kuşandığından daha iyi">▲</b>' : '') + (equipped ? '<i class="char-item-ribbon">KUŞANILDI</i>' : '') + '</button>';
+      }).join('') + '<span class="char-item-empty" aria-hidden="true"></span>'.repeat(Math.max(0, (bagFilter === 'all' ? 30 : 15) - visible.length));
       const entry = state.inventory.find(i => i.uid === selected), def = B.Progression.resolveItem(entry);
-      const filters = ['all', ...B.Progression.slots].map(slot => '<button class="char-filter' + (bagFilter === slot ? ' active' : '') + '" data-char="filter" data-filter="' + slot + '" aria-pressed="' + (bagFilter === slot) + '" aria-label="' + (slot === 'all' ? 'Bütün eşyalar' : LABELS[slot] + ' eşyaları') + '">' + (slot === 'all' ? 'Tümü' : icon(slot)) + '</button>').join('');
-      const preview = typeof options.onPreview === 'function' ? '<figure class="char-preview"><span class="char-preview-label">Kuşanılan donanım</span><canvas id="character-preview" width="420" height="520" aria-label="Bahtiyar’ın kuşandığı silah ve zırhları gösteren canlı karakter görünümü"></canvas><div class="char-preview-turn"><button data-char="turn" data-direction="-1" aria-label="Karakteri sola çevir">‹</button><button data-char="turn" data-direction="1" aria-label="Karakteri sağa çevir">›</button></div><figcaption>' + escape(weapon ? (TYPE[weapon.type] || 'Silah') + ' · ' + weapon.name : 'Silah yuvası boş') + '</figcaption></figure>' : '';
-      return '<div class="char-inventory-layout' + (preview ? ' has-preview' : '') + '"><section class="char-sheet"><h3>Donanım <small>Beş kuşanım yuvası</small></h3>' + (preview ? '<div class="char-doll">' + preview + equipment + '</div>' : equipment) + '<div class="char-stat-grid"><span>Can<strong>' + visibleMaxHp + '</strong></span><span title="Donanımın can destekleriyle hesaplanan dayanıklılık değeri">Can gücü<strong>' + stats.maxHp + '</strong></span><span>Normal vuruş<strong>' + Math.round(Math.round(25 * stats.damage) * damageScale) + '–' + Math.round(Math.round(36 * stats.damage) * damageScale) + '</strong></span><span>Hasar azaltma<strong>' + percent(stats.defense) + '</strong></span><span>Kritik ihtimali<strong>' + percent(stats.criticalChance) + '</strong></span><span>Kritik hasarı<strong>×' + stats.criticalMultiplier.toFixed(1) + '</strong></span></div></section>' +
-        '<section class="char-bag"><h3>Çanta <small>' + state.inventory.length + ' eşya</small></h3><div class="char-bag-toolbar">' + filters + '</div><div class="char-item-list char-bag-grid">' + (list || '<p class="char-bag-empty">Bu türde eşyan yok.</p>') + '</div><p class="char-bag-help">İncelemek için seç · Çift tıkla veya iki kez dokun: kuşan / çıkar.</p></section><section class="char-detail' + (def ? ' rarity-' + def.rarity : '') + '">' + itemDetail(state, entry, false) + '</section></div>';
+      const filters = ['all', ...B.Progression.slots].map(slot => '<button class="char-filter' + (bagFilter === slot ? ' active' : '') + '" data-char="filter" data-filter="' + slot + '" aria-pressed="' + (bagFilter === slot) + '" title="' + (slot === 'all' ? 'Bütün eşyalar' : LABELS[slot]) + '" aria-label="' + (slot === 'all' ? 'Bütün eşyalar' : LABELS[slot] + ' eşyaları') + '">' + (slot === 'all' ? 'Tümü' : icon(slot)) + '</button>').join('');
+      const preview = typeof options.onPreview === 'function' ? '<figure class="char-preview"><span class="char-preview-label">Bahtiyar</span><canvas id="character-preview" width="420" height="520" aria-label="Bahtiyar’ın kuşandığı silah ve zırhları gösteren canlı karakter görünümü"></canvas><div class="char-preview-turn"><button data-char="turn" data-direction="-1" aria-label="Karakteri sola çevir">‹</button><button data-char="turn" data-direction="1" aria-label="Karakteri sağa çevir">›</button></div><figcaption>' + escape(weapon ? (TYPE[weapon.type] || 'Silah') + ' · ' + weapon.name : 'Silah yuvası boş') + '</figcaption></figure>' : '';
+      const gear = B.Progression.slots.reduce((sum, slot) => sum + (state.itemForSlot(slot)?.power || 0), 0);
+      const tile = (key, label, value) => '<span class="st-tile">' + statIcon(key) + '<span class="st-text"><small>' + label + '</small><strong style="color:' + STAT[key][0] + '">' + value + '</strong></span></span>';
+      const statGrid = '<div class="char-stat-grid">' + tile('hp', 'Can', stats.maxHp) + tile('hit', 'Normal vuruş', Math.round(Math.round(25 * stats.damage) * damageScale) + '–' + Math.round(Math.round(36 * stats.damage) * damageScale)) + tile('def', 'Hasar azaltma', percent(stats.defense)) + tile('crit', 'Kritik ihtimali', percent(stats.criticalChance)) + tile('critx', 'Kritik hasarı', '×' + stats.criticalMultiplier.toFixed(1)) + tile('power', 'Donanım gücü', gear) + '</div>';
+      return '<div class="char-inventory-layout' + (preview ? ' has-preview' : '') + '"><section class="char-sheet"><h3>Donanım <small>Kuşandıkların</small></h3>' + (preview ? '<div class="char-doll">' + preview + equipment + '</div>' : equipment) + statGrid + '</section>' +
+        '<section class="char-bag"><h3>Çanta <small>' + state.inventory.length + ' eşya</small></h3><div class="char-bag-toolbar">' + filters + '</div><div class="char-item-list char-bag-grid">' + (visible.length ? '' : '<p class="char-bag-empty">Bu türde eşyan yok.</p>') + list + '</div><p class="char-bag-help">Seç: incele · Çift tıkla veya iki kez dokun: kuşan / çıkar</p></section><section class="char-detail' + (def ? ' rarity-' + def.rarity : '') + '">' + itemDetail(state, entry, false) + '</section></div>';
     }
+    // ---- Skill tree page (round 6): four lines (columns) x three tiers (rows). A lower tier upgrades the one above it in the same slot.
+    const ROMAN = ['', 'I', 'II', 'III'];
+    const keyLabels = () => { try { const k = typeof options.keyLabels === 'function' ? options.keyLabels() : null; if (Array.isArray(k) && k.length >= 4) return k; } catch (_) { /* fall back */ } return ['SAĞ TIK', '1', '2', '3']; };
+    const capHtml = label => (label === 'SAĞ TIK' ? '<svg class="skt-mouse" aria-hidden="true"><use href="#i-mouse-r"/></svg>' : '') + escape(label);
+    const slotWord = (label, slot) => slot === 0 ? 'Sağ tık' : label + ' tuşu';
     function talents(state) {
-      const all = B.Progression.skills, chosen = all.find(s => s.id === selectedSkill) || all[0];
-      const byId = new Map(all.map(s => [s.id, s])), depths = new Map();
-      function depth(skill, chain) {
-        if (depths.has(skill.id)) return depths.get(skill.id);
-        const parent = byId.get(skill.requires);
-        if (!parent || (chain && chain.has(skill.id))) return 0;
-        const next = new Set(chain || []); next.add(skill.id);
-        const tier = depth(parent, next) + 1; depths.set(skill.id, tier); return tier;
-      }
-      const tiers = Math.max(...all.map(s => depth(s))) + 1, treeHeight = 48 + tiers * 128 + (tiers - 1) * 14 + 12;
-      const positions = new Map(all.map(s => [s.id, { x: [150, 450, 750][s.branch], y: 82 + depth(s) * 142 }]));
-      const learned = state.learned.includes(chosen.id), parent = byId.get(chosen.requires);
-      const missing = parent && !state.learned.includes(parent.id), low = state.level < chosen.level;
-      const reason = learned ? 'Öğrenildi' : low ? chosen.level + '. seviye gerekli' : missing ? 'Önce ' + parent.name : state.points ? '1 puanla öğren' : 'Yetenek puanı gerekli';
-      const branches = [0, 1, 2].map(branch => '<section class="talent-path" data-branch="' + branch + '"><span class="talent-path-name">' + ['KÜLÜN ÇELİĞİ', 'KANIN YEMİNİ', 'MEZARIN ZİNCİRİ'][branch] + '</span>' + all.filter(s => s.branch === branch).sort((a,b) => depth(a)-depth(b) || a.level-b.level).map(s => {
-        const known = state.learned.includes(s.id), blocked = state.level < s.level || s.requires && !state.learned.includes(s.requires), slot = state.loadout.indexOf(s.id);
-        return '<button data-char="skill" data-skill="' + s.id + '" data-branch="' + branch + '" data-tier="' + depth(s) + '" style="grid-row:' + (depth(s)+1) + '" class="talent-node ' + (known ? 'learned' : blocked ? 'locked' : 'available') + (s.id === chosen.id ? ' selected' : '') + '" aria-pressed="' + (s.id === chosen.id) + '" title="' + escape(s.name) + ' · Seviye ' + s.level + '"><i class="talent-emblem">' + icon(s.id) + '</i><strong>' + escape(s.name) + '</strong><small>' + (slot >= 0 ? 'Yuva ' + ['I','II','III'][slot] : known ? 'Öğrenildi' : 'Seviye ' + s.level) + '</small></button>';
-      }).join('') + '</section>').join('');
-      const lines = all.map(s => {
-        const pos = positions.get(s.id), prior = positions.get(s.requires), known = state.learned.includes(s.id);
-        const ready = !known && state.level >= s.level && (!s.requires || state.learned.includes(s.requires));
-        const d = prior ? 'M' + prior.x + ' ' + (prior.y+94) + 'V' + (pos.y-37) : 'M450 24V36H' + pos.x + 'V' + (pos.y-37);
-        return '<path data-branch="' + s.branch + '" data-child="' + s.id + '"' + (prior ? ' data-parent="' + s.requires + '"' : '') + ' class="' + (known ? 'lit' : ready ? 'ready' : '') + '" d="' + d + '"/>';
+      const P = B.Progression, all = P.skills, chosen = all.find(s => s.id === selectedSkill) || all[0], byId = new Map(all.map(s => [s.id, s])), keys = keyLabels();
+      const lineOf = id => P.lines.find(l => l.id === id) || P.lines[0];
+      const learned = state.learned.includes(chosen.id), parent = byId.get(chosen.requires), prevFacts = parent ? new Map(P.skillFacts(parent)) : null;
+      const missing = parent && !state.learned.includes(parent.id), low = state.level < chosen.level, slotOf = id => state.loadout.indexOf(id);
+      const replaced = parent && slotOf(parent.id) >= 0 ? slotOf(parent.id) : -1;
+      const reason = learned ? 'Öğrenildi' : low ? chosen.level + '. seviyede açılır' : missing ? 'Önce ' + parent.name : state.points ? '1 puanla öğren' + (replaced >= 0 ? ' · ' + parent.name + ' yerine geçer' : '') : 'Yetenek puanı gerekli';
+      const columns = P.lines.map((line, c) => {
+        const list = P.skillsByLine(line.id);
+        const nodes = list.map((s, i) => {
+          const known = state.learned.includes(s.id), prior = byId.get(s.requires), blocked = state.level < s.level || (prior && !state.learned.includes(prior.id)), slot = slotOf(s.id);
+          const stateText = slot >= 0 ? 'Yuvada · ' + escape(slot === 0 ? 'SAĞ TIK' : keys[slot]) : known ? 'Öğrenildi' : state.level < s.level ? 'Seviye ' + s.level : prior && !state.learned.includes(prior.id) ? 'Önce ' + escape(prior.name) : 'Öğrenilebilir · seviye ' + s.level;
+          const link = i ? '<i class="skt-link ' + (known ? 'lit' : !blocked ? 'ready' : '') + '" aria-hidden="true"></i>' : '';
+          return link + '<button data-char="skill" data-skill="' + s.id + '" data-line="' + line.id + '" data-tier="' + s.tier + '" class="skt-node ' + (known ? 'learned' : blocked ? 'locked' : 'available') + (slot >= 0 ? ' slotted' : '') + (s.id === chosen.id ? ' selected' : '') +
+            '" aria-pressed="' + (s.id === chosen.id) + '" title="' + escape(s.name) + ' · ' + ROMAN[s.tier] + '. aşama · seviye ' + s.level + '">' +
+            '<i class="skt-emblem">' + icon(s.id) + '<b class="skt-tier">' + ROMAN[s.tier] + '</b></i><strong>' + escape(s.name) + '</strong><small class="skt-state">' + stateText + '</small>' +
+            (slot >= 0 ? '<span class="skt-slotcap">' + capHtml(slot === 0 ? 'SAĞ TIK' : keys[slot]) + '</span>' : '') + '</button>';
+        }).join('');
+        return '<section class="skt-col" data-line="' + line.id + '" style="--line:' + line.color + '"><header><b>' + escape(line.name) + '</b><small>' + escape(line.short) + '</small></header>' + nodes + '</section>';
       }).join('');
-      const loadout = state.loadout.map((id, slot) => { const s = byId.get(id); return '<div class="talent-equipped"><button data-char="skill" data-skill="' + (id || chosen.id) + '"><kbd>' + ['SAĞ FARE', '1', '2'][slot] + '</kbd>' + (s ? icon(s.id) : '') + '<span>' + (s ? escape(s.name) : 'Boş yetenek') + '</span></button>' + (s ? '<button class="talent-remove" data-char="assign" data-slot="' + slot + '" data-skill="" aria-label="' + escape(s.name) + ' yuvasını boşalt">×</button>' : '') + '</div>'; }).join('');
-      const assignment = learned ? '<div class="talent-bind"><small>Kullanacağın yuvayı seç</small>' + [0, 1, 2].map(slot => '<button data-char="assign" data-skill="' + chosen.id + '" data-slot="' + slot + '" ' + (state.loadout[slot] === chosen.id ? 'disabled' : '') + '>Yuva ' + ['I','II','III'][slot] + (state.loadout[slot] === chosen.id ? ' · Atandı' : ' · Ata') + '</button>').join('') + '</div>' : '';
-      return '<p class="char-tree-intro">Üç yol. Seviye atlayınca bir yetenek puanı kazanırsın; yeni güçler öğrendiğin dalı ilerletir.</p><div class="talent-workspace"><div class="talent-tree" style="--talent-height:' + treeHeight + 'px;--talent-tiers:' + tiers + '"><div class="talent-canvas"><div class="talent-origin">BAHTİYAR</div><svg class="talent-connections" viewBox="0 0 900 ' + treeHeight + '" preserveAspectRatio="none" aria-hidden="true">' + lines + '</svg><div class="talent-paths">' + branches + '</div></div></div><aside class="talent-inspect"><small>SEVİYE ' + chosen.level + ' · AKTİF GÜÇ</small><header>' + icon(chosen.id) + '<h3>' + escape(chosen.name) + '</h3></header><p>' + escape(chosen.description) + '</p><div class="talent-cost"><span>' + Math.round(chosen.cost) + ' dayanıklılık</span><span>' + chosen.cooldown + ' saniye bekleme</span></div><button class="talent-learn" data-char="unlock" data-skill="' + chosen.id + '" ' + (learned || low || missing || !state.points ? 'disabled' : '') + '>' + escape(reason) + '</button>' + assignment + '</aside></div><div class="talent-equipped-bar">' + loadout + '</div><p class="char-tree-note">Normal vuruş ve seçtiğin üç aktif güç kullanılır. Aynı güç iki yuvada bulunamaz.</p>';
+      const facts = P.skillFacts(chosen).map(([label, value]) => {
+        const before = prevFacts ? prevFacts.get(label) : undefined, changed = before !== undefined && before !== value;
+        return '<div class="skt-fact' + (changed ? ' changed' : '') + '"><span>' + escape(label) + (changed ? ' <em>(önceki ' + escape(before) + ')</em>' : '') + '</span><b>' + escape(value) + '</b></div>';
+      }).join('');
+      const assignment = learned ? '<div class="skt-assign"><small>Hangi yuvaya konsun?</small><div>' + [0, 1, 2, 3].map(slot => {
+        const here = state.loadout[slot] === chosen.id, other = byId.get(state.loadout[slot]);
+        return '<button data-char="assign" data-skill="' + chosen.id + '" data-slot="' + slot + '" ' + (here ? 'disabled' : '') + '><span class="skt-cap">' + capHtml(slot === 0 ? 'SAĞ TIK' : keys[slot]) + '</span><span>' + (here ? 'Burada' : other ? escape(other.name) + ' yerine' : 'Boş yuva') + '</span></button>';
+      }).join('') + '</div></div>' : '';
+      const loadout = state.loadout.map((id, slot) => {
+        const s = byId.get(id), label = slot === 0 ? 'SAĞ TIK' : keys[slot];
+        return '<div class="skt-slot' + (s ? '' : ' empty') + '"' + (s ? ' data-line="' + s.line + '" style="--line:' + lineOf(s.line).color + '"' : '') + '><span class="skt-cap">' + capHtml(label) + '</span><button data-char="skill" data-skill="' + (id || chosen.id) + '">' + (s ? icon(s.id) + '<span><strong>' + escape(s.name) + '</strong><small>' + ROMAN[s.tier] + '. aşama · ' + escape(lineOf(s.line).short) + '</small></span>' : '<span><strong>Boş yuva</strong><small>Yetenek öğren ve ata</small></span>') + '</button>' + (s ? '<button class="skt-remove" data-char="assign" data-slot="' + slot + '" data-skill="" aria-label="' + escape(s.name) + ' yuvasını boşalt">×</button>' : '') + '</div>';
+      }).join('');
+      const line = lineOf(chosen.line);
+      return '<div class="skt-wrap"><div class="skt-top"><div class="skt-loadout"><h4>Yetenek yuvaları <small>' + capHtml('SAĞ TIK') + ' · ' + escape(keys[1]) + ' · ' + escape(keys[2]) + ' · ' + escape(keys[3]) + '</small></h4><div class="skt-slots">' + loadout + '</div></div>' +
+        '<span class="skt-points"><b>' + state.points + '</b> yetenek puanı</span></div>' +
+        '<div class="skt-workspace"><div class="skt-tree"><div class="skt-cols">' + columns + '</div><p class="skt-note">Dört yol, her yolda aşağı doğru güçlenen üç aşama: alttaki, üsttekinin güçlenmiş hâlidir ve öğrenince yuvadaki yeteneğin yerine geçer (tuş aynı kalır). Normal vuruş (sol tık) her zaman vardır. Dört yolu aynı anda takabilirsin: her yolun kendi yuvası olur.</p></div>' +
+        '<aside class="skt-inspect talent-inspect" data-line="' + chosen.line + '" style="--line:' + line.color + '"><small class="skt-kicker"><span class="skt-tiernum" data-tier="' + chosen.tier + '">' + ROMAN[chosen.tier] + '. AŞAMA</span> ' + escape(line.name) + ' · seviye ' + chosen.level + '</small>' +
+        '<header>' + icon(chosen.id) + '<h3>' + escape(chosen.name) + '</h3></header><p>' + escape(chosen.description) + '</p>' +
+        (chosen.delta ? '<p class="skt-delta"><b>▲ ' + ROMAN[chosen.tier] + '. aşama:</b> ' + escape(chosen.delta) + '</p>' : '') +
+        '<div class="skt-facts">' + facts + '</div>' +
+        '<button class="skt-learn" data-char="unlock" data-skill="' + chosen.id + '" ' + (learned || low || missing || !state.points ? 'disabled' : '') + '>' + escape(reason) + '</button>' + assignment + '</aside></div></div>';
     }
     const tooltip = document.createElement('div'); tooltip.className = 'char-hover-tooltip hidden'; tooltip.id = 'character-item-tooltip'; tooltip.setAttribute('role', 'tooltip'); overlay.appendChild(tooltip);
     let hoverButton = null, touchActionAt = -1000;
@@ -215,16 +336,17 @@
       const state = getState(); if (!opened || !state || (!force && lastRevision === state.revision + ':' + getGame().difficulty)) return;
       lastRevision = state.revision + ':' + getGame().difficulty;
       const samePage = overlay.querySelector('.character-panel').dataset.page === tab;
-      const scroll = { content: content.scrollTop, bag: content.querySelector('.char-bag-grid')?.scrollTop || 0, tree: content.querySelector('.talent-tree')?.scrollTop || 0 };
+      const scroll = { content: content.scrollTop, bag: content.querySelector('.char-bag-grid')?.scrollTop || 0, tree: content.querySelector('.skt-tree')?.scrollTop || 0 };
       const focused = rememberFocus(); hideTooltip(); if (inspectScroll) clearTimeout(inspectScroll); inspectScroll = 0;
       const min = B.Progression.thresholds[state.level - 1], max = state.nextLevelXp(), fraction = max ? Math.min(1, (state.xp - min) / (max - min)) : 1;
-      progress.innerHTML = '<div><strong>Seviye ' + state.level + '</strong><span>' + (max ? 'Tecrübe ' + (state.xp - min) + ' / ' + (max - min) : 'En yüksek seviye') + '</span><b>' + state.points + ' yetenek puanı</b></div><div class="char-xp-track" role="progressbar" aria-label="Seviye ilerlemesi" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + Math.round(fraction * 100) + '"><i style="width:' + (fraction * 100).toFixed(1) + '%"></i></div>';
+      progress.innerHTML = '<div><strong>Seviye ' + state.level + '</strong><span>' + (max ? 'Tecrübe ' + (state.xp - min) + ' / ' + (max - min) : 'En yüksek seviye') + '</span><b class="char-points' + (state.points ? ' on' : '') + '">' + state.points + ' yetenek puanı</b></div><div class="char-xp-track" role="progressbar" aria-label="Seviye ilerlemesi" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + Math.round(fraction * 100) + '"><i style="width:' + (fraction * 100).toFixed(1) + '%"></i></div>';
       overlay.querySelectorAll('[data-char="tab"]').forEach(el => { const active = el.dataset.tab === tab; el.classList.toggle('active', active); el.setAttribute('aria-pressed', String(active)); });
       overlay.querySelector('.character-panel').dataset.page = tab;
+      overlay.querySelector('[data-tab="skills"]').dataset.points = state.points;
       stopPreview(); content.innerHTML = tab === 'skills' ? talents(state) : inventory(state);
       if (samePage) {
         content.scrollTop = scroll.content;
-        const bag = content.querySelector('.char-bag-grid'), tree = content.querySelector('.talent-tree');
+        const bag = content.querySelector('.char-bag-grid'), tree = content.querySelector('.skt-tree');
         if (bag && renderedFilter === bagFilter) bag.scrollTop = scroll.bag;
         if (tree) tree.scrollTop = scroll.tree;
       } else content.scrollTop = 0;
@@ -247,23 +369,81 @@
         inspectScroll = 0; if (opened && tab === 'inventory') detail?.scrollIntoView({ block: 'nearest' });
       }, lastPointerType === 'touch' || lastPointerType === 'pen' ? 420 : 0);
     }
-    function change(result) {
+    function change(result, message) {
       if (!result) return;
-      status.textContent = result.ok ? 'Değişiklik uygulandı.' : result.reason;
+      status.textContent = result.ok ? message || 'Değişiklik uygulandı.' : result.reason;
       if (result.ok && typeof options.onChange === 'function') options.onChange(getState());
       refresh(true);
+    }
+    // ---- Equip / unequip feedback: flight from cell to slot, flash ring, persistent frame, toast, portrait glow. ----
+    const FXC = { common: '#c4c2b8', uncommon: '#6fd25a', rare: '#4da3ff', epic: '#b57bff', boss: '#ffa43a', calm: '#8fa6c0' };
+    const toast = document.createElement('div'); toast.className = 'char-toast hidden'; toast.setAttribute('aria-hidden', 'true'); overlay.querySelector('.character-panel').appendChild(toast);
+    let toastTimer = 0;
+    function showToast(kind, label, name, color) {
+      clearTimeout(toastTimer); toast.className = 'char-toast ' + kind; toast.style.setProperty('--fxc', color);
+      toast.innerHTML = '<i aria-hidden="true">' + (kind === 'equip' ? '✦' : kind === 'deny' ? '!' : '↩') + '</i><span>' + label + (name ? ': <b>' + escape(name) + '</b>' : '') + '</span>';
+      void toast.offsetWidth; toast.classList.add('show');
+      toastTimer = setTimeout(() => toast.classList.add('hidden'), 2300);
+    }
+    function pulse(el, cls, color) {
+      if (!el) return; el.style.setProperty('--fxc', color); el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls);
+      setTimeout(() => el.classList.remove(cls), 1100);
+    }
+    function fly(html, from, to, color, calm, done) {
+      const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (!from || !to || reduced || typeof Element.prototype.animate !== 'function') { done(); return; }
+      const size = 62, el = document.createElement('div'); el.className = 'char-fly' + (calm ? ' calm' : '');
+      el.style.cssText = 'left:' + (from.left + from.width / 2 - size / 2) + 'px;top:' + (from.top + from.height / 2 - size / 2) + 'px;--fxc:' + color;
+      el.innerHTML = html; overlay.appendChild(el);
+      const dx = to.left + to.width / 2 - (from.left + from.width / 2), dy = to.top + to.height / 2 - (from.top + from.height / 2);
+      let over = false; const end = () => { if (over) return; over = true; el.remove(); done(); };
+      const motion = el.animate([{ transform: 'translate(0,0) scale(1.2)', opacity: 1 }, { transform: 'translate(' + dx + 'px,' + dy + 'px) scale(.92)', opacity: calm ? .3 : 1 }], { duration: calm ? 300 : 320, easing: 'cubic-bezier(.25,.8,.3,1)', fill: 'forwards' });
+      motion.onfinish = end; motion.oncancel = end; setTimeout(end, 480);
+    }
+    const artRect = el => { const art = el && (el.querySelector('.char-item-art') || el); return art ? art.getBoundingClientRect() : null; };
+    const bagCell = uid => [...content.querySelectorAll('.char-item')].find(el => el.dataset.uid === uid) || null;
+    function feedback(kind, def, uid, from) {
+      const slotEl = [...content.querySelectorAll('.char-equipment')].find(el => el.dataset.slot === def.slot), cell = bagCell(uid), portrait = content.querySelector('.char-preview');
+      const color = kind === 'equip' ? FXC[def.rarity] || FXC.common : FXC.calm;
+      showToast(kind, kind === 'equip' ? 'Kuşanıldı' : 'Çıkarıldı', def.name, color);
+      if (kind === 'equip') {
+        try { if (B.Audio && B.Audio.play) B.Audio.play('parry', { volume: .17 }); } catch (e) { /* sound is optional */ }
+        if (slotEl) slotEl.classList.add('fx-await');
+        fly(gearIcon(def), from, artRect(slotEl), color, false, () => {
+          if (slotEl) slotEl.classList.remove('fx-await');
+          pulse(slotEl, 'fx-equip', color); pulse(portrait, 'fx-equip', color); pulse(cell, 'fx-bag', color);
+        });
+      } else {
+        fly(gearIcon(def), from, cell ? artRect(cell) : null, color, true, () => { pulse(slotEl, 'fx-unequip', color); pulse(portrait, 'fx-unequip', color); pulse(cell, 'fx-bag', color); });
+        if (!cell) { pulse(slotEl, 'fx-unequip', color); pulse(portrait, 'fx-unequip', color); }
+      }
+    }
+    function doEquip(uid, source) {
+      const state = getState(); if (!state) return;
+      const entry = state.inventory.find(i => i.uid === uid), def = B.Progression.resolveItem(entry); if (!def) return;
+      const from = artRect(source || bagCell(uid)), result = state.equip(uid);
+      change(result, 'Kuşanıldı: ' + def.name);
+      if (result.ok) feedback('equip', def, uid, from); else showToast('deny', result.reason, '', '#e0705c');
+    }
+    function doUnequip(slot, source) {
+      const state = getState(); if (!state || typeof state.unequip !== 'function') return;
+      const entry = state.inventory.find(i => i.uid === state.equipment[slot]), def = B.Progression.resolveItem(entry);
+      if (!def) { status.textContent = 'Bu yuva zaten boş.'; return; }
+      const from = artRect([...content.querySelectorAll('.char-equipment')].find(el => el.dataset.slot === slot) || source), result = state.unequip(slot);
+      change(result, 'Çıkarıldı: ' + def.name);
+      if (result.ok) feedback('unequip', def, entry.uid, from);
     }
     function toggleEquipment(button) {
       const state = getState(); if (!state) return;
       if (inspectScroll) clearTimeout(inspectScroll); inspectScroll = 0; hideTooltip();
       if (button.classList.contains('char-equipment')) {
         if (!state.equipment[button.dataset.slot]) { status.textContent = 'Bu yuva zaten boş.'; return; }
-        if (typeof state.unequip === 'function') change(state.unequip(button.dataset.slot));
+        doUnequip(button.dataset.slot, button);
       } else {
         const entry = state.inventory.find(i => i.uid === button.dataset.uid), def = B.Progression.resolveItem(entry);
         if (!def) return;
-        if (state.equipment[def.slot] === entry.uid) { if (typeof state.unequip === 'function') change(state.unequip(def.slot)); return; }
-        change(state.equip(entry.uid));
+        if (state.equipment[def.slot] === entry.uid) { doUnequip(def.slot, button); return; }
+        doEquip(entry.uid, button);
       }
     }
     overlay.addEventListener('pointerdown', event => { lastPointerType = event.pointerType || 'mouse'; hideTooltip(); });
@@ -285,8 +465,8 @@
           } else tap = null;
           break;
         }
-        case 'equip': if (state) change(state.equip(button.dataset.uid)); break;
-        case 'unequip': if (state && typeof state.unequip === 'function') change(state.unequip(button.dataset.slot)); break;
+        case 'equip': if (state) doEquip(button.dataset.uid, null); break;
+        case 'unequip': if (state) doUnequip(button.dataset.slot, null); break;
         case 'skill': selectedSkill = button.dataset.skill; refresh(true); if (window.innerWidth <= 900) content.querySelector('.talent-inspect').scrollIntoView({ block: 'nearest' }); break;
         case 'assign': if (state) change(state.assign(Number(button.dataset.slot), button.dataset.skill || null)); break;
         case 'unlock': if (state) change(state.unlock(button.dataset.skill)); break;

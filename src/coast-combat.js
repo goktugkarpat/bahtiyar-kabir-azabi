@@ -9,7 +9,7 @@
       crawler: { name: 'İskele Sürüngeni', hp: 105, speed: 3.2, radius: .55, reach: 8, cooldown: 1.65, color: 0x9fa593, coast: true },
       urchin: { name: 'Dikenli Leş', hp: 146, speed: 1.7, radius: .61, reach: 11, cooldown: 2.25, color: 0x889b7e, coast: true, ranged: true },
       lantern: { name: 'Sırıtan Fenerci', hp: 121, speed: 2.05, radius: .42, reach: 13, cooldown: 2.4, color: 0x8abbb0, coast: true, ranged: true },
-      bell: { name: 'Derinliklerin Çancısı', hp: 2140, speed: 2, radius: 1.03, reach: 16, cooldown: 1.05, color: 0xa6b4a0, coast: true, boss: true }
+      bell: { name: 'Derinliklerin Çancısı', hp: 2500, speed: 2, radius: 1.03, reach: 16, cooldown: 1.05, color: 0xa6b4a0, coast: true, boss: true }
     },
     create: function (api) {
       var player = api.player;
@@ -61,6 +61,58 @@
         }
         return { id: 'bells', name: 'Boğulmuş Çanlar', duration: 3.1, pose: 'castHigh', hits: hits, cooldown: 2.1 };
       }
+      // ---- Round 7: new Çancı moves (TBC-raid mechanics, top-down). Cool-downs and orbs live in boss-mech.js (B.BossMech.current).
+      function mech() { return B.BossMech && B.BossMech.current; }
+      function rnd(e) { e.seed = (Math.imul(e.seed, 1664525) + 1013904223) >>> 0; return e.seed / 4294967296; }   // same stream as combat.js rand(e)
+      function ready(e, id, cd) { var m = mech(); return !!m && m.ready(e, id, cd); }
+      function mark(e, id) { var m = mech(); if (m) m.mark(e, id); }
+      // Çan Vuruşu: the bell tolls and thin rings of sea roll outward on the beat, 0.9 s apart; the gaps between the rings are safe, or roll through one on its toll.
+      function toll(e, count) {
+        var o = { x: e.x, z: e.z }, hits = [];
+        for (var i = 0; i < count; i++) (function (i) {
+          var inner = 2 + i * 3.3;
+          hits.push(hit(1.3 + i * .9, i ? .85 : 1.3, 'ring', inner + 1.5, 18, 'roar', { inner: inner, arc: TAU, origin: o, style: 'tide', fill: 'radial', beat: i === 0, attack: 'Çan Vuruşu · ' + (i + 1),
+            onActive: function () { api.sound('boss1Toll', { x: o.x, z: o.z }); api.fx('boss1Toll', { x: o.x, z: o.z, radius: inner + 1.5 }); } }));
+        })(i);
+        return { id: 'toll', name: 'Çan Vuruşu', duration: 1.3 + count * .9 + .7, pose: 'roar', onBegin: function () { mark(e, 'toll'); }, hits: hits };
+      }
+      // Gelgit Duvarı: five walls of water roll out of the bell toward the hero, each with a gap; stand in the gap column (it is shown with the first wall) or roll through.
+      function tideWalls(e) {
+        var f = Math.atan2(player.x - e.x, player.z - e.z), vs = Math.sin(f), vc = Math.cos(f), us = Math.cos(f), uc = -Math.sin(f), hits = [];
+        var lat = (player.x - e.x) * us + (player.z - e.z) * uc, gap = Math.max(-5, Math.min(5, lat + (rnd(e) < .5 ? -1 : 1) * (2.2 + rnd(e) * 1.2)));
+        for (var k = 0; k < 5; k++) {
+          var s = 3.4 + k * 2.7, at = 1.3 + k * .5;
+          [[-11, gap - 1.9], [gap + 1.9, 11]].forEach(function (seg, j) {
+            hits.push(hit(at, .8, 'line', 0, 14, 'roar', { origin: { x: e.x + vs * s + us * seg[0], z: e.z + vc * s + uc * seg[0] }, face: f + Math.PI / 2, width: 1.6, length: seg[1] - seg[0],
+              style: 'tide', fill: 'forward', beat: k === 0 && j === 0, attack: 'Gelgit Duvarı' }));
+          });
+        }
+        return { id: 'tides', name: 'Gelgit Duvarı', duration: 1.3 + 5 * .5 + .9, pose: 'roar', onBegin: function () { mark(e, 'tides'); }, hits: hits };
+      }
+      // Tuzlu Havuzlar: brine pools that stay and burn for nine seconds (low damage, constant pressure on where you may stand).
+      function brinePools(e, n) {
+        var t = point(), hits = [], a0 = rnd(e) * TAU;
+        for (var i = 0; i < n; i++) {
+          var a = a0 + i * TAU / n, o = i ? { x: t.x + Math.sin(a) * 3.9, z: t.z + Math.cos(a) * 3.9 } : t;
+          if (!api.walkable(o.x, o.z, 1)) continue;
+          hits.push(hit(1.3 + i * .25, 1.1, 'circle', 2.2, 4, 'throw', { origin: o, style: 'tide', fill: 'radial', persistent: true, periodic: true, interval: .8, duration: 9, pool: 'brine', beat: i === 0, attack: 'Tuzlu Havuz' }));
+        }
+        return { id: 'brine', name: 'Tuzlu Havuzlar', duration: 2.7, pose: 'throw', onBegin: function () { mark(e, 'brine'); }, hits: hits };
+      }
+      // Karanlık Gelgit (lantern light): the sea blacks out the hall except one lantern-lit circle; outside it the water bites every 0.9 s. Three lit circles, each shown 1.8 s before the last one dies.
+      function lanterns(e) {
+        var hits = [], c = point(), S = 5.6;
+        for (var k = 0; k < 3; k++) {
+          if (k) { var next = null; for (var tries = 0; tries < 10 && !next; tries++) { var a = rnd(e) * TAU, r = 7.5 + rnd(e) * 2.5, q = { x: c.x + Math.sin(a) * r, z: c.z + Math.cos(a) * r }; if (api.walkable(q.x, q.z, 1.2)) next = q; } c = next || c; }
+          hits.push(hit(1.9 + k * S, k ? 1.8 : 1.7, 'ring', 30, 6, 'roar', { inner: 3.7, arc: TAU, origin: { x: c.x, z: c.z }, persistent: true, periodic: true, interval: .9, duration: S, pool: 'dark', poolGain: .8, tellGain: .3,
+            style: 'tide', fill: 'inward', beat: k === 0, attack: 'Karanlık Gelgit' }));
+        }
+        return { id: 'lanterns', name: 'Karanlık Gelgit', duration: 2.8, pose: 'roar', onBegin: function () { mark(e, 'lanterns'); }, hits: hits };
+      }
+      function lanternOrbs(e, n) {
+        return { id: 'orbs', name: 'Boğulmuş Fenerler', duration: 2.5, pose: 'castHigh', onBegin: function () { mark(e, 'orbs'); }, hits: [
+          hit(1.0, 1.0, 'circle', .1, 0, 'castHigh', { harmless: true, beat: true, style: 'tide', onActive: function () { var m = mech(); if (m && !e.dead) m.launchOrbs(e, n, { kind: 'brine', speed: e.phase >= 4 ? 3.3 : 3.05 }); } })] };
+      }
       return {
         attack: function (e, d) {
           var list = [];
@@ -94,14 +146,23 @@
             { id: 'lanternSwipe', ok: d < 3.4, w: 3, move: function () { return cone(e, 'lanternSwipe', 'Sırıtan Bıçak', 3.1, 2, 12, 'clawR', .65); } },
             { id: 'falseLights', sp: 1, ok: d < 12, w: 2, move: function () { var m = circle(e, 'falseLights', 'Bataklık Fenerleri', 1.8, 15, 1.1, { style: 'shadow', unblockable: true }); var p = point(); m.hits.push(hit(1.7, 1.1, 'circle', 1.8, 15, 'castHigh', { origin: { x: p.x + Math.cos(e.face) * 3.6, z: p.z - Math.sin(e.face) * 3.6 }, style: 'shadow', fill: 'radial', unblockable: true })); m.hits.push(hit(2.1,1.1,'circle',1.8,15,'castHigh',{origin:{x:p.x-Math.cos(e.face)*3.6,z:p.z+Math.sin(e.face)*3.6},style:'shadow',fill:'radial',unblockable:true}));m.duration = 2.9; return m; } }
           ];
-          else if (e.type === 'bell') list = [
-            { id: 'anchor', ok: d < 6.5, w: 4, move: function () { var m = cone(e, 'anchor', 'Batık Çapa', 5.7, 3.4, 25, 'sweep', .95); if (e.phase >= 2) { m.hits.push(hit(1.7, .75, 'cone', 5.9, 22, 'sweepBack', { arc: 3.3, face: e.face + .35, sweepDir: -1 })); m.duration = 2.5; } m.cooldown = 1.2; return m; } },
-            { id: 'bellRush', ok: d > 6 && d < 15, w: 3, move: function () { var m = dash(e, 'bellRush', 'Kıyıyı Yaran', 24, .4); m.hits[0].radius = 2.8; m.hits[0].at = 1.35; m.duration = 2.2; m.cooldown = 1.25; return m; } },
-            { id: 'tide', sp: 1, ok: d < 14, w: 3, move: function () { return tide(e, e.phase >= 3 ? 3 : 2); } },
-            { id: 'rootRows', sp: 1, ok: d > 2.5 && d < 14, w: e.phase >= 2 ? 3 : 1, move: function () { return rootRows(e, 'Derin Kökler', e.phase >= 3 ? 5 : 3); } },
-            { id: 'bells', sp: 1, ok: e.phase >= 2 && d < 15, w: 3, move: function () { return bells(e); } },
-            { id: 'keel', ok: d < 2.5, w: 2, move: function () { var m = cone(e, 'keel', 'Omurga Darbesi', 3.4, 2.8, 14, 'kick', .7); m.hits[0].knockback = 3; m.cooldown = 1.2; return m; } }
-          ];
+          else if (e.type === 'bell') {
+            var m = mech(), ph = e.phase, rest = [1.2, 1.05, .9, .75][ph - 1], fr = m && m.frenzied(e) ? .82 : 1, f = function (id, cd) { return !!m && m.ready(e, id, cd); };
+            e.cdScale = [.92, .88, .82, .76][ph - 1] * fr;
+            list = [
+              { id: 'anchor', ok: d < 6.5, w: 4, move: function () { var mv = cone(e, 'anchor', 'Batık Çapa', 5.7, 3.4, 25, 'sweep', .95); if (e.phase >= 2) { mv.hits.push(hit(1.7, .75, 'cone', 5.9, 22, 'sweepBack', { arc: 3.3, face: e.face + .35, sweepDir: -1 })); mv.duration = 2.5; } mv.cooldown = rest; return mv; } },
+              { id: 'bellRush', ok: d > 6 && d < 15, w: ph >= 2 ? 4 : 3, move: function () { var mv = dash(e, 'bellRush', 'Kıyıyı Yaran', 24, .4); mv.hits[0].radius = 2.8; mv.hits[0].at = 1.35; mv.duration = 2.2; mv.cooldown = rest + .05; return mv; } },
+              { id: 'tide', sp: 1, ok: d < 14, w: 3, move: function () { return tide(e, e.phase >= 3 ? 3 : 2); } },
+              { id: 'rootRows', sp: 1, ok: d > 2.5 && d < 14, w: e.phase >= 2 ? 3 : 1, move: function () { return rootRows(e, 'Derin Kökler', e.phase >= 3 ? 5 : 3); } },
+              { id: 'bells', sp: 1, ok: e.phase >= 2 && d < 15, w: 3, move: function () { return bells(e); } },
+              { id: 'keel', ok: d < 2.5, w: 2, move: function () { var mv = cone(e, 'keel', 'Omurga Darbesi', 3.4, 2.8, 14, 'kick', .7); mv.hits[0].knockback = 3; mv.cooldown = rest; return mv; } },
+              { id: 'toll', sp: 1, ok: d < 15 && f('toll', 12), w: 3, move: function () { return toll(e, ph >= 3 ? 5 : ph >= 2 ? 4 : 3); } },
+              { id: 'orbs', sp: 1, ok: ph >= 2 && d < 15 && f('orbs', 20) && m.liveOrbs() === 0, w: 3, move: function () { return lanternOrbs(e, ph >= 4 ? 3 : 2); } },
+              { id: 'tides', sp: 1, ok: ph >= 2 && d < 15 && f('tides', 13), w: 3, move: function () { return tideWalls(e); } },
+              { id: 'brine', sp: 1, ok: ph >= 3 && d < 15 && f('brine', 16), w: 2, move: function () { return brinePools(e, ph >= 4 ? 4 : 3); } },
+              { id: 'lanterns', sp: 1, ok: ph >= 3 && d < 16 && f('lanterns', 42), w: 3, move: function () { return lanterns(e); } }
+            ];
+          }
           return api.pick(e, list);
         },
         phase: function (e) {

@@ -355,29 +355,35 @@
     }
     function prepare(game) { patchCharacters(game); splitShared(scene); splitCharacters(game); }
 
-    // Fog in-scattering: the brightest sources near the view centre (real or not) glow in the air.
+    // Fog in-scattering: the brightest sources near the view centre (real or not) glow in the air. A source entering or leaving the
+    // brightest-N set fades its glow in/out over ~.25 s (up to MAX_SCATTER slots), instead of the haze around a torch popping on/off.
     var scatterList = [];
-    function updateScatter(fx, fz) {
+    function updateScatter(fx, fz, dt) {
       var U = FOG.karaLights.value, Cc = FOG.karaLightColors.value, rays = FOG.karaLightRays.value, count = 0;
       if (L && L.sources) {
         scatterList.length = 0;
         for (var i = 0; i < L.sources.length; i++) {
-          var s = L.sources[i]; if (!s.scatter || s.live <= 0.002) continue;
+          var s = L.sources[i]; if (!s.scatter || s.live <= 0.002) { s.scW = 0; continue; }
           var dx = s.x - fx, dz = s.z - fz, d2 = dx * dx + dz * dz;
-          if (d2 > 26 * 26) continue;
+          if (d2 > 26 * 26) { s.scW = 0; continue; }
           s.scatterScore = s.scatter * s.intensity * s.live / (1 + d2 / 40);
           scatterList.push(s);
         }
         scatterList.sort(function (a, b) { return b.scatterScore - a.scatterScore; });
-        count = Math.min(preset.scatter, scatterList.length);
-        for (var j = 0; j < count; j++) {
-          var src = scatterList[j], r0 = src.glowRadius || 1.2, pos = src.livePos || src;
-          U[j].set(pos.x, pos.y, pos.z, r0 * r0);
+        var want = Math.min(preset.scatter, scatterList.length), fade = Math.min(1, dt * 4.5);
+        var cap = Math.min(MAX_SCATTER, want + 2);   // at most two fading glows on top of the wanted ones
+        for (var j = 0; j < scatterList.length && count < cap; j++) {
+          var src = scatterList[j], sw = src.scW || 0;
+          if (j < want) sw = Math.min(1, sw + fade); else sw = Math.max(0, sw - fade);
+          src.scW = sw; if (sw <= 0) continue;
+          var r0 = src.glowRadius || 1.2, pos = src.livePos || src;
+          U[count].set(pos.x, pos.y, pos.z, r0 * r0);
           var cx = pos.x - camera.position.x, cy = pos.y - camera.position.y, cz = pos.z - camera.position.z;
-          rays[j].set(cx, cy, cz, cx * cx + cy * cy + cz * cz);
-          var col = src.liveColor || src.color, k = src.scatter * src.intensity * src.live * .006;
-          Cc[j].set(col.r * k, col.g * k, col.b * k);
+          rays[count].set(cx, cy, cz, cx * cx + cy * cy + cz * cz);
+          var col = src.liveColor || src.color, k = src.scatter * src.intensity * src.live * .006 * sw * sw * (3 - 2 * sw);
+          Cc[count].set(col.r * k, col.g * k, col.b * k); count++;
         }
+        for (; j < scatterList.length; j++) scatterList[j].scW = 0;
       }
       for (var z = count; z < MAX_SCATTER; z++) { U[z].set(0, -99, 0, 1); Cc[z].set(0, 0, 0); rays[z].set(0, 0, 0, 0); }
       FOG.karaMist.value[0].x = count;
@@ -561,7 +567,10 @@
       if (d.lastCheckpoint === null) d.lastCheckpoint = cp;
       if (cp > d.lastCheckpoint) d.checkpointAt = time;
       d.lastCheckpoint = cp;
-      var oath = cp > 0 ? 1.15 : .45 + .2 * Math.sin(time * 1.3);
+      // the base glow eases to its kindled level (it used to double in one frame when the stone was sworn)
+      var oathTarget = cp > 0 ? 1.15 : .45 + .2 * Math.sin(time * 1.3);
+      d.oathLive = d.oathLive == null ? oathTarget : d.oathLive + (oathTarget - d.oathLive) * Math.min(1, dt * 7);
+      var oath = d.oathLive;
       if (d.checkpointAt >= 0) { var ct = time - d.checkpointAt; if (ct < 3) oath += 2.4 * Math.exp(-ct * 1.6) * envelope(ct, 0, .12); }
       L.setGroup('oath', oath);
       if (L.setOathGlow) L.setOathGlow(oath, cp > 0);
@@ -618,9 +627,31 @@
       corpses.sort(function (a, b) { return (a.deadAge || 0) - (b.deadAge || 0); });
       L.setCorpses(corpses.slice(0, 4));
     }
+    // The number of visible punctual lights is part of every lit material's program key. A world that hides a light
+    // (visible = false) when no source is near, then shows it again later, makes three.js compile a NEW program for every lit
+    // material at the first frame of each new count - seconds of freeze in the middle of a fight (chapter 3/4 torches did this).
+    // Lights that were ever seen on stay on (intensity 0 = no light, no BRDF work), so the count never changes after the warm-up.
+    // Low keeps its hidden lights (that is a saving, and Low's count is constant anyway).
+    var punctual = [], punctualAt = -1e9, keepLights = !/[?&]nokeeplights\b/.test(location.search);
+    function holdLightCount(time) {
+      if (!keepLights || preset === PRESET.low) return;
+      if (time - punctualAt > 1 || time < punctualAt) {
+        punctualAt = time; punctual.length = 0;
+        var kids = scene.children, i, j, k, c, g;
+        for (i = 0; i < kids.length; i++) {
+          k = kids[i]; if ((k.isPointLight || k.isSpotLight)) punctual.push(k);
+          c = k.children; if (c && k.isObject3D && !k.isMesh) for (j = 0; j < c.length; j++) { g = c[j]; if (g.isPointLight || g.isSpotLight) punctual.push(g); }
+        }
+      }
+      for (var n = 0; n < punctual.length; n++) {
+        var l = punctual[n];
+        if (!l.visible) { l.visible = true; l.intensity = 0; }
+      }
+    }
     function update(dt, time, game, view) {
       if (!game || !game.player) return;
       syncShadowMap();
+      holdLightCount(time);
       for (var ti = 0; ti < twins.length; ti++) twinSync(twins[ti], false);
       // Measure presented spacing, rather than the requested FPS or the monitor's callbacks. This also
       // handles the alternating short/long intervals of 120 rendered frames on a 144/180/200 Hz screen.
@@ -686,7 +717,7 @@
       grade.bloom += (a.bloom - grade.bloom) * k; grade.bloomTint.lerp(a.bloomTint, k);
       grade.exposure = (cfgRef.exposure || 1.15) * a.exposure;
       var fx = p.x, fz = p.z - 2;
-      updateScatter(fx, fz);
+      updateScatter(fx, fz, dt);
       if (opts.post) { updateHeat(opts.post.heat(), fx, fz); if (opts.post.pulse) warCryPost(opts.post.heat(), opts.post.pulse(), p); opts.post.setGrade(grade); }
       if (!ab.stepped) abilityStep(dt, game, time);
       ab.stepped = false;

@@ -20,7 +20,7 @@
     camera.position.set(0, 1.42, 4.8); camera.lookAt(0, 1.18, 0); camera.updateMatrixWorld(true);
     const viewport = new T.Vector4(), scissor = new T.Vector4(), clearColor = new T.Color();
     const state = { time: 0, move: 0, attack: 0, attackTime: -1, heavy: false, dodge: 0, hurt: 0, dead: false, reset: false };
-    let lastTime = null, animationTime = 0, revision = -1, sourceModel = null, disposed = false, lastCanvas = null;
+    let lastTime = null, animationTime = 0, seenWorldFrame = -1, revision = -1, sourceModel = null, disposed = false, lastCanvas = null;
     function syncEquipment() {
       const source = game.player && game.player.model;
       if (!source) return false;
@@ -33,7 +33,11 @@
     function draw(canvas, now) {
       if (document.body.dataset.view !== 'character' || disposed || !canvas || !canvas.isConnected || !game.player.model || !canvas.width || !canvas.height) return false;
       const changed = syncEquipment(), time = Number.isFinite(now) ? now : performance.now();
-      if (!changed && canvas === lastCanvas && lastTime !== null && time - lastTime < 1000 / 30) return false;
+      // The portrait is rendered into the main (non-preserved) drawing buffer, so it may only draw in a tick where the
+      // world itself drew; otherwise that presented buffer holds only the portrait crop and the whole backdrop flashes.
+      const worldFrame = renderer.info.render.frame, worldDrew = worldFrame !== seenWorldFrame; seenWorldFrame = worldFrame;
+      if (!worldDrew) return false;
+      if (!changed && canvas === lastCanvas && lastTime !== null && time - lastTime < 24) return false;
       const dt = lastTime !== null ? Math.min(.08, Math.max(0, (time - lastTime) / 1000)) : 1 / 30;
       lastTime = time; lastCanvas = canvas; animationTime += dt; state.time = animationTime;
       model.animate(dt, state); scene.updateMatrixWorld(true);
@@ -53,7 +57,7 @@
         // Three accepts logical coordinates here; the canvas crop below is in physical pixels.
         renderer.outputColorSpace = T.SRGBColorSpace; renderer.toneMapping = T.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.1;
         renderer.setRenderTarget(null); renderer.setViewport(x / pixelRatio, y / pixelRatio, w / pixelRatio, h / pixelRatio); renderer.setScissor(x / pixelRatio, y / pixelRatio, w / pixelRatio, h / pixelRatio); renderer.setScissorTest(true); renderer.autoClear = true;
-        renderer.render(scene, camera);
+        renderer.render(scene, camera); seenWorldFrame = renderer.info.render.frame;
         if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
         const ctx = canvas.getContext('2d', { alpha: false });
         if (ctx) { ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high'; ctx.drawImage(source, x, source.height - y - h, w, h, 0, 0, canvas.width, canvas.height); }

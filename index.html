@@ -13,9 +13,9 @@
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="stylesheet" href="src/ui.css?v=111">
-<link rel="stylesheet" href="src/character-ui.css?v=111">
-<link rel="stylesheet" href="src/ui-polish.css?v=111">
+<link rel="stylesheet" href="src/ui.css?v=133">
+<link rel="stylesheet" href="src/character-ui.css?v=133">
+<link rel="stylesheet" href="src/ui-polish.css?v=133">
 </head>
 <body>
 <svg class="icon-library" aria-hidden="true"><defs>
@@ -71,6 +71,7 @@ KG_LOAD(.04);
 </main>
 
 <div id="hud" class="hidden">
+  <div id="key-hints" aria-hidden="true"><span><kbd>I</kbd> Karakter</span><span><kbd>T</kbd> Yetenekler</span><span><kbd data-bind="dodge">SPACE</kbd> Kaçın</span><span><kbd>ESC</kbd> Mola</span></div>
   <section class="hero-card">
     <div class="portrait"><canvas id="hero-portrait" width="160" height="160"></canvas><i class="portrait-frame" aria-hidden="true"></i><span class="portrait-seal" aria-hidden="true">1</span></div>
     <div class="hero-info"><strong>Bahtiyar</strong><span id="hero-subtitle">Seviye 1</span></div>
@@ -102,6 +103,7 @@ KG_LOAD(.04);
     <div class="combat-pad">
       <button class="action action-special" data-action="special" aria-label="Zincir Girdabı"><i class="skill special" aria-hidden="true"></i><kbd>1</kbd></button>
       <button class="action action-rage" data-action="rage" aria-label="Kan Öfkesi"><i class="skill rage" aria-hidden="true"></i><kbd>2</kbd></button>
+      <button class="action action-fourth" data-action="fourth" aria-label="Yetenek · 3 tuşu"><i class="skill heavy" aria-hidden="true"></i><kbd>3</kbd></button>
       <button class="action action-dodge" data-action="dodge" aria-label="Kaçınma"><i class="skill dodge" aria-hidden="true"></i><kbd>SPACE</kbd></button>
       <button class="action action-light" data-action="light" aria-label="Hafif saldırı"><i class="skill light" aria-hidden="true"></i><kbd class="mouse"><svg aria-hidden="true"><use href="#i-mouse-l"/></svg><em>SOL TIK</em></kbd></button>
       <button class="action action-heavy" data-action="heavy" aria-label="Ağır saldırı"><i class="skill heavy" aria-hidden="true"></i><kbd class="mouse"><svg aria-hidden="true"><use href="#i-mouse-r"/></svg><em>SAĞ TIK</em></kbd></button>
@@ -154,18 +156,19 @@ KG_LOAD(.04);
   <div class="control-grid">
     <div><span class="ctl-icon glyph"><svg class="icon" aria-hidden="true"><use href="#i-move"/></svg></span><p><b>Hareket</b><span>Hafif saldırıya atanmış fare düğmesiyle boş yere tıkla: yürür; basılı tutarsan fareyi izler</span></p><span class="caps"><kbd>FARE</kbd></span></div>
     <div><span class="ctl-icon"><i class="skill light"></i></span><p><b>Hafif saldırı</b><span>Fareyle düşmanı seç: yürür ve vurur, basılı tutunca sürer · klavye tuşu önündeki yakın düşmana vurur · Dayanıklılık harcamaz</span></p><span class="caps" data-caps="light"></span></div>
-    <div><span class="ctl-icon"><i class="skill heavy"></i></span><p><b>Yetenek I · Sağ tuş</b><span>Yetenek ağacında öğrendiğin güçlerden birini bu yuvaya ata. Mezar Yaran, eski ağır vuruşun güçlendirilmiş hâlidir.</span></p><span class="caps" data-caps="heavy"></span></div>
+    <div><span class="ctl-icon"><i class="skill heavy"></i></span><p><b>Yetenek · Sağ tık</b><span>Yetenek ağacında öğrendiğin güçlerden birini bu yuvaya ata (başlangıçta sert vuruş: Mezar Yaran). Dört yol vardır; üst aşamayı öğrenince yuvadaki yeteneğin yerine geçer.</span></p><span class="caps" data-caps="heavy"></span></div>
     <div><span class="ctl-icon"><i class="skill light"></i></span><p><b>Yerinde vur</b><span>Bu tuş basılıyken fareden saldır: yürümeden fareye doğru vurur; boşluğa da saldırabilirsin</span></p><span class="caps" data-caps="stand"></span></div>
     <div><span class="ctl-icon"><i class="skill dodge"></i></span><p><b>Kaçınma</b><span>Yürüdüğün yöne (durunca fareye doğru) yuvarlanır · başında korunursun, kalkarken koruma biter · 18 dayanıklılık</span></p><span class="caps" data-caps="dodge"></span></div>
     <div><span class="ctl-icon"><i class="skill flask"></i></span><p><b>Can iksiri</b><span>Anında iyileştirir · yemin taşında dolar</span></p><span class="caps" data-caps="heal"></span></div>
-    <div><span class="ctl-icon"><i class="skill rage"></i></span><p><b>Yetenek III</b><span>Üçüncü seçili aktif güç. Kan Nidası düşmanları sarsar; kısa süre daha sert vurmanı ve can kazanmanı sağlar.</span></p><span class="caps" data-caps="rage"></span></div>
-    <div><span class="ctl-icon"><i class="skill special"></i></span><p><b>Yetenek II</b><span>İkinci seçili aktif güç. Aynı anda normal saldırı ve üç aktif yetenek kullanırsın. Karakter ekranı: I · yetenek ağacı: T.</span></p><span class="caps" data-caps="special"></span></div>
+    <div><span class="ctl-icon"><i class="skill rage"></i></span><p><b>Yetenek · 2 tuşu</b><span>Yetenek ağacından atadığın üçüncü güç. Kan Nidası düşmanları sarsar; kısa süre daha sert vurmanı ve can kazanmanı sağlar.</span></p><span class="caps" data-caps="rage"></span></div>
+    <div><span class="ctl-icon"><i class="skill heavy"></i></span><p><b>Yetenek · 3 tuşu</b><span>Yetenek ağacından atadığın dördüncü güç. Dört yolun dördünü de aynı anda takabilirsin: sağ tık, 1, 2 ve 3.</span></p><span class="caps" data-caps="fourth"></span></div>
+    <div><span class="ctl-icon"><i class="skill special"></i></span><p><b>Yetenek · 1 tuşu</b><span>Yetenek ağacından atadığın ikinci güç. Normal saldırı (sol tık) ve dört aktif yetenek (sağ tık, 1, 2, 3) kullanılır. Karakter ekranı: I · yetenek ağacı: T.</span></p><span class="caps" data-caps="special"></span></div>
     <div><span class="ctl-icon glyph"><svg class="icon" aria-hidden="true"><use href="#i-seal"/></svg></span><p><b>Etkileşim · Mola</b><span>Yemin taşı · menü</span></p><span class="caps" data-caps="interact"></span><kbd>ESC</kbd></div>
   </div>
   <div class="warning-legend"><span><i class="chip amber"></i>Altın kenar: sıradan darbe</span><span><i class="chip red"></i>Kızıl kenar: ağır darbe, mutlaka kaç</span><span>Işık dolduğunda darbe iner · yuvarlanmanın başında korunursun</span></div>
   <p class="muted pad-note kb-only"><b>Tuşlar</b> Tuşları ve fare düğmelerini değiştirebilirsin. <button id="controls-keys" class="text-button">Tuş atamaları</button></p>
   <p class="muted pad-note"><b>Fare ve klavye</b> Hafif saldırıya atanmış fare düğmesiyle düşmanı seç: ona yürür ve vurur; boş yere tıkla: oraya yürürsün. Ağır saldırıya atanmış fare düğmesi gardı kıran darbeyi başlatır. Yerinde vur tuşunu basılı tutarak fareden saldırırsan yürümeden vurursun. Saldırıların klavye tuşları önündeki yakın düşmana vurur; klavyeyle yürünmez. Kaçınma, dururken fareye doğru yuvarlanır. Tuş atamalarını yukarıdaki kutulardan görebilirsin.</p>
-  <p class="muted pad-note"><b>Gamepad</b> sol çubuk hareket · A normal saldırı · B kaçınma · RT ilk yetenek · X ikinci yetenek · Y üçüncü yetenek · LB iksir · RB etkileşim · Start mola</p>
+  <p class="muted pad-note"><b>Gamepad</b> sol çubuk hareket · A normal saldırı · B kaçınma · RT sağ tık yuvası · X 1 tuşu yuvası · Y 2 tuşu yuvası · LT 3 tuşu yuvası · LB iksir · RB etkileşim · Start mola</p>
   <p class="muted touch-note"><b>Dokunmatik</b> bir düşmana dokun: ona yürür ve vurur · yere dokun: oraya yürürsün · sol başparmakla kaydırarak da yürüyebilirsin · sağdaki düğmeler en yakın düşmana vurur</p>
 </div></div>
 
@@ -209,6 +212,8 @@ KG_LOAD(.04);
   </div>
 </div>
 
+<div id="chapter-fade" class="hidden" role="status" aria-live="polite"><div class="cf-copy"><span class="eyebrow"></span><h2 class="cf-title"></h2><i class="divider" aria-hidden="true"></i><p class="end-quote"></p><p class="next"></p></div></div>
+
 <div id="confirm" class="screen modal hidden"><div class="panel compact confirm-panel">
   <img class="panel-crest" src="assets/ui/crest.webp" alt="" aria-hidden="true">
   <h2>Başa dön?</h2><i class="divider" aria-hidden="true"></i><p>Bu bölümdeki kontrol noktası kaydın sıfırlanacak.</p>
@@ -217,16 +222,16 @@ KG_LOAD(.04);
 
 <div id="warming" class="hidden" role="status" aria-live="polite"><span>Grafik hazırlanıyor…</span><div class="load-bar"><i id="warm-fill"></i></div><small>Yeni ayar için gölgeler ve ışıklar derleniyor.</small></div>
 <div id="fps" class="hidden"><div id="fps-values"></div></div><div id="fatal" class="hidden"><h2>Tapınağın kapısı açılmadı.</h2><p></p><button class="btn primary" onclick="location.reload()"><span>Yeniden dene</span></button></div>
-<script src="vendor/three.js?v=111"></script><script src="vendor/gltf-loader.js?v=111"></script><script>window.BABA={};KG_LOAD(.06,'Taşlar yerine oturuyor…');</script>
-<script src="src/materials.js?v=111"></script><script>KG_LOAD(.09);</script>
-<script src="assets/coast/surfaces.js?v=111"></script><script src="assets/ruins/surfaces.js?v=111"></script><script src="src/coast-materials.js?v=111"></script><script src="src/chapter-expansion.js?v=111"></script><script src="src/world.js?v=111"></script><script src="src/coast-world.js?v=111"></script><script src="src/ruins-world.js?v=111"></script><script src="src/forge-world.js?v=111"></script><script src="src/motion.js?v=111"></script><script src="src/models.js?v=111"></script><script>KG_LOAD(.12,'Zincirler çözülüyor…');</script>
-<script src="assets/characters/characters.js?v=111"></script><script>KG_LOAD(.14,'Ölüler uyanıyor…');</script>
-<script src="assets/characters/authored-clips.js?v=111"></script>
-<script src="src/authored-motion.js?v=111"></script><script src="src/authored-models.js?v=111"></script><script src="src/coast-models.js?v=111"></script><script src="src/ruins-models.js?v=111"></script><script src="src/forge-models.js?v=111"></script><script src="src/limbs.js?v=111"></script><script src="src/globes.js?v=111"></script><script src="src/coast-combat.js?v=111"></script><script src="src/ruins-combat.js?v=111"></script><script src="src/forge-combat.js?v=111"></script><script src="src/progression.js?v=111"></script>
-<script src="src/ground-loot.js?v=111"></script><script src="src/combat.js?v=111"></script><script>KG_LOAD(.16);</script>
-<script src="src/narration.js?v=111"></script><script src="src/music.js?v=111"></script><script src="src/audio.js?v=111"></script><script src="src/telegraphs.js?v=111"></script><script src="src/effects.js?v=111"></script><script src="src/coast-effects.js?v=111"></script><script src="src/ruins-effects.js?v=111"></script><script src="src/forge-effects.js?v=111"></script><script src="src/hud.js?v=111"></script><script src="src/buffs.js?v=111"></script><script src="src/target-hud.js?v=111"></script><script src="src/lighting.js?v=111"></script><script src="src/display.js?v=111"></script><script src="src/pacing.js?v=111"></script><script src="src/performance.js?v=111"></script><script src="src/smaa.js?v=111"></script><script src="src/post.js?v=111"></script>
-<script src="src/character-preview.js?v=111"></script>
-<script src="src/character-ui.js?v=111"></script>
-<script src="src/controller.js?v=111"></script>
-<script src="src/app.js?v=111"></script><script>KG_LOAD(.18,'Karanlık yol hazırlanıyor…');</script>
+<script src="vendor/three.js?v=133"></script><script src="vendor/gltf-loader.js?v=133"></script><script>window.BABA={};KG_LOAD(.06,'Taşlar yerine oturuyor…');</script>
+<script src="src/materials.js?v=133"></script><script>KG_LOAD(.09);</script>
+<script src="assets/coast/surfaces.js?v=133"></script><script src="assets/ruins/surfaces.js?v=133"></script><script src="src/coast-materials.js?v=133"></script><script src="src/chapter-expansion.js?v=133"></script><script src="src/world.js?v=133"></script><script src="src/coast-world.js?v=133"></script><script src="src/ruins-kit.js?v=133"></script><script src="src/ruins-rooms.js?v=133"></script><script src="src/forge-rooms.js?v=133"></script><script src="src/ruins-world.js?v=133"></script><script src="src/forge-world.js?v=133"></script><script src="src/motion.js?v=133"></script><script src="src/models.js?v=133"></script><script>KG_LOAD(.12,'Zincirler çözülüyor…');</script>
+<script src="assets/characters/characters.js?v=133"></script><script>KG_LOAD(.14,'Ölüler uyanıyor…');</script>
+<script src="assets/characters/authored-clips.js?v=133"></script>
+<script src="src/authored-motion.js?v=133"></script><script src="src/authored-models.js?v=133"></script><script src="src/coast-models.js?v=133"></script><script src="src/ruins-models.js?v=133"></script><script src="src/forge-models.js?v=133"></script><script src="src/limbs.js?v=133"></script><script src="src/globes.js?v=133"></script><script src="src/coast-combat.js?v=133"></script><script src="src/ruins-combat.js?v=133"></script><script src="src/forge-combat.js?v=133"></script><script src="src/progression.js?v=133"></script><script src="src/boss-mech.js?v=133"></script>
+<script src="src/ground-loot.js?v=133"></script><script src="src/gate.js?v=133"></script><script src="src/combat.js?v=133"></script><script>KG_LOAD(.16);</script>
+<script src="src/narration.js?v=133"></script><script src="src/music.js?v=133"></script><script src="src/audio.js?v=133"></script><script src="src/telegraphs.js?v=133"></script><script src="src/effects.js?v=133"></script><script src="src/coast-effects.js?v=133"></script><script src="src/ruins-effects.js?v=133"></script><script src="src/forge-effects.js?v=133"></script><script src="src/boss2.js?v=133"></script><script src="src/hud.js?v=133"></script><script src="src/buffs.js?v=133"></script><script src="src/target-hud.js?v=133"></script><script src="src/lighting.js?v=133"></script><script src="src/display.js?v=133"></script><script src="src/pacing.js?v=133"></script><script src="src/performance.js?v=133"></script><script src="src/smaa.js?v=133"></script><script src="src/post.js?v=133"></script><script src="src/levelup.js?v=133"></script><script src="src/charge.js?v=133"></script><script src="src/skill-fx.js?v=133"></script>
+<script src="src/character-preview.js?v=133"></script>
+<script src="src/character-ui.js?v=133"></script>
+<script src="src/warmup.js?v=133"></script><script src="src/controller.js?v=133"></script>
+<script src="src/app.js?v=133"></script><script>KG_LOAD(.18,'Karanlık yol hazırlanıyor…');</script>
 </body></html>

@@ -2,7 +2,7 @@
 (function () {
   'use strict';
   const B = window.BABA, T = window.THREE;
-  const CAPACITY = 96, REACH = 1.35, DELAY = 1.1, FLIGHT = .32;
+  const CAPACITY = 96, REACH = 1.35, BOSS_REACH = 5, DELAY = 1.1, FLIGHT = .32;
   let atlas = null, atlasTask = null;
   function prepare() {
     if (atlasTask) return atlasTask;
@@ -67,7 +67,7 @@
         if (!m) { m={age:0,flight:0,flying:false,x:drop.x,z:drop.z}; motion.set(drop.uid,m); }
         m.age+=dt;
         const distance=Math.hypot(player.x-drop.x,player.z-drop.z);
-        if (!m.flying && m.age>=DELAY && distance<=REACH && (!world.hasClearPath || world.hasClearPath(player.x,player.z,drop.x,drop.z,.08))) m.flying=true;
+        if (!m.flying && m.age>=DELAY && distance<=(drop.boss?BOSS_REACH:REACH) && (!world.hasClearPath || world.hasClearPath(player.x,player.z,drop.x,drop.z,.08))) m.flying=true;
         const base=world.effectHeightAt?world.effectHeightAt(drop.x,drop.z,.4):.06;
         let x=drop.x,z=drop.z,y=base+.16+Math.sin(clock*2.7+i)*.02,scale=Math.min(1,m.age/.18);
         if (m.flying) {

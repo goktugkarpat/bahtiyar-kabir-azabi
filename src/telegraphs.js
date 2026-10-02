@@ -16,8 +16,8 @@
   // Pool: the shader works in world XZ; the quad only has to cover the shape. Output is linear HDR (the app tone-maps later).
   const POOL_VS = 'varying vec2 vW; void main(){ vec4 w = modelMatrix*vec4(position,1.); vW = w.xz; gl_Position = projectionMatrix*viewMatrix*w; }';
   const POOL_FS = `uniform vec2 uOrigin; uniform float uFace; uniform int uShape; uniform vec4 uDim;
-uniform float uU,uFlare,uHit,uFade,uGain,uSweepDir,uUnblock,uDetail,uTime,uSeed,uCalm; uniform int uFill,uStyle;
-uniform vec3 uEdge,uFillCol,uFront; uniform vec4 uK,uE; uniform float uBreak,uF,uCk; uniform vec3 uHl; uniform sampler2D uRune,uCrack; varying vec2 vW;
+uniform float uU,uFlare,uHit,uFade,uGain,uSweepDir,uUnblock,uDetail,uTime,uSeed,uCalm,uHitK; uniform int uFill,uStyle;
+uniform vec3 uEdge,uFillCol,uFront; uniform vec4 uK,uE; uniform float uBreak,uF,uCk; uniform vec3 uHl; uniform vec3 uPA,uPB; uniform sampler2D uRune,uCrack; varying vec2 vW;
 float rmax(float a, float b, float k){ return length(max(vec2(a+k, b+k), 0.)) + min(max(a, b)+k, 0.) - k; }
 void main(){
   vec2 d = vW - uOrigin; float cs = cos(uFace), sn = sin(uFace);
@@ -40,7 +40,7 @@ void main(){
   if (uStyle == 12) {   // settled bile: murky liquid with a wet meniscus (normal blending)
     float wob = .5+.20*sin(dot(vW,vec2(.73,.91))+uTime*.07+uSeed)+.12*sin(dot(vW,vec2(-1.31,.59))-uTime*.05);
     float men = exp(-abs(sd+.06)/(.05+.03*n)) * (.8+.2*sin(dot(vW,vec2(2.31,3.17))+uTime*.2));
-    vec3 c = mix(vec3(.006,.011,.003), vec3(.028,.05,.009), wob) + uEdge*men*.6;
+    vec3 c = mix(uPA, uPB, wob) + uEdge*men*.6;
     float al = clamp(inside*(.62+.22*wob) + men*.35, 0., .9);
     gl_FragColor = vec4(c, al*uFade*uGain); return; }
   float sw = clamp((ang*uSweepDir + span*.5)/span, 0., 1.), tc = clamp(t, 0., 1.);
@@ -52,7 +52,7 @@ void main(){
   if (uFill == 2 && span > 6.2) { float fe = mix(smoothstep(0., .09, ft), 1., e*e); lit *= fe; band *= fe * (1.-smoothstep(.9, 1., ft)); }
   float edge = exp(-abs(sd)/max(uE.w,fwidth(sd)*1.5));
   float edgeK = uE.x + uE.y*uU*uU + uE.z*uFlare;
-  if (uStyle == 5) {    // stalker landing shadow (normal blending): the floor darkens where it will land
+  if (uStyle == 5 && uShape == 0) {    // stalker landing shadow (circles only; lines/rings/cones of this style use the gold/crimson edge language below)
     // A dark disc gathers where it will land, a ring of gold light closes in on the centre as it drops.
     float core = 1.-smoothstep(0., 1., r/max(.01,R)), rr = 1.-e*.85, ringD = (t-rr)/.07, ringIn = exp(-(ringD*ringD))*inside;
     float al = clamp(inside*(.26+.5*uU*uU)*(.65+.35*n)*(.55+.45*core) + edge*(.55+.4*uFlare) + ringIn*.5, 0., .9);
@@ -93,7 +93,7 @@ void main(){
     float slot = (floor(fract(ang/6.2832+.5)*16.)+.5)/16.;
     col += uEdge*glyph*(.18 + 1.1*step(slot, uU*1.02) + uFlare); }
   // Contact: the whole area snaps white-hot for an instant, the rim flares.
-  col += uFront*inJ*uHit*(.9+.4*n) + uEdge*inner*uHit*1.6;
+  col += uFront*inJ*uHit*uHitK*(.9+.4*n) + uEdge*inner*uHit*1.6;   // uHitK: a boss-sized area flashes softer, so the contact moment stays crisp without a screen-wide glare
   dark *= 1.-uHit;
   float support=1.-smoothstep(.55,.69,max(sd,0.));
   col *= uFade*uGain*support; dark *= uFade*support;
@@ -240,8 +240,8 @@ void main(){ vec2 p = (vUv-.5)*2.*uMax; float r = length(p), a = r > 1e-6 ? atan
       blending: T.CustomBlending, blendEquation: T.AddEquation, blendSrc: T.OneFactor, blendDst: T.OneMinusSrcAlphaFactor, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4, fog: false,
       uniforms: { uOrigin: { value: new T.Vector2() }, uFace: { value: 0 }, uShape: { value: 0 }, uDim: { value: new T.Vector4() }, uU: { value: 0 }, uFlare: { value: 0 },
         uHit: { value: 0 }, uFade: { value: 0 }, uGain: { value: 1 }, uFill: { value: 0 }, uSweepDir: { value: 1 }, uUnblock: { value: 0 }, uStyle: { value: 0 }, uDetail: { value: 3 },
-        uTime: { value: 0 }, uSeed: { value: 0 }, uCalm: { value: 0 }, uK: { value: new T.Vector4(.006, .012, .03, .10) }, uE: { value: new T.Vector4(.02, .14, .35, .07) },
-        uBreak: { value: .85 }, uF: { value: .12 }, uCk: { value: .8 }, uHl: { value: new T.Vector3(.08, .25, .5) },
+        uTime: { value: 0 }, uSeed: { value: 0 }, uCalm: { value: 0 }, uHitK: { value: 1 }, uK: { value: new T.Vector4(.006, .012, .03, .10) }, uE: { value: new T.Vector4(.02, .14, .35, .07) },
+        uBreak: { value: .85 }, uF: { value: .12 }, uCk: { value: .8 }, uHl: { value: new T.Vector3(.08, .25, .5) }, uPA: { value: new T.Vector3(.006, .011, .003) }, uPB: { value: new T.Vector3(.028, .05, .009) },
         uEdge: { value: new T.Vector3() }, uFillCol: { value: new T.Vector3() }, uFront: { value: new T.Vector3() }, uRune: { value: textures.rune }, uCrack: { value: textures.crack } } });
     const ribBase = new T.ShaderMaterial({ vertexShader: RIB_VS, fragmentShader: RIB_FS, transparent: true, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide, fog: false,
       uniforms: { uMode: { value: 0 }, uArc: { value: 1 }, uRad: { value: 1 }, uWidth: { value: .16 }, uLen: { value: 1 }, uDir: { value: 1 }, uHead: { value: 0 }, uFlare: { value: 0 }, uFade: { value: 0 }, uCalm: { value: 0 }, uColor: { value: new T.Vector3() } } });
@@ -270,7 +270,8 @@ void main(){ vec2 p = (vUv-.5)*2.*uMax; float r = length(p), a = r > 1e-6 ? atan
     }
     function free(t) { t.busy = false; t.releasing = false; t.h = null; t.mesh.visible = false; t.rib.visible = false; }
     function vec(v, a) { v.set(a[0], a[1], a[2]); }
-    const styleOf = h => h.poison && h.persistent && h.active ? 12 : STYLE[h.style] != null ? STYLE[h.style] : 0;
+    const POOLS = { lava: { a: [.04, .008, .003], b: [.19, .04, .008], edge: [2.4, .8, .18], bub: [3, 1, .2] }, dark: { a: [.002, .008, .011], b: [.007, .026, .03], edge: [.3, .9, .85], bub: [.2, .7, .6] }, brine: { a: [.003, .014, .014], b: [.014, .05, .044], edge: [.3, .95, .7], bub: [.3, .85, .6] } };   // round 7: hazard.pool tints persistent floor liquids (burning strips, brine, drowning dark)
+    const styleOf = h => (h.poison || h.pool) && h.persistent && h.active ? 12 : STYLE[h.style] != null ? STYLE[h.style] : 0;
     function place(t, h) {
       const u = t.mat.uniforms, shape = SHAPE[h.shape] != null ? SHAPE[h.shape] : 0, style = styleOf(h);
       const liquid = style === 12, unb = !!h.unblockable && !liquid, pal = unb ? CRIMSON : GOLD;
@@ -281,12 +282,12 @@ void main(){ vec2 p = (vUv-.5)*2.*uMax; float r = length(p), a = r > 1e-6 ? atan
       // Gold = continuous ordinary boundary; crimson = severe boundary plus a pale inner hairline.
       u.uBreak.value = unb ? .1 : .3; u.uHl.value.set(unb ? .4 : .08, .5, 1);
       u.uSeed.value = ((h.x * 3.1 + h.z) % 7 + 7) % 7;
-      if (liquid) { vec(u.uEdge.value, [.35, .55, .12]); vec(u.uFront.value, [.12, .2, .04]); vec(u.uFillCol.value, [.1, .18, .03]); }
+      if (liquid) { const pl = POOLS[h.pool]; if (pl) { vec(u.uEdge.value, pl.edge); vec(u.uFront.value, pl.edge); vec(u.uFillCol.value, pl.b); vec(u.uPA.value, pl.a); vec(u.uPB.value, pl.b); } else { vec(u.uEdge.value, [.35, .55, .12]); vec(u.uFront.value, [.12, .2, .04]); vec(u.uFillCol.value, [.1, .18, .03]); u.uPA.value.set(.006, .011, .003); u.uPB.value.set(.028, .05, .009); } }
       // A flying vial lands inside a gold (or crimson) ring like every other blow; only its olive fill hints at the bile.
       else { vec(u.uEdge.value, pal.edge); vec(u.uFront.value, pal.front); vec(u.uFillCol.value, h.style === 'bile' ? [pal.fill[0] * .85, pal.fill[1] * .9 + .05, pal.fill[2]] : pal.fill); }
       if(h.style==='tide') u.uFillCol.value.set(.10,.25,.27);
       else if(h.style==='root') u.uFillCol.value.set(.17,.14,.06);
-      t.mat.blending = style === 5 || liquid ? T.NormalBlending : T.CustomBlending;
+      t.mat.blending = (style === 5 && shape === 0) || liquid ? T.NormalBlending : T.CustomBlending;
       const m = t.mesh; m.rotation.set(0, 0, 0);
       if (shape === 2) { m.scale.set(h.width + 1.4, 1, h.length + 1.4); m.rotation.y = h.face; m.position.set(h.x + Math.sin(h.face) * h.length / 2, groundY(h.x,h.z,h.length), h.z + Math.cos(h.face) * h.length / 2); }
       else { const R = h.radius; m.scale.set(2 * R + 1.4, 1, 2 * R + 1.4); m.position.set(h.x, groundY(h.x,h.z,h.radius), h.z); }
@@ -314,10 +315,10 @@ void main(){ vec2 p = (vUv-.5)*2.*uMax; float r = length(p), a = r > 1e-6 ? atan
       let fade = clamp(h.age / .08, 0, 1);
       if (liquid) fade *= clamp((h.warn + h.duration - h.age) / .6, 0, 1);
       u.uU.value = liquid ? 1 : s.u; u.uFlare.value = liquid ? 0 : s.flare; u.uHit.value = liquid ? 0 : s.hit; u.uFade.value = fade;
-      u.uGain.value = (liquid ? .55 : 1) * (cfg.tellGain || 1);
+      u.uGain.value = (liquid ? (h.poolGain || .55) : (h.tellGain || 1)) * (cfg.tellGain || 1) * (u.uStyle.value === 5 && u.uShape.value !== 0 ? .4 : 1);   // narrow 'shadow' lanes (shard volleys, pulses) would bloom to white: keep their light well under the bloom knee
       // Big areas (boss sweeps, rings) cover a lot of screen: their interior light is scaled down so it never reads as paint.
       const R = h.shape === 'line' ? Math.max(h.width, h.length * .35) : h.radius, big = clamp(2.8 / Math.max(.5, R), .38, 1);
-      u.uK.value.set(.07 * big, .08 * big, .30 * big, .6 * (.5 + .5 * big)); u.uF.value = .35 * big;
+      u.uK.value.set(.07 * big, .08 * big, .30 * big, .6 * (.5 + .5 * big)); u.uF.value = .35 * big; u.uHitK.value = .75 * (.35 + .65 * clamp((big - .38) / .62, 0, 1));
       // Gold edges read from the first moments of the warning; in the executioner's second phase (red court) the gold
       // edge and the pale unblockable hairline are lifted further so "gold = ordinary, crimson = severe" still holds.
       const unbT = u.uUnblock.value > .5, rs = h.owner && h.owner.boss && B.app && B.app.rig && B.app.rig.state, p2 = rs ? rs.phase2 || 0 : 0;
@@ -369,10 +370,10 @@ void main(){ vec2 p = (vUv-.5)*2.*uMax; float r = length(p), a = r > 1e-6 ? atan
     // ------------------------------------------------------------------ per-style particles (rates per second per tell)
     function emitFor(t, h, dt, factor, calm) {
       const e = out.emit; if (!e || dt <= 0 || !t.last) return;
-      const s = t.last, drift = calm ? .5 : 1, liquid = h.persistent && h.poison && h.active;
+      const s = t.last, drift = calm ? .5 : 1, liquid = h.persistent && (h.poison || h.pool) && h.active;
       const rate = (key, n, fn) => { t.acc[key] = (t.acc[key] || 0) + n * factor * dt; while (t.acc[key] >= 1) { t.acc[key] -= 1; fn(); } };
       const eFront = 1 - (1 - s.u) * (1 - s.u), front = Math.min(1, .1 + .96 * eFront), left = h.warn - h.age;
-      if (liquid) { rate('bub', 3, () => { const p = sample(h, 'in'); e(p.x, .06, p.z, 5, [.35, .6, .1], 0, .12 * drift, 0, .45, .05); }); return; }
+      if (liquid) { const pl = POOLS[h.pool], bc = pl ? pl.bub : [.35, .6, .1]; rate('bub', h.shape === 'ring' ? 0 : pl && h.pool === 'lava' ? 6 : 3, () => { const p = sample(h, 'in'); e(p.x, .06, p.z, h.pool === 'lava' ? 4 : 5, bc, 0, (h.pool === 'lava' ? .5 : .12) * drift, 0, .45, h.pool === 'lava' ? .045 : .05); }); return; }
       if (h.active) return;
       switch (h.style) {
         case 'blade': case 'grab':
@@ -418,6 +419,34 @@ void main(){ vec2 p = (vUv-.5)*2.*uMax; float r = length(p), a = r > 1e-6 ? atan
     // ------------------------------------------------------------------ attacker rims, weapon heat, glints
     const rims = new Map(), V1 = new T.Vector3(), V2 = new T.Vector3();
     const EXCLUDE = /kara-void|kara-paint|furfringe|hair|beard|lash|brow|eye/i;
+    // Rim shells of one foe: the two biggest skinned parts (and every plain weapon part) are merged into ONE shell draw each instead of two + one per weapon material.
+    // The merged geometry is built once per foe type (the source geometries are shared by all instances).
+    const rimGeoCache = new Map();
+    function rimGeometry(list, skinned) {
+      const key = (skinned ? 's' : 'w') + list.map(n => n.geometry.uuid).join();
+      let g = rimGeoCache.get(key); if (g) return g;
+      let total = 0, totalIndex = 0;
+      const geos = list.map(n => { const q = n.geometry; if (!q.index) { const c = q.attributes.position.count, id = new Uint32Array(c); for (let i = 0; i < c; i++) id[i] = i; q.setIndex(new T.BufferAttribute(id, 1)); } total += q.attributes.position.count; totalIndex += q.index.count; return q; });
+      const pos = new Float32Array(total * 3), nor = new Float32Array(total * 3), si = skinned ? new Uint16Array(total * 4) : null, sw = skinned ? new Float32Array(total * 4) : null, index = new Uint32Array(totalIndex);
+      let v = 0, k = 0;
+      for (const q of geos) {
+        const P = q.attributes.position, N = q.attributes.normal, I = q.index, c = P.count, SI = skinned && q.attributes.skinIndex, SW = skinned && q.attributes.skinWeight;
+        const plain = !P.isInterleavedBufferAttribute && !N.isInterleavedBufferAttribute && P.array instanceof Float32Array && N.array instanceof Float32Array && (!skinned || (!SI.isInterleavedBufferAttribute && !SW.isInterleavedBufferAttribute));
+        if (plain) { pos.set(P.array, v * 3); nor.set(N.array, v * 3); if (skinned) { si.set(SI.array, v * 4); sw.set(SW.array, v * 4); } }
+        else for (let i = 0; i < c; i++) {
+          const o = v + i; pos[o * 3] = P.getX(i); pos[o * 3 + 1] = P.getY(i); pos[o * 3 + 2] = P.getZ(i); nor[o * 3] = N.getX(i); nor[o * 3 + 1] = N.getY(i); nor[o * 3 + 2] = N.getZ(i);
+          if (skinned) for (let j = 0; j < 4; j++) { si[o * 4 + j] = SI.getComponent(i, j); sw[o * 4 + j] = SW.getComponent(i, j); }
+        }
+        for (let j = 0; j < I.count; j++) index[k + j] = I.getX(j) + v;
+        v += c; k += I.count;
+      }
+      g = new T.BufferGeometry(); g.setAttribute('position', new T.BufferAttribute(pos, 3)); g.setAttribute('normal', new T.BufferAttribute(nor, 3));
+      if (skinned) { g.setAttribute('skinIndex', new T.BufferAttribute(si, 4)); g.setAttribute('skinWeight', new T.BufferAttribute(sw, 4)); }
+      g.setIndex(new T.BufferAttribute(total > 65535 ? index : new Uint16Array(index), 1)); g.computeBoundingSphere();
+      rimGeoCache.set(key, g);
+      const R = B.app && B.app.renderer; if (R && R.initGeometry) try { R.initGeometry({ geometry: g }); } catch (e) { /* the first draw uploads it instead */ }
+      return g;
+    }
     function rimFor(model) {
       if (rims.has(model)) return rims.get(model);
       const color = { value: new T.Vector3(1.6, .7, .25) }, glow = { value: 0 }, wglow = { value: 0 }, vein = { value: 0 }, veinTime = { value: 0 };
@@ -425,11 +454,12 @@ void main(){ vec2 p = (vUv-.5)*2.*uMax; float r = length(p), a = r > 1e-6 ? atan
       model.root.traverse(n => { if (n.isSkinnedMesh && n.geometry && n.geometry.attributes.normal && !(n.material && (n.material.transparent || EXCLUDE.test(n.material.name || '') || EXCLUDE.test(n.name || '')))) list.push(n); });
       list.sort((a, b) => b.geometry.attributes.position.count - a.geometry.attributes.position.count);
       const shells = [];
-      for (const src of list.slice(0, 2)) {
+      const top = list.slice(0, 2), mergeBody = top.length === 2 && top[0].parent === top[1].parent && top[0].skeleton === top[1].skeleton && top[0].bindMatrix.equals(top[1].bindMatrix) && top[0].matrix.equals(top[1].matrix);
+      for (const src of (mergeBody ? [top[0]] : top)) {
         src.getWorldScale(V1);
         const mat = new T.ShaderMaterial({ vertexShader: RIM_VS, fragmentShader: RIM_FS, transparent: true, depthWrite: false, blending: T.AdditiveBlending, fog: false,
           uniforms: { uColor: color, uGlow: glow, uVein: vein, uVTime: veinTime, uP: { value: new T.Vector2(4, 0) }, uInflate: { value: .012 / Math.max(.001, V1.x) } } });
-        const s = new T.SkinnedMesh(src.geometry, mat); s.bind(src.skeleton, src.bindMatrix); s.bindMode = src.bindMode;
+        const s = new T.SkinnedMesh(mergeBody ? rimGeometry(top, true) : src.geometry, mat); s.bind(src.skeleton, src.bindMatrix); s.bindMode = src.bindMode;
         s.position.copy(src.position); s.quaternion.copy(src.quaternion); s.scale.copy(src.scale);
         // The shell has the source mesh's pose and parent space. Reuse its ready sorting bounds.
         s.boundingSphere = src.boundingSphere ? src.boundingSphere.clone() : null;
@@ -440,7 +470,8 @@ void main(){ vec2 p = (vUv-.5)*2.*uMax; float r = length(p), a = r > 1e-6 ? atan
       if (weapon) weapon.traverse(n => { if (n.isMesh && !n.isSkinnedMesh && !n.isInstancedMesh && n.geometry && n.geometry.attributes.normal && n.name !== 'rim_weapon') parts.push(n); });
       const wmat = new T.ShaderMaterial({ vertexShader: RIM_VS, fragmentShader: RIM_FS, transparent: true, depthWrite: false, blending: T.AdditiveBlending, fog: false,
         uniforms: { uColor: color, uGlow: wglow, uVein: vein, uVTime: veinTime, uP: { value: new T.Vector2(1.5, 0) }, uInflate: { value: .012 } } });
-      const wshells = parts.map(n => { const w = new T.Mesh(n.geometry, wmat); w.name = 'rim_weapon'; w.renderOrder = 3; w.frustumCulled = false; w.visible = false; w.castShadow = w.receiveShadow = false; w.userData.noGhost = true; n.add(w); return w; });
+      const mergeWeapon = parts.length > 1 && parts.every(n => n.parent === parts[0].parent && !n.userData.equipmentSlot && n.matrix.equals(parts[0].matrix));
+      const wshells = (mergeWeapon ? [parts[0]] : parts).map(n => { const w = new T.Mesh(mergeWeapon ? rimGeometry(parts, false) : n.geometry, wmat); w.name = 'rim_weapon'; w.renderOrder = 3; w.frustumCulled = false; w.visible = false; w.castShadow = w.receiveShadow = false; w.userData.noGhost = true; n.add(w); return w; });
       const r = { model, shells, wshells, color, glow, wglow, vein, veinTime, value: 0, target: [1.6, .7, .25], cur: [1.6, .7, .25], armed: parts.length > 0, wmat };
       rims.set(model, r); return r;
     }
@@ -478,14 +509,23 @@ void main(){ vec2 p = (vUv-.5)*2.*uMax; float r = length(p), a = r > 1e-6 ? atan
       enemyState.g = g; enemyState.flare = flare; enemyState.unb = unb; enemyState.pending = pending; enemyState.maxU = maxU; return enemyState;
     }
     function ownsBurst(list, e) { for (let i = 0; i < list.length; i++) if (list[i].owner === e && list[i].burst) return true; return false; }
+    const typeTell = {};   // strongest pending tell per enemy type this frame (drives the hot-iron / grave-crystal glow)
     function rimsStep(game, dt, calm) {
       for (const g of glints) { g.used = false; g.s.visible = false; }
+      for (const k in typeTell) typeTell[k] = 0;
       for (const e of game.enemies) {
         const model = e.model; if (!model || !model.root) continue;
         const visible = model.root.visible && (!e.dead || ownsBurst(game.hazards, e));
         if (!visible && !rims.has(model)) continue;
         const r = rimFor(model), st = visible ? enemyTell(e) : silentState;
         let g = st.g, col = st.unb ? CRIMSON_RIM : AMBER_RIM;
+        if (visible && !e.dead) {
+          // The glow follows the attacker's tell, and a boss burns hotter with every phase (armour breaking open, the fire rising).
+          const lit = e.boss && !st.pending ? (e.phase >= 3 ? .26 : e.phase === 2 ? .13 : 0) : st.g;
+          if (lit > (typeTell[e.type] || 0)) typeTell[e.type] = lit;
+        }
+        // Elites carry a faint steady rim (amber, crimson once enraged) so they read apart from the rank and file.
+        if (visible && !e.dead && e.elite && !e.boss && e.stats && (e.stats.ruins || e.stats.forge) && !st.pending && g < .045) { g = .045; col = AMBER_RIM; }
         if (e.dead && st.pending) col = BILE_RIM;
         if (!st.pending && !e.dead && visible) {
           if (e.buff > 0 && g < .08) { g = .08; col = CRIMSON_RIM; }                 // Kan Ayini made visible
@@ -611,10 +651,53 @@ void main(){ vec2 p = (vUv-.5)*2.*uMax; float r = length(p), a = r > 1e-6 ? atan
       rageWas = raging ? 1 : 0;
     }
 
+    // ------------------------------------------------------------------ chapter glow: hot iron breathes, grave crystal pulses, both flare with the attacker's tell
+    let glowList = null;
+    function glowPulse(dt, calm) {
+      if (!glowList) glowList = [].concat((B.RuinsModels && B.RuinsModels.glow) || [], (B.ForgeModels && B.ForgeModels.glow) || []);
+      for (let i = 0; i < glowList.length; i++) {
+        const o = glowList[i], boost = Math.min(1, (typeTell[o.type] || 0) * 3.2), breath = calm ? 1 : .88 + .12 * Math.sin(clock * (o.type === 'hollowking' || o.type === 'furnaceheart' ? 1.6 : 2.3) + i * 1.7);
+        o.mat.emissiveIntensity = o.base * breath * (1 + 1.1 * boost);
+      }
+    }
+
+    // ------------------------------------------------------------------ living air around the chapter III / IV creatures (pooled particles only)
+    // [kind, colour, per second, rise, life, size]: embers lift off forge units, violet motes off the grave casters, ash flakes off the rest.
+    const AMB = {
+      emberbound: [4, [2.2, .8, .25], 1.6, .5, 1.1, .04], chainseer: [4, [2.2, .8, .25], 1.4, .5, 1.1, .04], slagcrawler: [4, [2.4, .7, .2], 3.2, .6, .9, .04],
+      forgesentinel: [4, [2.2, .75, .22], 4, .6, 1.2, .045], ashwarden: [4, [2.2, .75, .22], 4, .6, 1.2, .045], furnaceheart: [4, [2.4, .8, .25], 12, .8, 1.4, .05],
+      shardseer: [4, [.9, .65, 2.2], 3, .35, 1.5, .04], hollowking: [4, [.9, .65, 2.2], 7, .4, 1.6, .05],
+      ashbound: [2, [.07, .06, .055], .8, .2, 1.6, .12], gravemason: [2, [.07, .06, .055], 1.2, .2, 1.6, .14], ruinwarden: [2, [.08, .065, .06], 2, .25, 1.7, .14], cavefang: [2, [.07, .06, .055], .8, .2, 1.4, .1]
+    };
+    function ambient(game, dt, factor, calm) {
+      if (!out.emit || !(dt > 0)) return;
+      const p = game.player;
+      for (const e of game.enemies) {
+        const a = AMB[e.type]; if (!a || e.dead || !e.model || !e.model.root.visible || !e.stats || !(e.stats.ruins || e.stats.forge)) continue;
+        if (Math.abs(e.x - p.x) > 18 || Math.abs(e.z - p.z) > 18) continue;
+        e._amb = (e._amb || 0) + a[2] * factor * dt * (calm ? .4 : 1) * (e.active ? 1.6 : 1);
+        while (e._amb >= 1) {
+          e._amb -= 1; const h = e.model.height || 2.3, ang = Math.random() * TAU, rr = .15 + Math.random() * .35;
+          out.emit(e.x + Math.sin(ang) * rr, h * (.25 + .65 * Math.random()), e.z + Math.cos(ang) * rr, a[0], a[1], (Math.random() - .5) * .3, a[3] * (.6 + .8 * Math.random()), (Math.random() - .5) * .3, a[4] * (.7 + .6 * Math.random()), a[5]);
+        }
+      }
+    }
+
+    // ------------------------------------------------------------------ wake-up of chapter III / IV bosses and elites: cracking floor + pooled wave (visual only, no combat timing)
+    function introWatch(game) {
+      const fxApi = B.Effects && B.Effects.current;
+      for (const e of game.enemies) {
+        if (!(e.boss || e.elite) || !e.stats || !(e.stats.ruins || e.stats.forge)) continue;
+        if (e.active && !e.dead) {
+          if (!e._introFx) { e._introFx = 1; if (fxApi && fxApi.burst && e.model && e.model.root && e.model.root.visible) try { fxApi.burst(e.boss ? 'bossPhase' : 'impact', { x: e.x, y: 1.4, z: e.z, radius: e.boss ? 5 : 3.2, intro: 1 }); } catch (err) { /* decoration only */ } }
+        } else if (!e.active) e._introFx = 0;
+      }
+    }
+
     // ------------------------------------------------------------------ warm-up: compile every new program before the first fight
     function warmUp(game) {
       const app = B.app; if (!app || !app.renderer || !app.scene || !app.camera) return false;
-      const t = tells[0], models = [game.player.model].concat(game.enemies.slice(0, 1).map(e => e.model));
+      const kinds = new Set(), t = tells[0], models = [game.player.model].concat(game.enemies.filter(e => e.model && !kinds.has(e.model.type) && kinds.add(e.model.type)).map(e => e.model));   // one foe of every type: the merged rim shells are built (and uploaded) before the first fight
       const hidden = [];
       t.mat.uniforms.uGain.value = 0; t.mesh.visible = true; t.ribMat.uniforms.uFade.value = 0; t.rib.visible = true; hidden.push(t.mesh, t.rib);
       for (const m of models) { const r = rimFor(m); r.glow.value = 0; r.wglow.value = 0; for (const s of r.shells.concat(r.wshells)) { s.visible = true; hidden.push(s); } }
@@ -659,7 +742,7 @@ void main(){ vec2 p = (vUv-.5)*2.*uMax; float r = length(p), a = r > 1e-6 ? atan
           if (k <= 0) free(t);
         }
       }
-      rimsStep(game, frameDt, calm); heroStep(game, frameDt, factor, calm); projectiles(game, factor); burstsStep(frameDt);
+      rimsStep(game, frameDt, calm); glowPulse(frameDt, calm); introWatch(game); ambient(game, frameDt, factor, calm); heroStep(game, frameDt, factor, calm); projectiles(game, factor); burstsStep(frameDt);
     }
     function commitSparks(h, factor) {
       const o = h.owner, e = out.emit; if (!o || !e || !o.model || o.dead) return;

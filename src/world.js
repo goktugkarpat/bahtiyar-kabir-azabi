@@ -418,6 +418,12 @@
         sickEmber: material(linear(.05, .08, .02), { emissive: '#7fbf2a', emissiveIntensity: 1.3, roughness: .9 }),
         sanctuary: material(linear(.5, .45, .33), { emissive: '#a38b52', emissiveIntensity: 0.35, metalness: 0.45, roughness: .5 })
       });
+      // Identity samplers: iron, brass and bone lack some of the scanned ARM / albedo maps. A 1x1 white map multiplies by exactly 1 (albedo, AO,
+      // roughness, metalness), but gives them the same sampler set as rust / wood, so they share one shader program (fewer program switches).
+      var whiteMap = new T.DataTexture(new Uint8Array([255, 255, 255, 255]), 1, 1, T.RGBAFormat); whiteMap.name = 'kara:white'; whiteMap.needsUpdate = true; textures.push(whiteMap);
+      if (!/[?&]nowhite/.test(location.search)) ['iron', 'brass', 'bone'].forEach(function (k) {
+        var m = materials[k]; if (!m.map) m.map = whiteMap; if (!m.aoMap) m.aoMap = whiteMap; if (!m.roughnessMap) m.roughnessMap = whiteMap; if (!m.metalnessMap) m.metalnessMap = whiteMap;
+      });
       // Fresh blood poured into the offering hall's carved star: brighter, faintly lit from within by its sheen.
       // (Only there: red rings elsewhere could be mistaken for attack warnings.)
       materials.bloodGroove = materials.groove.clone();
@@ -1854,14 +1860,78 @@
         }
         return indexedGeometries[name];
       }
+      // Shadow proxies: the static casters of a room (many materials, ~90 draws per shadow map) are also baked into ONE depth-only
+      // mesh per room/side. It is invisible in the main pass (post.js shows it only while a shadow map renders) and replaces the
+      // originals' castShadow on High, so each map draws a handful of static meshes instead of ~90 batches. Same triangles, same depth.
+      var proxyParts = Object.create(null), proxies = [], proxyOn = false, useShadowProxies = !/[?&]noproxy/.test(location.search);
+      BABA.shadowProxies = proxies;
+      function shadowSideOf(m) { return m.shadowSide !== null && m.shadowSide !== undefined ? m.shadowSide : m.side === T.FrontSide ? T.BackSide : m.side === T.BackSide ? T.FrontSide : T.DoubleSide; }
+      function proxyEligible(m) {
+        return !!m && !m.transparent && !m.alphaMap && !(m.alphaTest > 0) && !m.displacementMap && !m.isShaderMaterial && m.colorWrite !== false && !m.clippingPlanes && !m.clipShadows && m.visible !== false;
+      }
+      function collectProxy(b, matName, key) {
+        var m = materials[matName];
+        if (!castsStaticShadow(b) || !proxyEligible(m)) return false;
+        var side = shadowSideOf(m), pk = key.slice(key.lastIndexOf(':') + 1) + ':' + b.level + ':' + side;
+        var P = proxyParts[pk] || (proxyParts[pk] = { side: side, level: b.level, items: [] });
+        P.items.push({ geo: geometries[b.geo], tr: b.transforms }); return true;
+      }
+      function buildShadowProxies() {
+        var placeholders = {}, totalV = 0;
+        Object.keys(proxyParts).forEach(function (pk) {
+          var P = proxyParts[pk], nv = 0, ni = 0, k;
+          for (k = 0; k < P.items.length; k++) {
+            var g0 = P.items[k].geo; nv += g0.attributes.position.count * P.items[k].tr.length; ni += (g0.index ? g0.index.count : g0.attributes.position.count) * P.items[k].tr.length;
+          }
+          var pos = new Float32Array(nv * 3), idx = new Uint32Array(ni), vo = 0, io = 0;
+          P.items.forEach(function (it) {
+            var g = it.geo, pa = g.attributes.position, n = pa.count, lp = new Float32Array(n * 3), i, j;
+            for (i = 0; i < n; i++) { lp[i * 3] = pa.getX(i); lp[i * 3 + 1] = pa.getY(i); lp[i * 3 + 2] = pa.getZ(i); }
+            var ic = g.index ? g.index.count : n, li = new Uint32Array(ic);
+            for (i = 0; i < ic; i++) li[i] = g.index ? g.index.getX(i) : i;
+            it.tr.forEach(function (mt) {
+              var e = mt.elements, base = vo / 3;
+              var det = e[0] * (e[5] * e[10] - e[9] * e[6]) - e[4] * (e[1] * e[10] - e[9] * e[2]) + e[8] * (e[1] * e[6] - e[5] * e[2]);
+              for (i = 0; i < n; i++) {
+                var x = lp[i * 3], y = lp[i * 3 + 1], z = lp[i * 3 + 2];
+                pos[vo++] = e[0] * x + e[4] * y + e[8] * z + e[12]; pos[vo++] = e[1] * x + e[5] * y + e[9] * z + e[13]; pos[vo++] = e[2] * x + e[6] * y + e[10] * z + e[14];
+              }
+              if (det < 0) for (j = 0; j + 2 < ic; j += 3) { idx[io++] = base + li[j]; idx[io++] = base + li[j + 2]; idx[io++] = base + li[j + 1]; }
+              else for (j = 0; j < ic; j++) idx[io++] = base + li[j];
+            });
+          });
+          var geo = new T.BufferGeometry(); geo.setAttribute('position', new T.BufferAttribute(pos, 3)); geo.setIndex(new T.BufferAttribute(idx, 1));
+          geo.computeBoundingSphere(); uniqueGeometries.push(geo); totalV += nv;
+          var ph = placeholders[P.side] || (placeholders[P.side] = Object.assign(new T.MeshBasicMaterial({ color: 0 }), { shadowSide: P.side }));
+          var mesh = new T.Mesh(geo, ph); mesh.name = 'shadow-proxy:' + pk; mesh.castShadow = true; mesh.receiveShadow = false; mesh.visible = false; mesh.matrixAutoUpdate = false;
+          mesh.userData.zc = geo.boundingSphere.center.z; mesh.userData.zr = geo.boundingSphere.radius; mesh.userData.want = false; mesh.userData.level = P.level;
+          root.add(mesh); proxies.push(mesh);
+        });
+        proxyParts = null;
+        if (/[?&]proxylog/.test(location.search)) console.log('shadow proxies', proxies.length, 'vertices', totalV);
+      }
+      var proxyBudget = 0, proxyShadows = false, proxyForceOff = false;
+      function refreshProxyState() {
+        proxyOn = proxyBudget === 2 && proxyShadows && proxies.length > 0 && !proxyForceOff; cullDirty = true;
+        allBatches.forEach(function (mesh) { mesh.castShadow = proxyShadows && mesh.userData.baseCastShadow && !(proxyOn && mesh.userData.proxied); });
+        syncProxies();
+      }
+      BABA.setShadowProxies = function (on) { proxyForceOff = !on; refreshProxyState(); return proxyOn; };
+      function syncProxies() {
+        for (var i = 0; i < proxies.length; i++) {
+          var u = proxies[i].userData;
+          u.want = proxyOn && u.zc + u.zr > focus.z - 48 && u.zc - u.zr < focus.z + 26;
+        }
+      }
       Object.keys(batches).forEach(function (key) {
         var b = batches[key], matName = resolveMaterial(b.geo, b.mat);
+        var proxied = useShadowProxies && collectProxy(b, matName, key);
         if (multiDraw && !materials[matName].transparent && !materials[matName].isShaderMaterial) {
           var attrs = geometries[b.geo].attributes;
           var layout = Object.keys(attrs).sort().map(function (n) { var a = attrs[n]; return n + '/' + a.itemSize + '/' + a.normalized + '/' + a.array.constructor.name; }).join(',');
           var chunk = key.slice(key.lastIndexOf(':') + 1);
           var groupKey = matName + ':' + b.level + ':' + chunk + ':' + castsStaticShadow(b) + ':' + (b.mat !== 'fire' && b.mat !== 'hot') + ':' + layout;
-          if (!drawGroups[groupKey]) drawGroups[groupKey] = { mat: matName, level: b.level, cast: castsStaticShadow(b), receive: b.mat !== 'fire' && b.mat !== 'hot', parts: [] };
+          if (!drawGroups[groupKey]) drawGroups[groupKey] = { mat: matName, level: b.level, cast: castsStaticShadow(b), receive: b.mat !== 'fire' && b.mat !== 'hot', proxied: proxied, parts: [] };
           drawGroups[groupKey].parts.push({ name: key, batch: b });
           return;
         }
@@ -1876,7 +1946,7 @@
         if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
         mesh.castShadow = castsStaticShadow(b);
         mesh.receiveShadow = b.mat !== 'fire' && b.mat !== 'hot';
-        mesh.userData.baseCastShadow = mesh.castShadow;
+        mesh.userData.baseCastShadow = mesh.castShadow; mesh.userData.proxied = proxied;
         mesh.userData.detail = b.level;
         mesh.computeBoundingSphere();
         root.add(mesh);
@@ -1908,6 +1978,21 @@
           indexVersion = mesh.geometry.index ? mesh.geometry.index.version : -1;
         }
         rebuild();
+        var tmpMat = new T.Matrix4(), tmpFrustum = new T.Frustum(), tmpSphere = new T.Sphere();
+        // true when at least one active, visible instance (sphere inflated by margin) touches the frustum of viewProj; same bounds as onBeforeRender
+        mesh.userData.anyVisible = function (viewProj, margin) {
+          if (matrixVersion !== mesh._matricesTexture.version || positionVersion !== mesh.geometry.attributes.position.version
+            || indexVersion !== (mesh.geometry.index ? mesh.geometry.index.version : -1) || geometryIds.length !== mesh._instanceInfo.length) rebuild();
+          tmpFrustum.setFromProjectionMatrix(tmpMat.multiplyMatrices(viewProj, mesh.matrixWorld));
+          for (var i = 0; i < mesh._instanceInfo.length; i++) {
+            var instance = mesh._instanceInfo[i]; if (!instance.visible || !instance.active) continue;
+            if (geometryIds[i] !== instance.geometryIndex) writeBound(i);
+            var offset = i * 4;
+            tmpSphere.center.set(bounds[offset], bounds[offset + 1], bounds[offset + 2]); tmpSphere.radius = bounds[offset + 3] + margin;
+            if (tmpFrustum.intersectsSphere(tmpSphere)) return true;
+          }
+          return false;
+        };
         mesh.onBeforeRender = function (renderer, scene, camera, geometry, material, group) {
           if (this.sortObjects || !this.perObjectFrustumCulled || !this._matricesTexture || !this._indirectTexture
             || !this._indirectTexture.image || !this._indirectTexture.image.data || !geometry.attributes.position) {
@@ -1961,15 +2046,16 @@
             // Match the old InstancedMesh's Float32 transform and union order, so range visibility is identical.
             mesh.getMatrixAt(id, matrix); pieceSphere.copy(g.boundingSphere).applyMatrix4(matrix); sphere.union(pieceSphere);
           }
-          ranges.push({ name: p.name, start: start, count: b.transforms.length, zc: sphere.radius > 60 ? null : sphere.center.z, zr: sphere.radius, visible: null });
+          ranges.push({ name: p.name, start: start, count: b.transforms.length, zc: sphere.radius > 60 ? null : sphere.center.z, zr: sphere.radius, cx: sphere.center.x, cy: sphere.center.y, cz: sphere.center.z, visible: null });
         });
         mesh.castShadow = group.cast; mesh.receiveShadow = group.receive;
-        mesh.userData.baseCastShadow = group.cast; mesh.userData.detail = group.level; mesh.userData.batchRanges = ranges;
+        mesh.userData.baseCastShadow = group.cast; mesh.userData.proxied = !!group.proxied; mesh.userData.detail = group.level; mesh.userData.batchRanges = ranges;
         cacheStaticBounds(mesh);
         mesh.computeBoundingSphere(); root.add(mesh); allBatches.push(mesh);
         if (group.level) decorationBatches.push(mesh);
       });
       drawGroups = null;
+      buildShadowProxies();
       batches = null;
       Object.keys(decalBatches).forEach(function (key) {
         var b = decalBatches[key], n = b.transforms.length, g = geometries.plane.clone(), cellAttr = new Float32Array(n * 2);
@@ -2091,6 +2177,9 @@
       var lightGain = 1, reducedMotion = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
       var focus = { x: spawn.x, z: spawn.z }, lastTime = 0;
       var ranked = [], shadowRanked = [];
+      var holdStamp = 0;
+      function byScore(a, b) { return b.score - a.score; }
+      function byShadowScore(a, b) { return b.sscore - a.sscore; }
       function fadeSlots(slots, wanted, fade, onAssign) {
         var wantedSet = new Set(wanted), assigned = new Set();
         slots.forEach(function (slot) {
@@ -2110,15 +2199,20 @@
         liveSources(t);
         var fx = focus.x, fz = focus.z - 2.5;
         ranked.length = 0; shadowRanked.length = 0;
-        for (var i = 0; i < lightSources.length; i++) {
+        // Holders of a pool slot / shadow spot rank x1.3 (hysteresis): two similar torches never trade places back and forth.
+        var i, hold = ++holdStamp;
+        for (i = 0; i < poolLights.length; i++) if (poolLights[i].source) poolLights[i].source.poolHeld = hold;
+        for (i = 0; i < spotSlots.length; i++) if (spotSlots[i].source) spotSlots[i].source.spotHeld = hold;
+        for (i = 0; i < lightSources.length; i++) {
           var s = lightSources[i], dx = s.x - fx, dz = s.z - fz, d2 = dx * dx + dz * dz * .8, gg = groupGain(s.group);
           if (d2 > 900 || gg <= .01) { s.score = 0; continue; }
-          s.score = s.intensity * Math.min(1.5, gg) * s.distance / (1 + d2 / 18);
+          s.score0 = s.intensity * Math.min(1.5, gg) * s.distance / (1 + d2 / 18);
+          s.score = s.score0 * (s.poolHeld === hold ? 1.3 : 1);
           ranked.push(s);
-          if (s.shadowNear && d2 < 150) shadowRanked.push(s);
+          if (s.shadowNear && d2 < 150) { s.sscore = s.score0 * (s.spotHeld === hold ? 1.3 : 1); shadowRanked.push(s); }
         }
-        ranked.sort(function (a, b) { return b.score - a.score; });
-        shadowRanked.sort(function (a, b) { return b.score - a.score; });
+        ranked.sort(byScore);
+        shadowRanked.sort(byShadowScore);
         var fade = Math.min(1, dt * 3.5);
         fadeSlots(poolLights, ranked.slice(0, poolSize), fade, function (slot, s) { slot.light.distance = s.distance; });
         fadeSlots(spotSlots, shadowRanked.slice(0, spotCount), fade * .8, function (slot, s) {
@@ -2458,7 +2552,7 @@
         moteSys.points.visible = flySys.points.visible = dripSys.points.visible = particlesEnabled && level >= 2;
         shaftMesh.visible = level >= 1;
         var shadows = settings.shadows !== false && settings.shadows !== 0;
-        allBatches.forEach(function (mesh) { mesh.castShadow = shadows && mesh.userData.baseCastShadow; });
+        proxyBudget = budget; proxyShadows = shadows; refreshProxyState();
         occluders.forEach(function (mesh) { mesh.castShadow = shadows; });
         var wantLow = level === 0;
         if (wantLow !== lowShader) {
@@ -2493,6 +2587,30 @@
         rangeTargets.push(m);
       });
       decorationBatches.forEach(function (m) { if (rangeTargets.indexOf(m) < 0) rangeTargets.push(m), m.userData.zc = null; });
+      // Static multi-draw groups that have no instance inside the camera frustum still cost a full draw submission (program, uniforms,
+      // VAO) for zero triangles (about 25 per frame in a fight). Before the scene is projected (scene.onBeforeRender: exact camera, no
+      // one-frame lag) the groups that cast no shadow and have no in-view instance are hidden. Instance bounds are the ones the group's
+      // own per-instance culling uses (+3 m margin); the result is reused until the camera moves a metre or turns, or the ranges change.
+      var cullMat = new T.Matrix4(), cullPos = new T.Vector3(), cullDir = new T.Vector3(), cullLastPos = new T.Vector3(1e9, 1e9, 1e9), cullLastDir = new T.Vector3(), cullCam = null, cullPx = 0, cullPy = 0, cullDirty = true, cullOff = /[?&]nobatchcull/.test(location.search);
+      BABA.setBatchCull = function (on) { cullOff = !on; cullDirty = true; return !cullOff; };
+      function cullBatchGroups(camera) {
+        var i, m, ud;
+        if (!camera || !camera.projectionMatrix) return;
+        if (cullOff) { if (cullDirty) { cullDirty = false; for (i = 0; i < rangeTargets.length; i++) { ud = rangeTargets[i].userData; if (ud.batchRanges && ud.rangeVisible !== undefined) rangeTargets[i].visible = ud.rangeVisible; } } return; }
+        cullPos.setFromMatrixPosition(camera.matrixWorld); camera.getWorldDirection(cullDir);
+        var pe = camera.projectionMatrix.elements;
+        if (!cullDirty && camera === cullCam && pe[0] === cullPx && pe[5] === cullPy && cullPos.distanceToSquared(cullLastPos) < 1 && cullDir.dot(cullLastDir) > .9998) return;
+        cullDirty = false; cullCam = camera; cullPx = pe[0]; cullPy = pe[5]; cullLastPos.copy(cullPos); cullLastDir.copy(cullDir);
+        cullMat.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+        for (i = 0; i < rangeTargets.length; i++) {
+          m = rangeTargets[i]; ud = m.userData;
+          if (!ud.batchRanges || ud.rangeVisible === undefined) continue;
+          m.visible = ud.rangeVisible && (m.castShadow || !ud.anyVisible || ud.anyVisible(cullMat, 3));
+        }
+      }
+      scene.onBeforeRender = (function (before) {
+        return function (renderer, s, camera) { if (before) before.apply(this, arguments); if (!isDisposed) cullBatchGroups(camera); };
+      })(scene.onBeforeRender && scene.onBeforeRender !== T.Object3D.prototype.onBeforeRender ? scene.onBeforeRender : null);
       function applyRange(force) {
         if (!force && rangeZ !== null && Math.abs(rangeZ - focus.z) < 1.5) return;
         rangeZ = focus.z;
@@ -2505,11 +2623,12 @@
               if (r.visible !== visible) { for (var i = r.start, end = i + r.count; i < end; i++) m.setVisibleAt(i, visible); r.visible = visible; }
               any = any || visible;
             });
-            m.visible = any; return;
+            m.visible = any; m.userData.rangeVisible = any; cullDirty = true; return;
           }
           if (ok && m.userData.zc != null) ok = m.userData.zc + m.userData.zr > focus.z - 48 && m.userData.zc - m.userData.zr < focus.z + 26;
           m.visible = ok;
         });
+        syncProxies();
       }
       // Pendulum swing of hung fires; their flame card and light source follow the chain's end.
       function updateSwings(time) {

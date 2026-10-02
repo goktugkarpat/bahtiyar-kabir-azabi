@@ -25,7 +25,7 @@
   const orig = g => (g.userData && g.userData.limbOrig) || g;
 
   // ------------------------------------------------------------------ cut geometry (cached per foe type and cut point)
-  function skinnedList(model) { const list = []; model.root.traverse(n => { if (n.isSkinnedMesh && n.name !== 'rim_shell') list.push(n); }); return list; }
+  function skinnedList(model) { const list = []; model.root.traverse(n => { if (n.isSkinnedMesh && n.name !== 'rim_shell' && !n.userData.shadowProxy) list.push(n); }); return list; }
   function hash01(n) { const s = Math.sin(n * 127.1 + 311.7) * 43758.5453; return s - Math.floor(s); }
 
   function skinFor(geo, v, out) {   // top-4 bone weights of vertex v as [i0..i3, w0..w3]
@@ -279,6 +279,7 @@
       if (cut === undefined) { cut = buildCut(model, skeleton, roleId, ri); cache.set(key, cut); }
       if (!cut) return false;
       const info = enemy._limb || (enemy._limb = { cuts: [], caps: [], g2: [], weaponHidden: null, animate: null, t: 0, spasm: null });
+      if (model.shadowProxyHold) model.shadowProxyHold(true);   // the merged shadow proxy still has the limb: the cut body casts through its own parts again
       // corpse: drop the triangles (index copy per foe), cap the stump
       cut.parts.forEach(part => {
         const mesh = list[part.mi]; if (!mesh) return;
@@ -290,7 +291,7 @@
       });
       // the lower halves of the triangles the plane crossed, and the flesh cap, as skinned meshes on the corpse's own skeleton
       const first = list[0], addStump = (geo, material, name) => {
-        const m = new T.SkinnedMesh(geo, material); m.bind(first.skeleton, first.bindMatrix); m.frustumCulled = false; m.castShadow = m.receiveShadow = true; m.name = name;
+        const m = new T.SkinnedMesh(geo, material); m.bind(first.skeleton, first.bindMatrix); m.frustumCulled = false; m.castShadow = false; m.receiveShadow = true; m.name = name;   // a few-centimetre stump casts no shadow of its own (the corpse's shadow already holds it)
         // Same skeleton, bind matrix and parent space: keep the actor's conservative bounds for renderer sorting.
         const h = model.height || 2.2; m.boundingSphere = first.boundingSphere ? first.boundingSphere.clone() : new T.Sphere(new T.Vector3(0, h * .5, 0), h * 1.1);
         first.parent.add(m); info.caps.push(m);
@@ -335,7 +336,7 @@
       if (cut.pieceCap) { s.cap.geometry = cut.pieceCap; s.cap.visible = true; } else s.cap.visible = false;
       if (holdsWeapon) {
         wep.updateWorldMatrix(true, true); s.weaponFrozen.copy(wep.matrixWorld);
-        const clone = wep.clone(true); clone.matrixAutoUpdate = false; clone.visible = true; clone.traverse(n => { n.matrixAutoUpdate = false; });
+        const clone = wep.clone(true); clone.matrixAutoUpdate = false; clone.visible = true; clone.traverse(n => { n.matrixAutoUpdate = false; if (n.userData.proxyCast) n.castShadow = true; if (n.userData.shadowProxy) n.castShadow = false; });
         if (s.weapon) s.g.remove(s.weapon); s.weapon = clone; s.g.add(clone); info.weaponHidden = wep; wep.visible = false;
         // the clone keeps the local matrices of its children; only the top matrix is driven
         clone.matrixAutoUpdate = false;
@@ -494,6 +495,7 @@
         model.root.traverse(n => { if (n.isSkinnedMesh && n.geometry === g2) n.geometry = base; });
       });
       info.caps.forEach(c => c.removeFromParent());
+      if (model.shadowProxyHold) model.shadowProxyHold(false);
       if (info.weaponHidden) info.weaponHidden.visible = true;
       if (info.animate) model.animate = info.animate;
       enemy._limb = null;

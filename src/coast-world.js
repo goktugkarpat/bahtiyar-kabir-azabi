@@ -276,7 +276,7 @@
       for (var f = 0; f < 120; f++) actor.animate(1 / 60, {dead:true,move:0,time:f/60,phase:'dead'});
       actor.root.updateMatrixWorld(true); actor.root.traverse(function (n) { if (n.isSkinnedMesh) n.skeleton.update(); });
       actor.root.traverse(function(n) {
-        if (!n.isSkinnedMesh) return;
+        if (!n.isSkinnedMesh || n.userData.shadowProxy) return;
         var g = n.geometry.clone(), p = g.attributes.position;
         for (var i=0;i<p.count;i++){ vv.fromBufferAttribute(p,i); n.applyBoneTransform(i,vv); vv.applyMatrix4(n.matrixWorld); p.setXYZ(i,vv.x,vv.y,vv.z); }
         g.deleteAttribute('skinIndex');g.deleteAttribute('skinWeight');g.deleteAttribute('tangent');g.computeVertexNormals();
@@ -528,6 +528,8 @@
       mix = mix * mix * (3 - 2 * mix); Object.keys(cooked[a]).forEach(function (k) { var va = cooked[a][k], vb = cooked[b][k]; if (va && va.isColor || va && va.isVector3) atmo[k].copy(va).lerp(vb, mix); else if (Array.isArray(va)) for (var j = 0; j < va.length; j++) atmo[k][j] = va[j] + (vb[j] - va[j]) * mix; else atmo[k] = va + (vb - va) * mix; }); atmo.room = mix < .5 ? a : b; atmo.saturation = atmo.sat; return atmo;
     }
     var groupGain = {}, fxLight = null, nearby = [];
+    var lampSlots = [{ src: null, w: 0 }, { src: null, w: 0 }, { src: null, w: 0 }], pxGain = 0;
+    function byLampEff(a, b) { return b.cEff - a.cEff; }
     function setGroup(name, value) { groupGain[name] = value; }
     function update(dt, time, player) {
       expansion.update(player);
@@ -536,10 +538,18 @@
       animated.forEach(function (a) { if (calm) return; if (a.boat) {var wave=seaStateAt(a.object.position.x,a.object.position.z,time);a.object.position.y=a.y+wave.x*.45;a.object.rotation.z=a.roll+wave.y*.18;a.object.rotation.x=-wave.z*.18;} else if (a.foam){var wash=.5+.5*Math.sin(time*.85+a.phase);a.object.position.x=a.x+wash*.38;a.object.position.y=-.38+wash*.035;} });
       ash.position.x = calm ? 0 : Math.sin(time * .09) * .3;
       nearby.length = 0;
-      for (var i = 0; i < lightSources.length; i++) { var s = lightSources[i]; s.live = Math.max(.1, groupGain[s.group] == null ? 1 : groupGain[s.group]); s.distance = Math.hypot(s.x - p.x, s.z - p.z); if (s.distance < 18) nearby.push(s); }
-      nearby.sort(function (a, b) { return a.distance - b.distance; });
-      for (var j = 0; j < lights.length; j++) { var l = lights[j], s = nearby[j]; l.visible = quality !== 'low'; l.intensity = 0; if (s) { l.position.set(s.x, s.y, s.z); l.color.copy(s.color); l.intensity = s.intensity * s.live; } }
-      px.position.set(p.x, 1.8, p.z); px.intensity = .24 + (fxLight ? fxLight.gain || .5 : 0);
+      for (var i = 0; i < lightSources.length; i++) { var s = lightSources[i]; s.live = Math.max(.1, groupGain[s.group] == null ? 1 : groupGain[s.group]); s.distance = Math.hypot(s.x - p.x, s.z - p.z); if (s.distance < 18) { s.cHeld = false; s.cEff = s.intensity * s.live / (1 + s.distance * s.distance / 30); nearby.push(s); } }
+      // Three pooled lamps with eased hand-offs (they used to jump to the new source in one frame) and a x1.35 lead needed to take a slot over its holder.
+      var k, sl;
+      for (k = 0; k < 3; k++) if (lampSlots[k].src) lampSlots[k].src.cHeld = true;
+      for (i = 0; i < nearby.length; i++) if (nearby[i].cHeld) nearby[i].cEff *= 1.35;
+      nearby.sort(byLampEff);
+      for (k = 0; k < 3; k++) { sl = lampSlots[k]; if (!sl.src) continue; var ix = nearby.indexOf(sl.src); sl.w = ix >= 0 && ix < 3 ? Math.min(1, sl.w + dt * 3.6) : Math.max(0, sl.w - dt * 4.2); if (sl.w <= 0) sl.src = null; }
+      for (k = 0; k < 3; k++) { if (lampSlots[k].src) continue; for (var j = 0; j < 3 && j < nearby.length; j++) { var c = nearby[j], taken = false; for (var q = 0; q < 3; q++) if (lampSlots[q].src === c) taken = true; if (!taken) { lampSlots[k].src = c; lampSlots[k].w = 0; break; } } }
+      for (k = 0; k < lights.length; k++) { var l = lights[k]; sl = lampSlots[k]; s = sl.src; l.visible = quality !== 'low'; l.intensity = 0; if (s) { l.position.set(s.x, s.y, s.z); l.color.copy(s.color); l.intensity = s.intensity * s.live * sl.w * sl.w * (3 - 2 * sl.w); } }
+      // the hero's own light eases into / out of the borrowed skill light instead of stepping by +.5
+      pxGain += ((fxLight ? fxLight.gain || .5 : 0) - pxGain) * Math.min(1, dt * 14);
+      px.position.set(p.x, 1.8, p.z); px.intensity = .24 + pxGain;
     }
     function setQuality(cfg) { quality = typeof cfg === 'string' ? cfg : cfg.quality || cfg.preset || 'high'; ash.visible = quality !== 'low'; }
     function dispose() { if (disposed) return; disposed = true; expansion.dispose(); scene.remove(root); root.traverse(function (n) { if (n.isInstancedMesh) n.dispose(); }); geometries.forEach(function (g) { g.dispose(); }); Object.keys(materials).forEach(function (k) { materials[k].dispose(); }); textures.forEach(function (t) { t.dispose(); }); root.clear(); }

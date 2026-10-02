@@ -2,40 +2,109 @@
 (function () {
   'use strict';
   const B = window.BABA = window.BABA || {};
-  const MAX_LEVEL = 12, VERSION = 2;
+  const MAX_LEVEL = 12, VERSION = 2, SKILL_TREE = 2;   // SKILL_TREE 2: four lines x three tiers; older saves carry no skillTree field and are migrated in restore()
   const POINTS = Object.freeze([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
   const LEGACY_THRESHOLDS = Object.freeze([0, 40, 100, 350, 850, 1450, 2000]);
   // Expanded route: ~60 temple foes, ~59 coastal foes, then ~60 ruin/cave and ~60 forge foes.
   // Final chapter skills arrive before the forge boss on a mostly-cleared route.
+  // Active skill slots: right mouse, key 1, key 2, key 3 (round 7; saves with a 3-entry loadout load with the 4th slot empty / auto-filled).
+  const SLOT_COUNT = 4;
   const THRESHOLDS = Object.freeze([0, 60, 160, 550, 1200, 2100, 3200, 4600, 6000, 7600, 11000, 13000]);
   const MILESTONES = Object.freeze([5, 8, 10, 12]);
   const chapterId = n => Number.isInteger(n) && n >= 1 && n <= 4 ? n : 1;
+  // Skill tree: 4 lines (columns), 3 tiers each (rows). A lower tier REPLACES its predecessor in the slot it is learned into.
+  // line: 'cleave' heavy strike | 'roar' war cry | 'whirl' chain whirlwind | 'charge' dash. params feed combat.js, so numbers in
+  // the UI and in the fight are one source. cost is stamina out of 100, cooldown in seconds. `new` lists the highlighted changes.
+  const LINES = Object.freeze([
+    { id: 'cleave', name: 'KÜLÜN ÇELİĞİ', short: 'Sert vuruş', color: '#d9884b' },
+    { id: 'roar', name: 'KANIN YEMİNİ', short: 'Nida', color: '#c8473f' },
+    { id: 'whirl', name: 'MEZARIN ZİNCİRİ', short: 'Kasırga', color: '#7f9fbd' },
+    { id: 'charge', name: 'KARA ADIM', short: 'Hücum', color: '#c9a45a' }
+  ]);
   const skills = Object.freeze([
-    { id: 'cleave', name: 'Mezar Yaran', level: 2, requires: null, branch: 0, cost: 22, cooldown: 3,
-      description: 'Kızıl bir yarım ayla önündeki düşmanları yar. Ağır silah darbesi gardı kırar.' },
-    { id: 'roar', name: 'Kan Nidası', level: 2, requires: null, branch: 1, cost: 35, cooldown: 20,
-      description: 'Kanlı bir şok dalgasıyla düşmanları sars; kısa süre saldırırken can kazan.' },
-    { id: 'whirl', name: 'Zincir Kasırgası', level: 3, requires: null, branch: 2, cost: 40, cooldown: 8,
-      description: 'Kızıl zincirlerden bir kasırga içinde dönerek çevrendeki düşmanlara dört kez vur.' },
-    { id: 'charge', name: 'Kül Hücumu', level: 5, requires: 'cleave', branch: 0, cost: 30, cooldown: 7,
-      description: 'Kül ve kıvılcımlar içinde ileri atıl; dar bir hatta düşmanları delip geç.' },
-    { id: 'quake', name: 'Kabir Darbesi', level: 6, requires: 'roar', branch: 1, cost: 38, cooldown: 10,
-      description: 'Silahını yere indir; mezar çatlakları çevrene yayılıp düşmanları sarsar.' },
-    { id: 'reap', name: 'Ölüm Biçeni', level: 7, requires: 'whirl', branch: 2, cost: 42, cooldown: 12,
-      description: 'Üç hayalet hilalle önündeki düşmanları tek bir dalgada biç.' },
-    { id: 'brand', name: 'Kül Mührü', level: 8, requires: 'charge', branch: 0, cost: 34, cooldown: 9,
-      description: 'Önündeki zemine kızgın bir mühür bas. Kısa bir gecikmeden sonra geniş bir kül patlaması düşmanları vurur.' },
-    { id: 'grasp', name: 'Mezar Pençesi', level: 9, requires: 'quake', branch: 1, cost: 36, cooldown: 11,
-      description: 'Önündeki düşmanları mezar zincirleriyle yarala ve yakına çek. Zincirler duvarların içinden geçmez.' },
-    { id: 'rend', name: 'Son Hüküm', level: 10, requires: 'reap', branch: 2, cost: 48, cooldown: 14,
-      description: 'Önüne art arda üç uzun, dar ölüm dalgası gönder. Her dalga yolundaki düşmanları yeniden yaralar.' }
-,
-    { id: "temper", name: "Ocak Öfkesi", level: 11, requires: "brand", branch: 0, cost: 42, cooldown: 15,
-      description: "Önüne geniş bir kızgın alev yelpazesi savur. Ocak ateşi konideki düşmanları tek ağır darbeyle kavurur." },
-    { id: "chainstorm", name: "Zincir Mahşeri", level: 12, requires: "grasp", branch: 1, cost: 52, cooldown: 18,
-      description: "Çevrene art arda üç genişleyen zincir halkası gönder. Her halka yalnız geçtiği kuşaktaki düşmanları yaralar." }
-  ].map(s => Object.freeze(Object.assign({},s,{cost:s.cost*100/110}))));
+    { id: 'cleave', name: 'Mezar Yaran', line: 'cleave', tier: 1, level: 2, requires: null, branch: 0, cost: 22, cooldown: 4,
+      params: { damage: 78, radius: 3.7, arc: 3.65, stun: .55 },
+      description: 'Kızıl bir yarım ayla önündeki düşmanları yar. Ağır darbe gardı kırar.', delta: '' },
+    { id: 'brand', name: 'Kemik Kıran', line: 'cleave', tier: 2, level: 7, requires: 'cleave', branch: 0, cost: 33, cooldown: 6,
+      params: { damage: 106, radius: 4.5, reach: 4.2, duration: 1.05, strike: .72, stun: 1.1 },
+      description: 'Silahı başının üstüne kaldırıp önündeki zemine var gücüyle indir. Kehribar rengi bir şok halkası ve zemin yarıkları düşmanları ezer, sersemletir.', delta: 'Tepeden ezme: daha çok hasar, geniş şok halkası, uzun sersemletme.' },
+    { id: 'temper', name: 'Kabir Balyozu', line: 'cleave', tier: 3, level: 11, requires: 'brand', branch: 0, cost: 44, cooldown: 8,
+      params: { damage: 140, radius: 7, arc: 2.5, duration: 1.25, strike: .7, stun: 1.7 },
+      description: 'Havaya sıçra ve balyoz gibi yere in. Zemin kara-mor yarıklarla çatlar; önündeki geniş koninin içindeki düşmanlar ezilir ve yere devrilir.', delta: 'Sıçrayışlı yer darbesi: çok geniş koni, en yüksek hasar, en uzun sersemletme.' },
+    { id: 'roar', name: 'Kan Nidası', line: 'roar', tier: 1, level: 2, requires: null, branch: 1, cost: 34, cooldown: 22,
+      params: { near: 6.5, far: 10, time: 11, guard: .75, steal: .04, stun: 1.35, fear: 2.2, damage: 0, waves: 1 },
+      description: 'Kanlı bir şok dalgasıyla düşmanları sars; kısa süre saldırırken can kazan.', delta: '' },
+    { id: 'quake', name: 'Ölüm Çığlığı', line: 'roar', tier: 2, level: 6, requires: 'roar', branch: 1, cost: 45, cooldown: 27,
+      params: { near: 8.4, far: 13, time: 14.5, guard: .68, steal: .06, stun: 1.9, fear: 3, damage: 44, waves: 1 },
+      description: 'Başını geriye atıp çığlık at: kemik beyazı ve kehribar şok halkaları yayılır, zemin yarılır, sarsılan düşmanlar hasar görür ve titrer. Öfke daha uzun sürer.', delta: 'Çığlık: daha geniş halkalar, hasar, daha uzun öfke ve can çalma.' },
+    { id: 'chainstorm', name: 'Kıyamet Narası', line: 'roar', tier: 3, level: 12, requires: 'quake', branch: 1, cost: 56, cooldown: 34,
+      params: { near: 11, far: 16, time: 18, guard: .6, steal: .09, stun: 2.5, fear: 3.8, damage: 52, waves: 3, waveDamage: 38 },
+      description: 'İki aşamalı kıyamet narası: yer yarılır, kızıl bir köz sütunu yükselir ve üç halka art arda yayılır. Her halka düşmanları yeniden sarsıp yaralar; öfken çok uzun ve güçlü sürer.', delta: 'İki aşamalı nara, üç halka, en geniş alan, en uzun ve güçlü öfke.' },
+    { id: 'whirl', name: 'Zincir Kasırgası', line: 'whirl', tier: 1, level: 3, requires: null, branch: 2, cost: 36, cooldown: 8,
+      params: { ticks: 4, damage: 33, radius: 3.6, first: .15, gap: .28, duration: 1.3, stun: .6, stunLast: 1.15, pull: .45, fling: .9, grow: 1, turns: 2, move: .6 },
+      description: 'Kızıl zincirlerden bir kasırga içinde dönerek çevrendeki düşmanlara dört kez vur.', delta: '' },
+    { id: 'reap', name: 'Ölüm Biçeni', line: 'whirl', tier: 2, level: 7, requires: 'whirl', branch: 2, cost: 54, cooldown: 11,
+      params: { ticks: 5, damage: 36, radius: 4.8, first: .15, gap: .27, duration: 1.6, stun: .7, stunLast: 1.5, pull: 1.1, fling: 1.8, grow: 1, turns: 4, move: .65 },
+      description: 'Zincirler uzun, parlak orak yaylarına dönüşür: yerde altın bir biçme izi bırakır, beş vuruş vurur, düşmanları içeri çeker. Son vuruş onları uzağa savurur.', delta: 'Beş vuruş, daha geniş çember, daha sert çekiş ve savurma.' },
+    { id: 'rend', name: 'Son Hüküm', line: 'whirl', tier: 3, level: 10, requires: 'reap', branch: 2, cost: 74, cooldown: 15,
+      params: { ticks: 7, damage: 35, radius: 6.2, first: .12, gap: .24, duration: 2.05, stun: .85, stunLast: 2, pull: 1.9, fling: 3.4, grow: .68, turns: 6, move: .7 },
+      description: 'Zincirler mor ateşli bir ölüm fırtınasına dönüşür: başta yer çatlar, çember dönerken genişler, yedi vuruş vurur. Son vuruş yeri sarsar ve düşmanları fırlatır.', delta: 'Yedi vuruş, genişleyen en büyük çember, en güçlü çekiş, sarsıcı son vuruş.' },
+    { id: 'charge', name: 'Kül Hücumu', line: 'charge', tier: 1, level: 5, requires: null, branch: 3, cost: 30, cooldown: 7,
+      params: { range: 8, speed: 20, damage: 86, ringMul: .55, radius: 2.6, stun: 1.4, width: 1.5, pathDamage: 0, shove: 0, knock: 2.6, hitStop: .07, pull: 0, impacts: 1 },
+      description: 'Fare imlecine doğru kül ve kıvılcımlar içinde atıl. Yoldakileri it, varınca yere çarpıp çevrendekileri sersemlet.', delta: '' },
+    { id: 'grasp', name: 'Kor Hücumu', line: 'charge', tier: 2, level: 9, requires: 'charge', branch: 3, cost: 46, cooldown: 10,
+      params: { range: 11, speed: 27, damage: 116, ringMul: .55, radius: 3.8, stun: 1.9, width: 2.4, pathDamage: 26, shove: 3.6, knock: 3.6, hitStop: .09, pull: 2.4, impacts: 1 },
+      description: 'Omzunu öne verip kor gibi parlayan bir iz bırakarak koş: yoldaki düşmanları kıvılcımlarla yana devirir, varışta yer çatlaklarla yarılır ve düşmanlar çarpma noktasına çekilir.', delta: 'Daha uzun ve hızlı atılış, yoldakileri devirir, çatlak açan daha büyük çarpma.' },
+    { id: 'havoc', name: 'Mahşer Hücumu', line: 'charge', tier: 3, level: 12, requires: 'grasp', branch: 3, cost: 66, cooldown: 14,
+      params: { range: 14, speed: 32, damage: 160, ringMul: .55, radius: 5, stun: 2.6, width: 3.4, pathDamage: 44, shove: 6.5, knock: 4.8, hitStop: .12, pull: 3.6, impacts: 2, damage2: 110, radius2: 6.6 },
+      description: 'Kükreyip koç gibi atıl: geniş, karanlık bir iz bırakır, yoldakileri havaya fırlatır. Varışta yer iki kez çatlar; ikinci çarpma daha ağırdır ve sersemletir.', delta: 'Çifte çarpma, yoldakileri fırlatır, en geniş alan ve en uzun sersemletme.' }
+  ].map(s => Object.freeze(Object.assign({}, s, { params: Object.freeze(s.params), cost: s.cost }))));
   const skillIndex = Object.fromEntries(skills.map(s => [s.id, s]));
+  const skillsByLine = line => skills.filter(s => s.line === line).sort((a, b) => a.tier - b.tier);
+  // Numbers shown on the tree page and in tooltips: [label, text]. Same params the fight uses.
+  const num = n => String(Number(n.toFixed(2))).replace('.', ',');
+  function skillFacts(s) {
+    const p = s.params, out = [];
+    if (s.line === 'cleave') {
+      out.push(['Hasar', String(p.damage)], ['Alan', num(p.radius) + ' m'], ['Sersemletme', num(p.stun) + ' sn']);
+    } else if (s.line === 'roar') {
+      out.push(['Sarsma alanı', num(p.near) + ' m'], ['Korkutma alanı', num(p.far) + ' m'], ['Hasar', p.damage ? (p.waves > 1 ? p.damage + ' + ' + (p.waves - 1) + '×' + p.waveDamage : String(p.damage)) : '—'],
+        ['Öfke süresi', num(p.time) + ' sn'], ['Hasar azaltma', '%' + Math.round((1 - p.guard) * 100)], ['Can çalma', '%' + Math.round(p.steal * 100)], ['Dalga', String(p.waves)]);
+    } else if (s.line === 'whirl') {
+      out.push(['Vuruş', p.ticks + '×' + p.damage + ' = ' + p.ticks * p.damage], ['Çember', p.grow < 1 ? num(p.radius * p.grow) + ' → ' + num(p.radius) + ' m' : num(p.radius) + ' m'], ['Çekiş', num(p.pull) + ' m'], ['Son vuruşta savurma', num(p.fling) + ' m'], ['Son vuruş sersemletmesi', num(p.stunLast) + ' sn']);
+    } else {
+      out.push(['Mesafe', num(p.range) + ' m'], ['Hedefe çarpma', p.impacts > 1 ? p.damage + ' + ' + p.damage2 : String(p.damage)], ['Yol hasarı', p.pathDamage ? String(p.pathDamage) : '—'], ['Yol genişliği', num(p.width) + ' m'], ['Yoldakini savurma', p.shove ? num(p.shove) + ' m' : '—'],
+        ['Çarpma alanı', p.impacts > 1 ? num(p.radius) + ' / ' + num(p.radius2) + ' m' : num(p.radius) + ' m'], ['Sersemletme', num(p.stun) + ' sn'], ['Çekiş', p.pull ? num(p.pull) + ' m' : '—']);
+    }
+    out.push(['Maliyet', Math.round(s.cost) + ''], ['Bekleme', num(s.cooldown) + ' sn']);
+    return out;
+  }
+  // Old saves (before skillTree 2) used other prerequisites for the same skill ids. Rebuild a valid set with the SAME number of spent points:
+  // a skill whose new prerequisite chain is incomplete turns into the earliest missing link of that chain (duplicates fall away, which refunds
+  // the point). Returns { learned, map } where map sends every old id to its new id (or null when its level is not reached).
+  function migrateLearned(list, level) {
+    const old = skills.filter(s => list.includes(s.id)).sort((a, b) => a.tier - b.tier || a.level - b.level), out = new Set(), map = new Map();
+    for (const s of old) {
+      const chain = []; for (let c = s; c; c = skillIndex[c.requires]) chain.unshift(c);
+      const first = chain.find(c => !out.has(c.id)) || s;
+      if (first.level <= level) { out.add(first.id); map.set(s.id, first.id); } else map.set(s.id, null);
+    }
+    return { learned: skills.filter(s => out.has(s.id)).map(s => s.id), map };
+  }
+  // Maps the learned skills and loadout of a pre-skillTree-2 profile (see migrateLearned); points stay consistent because they derive from level - learned.
+  function migrateProfileSkills(profile) {
+    const m = migrateLearned(Array.isArray(profile.learned) ? profile.learned.filter(id => typeof id === 'string') : [], 12);
+    const loadout = [0, 1, 2, 3].map(n => { const id = Array.isArray(profile.loadout) ? m.map.get(profile.loadout[n]) : null; return id || null; });
+    // Old tiers of one line were separate skills; they now upgrade one slot: keep the highest slotted tier in the first slot of that line.
+    for (let n = 0; n < SLOT_COUNT; n++) {
+      if (!loadout[n]) continue;
+      for (let k = n + 1; k < SLOT_COUNT; k++) if (loadout[k] && skillIndex[loadout[k]].line === skillIndex[loadout[n]].line) {
+        if (skillIndex[loadout[k]].tier > skillIndex[loadout[n]].tier) loadout[n] = loadout[k];
+        loadout[k] = null;
+      }
+    }
+    return Object.assign({}, profile, { learned: m.learned, loadout, skillTree: SKILL_TREE });
+  }
   function item(id, name, slot, level, rarity, damage, defense, hp, type, description, modelId, finish) {
     const visualScale = slot === 'weapon' && modelId ? type === 'axe' ? [1.16, .97, 1.04] : type === 'spear' ? [.91, 1.11, .93] : finish === 'brine' ? [1.08, 1.14, .98] : [.88, 1.08, .96] : [1, 1, 1];
     return Object.freeze({ id, name, slot, level, rarity, damage: damage || 0, defense: defense || 0, hp: hp || 0,
@@ -138,17 +207,29 @@
       damage: def.damage * factor, defense: def.defense * factor, hp: Math.round(def.hp * factor) });
   }
   const slots = Object.freeze(['weapon', 'head', 'chest', 'hands', 'boots']);
+  // Drop tuning (round 6): ordinary foes 9 %, elites 35 %, guaranteed after 14 dry kills; see lootPick().
+  const LOOT_NORMAL = 18, LOOT_ELITE = 45, LOOT_PITY = 14, LOOT_JUNK = .12;
   const XP = Object.freeze({ prisoner: 19, guard: 25, cultist: 23, stalker: 23, carrier: 25 });
   const hash = value => { let h = 2166136261; for (let n = 0; n < value.length; n++) h = Math.imul(h ^ value.charCodeAt(n), 16777619); return h >>> 0; };
   const result = (ok, reason) => ({ ok, reason: reason || '' });
   const int = (v, fallback) => Number.isFinite(v) ? Math.max(0, Math.floor(v)) : fallback;
 
+  // create() wraps the raw state: snapshots carry skillTree, and restore() (also the initial options.profile) migrates pre-skillTree-2 saves first.
   function create(options) {
     options = options || {};
+    const needs = p => p && typeof p === 'object' && p.skillTree !== SKILL_TREE;
+    const state = createState(needs(options.profile) ? Object.assign({}, options, { profile: migrateProfileSkills(options.profile) }) : options);
+    const rawRestore = state.restore, rawSnapshot = state.snapshot;
+    state.restore = profile => rawRestore(needs(profile) ? migrateProfileSkills(profile) : profile);
+    state.snapshot = () => Object.assign(rawSnapshot(), { skillTree: SKILL_TREE });
+    return state;
+  }
+  function createState(options) {
+    options = options || {};
     const emit = typeof options.emit === 'function' ? options.emit : function () {};
-    const state = { level: 1, xp: 0, points: 0, learned: [], loadout: [null, null, null], inventory: [],
+    const state = { level: 1, xp: 0, points: 0, learned: [], loadout: [null, null, null, null], inventory: [],
       equipment: {}, groundLoot: [], revision: 0, chapter: chapterId(options.chapter), completed: [] };
-    let lootSeed = 0, lootDry = 0, rewards = Object.create(null), serial = 0, statCache = null, statRevision = -1;
+    let lootSeed = 0, lootDry = 0, lootSeen = [], rewards = Object.create(null), serial = 0, statCache = null, statRevision = -1;
     function changed(kind, data) { state.revision++; statCache = null; emit(kind || 'progression', data || { level: state.level, points: state.points }); }
     function recalculate() {
       state.level = 1;
@@ -163,9 +244,9 @@
       state.inventory.push(entry); return entry;
     }
     function reset() {
-      state.level = 1; state.xp = 0; state.points = 0; state.learned = []; state.loadout = [null, null, null];
+      state.level = 1; state.xp = 0; state.points = 0; state.learned = []; state.loadout = [null, null, null, null];
       state.inventory = []; state.groundLoot = []; state.equipment = { weapon: null, head: null, chest: null, hands: null, boots: null };
-      lootSeed = Math.floor(Math.random() * 4294967296) >>> 0; lootDry = 0;
+      lootSeed = Math.floor(Math.random() * 4294967296) >>> 0; lootDry = 0; lootSeen = [];
       state.chapter = 1; state.completed = []; rewards = Object.create(null); serial = 0;
       state.equipment.weapon = addItem('dull-sword').uid;
       state.equipment.chest = addItem('torn-chest').uid;
@@ -175,13 +256,14 @@
       return { version: VERSION, level: state.level, xp: state.xp, points: state.points,
         learned: state.learned.slice(), loadout: state.loadout.slice(), inventory: state.inventory.map(i => ({ uid: i.uid, id: i.id, roll: i.roll || 0 })),
         equipment: Object.assign({}, state.equipment), chapter: state.chapter, completed: state.completed.slice(),
-        rewards: Object.keys(rewards), serial, lootSeed, lootDry,
+        rewards: Object.keys(rewards), serial, lootSeed, lootDry, lootSeen: lootSeen.slice(-40),
         groundLoot: state.groundLoot.map(i => ({ uid:i.uid, id:i.id, roll:i.roll, x:i.x, z:i.z, chapter:i.chapter, boss:i.boss })) };
     }
     function restore(profile) {
       if (!profile || (profile.version !== VERSION && profile.version !== 1) || !Array.isArray(profile.inventory)) return false;
       lootSeed = Number.isInteger(profile.lootSeed) ? profile.lootSeed >>> 0 : hash(JSON.stringify(profile.inventory));
-      lootDry = Math.min(8, int(profile.lootDry, 0));
+      lootDry = Math.min(LOOT_PITY, int(profile.lootDry, 0));
+      lootSeen = (Array.isArray(profile.lootSeen) ? profile.lootSeen : []).filter(k => typeof k === 'string' && k.length < 80).slice(-40);
       let restoredXp = int(profile.xp, 0);
       if (profile.version === 1) {
         // Preserve earned levels in older two-chapter saves, using XP rather than a claimed level/point count.
@@ -210,9 +292,14 @@
         state.equipment[slot] = entry && catalog[entry.id].slot === slot && catalog[entry.id].level <= state.level ? entry.uid : null;
       }
       if (!profile.equipment || !Object.prototype.hasOwnProperty.call(profile.equipment,'weapon')) state.equipment.weapon = addItem('dull-sword').uid;
-      state.loadout = [0, 1, 2].map(n => Array.isArray(profile.loadout) && learned.has(profile.loadout[n]) ? profile.loadout[n] : null);
-      // A skill has one home: copied/corrupt saves cannot equip it twice.
-      state.loadout = state.loadout.map((id, n, list) => id && list.indexOf(id) !== n ? null : id);
+      state.loadout = [0, 1, 2, 3].map(n => Array.isArray(profile.loadout) && learned.has(profile.loadout[n]) ? profile.loadout[n] : null);
+      // A skill line has one home (tiers replace each other): copied/corrupt saves cannot equip a line twice.
+      state.loadout = state.loadout.map((id, n, list) => id && list.findIndex(o => o && skillIndex[o].line === skillIndex[id].line) !== n ? null : id);
+      // A save from the three-slot days: a learned line that had no slot yet takes the new 4th slot.
+      if (Array.isArray(profile.loadout) && profile.loadout.length <= 3 && !state.loadout[3]) {
+        const open = state.learned.map(id => skillIndex[id]).filter(sk => !state.loadout.some(o => o && skillIndex[o].line === sk.line)).sort((a, b) => b.tier - a.tier)[0];
+        if (open) state.loadout[3] = open.id;
+      }
       rewards = Object.create(null);
       if (Array.isArray(profile.rewards)) for (const key of profile.rewards) if (typeof key === 'string' && /^[1234]:/.test(key) && key.length < 240) rewards[key] = true;
       state.chapter = chapterId(profile.chapter);
@@ -227,13 +314,15 @@
       if (skill.requires && !state.learned.includes(skill.requires)) return result(false, 'Önce ' + skillIndex[skill.requires].name + ' öğrenilmeli.');
       if (state.points < 1) return result(false, 'Yetenek puanın yok.');
       state.learned.push(id); state.points--;
-      const free = state.loadout.indexOf(null); if (free >= 0) state.loadout[free] = id;
+      // An upgrade takes the place of its predecessor (same slot, same key); a first skill of a line takes a free slot.
+      const upgraded = skill.requires ? state.loadout.indexOf(skill.requires) : -1, free = state.loadout.indexOf(null);
+      if (upgraded >= 0) state.loadout[upgraded] = id; else if (free >= 0 && !state.loadout.some(o => o && skillIndex[o].line === skill.line)) state.loadout[free] = id;
       changed('progression', { unlocked: id, level: state.level, points: state.points }); return result(true);
     }
     function assign(slot, id) {
-      if (!Number.isInteger(slot) || slot < 0 || slot > 2) return result(false, 'Geçersiz yetenek yuvası.');
+      if (!Number.isInteger(slot) || slot < 0 || slot >= SLOT_COUNT) return result(false, 'Geçersiz yetenek yuvası.');
       if (id !== null && !state.learned.includes(id)) return result(false, 'Önce bu yeteneği öğren.');
-      const previous = state.loadout[slot], other = id === null ? -1 : state.loadout.indexOf(id);
+      const previous = state.loadout[slot], other = id === null ? -1 : state.loadout.findIndex(o => o && skillIndex[o].line === skillIndex[id].line);
       if (other !== -1 && other !== slot) state.loadout[other] = previous;
       state.loadout[slot] = id; changed(); return result(true);
     }
@@ -284,6 +373,57 @@
       const endurance = part => Math.min(184, hp + part.hp) / (1 - Math.min(.30, defense + part.defense));
       return endurance(def) > endurance(old) + .00001;
     }
+    // Combat value of a candidate in its slot (same formulas as isUpgrade), used to rank drops against what the hero owns.
+    function slotValue(def, others) {
+      if (def.slot === 'weapon') return Math.min(1.95, others.base * (1 + def.damage));
+      return Math.min(184, others.hp + def.hp) / (1 - Math.min(.30, others.defense + def.defense));
+    }
+    function slotContext(slot) {
+      let hp = 95 + (state.level - 1) * 6, defense = 0;
+      const base = .72 + Math.min(6, state.level - 1) * (.53 / 6) + Math.max(0, state.level - 7) * .05;
+      for (const other of slots) {
+        if (other === slot) continue;
+        const part = resolveItem(state.inventory.find(i => i.uid === state.equipment[other]));
+        if (part) { hp += part.hp; defense += part.defense; }
+      }
+      return { hp, defense, base };
+    }
+    // Picks the item base of an ordinary drop: favours real upgrades over everything the hero owns, the weakest slots first,
+    // never repeats a base already dropped this chapter / owned / lying on the ground, and keeps junk to a small share.
+    function lootPick(chapter, elite, seed, roll) {
+      const lootLevel = Math.min(state.level, chapter === 4 ? MAX_LEVEL : chapter === 3 ? 10 : chapter === 2 ? 8 : 5);
+      const pool = items.filter(i => i.rarity !== 'boss' && i.id !== 'dull-sword' && i.id !== 'torn-chest' &&
+        i.level <= lootLevel && i.level >= Math.max(1, lootLevel - 2));
+      if (!pool.length) return null;
+      const tier = elite ? pool.filter(def => def.level >= Math.max(1, state.level - 1)) : pool;
+      const available = tier.length ? tier : pool;
+      const taken = id => state.inventory.some(e => e.id === id) || state.groundLoot.some(e => e.id === id) || lootSeen.includes(chapter + ':' + id);
+      const contexts = {}, best = {}, need = {};
+      for (const slot of slots) {
+        contexts[slot] = slotContext(slot);
+        let top = 0, topLevel = 0;
+        for (const e of state.inventory) {
+          const d = resolveItem(e); if (!d || d.slot !== slot || d.level > state.level) continue;
+          top = Math.max(top, slotValue(d, contexts[slot])); if (state.equipment[slot] === e.uid) topLevel = d.level;
+        }
+        best[slot] = top; need[slot] = Math.max(0, Math.min(6, lootLevel - topLevel));
+      }
+      const scored = available.filter(def => !taken(def.id)).map(def => {
+        const d = resolveItem({ id: def.id, roll });   // judged with the craftsmanship this very drop will have
+        return { def, up: slotValue(d, contexts[def.slot]) > best[def.slot] + .00001 };
+      });
+      if (!scored.length) return null;
+      const ups = scored.filter(c => c.up);
+      // Roughly one drop in five may be a lesser piece (and only when the hero has none better on offer).
+      const wantJunk = ((seed >>> 20) % 100) / 100 < LOOT_JUNK;
+      const lesser = scored.filter(c => !c.up);
+      const choices = ups.length ? (wantJunk && lesser.length ? lesser : ups) : scored;
+      if (!ups.length && ((seed >>> 24) % 3)) return null;   // nothing to gain: two of three such drops simply do not happen
+      let total = 0; const weights = choices.map(c => { const w = (1 + .3 * qualities[c.def.rarity].rank) * (1 + .35 * need[c.def.slot]) * (c.up ? 3 : 1); total += w; return w; });
+      let r = (((seed >>> 8) & 0xfff) / 4096) * total;
+      for (let n = 0; n < choices.length; n++) { r -= weights[n]; if (r < 0) return choices[n].def.id; }
+      return choices[choices.length - 1].def.id;
+    }
     function loot(enemyId, type, boss, chapter, elite, position) {
       chapter = chapterId(chapter);
       const key = chapter + ':' + String(enemyId), seed = hash(key + ':' + type + ':' + lootSeed);
@@ -294,18 +434,11 @@
       else if (chapter === 3 && type === 'ruinwarden') id = 'warden-chainmail';
       else if (chapter === 4 && type === 'ashwarden') id = 'ash-warden-chest';
       else {
-        if (seed % 100 >= (elite ? 55 : 18) && lootDry < 8) { lootDry++; return []; }
-        const lootLevel = Math.min(state.level, chapter === 4 ? MAX_LEVEL : chapter === 3 ? 10 : chapter === 2 ? 8 : 5);
-        const pool = items.filter(i => i.rarity !== 'boss' && i.id !== 'dull-sword' && i.id !== 'torn-chest' &&
-          i.level <= lootLevel && i.level >= Math.max(1, lootLevel - 2));
-        if (!pool.length) return [];
-        const tier = elite ? pool.filter(def => def.level >= Math.max(1, state.level - 1)) : pool;
-        const available = tier.length ? tier : pool;
-        const fresh = available.filter(def => !state.inventory.some(entry => entry.id === def.id) && !state.groundLoot.some(entry => entry.id === def.id));
-        const choices = fresh.length ? fresh : available;
-        id = choices[(seed >>> 8) % choices.length].id;
+        if (seed % 100 >= (elite ? LOOT_ELITE : LOOT_NORMAL) && lootDry < LOOT_PITY) { lootDry++; return []; }
+        id = lootPick(chapter, elite, seed, (hash(key + ':craft:' + lootSeed) % 5) - 2);
+        if (!id) return [];   // nothing useful left to offer: no drop, the pity counter keeps waiting
       }
-      lootDry = 0;
+      lootDry = 0; lootSeen.push(chapter + ':' + id); if (lootSeen.length > 40) lootSeen.shift();
       const roll = boss ? 0 : (hash(key + ':craft:' + lootSeed) % 5) - 2;
       if (options.groundLoot) {
         // Ground-loot games never bypass pickup by inserting a reward straight into the bag.
@@ -343,7 +476,7 @@
       if (chapter !== 1 && chapter !== 2 && chapter !== 3 && chapter !== 4) return false;
       if (!state.completed.includes(chapter)) state.completed.push(chapter);
       state.xp = Math.max(state.xp, THRESHOLDS[MILESTONES[chapter - 1] - 1]); recalculate();
-      state.groundLoot = state.groundLoot.filter(i => i.chapter !== chapter);
+      state.groundLoot = state.groundLoot.filter(i => i.chapter !== chapter); lootSeen = lootSeen.filter(k => !k.startsWith(chapter + ':'));
       state.chapter = Math.min(4, chapter + 1); changed(); return true;
     }
     Object.assign(state, { snapshot, restore, grantEnemy, unlock, assign, equip, stats, loot, completedChapter, reset,
@@ -354,5 +487,5 @@
     reset(); state.chapter = chapterId(options.chapter); if (options.profile) restore(options.profile);
     return state;
   }
-  B.Progression = Object.freeze({ create, skills, items, catalog, qualities, resolveItem, slots, MAX_LEVEL, VERSION, thresholds: THRESHOLDS, earnedPoints: POINTS, milestones: MILESTONES });
+  B.Progression = Object.freeze({ create, skills, lines: LINES, skillsByLine, skillFacts, SKILL_TREE, items, catalog, qualities, resolveItem, slots, MAX_LEVEL, VERSION, thresholds: THRESHOLDS, earnedPoints: POINTS, milestones: MILESTONES });
 }());
