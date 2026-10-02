@@ -17,7 +17,7 @@
   function create(api) {
     var world = api.world, enemies = api.enemies, chapter = api.chapter, root = api.root;
     var boss = null, regular = 0, i;
-    for (i = 0; i < enemies.length; i++) { if (enemies[i].boss) boss = boss || enemies[i]; else regular++; }
+    for (i = 0; i < enemies.length; i++) { if (enemies[i].reserve) continue; if (enemies[i].boss) boss = boss || enemies[i]; else regular++; }
     if (!boss || !regular || !world || !world.rooms) return null;
     var bossRoom = null, prevRoom = null;
     for (i = 0; i < world.rooms.length; i++) { var rm = world.rooms[i]; if (String(rm.id) === String(boss.encounter.room)) bossRoom = rm; }
@@ -165,7 +165,7 @@
 
     /* ───────── state ───────── */
     var openT = OPEN_TIME + 1, opening = false, hintCd = 0, burstCd = 0, blocking = true, leafShown = true;
-    function count() { var c = 0, e; for (var q = 0; q < enemies.length; q++) { e = enemies[q]; if (e.dead && !e.boss) c++; } return c; }
+    function count() { var c = 0, e; for (var q = 0; q < enemies.length; q++) { e = enemies[q]; if (e.dead && !e.boss && !e.reserve) c++; } return c; }
     function setLeaf(y, shown) { leafGroup.position.y = y; leafGroup.position.x = 0; if (shown !== leafShown) { leafShown = shown; leafGroup.visible = shown; } }
     var gate = { info: info };
     // After every reset / load: the state follows the dead flags, instantly and without effects.
@@ -175,7 +175,7 @@
       else { openT = 0; blocking = true; setLeaf(0, true); }
     };
     gate.kill = function (enemy) {
-      if (enemy && enemy.boss) return;
+      if (enemy && (enemy.boss || enemy.reserve)) return;
       info.kills = count();
       if (!info.open && info.kills >= need) {
         info.open = true; opening = true; openT = 0; burstCd = 0;

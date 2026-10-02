@@ -3,6 +3,14 @@
 Yetişkinler için hazırlanmış, üç boyutlu, Türkçe seslendirmeli, karanlık fantezi aksiyon oyunu (18+, şiddet ve kan içerir).
 Bahtiyar, kör bir mahkûm kılıcıyla Kurban Tapınağı'nda uyanır ve dört bölümlük bir yolculukta Zincir Celladı'ndan Ocağın Kalbi'ne kadar inen yolu açar.
 
+## Son güncelleme · Sürüm 134
+
+Sessiz Taht ve Kızıl Ocak'ta boss kapısı sayacı yalnız yenilen bölüm düşmanlarını sayar; boss'un yedek yardımcıları başlangıçta öldürülmüş görünmez. Kapının açılma şartı 45 düşman olarak korunmuştur.
+
+İki bölümün boss konuşmaları savaş sırasında başlar; önceden başlamış cümle tamamlanır. Bekleyen eski oda ve yemin mesajları boss konuşmasını geciktirmez. On iki yeni düşman portresi gerçek oyun modellerinden hazırlanmıştır; boss aşamaları kendi adlarıyla gösterilir.
+
+Grafik, akıcılık ve savaş dengesi kodları korunmuştur. Portreler yükleme sırasında hazırlanır; hedef değiştirirken yeni resim yüklenmez veya canlı üç boyutlu portre çizilmez. Sessiz oyun, sayaç, konuşma sırası, hedef çubuğu ve internetsiz açılış kontrolleri tamamlanmıştır.
+
 ## Bölümler
 
 1. **Kurban Tapınağı:** Zincir Celladı'nın mahzenleri.

@@ -1482,7 +1482,7 @@
   // değiştirir. Ölüm ve zafer sırada önceliklidir, mevcut cümle bittikten sonra başlar. Saldırı uyarısı sırasında
   // anlatıcı kısa süre hafif kısılır, kayıt ve altyazı sürer. Zamanlama ses bağlamından bağımsızdır:
   // ?sessiz ve ses kapalıyken altyazılar aynı anlarda görünür.
-  const ROOM_LINES = new Set(['chains', 'ritual', 'crypt', 'rot', 'checkpoint', 'coastRoots', 'coastStreet', 'coastPier', 'coastSquare', 'coastCheckpoint']), URGENT = new Set(['intro', 'boss', 'cellat', 'coastIntro', 'coastBoss']);
+  const ROOM_LINES = new Set(['chains', 'ritual', 'crypt', 'rot', 'checkpoint', 'coastRoots', 'coastStreet', 'coastPier', 'coastSquare', 'coastCheckpoint', 'ruinsCheckpoint', 'forgeCheckpoint']), URGENT = new Set(['intro', 'boss', 'cellat', 'coastIntro', 'coastBoss', 'ruinsBoss', 'forgeBoss']);
   const TELLS = new Set(['enemyWindup', 'enemyAttack', 'slam', 'explosion', 'poison', 'warning', 'hurt', 'guardBreak', 'tellCommit']);
   let caption = null, voiceNode = null, voiceGain = null, current = null, queue = [], nclock = 0, lastTellN = -9;
   const heard = new Set(), recent = {}, voiceBuffers = {};
@@ -1512,7 +1512,9 @@
     if (force) queue = [];   // öncelik sıradadır; başlamış cümleye dokunma
     if ((key === 'seal' || key === 'coastSeal') && queue.some(q => ROOM_LINES.has(q.key))) return;                       // bir oda cümlesi zaten bekliyor
     if (key !== 'seal') queue = queue.filter(q => q.key !== 'seal');
-    if (ROOM_LINES.has(key) || key === 'boss' || key === 'coastBoss') queue = queue.filter(q => !ROOM_LINES.has(q.key)); // yalnızca son odanın cümlesi bekler
+    if (ROOM_LINES.has(key) || key === 'boss' || key === 'coastBoss' || key === 'ruinsBoss' || key === 'forgeBoss') queue = queue.filter(q => !ROOM_LINES.has(q.key)); // yalnızca son odanın cümlesi bekler
+    // III/IV yemin noktasının henüz başlamamış yanıtı savaşta boss'u bekletmesin; current cümlesi korunur.
+    if (key === 'ruinsBoss' || key === 'forgeBoss') queue = queue.filter(q => q.key !== 'heroOath');
     queue.push({ key, line, force, age: 0, ready: false, buffer: null });
     if (queue.length > 2) queue.shift();
     prepare(queue[queue.length - 1]);

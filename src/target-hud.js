@@ -7,15 +7,30 @@
     cultist: 'assets/ui/target-cultist.webp', stalker: 'assets/ui/target-stalker.webp',
     carrier: 'assets/ui/target-carrier.webp', boss: 'assets/ui/target-boss.webp',
     drowned: 'assets/ui/target-drowned.webp', rootborn: 'assets/ui/target-rootborn.webp', crawler: 'assets/ui/target-crawler.webp',
-    urchin: 'assets/ui/target-urchin.webp', lantern: 'assets/ui/target-lantern.webp', bell: 'assets/ui/target-bell.webp'
+    urchin: 'assets/ui/target-urchin.webp', lantern: 'assets/ui/target-lantern.webp', bell: 'assets/ui/target-bell.webp',
+    ashbound: 'assets/ui/target-ashbound.webp', shardseer: 'assets/ui/target-shardseer.webp', cavefang: 'assets/ui/target-cavefang.webp',
+    gravemason: 'assets/ui/target-gravemason.webp', ruinwarden: 'assets/ui/target-ruinwarden.webp', hollowking: 'assets/ui/target-hollowking.webp',
+    emberbound: 'assets/ui/target-emberbound.webp', chainseer: 'assets/ui/target-chainseer.webp', slagcrawler: 'assets/ui/target-slagcrawler.webp',
+    forgesentinel: 'assets/ui/target-forgesentinel.webp', ashwarden: 'assets/ui/target-ashwarden.webp', furnaceheart: 'assets/ui/target-furnaceheart.webp'
   });
+  const chapterPortraits = {
+    3: ['prisoner', 'ashbound', 'shardseer', 'cavefang', 'gravemason', 'ruinwarden', 'hollowking'],
+    4: ['prisoner', 'emberbound', 'chainseer', 'slagcrawler', 'forgesentinel', 'ashwarden', 'furnaceheart']
+  };
+  const bossPhases = {
+    bell: ['', 'BOĞULMUŞ ÇANLIK', 'DENİZİN YEMİNİ', 'MEZAR KÖKLERİ', 'SON ÇAN'],
+    hollowking: ['', 'SESSİZ TAHT', 'TAŞ TAHT ÇÖKÜYOR', 'OYUKLAR AÇILDI'],
+    furnaceheart: ['', 'KIZIL OCAK', 'OCAK BASINCI YÜKSELİYOR', 'SON DÖKÜM']
+  };
   // Keep the small portrait images ready before the loading cover is removed.
   // Failed artwork does not prevent the player or health bar from appearing.
   const preparedImages = new Map(), failedImages = new Set();
   let prepared = null;
   function prepare() {
     if (prepared) return prepared;
-    prepared = Promise.all(Object.keys(portraits).map(type => {
+    // I/II retain their existing warmup; III/IV only load their own roster and the fallback.
+    const types = chapterPortraits[B.ActiveChapter] || Object.keys(portraits).slice(0, 12);
+    prepared = Promise.all(types.map(type => {
       const image = new Image();
       preparedImages.set(type, image);
       let ready;
@@ -48,7 +63,7 @@
         '<div class="target-details' + (boss ? ' boss-target phase2' : '') + '" style="flex:1 1 60%"><div class="target-title"><strong class="target-name">Zincir Celladı 0123456789</strong><small class="target-phase">ZİNCİRLER KIRILDI</small></div>' +
         '<div class="target-health"><i class="target-fill" style="transform:scaleX(.6)"></i><b class="target-count">1234 / 5678</b><i class="target-notch" style="display:block"></i></div></div>';
       let html = '';
-      for (const type of Object.keys(portraits)) if (!failedImages.has(type)) html += bar(type, type === 'boss');
+      for (const type of preparedImages.keys()) if (!failedImages.has(type)) html += bar(type, type === 'boss' || type === 'hollowking' || type === 'furnaceheart');
       // The skill slots' attack sweep (conic gradient + brightness) also first appears at the first attack.
       const slot = cls => '<div class="action ' + cls + '" style="position:relative;width:calc(90px * var(--k, 1));height:calc(90px * var(--k, 1));--progress:.4"><i class="skill light"></i></div>';
       html += slot('pressed') + slot('unavailable') + slot('action-rage burning');
@@ -99,7 +114,8 @@
       const boss = !!enemy.boss, phase2 = boss && enemy.phase >= 2;
       if (boss !== wasBoss) { root.classList.toggle('boss-target', boss); wasBoss = boss; }
       if (phase2 !== wasPhase2) { root.classList.toggle('phase2', phase2); wasPhase2 = phase2; }
-      const phaseText = enemy.type === 'bell' ? ['', 'BOĞULMUŞ ÇANLIK', 'DENİZİN YEMİNİ', 'MEZAR KÖKLERİ', 'SON ÇAN'][enemy.phase] : boss ? phase2 ? 'ZİNCİRLER KIRILDI' : 'KURBAN SALONU' : '';
+      const phases = bossPhases[enemy.type];
+      const phaseText = phases ? phases[enemy.phase] || '' : boss ? phase2 ? 'ZİNCİRLER KIRILDI' : 'KURBAN SALONU' : '';
       if (phaseText !== previousPhase) { phase.textContent = phaseText; previousPhase = phaseText; }
     }
     return { update, clear };
