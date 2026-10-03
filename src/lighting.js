@@ -128,8 +128,19 @@
       '\t\t\t}',
       '\t\t}'].join('\n');
   }
-  var scatterCode = ''; for (var sq = 0; sq < MAX_SCATTER; sq++) scatterCode += scatterTerm(sq) + '\n';
-  C.fog_fragment = C.fog_fragment.replace('@KARA_SCATTER@', function () { return scatterCode; });
+  var fogTemplate = C.fog_fragment, scatterCode = '';
+  for (var sq = 0; sq < MAX_SCATTER; sq++) scatterCode += scatterTerm(sq) + '\n';
+  var shaderPreparation = Object.freeze({ fogLoop: 'unrolled', rasterWarmup: false });
+  function configureBackend(rendererName) {
+    var runtime = /NVIDIA/i.test(rendererName || '') && /Direct3D\s*11|\bD3D11\b/i.test(rendererName || '');
+    // A uniform loop bound prevents twelve copies of this integral being expanded
+    // into every material's D3D11 executable. The active slots and addition order
+    // are identical. Keep the expanded code on Metal, where it draws faster.
+    var code = runtime ? 'for (int kIndex = 0; kIndex < kCount; kIndex++) {\n' + scatterTerm('kIndex') + '\n}' : scatterCode;
+    C.fog_fragment = fogTemplate.replace('@KARA_SCATTER@', function () { return code; });
+    return shaderPreparation = Object.freeze({ fogLoop: runtime ? 'runtime-count' : 'unrolled', rasterWarmup: runtime });
+  }
+  configureBackend('');
   function injectFogUniforms(target) { Object.keys(FOG).forEach(function (k) { target[k] = FOG[k]; }); }
   injectFogUniforms(T.UniformsLib.fog);
   Object.keys(T.ShaderLib).forEach(function (k) { var u = T.ShaderLib[k].uniforms; if (u && u.fogDensity) injectFogUniforms(u); });
@@ -732,5 +743,6 @@
       get state() { return state; }, fog: FOG, rimUniforms: RIM, patchModel: patchModel, attachPost: function (post) { opts.post = post; }, cameraFx: cameraFx };
   }
 
-  B.Lighting = { create: create, fog: FOG, maxScatter: MAX_SCATTER, patchRim: patchRim, presets: PRESET };
+  B.Lighting = { create: create, fog: FOG, maxScatter: MAX_SCATTER, patchRim: patchRim, presets: PRESET, configureBackend,
+    get shaderPreparation() { return shaderPreparation; } };
 }());

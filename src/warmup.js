@@ -331,6 +331,8 @@
     if (Q.has('nowarmrooms') || !c || !c.world || !Array.isArray(c.world.rooms) || !c.game || !c.game.player) return 0;
     const t0 = performance.now(), { scene, camera, renderer, game, world } = c, p = game.player, ox = p.x, oz = p.z;
     const parallel = renderer.extensions.has('KHR_parallel_shader_compile');
+    const raster = !!c.rasterWarmup && !!c.post;
+    const oldPosition = camera.position.clone(), oldQuaternion = camera.quaternion.clone();
     let created = 0;
     // Compile the whole scene for the light state it is in right now and wait for the new programs.
     const compileNow = async () => {
@@ -359,6 +361,25 @@
         safe(() => c.snap());
         note();
         await compileNow();
+        if (raster) {
+          // Compilation and off-camera submissions do not exercise the actual
+          // fragment executables. Draw each room from the playing camera while
+          // the loading cover is up, including its previously hidden actors.
+          camera.position.set(p.x, c.cameraHeight, p.z + c.cameraBack);
+          camera.lookAt(p.x, .7, p.z - .8); camera.updateMatrixWorld(true);
+          if (c.step) c.step();
+          const visibility = showAll(scene);
+          try {
+            renderer.shadowMap.needsUpdate = true; c.post.render(0);
+            const gl = renderer.getContext(), fence = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0);
+            if (fence) {
+              try {
+                gl.flush(); const until = performance.now() + 30000;
+                while (!gl.isContextLost() && gl.clientWaitSync(fence, 0, 0) === gl.TIMEOUT_EXPIRED && performance.now() < until) await frame();
+              } finally { gl.deleteSync(fence); }
+            }
+          } finally { restoreAll(visibility); }
+        }
         if (c.progress) c.progress((i + 1) / rooms.length);
       }
       if (toggled) {
@@ -368,7 +389,12 @@
           await compileNow();
         }
       }
-    } finally { points.forEach((l, i) => { l.visible = flags[i]; }); p.x = ox; p.z = oz; safe(() => c.snap()); }
+    } finally {
+      points.forEach((l, i) => { l.visible = flags[i]; }); p.x = ox; p.z = oz;
+      if (raster) { camera.position.copy(oldPosition); camera.quaternion.copy(oldQuaternion); camera.updateMatrixWorld(true); }
+      safe(() => c.snap());
+      if (raster) { if (c.step) c.step(); renderer.shadowMap.needsUpdate = true; }
+    }
     stats.rooms = created;
     return stats.tour = Math.round(performance.now() - t0);
   }

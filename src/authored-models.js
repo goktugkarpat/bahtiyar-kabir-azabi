@@ -1682,6 +1682,10 @@
         .5 * (2 * b.z + (-a.z + c.z) * t + (2 * a.z - 5 * b.z + 4 * c.z - d.z) * t2 + (-a.z + 3 * b.z - 3 * c.z + d.z) * t3));
     }
     var bp0 = new T.Vector3(), bp1 = new T.Vector3(), bp2 = new T.Vector3(), bp3 = new T.Vector3(), tq = new T.Vector3(), bq = new T.Vector3();
+    function uploadTrailAttribute(attribute, end) {
+      for (const range of attribute.updateRanges) end = Math.max(end, range.start + range.count);
+      attribute.clearUpdateRanges(); attribute.addUpdateRange(0, end); attribute.needsUpdate = true;
+    }
     function build(detail) {
       var total = n + (live ? 1 : 0), col = 0, subMax = detail < .4 ? 3 : detail < .75 ? 5 : 8, pathHead = 0;
       if (total < 2) { geo.setDrawRange(0, 0); mesh.visible = false; return; }
@@ -1704,7 +1708,7 @@
           col++; if (col >= MAXC) break;
         }
       }
-      geo.attributes.position.needsUpdate = true; geo.attributes.aP.needsUpdate = true;
+      uploadTrailAttribute(geo.attributes.position, col * 6); uploadTrailAttribute(geo.attributes.aP, col * 8);
       geo.setDrawRange(0, Math.max(0, col - 1) * 6); mesh.visible = col > 1;
     }
     return {

@@ -149,5 +149,13 @@
     return { multiDraw: !emulated, reason: emulated ? 'prefer-native-instancing' : 'multi-draw-supported' };
   }
 
-  B.Display = { defaults, settings, plan, createScaler, worldSubmission };
+  function uiBitmapOptions(rendererName) {
+    // Small, changing text/map canvases share the browser's GPU raster queue.
+    // Keep these small changing bitmaps off that raster queue on NVIDIA/D3D11;
+    // the 3D world and the other backends retain their existing drawing path.
+    return /NVIDIA/i.test(rendererName || '') && /Direct3D\s*11|\bD3D11\b/i.test(rendererName || '')
+      ? Object.freeze({ willReadFrequently: true }) : undefined;
+  }
+
+  B.Display = { defaults, settings, plan, createScaler, worldSubmission, uiBitmapOptions };
 })();

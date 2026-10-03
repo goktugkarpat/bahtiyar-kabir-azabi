@@ -1167,7 +1167,7 @@
   function miniSprite(pad, draw) {
     const c = document.createElement('canvas');
     c.width = c.height = Math.max(2, Math.ceil(pad * 2));
-    const x = c.getContext('2d'); x.translate(c.width / 2, c.height / 2); draw(x); return c;
+    const x = c.getContext('2d', B.uiBitmapOptions); x.translate(c.width / 2, c.height / 2); draw(x); return c;
   }
   function buildMiniSprites(k) {
     const u = MINI_SCALE * k;   // world unit -> backing-store pixels
@@ -1205,7 +1205,7 @@
     requestAnimationFrame(() => { miniPending = false; try { drawMinimapNow(game.player); } catch (e) { console.warn('[Kabir Azabı] minimap', e); } });
   }
   function drawMinimapNow(p) {
-    const c = $('minimap'), x = c.getContext('2d'), scale = MINI_SCALE, cx = 128, cy = 140, k = c.width / 256;
+    const c = $('minimap'), x = c.getContext('2d', B.uiBitmapOptions), scale = MINI_SCALE, cx = 128, cy = 140, k = c.width / 256;
     const beat = .75 + Math.sin(elapsed * 6) * .25, beatIndex = clamp(Math.round((beat - .5) / .5 * (MINI_BEATS - 1)), 0, MINI_BEATS - 1);
     const here = world.roomAt(p.x, p.z);
     let key = c.width + '|' + Math.round(p.x * 40) + ',' + Math.round(p.z * 40) + ',' + Math.round(p.face * 200) + '|' + (here ? world.rooms.indexOf(here) : -1) + '|' + (game.checkpointIndex ? 1 : 0), anyActive = false;
@@ -1255,7 +1255,7 @@
   // 6 pulse sizes + idle + boss + checkpoint + hero, so the first active enemy beat stalled the fight for up to 300 ms. Draw each once while the cover is up.
   function warmMiniSprites() {
     const c = $('minimap'); if (!c) return;
-    const x = c.getContext('2d'), k = c.width / 256;
+    const x = c.getContext('2d', B.uiBitmapOptions), k = c.width / 256;
     if (!miniSprites || miniSpriteK !== k) { miniSpriteK = k; miniSprites = buildMiniSprites(k); }
     const list = [...miniSprites.enemy, ...miniSprites.boss, miniSprites.enemyIdle, miniSprites.bossIdle, ...miniSprites.checkpoint, ...miniSprites.quest, miniSprites.hero];
     x.setTransform(1, 0, 0, 1, 0, 0); x.clearRect(0, 0, c.width, c.height);
@@ -1495,14 +1495,16 @@
       gpu: { available: post.timingAvailable, enabled: post.timingEnabled, ready: post.timingReady,
         error: post.timingError, sampleIntervalMs: post.timingSampleIntervalMs, milliseconds: post.gpuSections },
       rendering: { ...renderer.info.render, multiDraw, worldSubmission, programs: renderer.info.programs.length,
-        memory: { ...renderer.info.memory }, lastFrame: { ...post.frameResources } },
+        memory: { ...renderer.info.memory }, lastFrame: { ...post.frameResources },
+        uiBitmaps: B.uiBitmapOptions?.willReadFrequently ? 'software' : 'browser-default',
+        shaderPreparation: B.Lighting.shaderPreparation },
       loading: warmStats,
       audio: B.Audio.diagnostics(),
       measurementScope: 'CPU samples describe the JavaScript and draw submission of presented callbacks; callbacks skipped by the Mac frame cap are not included in CPU stages. GPU scene includes shadows; GPU post includes AO, bloom and composition. GPU excludes HUD contexts and screen presentation. CPU and GPU run concurrently; do not add their times.' };
   }
   // Gaps between presented frames (last ~600), so the counter can also show the longest frame: a few slow frames are
   // what the eye reads as stutter even when the FPS average looks fine.
-  const BUILD_TAG = 144, fpsGaps = new Float32Array(600);
+  const BUILD_TAG = 146, fpsGaps = new Float32Array(600);
   let fpsGapAt = 0, fpsGapLast = 0;
   function frameStats() {
     let longest = 0, slow = 0;
@@ -1806,7 +1808,6 @@
       progress(.18, 'Kaplamalar hazırlanıyor…');
       if (B.CoastMaterials) await B.CoastMaterials.ready();
       progress(.21);
-      if (characterPreview && characterPreview.warm) await characterPreview.warm();
       progress(.25, 'Işıklar ve gölgeler hazırlanıyor…');
       checkContext(); work = prepareWarmScene();
       warmStats.jobs = work.jobs.length;
@@ -1869,7 +1870,12 @@
       if (!WARM_SYNC && B.Warmup) {
         progress(.93, 'Efektler ve arayüz hazırlanıyor…');
         checkContext();
-        warmStats.roomTour = await B.Warmup.roomTour({ scene, camera, renderer, game, world, target: post.target, snap: snapScene });
+        const wide = innerWidth / innerHeight < .85, touch = touchDevice();
+        warmStats.roomTour = await B.Warmup.roomTour({ scene, camera, renderer, game, world, target: post.target, snap: snapScene,
+          // Advance only the lighting fade: dt=0 leaves new scatter slots inactive,
+          // so a real draw would still miss their first-use executables.
+          post, rasterWarmup: B.Lighting.shaderPreparation.rasterWarmup, step: () => atmosphereStep(.25),
+          cameraHeight: (wide ? 19 : touch ? 15.6 : 13.8) * CAM_NEAR, cameraBack: (wide ? 16 : 11.4) * CAM_NEAR });
         checkContext();
         warmStats.fxDraw = await B.Warmup.drawAll({ scene, camera, renderer, post, feedback, game, step: () => { cameraStep(0); atmosphereStep(0); }, elapsed: () => elapsed });
         checkContext();
@@ -1882,6 +1888,13 @@
       // Automatic-resolution sizes are built now, so a later step is only a reference swap. Skipped on 120 Hz-class targets.
       progress(.98);
       prewarmScaler();
+      // World preparation patches shared character materials and their defines.
+      // Compile the portrait AFTER those patches; its earlier programs otherwise
+      // become obsolete and the first inventory draw compiles them again.
+      const portraitStart = performance.now(), portraitPrograms = renderer.info.programs.length;
+      if (characterPreview && characterPreview.warm) await characterPreview.warm();
+      warmStats.portrait = Math.round(performance.now() - portraitStart);
+      warmStats.portraitPrograms = renderer.info.programs.length - portraitPrograms;
       warmStats.total = Math.round(performance.now() - t0); warmStats.count = renderer.info.programs.length;
       if (WARM_LOG) console.warn('[warm] done', JSON.stringify(warmStats));
       return true;
@@ -1947,6 +1960,8 @@
     // Extension availability does not mean the backend can combine the native
     // draws. In particular, D3D11 emulates each BatchedMesh instance separately.
     worldSubmission = B.Display.worldSubmission(readGraphicsAdapter().renderer, renderer.extensions.has('WEBGL_multi_draw'));
+    B.uiBitmapOptions = B.Display.uiBitmapOptions(readGraphicsAdapter().renderer);
+    B.Lighting.configureBackend(readGraphicsAdapter().renderer);
     multiDraw = worldSubmission.multiDraw && !Q.has('nobatch');
     world = (forgeChapter ? B.ForgeWorld : ruinsChapter ? B.RuinsWorld : coastChapter ? B.CoastWorld : B.World).build(scene, { multiDraw });
     game = B.Game.create(world, { scene, emit: event, sound: (n, o) => B.Audio.play(n, o), fx });
@@ -1982,6 +1997,7 @@
     });
     $('game').addEventListener('webglcontextrestored', () => {
       graphicsLost = false; graphicsRecovering = true;
+      B.Lighting.configureBackend(readGraphicsAdapter().renderer);
       const epoch = graphicsEpoch;
       // Three has restored its renderer first. Warm all rooms and cached cuts
       // again before the player resumes, rather than stall at every first draw.

@@ -2,7 +2,7 @@
 
 Bahtiyar'ın karanlık yolculuğunu anlatan, üç boyutlu, Türkçe konuşmalar içeren bir aksiyon oyunu. **Yetişkinler içindir (18+); kan, yoğun şiddet ve korku içerir.**
 
-**Güncel oyun sürümü: v144.**
+**Bu klasördeki oyun sürümü: v146.**
 
 [Oyunu aç](https://goktugkarpat.github.io/bahtiyar-kabir-azabi/)
 
@@ -56,8 +56,11 @@ Sessiz açılış için adresin sonuna `?sessiz` ekleyin. Oyun testleri bu şeki
 - **v142:** Kare sınırı, çizimin yanında oyun hesaplamasını da sınırlar. Aynı karede tekrarlanan karakter animasyonu hesaplamaları azaltıldı.
 - **v143:** Windows Direct3D11 çizim yolunda emüle edilen çoklu çizim yerine yerel örnekleme kullanılır.
 - **v144:** Canlı ses işleme hızı, çıkış cihazının yüksek örnekleme hızından bağımsız olarak 48 kHz seçilir; desteklenmezse 44,1 kHz denenir.
+- **v145:** NVIDIA / Direct3D11 yolunda ışığın sis içindeki dağılımı aynı hesap ve sırayla, daha küçük bir görüntü programında yapılır. Salonlar yalnızca derlenmez; ışıkların sis içindeki katkıları etkinleştirilerek yükleme ekranı altında oyun kamerasıyla gerçekten çizilir ve çizimin tamamlanması beklenir. İlk kullanım hazırlığının mümkün olduğunca yükleme ekranında tamamlanması amaçlanır. Karakter penceresi dünya malzemelerinden sonra hazırlanır. Küçük harita ve hasar yazıları için küçük yazılım çizim yüzeyleri kullanılır. Grafik kalitesi, çözünürlük ve seçilen kare hızı korunur; Mac'in sis çizim yolu değişmez.
 
-**Bilinen durum:** Kullanıcının Ryzen 9950X / RTX 4090 bilgisayarında, özellikle yeni düşmanlara yaklaşırken işlemci sıcaklığı sıçraması bildirildi. Bu gözlem yalnızca o bilgisayara aittir; genel bir Ryzen sorunu olduğu gösterilmedi. Kesin neden henüz doğrulanmadı ve sorun çözülmüş sayılmıyor. Kare hızının 120 FPS olması, düşük işlemci yükü veya sıcaklık garantisi değildir.
+- **v146:** Parçacık, kan izi, zemin lekesi, kopan parçalar ve silah izi tamponlarında yalnızca kullanılan bölüm güncellenir; henüz çizilmemiş güncellemeler korunur. Bitmiş kan çizgileri çizim aralığının dışında bırakılır. Gerçek efekt kodunun uzun süreli karşılaştırmasında geometri aynı kalırken bu kapsamdaki aktarım miktarı %55 azaldı. Bu sonuç tarayıcı işlemci yükü veya sıcaklık ölçümü değildir.
+
+**Bilinen durum:** Kullanıcının Ryzen 9950X / RTX 4090 bilgisayarında, özellikle yeni düşmanlara yaklaşırken işlemci sıcaklığı sıçraması bildirildi. Windows işlem kaydında yükün büyük kısmı tarayıcının ekran kartı işlemindeki NVIDIA görüntü programı hazırlama bileşeninde görüldü. Aynı bilgisayardaki sessiz karşılaştırmada eski sis kodu yeni düşmanlara yaklaşınca uzun süre devam eden yük üretti; v145 bu uzun hazırlık yükünü azalttı, ancak ilk görülen düşmanlarda kısa yük sıçramaları hâlâ ölçüldü. İşlemci işi işlem kimliğine göre ham zaman farklarıyla ölçülür; arka planda çizimin yavaşlatıldığı denemeler sürekli oynanış karşılaştırması sayılmaz. Bu test toplam bilgisayar yükü veya sıcaklık ölçümü değildir; sıcaklık sorununun bütünüyle giderildiği henüz doğrulanmadı. Yükleme sırasında görüntü programları bir kez hazırlanır ve işlemci işi gerektirir. Gözlem yalnızca bu bilgisayara aittir; genel bir Ryzen sorunu olduğu gösterilmedi.
 
 ## Dosyalar ve yayın
 

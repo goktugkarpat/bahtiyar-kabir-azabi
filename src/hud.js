@@ -194,7 +194,7 @@
   /* ───────────── Damage numerals (drawn into a sprite canvas by effects.js) ───────────── */
   function damageCanvas(value, player, heavy, canvas) {
     const c = canvas || document.createElement('canvas'); c.width = 256; c.height = 144;
-    const x = c.getContext('2d'), text = String(value), size = heavy ? 104 : player ? 88 : 84;
+    const x = c.getContext('2d', B.uiBitmapOptions), text = String(value), size = heavy ? 104 : player ? 88 : 84;
     x.textAlign = 'center'; x.textBaseline = 'middle';
     x.font = `800 ${size}px 'Source Sans 3', 'Segoe UI', sans-serif`;
     x.save(); x.translate(128, 74);
@@ -214,7 +214,7 @@
     if (numeralsWarm) return; numeralsWarm = true;
     const run = () => {
       try {
-        // One canvas per style (a canvas that is read back repeatedly may leave the GPU; one read each keeps it there).
+        // Use the same raster policy as live labels, including software bitmaps on NVIDIA/D3D11.
         for (const [pl, hv] of [[false, false], [true, false], [false, true]]) for (const v of [12345, 67890]) {
           const c = damageCanvas(v, pl, hv); c.getContext('2d').getImageData(128, 72, 1, 1);   // read back = finish drawing now
         }

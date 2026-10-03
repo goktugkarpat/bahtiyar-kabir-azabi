@@ -4,6 +4,13 @@
 (() => {
   'use strict';
   const B = window.BABA, T = THREE, clamp = (v, a, b) => Math.max(a, Math.min(b, v)), rnd = (a, b) => a + Math.random() * (b - a);
+  // Counts are scalar components, not vertices. Retain pending changes if a
+  // hidden/shared buffer has not been submitted yet; keep one bounded range.
+  function uploadPrefix(attribute, count) {
+    if (count <= 0) return;
+    for (const range of attribute.updateRanges) count = Math.max(count, range.start + range.count);
+    attribute.clearUpdateRanges(); attribute.addUpdateRange(0, count); attribute.needsUpdate = true;
+  }
   B.Effects = { create(scene, getGame, getSettings) {
     const root = new T.Group(); root.name = 'combat_feedback'; scene.add(root);
     const floorAt = (x, z, radius) => { const w = B.app && B.app.world; return w && w.effectHeightAt ? w.effectHeightAt(x, z, radius || 0) : .055; };
@@ -151,7 +158,7 @@
         }
         arr[n * 4] = d.cell % 3; arr[n * 4 + 1] = d.cell < 3 ? 1 : 0; arr[n * 4 + 2] = 1 - Math.exp(-d.t / (d.dryT || 26)); arr[n * 4 + 3] = d.a0 * Math.min(1, d.t / .05) * clamp((d.life - d.t) / 8, 0, 1); n++;
       }
-      gdMesh.count = n; gdMesh.visible = n > 0; if (n) { gdMesh.instanceMatrix.needsUpdate = true; gdAttr.needsUpdate = true; }
+      gdMesh.count = n; gdMesh.visible = n > 0; uploadPrefix(gdMesh.instanceMatrix, n * 16); uploadPrefix(gdAttr, n * 4);
     }
     const dirX = a => Math.sin(a), dirZ = a => Math.cos(a);
     function splat(x, z, size, micro, a0) { return gdAdd({ cell: 0, x, y: GFLOOR, z, rot: rnd(0, 6.28), sx: size, sy: size * rnd(.8, 1.05), a0, grow: { f0: .75, f1: 1, dur: .4 + size * .5 } }, micro); }
@@ -310,7 +317,7 @@
       } else bladeHave = false;
       // streaks
       if (bsLive || bs.some(Boolean)) {
-        const cam = B.app && B.app.camera; if (cam) cam.getWorldDirection(camDir); let live = 0;
+        const cam = B.app && B.app.camera; if (cam) cam.getWorldDirection(camDir); let live = 0, last = -1;
         for (let i = 0; i < GS; i++) {
           const s = bs[i], o = i * 12; if (!s) continue;
           s.t += dt; let dead = s.t >= s.life;
@@ -336,9 +343,10 @@
           bsPos[o] = qb.x - cv2.x; bsPos[o + 1] = qb.y - cv2.y; bsPos[o + 2] = qb.z - cv2.z; bsPos[o + 3] = qb.x + cv2.x; bsPos[o + 4] = qb.y + cv2.y; bsPos[o + 5] = qb.z + cv2.z;
           bsPos[o + 6] = qa.x + cv2.x; bsPos[o + 7] = qa.y + cv2.y; bsPos[o + 8] = qa.z + cv2.z; bsPos[o + 9] = qa.x - cv2.x; bsPos[o + 10] = qa.y - cv2.y; bsPos[o + 11] = qa.z - cv2.z;
           for (let j = 0, c = i * 16, c0 = s.col[0], c1 = s.col[1], c2 = s.col[2]; j < 4; j++, c += 4) { bsCol[c] = c0; bsCol[c + 1] = c1; bsCol[c + 2] = c2; bsCol[c + 3] = a; }
-          live++;
+          live++; last = i;
         }
-        bsLive = live; bsGeo.attributes.position.needsUpdate = true; bsGeo.attributes.aCol.needsUpdate = true; bsMesh.visible = live > 0;
+        bsLive = live; bsGeo.setDrawRange(0, (last + 1) * 6);
+        uploadPrefix(bsGeo.attributes.position, (last + 1) * 12); uploadPrefix(bsGeo.attributes.aCol, (last + 1) * 16); bsMesh.visible = live > 0;
       }
       // gibs
       if (gibs.length || gcMesh.count) {
@@ -356,7 +364,7 @@
           }
           gcTmp.position.set(g.x, g.y, g.z); gcTmp.rotation.set(g.rx, g.ry, g.rz); const s = g.size * fade; gcTmp.scale.set(s * g.ax, s, s * g.az); gcTmp.updateMatrix(); gcMesh.setMatrixAt(i, gcTmp.matrix); gcMesh.setColorAt(i, gcCol.setRGB(g.col[0], g.col[1], g.col[2]));
         }
-        gcMesh.count = gibs.length; gcMesh.visible = gibs.length > 0; gcMesh.instanceMatrix.needsUpdate = true; if (gcMesh.instanceColor) gcMesh.instanceColor.needsUpdate = true;
+        gcMesh.count = gibs.length; gcMesh.visible = gibs.length > 0; uploadPrefix(gcMesh.instanceMatrix, gibs.length * 16); if (gcMesh.instanceColor) uploadPrefix(gcMesh.instanceColor, gibs.length * 3);
       }
       gdStep(dt);
     }
@@ -1001,7 +1009,7 @@
           ptip.copy(tip); pbase.copy(base); prevA = alpha;
         }
       }
-      trail.mesh.geometry.setDrawRange(0, v); trail.mesh.geometry.attributes.position.needsUpdate = true; trail.mesh.geometry.attributes.aAlpha.needsUpdate = true;
+      trail.mesh.geometry.setDrawRange(0, v); uploadPrefix(trail.mesh.geometry.attributes.position, v * 3); uploadPrefix(trail.mesh.geometry.attributes.aAlpha, v);
       if (!S.length && !w.on) { trail.active = false; trail.mesh.visible = false; }
     }
     // Prepared signature effects: four crimson crescents (the level-up lives in src/levelup.js). These never
@@ -1223,8 +1231,8 @@
         sizes[i] = p.size * (p.kind === 2 ? 1 + p.time : 1);
       }
       particles.visible = lastParticle >= 0; geometry.setDrawRange(0, lastParticle + 1);
-      if (particleDirty) { geometry.attributes.position.needsUpdate = true; geometry.attributes.aSize.needsUpdate = true; geometry.attributes.aAlpha.needsUpdate = true; }
-      if (particleColorDirty) { geometry.attributes.color.needsUpdate = true; geometry.attributes.aKind.needsUpdate = true; particleColorDirty = false; }
+      if (particleDirty) { uploadPrefix(geometry.attributes.position, (lastParticle + 1) * 3); uploadPrefix(geometry.attributes.aSize, lastParticle + 1); uploadPrefix(geometry.attributes.aAlpha, lastParticle + 1); }
+      if (particleColorDirty) { uploadPrefix(geometry.attributes.color, (lastParticle + 1) * 3); uploadPrefix(geometry.attributes.aKind, lastParticle + 1); particleColorDirty = false; }
       for (let i = decals.length - 1; i >= 0; i--) { const d = decals[i]; d.time += dt; d.mesh.material.opacity = (d.grow ? .9 * Math.min(1, d.time / .25) : .86) * clamp((cfg.decals - d.time) / 8, 0, 1);
         if (d.grow) { const k = Math.min(1, d.time / d.grow.dur), e = 1 - Math.pow(1 - k, 3), sz = d.grow.from + (d.grow.to - d.grow.from) * e; d.mesh.scale.set(sz * d.grow.sx, sz / d.grow.sx, 1); } if (d.time > cfg.decals) { d.mesh.removeFromParent(); d.mesh.material.dispose(); decals.splice(i, 1); } }
       for (let i = labels.length - 1; i >= 0; i--) { const l = labels[i]; l.time += dt; l.m.position.y += dt * (.9 - l.time * .6); l.m.position.x += l.vx * dt; l.m.material.opacity = clamp(((l.life || .9) - l.time) * 3, 0, 1);
