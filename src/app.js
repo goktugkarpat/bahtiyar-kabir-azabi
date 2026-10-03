@@ -274,7 +274,7 @@
   let shake = 0, flash = 0, ragePush = 0, announceTimer = 0, levelUpTimer = 0, hudTimer = 0, firstHint = 25, elapsed = 0;
   let fpsStart = 0, fpsFrames = 0;
   const performanceMeter = B.Performance.create();
-  let graphicsAdapter = null, multiDraw = false;
+  let graphicsAdapter = null, multiDraw = false, worldSubmission = null;
   let introBlend = 1, introStart = 0, deaths = 0, lastHp = null, lastFlasks = null;
   const buffUI = B.Buffs.create($('timed-effects'));
   const targetUI = B.TargetHUD.create($('target-hud'));
@@ -1494,14 +1494,14 @@
       adapter: readGraphicsAdapter(), ...performanceMeter.report(),
       gpu: { available: post.timingAvailable, enabled: post.timingEnabled, ready: post.timingReady,
         error: post.timingError, sampleIntervalMs: post.timingSampleIntervalMs, milliseconds: post.gpuSections },
-      rendering: { ...renderer.info.render, multiDraw, programs: renderer.info.programs.length,
+      rendering: { ...renderer.info.render, multiDraw, worldSubmission, programs: renderer.info.programs.length,
         memory: { ...renderer.info.memory }, lastFrame: { ...post.frameResources } },
       loading: warmStats,
       measurementScope: 'CPU samples describe the JavaScript and draw submission of presented callbacks; callbacks skipped by the Mac frame cap are not included in CPU stages. GPU scene includes shadows; GPU post includes AO, bloom and composition. GPU excludes HUD contexts and screen presentation. CPU and GPU run concurrently; do not add their times.' };
   }
   // Gaps between presented frames (last ~600), so the counter can also show the longest frame: a few slow frames are
   // what the eye reads as stutter even when the FPS average looks fine.
-  const BUILD_TAG = 142, fpsGaps = new Float32Array(600);
+  const BUILD_TAG = 143, fpsGaps = new Float32Array(600);
   let fpsGapAt = 0, fpsGapLast = 0;
   function frameStats() {
     let longest = 0, slow = 0;
@@ -1943,7 +1943,10 @@
     };
     B.sortModes = { id: sortById, program: sortByProgram };
     renderer.setOpaqueSort(Q.has('idsort') ? sortById : sortByProgram);
-    multiDraw = renderer.extensions.has('WEBGL_multi_draw') && !Q.has('nobatch');
+    // Extension availability does not mean the backend can combine the native
+    // draws. In particular, D3D11 emulates each BatchedMesh instance separately.
+    worldSubmission = B.Display.worldSubmission(readGraphicsAdapter().renderer, renderer.extensions.has('WEBGL_multi_draw'));
+    multiDraw = worldSubmission.multiDraw && !Q.has('nobatch');
     world = (forgeChapter ? B.ForgeWorld : ruinsChapter ? B.RuinsWorld : coastChapter ? B.CoastWorld : B.World).build(scene, { multiDraw });
     game = B.Game.create(world, { scene, emit: event, sound: (n, o) => B.Audio.play(n, o), fx });
     characterUI = B.CharacterUI.create({ game, keyLabels: () => ['heavy', 'special', 'rage', 'fourth'].map(a => { const c = binds[a][0] || binds[a][1]; return c ? capName(c) : '—'; }), onPreview: (canvas,nowMs) => characterPreview.draw(canvas,nowMs), onPreviewTurn: direction => characterPreview.turn(direction), onClose: back, onChange: () => { game.syncProgression(); if (game.saveProfileChoices) game.saveProfileChoices(); hud(0); } });

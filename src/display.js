@@ -138,5 +138,16 @@
     return { frame, callback, reset, display, hint, get scale() { return levels[index]; }, get index() { return index; }, get period() { return period; }, levels };
   }
 
-  B.Display = { defaults, settings, plan, createScaler };
+  function worldSubmission(rendererName, supported) {
+    if (!supported) return { multiDraw: false, reason: 'extension-unavailable' };
+    // ANGLE's D3D11 multi-draw implementation loops over each subdraw and
+    // updates DrawID uniforms. BatchedMesh gives every repeated stone its own
+    // subdraw: one WebGL call can therefore hide hundreds of driver draws.
+    // InstancedMesh instead draws all copies of a shape in one native draw,
+    // retaining their local vertices, transforms, colours and material hooks.
+    const emulated = /Direct3D\s*11|\bD3D11\b|SwiftShader/i.test(rendererName || '');
+    return { multiDraw: !emulated, reason: emulated ? 'prefer-native-instancing' : 'multi-draw-supported' };
+  }
+
+  B.Display = { defaults, settings, plan, createScaler, worldSubmission };
 })();
