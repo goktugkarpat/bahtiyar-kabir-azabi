@@ -1501,7 +1501,7 @@
   }
   // Gaps between presented frames (last ~600), so the counter can also show the longest frame: a few slow frames are
   // what the eye reads as stutter even when the FPS average looks fine.
-  const BUILD_TAG = 136, fpsGaps = new Float32Array(600);
+  const BUILD_TAG = 142, fpsGaps = new Float32Array(600);
   let fpsGapAt = 0, fpsGapLast = 0;
   function frameStats() {
     let longest = 0, slow = 0;
@@ -1535,16 +1535,21 @@
     if (warming && view === 'playing') show('pause');
     const measured = cfg.showFps || Q.has('gpums');
     scaler.callback(ts);
-    const cpuStart = measured ? performance.now() : 0;
     if (measured) performanceMeter.callback(ts);
+    // Limit the WHOLE expensive tick, not only WebGL submission. Otherwise a
+    // 240/360 Hz display still runs AI, collisions, audio and HUD at 240/360 Hz
+    // under a 60/120 FPS cap, and menus keep doing that work under a 30 FPS cap.
+    // Do not advance `last` on skipped callbacks: their time and queued input
+    // belong to the next tick. Unlimited remains explicitly unlimited.
+    const calmIdle = calmSince !== 0 && ts - calmSince > 2500 && (cfg.fps === 0 || cfg.fps > 60);
+    const frameDue = renderClock.due(ts, paused ? (view === 'title' ? (cfg.fps ? Math.min(cfg.fps, 60) : 60) : Math.min(cfg.fps || 30, 30)) : calmIdle ? 60 : cfg.fps);
+    if (!frameDue) return;
+    const cpuStart = measured ? performance.now() : 0;
     const dt = clamp((ts - (last || ts)) / 1000, 0, .05); last = ts; elapsed += dt; frame++;
     visualDt = Math.min(.1, visualDt + dt);
-    // Decide first whether this callback will draw, so the simulation can skip posing characters nobody will see
-    // (a 200 Hz screen under a 120 FPS cap runs three callbacks of five without a draw; the skipped time is handed to the next pose).
     // Draw rate by situation (CPU/fan): menus 30 (as before), the title screen 60, and a hero who has stood still for 2.5 s with no foe awake
     // nearby 60 (nothing moves, the screen is static); everything else keeps the configured rate (120 locked). Input or a foe restores it at once.
-    const calmIdle = calmSince !== 0 && ts - calmSince > 2500 && (cfg.fps === 0 || cfg.fps > 60);
-    const drawing = !warming && renderClock.due(ts, paused ? (view === 'title' ? (cfg.fps ? Math.min(cfg.fps, 60) : 60) : Math.min(cfg.fps || 30, 30)) : calmIdle ? 60 : cfg.fps);
+    const drawing = !warming;
     game.drawing = drawing;
     // Controllers keep polling on every menu too, so reconnect, remapping and navigation never depend on combat.
     controllerState = controller ? controller.poll(dt) : null;
@@ -1642,7 +1647,9 @@
   // small batches with a painted frame between them (the browser compiles in parallel where it can:
   // KHR_parallel_shader_compile), then the big textures are uploaded a few per frame. The bar follows the work.
   let warming = null, lowTextures = false, warmStats = null;
-  const WARM_BATCH = +(Q.get('warmbatch') || 48), WARM_LOG = Q.has('warmlog'), WARM_SYNC = /HeadlessChrome/.test(navigator.userAgent) && !Q.has('warm');
+  // Each batch waits for its new programs before starting another. Keep the
+  // default small so a many-core PC does not receive a large compile burst.
+  const WARM_BATCH = Math.floor(clamp(+(Q.get('warmbatch') || 8) || 8, 1, 32)), WARM_LOG = Q.has('warmlog'), WARM_SYNC = /HeadlessChrome/.test(navigator.userAgent) && !Q.has('warm');
   // The shadow pass clones ONE depth material per source material and then reuses it for skinned, instanced and plain casters alike,
   // so it switched programs on every change of caster type. Give each (material, caster type) pair its own depth material instead.
   // Meshes that only start casting later (shadow LOD, effects) get one too, so the warm-up compiles their shadow program as well.

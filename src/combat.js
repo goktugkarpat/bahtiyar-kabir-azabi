@@ -2421,6 +2421,10 @@
         const fraction = Math.max(.001, enemy.hp / enemy.maxHp);
         enemy.bar.fill.scale.x = fraction; enemy.bar.fill.position.x = -(enemy.boss ? 2.16 : 1.16) * (1 - fraction) / 2;
       }
+    }
+    // Cheap world/gameplay state still follows every collision substep; posing
+    // complete skeletons belongs to the final, visible state of the update.
+    function updateSceneState(dt) {
       for (const seal of seals) {
         if (seal.open) {
           seal.fade = Math.min(1, seal.fade + dt * 1.8);
@@ -2436,7 +2440,7 @@
       openingGrace = Math.max(0, openingGrace - dt);
       game.currentRoom = world.roomAt ? world.roomAt(player.x, player.z) : null;
       updatePlayer(dt, input);
-      if (game.state !== 'playing') { animateAll(dt); return; }
+      if (game.state !== 'playing') { updateSceneState(dt); return; }
       activateEncounters();
       // Previously engaged enemies reactivate when approached again.
       enemies.forEach(enemy => { if (!enemy.dead && enemy.activated && !enemy.active && !enemy.returning && distance(enemy, player) < 10) enemy.active = true; });
@@ -2445,7 +2449,7 @@
       updateHazards(dt);
       if (mech) mech.step(dt);
       if (game.state === 'playing') activateCheckpoint();
-      animateAll(dt);
+      updateSceneState(dt);
       if (boss2) boss2.tick(dt);
     }
     // Victims shudder on the spot while the frame holds; the next simulated frame puts every root back.
@@ -2480,15 +2484,19 @@
         groundLoot.update(dt);
         if (game.boss && game.boss.dead && !endAnnounced && !progression.groundLoot.some(i => i.boss && i.chapter===chapter)) { win(); }
       }
-      if (game.state !== 'playing') { animateAll(Math.min(dt, .033)); return; }
+      if (game.state !== 'playing') { const visualDt = Math.min(dt, .033); updateSceneState(visualDt); animateAll(visualDt); return; }
       // Fixed upper bound prevents fast dodge movement from tunneling on occasional slow frames.
-      let remaining = dt, first = true;
+      let remaining = dt, first = true, poseDt = 0;
       while (remaining > .00001 && game.state === 'playing') {
         const substep = Math.min(remaining, 1 / 60);
         const frameInput = first ? input : Object.assign({}, input, { light: false, heavy: false, near: false, clickLight: false, clickHeavy: false, dodge: false, heal: false, rage: false, special: false, fourth: false, interact: false });
-        step(substep, frameInput); first = false; remaining -= substep;
+        step(substep, frameInput); poseDt += substep; first = false; remaining -= substep;
         if (freeze > 0) { freeze = Math.max(0, freeze - remaining); break; }
       }
+      // A 33/50/100 ms update uses 2/3/6 collision steps, but presents one
+      // character pose. Preserve all simulated animation time without computing
+      // and immediately overwriting intermediate skeletons nobody can see.
+      if (poseDt > 0) animateAll(poseDt);
       game.hitStop = freeze;
     }
     function dispose() {
@@ -2535,7 +2543,7 @@
           lastDeath: game.lastDeath, attackTarget: game.attackTarget ? game.attackTarget.id : null, sceneChildren: root.children.length, hasSave: game.hasSave
         };
       },
-      teleport(x, z) { if (Number.isFinite(x) && Number.isFinite(z) && (!world.isWalkable || world.isWalkable(x, z, .5))) { player.x = x; player.z = z; animateAll(0); return true; } return false; },
+      teleport(x, z) { if (Number.isFinite(x) && Number.isFinite(z) && (!world.isWalkable || world.isWalkable(x, z, .5))) { player.x = x; player.z = z; updateSceneState(0); animateAll(0); return true; } return false; },
       // QA: kills regular foes (in list order) until n of them are down; returns the gate state.
       setKills(n) { if (gate) { for (const e of enemies) { if (gate.info.kills >= n) break; if (!e.boss && !e.dead) killEnemy(e); } } return gate ? Object.assign({}, gate.info) : null; },
       gateInfo() { return gate ? Object.assign({}, gate.info) : null; },
