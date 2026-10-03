@@ -1497,11 +1497,12 @@
       rendering: { ...renderer.info.render, multiDraw, worldSubmission, programs: renderer.info.programs.length,
         memory: { ...renderer.info.memory }, lastFrame: { ...post.frameResources } },
       loading: warmStats,
+      audio: B.Audio.diagnostics(),
       measurementScope: 'CPU samples describe the JavaScript and draw submission of presented callbacks; callbacks skipped by the Mac frame cap are not included in CPU stages. GPU scene includes shadows; GPU post includes AO, bloom and composition. GPU excludes HUD contexts and screen presentation. CPU and GPU run concurrently; do not add their times.' };
   }
   // Gaps between presented frames (last ~600), so the counter can also show the longest frame: a few slow frames are
   // what the eye reads as stutter even when the FPS average looks fine.
-  const BUILD_TAG = 143, fpsGaps = new Float32Array(600);
+  const BUILD_TAG = 144, fpsGaps = new Float32Array(600);
   let fpsGapAt = 0, fpsGapLast = 0;
   function frameStats() {
     let longest = 0, slow = 0;

@@ -1638,6 +1638,16 @@
     }, () => { if (contextStateTask === task) contextStateTask = null; });
     return task.promise;
   }
+  // Keep synthesis, decoded buffers and the three reverbs at a predictable
+  // full-bandwidth rate. A 96/192 kHz output device must not multiply the game
+  // sound graph's work; the browser resamples the final output when necessary.
+  function createLiveContext(C) {
+    try { return new C({ latencyHint: 'interactive', sampleRate: 48000 }); }
+    catch (e) {
+      if (e.name !== 'NotSupportedError') throw e;
+      return new C({ latencyHint: 'interactive', sampleRate: 44100 });
+    }
+  }
   function unlock() {
     unlocked = true; suspended = false;
     if (silent) return;
@@ -1647,7 +1657,7 @@
     }
     if (!ctx) {
       const C = window.AudioContext || window.webkitAudioContext; if (!C) return;
-      try { build(new C({ latencyHint: 'interactive' }), false); } catch (e) { console.warn('Audio', e); ctx = null; return; }
+      try { build(createLiveContext(C), false); } catch (e) { console.warn('Audio', e); ctx = null; return; }
       bankTask = loadBank();
     }
     syncContextState();
@@ -1661,7 +1671,7 @@
       // Loading may prepare sound before a gesture, but cannot start playback.
       if (!audioInitTask) audioInitTask = (async () => {
         const C = window.AudioContext || window.webkitAudioContext; if (!C) return;
-        const c = new C({ latencyHint: 'interactive' });
+        const c = createLiveContext(C);
         if (c.state === 'running') await c.suspend();
         build(c, false); bankTask = loadBank();
         if (unlocked) syncContextState();
@@ -1748,6 +1758,10 @@
     const first = () => { for (const ev of ['click', 'keydown', 'touchend']) window.removeEventListener(ev, first, true); unlock(); };
     for (const ev of ['click', 'keydown', 'touchend']) window.addEventListener(ev, first, true);
   }
+  function diagnostics() {
+    return { context: ctx ? ctx.state : 'none', sampleRate: ctx ? ctx.sampleRate : null,
+      baseLatency: ctx ? ctx.baseLatency ?? null : null, outputLatency: ctx ? ctx.outputLatency ?? null : null };
+  }
   B.Audio = {
     say, saySequence, sayQuest, prepare: prepareAudio, onCaption(fn) { caption = fn; },
     resetNarration() { queue = []; heard.clear(); },   // yeni yolculukta bekleyenleri at; mevcut cümle bitsin
@@ -1756,7 +1770,8 @@
     suspend() { suspended = true; if (extMusic) B.Music.suspend(); return syncContextState(); },
     resume() { if (!unlocked) return; suspended = false; if (silent || !ctx) return; if (extMusic) B.Music.resume(); return syncContextState(); },
     renderOffline,
-    debug() { return { context: ctx ? ctx.state : 'none', bank: bankState, shift: bankShift, clips: Object.keys(bank).length, voices, tort: T.log, queue: queue.map(q => q.key), current: current && current.key, music: Object.assign({}, M.level) }; },
+    diagnostics,
+    debug() { return { ...diagnostics(), bank: bankState, shift: bankShift, clips: Object.keys(bank).length, voices, tort: T.log, queue: queue.map(q => q.key), current: current && current.key, music: Object.assign({}, M.level) }; },
     get paused() { return suspended; },
     get silent() { return silent; }
   };
