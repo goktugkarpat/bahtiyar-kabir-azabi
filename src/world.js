@@ -2525,9 +2525,8 @@
 
       // ---- quality ----------------------------------------------------------------------------------------
       var particlesEnabled = true, particleScale = 1;
-      // Medium retains the complete detail of the former balanced High preset.
-      // Its light/particle budgets must therefore follow its name, not detail=2.
-      var PRESET_LEVEL = { low: 0, medium: 2, high: 2 };
+      // Only Low and High remain; High is the former Medium (budget index 1 below).
+      var PRESET_LEVEL = { low: 0, high: 2 };
       function setQuality(settings) {
         if (typeof settings === 'string') settings = { preset: settings };
         settings = settings || {};
@@ -2536,9 +2535,9 @@
         if (PRESET_LEVEL[preset] == null) preset = settings.quality;
         if (PRESET_LEVEL[preset] == null) {
           var value = settings.detail;
-          preset = typeof value === 'number' ? (value <= 0 ? 'low' : value < 2 ? 'medium' : 'high') : (PRESET_LEVEL[value] != null ? value : 'high');
+          preset = typeof value === 'number' ? (value <= 0 ? 'low' : 'high') : (PRESET_LEVEL[value] != null ? value : 'high');
         }
-        var level = PRESET_LEVEL[preset], budget = preset === 'low' ? 0 : preset === 'medium' ? 1 : 2;
+        var level = PRESET_LEVEL[preset], budget = preset === 'low' ? 0 : 1;
         shadowHz = [0, 30, 60][budget]; shadowSlot = null;
         deferredShadow = refreshShadow = null; deferredSlot = null; refreshCanDefer = renderedDeferred = false;
         qualityLevel = level;

@@ -60,19 +60,17 @@
   const FRAME_LIMIT = /Mac/i.test(navigator.userAgentData?.platform || navigator.platform || navigator.userAgent) ? 60 : 120;
   const QUALITY = {
     low:    { scale: 1, shadows: 0,    detail: 'low',    lights: .35, particles: 180, fog: .014, bloom: .08, corpses: 20, decals: 20, aa: true, occlusion: 0 },
-    medium: { scale: 1, shadows: 1024, detail: 'high',   lights: .7,  particles: 440, fog: .019, bloom: .205, corpses: 58, decals: 58, aa: true, occlusion: .5 },
-    high:   { scale: 1, shadows: 1536, detail: 'high',   lights: .8,  particles: 560, fog: .02,  bloom: .25,  corpses: 75, decals: 75, aa: true, occlusion: .6 }
+    high:   { scale: 1, shadows: 1024, detail: 'high',   lights: .7,  particles: 440, fog: .019, bloom: .205, corpses: 58, decals: 58, aa: true, occlusion: .5 }
   };
   const QUALITY_TEXT = {
     low: ['Düşük', 'Akıcılık öncelikli. Hafif ışıklar ve daha az parçacık.'],
-    medium: ['Orta', 'Dengeli görüntü ve akıcılık. Ayrıntılı yüzeyler ve yumuşak gölgeler.'],
-    high: ['Yüksek', 'En yüksek kalite. Daha net gölgeler, zengin ışıklar, sis ve savaş efektleri.']
+    high: ['Yüksek', 'Ayrıntılı yüzeyler, yumuşak gölgeler, ışıklar, sis ve savaş efektleri.']
   };
   // Character textures are sized once at start (Düşük halves them); a later change of preset takes full effect after a reload.
   const TEXTURE_NOTE = ' Karakter kaplamaları oyun yeniden açılınca bu ayara geçer.';
   const coarsePointer = matchMedia('(pointer:coarse)').matches;
   // Desktop defaults follow the current display's pixel density. Extra AA is opt-in.
-  const DEFAULTS = { difficulty: 'normal', quality: 'high', qualityVersion: 4, ...DISPLAY.defaults, frameRate: FRAME_LIMIT, exposure: 1.15, shake: .55, master: .65, music: .42, sfx: .75, voice: .85, subtitles: true, uiScale: .85 };
+  const DEFAULTS = { difficulty: 'normal', quality: 'high', qualityVersion: 5, ...DISPLAY.defaults, frameRate: FRAME_LIMIT, exposure: 1.15, shake: .55, master: .65, music: .42, sfx: .75, voice: .85, subtitles: true, uiScale: .85 };
   const FRAME_RATES = [60, 90, 120, 0];   // 0 = follow the display (every refresh; best with G-Sync / FreeSync / ProMotion)
   const UI_STEPS = [.85, 1];
   const LIMITS = { exposure: [.7, 1.7], shake: [0, 1], master: [0, 1], music: [0, 1], sfx: [0, 1], voice: [0, 1] };
@@ -166,18 +164,14 @@
       try { raw = JSON.parse(localStorage.getItem(OLD_KEY) || 'null'); } catch (e) { raw = null; }
       if (raw && typeof raw === 'object') {
         migrated = legacySettings = true;
-        if (raw.preset === 'ultra') raw.preset = 'high';
-        if (!Object.prototype.hasOwnProperty.call(QUALITY, raw.preset)) raw.preset = ({ 0: 'low', 1024: 'medium', 1536: 'medium', 2048: 'high', 4096: 'high' })[raw.shadows] || DEFAULTS.quality;
+        if (raw.preset === 'ultra' || raw.preset === 'medium') raw.preset = 'high';
+        if (!Object.prototype.hasOwnProperty.call(QUALITY, raw.preset)) raw.preset = ({ 0: 'low', 1024: 'high', 1536: 'high', 2048: 'high', 4096: 'high' })[raw.shadows] || DEFAULTS.quality;
         raw.quality = raw.preset;
       }
     }
     if (raw && typeof raw === 'object') {
-      if (raw.quality === 'ultra') { raw.quality = 'high'; migrated = true; }
-      else if (!legacySettings && raw.qualityVersion !== DEFAULTS.qualityVersion && raw.quality === 'medium') {
-        // Version 4: the old Mac default was Medium, and nobody could tell it from a real choice.
-        // Everyone moves to High once; a later Medium choice (saved with version 4) is kept.
-        raw.quality = 'high';
-      }
+      // Version 5: only Low and High remain; the former Medium is the new High.
+      if (raw.quality === 'ultra' || raw.quality === 'medium') raw.quality = 'high';
       if (raw.qualityVersion !== DEFAULTS.qualityVersion) migrated = true;
       if (Object.prototype.hasOwnProperty.call(QUALITY, raw.quality)) cfg.quality = raw.quality;
       // Difficulty and HUD size always start from the launch defaults.
@@ -210,10 +204,8 @@
   function deriveSettings() {
     Object.assign(cfg, QUALITY[cfg.quality] || QUALITY.high);
     cfg.fps = cfg.frameRate;
-    // 60 Hz-class targets: distant characters stop casting into the key light's shadow map (see combat.js); 0 = all cast.
-    // ...and the busiest per-frame extras are trimmed a little on High so a 60 Hz screen stays locked (120 Hz keeps the full amounts).
-    if (cfg.fps > 0 && cfg.fps <= 64 && cfg.quality === 'high') { cfg.decals = 60; cfg.particles = 480; cfg.corpses = 60; }
-    cfg.shadowReach = cfg.quality === 'low' ? 0 : cfg.fps > 0 && cfg.fps <= 64 ? (cfg.quality === 'high' ? 13 : 10) : (cfg.quality === 'high' ? 18 : 13);   // far characters do not cast into the key light's map (fewer shadow draws = a steadier frame time)
+    // 60 Hz-class targets: distant characters cast shadows over a shorter reach (see combat.js); 0 = all cast.
+    cfg.shadowReach = cfg.quality === 'low' ? 0 : cfg.fps > 0 && cfg.fps <= 64 ? 10 : 13;   // far characters do not cast into the key light's map (fewer shadow draws = a steadier frame time)
     cfg.preset = cfg.quality;
     cfg.ambient = cfg.sfx * .66;   // dungeon ambience follows the effects slider
   }
@@ -1504,7 +1496,7 @@
   }
   // Gaps between presented frames (last ~600), so the counter can also show the longest frame: a few slow frames are
   // what the eye reads as stutter even when the FPS average looks fine.
-  const BUILD_TAG = 146, fpsGaps = new Float32Array(600);
+  const BUILD_TAG = 147, fpsGaps = new Float32Array(600);
   let fpsGapAt = 0, fpsGapLast = 0;
   function frameStats() {
     let longest = 0, slow = 0;
@@ -1598,12 +1590,6 @@
       const stepped = scaler.frame(ts, cfg.fps, scaling);
       if (stepped !== null) {
         cfg.dynScale = stepped; resize();
-        // While the picture is stepped down the extras shrink too: fewer casting characters, shorter-lived marks and sparks.
-        if (cfg.fps > 0 && cfg.fps <= 64 && cfg.quality === 'high') {
-          const busy = stepped <= .86;
-          cfg.shadowReach = busy ? 9 : 13; cfg.decals = busy ? 40 : 60; cfg.particles = busy ? 340 : 480;
-          safe(() => game.setQuality(cfg));
-        }
       }
       // Simulation and input above keep their clocks. Prepare the visible frame
       // once, using all time since the last draw, even on a faster-refresh screen.
@@ -1893,6 +1879,7 @@
       // become obsolete and the first inventory draw compiles them again.
       const portraitStart = performance.now(), portraitPrograms = renderer.info.programs.length;
       if (characterPreview && characterPreview.warm) await characterPreview.warm();
+      if (characterUI && characterUI.warm) { try { await characterUI.warm(); } catch (e) { console.warn('[Kabir Azabı]', e); } }   // I / T pages painted once under the cover
       warmStats.portrait = Math.round(performance.now() - portraitStart);
       warmStats.portraitPrograms = renderer.info.programs.length - portraitPrograms;
       warmStats.total = Math.round(performance.now() - t0); warmStats.count = renderer.info.programs.length;

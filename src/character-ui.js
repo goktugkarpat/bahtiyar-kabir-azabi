@@ -494,7 +494,29 @@
       if (priorFocus && priorFocus.isConnected && priorFocus.focus) priorFocus.focus();
       if (!silent && typeof options.onClose === 'function') options.onClose();
     }
-    return { open, close, refresh, get isOpen() { return opened; }, element: overlay,
+    // Paints both pages once, almost transparent and above the loading cover, so the first I / T press does not
+    // draw the panel, the item icons, the skill tree and the portrait's 2D canvas for the first time during play.
+    async function warm() {
+      if (opened || !getState()) return;
+      const frame = () => new Promise(res => { let done = false; const go = () => { if (!done) { done = true; res(); } }; requestAnimationFrame(go); setTimeout(go, 120); });
+      const style = overlay.getAttribute('style');
+      overlay.inert = true; overlay.setAttribute('aria-hidden', 'true');
+      overlay.style.cssText = 'opacity:.012;z-index:2147483000;pointer-events:none';
+      opened = true;
+      try {
+        for (const page of ['inventory', 'skills', 'inventory']) {
+          tab = page; overlay.classList.remove('hidden'); refresh(true);
+          const canvas = content.querySelector('#character-preview');
+          if (canvas) { stopPreview(); canvas.width = 256; canvas.height = 384; const ctx = canvas.getContext('2d', { alpha: false }); if (ctx) ctx.fillRect(0, 0, 8, 8); }
+          for (let i = 0; i < 4; i++) await frame();
+        }
+      } finally {
+        stopPreview(); hideTooltip(); opened = false; tab = 'inventory'; lastRevision = -1; selected = null;
+        overlay.classList.add('hidden'); overlay.inert = false; overlay.removeAttribute('aria-hidden');
+        if (style == null) overlay.removeAttribute('style'); else overlay.setAttribute('style', style);
+      }
+    }
+    return { open, close, refresh, warm, get isOpen() { return opened; }, element: overlay,
       dispose: () => { close(true); stopPreview(); document.removeEventListener('keydown', onKey, true); overlay.remove(); } };
   }
   B.CharacterUI = Object.freeze({ create, gearIcon });

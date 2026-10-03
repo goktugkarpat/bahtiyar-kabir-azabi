@@ -192,8 +192,7 @@
   // ---------------------------------------------------------------- presets
   var PRESET = {
     low:  { scatter: 2, moonShadow: 0,    shadowHz: 0, rimWrap: .8, mistDetail: 0 },
-    medium: { scatter: 8, moonShadow: 1024, shadowHz: 30, rimWrap: .95, mistDetail: 1 },
-    high: { scatter: 10, moonShadow: 1536, shadowHz: 60, rimWrap: 1, mistDetail: 1 }
+    high: { scatter: 8, moonShadow: 1024, shadowHz: 30, rimWrap: .95, mistDetail: 1 }
   };
 
   function smooth(t) { t = Math.max(0, Math.min(1, t)); return t * t * (3 - 2 * t); }

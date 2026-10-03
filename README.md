@@ -2,7 +2,7 @@
 
 Bahtiyar'ın karanlık yolculuğunu anlatan, üç boyutlu, Türkçe konuşmalar içeren bir aksiyon oyunu. **Yetişkinler içindir (18+); kan, yoğun şiddet ve korku içerir.**
 
-**Bu klasördeki oyun sürümü: v146.**
+**Bu klasördeki oyun sürümü: v147.**
 
 [Oyunu aç](https://goktugkarpat.github.io/bahtiyar-kabir-azabi/)
 
@@ -43,7 +43,7 @@ Düşman saldırılarından önce yerde uyarı çıkar. Altın kenar sıradan, k
 
 ## Görüntü ve ses ayarları
 
-- **Grafik kalitesi:** Düşük, Orta ve Yüksek.
+- **Grafik kalitesi:** Düşük ve Yüksek.
 - **Görüntü boyutu:** Otomatik veya ekranın doğal çözünürlüğü. Otomatik seçenek, Retina gibi yüksek piksel yoğunluğundaki ekranlarda çizim çözünürlüğünü azaltabilir.
 - **Kare hızı:** 60, 90, 120 FPS veya ekran hızı. Mac'te başlangıç sınırı 60 FPS'dir; menülerde ve hareketsiz beklerken kare hızı ayrıca azaltılır.
 - **Kenar yumuşatma:** SMAA açık kullanılır; ayrı MSAA veya süper örnekleme seçeneği bulunmaz.
@@ -58,6 +58,7 @@ Sessiz açılış için adresin sonuna `?sessiz` ekleyin. Oyun testleri bu şeki
 - **v144:** Canlı ses işleme hızı, çıkış cihazının yüksek örnekleme hızından bağımsız olarak 48 kHz seçilir; desteklenmezse 44,1 kHz denenir.
 - **v145:** NVIDIA / Direct3D11 yolunda ışığın sis içindeki dağılımı aynı hesap ve sırayla, daha küçük bir görüntü programında yapılır. Salonlar yalnızca derlenmez; ışıkların sis içindeki katkıları etkinleştirilerek yükleme ekranı altında oyun kamerasıyla gerçekten çizilir ve çizimin tamamlanması beklenir. İlk kullanım hazırlığının mümkün olduğunca yükleme ekranında tamamlanması amaçlanır. Karakter penceresi dünya malzemelerinden sonra hazırlanır. Küçük harita ve hasar yazıları için küçük yazılım çizim yüzeyleri kullanılır. Grafik kalitesi, çözünürlük ve seçilen kare hızı korunur; Mac'in sis çizim yolu değişmez.
 
+- **v147:** Grafik kalitesi iki seçeneğe indi: Düşük ve Yüksek. Yeni Yüksek, eski Orta ayarıdır; eski Yüksek kaldırıldı. Eski Orta/Yüksek kayıtları kendiliğinden Yüksek'e geçer. Karakter / çanta (I) ve yetenek ağacı (T) sayfaları yükleme ekranı altında bir kez çizilir; ilk açılışta takılma olmaması amaçlanır.
 - **v146:** Parçacık, kan izi, zemin lekesi, kopan parçalar ve silah izi tamponlarında yalnızca kullanılan bölüm güncellenir; henüz çizilmemiş güncellemeler korunur. Bitmiş kan çizgileri çizim aralığının dışında bırakılır. Gerçek efekt kodunun uzun süreli karşılaştırmasında geometri aynı kalırken bu kapsamdaki aktarım miktarı %55 azaldı. Bu sonuç tarayıcı işlemci yükü veya sıcaklık ölçümü değildir.
 
 **Bilinen durum:** Kullanıcının Ryzen 9950X / RTX 4090 bilgisayarında, özellikle yeni düşmanlara yaklaşırken işlemci sıcaklığı sıçraması bildirildi. Windows işlem kaydında yükün büyük kısmı tarayıcının ekran kartı işlemindeki NVIDIA görüntü programı hazırlama bileşeninde görüldü. Aynı bilgisayardaki sessiz karşılaştırmada eski sis kodu yeni düşmanlara yaklaşınca uzun süre devam eden yük üretti; v145 bu uzun hazırlık yükünü azalttı, ancak ilk görülen düşmanlarda kısa yük sıçramaları hâlâ ölçüldü. İşlemci işi işlem kimliğine göre ham zaman farklarıyla ölçülür; arka planda çizimin yavaşlatıldığı denemeler sürekli oynanış karşılaştırması sayılmaz. Bu test toplam bilgisayar yükü veya sıcaklık ölçümü değildir; sıcaklık sorununun bütünüyle giderildiği henüz doğrulanmadı. Yükleme sırasında görüntü programları bir kez hazırlanır ve işlemci işi gerektirir. Gözlem yalnızca bu bilgisayara aittir; genel bir Ryzen sorunu olduğu gösterilmedi.
