@@ -800,7 +800,7 @@
         }
         return;
       }
-      if (['KeyI', 'KeyC', 'KeyT'].includes(e.code) && !browserChord && !e.repeat && ['playing', 'pause', 'character'].includes(view)) { e.preventDefault(); if (view === 'character' && e.code !== 'KeyT') back(); else openCharacter(e.code === 'KeyT' ? 'skills' : 'inventory'); return; }
+      if (['KeyI', 'KeyC', 'KeyT'].includes(e.code) && !browserChord && !e.repeat && ['playing', 'pause', 'character'].includes(view)) { e.preventDefault(); if (view === 'character') back(); else openCharacter(e.code === 'KeyT' ? 'skills' : 'inventory'); return; }
       if (view !== 'playing' || browserChord) return;
       if (e.code === 'KeyH' && !e.repeat) { show('pause'); openControls(); return; }
       if (e.repeat) keys.add(normCode(e.code)); else pressBind(normCode(e.code));
@@ -1496,7 +1496,7 @@
   }
   // Gaps between presented frames (last ~600), so the counter can also show the longest frame: a few slow frames are
   // what the eye reads as stutter even when the FPS average looks fine.
-  const BUILD_TAG = 147, fpsGaps = new Float32Array(600);
+  const BUILD_TAG = 148, fpsGaps = new Float32Array(600);
   let fpsGapAt = 0, fpsGapLast = 0;
   function frameStats() {
     let longest = 0, slow = 0;

@@ -2,7 +2,7 @@
 
 Bahtiyar'ın karanlık yolculuğunu anlatan, üç boyutlu, Türkçe konuşmalar içeren bir aksiyon oyunu. **Yetişkinler içindir (18+); kan, yoğun şiddet ve korku içerir.**
 
-**Bu klasördeki oyun sürümü: v147.**
+**Bu klasördeki oyun sürümü: v148.**
 
 [Oyunu aç](https://goktugkarpat.github.io/bahtiyar-kabir-azabi/)
 
