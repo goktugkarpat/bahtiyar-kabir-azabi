@@ -317,7 +317,7 @@
         const handle = BABA.Charge && BABA.Charge.begin ? BABA.Charge.begin(ctx, skill.tier) : fallbackCharge(ctx);
         if (handle) {
           attack.duration = Math.max(.2, handle.duration || .5); attack.chainAt = attack.duration; attack.face = player.face; player.attack = attack; player.chargeHandle = handle;
-          player.stamina -= skill.cost; staminaDelay = .9; started = true;
+          player.stamina -= skill.cost; started = true;
           if (!BABA.Charge) sound('dodge', { x: player.x, z: player.z });
         } else if (BABA.Charge) emit('toast', { text: 'Hücum için yeterli yol yok.' });
       } else {
@@ -334,7 +334,7 @@
           }
           Object.assign(player.attack, { leap: true, lunge: room, lunged: 0, lungeLead: LEAP_AIR });
         }
-        player.stamina -= skill.cost; staminaDelay = .9; started = true;
+        player.stamina -= skill.cost; started = true;
         sound('heavy', { x: player.x, z: player.z, volume: skill.tier >= 3 ? .8 : 1 });
         sound(skill.tier >= 3 ? 'strikeWind3' : 'strikeWind2', { x: player.x, z: player.z, strike: P.strike, air: LEAP_AIR });
       }
@@ -472,7 +472,7 @@
       node.updateMatrixWorld = guard; matrixGuards.push({ node, guard, descriptor });
     }
     guardRenderMatrices(hero.root); hero.root.userData.skipFresh = true;
-    let staminaDelay = 0, dodgeAge = 0, dodgeVector = { x: 0, z: -1 };
+    let dodgeAge = 0, dodgeVector = { x: 0, z: -1 };
     // Explicit aim of this frame (gamepad right stick only; the mouse never aims): its direction from the hero, null = none.
     // moveFace = travel direction this frame (null = standing); assistFoe = the foe the last attack-key swing auto-turned onto (hysteresis).
     let aimFace = null, moveFace = null, assistFoe = null;
@@ -683,7 +683,7 @@
       if (limbs) limbs.reset(enemies);
       if (globes) globes.reset();
       if (groundLoot) groundLoot.reset();
-      simTime = 0; buffer = {}; staminaDelay = 0; drinkLeft = 0; order = null; swingPlan = null; dodgeAim = null; pendingClick = null; showTargetRing(null); clearMoveMark();
+      simTime = 0; buffer = {}; drinkLeft = 0; order = null; swingPlan = null; dodgeAim = null; pendingClick = null; showTargetRing(null); clearMoveMark();
       dodgeAge = 0; forcedMotion = null; healingAge = 0; comboStep = 0; comboWindow = 0; spinCur = 0;
       playerHitImmunity = 0; endAnnounced = false; hintCooldown = 0; deniedCooldown = 0; deniedId = ''; lackSerial = 0; openingGrace = snapshot.index ? 0 : 8;
       freeze = 0; slowmo = 0; victims.length = 0; evadeCooldown = 0; game.hitStop = 0; game.timeScale = 1; pairCd = 0;
@@ -1766,7 +1766,7 @@
       else if (dodgeAim !== null) dodgeVector = { x: Math.sin(dodgeAim), z: Math.cos(dodgeAim) };
       else dodgeVector = { x: Math.sin(player.face), z: Math.cos(player.face) };
       if (order && !order.held) order = null;   // a roll ends a one-shot order (a held button keeps going once the roll is over)
-      clearLack('dodge'); player.stamina -= DODGE.cost; staminaDelay = .62; player.dodge = .48; dodgeAge = 0; player.invulnerable = true;
+      clearLack('dodge'); player.stamina -= DODGE.cost; player.dodge = .48; dodgeAge = 0; player.invulnerable = true;
       // Two presses may share a frame. The roll starts after queuing, so retain accepted skills for this new commitment too.
       for (const key of skillKeys) if (buffer[key]) buffer[key] = Math.max(buffer[key], player.dodge + FEEL.buffer);
       player.attack = null; player.healing = 0; player.stagger = 0; healingAge = 0; forcedMotion = null; player.push = null;
@@ -1790,7 +1790,7 @@
         radius: SPECIAL.radius, arc: Math.PI * 2, moveUntil: 0, serial: ++attackSerial, queued: null, lunge: 0, lungeLead: .1, lunged: 1,
         whooshAt: 9, whooshed: true, chainAt: SPECIAL.duration, ticks: 0
       };
-      clearLack('special'); player.stamina -= SPECIAL.cost; staminaDelay = 1.0; player.specialCd = player.specialMax = SPECIAL.cooldown;
+      clearLack('special'); player.stamina -= SPECIAL.cost; player.specialCd = player.specialMax = SPECIAL.cooldown;
       trackAttackTarget(frontTarget(player.face, SPECIAL.radius, Math.PI));
       player.healing = 0; comboStep = 0; comboWindow = 0;
       delete buffer.special; delete buffer.heavy; delete buffer.light;
@@ -1890,7 +1890,7 @@
       };
       if (heavy) Object.assign(player.attack, { duration: HEAVY.duration, strike: HEAVY.strike, chainAt: HEAVY.duration, whooshAt: 0, lungeLead: HEAVY.lungeLead });
       trackAttackTarget(foe);
-      clearLack(heavy ? 'heavy' : 'light'); player.stamina -= cost; if (heavy) staminaDelay = .75;
+      clearLack(heavy ? 'heavy' : 'light'); player.stamina -= cost;
       player.healing = 0; comboStep = heavy ? 0 : combo + 1; comboWindow = .85;
       if (plan && plan.order) { plan.order.owed = false; if (!plan.order.held && order === plan.order) order = null; }   // a one-shot click order is spent by its swing
       swingPlan = null;
@@ -1938,7 +1938,7 @@
       if (player.rageCd > 0) return false;   // a press in the final .22 s waits for readiness
       if (player.stamina < ROAR.cost) return rejectAction('rage', 'stamina',
         'Kan Öfkesi için ' + Math.round(ROAR.cost) + ' dayanıklılık gerekiyor (şu an ' + Math.floor(player.stamina) + ').', { cost: ROAR.cost, have: player.stamina });
-      clearLack('rage'); player.stamina -= ROAR.cost; staminaDelay = 1; player.rageCd = ROAR.cooldown;
+      clearLack('rage'); player.stamina -= ROAR.cost; player.rageCd = ROAR.cooldown;
       player.attack = null; player.healing = 0; healingAge = 0; comboStep = 0; comboWindow = 0;
       player.roar = { age: 0, released: false, serial: ++attackSerial, gather: ROAR.release };
       delete buffer.rage;
@@ -2157,7 +2157,7 @@
       for (const id of Object.keys(skillCooldowns)) skillCooldowns[id] = Math.max(0, skillCooldowns[id] - dt);
       player.specialCd = Math.max(0, (player.specialCd || 0) - dt);
       player.rageCd = Math.max(0, (player.rageCd || 0) - dt); player.drink = drinkLeft;
-      staminaDelay = Math.max(0, staminaDelay - dt); comboWindow = Math.max(0, comboWindow - dt);
+      comboWindow = Math.max(0, comboWindow - dt);
       const moveLength = Math.hypot(input.x || 0, input.z || 0);
       // Only the pad's right stick can aim (a stand swing, a roll from standing); it never turns the hero by itself.
       // Otherwise he looks where he walks and keeps his last facing when he stands.
@@ -2247,7 +2247,8 @@
           forcedMotion.time -= dt; if (forcedMotion.time <= 0) forcedMotion = null;
         }
       }
-      if (staminaDelay <= 0 && !player.attack && !player.dodge && !player.healing) {
+      // Energy recovers during every live action, including a held attack.
+      if (player.stamina < player.maxStamina) {
         player.stamina = Math.min(player.maxStamina, player.stamina + REGEN * (player.rageTime > 0 ? 1.65 : 1) * dt);
       }
       player.status = player.healing ? 'Şifa içiliyor' : player.roar ? 'Savaş narası' : player.rageTime > 0 ? 'Kan öfkesi' : '';

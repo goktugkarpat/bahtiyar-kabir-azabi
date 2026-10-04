@@ -11,7 +11,7 @@
   // Painted, original SVG miniatures match the weapon/armour family. The actual worn
   // object remains the animated 3D figure; no thumbnail renderer or texture fetch is needed.
   function gearIcon(def) {
-    const id = 'gear-art-' + (++gearSerial), base = def.modelId || def.id, worn = def.finish || 'worn';
+    const id = 'gear-art-' + (++gearSerial), base = def.id || def.modelId, worn = def.finish || 'worn';
     const tones = { worn: ['#c2c9ca','#6b777a','#253035'], ash: ['#d6cfbe','#8e8778','#343333'], rust: ['#d2b086','#996442','#362722'], brine: ['#b8d1d1','#668d91','#20353e'], blood: ['#cabaa4','#8f5b52','#38262a'], bone: ['#e3d9b9','#9f9477','#3d3a32'] };
     const tone = tones[worn] || tones.worn;
     const steel = 'url(#' + id + '-steel)', leather = 'url(#' + id + '-leather)', gold = '#ae8453';
@@ -48,6 +48,92 @@
       art = '<path fill="' + leather + '" d="M9 10h17l-2 28 6 9-1 11H4V46l5-9Zm29 0h17l-1 27 7 9v12H36l-1-11 5-9Z"/><path fill="#191a19" d="M4 53h25v7H4Zm32 0h25v7H36Z"/>';
       if (metal) art += '<path fill="' + steel + '" d="M11 13h13l-2 21-9 4Zm30 0h12l-2 24-9-3Z"/>';
       etch = '<path d="M10 20h14m-14 8h13m18-8h12m-12 8h12M7 47h18m15 0h17"/>';
+    }
+    // Identity, not the reused 3D model, determines the large readable silhouette.
+    // Broad cut-outs and two or three prominent shapes survive the inventory's 32px cells.
+    const key = def.id || '', bone = '#c9bfa3', dark = '#0e1418', ember = '#a45238';
+    const shape = (d, fill = steel) => '<path fill="' + fill + '" d="' + d + '"/>';
+    const line = (d, color = bone, width = 2) => '<path fill="none" stroke="' + color + '" stroke-width="' + width + '" d="' + d + '"/>';
+    const loop = (x,y,rx,ry,fill=steel) => '<ellipse cx="'+x+'" cy="'+y+'" rx="'+rx+'" ry="'+ry+'" fill="none" stroke="'+fill+'" stroke-width="3"/>';
+    const chain = (x,y) => loop(x,y,4,6)+loop(x,y+9,3,5,bone)+loop(x,y+17,4,6);
+    if (def.slot === 'weapon') {
+      const grip=shape('m8 55 23-34 5 4-22 34Z',leather)+line('m13 49 5 4m-1-9 5 4',gold,2);
+      if (def.type === 'sword') {
+        if (/hollow-crown/.test(key)) {
+          art=grip+shape('M44 2 55 7 50 23 27 46 18 37Z')+shape('m17 28 9 2 4-9 5 13 13 4-6 8-13-3-8-8Z',gold)+shape('m43 9 5 3-7 9-5-3Z',dark); etch=line('m44 23-18 17');
+        } else if (/cave-verdict|ruin-lament/.test(key)) {
+          art=grip+shape('M49 3 56 8 44 16 48 22 37 26 38 33 25 46 18 39 29 29 28 23 39 20 38 13Z')+shape('m13 35 8-3 15 13-5 5Z',gold);etch=line('m48 10-24 29');
+        } else if (/slag-edge|black-forge/.test(key)) {
+          art=grip+shape('M48 2 58 7 50 14 54 20 43 24 46 30 26 46 17 37Z')+shape('m14 35 7-5 16 15-5 5Z')+shape('m43 14 4 2-6 7-4-2Zm-10 12 4 2-6 7-4-2Z',dark);etch=line('m25 37 18-21',ember,1.5);
+        } else if (/widow/.test(key)) {
+          art=grip+shape('M46 4 50 7 27 43 20 38Z')+shape('m12 34 23 15 4-5-23-15Z',bone)+shape('m8 50 5 5-5 6-5-5Z',bone);etch=line('m22 32 6 4m-10 2 6 4');
+        } else if (/black-tide/.test(key)) {
+          art=grip+shape('M48 3c11 17-10 22-8 30L26 46 18 38 35 19Z')+shape('m13 34 23 16 6-4-9-1-10-9-8-6Z',gold);etch=line('M47 11c-1 10-12 13-16 22',tone[0]);
+        }
+      } else if (def.type === 'axe') {
+        if (/sepulcher/.test(key)) { art=grip+shape('m24 11 12-9 22 12-11 22-23-8Z')+shape('m35 12 12 5-6 11-12-6Z',dark);etch=line('m27 16 17 9',bone,3); }
+        else if (/broken-throne/.test(key)) { art=grip+shape('m26 17 5-12 5 5 5-8 4 9 12-3-2 15-13 10-16-10Z')+shape('m28 18-11-5-10 14 17 4Z',gold);etch=line('m35 12 8 17'); }
+        else if (/furnace-oath|ember-vow/.test(key)) { art=grip+shape('M29 13 40 3l17 6-6 8 7 5-14 15-13-11L15 34 5 24l8-6-4-7 15 1Z')+shape('m31 16 8 5-5 9-8-6Z',ember);etch=line('m45 8-3 13 8 2-10 10',ember,2); }
+        else if (/mourning/.test(key)) { art=grip+shape('M31 10 52 4 58 15 47 33 34 29 39 22 27 18Z')+shape('m49 18-5 8 9-3Z',dark);etch=line('m49 9-7 10',bone); }
+      } else if (def.type === 'spear') {
+        const shaft=shape('m10 58 31-38 4 3-31 38Z',leather);
+        if (/bell-spear|furnace-mourning/.test(key)) { art=shaft+shape('M52 2 59 15 46 29 36 22Z')+shape('M27 27c8-9 16 0 12 8l4 8-19-8Z',gold)+shape('m29 33 8 4-1 3-9-4Z',dark);etch=line('m53 8-11 14'); }
+        else if (/starved/.test(key)) { art=shaft+shape('M38 7 42 20 50 2 54 5 46 24 61 16 57 29 44 34 31 24Z',bone);etch=line('m41 23-7 13',gold); }
+        else if (/last-coal/.test(key)) { art=shaft+shape('M47 2 56 8 48 24 38 27 40 13Z')+shape('m45 12 6-2-3 11-6-1Z',ember)+shape('m34 24 5 4-3 9-6-4Z',dark);etch=line('m19 46 5 4',gold,3); }
+        else if (/orphan|bone-spear/.test(key)) { art=shaft+shape('M53 2 57 7 49 21 57 20 48 30 37 25 36 14 40 18Z',bone)+loop(31,35,4,3,bone);etch=line('m51 9-10 13',dark,1.5); }
+      }
+    } else if (def.slot === 'head') {
+      if (/warden-verdict/.test(key)) {
+        art=shape('M10 43 14 22 8 7 22 16 32 3 42 16 56 7 50 24 54 43 43 56 21 56Z',bone)+shape('M19 24 45 24 43 46 32 56 21 46Z')+shape('m20 29 10 3-2 5-8-3Zm14 3 10-3-1 5-7 3Z',dark);etch=line('M32 20v24m-8 1 8 7 8-7',gold);
+      } else if (/sealed-gaze|sealed-furnace|no-witness|forgotten-face|no-dawn/.test(key)) {
+        const furnace=/furnace/.test(key),blind=/forgotten/.test(key);
+        art=shape('M11 47V22C11 3 53 3 53 22v25L40 59H24Z')+shape(blind?'M19 24h26v11H19Z':'m16 25 14 3v5l-14-3Zm18 3 14-3v5l-14 3Z',dark)+shape('M29 35h6v20h-6Z',gold);
+        if(furnace)art+=shape('M11 21 3 8 17 14Zm42 0 8-13-14 6Z')+line('M21 39h4m14 0h4m-22 6h4m14 0h4',ember,3);
+        else if(/no-dawn/.test(key))art+=shape('M15 15 13 4 24 12 32 3 40 12 51 4 49 15Z',bone);
+        if(/sealed-gaze/.test(key))art+=shape('M15 23h34v6H15Z',bone)+shape('M29 19h6v18h-6Z',gold);
+        if(/no-witness/.test(key))art+=shape('M17 24h30v14H17Z',dark)+shape('M22 29h20v2H22Z',tone[0]);
+        etch=line('M16 18h32m-28 28 7 7m17-7-7 7');
+      } else if (/last-breath|last-witness|silent-watch|drowned-helm/.test(key)) {
+        art=shape('M8 41 11 18C15 2 49 2 53 18l3 23-16 15-8-15-8 15Z')+shape('M17 20h30v19H17Z',dark)+shape('M20 22h7v9h-7Zm17 0h7v9h-7Z',gold);
+        if(/drowned|silent-watch/.test(key))art+=shape('M26 8c0-8 12-8 12 0l5 8H21Z',gold);
+        else art+=shape('M9 23 3 6 18 15Zm46 0 6-17-15 9Z',bone);
+        etch=line('M15 40 24 44m25-4-9 4');
+      } else if (/funeral|buried-prayer|coal-mourner|orphan/.test(key)) {
+        const point=/buried|funeral/.test(key);
+        art=shape(point?'M32 2 54 21 58 51 43 59 36 50 28 50 21 59 6 51 10 21Z':'M32 5 50 14 57 34 53 57 38 52 26 58 11 53 7 34 14 14Z',leather)+shape('M19 27c2-16 24-16 26 0l-5 20H24Z',dark);
+        if(/coal/.test(key))art+=shape('m11 43 13 10-7 5-9-5Zm30 10 12-10 3 10-9 5Z',ember);
+        etch=line('M14 38 20 21m30 17-6-17m-12 5v17',bone,1.5);
+      }
+    } else if (def.slot === 'chest') {
+      if (/hollow-heart|hollow-ember|ruin-burial|buried-fire/.test(key)) {
+        art=shape('M20 9 8 15 4 31 16 35 17 56 29 61 46 56 48 35 60 31 55 15 43 9 38 17H26Z',leather)+shape('M22 20h20l4 29-14 8-14-8Z',dark);
+        for(let r=0;r<4;r++)art+=shape('M20 '+(23+r*7)+'l11 3v4l-12-3Z',bone)+shape('M44 '+(23+r*7)+'l-11 3v4l12-3Z',bone);
+        art+=shape('M30 19h4v37h-4Z',bone);etch=line('m10 17 8 9m36-9-8 9',gold);
+      } else if (/warden-chainmail|grave-chest|ash-warden|empty-vow/.test(key)) {
+        art=shape('M20 9 8 15 4 31 17 34 16 55 32 60 48 55 47 34 60 31 56 15 44 9 37 17H27Z')+shape('M22 20h20v31H22Z',dark);
+        for(let r=0;r<3;r++)for(let c=0;c<3;c++)art+=loop(23+c*9,25+r*10,4,5,/ash-warden/.test(key)?gold:steel);
+        if(/ash-warden/.test(key))art+=shape('m7 17 1-11 11 9Zm49 0-1-11-11 9Z',ember);etch=line('M14 42v10m36-10v10');
+      } else if (/sunless|sunken-vow|slag-burial/.test(key)) {
+        art=shape('M19 9 7 14 3 34 14 35 12 59 28 56 34 60 54 57 51 35 61 31 55 14 44 9 37 17H26Z',leather)+shape('M22 18 11 24 21 34 23 50 32 56 41 50 43 34 54 24 43 18 32 22Z')+shape('M29 24h6v26h-6Z',gold);etch=line('m15 24 7 5m27-5-7 5m-17 9 7 7 7-7');
+      } else if (/ash-chest|mourner|salt-shroud/.test(key)) {
+        art=shape('M21 8 9 14 5 34 18 31 15 57 23 53 29 61 35 53 47 59 48 30 59 34 55 14 43 8 39 19H25Z',leather)+shape('M24 22h16l5 18-9 11-12-4-3-12Z',tone[1])+shape('m23 25 6 7-5 8-4-8Zm16 13 5 5-7 7-3-7Z',dark);etch=line('M22 22 39 45m-19-7 19-7',bone,2);
+      }
+    } else if (def.slot === 'hands') {
+      if (/grasp|gauntlet|slag-fingers/.test(key)) {
+        art=shape('M8 14 23 12 25 28 31 26 33 33 26 45 28 58H9l-3-19Zm33-2 15 2 2 25-3 19H36l2-13-7-12 2-7 6 2Z')+shape('M10 19h12v18H10Zm32 0h12v18H42Z',dark)+shape('m11 47 13-2 2 11-15 1Zm29-2 13 2v10l-15-1Z',gold);
+        if(/grasp|black-stone|slag/.test(key))art+=shape('M8 15 5 4 13 13 14 2 19 12 24 5 23 18Zm33 3-1-13 5 7 5-10 1 11 8-9-3 11Z',/ash-warden/.test(key)?ember:bone);
+        if(/ash-warden-grasp/.test(key))art+=shape('M4 31 13 35 10 44 4 48Zm56 0-9 4 3 9 6 4Z',ember)+shape('M7 48h21v10H7Zm29 0h21v10H36Z')+shape('M11 51h13v3H11Zm29 0h13v3H40Z',dark);
+        if(/black-anvil/.test(key))art+=shape('M6 14h20v11H6Zm32 0h20v11H38Z')+shape('M10 17h12v4H10Zm32 0h12v4H42Z',dark);
+        else if(/widow/.test(key))art+=loop(18,27,5,6,gold)+loop(47,27,5,6,gold);
+        etch=line('M14 25v10m5-10v10m26-10v10m5-10v10',tone[0],2);
+      } else if (/chain|nameless|cold-prayer/.test(key)) { art+=chain(11,35)+chain(53,35);etch+=line('M10 21 23 38m31-17L41 38',gold,2); }
+      else if (/wraps/.test(key)) { art+=shape('m9 42-5 12 7-1 7 7 5-9Zm32 9 7 9 3-7 9 2-6-13Z',worn==='blood'?ember:tone[1]);etch+=line('m9 31 14-4m17 0 14 4',bone,3); }
+    } else if (def.slot === 'boots') {
+      if (/throneless/.test(key)) { art+=shape('M8 13 5 3 15 8 18 1 22 9 28 3 26 15Zm30 2-2-12 9 5 4-7 4 8 6-6-3 12Z',gold);etch+=line('M12 23h10m21 0h10',bone,3); }
+      else if (/grave|buried-road|gallows/.test(key)) { art+=loop(18,36,10,4,steel)+loop(46,36,10,4,steel)+chain(8,35)+chain(56,35);etch+=line('M15 18v12m30-12v12',bone,2); }
+      else if (/dead-forge|ash-road/.test(key)) { art+=shape('M5 48 1 43 3 59h27l-3-10-5 3-3-8-6 9Zm34 1-3-6-1 16h28l-4-10-6 3-4-8-5 9Z',worn==='ash'?bone:steel);etch+=line('M15 14v19m31-19v19',ember,3); }
+      else if (/footwraps|pilgrim|mourning|worker/.test(key)) { art=shape('M10 25h16l-2 15 7 6-2 13H4V47l6-8Zm29 0h16l-1 14 7 8v12H36l-1-13 5-6Z',leather)+shape('M9 8h17v23H9Zm30 0h17v23H39Z',tone[1]);etch=line('M10 14h15m-15 7h15m15-7h15m-15 7h15M9 43l18 8m13-8 18 8',bone,2); }
+      else if (/tide|sunken/.test(key)) { art+=shape('M9 13 2 16l5 22-4 11 13-5 8-8Zm32 0 18 3-5 22 9 11-13-5-8-8Z',tone[1]);etch+=line('M9 17 19 33m33-16L43 33',bone,2); }
     }
     return '<svg class="char-icon char-gear-icon" viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="' + id + '-steel" x1="0" y1="0" x2="1" y2="1"><stop stop-color="' + tone[0] + '"/><stop offset=".38" stop-color="' + tone[1] + '"/><stop offset=".55" stop-color="' + tone[0] + '"/><stop offset="1" stop-color="' + tone[2] + '"/></linearGradient><linearGradient id="' + id + '-leather" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#765341"/><stop offset=".5" stop-color="#42392e"/><stop offset="1" stop-color="#1d211f"/></linearGradient></defs><g stroke="#0b1013" stroke-width="1.2" stroke-linejoin="round">' + art + '</g><g fill="none" stroke="#e6d7bb" stroke-opacity=".55" stroke-width=".8" stroke-linecap="round">' + etch + '</g></svg>';
   }

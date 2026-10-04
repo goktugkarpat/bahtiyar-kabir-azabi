@@ -195,8 +195,12 @@
     item("ash-road-boots", "Kül Yolunun Son Adımları", "boots", 10, "epic", 0, 0.08, 2, null, "Tabanlarına kül ve çelik talaşı dolmuş. Geldikleri yol artık bir göçüğün altında.", "grave-boots", "ash"),
     item("last-worker-boots", "Son İşçinin Çizmeleri", "boots", 11, "epic", 0, 0.055, 6, null, "Yırtık tabanları kat kat deriyle kapanmış. Sahibi ocağın son sesini bunlarla duymuş.", "worn-boots", "blood"),
     item("dead-forge-steps", "Ölü Dövmenin İzleri", "boots", 12, "epic", 0, 0.1, 1, null, "Demir uçlarında kapanmış dökümhanenin işaretleri bulunur. Hiçbir kapı artık bu izleri tanımaz.", "tide-boots", "rust")
+    ,item('warden-verdict-helm', 'Harabe Yargıcının Son Yüzü', 'head', 8, 'boss', 0, .065, 3, null, 'Harabelerin ikinci muhafızının kemik perçinli hüküm miğferi. Bir daha aynı hüküm verilmeyecek.', 'iron-helm', 'bone')
+    ,item('ash-warden-grasp', 'Kül Muhafızının Son Pençesi', 'hands', 11, 'boss', 0, .085, 3, null, 'İkinci ocak muhafızının kan çizgili döküm eldiveni. Tutsakları ocağa sürükleyen parmaklar artık sessiz.', 'salt-gauntlets', 'blood')
   ]);
   const catalog = Object.freeze(Object.fromEntries(items.map(i => [i.id, i])));
+  const bossSignatures = Object.freeze({ 1:Object.freeze(['executioner-axe']),2:Object.freeze(['bell-spear']),3:Object.freeze(['hollow-crown-blade']),4:Object.freeze(['furnace-oath-axe']),ruinwarden:Object.freeze(['warden-chainmail','warden-verdict-helm']),ashwarden:Object.freeze(['ash-warden-chest','ash-warden-grasp']) });
+  const signatureIds = new Set(Object.values(bossSignatures).flat());
   const qualities = Object.freeze({ common: { name: 'Sıradan', rank: 0, color:'#c7bdae' }, uncommon: { name: 'Sıradışı', rank: 1, color:'#92ad7d' }, rare: { name: 'Nadir', rank: 2, color:'#82aac5' }, epic: { name: 'Epik', rank: 3, color:'#b394ce' }, boss: { name: 'Eşsiz', rank: 4, color:'#d6b475' } });
   // Every identity has a fixed quality. Individual drops vary slightly in craftsmanship.
   function resolveItem(entry) {
@@ -229,7 +233,7 @@
     const emit = typeof options.emit === 'function' ? options.emit : function () {};
     const state = { level: 1, xp: 0, points: 0, learned: [], loadout: [null, null, null, null], inventory: [],
       equipment: {}, groundLoot: [], revision: 0, chapter: chapterId(options.chapter), completed: [] };
-    let lootSeed = 0, lootDry = 0, lootSeen = [], rewards = Object.create(null), serial = 0, statCache = null, statRevision = -1;
+    let lootSeed = 0, lootDry = 0, lootSeen = [], lootIdentities = new Set(), lootSlots = [], signatureClaims = Object.create(null), rewards = Object.create(null), serial = 0, statCache = null, statRevision = -1;
     function changed(kind, data) { state.revision++; statCache = null; emit(kind || 'progression', data || { level: state.level, points: state.points }); }
     function recalculate() {
       state.level = 1;
@@ -246,7 +250,7 @@
     function reset() {
       state.level = 1; state.xp = 0; state.points = 0; state.learned = []; state.loadout = [null, null, null, null];
       state.inventory = []; state.groundLoot = []; state.equipment = { weapon: null, head: null, chest: null, hands: null, boots: null };
-      lootSeed = Math.floor(Math.random() * 4294967296) >>> 0; lootDry = 0; lootSeen = [];
+      lootSeed = Math.floor(Math.random() * 4294967296) >>> 0; lootDry = 0; lootSeen = []; lootIdentities = new Set(); lootSlots = []; signatureClaims = Object.create(null);
       state.chapter = 1; state.completed = []; rewards = Object.create(null); serial = 0;
       state.equipment.weapon = addItem('dull-sword').uid;
       state.equipment.chest = addItem('torn-chest').uid;
@@ -256,7 +260,7 @@
       return { version: VERSION, level: state.level, xp: state.xp, points: state.points,
         learned: state.learned.slice(), loadout: state.loadout.slice(), inventory: state.inventory.map(i => ({ uid: i.uid, id: i.id, roll: i.roll || 0 })),
         equipment: Object.assign({}, state.equipment), chapter: state.chapter, completed: state.completed.slice(),
-        rewards: Object.keys(rewards), serial, lootSeed, lootDry, lootSeen: lootSeen.slice(-40),
+        rewards: Object.keys(rewards), serial, lootSeed, lootDry, lootSeen: lootSeen.slice(-40), lootIdentities:Array.from(lootIdentities), lootSlots:lootSlots.slice(-6), signatureClaims:Object.assign({},signatureClaims),
         groundLoot: state.groundLoot.map(i => ({ uid:i.uid, id:i.id, roll:i.roll, x:i.x, z:i.z, chapter:i.chapter, boss:i.boss })) };
     }
     function restore(profile) {
@@ -264,6 +268,10 @@
       lootSeed = Number.isInteger(profile.lootSeed) ? profile.lootSeed >>> 0 : hash(JSON.stringify(profile.inventory));
       lootDry = Math.min(LOOT_PITY, int(profile.lootDry, 0));
       lootSeen = (Array.isArray(profile.lootSeen) ? profile.lootSeen : []).filter(k => typeof k === 'string' && k.length < 80).slice(-40);
+      lootIdentities = new Set((Array.isArray(profile.lootIdentities)?profile.lootIdentities:[]).filter(id=>catalog[id]).slice(0,items.length));
+      for(const k of lootSeen){const id=k.slice(k.indexOf(':')+1);if(catalog[id])lootIdentities.add(id);}
+      lootSlots=(Array.isArray(profile.lootSlots)?profile.lootSlots:[]).filter(slot=>slots.includes(slot)).slice(-6);
+      signatureClaims=Object.create(null);if(profile.signatureClaims&&typeof profile.signatureClaims==='object')for(const key of Object.keys(profile.signatureClaims)){const id=profile.signatureClaims[key];if(/^[1234]:/.test(key)&&key.length<240&&signatureIds.has(id))signatureClaims[key]=id;}
       let restoredXp = int(profile.xp, 0);
       if (profile.version === 1) {
         // Preserve earned levels in older two-chapter saves, using XP rather than a claimed level/point count.
@@ -285,6 +293,7 @@
         Number.isFinite(i.x) && Number.isFinite(i.z) && Math.abs(i.x)<2048 && Math.abs(i.z)<2048 &&
         [1,2,3,4].includes(i.chapter) && !seen.has(i.uid) && seen.add(i.uid)).slice(0,96)
         .map(i => ({ uid:i.uid, id:i.id, roll:catalog[i.id].rarity==='boss'?0:Math.max(-2,Math.min(2,Number.isInteger(i.roll)?i.roll:0)), x:i.x, z:i.z, chapter:i.chapter, boss:!!i.boss }));
+      for(const e of state.inventory.concat(state.groundLoot))lootIdentities.add(e.id);
       serial = Math.max(int(profile.serial, 0), state.inventory.reduce((n, i) => Math.max(n, /^gear-\d+$/.test(i.uid) ? Number(i.uid.slice(5)) : 0), 0));
       state.equipment = {};
       for (const slot of slots) {
@@ -392,12 +401,12 @@
     // never repeats a base already dropped this chapter / owned / lying on the ground, and keeps junk to a small share.
     function lootPick(chapter, elite, seed, roll) {
       const lootLevel = Math.min(state.level, chapter === 4 ? MAX_LEVEL : chapter === 3 ? 10 : chapter === 2 ? 8 : 5);
-      const pool = items.filter(i => i.rarity !== 'boss' && i.id !== 'dull-sword' && i.id !== 'torn-chest' &&
+      const pool = items.filter(i => i.rarity !== 'boss' && !signatureIds.has(i.id) && i.id !== 'dull-sword' && i.id !== 'torn-chest' &&
         i.level <= lootLevel && i.level >= Math.max(1, lootLevel - 2));
       if (!pool.length) return null;
       const tier = elite ? pool.filter(def => def.level >= Math.max(1, state.level - 1)) : pool;
       const available = tier.length ? tier : pool;
-      const taken = id => state.inventory.some(e => e.id === id) || state.groundLoot.some(e => e.id === id) || lootSeen.includes(chapter + ':' + id);
+      const taken = id => state.inventory.some(e => e.id === id) || state.groundLoot.some(e => e.id === id) || lootIdentities.has(id);
       const contexts = {}, best = {}, need = {};
       for (const slot of slots) {
         contexts[slot] = slotContext(slot);
@@ -419,7 +428,7 @@
       const lesser = scored.filter(c => !c.up);
       const choices = ups.length ? (wantJunk && lesser.length ? lesser : ups) : scored;
       if (!ups.length && ((seed >>> 24) % 3)) return null;   // nothing to gain: two of three such drops simply do not happen
-      let total = 0; const weights = choices.map(c => { const w = (1 + .3 * qualities[c.def.rarity].rank) * (1 + .35 * need[c.def.slot]) * (c.up ? 3 : 1); total += w; return w; });
+      let total = 0; const weights = choices.map(c => { const w = (1 + .3 * qualities[c.def.rarity].rank) * (1 + .35 * need[c.def.slot]) * (c.up ? 3 : 1) * (lootSlots[lootSlots.length-1] === c.def.slot ? .18 : lootSlots.slice(-3).includes(c.def.slot) ? .6 : 1); total += w; return w; });
       let r = (((seed >>> 8) & 0xfff) / 4096) * total;
       for (let n = 0; n < choices.length; n++) { r -= weights[n]; if (r < 0) return choices[n].def.id; }
       return choices[choices.length - 1].def.id;
@@ -428,22 +437,23 @@
       chapter = chapterId(chapter);
       const key = chapter + ':' + String(enemyId), seed = hash(key + ':' + type + ':' + lootSeed);
       const uid = 'drop-' + key;
+      if(options.groundLoot&&(!position||!Number.isFinite(position.x)||!Number.isFinite(position.z)))return [];
       if (state.inventory.some(i => i.uid === uid) || state.groundLoot.some(i => i.uid === uid)) return [];
       let id;
-      if (boss) id = chapter === 4 ? 'furnace-oath-axe' : chapter === 3 ? 'hollow-crown-blade' : chapter === 2 ? 'bell-spear' : 'executioner-axe';
-      else if (chapter === 3 && type === 'ruinwarden') id = 'warden-chainmail';
-      else if (chapter === 4 && type === 'ashwarden') id = 'ash-warden-chest';
+      const signature = boss ? bossSignatures[chapter] : bossSignatures[type];
+      if(signature) { id=signatureClaims[key] || signature.find(id=>!lootIdentities.has(id)); if(!id)return []; signatureClaims[key]=id; }
       else {
         if (seed % 100 >= (elite ? LOOT_ELITE : LOOT_NORMAL) && lootDry < LOOT_PITY) { lootDry++; return []; }
         id = lootPick(chapter, elite, seed, (hash(key + ':craft:' + lootSeed) % 5) - 2);
         if (!id) return [];   // nothing useful left to offer: no drop, the pity counter keeps waiting
       }
+      lootIdentities.add(id);lootSlots.push(catalog[id].slot);if(lootSlots.length>6)lootSlots.shift();
       lootDry = 0; lootSeen.push(chapter + ':' + id); if (lootSeen.length > 40) lootSeen.shift();
-      const roll = boss ? 0 : (hash(key + ':craft:' + lootSeed) % 5) - 2;
+      const roll = signature ? 0 : (hash(key + ':craft:' + lootSeed) % 5) - 2;
       if (options.groundLoot) {
         // Ground-loot games never bypass pickup by inserting a reward straight into the bag.
         if (!position || !Number.isFinite(position.x) || !Number.isFinite(position.z)) return [];
-        const entry = {uid,id,roll,x:position.x,z:position.z,chapter,boss:!!boss};
+        const entry = {uid,id,roll,x:position.x,z:position.z,chapter,boss:!!signature};
         state.groundLoot.push(entry); changed('lootDrop', {items:[entry],boss:!!boss,chapter}); return [entry];
       }
       const entry = addItem(id, uid, roll); changed('loot', { items: [entry], boss: !!boss, chapter }); return [entry];
@@ -476,7 +486,11 @@
       if (chapter !== 1 && chapter !== 2 && chapter !== 3 && chapter !== 4) return false;
       if (!state.completed.includes(chapter)) state.completed.push(chapter);
       state.xp = Math.max(state.xp, THRESHOLDS[MILESTONES[chapter - 1] - 1]); recalculate();
-      state.groundLoot = state.groundLoot.filter(i => i.chapter !== chapter); lootSeen = lootSeen.filter(k => !k.startsWith(chapter + ':'));
+      // A hurried chapter transition must not destroy the promised signature reward.
+      const carried=state.groundLoot.filter(i=>i.chapter===chapter&&signatureIds.has(i.id));
+      for(const drop of carried)if(!state.inventory.some(i=>i.uid===drop.uid))addItem(drop.id,drop.uid,0);
+      state.groundLoot = state.groundLoot.filter(i => i.chapter !== chapter);
+      if(carried.length)changed('loot',{items:carried,boss:true,chapter,transition:true});
       state.chapter = Math.min(4, chapter + 1); changed(); return true;
     }
     Object.assign(state, { snapshot, restore, grantEnemy, unlock, assign, equip, stats, loot, completedChapter, reset,
@@ -487,5 +501,5 @@
     reset(); state.chapter = chapterId(options.chapter); if (options.profile) restore(options.profile);
     return state;
   }
-  B.Progression = Object.freeze({ create, skills, lines: LINES, skillsByLine, skillFacts, SKILL_TREE, items, catalog, qualities, resolveItem, slots, MAX_LEVEL, VERSION, thresholds: THRESHOLDS, earnedPoints: POINTS, milestones: MILESTONES });
+  B.Progression = Object.freeze({ create, skills, lines: LINES, skillsByLine, skillFacts, SKILL_TREE, items, catalog, bossSignatures, qualities, resolveItem, slots, MAX_LEVEL, VERSION, thresholds: THRESHOLDS, earnedPoints: POINTS, milestones: MILESTONES });
 }());

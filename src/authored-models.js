@@ -932,6 +932,18 @@
     var item = id && B.Progression && B.Progression.catalog[id];
     return item && item.slot === slot ? item : null;
   }
+  function equipmentModel(item,id) {
+    var special={
+      'funeral-hood':'prayer-hood','orphan-hood':'prayer-hood','buried-prayer-hood':'buried-hood','coal-mourner-hood':'buried-hood',
+      'no-witness-helm':'sealed-mask','forgotten-face-helm':'sealed-mask','sealed-furnace-helm':'furnace-mask',
+      'silent-watch-helm':'bell-helm','last-breath-helm':'bone-crown','sealed-gaze-helm':'bone-crown','no-dawn-helm':'furnace-mask','warden-verdict-helm':'warden-crown',
+      'warden-chainmail':'chainmail-chest','ash-warden-chest':'warden-chest','hollow-heart-chest':'rib-chest','hollow-ember-chest':'rib-chest','slag-burial-chest':'warden-chest','sunless-vow-chest':'rib-chest',
+      'black-stone-gauntlets':'claw-gauntlets','black-anvil-grasp':'claw-gauntlets','ash-warden-grasp':'warden-grasp','nameless-gauntlets':'claw-gauntlets',
+      'gallows-boots':'shackle-boots','buried-road-boots':'shackle-boots','throneless-steps':'crown-boots','dead-forge-steps':'crown-boots',
+      'hollow-crown-blade':'crown-blade','furnace-oath-axe':'furnace-axe','widow-sword':'vow-sword','black-tide-sword':'tide-blade','ruin-lament-sword':'vow-sword','cave-verdict-sword':'tide-blade','slag-edge-sword':'slag-blade','black-forge-sword':'slag-blade','mourning-axe':'hook-axe','sepulcher-axe':'hook-axe','broken-throne-axe':'furnace-axe','ember-vow-axe':'hook-axe','orphan-spear':'fork-spear','starved-spear':'fork-spear','last-coal-spear':'fork-spear'
+    };
+    return special[id] || item && item.modelId || id;
+  }
   function equipmentWeapon(piece, id, type, finish, scale) {
     var mats = {}; Object.keys(piece.parts).forEach(function (key) {
       var material = /^(blade|iron|steel)$/.test(key) ? finish : key === 'edge' ? (finish === 'rust' ? 'rust' : 'edge') : key;
@@ -981,6 +993,19 @@
       Object.keys(helm.parts).forEach(function (key) { if (!helm.parts[key].length) return; var g = G.merge(helm.parts[key]); g.applyMatrix4(m); part('head', id, key === 'iron' ? (k ? 'salt' : 'steel') : key === 'void' ? 'dark' : key, g, 'head'); });
       if (k) { var crest = G.extrude([[-.037, 0], [.037, 0], [.048, .13], [0, .185], [-.048, .13]], .013, .003); crest.translate(hc.x, hc.y + hs.y * .46, hc.z); part('head', id, 'brass', crest, 'head'); }
     });
+    // Different silhouettes remain readable at the play camera: cowls, closed masks and broken crowns.
+    ['prayer-hood','buried-hood'].forEach(function(id,k){
+      part('head',id,'cloth',G.shell(28,10,function(u,v){var p=hoodPoint(u,v);p[1]+=(1-v)*(.045+k*.03);p[2]-=.018;return p;},.012,false),'head');
+      var brow=G.box(hs.x*.78,.027,.012,[hc.x,hc.y+hs.y*.26,hc.z+hs.z*.49]);part('head',id,k?'bone':'strap',brow,'head');
+      [-1,1].forEach(function(s){part('head',id,'cloth',G.box(.045,.18+k*.07,.013,[hc.x+s*hs.x*.4,hc.y-hs.y*.18,hc.z+hs.z*.3]),'head');});
+    });
+    ['sealed-mask','furnace-mask','bell-helm','bone-crown','warden-crown'].forEach(function(id,k){
+      var helm=G.greatHelm(Math.max(hs.x,hs.z)*.5+.015,hs.y*(k>=3?.62:.84)),m=T4(hc.x,hc.y+hs.y*.08,hc.z);
+      Object.keys(helm.parts).forEach(function(key){if(helm.parts[key].length){var g=G.merge(helm.parts[key]);g.applyMatrix4(m);part('head',id,key==='void'?'dark':key==='iron'?'steel':key,g,'head');}});
+      if(k===0||k===1){var plate=G.extrude([[-hs.x*.42,hs.y*.22],[hs.x*.42,hs.y*.22],[hs.x*.32,-hs.y*.38],[0,-hs.y*.48],[-hs.x*.32,-hs.y*.38]],.018,.003);plate.translate(hc.x,hc.y,hc.z+hs.z*.51);part('head',id,k?'dark':'steel',plate,'head');[-1,1].forEach(function(s){part('head',id,'brass',G.box(hs.x*.22,.008,.021,[hc.x+s*hs.x*.22,hc.y+hs.y*.12,hc.z+hs.z*.52]),'head');});}
+      if(k===2){var bell=G.lathe([[.025,0],[.032,.035],[.07,.085],[.079,.1]],16);bell.translate(hc.x,hc.y+hs.y*.39,hc.z);part('head',id,'brass',bell,'head');}
+      if(k>=3){for(var c=0;c<7;c++){var a=c/7*TAU,r=Math.max(hs.x,hs.z)*.55;part('head',id,'bone',G.cyl(.004,.019,.1+(c%2)*.05,6,[hc.x+Math.sin(a)*r,hc.y+hs.y*.48,hc.z+Math.cos(a)*r]),'head');}if(k===4)[-1,1].forEach(function(s){part('head',id,'bone',G.tube([[hc.x+s*hs.x*.48,hc.y+hs.y*.2,hc.z],[hc.x+s*hs.x*.7,hc.y+hs.y*.5,hc.z-.02],[hc.x+s*hs.x*.64,hc.y+hs.y*.83,hc.z-.045]],.018,6,14,true),'head');});}
+    });
     var torso = A.cloud(['spine01', 'spine02', 'spine03'], BODY, .3), cz = A.P('spine03').z - .01, field = radialField(torso, 0, cz, .04, .23);
     function chestPoint(u, v, offset) { var a = u * TAU, side = Math.abs(Math.sin(a)), low = 1.10 - .022 * Math.cos(a), high = 1.48 - .15 * side + .018 * Math.cos(a), y = mix(low, high, v), forged = offset > .02 ? 1 : 0;
       // Pressed breastplate keel and four shallow flutes are formed from the existing shell vertices.
@@ -1016,6 +1041,15 @@
         var chain = G.chain([chestPoint(.07, .85, offset + .01), chestPoint(0, .4, offset + .028), chestPoint(.93, .85, offset + .01)], .034); part('chest', id, 'dark', chain);
       }
     });
+    ['chainmail-chest','warden-chest','rib-chest'].forEach(function(id,k){
+      part('chest',id,k===0?'dark':'steel',G.shell(28,10,function(u,v){return chestPoint(u,v,.027);},.014,true));
+      [-1,1].forEach(function(s){
+        if(k===0){for(var n=0;n<5;n++){var p=chestPoint(s>0?.07:.93,.25+n*.12,.041);part('chest',id,'steel',G.ring(.026,.006,p,[PI/2,0,0],6,10));}}
+        else{for(var n=0;n<4;n++){var p=chestPoint(0,.25+n*.16,.046),rib=G.tube([[s*.035,p[1]+.012,p[2]+.01],[s*.10,p[1]+.027,p[2]-.005],[s*.15,p[1]-.01,p[2]-.045]],.011,6,12,true);part('chest',id,k===2?'bone':'dark',rib);}}
+        var shoulder=A.P('shoulder'+(s>0?'L':'R'));part('chest',id,k===2?'bone':'steel',G.sphere(.09,[shoulder.x,shoulder.y+.018,shoulder.z],[1.2,.48,1.05],12,8),'shoulder'+(s>0?'L':'R'));
+      });
+      if(k===1){var p=chestPoint(0,.66,.055);part('chest',id,'brass',G.extrude([[-.03,.025],[0,.055],[.03,.025],[.018,-.03],[-.018,-.03]],.012,.002).translate(p[0],p[1],p[2]),'spine03');}
+    });
     ['L', 'R'].forEach(function (s) {
       var fore = 'forearm' + s, hand = 'hand' + s, shin = 'shin' + s, foot = 'tarsal' + s;
       ['rag-wraps', 'chain-gloves', 'salt-gauntlets'].forEach(function (id, k) {
@@ -1040,6 +1074,19 @@
           var studs = []; for (i = 0; i < 8; i++) { var q = plate.at(i / 8 * TAU, .75, .005); studs.push(G.stud(.0045, q[0], q[1])); } part('boots', id, 'brass', G.merge(studs), shin);
         }
       });
+      ['claw-gauntlets','warden-grasp'].forEach(function(id,k){
+        var steel=sleeve(A,fore,hand,.3,.91,.032,.012,BODY);part('hands',id,'steel',steel.geometry,fore);
+        var hp=A.P(hand),sign=s==='L'?1:-1;
+        for(var f=0;f<3;f++){var x=hp.x+sign*(.018+f*.022);part('hands',id,k?'bone':'dark',G.tube([[x,hp.y+.025,hp.z-.035],[x,hp.y+.045,hp.z+.025],[x+sign*.009,hp.y+.015,hp.z+.075]],.008,5,10,true),hand);}
+        if(k)for(var n=0;n<3;n++){var p=steel.at(PI/2,.4+n*.16,.006)[0];part('hands',id,'bone',G.cyl(.003,.018,.07,6,[p.x,p.y+.025,p.z]),fore);}
+      });
+      ['shackle-boots','crown-boots'].forEach(function(id,k){
+        var cover=sleeve(A,shin,foot,.46,.99,.029,.012,BODY);part('boots',id,'steel',cover.geometry,shin);
+        part('boots',id,'leather',G.sphere(1,fc.toArray(),[Math.max(fs.x*.56,.06),Math.max(fs.y*.55,.04),Math.max(fs.z*.6,.11)],16,10),foot);
+        var ankle=cover.at(0,.87,.009)[0];part('boots',id,'dark',G.ring(.055,.012,ankle.toArray(),[PI/2,0,0],7,14),shin);
+        if(k){for(var n=0;n<3;n++){var p=cover.at(0,.55+n*.11,.012)[0];part('boots',id,'bone',G.box(.09,.018,.021,p.toArray()),shin);}}
+        else part('boots',id,'dark',G.chain([ankle.toArray(),[ankle.x+.025,ankle.y-.045,ankle.z+.01],[ankle.x,ankle.y-.09,ankle.z+.015]],.024),shin);
+      });
     });
     data.weapons['dull-sword'] = equipmentWeapon(G.falchion(), 'dull-sword', 'sword', 'rust', [.86, .94, .92]);
     data.weapons['grave-sword'] = equipmentWeapon(G.cleaver(), 'grave-sword', 'sword', 'steel');
@@ -1047,6 +1094,22 @@
     data.weapons['executioner-axe'] = equipmentWeapon(G.bossAxe(), 'executioner-axe', 'axe', 'steel', [.77, .82, .9]);
     data.weapons['bone-spear'] = equipmentWeapon(equipmentSpear(false), 'bone-spear', 'spear', 'steel');
     data.weapons['bell-spear'] = equipmentWeapon(equipmentSpear(true), 'bell-spear', 'spear', 'salt');
+    ['vow-sword','tide-blade','slag-blade','crown-blade'].forEach(function(id,k){
+      var P={wood:[],steel:[],edge:[],dark:[],bone:[],brass:[]},top=1.12+k*.065;
+      P.wood.push(G.cyl(.028,.032,.33,10,[0,-.17,0]));P.dark.push(G.box(.29,.038,.065,[0,.035,0]));
+      var blade=G.blade(.055,top,32,function(y){var t=(y-.055)/(top-.055),w=(k===1?.07:k===2?.105:.075)*(1-t*.45);if(t>.82)w*=(1-t)/.18;if(k===2)w*=1+(Math.floor(t*10)%2)*.23;return[-w,w];},.032,.4);P.steel.push(blade.body);P.edge.push(blade.edge);
+      if(k===0){for(var n=0;n<4;n++)P.bone.push(G.ring(.035,.005,[0,-.30+n*.06,0],[PI/2,0,0],5,12));}
+      if(k===1)[-1,1].forEach(function(s){P.steel.push(G.extrude([[s*.05,.13],[s*.15,.26],[s*.17,.48],[s*.09,.36]],.022,.003));});
+      if(k===2)P.dark.push(G.box(.025,.74,.039,[0,.47,0]));
+      if(k===3){for(var n=-2;n<=2;n++){P.brass.push(G.cyl(.003,.018,.09+(n%2?0:.035),6,[n*.065,.10,0]));}P.bone.push(G.ring(.038,.01,[0,-.36,0],[PI/2,0,0],6,14));}
+      data.weapons[id]=equipmentWeapon({parts:P,tip:new T.Vector3(0,top,0)},id,'sword','steel');
+    });
+    ['hook-axe','furnace-axe'].forEach(function(id,k){var piece=G.bossAxe();
+      piece.parts.bone=piece.parts.bone||[];piece.parts.brass=piece.parts.brass||[];
+      [-1,1].forEach(function(s){piece.parts.bone.push(G.extrude([[s*.06,.73],[s*(k?.32:.24),.84],[s*(k?.36:.21),1.09],[s*.10,.99]],.045,.006));});
+      if(k)for(var n=0;n<3;n++)piece.parts.brass.push(G.box(.045,.019,.065,[0,.67+n*.09,0]));
+      data.weapons[id]=equipmentWeapon(piece,id,'axe',k?'steel':'rust',[.69,.77,.85]);});
+    var fork=equipmentSpear(false);[-1,1].forEach(function(s){fork.parts.bone.push(G.tube([[s*.035,1.29,0],[s*.13,1.47,0],[s*.115,1.72,0]],.017,6,18,true));});data.weapons['fork-spear']=equipmentWeapon(fork,'fork-spear','spear','steel');
     return data;
   }
 
@@ -1892,7 +1955,7 @@
       if (!equipment || disposed) return false;
       next = next || {};
       var changed = false, weaponId = Object.prototype.hasOwnProperty.call(next, 'weaponId') ? next.weaponId : equipment.weaponId;
-      var weaponItem = equipmentItem(weaponId, 'weapon'), weaponModel = weaponItem && weaponItem.modelId || weaponId;
+      var weaponItem = equipmentItem(weaponId, 'weapon'), weaponModel = equipmentModel(weaponItem,weaponId);
       if (weaponId !== null && !equipmentArms[weaponModel]) { weaponId = next.weaponType === 'axe' ? 'rust-axe' : next.weaponType === 'spear' ? 'bone-spear' : 'dull-sword'; weaponModel = weaponId; weaponItem = equipmentItem(weaponId, 'weapon'); }
       var fields = ['headId', 'chestId', 'handsId', 'bootsId'];
       if (equipment.weaponId !== weaponId) changed = true;
@@ -1900,7 +1963,7 @@
       fields.forEach(function (field) {
         if (!Object.prototype.hasOwnProperty.call(next, field)) return;
         var slot = field.slice(0, -2), id = next[field] || null;
-        var item = equipmentItem(id, slot), model = item && item.modelId || id;
+        var item = equipmentItem(id, slot), model = equipmentModel(item,id);
         if (id && !armorMeshes.some(function (m) { return m.userData.equipmentSlot === slot && m.userData.equipmentId === model; })) id = null;
         if (equipment[field] !== id) changed = true;
         equipment[field] = id;
@@ -1912,11 +1975,11 @@
         item.meshes.forEach(function (m) { m.visible = visible; m.material = equipmentFinish(equipmentMaterials.get(m), visible && weaponItem && weaponItem.finish); });
       });
       armorMeshes.forEach(function (m) {
-        var slot = m.userData.equipmentSlot, id = equipment[slot + 'Id'], item = equipmentItem(id, slot), model = item && item.modelId || id;
+        var slot = m.userData.equipmentSlot, id = equipment[slot + 'Id'], item = equipmentItem(id, slot), model = equipmentModel(item,id);
         m.visible = model === m.userData.equipmentId;
         m.material = equipmentFinish(equipmentMaterials.get(m), m.visible && item && item.finish);
       });
-      var chestItem = equipmentItem(equipment.chestId, 'chest'), chestModel = chestItem && chestItem.modelId || equipment.chestId;
+      var chestItem = equipmentItem(equipment.chestId, 'chest'), chestModel = equipmentModel(chestItem,equipment.chestId);
       if (baseIron) baseIron.visible = chestModel === 'grave-chest' || chestModel === 'coast-chest';
       marker.visible = weaponId !== null;
       if (weaponId !== null) marker.position.copy(equipmentArms[weaponModel].tip).multiply(equipmentArms[weaponModel].art.scale);

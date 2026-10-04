@@ -148,7 +148,14 @@
       var treeGeo=geo(B.Gear.merge(pieces));treeGeo.userData.coastJunctions=treeJunctions.filter(function(j){return j.variant===variant;});treeShapes.push(treeGeo);
     }
     rooms.forEach(function (r) { var g = new T.Group(); g.name = r.name; root.add(g); roomGroups.push(g); });
+    var sideMouths=[{lo:-19,hi:-9,z:-63},{lo:-21,hi:-10,z:-112},{lo:-17,hi:-9,z:4},{lo:-20,hi:-9,z:-27},{lo:-19,hi:-9,z:-81},{lo:-19,hi:-8,z:-140}];
     function add(room, g, mat, x, y, z, sx, sy, sz, rx, ry, rz) {
+      // These rocks are scenery, not colliders; keep their visible silhouette
+      // out of the actual old side entrance, rather than letting players walk through stone.
+      if(g===rock&&mat==='rock'&&sy>.25){
+        var rr=Math.max(Math.abs(sx),Math.abs(sz))*1.2;
+        sideMouths.forEach(function(m){if(x+rr>m.lo&&x-rr<m.hi&&Math.abs(z-m.z)<3+rr+.65)z=m.z+(z>=m.z?1:-1)*(3+rr+.65);});
+      }
       var key = room + ':' + g.id + ':' + mat;
       if (!batches[key]) batches[key] = { room: room, geo: g, mat: materials[mat], matrices: [] };
       position.set(x, y, z); scale.set(sx, sy, sz); rotation.setFromEuler(euler.set(rx || 0, ry || 0, rz || 0));
@@ -164,6 +171,8 @@
     function collision(x, z, w, d) { colliders.push({ x: x, z: z, w: w, d: d }); }
     function tree(room, x, z, h, trunk, leaning) {
       if(room < 6 && x < -17)x=-52;
+      var baseRadius=Math.max(1,h*.16,trunk*5);
+      sideMouths.forEach(function(m){if(x+baseRadius>m.lo&&x-baseRadius<m.hi&&Math.abs(z-m.z)<3+baseRadius+.65)z=m.z+(z>=m.z?1:-1)*(3+baseRadius+.65);});
       var variant=Math.floor(rnd()*3),shape=treeShapes[variant],width=Math.max(h*.64,trunk*20);
       add(room,shape,'char',x,0,z,width,h,width,0,rnd()*PI*2,(leaning||0)/h*.25);
       var transform=matrix.clone();
@@ -348,7 +357,7 @@
     corpse(0,-8,6,.6);corpse(0,6,-2,2.4);skull(0,-7,.12,1,.4);
     // 1: a collapsed root arch and a charred shelter. The route beneath stays wide and flat.
     for (var side = -1; side <= 1; side += 2) {
-      var treeAnchor=tree(1,side*11.8,-27,9,.7,-side*2.2),start=treeAnchor.at(.50);
+      var treeAnchor=tree(1,side*11.8,side<0?-19.8:-27,9,.7,-side*2.2),start=treeAnchor.at(.50);
       var archPoints=[start,new T.Vector3(side*8.2,4.7,-27.6),new T.Vector3(side*4.9,5.15,-28.5),new T.Vector3(side*1.8,5.1,-29)],archCurve=new T.CatmullRomCurve3(archPoints),parts=[];
       parts.push(B.Gear.tube(archPoints,function(t){return .33-.18*t;},10,26,true));
       for(var j=0;j<3;j++){var p=archCurve.getPointAt(.30+j*.22);parts.push(B.Gear.tube([p,p.clone().add(new T.Vector3(-side*.30,.40,-.15)),p.clone().add(new T.Vector3(-side*.66,.82,.20))],function(t){return .09*(1-t)+.008;},7,12,true));}
@@ -358,16 +367,16 @@
     corpse(1,-8,-24,-.6);skull(1,6,.14,-27,1.2);
     // 2: salt-eaten houses and drowned shopfronts.
     building(2, -12, -47, 5.6, 7, 3.5, -.03); building(2, 12.1, -55, 5.1, 6, 4.4, .04);
-    building(2, -13.3, -59, 4.2, 4.5, 2.7, .07);
+    building(2, -13.3, -56.5, 4.2, 4.5, 2.7, .07);
     for (var i = 0; i < 12; i++) add(2, box, 'wood', 8 + rnd() * 3, .12, -47 - rnd() * 13, 1.6, .08, .18, 0, rnd() * 5, 0);
     corpse(2,-7.2,-48,2);corpse(2,6.5,-58,1);cargo(2,-8,-57,.2);cargo(2,6.4,-45,-.3);
     // 3: broad main pier, snapped piles, cargo and a wreck in the black water.
     for (var row = 0; row < 24; row++) for (var col = 0; col < 5; col++) add(3, plank, 'wood', (col - 2) * 4 - 2, .025, -69 - row * 1.04, 3.93, .065, .95, 0, 0, (rnd() - .5) * .013);
-    for (var side = -1; side <= 1; side += 2) for (var n = 0; n < 7; n++) { add(3, cylinder, 'wood', side > 0 ? 7.7 : -11.7, .3, -70 - n * 3.7, .18, 2.2, .18, .05, 0, side * .05); if (n % 3 !== 1) beam(3, 'wood', [side > 0 ? 7.7 : -11.7, 1.1, -70 - n * 3.7], [side > 0 ? 7.7 : -11.7, 1.05, -73.5 - n * 3.7], .055); }
-    for (var i = 0; i < 8; i++) { var x = (i % 2 ? -1 : 1) * (10 + rnd()), z = -72 - Math.floor(i / 2) * 5; add(3, box, 'wood', x, .45, z, 1.2, .9, 1.1, 0, rnd(), 0); add(3, box, 'rust', x, .47, z, 1.25, .055, 1.15, 0, rnd(), .4); collision(x, z, 1.25, 1.15); }
+    for (var side = -1; side <= 1; side += 2) for (var n = 0; n < 7; n++) { var pierZ=-70-n*3.7; if(side<0&&n===3)pierZ=-85.4; add(3, cylinder, 'wood', side > 0 ? 7.7 : -11.7, .3, pierZ, .18, 2.2, .18, .05, 0, side * .05); if (n % 3 !== 1 && !(side<0&&(n===2||n===3))) beam(3, 'wood', [side > 0 ? 7.7 : -11.7, 1.1, pierZ], [side > 0 ? 7.7 : -11.7, 1.05, -73.5 - n * 3.7], .055); }
+    for (var i = 0; i < 8; i++) { var x = (i % 2 ? -1 : 1) * (10 + rnd()), z = -72 - Math.floor(i / 2) * 5; if(x<0&&Math.abs(z+81)<6)z=-69-i*.35; add(3, box, 'wood', x, .45, z, 1.2, .9, 1.1, 0, rnd(), 0); add(3, box, 'rust', x, .47, z, 1.25, .055, 1.15, 0, rnd(), .4); collision(x, z, 1.25, 1.15); }
     for(var row=0;row<24;row++)for(var col=0;col<5;col++)for(var side=-1;side<=1;side+=2)add(3,cylinder,'rust',(col-2)*4-2+side*1.74,.061,-69-row*1.04,.022,.009,.022);
     for(var side=-1;side<=1;side+=2)for(var n=0;n<7;n++){
-      var px=side>0?7.7:-11.7,zz=-70-n*3.7;add(3,ring,'rust',px,.88,zz,.19,.19,.19,PI/2);
+      var px=side>0?7.7:-11.7,zz=-70-n*3.7;if(side<0&&n===3)zz=-85.4;add(3,ring,'rust',px,.88,zz,.19,.19,.19,PI/2);
       beam(3,'wood',[px,-.38,zz],[px-side*.8,.34,zz+1.15],.075);
       if(n%2===0)add(3,ring,'rust',px,1.32,zz,.12,.12,.12,0,0,.3);
     }
@@ -378,18 +387,18 @@
     corpse(3,-8.4,-80,.8);corpse(3,6.1,-91,-.3);skull(3,6.3,.13,-76,.5);
     // 4: dry combat island around a dead fountain; roots engulf the surrounding houses.
     building(4, -15, -105, 5, 6, 4, -.08); building(4, 15, -115, 4.5, 7, 4.2, .1);
-    add(4, cylinder, 'stone', -11, .35, -115, 2.3, .7, 2.3); add(4, ring, 'stone', -11, .7, -115, 2.25, 2.25, 2.25, PI / 2);
-    add(4, cylinder, 'bone', -11, 1.4, -115, .45, 2.2, .45); collision(-11, -115, 4.8, 4.8);
-    tree(4, -10.5, -115, 8, .65, 1.3); for (var j = 0; j < 5; j++) grave(4, 11.5 + rnd() * 2, -103 - j * 4, .3, true);
+    add(4, cylinder, 'stone', -11, .35, -120, 2.3, .7, 2.3); add(4, ring, 'stone', -11, .7, -120, 2.25, 2.25, 2.25, PI / 2);
+    add(4, cylinder, 'bone', -11, 1.4, -120, .45, 2.2, .45); collision(-11, -120, 4.8, 4.8);
+    tree(4, -10.5, -120, 8, .65, 1.3); for (var j = 0; j < 5; j++) grave(4, 11.5 + rnd() * 2, -103 - j * 4, .3, true);
     corpse(4,-8,-108,1.1);corpse(4,7,-117,-1.2);skull(4,-6.9,.12,-115,2);
     // 5: one refuge at the lighthouse; no extra saves inside the preceding fights.
-    add(5, cylinder, 'stone', -8, 6, -144, 2.8, 12, 2.8); add(5, cylinder, 'rust', -8, 12.7, -144, 3.1, .5, 3.1);
-    for(var j=0;j<6;j++)add(5,ring,'stone',-8,.9+j*1.85,-144,2.83,2.83,2.83,PI/2);
-    for(var j=0;j<12;j++){var th=j/12*PI*2;add(5,cylinder,'rust',-8+Math.cos(th)*3.12,13.2,-144+Math.sin(th)*3.12,.045,.9,.045);}
-    add(5,ring,'rust',-8,13.66,-144,3.13,3.13,3.13,PI/2);
-    add(5, cone, 'wood', -8, 15, -144, 3.6, 2.4, 3.6); collision(-8, -144, 5.7, 5.7);
-    for (var j = 0; j < 8; j++) { var a = j / 8 * PI * 2; add(5, cylinder, 'rust', -8 + Math.cos(a) * 2.7, 13.7, -144 + Math.sin(a) * 2.7, .09, 1.8, .09); }
-    lantern(5, -8, 13.6, -144, 'lighthouse', true);
+    add(5, cylinder, 'stone', -8, 6, -146.5, 2.8, 12, 2.8); add(5, cylinder, 'rust', -8, 12.7, -146.5, 3.1, .5, 3.1);
+    for(var j=0;j<6;j++)add(5,ring,'stone',-8,.9+j*1.85,-146.5,2.83,2.83,2.83,PI/2);
+    for(var j=0;j<12;j++){var th=j/12*PI*2;add(5,cylinder,'rust',-8+Math.cos(th)*3.12,13.2,-146.5+Math.sin(th)*3.12,.045,.9,.045);}
+    add(5,ring,'rust',-8,13.66,-146.5,3.13,3.13,3.13,PI/2);
+    add(5, cone, 'wood', -8, 15, -146.5, 3.6, 2.4, 3.6); collision(-8, -146.5, 5.7, 5.7);
+    for (var j = 0; j < 8; j++) { var a = j / 8 * PI * 2; add(5, cylinder, 'rust', -8 + Math.cos(a) * 2.7, 13.7, -146.5 + Math.sin(a) * 2.7, .09, 1.8, .09); }
+    lantern(5, -8, 13.6, -146.5, 'lighthouse', true);
     // A weathered bronze oath lantern, carved steps and a restrained amber halo.
     add(5, cylinder, 'stone', 0, -.025, -141, 2.1, .10, 2.1);
     add(5, ring, 'gold', 0, .035, -141, 1.65, .30, 1.65, PI / 2);

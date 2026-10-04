@@ -116,7 +116,7 @@
           solid(r.x+sign*r.w/2,r.z,.8,r.d);
           for(var n=0;n<4;n++){var z=r.z+(n-1.5)*5.2;solid(r.x+sign*8.3,z,.9,.9);}
         });
-        if(i%3===1){[-1,1].forEach(function(sign){solid(r.x+sign*6.8,r.z-7,3.2,2.2);});}
+        if(i%3===1){[-1,1].forEach(function(sign){solid(r.x+sign*(i===7?10.8:i===4&&sign<0?9.8:6.8),r.z-7,i===7?3.4:3.2,i===7?3.4:2.2);});}
       }else if(i<6){
         [-1,1].forEach(function(s){
           solid(r.x+s*r.w/2,r.z,.7,r.d);

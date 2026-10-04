@@ -363,7 +363,7 @@
       shell({ glow: 1 }); north({ vent: true });
       for (var q = 0; q < 16; q++) K.put(i, 'box', 'wood', X(-0.6), .045, Z(-10.2 + q * 1.35), 4.4, .09, .36, 0, 0, 0, [.5, .4, .34], 0);
       [-1.7, 0.5].forEach(function (x) { K.put(i, 'box', 'iron', X(x), .14, Z(0), .13, .18, 21, 0, 0, 0, [.62, .58, .56], 0); });
-      cart(X(-5.6), Z(-1), 0, true); cart(X(5.6), Z(-5.5), 0, true); cart(X(5.6), Z(5), 0, false);
+      cart(X(-5.6), Z(-1), 0, true); cart(X(9.3), Z(-5.5), 0, true); cart(X(5.6), Z(5), 0, false);
       [-1, 1].forEach(function (s) { K.put(i, 'box', 'iron', X(s * 6.8), 6.2, Z(-1), .5, .5, 17, 0, 0, 0, IRONT, .1); K.put(i, 'box', 'iron', X(s * 6.8), 6.6, Z(-1), .3, .3, 17, 0, 0, 0, IRONT, .1); });
       K.put(i, 'box', 'iron', X(0), 6.5, Z(-8.4), 15.8, .5, .7, 0, 0, 0, IRONT, .1); for (var h = 0; h < 4; h++) { K.chain(i, X(-3 + h * 2), 6.3, Z(-8.4), 3.4, [.55, .5, .48]); hook(-3 + h * 2, 6.3 - Math.floor(3.4 / .22) * .22, -8.4); }
       K.put(i, 'box', 'iron', X(0), 3.0, Z(-8.4), 1.4, .5, 1.0, 0, 0, 0, IRONT, .3); K.put(i, 'box', 'hot', X(0), 2.74, Z(-8.4), 1.2, .05, .8, 0, 0, 0, [2.2, .8, .2], 0); K.spr(i, S.glow, X(0), 2.4, Z(-8.4), 1.7, 1.7, [1, .35, .06], .6, 0, 1, 1);
@@ -383,12 +383,12 @@
     ROOM[4] = function () {
       K.floor(i, r, { key: 'floor', tint: [.55, .5, .48], vary: .14, cols: 10, rows: 8, zone: function (x, z) { return Math.hypot(x, z + 1) < 3.6 ? [1.2, .9, .8] : null; } });
       shell({ glow: .8, wallTint: [.5, .46, .44] }); north({ tint: [.52, .48, .46] });
-      for (var k = 0; k < 3; k++) K.put(i, 'box', 'iron', X(0), .1 + k * .2, Z(-8.2 - k * .5), 9 - k * 1.3, .2, 1.2, 0, 0, 0, [.55, .52, .5], .3);
-      K.put(i, 'box', 'iron', X(0), .5, Z(-9.7), 8, 1.0, 2.4, 0, 0, 0, IRONT, .4); K.put(i, 'box', 'iron', X(0), 1.35, Z(-10.4), 2.6, 1.7, 1.0, 0, 0, 0, [.5, .46, .44], .4); K.put(i, 'box', 'iron', X(0), 3.1, Z(-10.9), 3.0, 3.8, .5, 0, 0, 0, SOOT, .3, 3);
-      for (var q = -3; q <= 3; q++) K.put(i, 'cone4', 'iron', X(q * .48), 5.3 + (3 - Math.abs(q)) * .15, Z(-10.9), .3, 1.1 + (3 - Math.abs(q)) * .25, .3, PI / 4, 0, 0, IRONT, .1);
-      anvil(X(-2.3), Z(-9.2), 0.3, .8); anvil(X(2.3), Z(-9.2), -0.3, .8); K.solid(X(0), Z(-10.4), 3.4, 1.4);
-      K.put(i, 'box', 'rock', X(6.8), 1.1, Z(-7), 3.2, 2.2, 2.2, 0, 0, 0, SOOT, .5); K.put(i, 'box', 'rock', X(-6.8), 1.1, Z(-7), 3.2, 2.2, 2.2, 0, 0, 0, SOOT, .5);
-      [-1, 1].forEach(function (s) { K.put(i, 'box', 'iron', X(s * 6.8), 2.35, Z(-7), 3.4, .16, 2.4, 0, 0, 0, IRONT, .1); K.spr(i, S.flame, X(s * 6.8), 2.45 + .5, Z(-7), .4, .5, FIRE, .9, R(), 1, 1); K.spr(i, S.glow, X(s * 6.8), 3.0, Z(-7), 1.6, 1.6, [.6, .22, .06], .8, R(), 1, 1); });
+      for (var k = 0; k < 3; k++) K.put(i, 'box', 'iron', X((0) + 5), .1 + k * .2, Z(-8.2 - k * .5), 9 - k * 1.3, .2, 1.2, 0, 0, 0, [.55, .52, .5], .3);
+      K.put(i, 'box', 'iron', X((0) + 5), .5, Z(-9.7), 8, 1.0, 2.4, 0, 0, 0, IRONT, .4); K.put(i, 'box', 'iron', X((0) + 5), 1.35, Z(-10.4), 2.6, 1.7, 1.0, 0, 0, 0, [.5, .46, .44], .4); K.put(i, 'box', 'iron', X((0) + 5), 3.1, Z(-10.9), 3.0, 3.8, .5, 0, 0, 0, SOOT, .3, 3);
+      for (var q = -3; q <= 3; q++) K.put(i, 'cone4', 'iron', X((q * .48) + 5), 5.3 + (3 - Math.abs(q)) * .15, Z(-10.9), .3, 1.1 + (3 - Math.abs(q)) * .25, .3, PI / 4, 0, 0, IRONT, .1);
+      anvil(X((-2.3) + 5), Z(-9.2), 0.3, .8); anvil(X((2.3) + 5), Z(-9.2), -0.3, .8); K.solid(X((0) + 5), Z(-10.4), 3.4, 1.4);
+      K.put(i, 'box', 'rock', X(6.8), 1.1, Z(-7), 3.2, 2.2, 2.2, 0, 0, 0, SOOT, .5); K.put(i, 'box', 'rock', X(-9.8), 1.1, Z(-7), 3.2, 2.2, 2.2, 0, 0, 0, SOOT, .5);
+      [-1, 1].forEach(function (s) { K.put(i, 'box', 'iron', X(s * (s < 0 ? 9.8 : 6.8)), 2.35, Z(-7), 3.4, .16, 2.4, 0, 0, 0, IRONT, .1); K.spr(i, S.flame, X(s * (s < 0 ? 9.8 : 6.8)), 2.45 + .5, Z(-7), .4, .5, FIRE, .9, R(), 1, 1); K.spr(i, S.glow, X(s * (s < 0 ? 9.8 : 6.8)), 3.0, Z(-7), 1.6, 1.6, [.6, .22, .06], .8, R(), 1, 1); });
       for (var n = 0; n < 5; n++) { var a = n / 5 * 6.28; K.chain(i, X(Math.cos(a) * 4.8), 6.0, Z(Math.sin(a) * 4.8 + 1), 3.0, [.5, .46, .44]); censer(Math.cos(a) * 4.8, 3.05, Math.sin(a) * 4.8 + 1, 1); }
       K.dec(i, 5, X(0), Z(1), 10, 10, .4, [1.4, .4, .08], .7, 'glow'); K.dec(i, 5, X(0), Z(1), 10, 10, .4, [.4, .3, .26], .8);
       decals({ cracks: 6, soot: 14, chips: 6, rubble: 4, blood: 3, wear: [.55, .5, .48] });
@@ -406,12 +406,12 @@
       
       K.solid(X(-6.8), Z(-7), 3.2, 3.2); K.put(i, 'vat', 'iron', X(-6.8), .7, Z(-7), 3.2, 1.4, 3.2, 0, 0, 0, IRONT, .4); K.put(i, 'disc', 'floor', X(-6.8), 1.3, Z(-7), 2.5, 1, 2.5, 0, 0, 0, [.14, .16, .2], 0);
       for (var k = 0; k < 4; k++) K.spr(i, S.smoke, X(-6.8 + (R() - .5) * 1.4), 1.3, Z(-7 + (R() - .5) * 1.4), 1.3, 1.3, [.66, .66, .68], .3, R(), .14 + R() * .08, 4);
-      slagHeap(X(-9.2), Z(5), 1.6, true); slagHeap(X(9.4), Z(2), 1.2, false); K.rubble(i, X(0), Z(-1.5), 3.4, 26, 1.0, 'rock', [.4, .38, .37], R);
+      slagHeap(X(-9.2), Z(5), 1.6, true); slagHeap(X(9.4), Z(2), 1.2, false); K.rubble(i, X(-9.5), Z(-1.5), 3.4, 26, 1.0, 'rock', [.4, .38, .37], R);
       decals({ cracks: 10, soot: 16, chips: 8, rubble: 6, plates: 2, heat: 3, puddles: 3, wear: [.6, .58, .56] });
       brazierF(X(-5.6), Z(7.6), .85, 14); brazierF(X(5.6), Z(8), .85, 14);
       smoke(5, [.4, .38, .36], .16, .5, 3.4, 3.5); embers(8, -12, 12, -9, 9, 4, .6);
       coldFurnace(10.6, -5.2, 1, false); coldFurnace(-11.0, 4.2, -1, true);
-      crucible(2.8, 5.8, .9, false); crucible(-3.2, 7.4, .8, false); BX('box', 'iron', -3.2, 1.55, 7.4, 1.2, .1, .1, .6, [.5, .47, .45], .1);
+      crucible(9, 5.8, .9, false); crucible(-9, 7.4, .8, false); BX('box', 'iron', -9, 1.55, 7.4, 1.2, .1, .1, .6, [.5, .47, .45], .1);
       ashDrift(6, 3, 4, 5); ashDrift(-5, -4, 4, 4);
       BX('ingot', 'iron', 4.6, 1.2, -9.4, 2.6, .5, 1.4, .3, [.46, .43, .41], .4, 0, 1.2);
     };
@@ -420,8 +420,9 @@
       K.floor(i, r, { key: 'floor', tint: [.52, .48, .46], vary: .12, cols: 10, rows: 8 });
       shell({ glow: .8, gutter: 'slag' }); north({});
       for (var row = 0; row < 4; row++) for (var s = -1; s <= 1; s += 2) { ironStatue(X(s * 10.0), Z(-6.5 + row * 4.3), s > 0 ? -PI / 2 : PI / 2, 1, .72); K.solid(X(s * 10.0), Z(-6.5 + row * 4.3), 1.7, 1.7); }
-      anvil(X(0), Z(-8.6), 0, 2.4); K.put(i, 'box', 'iron', X(0), .22, Z(-8.6), 4.6, .44, 3, 0, 0, 0, IRONT, .4);
-      K.spr(i, S.glow, X(0), 2.5, Z(-8.6), 2.2, 1.6, [1.4, .5, .1], .6, 0, 1, 1); K.put(i, 'box', 'hot', X(0), 2.45, Z(-8.6), 2.4, .04, .9, 0, 0, 0, [2.2, .9, .28], 0); K.light(i, X(0), 3.2, Z(-8.6), 0xff8a3c, 24, 13, { glow: 1.8 });
+      anvil(X(8), Z(-8.6), 0, 2.4); K.put(i, 'box', 'iron', X(8), .22, Z(-8.6), 4.6, .44, 3, 0, 0, 0, IRONT, .4);
+      K.spr(i, S.glow, X(8), 2.5, Z(-8.6), 2.2, 1.6, [1.4, .5, .1], .6, 0, 1, 1); K.put(i, 'box', 'hot', X(8), 2.45, Z(-8.6), 2.4, .04, .9, 0, 0, 0, [2.2, .9, .28], 0); K.light(i, X(8), 3.2, Z(-8.6), 0xff8a3c, 24, 13, { glow: 1.8 });
+      K.solid(X(8), Z(-8.6), 4.6, 3);
       K.dec(i, 5, X(0), Z(-1), 12, 12, .2, [1.4, .45, .1], .85, 'glow'); K.dec(i, 5, X(0), Z(-1), 12, 12, .2, [.5, .34, .28], .6);
       for (var k = 0; k < 8; k++) { var cx = (k % 2 ? 1 : -1) * 6.2, cz = -8 + k * 2.2; K.put(i, 'cyl', 'iron', X(cx), .2, Z(cz), .12, .4, .12, 0, 0, 0, IRONT, 0); K.spr(i, S.flame, X(cx), .4 + .15, Z(cz), .06, .15, FIRE, .9, R(), 1, 1); }
       
@@ -438,7 +439,7 @@
     ROOM[7] = function () {
       K.floor(i, r, { key: 'floor', tint: COAL, vary: .18, cols: 10, rows: 8 });
       shell({ glow: .9 }); north({});
-      [[-6.8, -7], [6.8, -7]].forEach(function (p, q) {
+      [[-10.8, -7], [10.8, -7]].forEach(function (p, q) {
         var x = X(p[0]), z = Z(p[1]), big = q === 2;
         K.put(i, 'vat', 'iron', x, .5, z, big ? 4.6 : 3.4, 1.0, big ? 4.6 : 3.4, 0, 0, 0, IRONT, .3); K.put(i, 'disc', 'lava', x, .9, z, big ? 3.6 : 2.6, 1, big ? 3.6 : 2.6, 0, 0, 0, [big ? 1.8 : 1.3, big ? 1.8 : 1.3, 0], 0);
         K.spr(i, S.pool, x, .2, z, big ? 9 : 7, big ? 9 : 7, [1, .32, .06], .6, R(), 1, 1); K.spr(i, S.glow, x, 1.4, z, 3.2, 3.2, [1.2, .42, .08], .8, R(), 1, 1);
@@ -453,7 +454,7 @@
       smoke(7, [.3, .24, .2], .24, .6, 3.4, 5); embers(14, -12, 12, -9, 9, 6, 1);
       winch(-11.6, 4.6, PI / 2, 2.0); winch(11.6, -2.8, -PI / 2, 2.4);
       // well coping stones and iron straps around each pit
-      [-6.8, 6.8].forEach(function (x) { for (var q = 0; q < 8; q++) { var a = q / 8 * 6.283 + .2; BX('box', 'wall', x + Math.cos(a) * 2.0, .3, -7 + Math.sin(a) * 2.0, .9, .6, .8, -a, [.5, .46, .44], .5); } });
+      [-10.8, 10.8].forEach(function (x) { for (var q = 0; q < 8; q++) { var a = q / 8 * 6.283 + .2; BX('box', 'wall', x + Math.cos(a) * 2.0, .3, -7 + Math.sin(a) * 2.0, .9, .6, .8, -a, [.5, .46, .44], .5); } });
       barrels(-12.3, -9.2, 2, 0);
     };
     /* 8 Yutulan Çarklar — swallowed gears: wall-mounted wheels that still turn, a gear sunk in the floor */
@@ -485,7 +486,7 @@
       
       for (var k = 0; k < 6; k++) { var px = X((k % 2 ? 1 : -1) * (9.8 + R() * 1.4)), pz = Z(-9 + k * 3.4); K.put(i, 'cyl', 'iron', px, 2.6, pz, .5, 5.2, .5, 0, 0, 0, IRONT, .3); K.spr(i, S.smoke, px, 5.2, pz, 1.8, 1.8, [.62, .56, .22], .32, R(), .09, 4.5); }
       decals({ cracks: 10, soot: 8, chips: 12, heat: 3, rubble: 5, puddles: 2, wear: [.5, .46, .4] });
-      brazierF(X(-5.6), Z(8), .9, 15); brazierF(X(5.6), Z(8), .9, 15);
+      brazierF(X(-8.6), Z(8), .9, 15); brazierF(X(5.6), Z(8), .9, 15);
       smoke(13, [.6, .55, .3], .17, .6, 4.2, 5); embers(30, -12, 12, -9, 9, 6, 1.1);
       trough(-4.8, -9.3, 3.8, 0, false); trough(4.8, -9.3, 3.8, 0, false);
       runner(-8.6, -8.9, -6.8, -9.2, .45); runner(8.2, -8.4, 6.8, -9.0, .45);
@@ -529,7 +530,7 @@
       decals({ cracks: 3, soot: 3, chips: 2 });
       smoke(5, [.34, .28, .24], .18, .6, 3.4, 5); embers(16, -12, 12, -9, 9, 6, 1);
       // oath posts with glowing bands
-      [0, 1, 2, 3].forEach(function (q) { var a = q * PI / 2, x = Math.cos(a) * 6.9, z = Math.sin(a) * 6.9;
+      [0, 1, 2, 3].forEach(function (q) { var a = q * PI / 2, x = Math.cos(a) * 6.9 + (q === 1 ? 3 : q === 3 ? -3 : 0), z = Math.sin(a) * 6.9;
         BX('box', 'iron', x, 1.5, z, .5, 3.0, .5, 0, [.52, .49, .47], .5); BX('box', 'iron', x, 3.1, z, .8, .2, .8, 0, IRONT, .2); HOT(x, 2.2, z, .54, .1, .54, [1.4, .5, .12]); HOT(x, 1.2, z, .54, .1, .54, [1.4, .5, .12]); K.solid(X(x), Z(z), .8, .8);
       });
           };
@@ -542,13 +543,13 @@
       K.put(i, 'vat', 'iron', X(0), 3.7, Z(-4.5), 3.4, 2.6, 3.4, 0, 0, 0, [.5, .46, .44], .2); K.put(i, 'disc', 'hot', X(0), 4.85, Z(-4.5), 2.4, 1, 2.4, 0, 0, 0, [1.9, .9, .3], 0);
       K.spr(i, S.glow, X(0), 5.1, Z(-4.5), 2.6, 2.6, [1.0, .42, .12], .65, 0, 1, 1); K.spr(i, S.pool, X(0), .14, Z(-4.5), 9, 9, [1.1, .4, .1], .6, .1, 1, 1);
       K.dec(i, 15, X(0), Z(-1), 8, 8, 0, [1.5, .5, .1], .85, 'glow'); K.dec(i, 15, X(-3), Z(3), 6, 6, 2, [1.5, .5, .1], .7, 'glow');
-      [[-5.2, -8.6], [5.6, -8.6]].forEach(function (p) { K.solid(X(p[0]), Z(p[1]), 3.2, 2.0); K.put(i, 'box', 'iron', X(p[0]), .35, Z(p[1]), 3.0, .7, 1.8, .2, 0, 0, [.5, .46, .44], .5); K.put(i, 'box', 'hot', X(p[0]), .72, Z(p[1]), 2.4, .05, 1.2, .2, 0, 0, [2.0, .72, .18], 0); });
-      
+      [[-8.2, -8.6], [5.6, -8.6]].forEach(function (p) { K.solid(X(p[0]), Z(p[1]), 3.2, 2.0); K.put(i, 'box', 'iron', X(p[0]), .35, Z(p[1]), 3.0, .7, 1.8, .2, 0, 0, [.5, .46, .44], .5); K.put(i, 'box', 'hot', X(p[0]), .72, Z(p[1]), 2.4, .05, 1.2, .2, 0, 0, [2.0, .72, .18], 0); });
+
       decals({ cracks: 6, soot: 6, chips: 6, plates: 3, grates: 2, heat: 3, wear: [.5, .44, .4] });
       brazierF(X(-5.6), Z(8), .95, 17); brazierF(X(5.6), Z(8), .95, 17);
       smoke(6, [.38, .28, .22], .24, .6, 3.4, 5); embers(36, -12, 12, -9, 9, 6.5, 1.2);
       // casting floor: runners from the moulds converge under the ladle's pouring basin
-      runner(-5.2, -7.6, -5.2, -2.6, .5); runner(5.6, -7.6, 5.6, -2.6, .5); runner(-5.2, -2.6, -1.4, -2.6, .5); runner(5.6, -2.6, 1.4, -2.6, .5);
+      runner(-8.2, -7.6, -8.2, -2.6, .5); runner(5.6, -7.6, 5.6, -2.6, .5); runner(-8.2, -2.6, -1.4, -2.6, .5); runner(5.6, -2.6, 1.4, -2.6, .5);
       BX('box', 'iron', 0, .16, -2.6, 3.2, .3, 2.0, 0, [.46, .43, .41], .4); HOT(0, .33, -2.6, 2.6, .05, 1.5, [1.25, .46, .11]);
       BAR(-1.68, 4.95, -4.5, -1.4, 5.3, -4.5, .07, IRONT); BAR(1.68, 4.95, -4.5, 1.4, 5.3, -4.5, .07, IRONT);   // the chains ended 26 cm above the ladle
       crucible(-9.5, 6.4, .9, true); crucible(10.0, 5.6, .8, false); ingots(10.4, -3.5, PI / 2, 3, false);
