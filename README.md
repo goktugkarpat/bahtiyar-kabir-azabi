@@ -2,7 +2,7 @@
 
 Bahtiyar'ın karanlık yolculuğunu anlatan, üç boyutlu, Türkçe konuşmalar içeren bir aksiyon oyunu. **Yetişkinler içindir (18+); kan, yoğun şiddet ve korku içerir.**
 
-**Bu klasördeki oyun sürümü: v148.**
+**Bu klasördeki oyun sürümü: v149.**
 
 [Oyunu aç](https://goktugkarpat.github.io/bahtiyar-kabir-azabi/)
 
@@ -58,6 +58,7 @@ Sessiz açılış için adresin sonuna `?sessiz` ekleyin. Oyun testleri bu şeki
 - **v144:** Canlı ses işleme hızı, çıkış cihazının yüksek örnekleme hızından bağımsız olarak 48 kHz seçilir; desteklenmezse 44,1 kHz denenir.
 - **v145:** NVIDIA / Direct3D11 yolunda ışığın sis içindeki dağılımı aynı hesap ve sırayla, daha küçük bir görüntü programında yapılır. Salonlar yalnızca derlenmez; ışıkların sis içindeki katkıları etkinleştirilerek yükleme ekranı altında oyun kamerasıyla gerçekten çizilir ve çizimin tamamlanması beklenir. İlk kullanım hazırlığının mümkün olduğunca yükleme ekranında tamamlanması amaçlanır. Karakter penceresi dünya malzemelerinden sonra hazırlanır. Küçük harita ve hasar yazıları için küçük yazılım çizim yüzeyleri kullanılır. Grafik kalitesi, çözünürlük ve seçilen kare hızı korunur; Mac'in sis çizim yolu değişmez.
 
+- **v149:** Küçük harita saniyede en çok ~30 kez yenilenir (120 FPS'te her karede yenileniyordu); görüntü aynı kalır, tarayıcı işlemci ve ekran kartı süreci biraz daha az çalışır.
 - **v148:** Yetenek ağacı açıkken T'ye tekrar basmak da pencereyi kapatır (I ve C gibi). Yeni sürümde değişmeyen dosyalar yeniden indirilmez; ilk açılış hızlı kalır.
 - **v147:** Grafik kalitesi iki seçeneğe indi: Düşük ve Yüksek. Yeni Yüksek, eski Orta ayarıdır; eski Yüksek kaldırıldı. Eski Orta/Yüksek kayıtları kendiliğinden Yüksek'e geçer. Karakter / çanta (I) ve yetenek ağacı (T) sayfaları yükleme ekranı altında bir kez çizilir; ilk açılışta takılma olmaması amaçlanır.
 - **v146:** Parçacık, kan izi, zemin lekesi, kopan parçalar ve silah izi tamponlarında yalnızca kullanılan bölüm güncellenir; henüz çizilmemiş güncellemeler korunur. Bitmiş kan çizgileri çizim aralığının dışında bırakılır. Gerçek efekt kodunun uzun süreli karşılaştırmasında geometri aynı kalırken bu kapsamdaki aktarım miktarı %55 azaldı. Bu sonuç tarayıcı işlemci yükü veya sıcaklık ölçümü değildir.
