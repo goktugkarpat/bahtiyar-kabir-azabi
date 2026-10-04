@@ -2,7 +2,7 @@
 
 Bahtiyar'ın karanlık yolculuğunu anlatan, üç boyutlu, Türkçe konuşmalar içeren bir aksiyon oyunu. **Yetişkinler içindir (18+); kan, yoğun şiddet ve korku içerir.**
 
-**Bu klasördeki oyun sürümü: v150.**
+**Bu klasördeki oyun sürümü: v151.**
 
 [Oyunu aç](https://goktugkarpat.github.io/bahtiyar-kabir-azabi/)
 
@@ -58,6 +58,7 @@ Sessiz açılış için adresin sonuna `?sessiz` ekleyin. Oyun testleri bu şeki
 - **v144:** Canlı ses işleme hızı, çıkış cihazının yüksek örnekleme hızından bağımsız olarak 48 kHz seçilir; desteklenmezse 44,1 kHz denenir.
 - **v145:** NVIDIA / Direct3D11 yolunda ışığın sis içindeki dağılımı aynı hesap ve sırayla, daha küçük bir görüntü programında yapılır. Salonlar yalnızca derlenmez; ışıkların sis içindeki katkıları etkinleştirilerek yükleme ekranı altında oyun kamerasıyla gerçekten çizilir ve çizimin tamamlanması beklenir. İlk kullanım hazırlığının mümkün olduğunca yükleme ekranında tamamlanması amaçlanır. Karakter penceresi dünya malzemelerinden sonra hazırlanır. Küçük harita ve hasar yazıları için küçük yazılım çizim yüzeyleri kullanılır. Grafik kalitesi, çözünürlük ve seçilen kare hızı korunur; Mac'in sis çizim yolu değişmez.
 
+- **v151:** Yerdeki kan lekeleri daha çabuk kurur ve silinir (ömür ~%35 kısa, aynı anda duran leke sayısı ~%20 az).
 - **v150:** Karakter gölgelendiricisinde farklı sayıda yara izi olan malzemeler tek program paylaşıyor (aynı görüntü; kahraman portresi piksel piksel aynı çıktı). Program sayısı 153→152, karakter gölgelendirici kodu ~%2 küçüldü. Pas/kir dallarını ayırmak program sayısını artırdığı için denendi ve bırakıldı.
 - **v149:** Küçük harita saniyede en çok ~30 kez yenilenir (120 FPS'te her karede yenileniyordu); görüntü aynı kalır, tarayıcı işlemci ve ekran kartı süreci biraz daha az çalışır.
 - **v148:** Yetenek ağacı açıkken T'ye tekrar basmak da pencereyi kapatır (I ve C gibi). Yeni sürümde değişmeyen dosyalar yeniden indirilmez; ilk açılış hızlı kalır.
