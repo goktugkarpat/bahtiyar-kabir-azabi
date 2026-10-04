@@ -85,7 +85,7 @@
   var GRADE_HEAD = 'varying vec3 vKara;varying vec4 vKWear;uniform vec3 kTint;uniform float kSat,kGrime,kBlood,kScale,kContrast,kLowTop,kLowBottom,kRust,kWear,kBump,kSkin,kCatch;uniform vec3 kScatter;\n' +
     '#ifdef KARA_ENGRAVE\nuniform sampler2D kEngrave;uniform vec4 kEngraveRect;\n#endif\n' +
     '#ifdef KARA_HAIR\nuniform vec4 kHair;\n#endif\n' +
-    'float kSkinMask=0.,kScar=0.,kFaceH=0.;\n#ifdef KARA_SCARS\nuniform vec4 kScarA[KARA_SCARS];uniform vec4 kScarB[KARA_SCARS];uniform float kScarFresh;uniform int kScarN;\n#endif\n' +
+    'float kSkinMask=0.,kScar=0.,kFaceH=0.;\n#ifdef KARA_SCARS\nuniform vec4 kScarA[KARA_SCARS];uniform vec4 kScarB[KARA_SCARS];uniform float kScarFresh;\n#endif\n' +
     'float kH(vec3 p){return fract(sin(dot(p,vec3(127.1,311.7,74.7)))*43758.5453);}\n' +
     'float kN(vec3 p){vec3 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(mix(kH(i),kH(i+vec3(1,0,0)),f.x),mix(kH(i+vec3(0,1,0)),kH(i+vec3(1,1,0)),f.x),f.y),mix(mix(kH(i+vec3(0,0,1)),kH(i+vec3(1,0,1)),f.x),mix(kH(i+vec3(0,1,1)),kH(i+vec3(1,1,1)),f.x),f.y),f.z);}\n' +
     'float kFall(float high,float low,float x){return 1.-smoothstep(low,high,x);}\n' +
@@ -129,7 +129,6 @@
     PHYS_PARS = at < 0 ? src : src.slice(0, at + line.length) + '\n#ifdef KARA_SSS\n{float kd=dot(geometryNormal,directLight.direction);vec3 kw=clamp((vec3(kd)+kScatter)/(1.+kScatter),0.,1.);reflectedLight.directDiffuse+=directLight.color*(kw-vec3(clamp(kd,0.,1.)))*kSkinMask*BRDF_Lambert(material.diffuseColor);}\n#endif\n' + src.slice(at + line.length);
     return PHYS_PARS;
   }
-  var SCAR_MAX = 20;
   function grade(m, o) {
     o = o || {};
     var tint = Array.isArray(o.tint) ? new T.Color().setRGB(o.tint[0], o.tint[1], o.tint[2]) : new T.Color(o.tint === undefined ? 0xffffff : o.tint), cls = o.cls || 'plain';
@@ -149,12 +148,9 @@
     if (o.face) defs.KARA_FACE = '';
     if (o.mass) defs.KARA_MASS = '';
     if (o.scars && o.scars.length) {
-      // Every scarred material compiles the same loop (bounded by kScarN at run time), so one program serves all scar counts.
-      var scars = o.scars.slice(0, SCAR_MAX);
-      defs.KARA_SCARS = SCAR_MAX; u.kScarFresh = { value: o.fresh ? 1 : 0 }; u.kScarN = { value: scars.length };
-      u.kScarA = { value: scars.map(function (sc) { return new T.Vector4(sc[0].x, sc[0].y, sc[0].z, sc[2] || .004); }) };
-      u.kScarB = { value: scars.map(function (sc) { return new T.Vector4(sc[1].x, sc[1].y, sc[1].z, sc[3] ? 1 : 0); }) };
-      while (u.kScarA.value.length < SCAR_MAX) { u.kScarA.value.push(new T.Vector4(0, 0, 0, .004)); u.kScarB.value.push(new T.Vector4(0, 0, 0, 0)); }
+      defs.KARA_SCARS = o.scars.length; u.kScarFresh = { value: o.fresh ? 1 : 0 };
+      u.kScarA = { value: o.scars.map(function (sc) { return new T.Vector4(sc[0].x, sc[0].y, sc[0].z, sc[2] || .004); }) };
+      u.kScarB = { value: o.scars.map(function (sc) { return new T.Vector4(sc[1].x, sc[1].y, sc[1].z, sc[3] ? 1 : 0); }) };
     }
     if (o.engrave) { defs.KARA_ENGRAVE = ''; u.kEngrave = { value: o.engrave }; u.kEngraveRect = { value: o.engrave.userData.rect }; }
     m.defines = Object.assign(m.defines || {}, defs);
@@ -179,7 +175,7 @@
           '#elif KARA_CLASS == 2 || KARA_CLASS == 6\ndiffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*1.7+vec3(.035,.028,.02),kEdgeMask*.55);\n' +
           '#elif KARA_CLASS == 5\ndiffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*1.3+.03,kEdgeMask*.5);\n#endif\n' +
           'float g=kF(vKara*kScale),low=kFall(kLowTop,kLowBottom,vKara.y);diffuseColor.rgb*=1.-kGrime*clamp(.75*g+.6*low-.25,0.,.85);diffuseColor.rgb*=1.-kCav*.55;\n' +
-          '#ifdef KARA_SCARS\n{float sc=0.,st=0.;for(int i=0;i<KARA_SCARS;i++){if(i>=kScarN)break;vec3 a=kScarA[i].xyz,ab=kScarB[i].xyz-a;float L=length(ab),t=clamp(dot(vKara-a,ab)/(L*L),0.,1.),d=length(vKara-a-ab*t),w=kScarA[i].w*(.55+.9*kN(vKara*260.+float(i)*7.));' +
+          '#ifdef KARA_SCARS\n{float sc=0.,st=0.;for(int i=0;i<KARA_SCARS;i++){vec3 a=kScarA[i].xyz,ab=kScarB[i].xyz-a;float L=length(ab),t=clamp(dot(vKara-a,ab)/(L*L),0.,1.),d=length(vKara-a-ab*t),w=kScarA[i].w*(.55+.9*kN(vKara*260.+float(i)*7.));' +
           'sc=max(sc,kFall(w,w*.3,d)*smoothstep(0.,.1,t)*kFall(1.,.9,t));float q=abs(fract(t*L/.011)-.5)*.011;st=max(st,kScarB[i].w*kFall(.0016,.0006,q)*kFall(w*3.2,w*2.2,d)*step(.08,t)*step(t,.92));}' +
           'float sk=step(.5,kSkinMask);kScar=max(sc,st)*sk;vec3 healed=diffuseColor.rgb*vec3(1.22,1.02,.98)+vec3(.035,.02,.02),fresh=mix(vec3(.11,.012,.008),vec3(.24,.03,.02),kN(vKara*120.));' +
           'diffuseColor.rgb=mix(diffuseColor.rgb,mix(healed,fresh,kScarFresh),sc*sk*.85);diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.03,.02,.015),st*sk);kWet=max(kWet,sc*sk*kScarFresh);}\n#endif\n' +

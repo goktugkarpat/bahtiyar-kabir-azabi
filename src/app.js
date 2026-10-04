@@ -1192,16 +1192,9 @@
   }
   // The HUD tick only asks for a redraw; the map is drawn on the next animation frame so it does not add to the
   // frame that already carries the rest of the HUD update, and it is skipped when nothing on it moved.
-  // At most ~30 redraws a second: the small map scrolls a fraction of a pixel per presented frame at 120 FPS, so extra redraws
-  // only cost canvas work and texture uploads in the GPU process.
-  let miniLast = 0;
   function drawMinimap() {
     if (miniPending) return; miniPending = true;
-    requestAnimationFrame(ts => {
-      if (ts - miniLast < 30 && ts >= miniLast) { miniPending = false; return; }
-      miniPending = false; miniLast = ts;
-      try { drawMinimapNow(game.player); } catch (e) { console.warn('[Kabir Azabı] minimap', e); }
-    });
+    requestAnimationFrame(() => { miniPending = false; try { drawMinimapNow(game.player); } catch (e) { console.warn('[Kabir Azabı] minimap', e); } });
   }
   function drawMinimapNow(p) {
     const c = $('minimap'), x = c.getContext('2d', B.uiBitmapOptions), scale = MINI_SCALE, cx = 128, cy = 140, k = c.width / 256;
@@ -1503,7 +1496,7 @@
   }
   // Gaps between presented frames (last ~600), so the counter can also show the longest frame: a few slow frames are
   // what the eye reads as stutter even when the FPS average looks fine.
-  const BUILD_TAG = 151, fpsGaps = new Float32Array(600);
+  const BUILD_TAG = 152, fpsGaps = new Float32Array(600);
   let fpsGapAt = 0, fpsGapLast = 0;
   function frameStats() {
     let longest = 0, slow = 0;

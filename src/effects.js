@@ -138,8 +138,8 @@
     // Primary decals (pools, prints, walls, big splats) keep the preset's cfg.decals limit; landing droplets get their own extra allowance.
     function gdAdd(o, micro) {
       const cfg = getSettings(); if (!(cfg.decals > 0)) return null;
-      o.t = 0; o.micro = !!micro; o.life = o.life || Math.max(12, cfg.decals) * (micro ? .45 : .75);   // blood on the floor dries and fades sooner (was 1.15 / .7) o.a0 = o.a0 == null ? 1 : o.a0; o.rx = o.rx == null ? -Math.PI / 2 : o.rx; o.ry = o.ry || 0; o.sy = o.sy || o.sx;
-      const priCap = Math.min(GD - 40, Math.max(20, Math.round(cfg.decals * 1.1))), list = micro ? gdMic : gdPri, micCap = Math.min(GD - priCap, Math.round(cfg.decals * 1.2) + 16);
+      o.t = 0; o.micro = !!micro; o.life = o.life || Math.max(12, cfg.decals) * (micro ? .7 : 1.15); o.a0 = o.a0 == null ? 1 : o.a0; o.rx = o.rx == null ? -Math.PI / 2 : o.rx; o.ry = o.ry || 0; o.sy = o.sy || o.sx;
+      const priCap = Math.min(GD - 40, Math.max(20, Math.round(cfg.decals * 1.4))), list = micro ? gdMic : gdPri, micCap = Math.min(GD - priCap, Math.round(cfg.decals * 1.6) + 20);
       list.push(o); while (gdPri.length > priCap) gdPri.shift(); while (gdMic.length > micCap) gdMic.shift(); return o;
     }
     const gdLists = [gdMic, gdPri];
