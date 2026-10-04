@@ -70,7 +70,10 @@
   // ---- bloom: soft-knee prefilter + 13-tap downsample chain, tent upsample accumulated back up ----
   var DOWN_FS = [
     'uniform sampler2D tSrc; uniform vec2 uTexel; uniform float uFirst, uThreshold, uKnee; varying vec2 vUv;', COMMON,
-    'vec3 s(float x, float y){ return texture2D(tSrc, vUv + vec2(x, y) * uTexel).rgb; }',
+    // A non-finite surface pixel must not poison every bloom mip and become a large black tile.
+    // Ordered bounds also reject NaN on ANGLE drivers that optimize away isnan/isinf checks.
+    'vec3 safeHDR(vec3 c){ return all(greaterThanEqual(c,vec3(-65504.))) && all(lessThanEqual(c,vec3(65504.))) ? c : vec3(0.); }',
+    'vec3 s(float x, float y){ return safeHDR(texture2D(tSrc, vUv + vec2(x, y) * uTexel).rgb); }',
     'vec3 pre(vec3 c){ float br = max(c.r, max(c.g, c.b)); float k = clamp(br - uThreshold + uKnee, 0., 2. * uKnee); k = k * k / (4. * uKnee + 1e-4);',
     '  return c * max(k, br - uThreshold) / max(br, 1e-4); }',
     'vec3 karis(vec3 a, vec3 b, vec3 c, vec3 d){ vec3 m = (a + b + c + d) * .25; return m / (1. + luma(m) * .5); }',
@@ -200,6 +203,7 @@
     '  if (dot(abCq, abCq) > 1e-9) { c.r = mix(c.r, texture2D(tScene, uv + abCq).r, .75); c.b = mix(c.b, texture2D(tScene, uv - abCq).b, .75); }',
     '  #endif',
     '  #endif',
+    '  c = all(greaterThanEqual(c,vec3(-65504.))) && all(lessThanEqual(c,vec3(65504.))) ? c : vec3(0.);',
     '  #if AO',
     '  float ao = texture2D(tAO, vUv).r; float l0 = luma(c);',
     '  c *= mix(1., ao, uAO * (1. - .5 * smoothstep(.5, 3., l0)));',

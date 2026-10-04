@@ -98,7 +98,10 @@
     ' return kFall(top+.008,top-.032,w.y+(kN(p*55.)-.5)*.02+(kN(p*160.)-.5)*.008)*smoothstep(bot-.002,bot+.016,w.y)*smoothstep(-.03,0.,w.z)*kFall(1.52,1.32,a)*(1.-kMouth(w));}\n' +
     'float kGrey(vec3 w,vec3 p,float bias,float sc,float depth){float g=kFall(2.19,2.1,w.y)+bias+smoothstep(.055,.12,abs(w.x))*.35;vec3 q=vec3(p.x,p.y*.3,p.z);return clamp(g+(kN(q*sc)-.5)*depth+(kN(q*sc*.2+3.)-.5)*.3,0.,1.);}\n#endif\n' +
     'float kFade(float px,float size){return 1.-smoothstep(.3,.9,px/size);}\n' +
-    'vec3 kPerturb(vec3 sp,vec3 sn,vec2 dH,float fd){vec3 sx=normalize(dFdx(sp)),sy=normalize(dFdy(sp)),r1=cross(sy,sn),r2=cross(sn,sx);float det=dot(sx,r1)*fd;vec3 gr=sign(det)*(dH.x*r1+dH.y*r2);return normalize(abs(det)*sn-gr);}\n' +
+    // Subpixel or edge-on triangles can have a zero screen derivative. Keep the unperturbed
+    // normal in that case; normalize(0) produces NaNs that can spread through bloom.
+    'vec3 kUnit(vec3 v,vec3 fallback){float l=dot(v,v);return l>1e-20&&l<1e20?v*inversesqrt(l):fallback;}\n' +
+    'vec3 kPerturb(vec3 sp,vec3 sn,vec2 dH,float fd){vec3 sx=dFdx(sp),sy=dFdy(sp);float lx=dot(sx,sx),ly=dot(sy,sy);if(!(lx>1e-20&&lx<1e20&&ly>1e-20&&ly<1e20))return sn;sx*=inversesqrt(lx);sy*=inversesqrt(ly);vec3 r1=cross(sy,sn),r2=cross(sn,sx);float det=dot(sx,r1)*fd;vec3 gr=sign(det)*(dH.x*r1+dH.y*r2),nn=abs(det)*sn-gr;float ln=dot(nn,nn);return ln>1e-20&&ln<1e20?nn*inversesqrt(ln):sn;}\n' +
     // micro-relief height (metres) per class. Every layer fades out with the pixel footprint (kFade is exactly 0 once
     // px >= .9 * size); a layer that is already faded out is not evaluated at all (same value, a fraction of the noise work).
     // The tests use px, which is a derivative of the interpolated position: they only skip terms that would be added as exact zeros.
@@ -201,7 +204,7 @@
           ' if(fm>0.){\n' +
           '  float fl=0.;for(int i=0;i<3;i++){float y0=2.316+float(i)*.017-1.7*w.x*w.x;fl=max(fl,kFall(.0016,.0003,abs(w.y-y0+(kN(vec3(w.x*70.,float(i)*5.,2.))-.5)*.0035))*smoothstep(.2,.4,kN(vec3(w.x*24.,float(i)*3.,1.)))*(1.-smoothstep(.04,.085,ax)));}\n' +
           '  vec2 e=vec2(ax-.042,w.y-2.252),q=e/vec2(.03,.02);\n' +
-          '  float sock=exp(-dot(q,q)),crease=kFall(.0011,.0003,abs(e.y-.0135+7.*e.x*e.x))*(1.-smoothstep(.016,.024,abs(e.x+.004))),lower=kFall(.0008,.0002,abs(e.y+.0125-3.*e.x*e.x))*(1.-smoothstep(.012,.02,abs(e.x))),bag=exp(-pow((e.y+.022)/.0055,2.))*(1.-smoothstep(.015,.03,abs(e.x-.003))),crow=0.;\n' +
+          '  float sock=exp(-dot(q,q)),crease=kFall(.0011,.0003,abs(e.y-.0135+7.*e.x*e.x))*(1.-smoothstep(.016,.024,abs(e.x+.004))),lower=kFall(.0008,.0002,abs(e.y+.0125-3.*e.x*e.x))*(1.-smoothstep(.012,.02,abs(e.x))),bag=exp(-(((e.y+.022)/.0055)*((e.y+.022)/.0055)))*(1.-smoothstep(.015,.03,abs(e.x-.003))),crow=0.;\n' +
           '  for(int i=0;i<3;i++){float a=float(i)*.4-.3;vec2 d=vec2(cos(a),sin(a)),r=e-vec2(.013,0.);float al=dot(r,d),pp=abs(r.x*d.y-r.y*d.x);crow=max(crow,kFall(.0007,.0002,pp)*smoothstep(0.,.004,al)*kFall(.022,.008,al)*smoothstep(.25,.6,kN(vec3(al*90.,float(i),4.))));}\n' +
           '  diffuseColor.rgb*=1.-fm*(.16*sock+.3*crease+.16*lower+.1*bag+.16*crow+.15*fl);kFaceH=-fm*(.0007*fl+.0006*crease+.0003*lower+.0002*crow);}\n' +
           ' float bm=kBeard(w,vKara);\n' +
@@ -212,7 +215,7 @@
           'roughnessFactor=mix(roughnessFactor,1.,kCav*.35+kCut*.3+kRustMask*.6);roughnessFactor=mix(roughnessFactor,mix(.48,.2,kWet),kBloodMask);roughnessFactor=mix(roughnessFactor,.07,kGloss);')
         .replace('#include <metalnessmap_fragment>', '#include <metalnessmap_fragment>\n' +
           '#if KARA_CLASS == 1\nmetalnessFactor=mix(metalnessFactor,1.,kEdgeMask*.8);\n#endif\nmetalnessFactor=mix(metalnessFactor,0.,max(max(kBloodMask,kGloss),kRustMask));')
-        .replace('#include <normal_fragment_maps>', '#include <normal_fragment_maps>\n' +
+        .replace('#include <normal_fragment_maps>', '#include <normal_fragment_maps>\nnormal=kUnit(normal,kUnit(nonPerturbedNormal,vec3(0.,0.,1.)));\n' +
           '#ifdef KARA_BUMP\n{float kPx=length(fwidth(vKara));float kh=kHeight(vKara,kPx)-kCut*.0007*kFade(kPx,.004)+kFaceH*kFade(kPx,.006);\n#ifdef KARA_SCARS\nkh+=kScar*mix(.0005,-.0006,kScarFresh)*kFade(kPx,.006);\n#endif\nnormal=kPerturb(-vViewPosition,normal,vec2(dFdx(kh),dFdy(kh)),faceDirection);}\n#endif\n')
         .replace('#include <normal_fragment_maps>', '#include <normal_fragment_maps>\n#ifdef KARA_MASS\n{float kPx=length(fwidth(vKara)),kh=(kN(vec3(vKara.x*700.,vKara.y*110.,vKara.z*700.))-.5)*.0011*kFade(kPx,.004);normal=kPerturb(-vViewPosition,normal,vec2(dFdx(kh),dFdy(kh)),faceDirection);}\n#endif\n')
         .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\nif(kGloss>.01){vec3 kHv=normalize(vec3(-.32,.42,1.)+vec3(0.,0.,1.));totalEmissiveRadiance+=vec3(kCatch*kGloss*pow(max(dot(normal,kHv),0.),110.));}')
