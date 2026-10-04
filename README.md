@@ -51,23 +51,6 @@ Düşman saldırılarından önce yerde uyarı çıkar. Altın kenar sıradan, k
 
 Sessiz açılış için adresin sonuna `?sessiz` ekleyin. Oyun testleri bu şekilde yapılır.
 
-## Son güncellemeler ve bilinen durum
-
-- **v142:** Kare sınırı, çizimin yanında oyun hesaplamasını da sınırlar. Aynı karede tekrarlanan karakter animasyonu hesaplamaları azaltıldı.
-- **v143:** Windows Direct3D11 çizim yolunda emüle edilen çoklu çizim yerine yerel örnekleme kullanılır.
-- **v144:** Canlı ses işleme hızı, çıkış cihazının yüksek örnekleme hızından bağımsız olarak 48 kHz seçilir; desteklenmezse 44,1 kHz denenir.
-- **v145:** NVIDIA / Direct3D11 yolunda ışığın sis içindeki dağılımı aynı hesap ve sırayla, daha küçük bir görüntü programında yapılır. Salonlar yalnızca derlenmez; ışıkların sis içindeki katkıları etkinleştirilerek yükleme ekranı altında oyun kamerasıyla gerçekten çizilir ve çizimin tamamlanması beklenir. İlk kullanım hazırlığının mümkün olduğunca yükleme ekranında tamamlanması amaçlanır. Karakter penceresi dünya malzemelerinden sonra hazırlanır. Küçük harita ve hasar yazıları için küçük yazılım çizim yüzeyleri kullanılır. Grafik kalitesi, çözünürlük ve seçilen kare hızı korunur; Mac'in sis çizim yolu değişmez.
-
-- **v152:** v149–v151 değişiklikleri (küçük harita 30 Hz, karakter yara izi programı, kan lekesi ömrü) geri alındı: bazı bilgisayarlarda oyun sırasında ekranda siyah dikdörtgenler görüldü. Oyun kodu v148 ile aynıdır.
-- **v151:** Yerdeki kan lekeleri daha çabuk kurur ve silinir (ömür ~%35 kısa, aynı anda duran leke sayısı ~%20 az).
-- **v150:** Karakter gölgelendiricisinde farklı sayıda yara izi olan malzemeler tek program paylaşıyor (aynı görüntü; kahraman portresi piksel piksel aynı çıktı). Program sayısı 153→152, karakter gölgelendirici kodu ~%2 küçüldü. Pas/kir dallarını ayırmak program sayısını artırdığı için denendi ve bırakıldı.
-- **v149:** Küçük harita saniyede en çok ~30 kez yenilenir (120 FPS'te her karede yenileniyordu); görüntü aynı kalır, tarayıcı işlemci ve ekran kartı süreci biraz daha az çalışır.
-- **v148:** Yetenek ağacı açıkken T'ye tekrar basmak da pencereyi kapatır (I ve C gibi). Yeni sürümde değişmeyen dosyalar yeniden indirilmez; ilk açılış hızlı kalır.
-- **v147:** Grafik kalitesi iki seçeneğe indi: Düşük ve Yüksek. Yeni Yüksek, eski Orta ayarıdır; eski Yüksek kaldırıldı. Eski Orta/Yüksek kayıtları kendiliğinden Yüksek'e geçer. Karakter / çanta (I) ve yetenek ağacı (T) sayfaları yükleme ekranı altında bir kez çizilir; ilk açılışta takılma olmaması amaçlanır.
-- **v146:** Parçacık, kan izi, zemin lekesi, kopan parçalar ve silah izi tamponlarında yalnızca kullanılan bölüm güncellenir; henüz çizilmemiş güncellemeler korunur. Bitmiş kan çizgileri çizim aralığının dışında bırakılır. Gerçek efekt kodunun uzun süreli karşılaştırmasında geometri aynı kalırken bu kapsamdaki aktarım miktarı %55 azaldı. Bu sonuç tarayıcı işlemci yükü veya sıcaklık ölçümü değildir.
-
-**Bilinen durum:** Kullanıcının Ryzen 9950X / RTX 4090 bilgisayarında, özellikle yeni düşmanlara yaklaşırken işlemci sıcaklığı sıçraması bildirildi. Windows işlem kaydında yükün büyük kısmı tarayıcının ekran kartı işlemindeki NVIDIA görüntü programı hazırlama bileşeninde görüldü. Aynı bilgisayardaki sessiz karşılaştırmada eski sis kodu yeni düşmanlara yaklaşınca uzun süre devam eden yük üretti; v145 bu uzun hazırlık yükünü azalttı, ancak ilk görülen düşmanlarda kısa yük sıçramaları hâlâ ölçüldü. İşlemci işi işlem kimliğine göre ham zaman farklarıyla ölçülür; arka planda çizimin yavaşlatıldığı denemeler sürekli oynanış karşılaştırması sayılmaz. Bu test toplam bilgisayar yükü veya sıcaklık ölçümü değildir; sıcaklık sorununun bütünüyle giderildiği henüz doğrulanmadı. Yükleme sırasında görüntü programları bir kez hazırlanır ve işlemci işi gerektirir. Gözlem yalnızca bu bilgisayara aittir; genel bir Ryzen sorunu olduğu gösterilmedi.
-
 ## Dosyalar ve yayın
 
 | Dosya / klasör | İçerik |
