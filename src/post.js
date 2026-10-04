@@ -13,7 +13,8 @@
   var PRESETS = {
     // abTaps: radial spin-blur taps of the special ability (0 = none), abChroma: colour fringe (two extra taps)
     low:  { ao: 0,    samples: 0,  radius: 0,   bloomLevels: 2, bloomHalf: false, haze: false, grain: .014, abTaps: 0, abChroma: false },
-    high: { ao: .925, samples: 10, radius: .95, bloomLevels: 4, bloomHalf: true, haze: true, grain: .021, abTaps: 6, abChroma: true }
+    medium: { ao: .925, samples: 10, radius: .95, bloomLevels: 4, bloomHalf: true, haze: true, grain: .021, abTaps: 6, abChroma: true },
+    high: { ao: 1, samples: 12, radius: 1, bloomLevels: 5, bloomHalf: true, haze: true, grain: .022, abTaps: 8, abChroma: true }
   };
   var MAX_HEAT = 6;
 

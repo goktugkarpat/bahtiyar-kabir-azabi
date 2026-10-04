@@ -236,7 +236,7 @@ void main(){ vec2 p = (vUv-.5)*2.*uMax; float r = length(p), a = r > 1e-6 ? atan
   const SHAPE = { circle: 0, cone: 1, line: 2, ring: 3 };
   const FILL = { radial: 0, forward: 1, sweep: 2, inward: 3, converge: 4 };
   const STYLE = { blade: 0, blunt: 1, rune: 2, bile: 3, quake: 4, shadow: 5, chain: 6, ember: 7, fall: 8, thrust: 9, grab: 10, roar: 11, root: 4, tide: 6 };
-  const DETAIL = { low: 1, high: 3 }, PFACTOR = { low: .3, high: .675 };
+  const DETAIL = { low: 1, medium: 3, high: 3 }, PFACTOR = { low: .3, medium: .675, high: .8 };
   const GOLD = { edge: [1.6, 1.05, .5], fill: [.7, .28, .07], front: [1.5, .95, .5] }, CRIMSON = { edge: [1.9, .16, .1], fill: [.85, .05, .04], front: [1.5, .3, .2] };
   const AMBER_RIM = [1.6, .7, .25], CRIMSON_RIM = [1.7, .12, .08], BILE_RIM = [1.2, .5, .12], RAGE_RIM = [1.9, .26, .07], COOL_RIM = [.9, .1, .04];
 

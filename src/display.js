@@ -30,8 +30,8 @@
     if (cfg.displayMode !== 'native' && nativeRatio > 1.25) {
       // Retina's four pixels per screen point remain expensive even with shadows
       // off. The automatic mode follows quality; explicit Native stays native.
-      const qualityRatio = raw?.quality === 'low' ? 1 : 1.25;
-      const budget = raw?.quality === 'low' ? 2000000 : 2500000;
+      const qualityRatio = raw?.quality === 'low' ? 1 : raw?.quality === 'medium' ? 1.25 : 1.5;
+      const budget = raw?.quality === 'low' ? 2000000 : raw?.quality === 'medium' ? 2500000 : 3500000;
       requestedRatio = Math.min(nativeRatio, qualityRatio, Math.sqrt(budget / (cssWidth * cssHeight)));
     }
     // Automatic resolution steps (createScaler) only ever remove a little: never below 0.8 of the chosen size per axis.
