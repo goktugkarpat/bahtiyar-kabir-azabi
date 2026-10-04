@@ -767,7 +767,6 @@
         var dodgeYaw = Number.isFinite(state.dodgeDirection) ? signedAngle(state.dodgeDirection - rootYaw) : 0;
         yawPose(wanted, dodgeYaw);
       }
-      if (state.debugClip) { nextMode = 'debug'; sample(state.debugClip, finite(state.debugTime, 0), wanted, false); if (state.debugMirror) mirror(wanted); }
       if (state.dead) {
         // Blown back by heavy blows, a collapsing stagger otherwise; the corpse slides away from the killer.
         nextMode = 'death'; fade = .07;

@@ -157,7 +157,6 @@
     game.syncProgression = syncProgression;
     game.criticalChance = .08; game.criticalMultiplier = 1.5;
     game.useSkill = useSkill;
-    game.resetSkillCooldowns = () => { for (const id of Object.keys(skillCooldowns)) delete skillCooldowns[id]; player.specialCd = player.rageCd = 0; };   // tests / debug
     game.saveProfileChoices = saveProfileChoices;
     game.skills = () => skillKeys.map((key, slot) => {
       const skill = selectedSkill(slot);
@@ -482,7 +481,7 @@
     let order = null, swingPlan = null, dodgeAim = null, pendingClick = null, targetRing = null, rawInput = null, moveMark = null, markX = 0, markZ = 0, markA = 0;
     let forcedMotion = null, healingAge = 0, comboStep = 0, comboWindow = 0, spinCur = 0;
     let playerHitImmunity = 0, checkpointSnapshot = null, endAnnounced = false;
-    let hintCooldown = 0, deniedCooldown = 0, deniedId = '', lackSerial = 0, debugInvincible = false, openingGrace = 8, corpseLifetime = 90, shadowReach = 0;
+    let hintCooldown = 0, deniedCooldown = 0, deniedId = '', lackSerial = 0, openingGrace = 8, corpseLifetime = 90, shadowReach = 0;
     let freeze = 0, slowmo = 0, impactScale = 1, attackSerial = 0, actionSerial = 0, evadeCooldown = 0, pairCd = 0;
     let drinkLeft = 0;   // seconds of the flask flourish still to play (also the double-press guard)
     let navigationBudget = 0;   // at most two searches per update, including slow-frame substeps; the player goes first
@@ -961,7 +960,6 @@
     // a move that would break the rhythm or token rule is skipped for the next candidate.
     // Specials (sp) are held back while the enemy still owes plain blows (spWait) and weigh SPECIAL_W of their weight otherwise.
     function pick(enemy, options) {
-      if (enemy.forceMove) { const o = options.find(p => p.id === enemy.forceMove); if (o && beginMove(enemy, o.move())) { enemy.forceMove = ''; return true; } return false; }
       const ok = options.filter(o => o.ok && !(o.sp && enemy.spWait > 0)), weight = o => (o.w || 1) * (o.sp ? SPECIAL_W : 1);
       // Only specials legal (hero out of plain range): chase first instead of throwing one at once.
       if (ok.length && ok.every(o => o.sp)) { enemy.spHold += decisionStep; if (enemy.spHold + 1e-7 < SPECIAL_HOLD) return false; } else enemy.spHold = 0;
@@ -1597,7 +1595,7 @@
       emit('win', { time: game.elapsed, kills: game.kills, chapter, nextChapter: complete ? null : chapter + 1 }); sound('win');
     }
     function hitPlayer(hazard) {
-      if (game.state !== 'playing' || player.dead || debugInvincible || playerHitImmunity > 0) return false;
+      if (game.state !== 'playing' || player.dead || playerHitImmunity > 0) return false;
       if (player.invulnerable) {
         // A strike that passes through the roll's protection is shown, never silently swallowed.
         if (!hazard.harmless && !hazard.periodic && evadeCooldown <= 0) { evadeCooldown = .35; fx('evade', { x: player.x, y: 1, z: player.z, face: player.face }); emit('evade', { x: player.x, z: player.z, attack: hazard.attack }); }
@@ -2530,48 +2528,6 @@
       // The app's contact-emphasis strength (default .65) scales hit-stop; 0 turns it off.
       if (settings && Number.isFinite(settings.impact)) impactScale = clamp(settings.impact / .65, 0, 1.6);
     }
-    // Deliberate, finite hooks for reproducible browser QA; never surfaced in the ordinary interface.
-    game.debug = Object.freeze({
-      snapshot() {
-        return {
-          state: game.state, checkpointIndex: game.checkpointIndex, elapsed: game.elapsed, kills: game.kills, totalKills: game.totalKills,
-          player: { x: player.x, z: player.z, hp: player.hp, stamina: player.stamina, flasks: player.flasks,
-            rageTime: player.rageTime, rageCd: player.rageCd, specialCd: player.specialCd, invulnerable: player.invulnerable },
-          living: enemies.filter(e => !e.dead).map(e => ({ id: e.id, type: e.type, hp: e.hp, active: e.active, x: e.x, z: e.z, phase: e.phase, action: e.action && e.action.attack })),
-          hazards: hazards.map(h => ({ enemy: h.enemy, attack: h.attack, shape: h.shape, x: h.x, z: h.z, warn: h.warn, age: h.age, active: h.active, unblockable: h.unblockable })),
-          quests: quests ? quests.snapshot() : null, gate: gate ? Object.assign({}, gate.info) : null, seals: seals.map(seal => ({ room: seal.encounter.room, open: seal.open, remaining: seal.encounter.enemies.filter(e => !e.dead).length })),
-          openingGrace,
-          lastDeath: game.lastDeath, attackTarget: game.attackTarget ? game.attackTarget.id : null, sceneChildren: root.children.length, hasSave: game.hasSave
-        };
-      },
-      teleport(x, z) { if (Number.isFinite(x) && Number.isFinite(z) && (!world.isWalkable || world.isWalkable(x, z, .5))) { player.x = x; player.z = z; updateSceneState(0); animateAll(0); return true; } return false; },
-      // QA: kills regular foes (in list order) until n of them are down; returns the gate state.
-      setKills(n) { if (gate) { for (const e of enemies) { if (gate.info.kills >= n) break; if (!e.boss && !e.dead) killEnemy(e); } } return gate ? Object.assign({}, gate.info) : null; },
-      gateInfo() { return gate ? Object.assign({}, gate.info) : null; },
-      questInfo() { return quests ? { state: quests.snapshot(), info: JSON.parse(JSON.stringify(quests.info)) } : null; },
-      invincible(value) { debugInvincible = !!value; return debugInvincible; },
-      setPlayer(values) {
-        if (!values || typeof values !== 'object') return;
-        ['hp', 'stamina', 'flasks'].forEach(key => { if (Number.isFinite(values[key])) player[key] = clamp(values[key], key === 'hp' ? 1 : 0, player['max' + key[0].toUpperCase() + key.slice(1)] || 125); });
-      },
-      activateBoss() {
-        if (!game.boss || game.boss.dead) return false;
-        game.boss.active = true; game.boss.activated = true; game.boss.encounter.activated = true;
-        emit('boss', { name: game.boss.name, active: true }); return true;
-      },
-      damageEnemy(id, damage) { const enemy = enemies.find(e => e.id === id); if (enemy && Number.isFinite(damage) && damage > 0) { enemy.hp -= Math.min(damage, 10000); if (enemy.hp <= 0) killEnemy(enemy); else enemyPhaseChange(enemy); } },
-      strike(options) {
-        if (!options || !Number.isFinite(options.damage)) return;
-        hitPlayer(Object.assign({ owner: null, enemy: 'QA Düşmanı', attack: 'QA Darbesi', x: player.x, z: player.z + 2, unblockable: false, damage: 10 }, options));
-      },
-      // QA only: the next decision of this enemy is this move (skips the range test; timing rules still apply).
-      forceMove(id, moveId) {
-        const e = enemies.find(o => o.id === id); if (!e) return false;
-        if (moveId === 'riposte' && e.type === 'guard' && !e.action) { e.face = angleTo(e, player); return guardRiposte(e); }
-        e.forceMove = moveId; e.cooldown = Math.min(e.cooldown, 0); return true;
-      },
-      storageKey: SAVE_KEY
-    });
     return game;
   }
   BABA.Game = Object.defineProperty({ create }, 'resources', { value: RESOURCES, enumerable: true });
