@@ -2,7 +2,9 @@
 
 Bahtiyar'ın karanlık yolculuğunu anlatan, üç boyutlu, Türkçe konuşmalar içeren bir aksiyon oyunu. **Yetişkinler içindir (18+); kan, yoğun şiddet ve korku içerir.**
 
-**Bu klasördeki oyun sürümü: v149.**
+**Bu klasördeki oyun sürümü: v150.**
+
+v150: Enerji saldırı sırasında da yenilenir; normal yenilenme hızı saniyede 8, öfke sırasında 13,2 puandır. Yetenek maliyetleri ve bekleme süreleri korunur.
 
 v149: v148 tabanında görevler ve genel arayüz korunur. Eşya modelleri ve ikonları çeşitlendirilir; II ve IV. bölümde geçitleri kapalı gösteren dekorlar kenara alınır. Dayanıklılık, saldırı tuşu basılı tutulurken ve yetenek animasyonları sırasında da yenilenir.
 
