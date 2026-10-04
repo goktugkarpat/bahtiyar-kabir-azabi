@@ -4,10 +4,6 @@ Bahtiyar'ın karanlık yolculuğunu anlatan, üç boyutlu, Türkçe konuşmalar 
 
 **Bu klasördeki oyun sürümü: v150.**
 
-v150: Enerji saldırı sırasında da yenilenir; normal yenilenme hızı saniyede 12, öfke sırasında 19,8 puandır. Yetenek maliyetleri ve bekleme süreleri korunur.
-
-v149: v148 tabanında görevler ve genel arayüz korunur. Eşya modelleri ve ikonları çeşitlendirilir; II ve IV. bölümde geçitleri kapalı gösteren dekorlar kenara alınır. Dayanıklılık, saldırı tuşu basılı tutulurken ve yetenek animasyonları sırasında da yenilenir.
-
 [Oyunu aç](https://goktugkarpat.github.io/bahtiyar-kabir-azabi/)
 
 ## Bölümler
