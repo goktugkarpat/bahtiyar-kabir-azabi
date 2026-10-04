@@ -60,7 +60,7 @@
   // A second press inside DRINK_GUARD s of a drink is ignored, so one press (or a double-fired tap) cannot burn two flasks.
   const DRINK = .34, DRINK_GUARD = .2;
   // Roll (Space): stamina cost and how long of its .48 s the hero cannot be hit; stamina regeneration per second (all in the D4-controls compensation).
-  const DODGE = { cost: RESOURCES.costs.dodge, iframe: .45 }, REGEN = 8;
+  const DODGE = { cost: RESOURCES.costs.dodge, iframe: .45 }, REGEN = 10;
   // Diablo-4 click-target controls (steerOrders): a click on a foe walks up to it and swings (light left / heavy right), a click on the ground walks there,
   // Shift + click swings in place toward the cursor. reach = distance to the foe's edge at which the swing starts; arrive = stop distance of a ground click,
   // hold = the same while the button is held (steering); stuck = seconds without progress before an approach is given up.
@@ -92,7 +92,7 @@
   //   x1 -> x1 (common foes: the special gate alone lightens the halls by about a third), executioner x1 -> x.88. Tells are untouched: no wind-up got shorter, blockable / must-dodge rules are as before.
   // D4 controls (the hero has no block / parry any more, see DESIGN.md "Diablo-4 controls"): to pay for the lost defence blows on the hero are
   // scaled down (x1 -> x.72 common foes, x.88 -> x.64 executioner; the -12 % first asked for left the scripted dodging bot losing +75 % hp, see DESIGN.md), the roll costs
-  // 20 stamina (was 25) and its i-frames last .45 s of .48 (was .39), energy regenerates continuously at 8/s; repeated skills still drain it.
+  // 20 stamina (was 25) and its i-frames last .45 s of .48 (was .39), energy regenerates continuously at 10/s; repeated skills still drain it.
   const EASE = { damage: .72, bossDamage: .64 };   // (was .92 for common foes: scripted bots showed -23..-35 % hp lost in total, above the ~-20 % asked for)
   // Special abilities (move options flagged sp) are the exception, the plain blows (claw, bash, cleave, swing...) are the rule: after a special
   // an enemy owes SPECIAL_GAP plain blows before it may use another one, and an allowed special weighs SPECIAL_W of its table weight.
