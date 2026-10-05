@@ -56,9 +56,20 @@
     K.addShape('barrel', new T.CylinderGeometry(.5, .44, 1, 10, 1));
     K.addShape('pebble', new T.IcosahedronGeometry(.5, 0));                                    // 20-triangle lump for litter / pebble skirts
     K.addShape('hemi', new T.SphereGeometry(.5, 12, 5, 0, PI * 2, 0, PI / 2));
-    // chains: elongated interlocking links (the old 3-segment rings read as "0-0-0" from above)
+    // Hollow oval links with rounded forged edges, baked into the room's existing
+    // iron mesh. Alternate planes interlock; no separate draw or runtime geometry.
+    var linkPath = new T.CurvePath(), lr = .05, ly = .07, lc = lr * .55228475;
+    function lp(x,y){return new T.Vector3(x,y,0);}
+    linkPath.add(new T.LineCurve3(lp(lr,-ly),lp(lr,ly)));
+    linkPath.add(new T.CubicBezierCurve3(lp(lr,ly),lp(lr,ly+lc),lp(lc,ly+lr),lp(0,ly+lr)));
+    linkPath.add(new T.CubicBezierCurve3(lp(0,ly+lr),lp(-lc,ly+lr),lp(-lr,ly+lc),lp(-lr,ly)));
+    linkPath.add(new T.LineCurve3(lp(-lr,ly),lp(-lr,-ly)));
+    linkPath.add(new T.CubicBezierCurve3(lp(-lr,-ly),lp(-lr,-ly-lc),lp(-lc,-ly-lr),lp(0,-ly-lr)));
+    linkPath.add(new T.CubicBezierCurve3(lp(0,-ly-lr),lp(lc,-ly-lr),lp(lr,-ly-lc),lp(lr,-ly)));
+    K.addShape('forged-link',new T.TubeGeometry(linkPath,28,.013,6,true));
     K.chain = function (id, x, y, z, len, tint) {
-      var n = Math.floor(len / .22); for (var k = 0; k < n; k++) K.put(id, 'box', 'iron', x, y - k * .22, z, k % 2 ? .05 : .13, .27, k % 2 ? .13 : .05, 0, 0, 0, tint || [.8, .74, .7], .2);   // alternating flat links (12 triangles each)
+      var n = Math.floor(len / .22);
+      for (var k = 0; k < n; k++) K.put(id,'forged-link','iron',x,y-k*.22,z,1,1,1,k%2?PI/2:0,0,0,tint||[.8,.74,.7],.2);
     };
   }
 
@@ -165,7 +176,7 @@
         K.spr(i, S.pool, x, .14, z, rad * 4, rad * 4, [.9, .28, .05], .55, R(), 1, 1); K.dec(i, 15, x, z, rad * 2.4, rad * 2.4, R() * 6, [1.2, .36, .06], .8, 'glow', .6); }
     }
     function pipe(x1, y1, z1, x2, y2, z2, rad) { K.bar(i, 'cyl', 'iron', x1, y1, z1, x2, y2, z2, rad, [.58, .55, .53], .3); K.put(i, 'cyl', 'iron', x1, y1, z1, rad * 2.6, .25, rad * 2.6, 0, 0, 0, [.7, .66, .62], .2); K.put(i, 'cyl', 'iron', x2, y2, z2, rad * 2.6, .25, rad * 2.6, 0, 0, 0, [.7, .66, .62], .2); }
-    function brazierF(x, z, s, intensity) { K.brazier(i, x, z, { s: s || 1, col: FIRE, lightColor: 0xff8a3c, intensity: 32 }); }
+    function brazierF(x, z, s, intensity, restrained) { K.brazier(i, x, z, { s: s || 1, col: FIRE, lightColor: 0xff8a3c, intensity: intensity == null ? 32 : intensity, fireScale: restrained ? .6 : 1, glowGain: restrained ? .4 : 1 }); }
     /* ───────────── Round 6 dressing: heavy iron, catwalks, arches, troughs ─────────────
        Everything below is baked into the room's merged meshes (no new draw calls beyond the existing material buckets) and draws from its own
        random stream R2, so the original decoration sequence R of each room is untouched. Coordinates here are RELATIVE to the room centre. */
@@ -571,16 +582,16 @@
       K.put(i, 'disc', 'hot', X(0), 2.3, Z(fz + .55), 5.4, 1, 5.4, 0, PI / 2, 0, [2.2, 1.2, .5], 0);
       K.put(i, 'rim', 'iron', X(0), 2.3, Z(fz + .5), 5.8, 5.8, 5.8, 0, 0, 0, IRONT, .2); K.put(i, 'rim', 'iron', X(0), 2.3, Z(fz + .6), 6.4, 6.4, 6.4, 0, 0, 0, [.5, .46, .44], .2);
       for (var b = -3; b <= 3; b++) K.put(i, 'box', 'iron', X(b * .75), 2.3, Z(fz + .75), .14, 5.4, .14, 0, 0, 0, [.46, .42, .4], 0);
-      K.spr(i, S.glow, X(0), 2.3, Z(fz + 1.3), 8, 8, [1.9, .85, .28], 1, 0, 1, 1); K.spr(i, S.glow, X(0), 2.3, Z(fz + 1.0), 4.4, 4.4, [2.2, 1.4, .7], .9, .3, 1, 1); K.spr(i, S.pool, X(0), .14, Z(fz + 5), 17, 11, [1.3, .5, .12], .7, 0, 1, 1);
+      K.spr(i, S.glow, X(0), 2.3, Z(fz + 1.3), 8, 8, [1.9, .85, .28], 1, 0, 1, 1); K.spr(i, S.glow, X(0), 2.3, Z(fz + 1.0), 4.4, 4.4, [2.2, 1.4, .7], .9, .3, 1, 1); K.spr(i, S.pool, X(0), .14, Z(fz + 5), 17, 11, [1.3, .5, .12], .24, 0, 1, 1);
       K.light(i, X(0), 3.0, Z(fz + 3), 0xff8a40, 34, 16, { scatter: .8, glow: 2.4, flicker: .12 }); K.heat(X(0), 2.4, Z(fz + 1.5), 6, 6, 1.4);
-      for (var a = 0; a < 3; a++) { var an = (a - 1) * .7; K.dec(i, 15, X(Math.sin(an) * 6.5), Z(fz + 5.8 + Math.cos(an) * 3), 8, 8, an + PI / 2, [1.0, .34, .07], .42, 'glow', .06); }
+      for (var a = 0; a < 3; a++) { var an = (a - 1) * .7; K.dec(i, 15, X(Math.sin(an) * 6.5), Z(fz + 5.8 + Math.cos(an) * 3), 8, 8, an + PI / 2, [1.0, .34, .07], .13, 'glow', .06); }
       K.put(i, 'box', 'iron', X(0), .5, Z(-9), 4.8, 1.0, 1.6, 0, 0, 0, IRONT, .4); K.put(i, 'box', 'hot', X(0), 1.02, Z(-9), 4.2, .04, 1.2, 0, 0, 0, [1.3, .46, .1], 0);
       [-1, 1].forEach(function (s) { K.put(i, 'box', 'iron', X(s * 6.8), 1.1, Z(-7), 3.2, 2.2, 2.2, 0, 0, 0, IRONT, .5); K.put(i, 'cyl', 'iron', X(s * 6.8), 2.9, Z(-7), 1.2, 1.4, 1.2, 0, 0, 0, [.7, .64, .6], .3); K.spr(i, S.smoke, X(s * 6.8), 3.6, Z(-7), 1.2, 1.2, [.4, .32, .28], .25, R(), .12, 3); });
       [-1, 1].forEach(function (s) { for (var q = 0; q < 2; q++) { var x = s * (3.2 + q * 3.6); K.put(i, 'box', 'hot', X(x), .08, Z(fz + 3), .7, .04, 4, 0, 0, 0, [2, .7, .16], 0); } });
       // Ancient floor engraving stays below the live attack tells in contrast.
       K.dec(i, 5, X(0), Z(3), 13, 13, .2, [.52, .22, .08], .10, 'glow');
       decals({ cracks: 6, soot: 8, chips: 6, plates: 4, heat: 1, blood: 2 });
-      brazierF(X(-5.2), Z(6), 1.2, 20); brazierF(X(5.2), Z(6), 1.2, 20);
+      brazierF(X(-5.2), Z(6), 1.2, 16, true); brazierF(X(5.2), Z(6), 1.2, 16, true);
       smoke(9, [.4, .3, .22], .26, .6, 4, 5.5); embers(60, -13, 13, -10, 10, 7, 1.4);
       // glowing bands on the furnace's iron buttresses; pipes feeding the colossal furnace
       [-1, 1].forEach(function (s) { for (var b = 0; b < 4; b++) HOT(s * 5.6, 1.4 + b * 1.4, fz + .6, 1.64, .1, 1.04, [1.3, .45, .1]); BAR(s * 3.4, 6.6, fz + 1.3, s * 3.4, 3.7, fz + .85, .22, IRONT); BAR(s * 3.4, 3.7, fz + .85, s * 2.9, 3.2, fz + .6, .22, IRONT); valve(s * 3.4, 5.0, fz + 1.55, 0, .45); });

@@ -283,9 +283,10 @@
       K.put(id, 'rim', 'iron', x, 1.74 * s, z, .98 * s, .98 * s, .98 * s, 0, PI / 2);
       K.put(id, 'disc', 'hot', x, 1.7 * s, z, .8 * s, 1, .8 * s, 0, 0, 0, [1.6, .5, .12], 0);
       if (o.noFire) return;
-      K.spr(id, SPR.flame, x, 1.72 * s + .85 * s, z, .52 * s, .85 * s, col, 1, ph, 1, 1); K.spr(id, SPR.flame, x + .05, 1.72 * s + .7 * s, z - .04, .4 * s, .7 * s, col, .9, ph + .31, 1, 1);
-      K.spr(id, SPR.glow, x, 2.0 * s, z, 1.5 * s, 1.5 * s, [col[0] * .5, col[1] * .5, col[2] * .5], .8, ph, 1, 1);
-      K.spr(id, SPR.pool, x, .14, z, 4.2 * s, 4.2 * s, [col[0] * .28, col[1] * .28, col[2] * .28], .5, ph, 1, 1);
+      var fs=o.fireScale==null?1:o.fireScale,gg=o.glowGain==null?1:o.glowGain;
+      K.spr(id, SPR.flame, x, 1.72 * s + .85 * s * fs, z, .52 * s * fs, .85 * s * fs, col, 1, ph, 1, 1); K.spr(id, SPR.flame, x + .05, 1.72 * s + .7 * s * fs, z - .04, .4 * s * fs, .7 * s * fs, col, .9, ph + .31, 1, 1);
+      K.spr(id, SPR.glow, x, 2.0 * s, z, 1.5 * s, 1.5 * s, [col[0] * .5, col[1] * .5, col[2] * .5], .8 * gg, ph, 1, 1);
+      K.spr(id, SPR.pool, x, .14, z, 4.2 * s, 4.2 * s, [col[0] * .28, col[1] * .28, col[2] * .28], .5 * gg, ph, 1, 1);
       for (var e = 0; e < (o.embers == null ? 4 : o.embers); e++) K.spr(id, SPR.ember, x, 1.8 * s, z, .05, .05, [1.8, .7, .2], 1, (ph * 3 + e * .237) % 1, .45 + e * .06, 2.4);
       if (o.light !== false) K.light(id, x, 2.3 * s, z, o.lightColor || 0xff9a52, o.intensity || 34, 13, { phase: ph });
     };

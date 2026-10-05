@@ -293,6 +293,18 @@
 
   /* ───────────── Views ───────────── */
   const menuStyle = document.querySelector('link[href*="ui-polish.css"]');
+  const keyboardMenus = new Set(['pause', 'settings', 'controls', 'keybinds', 'confirm', 'death', 'victory']);
+  function menuFocusControls(name) {
+    const root = $(name); if (!root || root.inert) return [];
+    return Array.from(root.querySelectorAll('button, input, select, summary, [tabindex]')).filter(el =>
+      !el.disabled && el.tabIndex >= 0 && !el.hidden && !el.closest('.hidden,[hidden],[inert]') &&
+      el.getClientRects().length && getComputedStyle(el).visibility !== 'hidden');
+  }
+  function focusMenu(name) {
+    const controls = menuFocusControls(name); if (!controls.length) return;
+    const preferred = name === 'pause' ? $('resume') : name === 'confirm' ? $('confirm-no') : null;
+    (controls.includes(preferred) ? preferred : controls[0]).focus({ preventScroll: true });
+  }
   function show(next) {
     const previousView = view;
     if (advancing && next !== 'playing') next = 'playing';   // the chapter hand-over cannot be interrupted by menus
@@ -325,7 +337,8 @@
     if (next !== 'journal' && questUI) questUI.close();
     if (characterUI && next !== 'character') characterUI.close(true);
     if (atlasUI) { if (next === 'atlas') atlasUI.open(); else atlasUI.close(true); }
-    if (next === 'character' && previousView === 'atlas' && characterUI && !characterUI.isOpen) characterUI.open(characterUI.activeTab || 'inventory');
+    if (next === 'character' && ['atlas', 'journal'].includes(previousView) && characterUI && !characterUI.isOpen) characterUI.open(characterUI.activeTab || 'inventory');
+    if (next !== previousView && keyboardMenus.has(next)) focusMenu(next);
     return next;
   }
   function open(next) { stack.push(view); show(next); }
@@ -424,11 +437,12 @@
     if (fresh && chapter > 1) { safe(() => localStorage.removeItem(CAMPAIGN_KEY)); chapterLink(); return; }
     B.Audio.unlock(); if (B.Audio.resetNarration) B.Audio.resetNarration();
     const fromTitle = view === 'title';
+    const showBasics = chapter === 1 && (fresh || !game.hasSave);
     clearNotices();
     if (fresh) { game.restart(); deaths = 0; } else game.start();
     if (game.campaignCompleted && game.state === 'won') { wonShown = false; victory(); show('victory'); return; }
-    deathShown = wonShown = false; roomId = -1; firstHint = 25; lastHp = lastFlasks = null;
-    $('tutorial').classList.remove('hidden');
+    deathShown = wonShown = false; roomId = -1; firstHint = showBasics ? 25 : 0; lastHp = lastFlasks = null;
+    $('tutorial').classList.toggle('hidden', !showBasics);
     show('playing'); hud(0);
     if (fromTitle && !reducedMotion.matches) { introBlend = 0; introStart = performance.now(); introFrom.copy(cameraPos); introLook.copy(look); }   // swoop from the title shot down to the play camera
     else { introBlend = 1; cameraPos.set(game.player.x, 16, game.player.z + 13); look.set(game.player.x, .7, game.player.z); }
@@ -790,6 +804,13 @@
       if (zoneTap && zoneTap.id === e.pointerId) zoneTap = null;
     });
     document.addEventListener('keydown', e => {
+      if (e.code === 'Tab' && !e.ctrlKey && !e.metaKey && !e.altKey && keyboardMenus.has(view)) {
+        const controls = menuFocusControls(view), index = controls.indexOf(document.activeElement);
+        if (controls.length && (index < 0 || (e.shiftKey ? index === 0 : index === controls.length - 1))) {
+          e.preventDefault(); (e.shiftKey ? controls[controls.length - 1] : controls[0]).focus({ preventScroll: true });
+        }
+        return;
+      }
       const browserChord = e.metaKey || (e.ctrlKey && !e.code.startsWith('Control') && !bindMap.ControlLeft);
       if (view === 'playing' && (bindMap[normCode(e.code)] || e.code === 'Tab') && !browserChord) e.preventDefault();   // mapped keys never scroll or search the page
       if (e.code === 'Escape') {
@@ -1978,7 +1999,7 @@
       const noticeLayout = new ResizeObserver(placeNotices);
       noticeLayout.observe($('narration')); noticeLayout.observe($('tutorial'));
     }
-    B.Audio.onCaption((text, speaker = 'Anlatıcı') => { const n = $('narration'); n.querySelector('.narration-text span').textContent = speaker; n.querySelector('p').textContent = text; n.classList.toggle('hidden', !text || !cfg.subtitles); if (text) { tap(n); $('tutorial').classList.add('hidden'); } placeNotices(); });
+    B.Audio.onCaption((text, speaker = 'Anlatıcı') => { const n = $('narration'); n.querySelector('.narration-text span').textContent = speaker; n.querySelector('p').textContent = text; n.classList.toggle('hidden', !text || !cfg.subtitles); if (text) { tap(n); $('tutorial').classList.add('hidden'); } else if (firstHint > 0 && view === 'playing' && !document.body.classList.contains('in-combat')) { $('tutorial').classList.remove('hidden'); } placeNotices(); });
     placeNotices();
     // The embedded UI fonts are also offered to canvas text (damage numbers, labels) once decoded.
     if (document.fonts && document.fonts.load) safe(() => { document.fonts.load('800 40px "Source Sans 3"'); });

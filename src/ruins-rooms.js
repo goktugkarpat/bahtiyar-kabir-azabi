@@ -292,7 +292,7 @@
     ROOM[13] = function () {
       var t = GOLD; K.floor(i, r, { key: 'floor', tint: [.88, .8, .66], vary: .09, cols: 12, rows: 9, tilt: .01 });
       K.patches(i, r, { n: 16, tint: [.7, .66, .6], min: 1.5, max: 2.6, skip: function (x, z) { return Math.abs(x) < 10.5; } });
-      DEC(i, 6, X(0), Z(2), 13, 13, 0, [.4, .28, .12], .26, 'glow'); DEC(i, 6, X(0), Z(2), 13, 13, 0, [.8, .66, .4], .12); DEC(i, 5, X(0), Z(2), 17, 17, 0, [.4, .28, .12], .18, 'glow');
+      DEC(i, 6, X(0), Z(2), 13, 13, 0, [.4, .28, .12], .065, 'glow'); DEC(i, 6, X(0), Z(2), 13, 13, 0, [.8, .66, .4], .12); DEC(i, 5, X(0), Z(2), 17, 17, 0, [.4, .28, .12], .04, 'glow');
       DEC(i, 10, X(0), Z(-5.5), 5.4, 10, 0, [.62, .1, .1], .85);
       var tz = -9;
       for (var k = 0; k < 3; k++) K.put(i, 'box', 'stone', X(0), .09 + k * .2, Z(-8.0 - k * .6 - 1.6), 11.5 - k * 1.6, .18 + k * .2, 1.0 + k * .3, 0, 0, 0, [1.1, 1.0, .85], .2);
@@ -306,7 +306,7 @@
         K.wall(i, X(s * (r.w / 2 + .45)), Z(0), r.d + .2, .9, 8, false, -s, 0, { tint: t, ruin: .05, niche: true, pil: 5.2 });
       });
       K.wall(i, X(-9.3), r.z - 13.4, 13.4, 1.4, 8, true, 0, 1, { tint: t, ruin: .05, niche: true }); K.wall(i, X(9.3), r.z - 13.4, 13.4, 1.4, 8, true, 0, 1, { tint: t, ruin: .05, niche: true });
-      [[-5.2, 2], [5.2, 2], [-5.2, -4], [5.2, -4]].forEach(function (p) { K.brazier(i, X(p[0]), Z(p[1]), { s: 1.3, col: [1.6, .8, .26], lightColor: 0xffb458, intensity: 40 }); });
+      [[-5.2, 2], [5.2, 2], [-5.2, -4], [5.2, -4]].forEach(function (p) { K.brazier(i, X(p[0]), Z(p[1]), { s: 1.3, col: [1.25, .64, .24], lightColor: 0xffb458, intensity: 18, fireScale: .58, glowGain: .38 }); });
       for (var q = 0; q < 6; q++) K.chain(i, X(-6 + q * 2.4), 8.6, Z(-12 + (q % 2) * 2), 3 + R() * 2, [.8, .72, .6]);
       decals({ cracks: 4, soot: 3, rubble: 3, blood: 2 });
       for (var q = 0; q < 30; q++) K.spr(i, S.ember, X((R() - .5) * 20), .6, Z((R() - .5) * 18), .05, .05, [1.8, 1.2, .5], 1, R(), .12 + R() * .15, 6);

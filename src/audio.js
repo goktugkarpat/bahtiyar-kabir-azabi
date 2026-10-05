@@ -1601,9 +1601,9 @@
   }
   // State for BABA.Music: room id, danger 0..1 (awake + close enemies), combat, boss + phase, dead/won, title = muffled Kül Eşiği bed.
   function musicState() {
-    const a = B.app, g = game(), w = a && a.world;
+    const a = B.app, g = game();
     if (!g || !g.player || (a && a.view === 'title')) return { room: 0, paused: true };
-    const P = g.player, r = w && w.roomAt ? w.roomAt(P.x, P.z) : null, list = g.enemies || [];
+    const P = g.player, scoreRoom = room(), list = g.enemies || [];
     const boss = g.boss || list.find(e => e.boss);
     let danger = 0, combat = false;
     for (const e of list) {
@@ -1613,7 +1613,7 @@
       if (k > danger) danger = k;
       if (e.active && d < 10) combat = true;
     }
-    return { room: r ? r.id : testGame && testGame.room != null ? testGame.room : -1, danger, combat,
+    return { room: scoreRoom, danger, combat,
       boss: !!boss && !boss.dead && !!(boss.active || boss.activated) && g.state === 'playing',
       bossPhase: boss && boss.phase >= 2 ? 2 : 1, dead: g.state === 'dead', won: g.state === 'won', paused: false };
   }

@@ -85,9 +85,18 @@
     // Ephemeral deaths are real sculpted forms with socket depth, jaw and teeth;
     // lighting changes around their volume instead of revealing a flat face card.
     const skullParts=B.Gear.skull(1,true).parts;
+    // Recess the socket surfaces: an uncarved closed cranium would hide the dark eye inserts.
+    const cranium=skullParts.bone[0],cp=cranium.attributes.position;
+    for(let i=0;i<cp.count;i++){
+      const x=cp.getX(i),y=cp.getY(i),z=cp.getZ(i);if(z<.15)continue;
+      const eye=Math.min(Math.hypot((x-.16)/.13,(y+.06)/.11),Math.hypot((x+.16)/.13,(y+.06)/.11));
+      const nose=Math.hypot(x/.07,(y+.20)/.115),cavity=Math.max(Math.pow(Math.max(0,1-eye),.65)*.19,Math.pow(Math.max(0,1-nose),.75)*.13);
+      cp.setZ(i,z-cavity);
+    }
+    cranium.computeVertexNormals();cranium.computeBoundingSphere();
     const skullBoneGeo=B.Gear.merge(skullParts.bone),skullVoidGeo=B.Gear.merge(skullParts.void);
     const wisps=Array.from({length:10},()=>{
-      const mat=new T.MeshStandardMaterial({color:0xc0b8a4,roughness:.78,metalness:.03,transparent:true,depthWrite:false,opacity:0,emissive:0x15130e});
+      const mat=B.EquipmentArt?B.EquipmentArt.material('bone').clone():new T.MeshStandardMaterial({color:0xc0b8a4,roughness:.78,metalness:.03});mat.transparent=true;mat.depthWrite=false;mat.opacity=0;mat.emissive.setHex(0x15130e);
       const eyeMat=new T.MeshBasicMaterial({color:0x040403,transparent:true,depthWrite:false,opacity:0});
       const sp=new T.Group();sp.add(new T.Mesh(skullBoneGeo,mat),new T.Mesh(skullVoidGeo,eyeMat));sp.renderOrder=5;sp.visible=false;root.add(sp);
       return {sp,mat,eyeMat,on:false,t:0,life:1,x:0,y:0,z:0,vx:0,vz:0,vy:0,size:.8,spin:0};
@@ -115,7 +124,7 @@
     function wisp(x, y, z, a, speed, life, size, tint) {
       const w = wisps.find(q => !q.on); if (!w) return;
       w.on = true; w.t = 0; w.life = life; w.x = x; w.y = y; w.z = z; w.vx = Math.sin(a) * speed; w.vz = Math.cos(a) * speed; w.vy = rnd(.5, 1.3); w.size = size; w.spin = rnd(-.6, .6);
-      w.mat.color.setRGB(tint[0], tint[1], tint[2]); w.sp.rotation.set(-.10,a+Math.PI,rnd(-.12,.12)); w.sp.visible = true; w.sp.position.set(x, y, z);
+      w.mat.color.setRGB(tint[0], tint[1], tint[2]); const camera=B.app&&B.app.camera,face=camera?Math.atan2(camera.position.x-x,camera.position.z-z):a+Math.PI;w.sp.rotation.set(-.30,face+rnd(-.28,.28),rnd(-.12,.12)); w.sp.visible = true; w.sp.position.set(x, y, z);
     }
     // sparks along the floor, as stretched streaks (one pooled draw call from effects.js)
     function sparks(x, z, n, speed, colr, lift2) {
@@ -270,7 +279,7 @@
       if (pil.on) {
         pil.t += dt; const k = pil.t / pil.life, u = pillarMat.uniforms; u.uT.value = pil.t; u.uA.value = (calm() ? .35 : 1) * Math.sin(Math.min(1, pil.t / .18) * 1.5708) * (1 - clamp((pil.t - pil.life * .55) / (pil.life * .45), 0, 1));
         const g = getGame(), p = g && g.player, grow = 1 - Math.pow(1 - clamp(pil.t / .3, 0, 1), 3);
-        if (p) { pil.x = p.x; pil.z = p.z; } pillar.position.set(pil.x, pil.floor, pil.z); pillar.scale.set(pil.R * (.55 + .45 * grow), pil.H * grow, pil.R * (.55 + .45 * grow));
+        if (p) { pil.x = p.x; pil.z = p.z; pil.floor=floorAt(pil.x,pil.z,2); } pillar.position.set(pil.x, pil.floor, pil.z); pillar.scale.set(pil.R * (.55 + .45 * grow), pil.H * grow, pil.R * (.55 + .45 * grow));
         if (k >= 1) { pil.on = false; pillar.visible = false; }
       }
       for (const w of wisps) if (w.on) {

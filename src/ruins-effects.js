@@ -12,17 +12,17 @@
       if(name==='bossPhase'){
         burst(name,d);
         var p=d.phase||0,intro=!!d.intro;
-        burst('strike',{x:x,z:z,radius:intro?5.2:6.4,shape:'circle',style:'quake',scar:true,heavy:true});
-        tells.wave(x,z,{radius:intro?7.5:10.5,life:intro?.95:1.1,width:.17,color:p>=3?[1.5,.28,.34]:[.62,.5,1.25],soft:0,delay:.1});
-        tells.glowBurst(x,z,{radius:intro?4.2:6,life:1.0,color:p>=3?[1.2,.2,.3]:[.5,.38,1.0],peak:.5});
+        burst('strike',{x:x,z:z,radius:intro?3.4:4.4,shape:'circle',style:'quake',scar:true,heavy:true,pressureEcho:false});
+        tells.wave(x,z,{radius:intro?4.4:6.2,life:intro?.85:1,width:.065,color:p>=3?[.46,.12,.14]:[.24,.23,.45],soft:.12,delay:.1});
+        tells.glowBurst(x,z,{radius:intro?2.6:3.2,life:.8,color:p>=3?[.42,.09,.12]:[.22,.2,.38],peak:.08});
         return true;
       }
       if(name==='death'&&d.boss){
         burst(name,d);
-        burst('strike',{x:x,z:z,radius:7,shape:'circle',style:'quake',scar:true,heavy:true});
-        tells.wave(x,z,{radius:13,life:1.2,width:.2,color:[.7,.55,1.3],soft:0,delay:.05});
-        tells.wave(x,z,{radius:8,life:.9,width:.14,color:[.78,.62,1.3],soft:.1,delay:.35});
-        tells.glowBurst(x,z,{radius:8,life:1.6,color:[.5,.4,1.0],peak:.55});
+        burst('strike',{x:x,z:z,radius:5.4,shape:'circle',style:'quake',scar:true,heavy:true,pressureEcho:false});
+        tells.wave(x,z,{radius:9,life:1.2,width:.07,color:[.3,.27,.55],soft:.1,delay:.08});
+        tells.wave(x,z,{radius:5.2,life:.9,width:.045,color:[.4,.35,.57],soft:.12,delay:.25});
+        tells.glowBurst(x,z,{radius:3.6,life:1.5,color:[.27,.24,.46],peak:.12});
         return true;
       }
       return false;
@@ -36,7 +36,7 @@
         return burst(name,Object.assign({},d,{skill:'reap'}));
       }
       if(d.skill==='brand'){
-        burst('strike',{x:x+sx*4,z:z+sz*4,radius:3.2,shape:'circle',style:'quake',scar:true,heavy:true});
+        burst('strike',{x:x+sx*4,z:z+sz*4,radius:3.2,shape:'circle',style:'quake',scar:true,heavy:true,pressureEcho:false});
         return burst('glowBurst',{x:x+sx*4,z:z+sz*4,radius:3.2,duration:.45,color:'#ed9948'});
       }
       if(d.skill==='grasp'){

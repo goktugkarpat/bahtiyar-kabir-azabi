@@ -355,3 +355,34 @@
   #character .cd-head { gap:7px; padding-bottom:8px; margin-bottom:6px; }
   #character .cd-rest { padding:6px 0; }
 }
+
+/* The campaign ending retains the same quiet ivory, leather and cast brass as B. */
+#victory .victory-rays {display:none;}
+#victory {background:radial-gradient(ellipse 65% 62% at 50% 42%,#30251bb8,#080707ed 72%,#000 100%);}
+#victory.final .end-title {font-family:Georgia,'Times New Roman',serif;font-weight:400;letter-spacing:.025em;font-size:clamp(34px,5.2vw,62px);color:#e8ddc5;text-shadow:0 2px 5px #000;}
+#victory .end-quote {font-size:18px;line-height:1.55;color:#c9c1b2;max-width:590px;}
+#victory-stats b {font-weight:600;color:#e8ddc5;}
+#death .end-actions .primary,#victory .end-actions .primary {background:linear-gradient(#551e245c,#160c0cc2),url(../assets/ui/funeral-cloth.png) center/180px;border:1px solid #a78958;box-shadow:inset 0 0 0 3px #080707a0,inset 0 4px 0 #b3996830,0 6px 16px #0008;font-family:Georgia,'Times New Roman',serif;font-weight:400;letter-spacing:.035em;color:#eddfc2;}
+#death .end-actions .primary:hover,#victory .end-actions .primary:hover {border-color:#d2b77e;filter:brightness(1.12);}
+#death .end-actions button:focus-visible,#victory .end-actions button:focus-visible {outline:1px solid #ead09a;outline-offset:4px;}
+
+/* Desktop assistance lives in the margin, outside the hero and the action bar. */
+@media (min-width:1101px) {
+ body:not(.touch) #hud #tutorial {left:max(var(--pad),calc(26px * var(--k)));bottom:max(190px,calc(224px * var(--k)));transform:none;width:clamp(300px,27vw,380px);gap:11px;padding:13px 38px 13px 14px;background:linear-gradient(#14110feb,#080908e8);border:1px solid #8f74494d;box-shadow:0 5px 20px #0007;border-radius:1px;}
+ body:not(.touch) #tutorial>.skill {width:32px;height:32px;box-shadow:0 0 0 1px #a789584c;border-radius:1px;}
+ body:not(.touch) #tutorial p {font-size:14px;line-height:1.45;}
+ body:not(.touch) #tutorial strong {font:400 16px/1.3 Georgia,'Times New Roman',serif;color:#e2cfaa;margin-bottom:5px;}
+ body:not(.touch) #tutorial .close {position:absolute;right:8px;top:8px;min-width:24px;min-height:24px;width:24px;height:24px;font-size:17px;}
+ #hud .story-quest #objective {font-size:max(14px,calc(16px * var(--k)));}
+ #hud .quest-track-row span {font-size:max(13px,calc(14px * var(--k)));}
+ #hud .quest-track-row b {font-size:max(11px,calc(12px * var(--k)));}
+ #hud .quest-bottom #kill-progress {font-size:max(11px,calc(11px * var(--k)));line-height:1.35;}
+ #hud #hud-atlas,#hud #hud-journal {font-size:max(11px,calc(11px * var(--k)));min-height:24px;line-height:1.25;}
+}
+
+/* Phase changes remain readable at the desktop HUD's smallest supported scale. */
+@media (min-width:1101px) {
+ #hud .target-phase {font-size:max(11px,calc(10px * var(--k)));}
+ #hud .target-name {font-size:max(16px,calc(20px * var(--k)));}
+ #hud .target-count {font-size:max(12px,calc(15px * var(--k)));}
+}

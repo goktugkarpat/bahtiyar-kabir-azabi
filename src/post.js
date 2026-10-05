@@ -792,7 +792,8 @@
     api = {
       // Screen overlays drawn in the composite: damage flash, rage veil, low-health pulse (0..1 opacities) and the CSS viewport size.
       setOverlay: function (flash, rage, low, cssW, cssH) {
-        U.uOvl.value.set(flash || 0, rage || 0, low || 0, 0);
+        // Preserve damage and low-health cues; rage colours only the outer edge lightly.
+        U.uOvl.value.set(flash || 0, (rage || 0) * .32, low || 0, 0);
         if (cssW > 0 && cssH > 0) U.uCss.value.set(cssW, cssH);
       },
       render: render, setSize: setSize, setQuality: setQuality, setGrade: setGrade, heat: heatSources, pulse: pulse, setAbilityFx: setAbilityFx, clearAbilityFx: clearAbilityFx, dispose: dispose, compile: compile,

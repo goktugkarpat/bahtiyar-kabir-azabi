@@ -578,8 +578,38 @@
       {every:[13,23],first:[1,5],fn:(p,t)=>noiseSwell(p,'fx',t,rr(5,9),140,450,.20)}
     ]
   }));
-  // app.js restores the campaign chapter after this script loads; chapter links no longer use ?bolum.
-  const roomScore = i => B.ActiveChapter === 2 ? COAST_SCENES[i] : SCENES[i];
+  // The buried court breathes through cold strings and sparse, distant bells;
+  // the forge uses struck iron and an uneven furnace pulse. Reuse the prepared
+  // instrument bank: changing chapters adds no synthesis buffers or audio bus.
+  const RUINS_SCENES = SCENES.map((sc, i) => ({
+    name:['Yitik Sütunlar','Kralların Mezarları','Çöken Anıt','Kör Kristaller','Taşın İçindeki Ölüler','Yutulan Saray','Sessiz Taht'][i],
+    drone:{d1:.55,d2:.25,fifth:i===5?.3:.12,rub:i===3?.12:.04,trit:i===6?.2:0,cut:105+i*5},
+    pads:{bus:i===2||i===5?'choirA':'strings',vowel:'o',inst:i===2||i===5?'choir':'string',
+      chords:i===3?[[D3,Eb3,A2+12],[D3,Ab2+12],[Bb2,F3,D3]]:[[D2,A2],[Bb1,D3,F3],[G1,D2,A2],[D2,A2,D3]],
+      len:[18,28],rest:.55,att:5,rel:6,vel:i===3?.035:.065,bright:.25,trem:i===3?.12:0},
+    gens:[
+      {every:[26,42],first:[7,12],fn:(p,t)=>toll(p,t,{buf:i===3?'bellD4':'bellD3',vel:i===6?.25:.15,rate:i===3?1:.88,pan:rr(-.55,.55)})},
+      {every:[29,46],first:[9,16],fn:(p,t)=>stringNote(p,'cello',i===4?Eb2:D2,t,{vel:.12,att:2.8,dur:5,rel:3,n:2,gliss:i===4?-80:-25,glissAt:2,glissTime:3})}
+    ]
+  }));
+  const FORGE_SCENES = SCENES.map((sc, i) => ({
+    name:['Kör Körükler','Kızgın Nakliye','Sönen Dökümhane','Zincir Kuyuları','Cüruf Meydanı','Köz Yemini','Kızıl Ocak'][i],
+    drone:{d1:.8,d2:.18,fifth:i===5?.25:.08,rub:i===4?.2:.12,trit:i===6?.2:.05,cut:i===5?105:145},
+    pads:{bus:i===5?'choirA':'strings',vowel:'o',inst:i===5?'choir':'string',
+      chords:[[D2,A2],[Eb2,A2],[Bb1,D3],[D2,Ab2]],len:[12,21],rest:.48,att:3.5,rel:5,vel:i===5?.07:.045,bright:.3},
+    steps(p,st,t){
+      if(i===5)return;
+      const beat=st%64,far=dest(p,'far');
+      if(beat===0||beat===24)playBuf('doum',t,far,{gain:beat===0?.24:.13,rate:.85});
+      if(beat===40&&chance(.55))playBuf('anvil',t,far,{gain:.10,rate:.72,pan:rr(-.45,.45)});
+    },
+    gens:[
+      {every:[19,31],first:[6,10],fn:(p,t)=>playBuf(i===3?'chain':'plate',t,dest(p,'far'),{gain:i===3?.18:.12,rate:rr(.62,.79),pan:rr(-.7,.7)})},
+      {every:[30,47],first:[12,19],fn:(p,t)=>stringNote(p,'cello',D2,t,{vel:.13,att:2,dur:4.5,rel:3,n:2,bright:.3})}
+    ]
+  }));
+  // app.js restores the campaign chapter after this script loads.
+  const roomScore = i => (B.ActiveChapter===4?FORGE_SCENES:B.ActiveChapter===3?RUINS_SCENES:B.ActiveChapter===2?COAST_SCENES:SCENES)[i];
   const DRONE_OFF = { d1: 0, d2: 0, fifth: 0, rub: 0, trit: 0, cut: 90, lvl: 0 }, DRONE_QUIET = { d1: .3, d2: .2, fifth: 0, rub: 0, trit: 0, cut: 95, lvl: .6 };
   const DRONE_BOSS = { 1: { d1: 1, d2: .4, fifth: .2, rub: .2, trit: .25, cut: 190 }, 2: { d1: 1, d2: .45, fifth: 0, rub: .35, trit: .45, cut: 240 } };
 

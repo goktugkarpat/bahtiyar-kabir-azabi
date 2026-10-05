@@ -9,17 +9,17 @@
       if(name==='bossPhase'){
         burst(name,d);
         var p=d.phase||0,intro=!!d.intro;
-        burst('strike',{x:x,z:z,radius:intro?5.2:6.6,shape:'circle',style:'quake',scar:true,heavy:true});
-        tells.wave(x,z,{radius:intro?7.5:10.5,life:intro?.95:1.1,width:.18,color:p>=3?[1.9,.32,.08]:[1.7,.62,.16],soft:0,delay:.1});
-        tells.glowBurst(x,z,{radius:intro?4.5:6.5,life:1.0,color:p>=3?[1.6,.28,.07]:[1.5,.55,.15],peak:.55});
+        burst('strike',{x:x,z:z,radius:intro?3.4:4.4,shape:'circle',style:'quake',scar:true,heavy:true,pressureEcho:false});
+        tells.wave(x,z,{radius:intro?4.4:6.2,life:intro?.85:1,width:.065,color:p>=3?[.65,.11,.035]:[.58,.22,.07],soft:.12,delay:.1});
+        tells.glowBurst(x,z,{radius:intro?2.6:3.2,life:.8,color:p>=3?[.6,.13,.04]:[.55,.24,.075],peak:.09});
         return true;
       }
       if(name==='death'&&d.boss){
         burst(name,d);
-        burst('strike',{x:x,z:z,radius:7.5,shape:'circle',style:'quake',scar:true,heavy:true});
-        tells.wave(x,z,{radius:13,life:1.2,width:.22,color:[1.8,.6,.14],soft:0,delay:.05});
-        tells.wave(x,z,{radius:8,life:.9,width:.15,color:[1.9,1.2,.5],soft:.1,delay:.35});
-        tells.glowBurst(x,z,{radius:9,life:1.7,color:[1.6,.5,.12],peak:.6});
+        burst('strike',{x:x,z:z,radius:5.4,shape:'circle',style:'quake',scar:true,heavy:true,pressureEcho:false});
+        tells.wave(x,z,{radius:9,life:1.2,width:.07,color:[.7,.3,.1],soft:.1,delay:.08});
+        tells.wave(x,z,{radius:5.2,life:.9,width:.045,color:[.5,.36,.18],soft:.12,delay:.25});
+        tells.glowBurst(x,z,{radius:3.6,life:1.5,color:[.65,.25,.07],peak:.14});
         return true;
       }
       return false;

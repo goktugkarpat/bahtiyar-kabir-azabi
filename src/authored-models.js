@@ -264,7 +264,9 @@
       case 'fur': { var fur = G.furTexture(); m = std({ color: 0xffffff, map: fur.map, bumpMap: fur.bump, bumpScale: 2.2, roughness: .92, side: T.DoubleSide }, { cls: 'fur', sat: .85, tint: [1.35, 1.25, 1.15], grime: .15 }); break; }
       case 'furfringe': { var fr = G.fringeTexture(); m = std({ color: 0xd8c6ae, map: fr, alphaTest: .42, roughness: .95, side: T.DoubleSide }, { cls: 'fur', sat: .85 }); break; }
       case 'ember': m = std({ color: 0x2a0d06, emissive: 0xff5a14, emissiveIntensity: 2.6, roughness: .8 }); break;
-      case 'glow': m = std({ color: 0x3a4a14, emissive: 0x8ec43a, emissiveIntensity: 1.25, roughness: .35 }, { catchLight: .8 }); break;
+      case 'glow': m = std({ color: 0x344a24, emissive: 0x7f9f43, emissiveIntensity: .44, roughness: .32 }, { catchLight: .45 }); break;
+      // Coated bottle glass catches the room light without a transmission render pass.
+      case 'vial-glass': m = new T.MeshPhysicalMaterial({ color: 0x314d39, emissive: 0x516a26, emissiveIntensity: .12, roughness: .23, metalness: .08, clearcoat: .8, clearcoatRoughness: .14 }); grade(m, { catchLight: .4 }); break;
       case 'flesh': m = std(surfaceProps('leather', { roughness: .45 }), { cls: 'skin', skin: 1, sat: .5, tint: [1.1, .8, .6], blood: .5, scatter: [.8, .3, .15] }); break;
       case 'void': m = std({ color: 0x030303, roughness: 1, metalness: 0 }, { catchLight: 1.1 }); break;
       case 'paint': m = std({ color: 0xffffff, map: G.decalTexture(), transparent: false, alphaTest: .45, roughness: .75, polygonOffset: true, polygonOffsetFactor: -2 }, { sat: .9, grime: .2 }); break;
@@ -1321,7 +1323,8 @@
     for (k = 0; k < 4; k++) {
       var a = -1.1 + k * .7, r = .4, vx = Math.sin(a) * r * .95, vz = Math.cos(a) * r * .75, vial = G.lathe([[0, 0], [.03, .01], [.035, .06], [.018, .09], [.015, .11], [0, .11]], 12);
       vial.translate(vx, .82, vz); var vb = { pin: true, bones: EXEC_TORSO.concat(['thighL', 'thighR']) };
-      A.transfer('glow', glossy(G.fillWear(vial), 1), ['skin'], vb);
+      A.transfer('vial-glass', glossy(G.fillWear(vial), .6), ['skin'], vb);
+      A.transfer('brass', G.merge([G.ring(.018,.0025,[vx,.911,vz]),G.ring(.033,.002,[vx,.835,vz])]), ['skin'], vb);
       A.transfer('wood', G.cyl(.016, .014, .025, 8, [vx, .94, vz]), ['skin'], vb);
       A.transfer('rope', G.tube([[vx, .96, vz], [vx * .98, 1.0, vz * .96], [vx * .96, 1.02, vz * .92]], .003, 4, 8, true), ['skin'], vb);
     }

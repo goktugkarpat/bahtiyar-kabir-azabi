@@ -7,11 +7,25 @@
     // Campaign chapter is selected by app.js before FX setup; the URL need not contain a chapter.
     if(B.ActiveChapter!==2)return api;
     var pool = new Array(96), cursor=0, textures=[];
-    var points=[new T.Vector3(0,0,0),new T.Vector3(.12,.28,0),new T.Vector3(-.06,.65,.08),new T.Vector3(.04,1.04,.04)];
-    var geometry=new T.TubeGeometry(new T.CatmullRomCurve3(points),18,.085,7,false), p=geometry.attributes.position;
-    for(var i=0;i<p.count;i++){var y=p.getY(i), k=Math.max(.10,1-y*.78);p.setXYZ(i,p.getX(i)*k,p.getY(i),p.getZ(i)*k);}
-    geometry.computeVertexNormals();geometry.computeBoundingSphere();
-    var material=new T.MeshStandardMaterial(Object.assign(B.Materials.createSurface('wood',textures,2),{color:0x899075,roughness:.74}));material.normalScale.set(.8,.8);
+    // One prebuilt, forked bark cluster per instance. Longitudinal flutes
+    // and hooked tips catch the light without adding particles or draw calls.
+    function barkBranch(points,radius,phase,segments){
+      var radial=12,curve=new T.CatmullRomCurve3(points.map(function(p){return new T.Vector3().fromArray(p);}),false,'centripetal');
+      var g=B.Gear.tube(points,function(t){return .003+radius*Math.pow(1-t,1.35);},radial,segments,true),p=g.attributes.position,c=new T.Vector3();
+      for(var row=0;row<=segments;row++){var t=row/segments;curve.getPointAt(t,c);for(var col=0;col<=radial;col++){var i=row*(radial+1)+col,a=col/radial*Math.PI*2,ridge=1+.18*Math.cos(a*5+t*5+phase)+.045*Math.cos(a*9-t*11);p.setXYZ(i,c.x+(p.getX(i)-c.x)*ridge,c.y+(p.getY(i)-c.y)*ridge,c.z+(p.getZ(i)-c.z)*ridge);}}
+      g.computeVertexNormals();var normal=g.attributes.normal,v=new T.Vector3();for(var row=0;row<=segments;row++){var a=row*(radial+1),b=a+radial;v.set(normal.getX(a)+normal.getX(b),normal.getY(a)+normal.getY(b),normal.getZ(a)+normal.getZ(b)).normalize();normal.setXYZ(a,v.x,v.y,v.z);normal.setXYZ(b,v.x,v.y,v.z);}
+      return g;
+    }
+    var geometry=B.Gear.merge([
+      barkBranch([[0,-.065,0],[.10,.25,-.035],[-.035,.60,.07],[.075,.96,.035],[.23,1.11,-.08]],.17,.3,24),
+      barkBranch([[.025,.36,.025],[.16,.53,.14],[.31,.77,.19],[.40,.89,.14]],.075,1.7,16),
+      barkBranch([[.03,.23,-.025],[-.12,.39,-.12],[-.27,.61,-.17],[-.33,.78,-.08]],.065,3.1,16),
+      barkBranch([[0,-.04,0],[-.16,.015,.08],[-.36,.06,.19],[-.49,.025,.28]],.09,2.3,12)
+    ]);geometry.computeBoundingSphere();
+    var barkSource=null;scene.traverse(function(o){if(!barkSource&&o.isMesh&&o.material&&o.material.name==='coast-root')barkSource=o.material;});
+    var material=barkSource?barkSource.clone():new T.MeshStandardMaterial(Object.assign(B.Materials.createSurface('wood',textures,2),{color:0xb3a386,roughness:.91}));
+    if(barkSource){material.onBeforeCompile=barkSource.onBeforeCompile;material.customProgramCacheKey=barkSource.customProgramCacheKey;material.color.multiplyScalar(1.18);}
+    material.name='coast-burst-bark';material.normalScale.set(1.2,1.2);material.emissive.setRGB(.024,.018,.010,T.LinearSRGBColorSpace);material.emissiveIntensity=1;
     var mesh=new T.InstancedMesh(geometry,material,pool.length);mesh.name='Kara Kıyı kök patlamaları';mesh.castShadow=false;mesh.receiveShadow=true;mesh.frustumCulled=false;mesh.visible=false;mesh.count=0;scene.add(mesh);
     var position=new T.Vector3(),scale=new T.Vector3(),rotation=new T.Quaternion(),matrix=new T.Matrix4(),axis=new T.Vector3(0,1,0);
     var calm=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -60,7 +74,7 @@
         root(x,z,i*2.4,.65+(i%3)*.18);
       }
     }
-    function update(dt){var n=0;for(var i=0;i<pool.length;i++){var r=pool[i];if(!r.live)continue;r.age+=dt;if(r.age>=r.life){r.live=false;continue;}var up=calm?1:Math.min(1,r.age/.12),down=Math.min(1,(r.life-r.age)/.3);position.set(r.x,r.y,r.z);scale.set(.7,Math.max(.001,r.height*up*down),.7);rotation.setFromAxisAngle(axis,r.angle);matrix.compose(position,rotation,scale);mesh.setMatrixAt(n++,matrix);}mesh.count=n;mesh.visible=n>0;if(n)mesh.instanceMatrix.needsUpdate=true;
+    function update(dt){var n=0;for(var i=0;i<pool.length;i++){var r=pool[i];if(!r.live)continue;r.age+=dt;if(r.age>=r.life){r.live=false;continue;}var rise=Math.min(1,r.age/.17),sink=Math.min(1,(r.life-r.age)/.3),up=calm?1:rise*rise*(3-2*rise),down=sink*sink*(3-2*sink);position.set(r.x,r.y-.08*(1-up),r.z);scale.set(.85*(.82+.18*up),Math.max(.001,r.height*up*down),.85*(.82+.18*up));rotation.setFromAxisAngle(axis,r.angle);matrix.compose(position,rotation,scale);mesh.setMatrixAt(n++,matrix);}mesh.count=n;mesh.visible=n>0;if(n)mesh.instanceMatrix.needsUpdate=true;
       for(var i=0;i<water.length;i++){var w=water[i];if(!w.live)continue;w.age+=dt;w.mat.uniforms.uAge.value=w.age;if(w.age>=.62){w.live=false;w.mesh.visible=false;}}
     }
     var oldBurst=api.burst,oldUpdate=api.update,oldClear=api.clear,oldDispose=api.dispose;

@@ -411,12 +411,14 @@
     }
     function restoreFocus(token) {
       if (!token) return;
-      const controls = [...overlay.querySelectorAll('[data-char]:not(:disabled)')];
+      const controls = [...overlay.querySelectorAll('[data-char]:not(:disabled)')].filter(el => !el.hidden && !el.closest('.hidden,[hidden],[inert]') && el.getClientRects().length);
       let next = controls.find(el => Object.keys(token).every(key => el.dataset[key] === token[key]));
       if (!next && token.uid) next = controls.find(el => el.dataset.char === 'select' && el.dataset.uid === token.uid);
       if (!next && token.skill) next = controls.find(el => el.dataset.char === 'skill' && el.dataset.skill === token.skill);
       if (!next && token.slot) next = controls.find(el => el.dataset.char === 'select' && el.dataset.slot === token.slot);
       if (!next && token.char === 'assign') next = controls.find(el => el.dataset.char === 'skill' && el.dataset.skill === selectedSkill);
+      if (!next && token.char === 'bag-page') next = controls.find(el => el.dataset.char === 'bag-page') || controls.find(el => el.dataset.char === 'filter');
+      if (!next) next = controls[0];
       if (next) next.focus({ preventScroll: true });
     }
     function refresh(force) {
@@ -543,6 +545,8 @@
       const holder = document.createElement('div'); holder.innerHTML = talents(state);
       const current = content.querySelector('.skt-inspect'), next = holder.querySelector('.skt-inspect');
       if (current && next) current.replaceWith(next);
+      // Empty slots inspect the current selection, not the skill cached at the last full render.
+      content.querySelectorAll('.skt-slot.empty [data-char="skill"]').forEach(node => { node.dataset.skill = selectedSkill; });
       content.querySelectorAll('[data-char="skill"]').forEach(node => {
         const selected = node.dataset.skill === selectedSkill;
         node.classList.toggle('selected', selected); node.setAttribute('aria-pressed', String(selected));
@@ -612,11 +616,13 @@
     overlay.addEventListener('scroll', hideTooltip, true);
     overlay.addEventListener('change', event => { if (event.target.dataset.char === 'assign') change(getState().assign(Number(event.target.dataset.slot), event.target.value || null)); });
     function onKey(event) {
-      if (!opened) return;
+      if (!opened || overlay.inert) return;
       if (event.code === 'Escape') { event.preventDefault(); event.stopImmediatePropagation(); close(); }
       if (event.code !== 'Tab') return;
       const controls = Array.from(overlay.querySelectorAll('button:not(:disabled),select:not(:disabled)')).filter(el => el.getClientRects().length);
       const first = controls[0], last = controls[controls.length - 1];
+      if (!first) return;
+      if (!controls.includes(document.activeElement)) { event.preventDefault(); (event.shiftKey ? last : first).focus({ preventScroll: true }); return; }
       if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
       else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
     }

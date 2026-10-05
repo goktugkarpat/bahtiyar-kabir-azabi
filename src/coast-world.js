@@ -98,6 +98,13 @@
     surface('wood','wood',0xffffff,.90);surface('rust','rust',0x908474,.74,.5);
     surface('cloth','linen',0x827c65,.96);surface('flesh','leather',0x57443d,.6);
     materials.cloth.side = T.DoubleSide;
+    // Roots share the scanned bark and compiled material; exposed ridges catch the coastal light.
+    materials.root=materials.char.clone();materials.root.name='coast-root';
+    materials.root.color.setRGB(.63,.58,.48,T.LinearSRGBColorSpace);materials.root.normalScale.set(1.12,1.12);
+    materials.root.onBeforeCompile=materials.char.onBeforeCompile;materials.root.customProgramCacheKey=materials.char.customProgramCacheKey;
+    materials.funeralPaving=materials.floor.clone();materials.funeralPaving.name='coast-funeral-paving';
+    materials.funeralPaving.color.multiplyScalar(.68);materials.funeralPaving.roughness=.98;
+    materials.funeralPaving.onBeforeCompile=materials.floor.onBeforeCompile;materials.funeralPaving.customProgramCacheKey=materials.floor.customProgramCacheKey;
     materials.grave=materials.earth.clone();materials.grave.name='coast-grave';materials.grave.onBeforeCompile=materials.earth.onBeforeCompile;materials.grave.customProgramCacheKey=materials.earth.customProgramCacheKey;
 
     materials.rope=new T.MeshStandardMaterial({color:0x766951,roughness:.96,map:materials.cloth.map,normalMap:materials.cloth.normalMap});
@@ -125,6 +132,26 @@
     var archStone=geo(new T.ExtrudeGeometry(wedgeShape,{depth:.30,bevelEnabled:true,bevelSize:.018,bevelThickness:.015,bevelSegments:1,steps:1}));archStone.translate(0,0,-.15);
     var paving=[];
     for(var j=0;j<3;j++){var shape=new T.Shape();shape.moveTo(-.48,-.43);shape.lineTo(.34,-.49);shape.lineTo(.49,-.32);shape.lineTo(.45,.38);shape.lineTo(.25,.48);shape.lineTo(-.39,.44);shape.lineTo(-.50,.24);shape.closePath();var g=new T.ExtrudeGeometry(shape,{depth:.045,bevelEnabled:true,bevelSize:.025,bevelThickness:.008,bevelSegments:1,steps:1});g.rotateX(-PI/2);g.translate(0,-.038,0);var p=g.attributes.position;for(var k=0;k<p.count;k++)p.setXYZ(k,p.getX(k)+Math.sin(p.getZ(k)*9+j*2)*.025,p.getY(k),p.getZ(k)+Math.sin(p.getX(k)*7+j)*.025);g.computeVertexNormals();paving.push(geo(g));}
+    // Static roots have flattened, twisted bark ridges rather than a perfectly circular hose profile.
+    function rootTube(points,radius,phase) {
+      var radial=16,segments=32,curve=new T.CatmullRomCurve3(points.map(function(p){return p.isVector3?p:new T.Vector3().fromArray(p);}),false,'centripetal');
+      var g=B.Gear.tube(points,radius,radial,segments,true),p=g.attributes.position,c=new T.Vector3();
+      for(var row=0;row<=segments;row++){
+        var t=row/segments;curve.getPointAt(t,c);
+        for(var col=0;col<=radial;col++){
+          var i=row*(radial+1)+col,a=col/radial*PI*2;
+          var ridge=1+.16*Math.cos(a*7+t*8+phase)+.045*Math.sin(t*23+phase)*Math.sin(a*3);
+          p.setXYZ(i,c.x+(p.getX(i)-c.x)*ridge,c.y+(p.getY(i)-c.y)*ridge*.72,c.z+(p.getZ(i)-c.z)*ridge);
+        }
+      }
+      g.computeVertexNormals();
+      // Weld only the lighting at the UV seam, retaining the distinct bark coordinates.
+      var n=g.attributes.normal,v=new T.Vector3();
+      for(var row=0;row<=segments;row++){var a=row*(radial+1),b=a+radial;v.set(n.getX(a)+n.getX(b),n.getY(a)+n.getY(b),n.getZ(a)+n.getZ(b)).normalize();n.setXYZ(a,v.x,v.y,v.z);n.setXYZ(b,v.x,v.y,v.z);}
+      return g;
+    }
+    var burialMound=geo(new T.SphereGeometry(1,16,10)),bp=burialMound.attributes.position;
+    for(var i=0;i<bp.count;i++){var x=bp.getX(i),y=bp.getY(i),z=bp.getZ(i);bp.setXYZ(i,x*(1+.07*Math.sin(z*8)),y*(1+.12*Math.sin(x*7+z*5)),z*(1+.06*Math.cos(x*9)));}burialMound.computeVertexNormals();
     var treeShapes=[],treeTrunks=[],treeJunctions=[];
     for(var variant=0;variant<3;variant++){
       var pieces=[],bend=.15+variant*.035;
@@ -181,7 +208,9 @@
       return {at:function(t){return treeTrunks[variant].getPointAt(t).applyMatrix4(transform);}};
     }
     function grave(room, x, z, angle, broken) {
-      add(room, box, 'grave', x, -.01, z, 1.1, .16, 2.1, 0, angle, 0);
+      add(room, burialMound, 'grave', x, -.025, z, .62, .15, 1.13, 0, angle, 0);
+      // Low stone borders frame the earth without adding an invisible obstacle to the route.
+      for(var side=-1;side<=1;side+=2)add(room,masonry,'stone',x+side*Math.cos(angle)*.65,.035,z-side*Math.sin(angle)*.65,.13,.09,2.25,0,angle,broken?side*.06:0);
       add(room, headstone, 'stone', x, .035, z - .75, 1, 1, 1, broken ? .3 : 0, angle, broken ? .16 : 0);
       add(room, box, 'stone', x, .10, z-.75, 1.12, .18, .45, 0, angle, 0);
       for(var j=0;j<3;j++)add(room,box,'dark',x,.45+j*.095,z-.858,.40-j*.045,.014,.012,0,angle,0);
@@ -303,9 +332,9 @@
     }
     // Solid land and broad connected combat spaces. Decorative roots never block the central route.
     rooms.forEach(function (r, id) {
-      add(id, box, id === 3 ? 'wood' : id===1 ? 'earth' : id<5 ? 'sand' : 'floor', -2, -.13, r.z, r.w - 4, .26, r.d);
+      add(id, box, id === 3 ? 'wood' : id<=1 ? 'earth' : id<5 ? 'sand' : 'floor', -2, -.13, r.z, r.w - 4, .26, r.d);
       add(id, box, 'earth', -r.w * .5 - 13, -.37, r.z, 26, .5, r.d + 8);
-      if (id < 6) { var next = rooms[id + 1], lo = r.z - r.d * .5, hi = next.z + next.d * .5; add(id,box,'earth',-2,-.36,(lo+hi)*.5,r.w-4,.40,lo-hi+.8);add(id, box, id === 3 ? 'wood' : id===1 ? 'earth' : id<5 ? 'sand' : 'floor', 0, -.13, (lo + hi) * .5, 6.6, .26, lo - hi);for(var side=-1;side<=1;side+=2)add(id,box,'stone',side*3.5,.035,(lo+hi)*.5,.16,.12,lo-hi+.6); }
+      if (id < 6) { var next = rooms[id + 1], lo = r.z - r.d * .5, hi = next.z + next.d * .5; add(id,box,'earth',-2,-.36,(lo+hi)*.5,r.w-4,.40,lo-hi+.8);add(id, box, id === 3 ? 'wood' : id<=1 ? 'earth' : id<5 ? 'sand' : 'floor', 0, -.13, (lo + hi) * .5, 6.6, .26, lo - hi);for(var side=-1;side<=1;side+=2)add(id,box,'stone',side*3.5,.035,(lo+hi)*.5,.16,.12,lo-hi+.6); }
       for (var i = 0; i < 24; i++) {
         var side = i % 2 ? 1 : -1, x = side * (r.w * .5 + .5 + rnd() * 3), z = r.z + (rnd() - .5) * r.d;
         add(id, rock, 'rock', x, .1 + rnd() * .3, z, .8 + rnd() * 1.7, .45 + rnd() * .65, .6 + rnd() * 1.5, rnd()*.25, rnd() * 6, rnd()*.25);
@@ -325,10 +354,10 @@
       for (var n = 0; n < 5; n++) {
         var sx = -r.w * .5 + 1, zz = r.z + (rnd() - .5) * r.d * .8, points = [];
         for (var k = 0; k < 8; k++) points.push(new T.Vector3(sx + k * 1.4, .12 + Math.sin(k * .9 + n) * .08, zz + Math.sin(k * .75 + n) * .8));
-        rootPieces.push(B.Gear.tube(points,function(t){return .015+(.17+Math.sin(n*2.3)*.025)*Math.pow(1-t,.68);},9,28,true));
-        var fork=points[3],tip=points[5];rootPieces.push(B.Gear.tube([fork.clone(),new T.Vector3(fork.x+1.1,.06,fork.z+1.1),new T.Vector3(tip.x+.3,.01,tip.z+2.1)],function(t){return .055*Math.pow(1-t,1.1)+.004;},7,14,true));
+        rootPieces.push(rootTube(points,function(t){return .005+(.20+Math.sin(n*2.3)*.025)*Math.pow(1-t,.92);},n*1.7));
+        var fork=points[3],tip=points[5];rootPieces.push(rootTube([fork.clone(),new T.Vector3(fork.x+1.1,.06,fork.z+1.1),new T.Vector3(tip.x+.3,.01,tip.z+2.1)],function(t){return .065*Math.pow(1-t,1.1)+.003;},n*1.7+.8));
       }
-      add(id,geo(B.Gear.merge(rootPieces)),'char',0,0,0,1,1,1);
+      add(id,geo(B.Gear.merge(rootPieces)),'root',0,0,0,1,1,1);
       for (var q=0;q<45;q++){ var xx=(rnd()-.5)*(r.w-6)-2, zz=r.z+(rnd()-.5)*(r.d-2), sz=.08+rnd()*.23; if(Math.abs(xx)<1.7)continue; add(id,rock,'rock',xx,.035,zz,sz,.04+rnd()*.05,sz*.7,0,rnd()*6,0); }
       for(var q=0;q<5;q++){var zz=r.z+(rnd()-.5)*r.d;add(id,box,'char',-7+rnd()*13,.045,zz,1+rnd(),.07,.13,0,rnd()*6,0);}
       lantern(id, -r.w * .5 - 3.5, 2.3, r.z + r.d * .33, 'coast');
@@ -344,6 +373,14 @@
     });
     // Worn paving survives in islands, with exposed earth between them. Low relief stays below attack warnings.
     [2,4,5].forEach(function(id){var r=rooms[id];for(var row=0;row<15;row++)for(var col=0;col<12;col++){if((row*13+col*7+id)%17<2)continue;var xx=-6.3+col*1.12+(row%2)*.5,zz=r.z+(row-7)*.90;if(xx>6.8)continue;add(id,paving[(row+col)%3],'floor',xx,.015,zz,1.04,.34,.81,0,(rnd()-.5)*.08,0);}});
+    // Broken funeral paving gives the graveyard and forest a legible forward line.
+    // The relief remains below the attack-warning plane and changes no collision or quest footprint.
+    [0,1].forEach(function(id){var r=rooms[id];for(var row=0;row<17;row++)for(var col=0;col<5;col++){
+      var wear=B.Gear.hash(row,col,id+91);if(wear<(col===0||col===4?.63:.34))continue;
+      var shift=B.Gear.hash(col,row,id+37),size=B.Gear.hash(row+8,col+2,id+19);
+      var xx=(col-2)*.92+Math.sin(row*.49+id)*.28+(shift-.5)*.30,zz=r.z+(row-8)*1.18+(wear-.5)*.40;
+      add(id,paving[(row+col+id)%3],'funeralPaving',xx,.007,zz,.52+size*.32,.34,.57+shift*.33,0,(wear-.5)*.74,0);
+    }});
     // Irregular shallow pools sit below the warning plane; they never change the walking surface.
     [0,1,2,4,5].forEach(function(id){var r=rooms[id];for(var j=0;j<4;j++){var x=j%2?-6.5:5.5,z=r.z+(j-1.5)*r.d*.18;add(id,rock,'puddle',x,-.047,z,.8+rnd(),.055,.6+rnd(),0,rnd()*6,0);}});
     // 0: blackened graveyard, exposed burial pits and an old funeral gate.

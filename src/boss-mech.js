@@ -266,13 +266,26 @@
         an.chain.count=n;an.chain.instanceMatrix.needsUpdate=true;
       }
       function litCount() { var n = 0; for (var k = 0; k < MAX_ANCHOR; k++) if (anchors[k].live && anchors[k].lit) n++; return n; }
-      // Lays n anchors around the owner at radius r (falls back to nearer rings where the floor is blocked). Returns the number placed.
+      function anchorFits(x, z, owner) {
+        if (!(api.anchorWalkable || api.walkable)(x, z, .9, owner)) return false;
+        for (var k = 0; k < MAX_ANCHOR; k++) if (anchors[k].live && hypot(x - anchors[k].x, z - anchors[k].z) < 2.1) return false;
+        return true;
+      }
+      // Preserve the normal four rays; only blocked rays search nearby angles within the active arena.
       function startRite(owner, n, r, seconds) {
         var placed = 0, a0 = Math.atan2(player.x - owner.x, player.z - owner.z) + Math.PI / n;
         for (var k = 0; k < MAX_ANCHOR; k++) { anchors[k].live = false; anchors[k].g.visible = false; anchors[k].chain.visible = false; }
         for (var j = 0; j < n; j++) {
           var a = a0 + j * TAU / n, rr = r, x = 0, z = 0, ok = false;
-          for (var t = 0; t < 5; t++, rr -= 1.4) { x = owner.x + Math.sin(a) * rr; z = owner.z + Math.cos(a) * rr; if (api.walkable(x, z, .9)) { ok = true; break; } }
+          for (var t = 0; t < 5; t++, rr -= 1.4) { x = owner.x + Math.sin(a) * rr; z = owner.z + Math.cos(a) * rr; if (anchorFits(x, z, owner)) { ok = true; break; } }
+          // A seal or corner can close an entire ray. A bounded fan keeps all four anchors reachable without shrinking their footprint.
+          for (var turn = 1; !ok && turn <= 6; turn++) for (var side = 1; !ok && side >= -1; side -= 2) {
+            var aa = a + side * turn * Math.PI / 12;
+            for (var t = 0, rr = r; t < 5; t++, rr -= 1.4) {
+              x = owner.x + Math.sin(aa) * rr; z = owner.z + Math.cos(aa) * rr;
+              if (anchorFits(x, z, owner)) { ok = true; break; }
+            }
+          }
           if (!ok) continue;
           var an = anchors[placed++]; an.live = true; an.lit = true; an.x = x; an.z = z; an.hp = 3; an.prog = 0; an.flash = 0; an.fade = 0;
           an.g.position.set(x, api.groundY(x, z), z); an.g.visible = true; an.g.scale.setScalar(.01); an.flame.scale.set(1, 1, 1); an.chain.visible = true;

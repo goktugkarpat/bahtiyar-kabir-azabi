@@ -153,8 +153,9 @@ void main(){ vec2 p = (vUv-.5)*2.*uMax; float r = length(p), a = r > 1e-6 ? atan
  if(r>=uMax)discard;
  // Integer angular frequencies join seamlessly at the full-circle wrap.
  float n=.5+.5*sin(a*5.+sin(r*1.3)+uSeed), n2=.5+.5*sin(a*13.+r*3.1+uSeed*2.);
- float px=max(fwidth(r),1e-4),ringD=(r-uR)/max(px*1.5,uW*(.95+.10*n));
- float ring=exp(-(ringD*ringD))*(.9+.1*n2);
+ float scallop=(.024+.007*uR)*(sin(a*13.+uSeed)+.55*sin(a*29.-uSeed));
+ float px=max(fwidth(r),1e-4),ringD=(r-uR-scallop)/max(px*1.5,uW*(.80+.25*n));
+ float ring=exp(-(ringD*ringD))*(.20+.80*smoothstep(.20,.70,n2));
  float heat = (1.-smoothstep(0., max(.01,uR), r)) * .18 * (.6+.4*n);
  vec3 col = uCol*(ring + heat*uSoft)*uA;
  vec2 cuv=p/(2.*max(.01,uCrackR))+.5;float texEdge=min(min(cuv.x,1.-cuv.x),min(cuv.y,1.-cuv.y));

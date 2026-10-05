@@ -478,7 +478,7 @@
     function abilityTick(p, final) {
       // one hit of the whirlwind lands: flash, colour fringe, saturation punch, shock ring, light burst, camera kick (the last one is heavier, with hit-freeze)
       // (parent: the whirlwind blurred and flashed too much: flash 25 %, fringe 30 %, saturation punch and vignette ~15 %, light burst 40 %, freeze weaker and shorter)
-      ab.flash = Math.max(ab.flash, final ? .12 : .07); ab.chroma = Math.max(ab.chroma, final ? .3 : .15); ab.sat = Math.max(ab.sat, final ? .05 : .015);
+      ab.flash = Math.max(ab.flash, final ? .12 : .07); ab.chroma = Math.max(ab.chroma, final ? .10 : .035); ab.sat = Math.max(ab.sat, final ? .05 : .015);
       ab.vig = Math.max(ab.vig, final ? .1 : .03); ab.light = Math.max(ab.light, final ? .45 : .3);
       if (final) { ab.freeze = .3; ab.fovT = 1; ab.fov = Math.max(ab.fov, .001); }
       ab.ringAge = 0; ab.ringLife = final ? .62 : .38; ab.ringR = abIn.radius * (final ? 1.55 : 1.15); ab.ringW = final ? 1 : .6; ab.rx = p.x; ab.rz = p.z;
@@ -512,7 +512,7 @@
       if (ab.fov < .002 && !ab.fovT) ab.fov = 0;
       // feed the post chain (only while something is visible)
       var post = opts.post, warm = ab.warm, e2 = warm * warm;
-      var spin = ab.spin * .25, chroma = ab.chroma + ab.spin * .05 + e2 * .1, flash = ab.flash, sat = ab.sat + ab.spin * .02 + warm * .05, vig = ab.vig + ab.spin * .04 + warm * .05;
+      var spin = ab.spin * .10, chroma = ab.chroma + ab.spin * .018 + e2 * .1, flash = ab.flash, sat = ab.sat + ab.spin * .02 + warm * .05, vig = ab.vig + ab.spin * .04 + warm * .05;
       var ringOn = ab.ringAge < ab.ringLife;
       if (post && post.setAbilityFx && (spin > .004 || chroma > .004 || flash > .004 || sat > .004 || vig > .004 || ab.freeze > .004 || ringOn)) {
         abFx.spin = spin; abFx.spinAt.x = p.x; abFx.spinAt.z = p.z; abFx.chroma = chroma; abFx.flash = flash; abFx.sat = sat; abFx.vig = vig; abFx.freeze = ab.freeze;

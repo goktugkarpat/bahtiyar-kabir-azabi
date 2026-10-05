@@ -86,7 +86,7 @@
       pool.mesh.instanceColor.setUsage(T.DynamicDrawUsage); root.add(pool.mesh);
     }
     function fragments(x, y, z, o = {}) {
-      const pool = chipPools[o.metal ? 1 : 0], n = Math.min(pool.cap, scaleCount(o.count || 12));
+      const pool = chipPools[o.metal ? 1 : 0], n = Math.min(pool.cap, o.count === 1 ? 1 : scaleCount(o.count || 12));
       const spread = o.spread || .7, speed = o.speed || 4, lift = o.lift || 4,
         face = o.face || 0, arc = o.arc == null ? Math.PI * 2 : o.arc;
       for (let i = 0; i < n; i++) {
@@ -533,7 +533,7 @@
       if (!merged) labels.push(l);
     }
     // ------------------------------------------------------------ "Kor ve Kül" tells (src/telegraphs.js; optional)
-    const tells = B.Telegraphs ? B.Telegraphs.create(root, getGame, getSettings, { emit, sound: (n, o) => { if (B.Audio && B.Audio.play) B.Audio.play(n, o); } }) : null;
+    const tells = B.Telegraphs ? B.Telegraphs.create(root, getGame, getSettings, { emit, fragments, sound: (n, o) => { if (B.Audio && B.Audio.play) B.Audio.play(n, o); } }) : null;
     const tmpColor = new T.Color();
     function linear(hex, k) { tmpColor.set(hex); return [tmpColor.r * k, tmpColor.g * k, tmpColor.b * k]; }
     // Cracks left in the floor by quakes, falling hooks and heavy overheads: a hot glow that cools into a dark scar.
@@ -629,7 +629,7 @@
         fragments(c.x, floorAt(c.x, c.z, .3) + .12, c.z, { count: big ? 26 : 15, spread: Math.min(1.5, R * .3), speed: big ? 6 : 4, lift: big ? 6 : 4.3 });
         for (let i = 0; i < n(line ? 10 : 20); i++) particle(c.x, .15, c.z, 0, [.06, .05, .045], 1.4, Math.random() * Math.PI * 2, 1.1);
         for (let i = 0; i < n(12); i++) particle(c.x, .2, c.z, 1, sp, 1.2, Math.random() * Math.PI * 2, .8);
-        if (!line) { flash(x, .4, z, 2.4, new T.Color(unb ? '#ff9a7a' : '#ffcf9a'), .1); if (tells) tells.wave(x, z, { radius: R + .6, life: .45, width: .5, color: [1.8, .45, .15], soft: .4 }); }
+        if (!line) { flash(x, .4, z, 1.35, new T.Color(unb ? '#da8266' : '#c7a57b'), .09); if (tells && d.pressureEcho !== false) tells.wave(x, z, { radius: R + .35, life: .45, width: .085, color: [.65, .26, .12], soft: .12 }); }
         if (d.scar !== false) scar(x, z, f, d);
         return;
       }
@@ -942,22 +942,20 @@
       for (let i = 0; i < scaleCount(16 + 10 * (tier - 1)); i++) { const a = Math.random() * Math.PI * 2; emit(x + Math.sin(a) * .5, .3 + Math.random() * .8, z + Math.cos(a) * .5, 4, W.ember[i % 2], Math.sin(a) * 2.2, rnd(.5, 1.6), Math.cos(a) * 2.2, .6 + Math.random() * .4, .05); }
       if (tier === 2) { streakBurst(x, .5, z, calm ? 3 : 14, d.face || 0, 6.3, 8, W.hot); }
       if (tier === 3) {   // the ground shatters under the hero: dark ring, violet shock ring, stone fissures, camera pulse
-        chRing(x, z, R * 1.2, .7, [.3, .05, .6]); chCrack(x, z, R * .8, 3);
-        if (tells) tells.wave(x, z, { radius: R * .9, life: .6, width: .3, color:[.18,.05,.28],crack:.12, crackR: R * .75, crackLife: 1.6, soft: 0 });
+        chCrack(x, z, R * .8, 3);
         scar(x, z, 0, { shape: 'circle', radius: R * .6, heat: .35 });
         streakBurst(x, .5, z, calm ? 4 : 24, 0, 6.3, 9, W.hot);
-        if (B.Charge && B.Charge.punch) B.Charge.punch({ vig: .32, chroma: .1, flash: .02, push: .018, dur: .6, x, z, ringR: R * 1.1, ringW: 1 });
+        if (B.Charge && B.Charge.punch) B.Charge.punch({ vig: .14, chroma: .025, flash: .012, push: .012, dur: .45, x, z, ringR: R * .9, ringW: .18 });
       }
     }
     function whirlTick(d) {
       const x = d.x, z = d.z, R = d.radius || 3.6, last = d.last, calm = reduced.matches, tier = d.tier || 1, W = WT[tier] || WT[1];
-      if(last||!d.n)chRing(x,z,R*(last?1.05:.85),last?.5:.32,last?W.ringLast:W.ring);
+      if(last)chRing(x,z,R*1.05,.5,W.ringLast);
       if (tier === 3 && !last && (d.n % 2 === 0) && B.Charge && B.Charge.punch) B.Charge.punch({ vig: .1, push: .007, dur: .3 });
-      if (last && tier > 1 && tells) tells.wave(x, z, { radius: R * (tier === 3 ? 1.1 : .8), life: tier === 3 ? .7 : .55, width: tier === 3 ? .3 : .2, color:tier>2?[.24,.1,.38]:[.52,.32,.12],crack:.12, crackR: R * .6, crackLife: 1.3, soft: 0, delay: .05 });
-      if (last) { chRing(x, z, R * .75, .3, tier === 3 ? [.8, .5, 1.2] : [.8, .45, .22]); flash(x, .9, z, tier === 3 ? 2.2 : 1.2, new T.Color(tier === 3 ? '#efe6ff' : '#d87840'), tier === 3 ? .2 : .16, 0, softMap); chCrack(x, z, R * (tier === 3 ? 1.15 : 1), tier); scar(x, z, 0, { shape: 'circle', radius: R * .75, heat: tier === 3 ? .35 : .3 }); }
+      if (last) { flash(x, .9, z, tier === 3 ? 2.2 : 1.2, new T.Color(tier === 3 ? '#efe6ff' : '#d87840'), tier === 3 ? .2 : .16, 0, softMap); chCrack(x, z, R * (tier === 3 ? 1.15 : 1), tier); scar(x, z, 0, { shape: 'circle', radius: R * .75, heat: tier === 3 ? .35 : .3 }); }
       if (last && tier === 3) {   // Son Hüküm: the final slam, a second wide ring, a pulse through the whole screen
         
-        if (B.Charge && B.Charge.punch) B.Charge.punch({ vig: .5, flash: .045, chroma: .18, sat: .15, push: .042, dur: .75, x, z, ringR: R * 1.5, ringW: 1.3 });
+        if (B.Charge && B.Charge.punch) B.Charge.punch({ vig: .24, flash: .025, chroma: .055, sat: .08, push: .025, dur: .6, x, z, ringR: R * 1.1, ringW: .24 });
       } else if (last && tier === 2 && B.Charge && B.Charge.punch) B.Charge.punch({ vig: .25, flash: .02, push: .018, dur: .5, x, z });
       const nS = calm ? 4 : scaleCount(last ? 46 + 40 * (tier - 1) : 14 + 8 * (tier - 1));
       for (let i = 0; i < nS; i++) { const a = Math.random() * Math.PI * 2; streakBurst(x + Math.sin(a) * R * .55, .6, z + Math.cos(a) * R * .55, 1, a + Math.PI / 2 * (Math.random() < .5 ? 1 : -1), .6, last ? 9 + 2 * tier : 6, tier > 1 ? W.hot : undefined); }
@@ -1288,27 +1286,28 @@
       if (name === 'bossPhase') {
         // The executioner's second oath burns through the floor: narrow rust-red pressure fronts and rising ash.
         // Existing wave/particle pools carry the whole effect; it never adds a light or a screen-wide white flash.
-        const r = d.radius || 4.5, calm = reduced.matches;
+        const r = d.radius || 4.5, calm = reduced.matches, grave = B.ActiveChapter === 3;
         if (tells) {
-          tells.wave(x, z, { radius: r * .72, life: .65, width: .13, color: [1.35, .18, .065], crack: .42, crackR: r * .56, crackLife: 1.25, soft: .2 });
-          tells.wave(x, z, { radius: r * 1.08, life: .78, width: .15, color: [.95, .40, .18], soft: 0, delay: .08 });
+          if (B.ActiveChapter < 3) tells.wave(x, z, { radius: r * .72, life: .65, width: .055, color: grave ? [.14,.13,.22] : [.38,.10,.04], crack: .055, crackR: r * .56, crackLife: 1.25, soft: .1 });
+          tells.glowBurst(x, z, { radius: r * .22, life: .6, color: grave ? [.2,.18,.3] : [.5,.14,.04], peak: .08 });
         }
-        flash(x, 1.0, z, 1.35, new T.Color('#d87950'), .14, 0, softMap);
+        flash(x, 1.0, z, .75, new T.Color(grave ? '#928ca3' : '#c38b68'), .09, 0, softMap);
         const ring = Math.max(6, Math.round(scaleCount(36) * (calm ? .5 : 1)));
         for (let i = 0; i < ring; i++) { const a = i / ring * Math.PI * 2, sa = Math.sin(a), ca = Math.cos(a); emit(x + sa * .65, .12, z + ca * .65, 2, DUST, sa * 2.4, .35, ca * 2.4, .65, .28); }
         const embers = Math.max(4, Math.round(scaleCount(24) * (calm ? .5 : 1)));
-        for (let i = 0; i < embers; i++) { const a = i / embers * Math.PI * 2, r0 = .45 + Math.random() * .4; emit(x + Math.sin(a) * r0, .4 + Math.random() * 1.4, z + Math.cos(a) * r0, 4, i % 3 ? [1.7, .20, .055] : [2.25, .75, .20], Math.cos(a) * .5, .8 + Math.random() * 1.2, -Math.sin(a) * .5, .65 + Math.random() * .45, .045); }
+        for (let i = 0; i < embers; i++) { const a = i / embers * Math.PI * 2, r0 = .45 + Math.random() * .4; emit(x + Math.sin(a) * r0, .4 + Math.random() * 1.4, z + Math.cos(a) * r0, 4, grave ? (i % 3 ? [.3,.28,.45] : [.55,.5,.65]) : (i % 3 ? [1.0,.22,.065] : [1.25,.6,.20]), Math.cos(a) * .5, .8 + Math.random() * 1.2, -Math.sin(a) * .5, .65 + Math.random() * .45, .045); }
         return;
       }
       if (name === 'slam') {
         const r = d.radius || 4.5, small = !!d.small;
-        wave(x, z, r * (small ? 1.1 : 1), '#a39584', small ? .28 : .5, small ? .18 : .45, small ? .05 : .08);
-        if (!small) wave(x, z, r * .6, '#6d6052', .6, .25, .2);
-        flash(x, .35, z, small ? 1.1 : 2.4, new T.Color('#ffcf9a'), small ? .07 : .1);
-        const ring = scaleCount(small ? 12 : 26);
+        // One short pressure echo under real tumbling rubble. Summons and
+        // burrowing bodies disturb the stone rather than spraying flat gravel cards.
+        wave(x, z, r * (small ? .9 : 1), '#8d8274', small ? .22 : .38, small ? .12 : .20, small ? .035 : .045);
+        flash(x, .35, z, small ? .75 : 1.4, new T.Color('#cfb79c'), small ? .055 : .075);
+        fragments(x, .08, z, { count: small ? 8 : 20, spread: small ? .3 : .65, speed: small ? 1.7 : 3.0, lift: small ? 2.4 : 4.1, size: small ? .075 : .12 });
+        const ring = scaleCount(small ? 10 : 20);
         for (let i = 0; i < ring; i++) { const a = i / ring * Math.PI * 2; particle(x + Math.sin(a) * .5, .12, z + Math.cos(a) * .5, 2, DUST, small ? .9 : 1.6, a, .45); }
-        for (let i = 0; i < scaleCount(small ? 10 : 24); i++) particle(x, .2, z, 0, [.06, .05, .045], small ? .9 : 1.5, Math.random() * Math.PI * 2, 1.1);
-        for (let i = 0; i < scaleCount(small ? 8 : 16); i++) particle(x, .15, z, 1, SPARK, small ? .8 : 1.2, Math.random() * Math.PI * 2, .8);
+        for (let i = 0; i < scaleCount(small ? 3 : 6); i++) particle(x, .15, z, 1, SPARK, small ? .8 : 1.2, Math.random() * Math.PI * 2, .55);
         return;
       }
       if (name === 'impact') {

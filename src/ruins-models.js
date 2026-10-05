@@ -126,10 +126,10 @@
       safe('king',function(){
         // Broken throne behind the king: a fan of cracked slabs rising from his spine (the Silent Throne he cannot leave).
         var fan=[];
-        for(var i=0;i<9;i++){var a=(i-4)/4*1.15,h=.95-Math.abs(a)*.28+(i%3)*.08,w=.10+(i%2)*.03,pts=[[-w,0],[w,0],[w*1.25,h*.55],[w*.1,h],[-w*1.1,h*.62]];
-          var s=G.extrude(pts,.05,.008);s.translate(0,.08,0);fan.push(G.wear(s,{edge:.2}) && s);
+        for(var i=0;i<9;i++){var a=(i-4)/4*1.15,h=.95-Math.abs(a)*.28+(i%3)*.08,w=.10+(i%2)*.03,pts=[[-w,0],[w,0],[w*1.12,h*.34],[w*.82,h*.62],[w*.20,h*.91],[w*.06,h],[-w*.38,h*.87],[-w*.97,h*.65],[-w*1.05,h*.29]];
+          var s=G.extrude(pts,.075,.016);s.translate(0,.08,0);fan.push(G.wear(s,{edge:.12,border:.28,cavity:.04}) && s);
           s.rotateZ(-a);s.translate(fitted.cx+Math.sin(a)*.12,fb.max.y-.05,fb.min.z-.24-Math.abs(a)*.04);}
-        A.rigid('bone',G.merge(fan),spine);
+        A.rigid('ash',G.merge(fan),spine);
         // Cracks of grave light through the chest and ribs.
         var cr=[];for(var k=0;k<6;k++){var a0=(k-2.5)*.38,pts2=[];for(var j=0;j<6;j++){pts2.push(fitted.at(a0+Math.sin(j*1.9+k*2.1)*.11,fb.max.y-.07-j*torsoH*.15,.046+(k%2)*.004));}cr.push(G.tube(pts2,.0065,5,18,false));}
         fitted.attach('glow',G.merge(cr));

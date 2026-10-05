@@ -1,6 +1,6 @@
 /* KABİR AZABI — bölüm III / IV boss düzenekleri (round 7).
    Shared machinery for the chapter III boss (Oyukların Kralı), chapter IV boss (Ocağın Kalbi) and their two mini-bosses each:
-     orbs      homing orbs (pooled sprites + floor ring; hit through combat.hitPlayer, rolled i-frames beat them)
+     orbs      homing fractured cores (pooled PBR bodies + floor warning; rolled i-frames beat them)
      pillars   crystal cover pillars (chapter III): block line of sight of the channelled nova, absorb it, shatter, regrow
      summon    wave adds taken from dormant reserve enemies of the boss encounter (revived, never created at run time)
      ground    capped persistent burning ground (hazards with the engine's own tells)
@@ -46,47 +46,49 @@
     ef.__boss2 = true;
   }
 
-  var VIOLET = [.9, .62, 2.0], AMBER = [2.6, 1.0, .25], ASH = [.12, .1, .09], BONE = [.78, .68, .6];
+  var VIOLET = [.42, .30, .78], AMBER = [1.35, .48, .10], ASH = [.12, .1, .09], BONE = [.78, .68, .6];
   function playFx(name, d, burst, tells) {
     var out = Boss2.out, emit = out && out.emit, calm = reduced.matches, x = d.x || 0, z = d.z || 0, i, a, r, n;
     var forge = d.kind === 'slag' || d.forge;
     var col = forge ? AMBER : VIOLET, k = calm ? .5 : 1;
     if (name === 'boss2Orb') {
-      if (tells && !calm) tells.glowBurst(x, z, { radius: d.end ? 1.7 : 1.4, life: .35, color: [col[0] * .6, col[1] * .6, col[2] * .6], peak: .5 });
+      if (tells && !calm) tells.glowBurst(x, z, { radius: d.end ? 1.1 : .75, life: .3, color: [col[0] * .35, col[1] * .35, col[2] * .35], peak: .18 });
       if (emit) for (i = 0, n = Math.round(10 * k); i < n; i++) { a = Math.random() * TAU; emit(x, d.y || 1.2, z, 1, col, Math.sin(a) * 2.4, .5 + Math.random() * 1.3, Math.cos(a) * 2.4, .3, .07); }
     } else if (name === 'boss2Shards') {          // crystal / slag spurts along a line: x,z origin, face, length, width
       var f = d.face || 0, L = d.length || 8, W = d.width || 1.2;
-      if (emit) for (i = 0, n = Math.round(22 * k); i < n; i++) {
+      if(out&&out.fragments)for(i=0,n=Math.round(12*k);i<n;i++){var along=(i+.5)/n*L,side=(Math.random()-.5)*W;out.fragments(x+Math.sin(f)*along+Math.cos(f)*side,.08,z+Math.cos(f)*along-Math.sin(f)*side,{metal:forge,count:1,spread:.1,speed:.8,lift:2.5+Math.random()*1.5,size:forge?.075:.11});}
+      if (emit) for (i = 0, n = Math.round(14 * k); i < n; i++) {
         var t = Math.random() * L, s = (Math.random() - .5) * W;
-        emit(x + Math.sin(f) * t + Math.cos(f) * s, .15, z + Math.cos(f) * t - Math.sin(f) * s, i % 3 ? 4 : 1, i % 3 ? col : BONE, (Math.random() - .5) * .8, 1.6 + Math.random() * 2.4, (Math.random() - .5) * .8, .45 + Math.random() * .3, .1);
+        emit(x + Math.sin(f) * t + Math.cos(f) * s, .15, z + Math.cos(f) * t - Math.sin(f) * s, forge&&i%3===0?1:2, forge&&i%3===0?AMBER:ASH, (Math.random() - .5) * .8, 1.6 + Math.random() * 2.4, (Math.random() - .5) * .8, .45 + Math.random() * .3, .08);
       }
     } else if (name === 'boss2Shatter') {         // a pillar bursts
       // A consumed shelter sheds physical stone; it does not draw a false damage circle.
       col=BONE;
-      if (emit) for (i = 0, n = Math.round(28 * k); i < n; i++) { a = Math.random() * TAU; r = Math.random() * .7; emit(x + Math.sin(a) * r, .3 + Math.random() * 2.4, z + Math.cos(a) * r, i % 2 ? 0 : 2, i % 2 ? BONE : ASH, Math.sin(a) * (1.5 + Math.random() * 3), 1 + Math.random() * 3, Math.cos(a) * (1.5 + Math.random() * 3), .5 + Math.random() * .4, .1); }
+      if(out&&out.fragments)out.fragments(x,.3,z,{count:calm?10:20,spread:.65,speed:3.2,lift:4.0,size:.13});
+      if (emit) for (i = 0, n = Math.round(28 * k); i < n; i++) { a = Math.random() * TAU; r = Math.random() * .7; emit(x + Math.sin(a) * r, .3 + Math.random() * 2.4, z + Math.cos(a) * r, 2, ASH, Math.sin(a) * (1.5 + Math.random() * 3), 1 + Math.random() * 3, Math.cos(a) * (1.5 + Math.random() * 3), .5 + Math.random() * .4, .1); }
     } else if (name === 'boss2Echo') {            // a shadow column steps out of the floor
       if (tells && !calm) tells.glowBurst(x, z, { radius: 1.1, life: .6, color: [.28, .24, .46], peak: .22 });
-      if (tells) tells.wave(x, z, { radius: 3.2, life: .6, width: .14, color: [.8, .6, 1.7], soft: 0 });
-      if (emit) for (i = 0, n = Math.round(12 * k); i < n; i++) { a = Math.random() * TAU; r = Math.random() * .6; emit(x + Math.sin(a) * r, .1 + Math.random() * 2.4, z + Math.cos(a) * r, 5, i % 3 ? [.55, .42, 1.5] : [1.3, 1.15, 2.0], Math.sin(a) * .3, .5 + Math.random() * .9, Math.cos(a) * .3, 1.1 + Math.random() * .5, .22); }
+      if (tells) tells.wave(x, z, { radius: 3.2, life: .6, width: .06, color: [.24, .18, .43], soft: 0 });
+      if (emit) for (i = 0, n = Math.round(12 * k); i < n; i++) { a = Math.random() * TAU; r = Math.random() * .6; emit(x + Math.sin(a) * r, .1 + Math.random() * 2.4, z + Math.cos(a) * r, 5, i % 3 ? [.23, .19, .48] : [.58, .52, .72], Math.sin(a) * .3, .5 + Math.random() * .9, Math.cos(a) * .3, 1.1 + Math.random() * .5, .22); }
     } else if (name === 'boss2Burrow') {          // dive / emerge: dust and gravel
       burst('slam', { x: x, z: z, radius: d.emerge ? 4.8 : 3.4, small: !d.emerge });
-      if (tells) tells.wave(x, z, { radius: d.emerge ? 6.6 : 3.4, life: d.emerge ? .8 : .5, width: .2, color: [BONE[0], BONE[1], BONE[2]], soft: 0, crack: d.emerge ? .4 : 0, crackR: 3 });
+      if (tells) tells.wave(x, z, { radius: d.emerge ? 6.6 : 3.4, life: d.emerge ? .8 : .5, width: .07, color: [.32,.28,.23], soft: 0, crack: d.emerge ? .10 : 0, crackR: 3 });
     } else if (name === 'boss2Geyser') {          // lava / slag erupts at a point (or along a line when length is given)
       if (emit) for (i = 0, n = Math.round(24 * k); i < n; i++) { var tt = d.length ? Math.random() * d.length : 0, sf = d.face || 0; emit(x + Math.sin(sf) * tt + (Math.random() - .5) * (d.width || 1), .2, z + Math.cos(sf) * tt + (Math.random() - .5) * (d.width || 1), 4, i % 2 ? AMBER : [3.2, 1.6, .5], (Math.random() - .5) * .9, 3 + Math.random() * 3.4, (Math.random() - .5) * .9, .6 + Math.random() * .4, .11); }
       if (tells && !calm && !d.length) tells.glowBurst(x, z, { radius: 2.2, life: .45, color: [2.0, .7, .2], peak: .5 });
     } else if (name === 'boss2Summon') {
       burst('slam', { x: x, z: z, radius: 3.6, small: true });
-      if (tells) tells.wave(x, z, { radius: 4.6, life: .6, width: .16, color: forge ? [1.6, .5, .12] : [.7, .5, 1.3], soft: 0 });
+      if (tells) tells.wave(x, z, { radius: 3.4, life: .55, width: .065, color: forge ? [.48,.17,.045] : [.22,.18,.38], soft: 0 });
     } else if (name === 'boss2Nova') {            // channel charge (phase 'charge') and release
       if (d.phase === 'release') {
-        if (tells) { tells.wave(x, z, { radius: 17, life: .75, width: .18, color: [col[0] * .45, col[1] * .45, col[2] * .45], soft: .2 }); tells.glowBurst(x, z, { radius: 1.7, life: .35, color: [col[0] * .5, col[1] * .5, col[2] * .5], peak: .25 }); }
+        if (tells) { tells.wave(x, z, { radius: 17, life: .75, width: .07, color: [col[0] * .3, col[1] * .3, col[2] * .3], soft: .08 }); tells.glowBurst(x, z, { radius: 1.7, life: .35, color: [col[0] * .5, col[1] * .5, col[2] * .5], peak: .25 }); }
         burst('impact', { x: x, z: z });
       } else if (emit) for (i = 0, n = Math.round(6 * k); i < n; i++) { a = Math.random() * TAU; r = 5 + Math.random() * 6; emit(x + Math.sin(a) * r, .3 + Math.random() * 1.6, z + Math.cos(a) * r, 3, col, -Math.sin(a) * r / .9, 0, -Math.cos(a) * r / .9, .85, .11); }
     } else if (name === 'boss2Overheat') {
-      if (tells) { tells.wave(x, z, { radius: 9, life: .9, width: .22, color: [2.0, .5, .1], soft: .1 }); tells.glowBurst(x, z, { radius: 5, life: 1.0, color: [1.8, .45, .1], peak: .6 }); }
+      if (tells) { tells.wave(x, z, { radius: 7.2, life: .85, width: .07, color: [.55,.17,.035], soft: .07 }); tells.glowBurst(x, z, { radius: 2.3, life: .8, color: [.7,.17,.035], peak: .14 }); }
       if (emit) for (i = 0, n = Math.round(28 * k); i < n; i++) { a = Math.random() * TAU; emit(x + Math.sin(a) * 1.2, .5 + Math.random() * 2, z + Math.cos(a) * 1.2, 4, i % 2 ? AMBER : [3.4, 1.8, .6], Math.sin(a) * 2, 1 + Math.random() * 2, Math.cos(a) * 2, .8, .12); }
     } else if (name === 'boss2Frenzy') {
-      if (tells) tells.wave(x, z, { radius: 11, life: 1.0, width: .24, color: forge ? [2.1, .45, .08] : [1.5, .3, .5], soft: 0 });
+      if (tells) tells.wave(x, z, { radius: 8.0, life: .85, width: .075, color: forge ? [.52,.13,.025] : [.30,.08,.15], soft: 0 });
       if (emit) for (i = 0, n = Math.round(30 * k); i < n; i++) { a = Math.random() * TAU; emit(x + Math.sin(a) * 1.5, .3 + Math.random() * 1.8, z + Math.cos(a) * 1.5, 4, col, Math.sin(a) * 2.5, 1 + Math.random() * 2, Math.cos(a) * 2.5, .9, .12); }
     }
   }
@@ -133,11 +135,19 @@
       var m = new T.SpriteMaterial({ map: glowTex, transparent: true, depthWrite: false, depthTest: true, blending: T.AdditiveBlending, fog: false, color: color }), s = new T.Sprite(m);
       s.scale.set(scale, scale, 1); s.visible = false; s.frustumCulled = false; s.renderOrder = 6; group.add(s); return s;
     }
+    // Tangible held/flying cores: jagged crystal for the king, fractured
+    // cooling slag for the furnace. Six bodies and all surfaces are prebuilt.
+    var orbStoneTex=(function(){var c=document.createElement('canvas');c.width=c.height=256;var ctx=c.getContext('2d'),seed=2117;function rnd(){seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;}ctx.fillStyle='#777976';ctx.fillRect(0,0,256,256);for(var j=0;j<1200;j++){var v=80+Math.floor(rnd()*100);ctx.fillStyle='rgba('+v+','+v+','+v+',.32)';ctx.fillRect(rnd()*256,rnd()*256,1+rnd()*6,1+rnd()*6);}for(var j=0;j<15;j++){var x=rnd()*256,y=rnd()*256;ctx.beginPath();ctx.moveTo(x,y);for(var k=0;k<7;k++){x+=(rnd()-.5)*40;y+=(rnd()-.5)*47;ctx.lineTo(x,y);}ctx.strokeStyle='#323233';ctx.lineWidth=3.4;ctx.stroke();ctx.strokeStyle='#d6d2c6';ctx.lineWidth=.7;ctx.stroke();}var tex=new T.CanvasTexture(c);tex.colorSpace=T.SRGBColorSpace;tex.wrapS=tex.wrapT=T.RepeatWrapping;return tex;}());
+    var orbBodyGeo=new T.IcosahedronGeometry(.255,1),bodyPos=orbBodyGeo.attributes.position;for(var j=0;j<bodyPos.count;j++){var x=bodyPos.getX(j),y=bodyPos.getY(j),z=bodyPos.getZ(j),r=1+.11*Math.sin(x*21+y*17+z*11);bodyPos.setXYZ(j,x*r,y*r,z*r);}orbBodyGeo.computeVertexNormals();orbBodyGeo.computeBoundingSphere();
+    var shardParts=[];for(var j=0;j<7;j++){var a=j*2.39996,g=new T.IcosahedronGeometry(.052+(j%3)*.009,0);g.scale(.65,1.8,.8);g.rotateZ(a);g.rotateY(a*.7);g.translate(Math.sin(a)*.34,Math.sin(a*1.7)*.21,Math.cos(a)*.34);shardParts.push(g);}var orbShardGeo=B.Gear.merge(shardParts);orbShardGeo.computeBoundingSphere();
+    var orbBodyMat=new T.MeshStandardMaterial({map:orbStoneTex,bumpMap:orbStoneTex,bumpScale:.028,color:forge?0x796553:0x93849f,roughness:forge?.77:.64,metalness:forge?.26:.10,emissive:forge?0x9b3510:0x49345e,emissiveIntensity:.19});orbBodyMat.__shared=true;
+    var orbShardMat=orbBodyMat.clone();orbShardMat.__shared=true;orbShardMat.color.multiplyScalar(.8);orbShardMat.emissiveIntensity=.09;
+    function orbBody(){var g=new T.Group();g.name='boss2_physical_core';var body=new T.Mesh(orbBodyGeo,orbBodyMat),shards=new T.Mesh(orbShardGeo,orbShardMat);body.receiveShadow=shards.receiveShadow=true;g.add(body,shards);g.visible=false;g.frustumCulled=false;group.add(g);return g;}
     var pool = [];
     for (var oi = 0; oi < 6; oi++) {
       var ring = new T.Mesh(ringGeo, new T.MeshBasicMaterial({ color: 0xffd08a, vertexColors: true, transparent: true, opacity: 0, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide }));
       ring.visible = false; ring.frustumCulled = false; ring.renderOrder = 3; group.add(ring);
-      pool.push({ on: false, glow: sprite(0xffffff, 1.4), core: sprite(0xffffff, .7), ring: ring, hz: { damage: 10, owner: null, enemy: '', attack: '', style: 'ember', x: 0, z: 0 }, trail: 0 });
+      pool.push({ on: false, glow: sprite(0xffffff, 1.4), core: sprite(0xffffff, .7), body:orbBody(), ring: ring, hz: { damage: 10, owner: null, enemy: '', attack: '', style: 'ember', x: 0, z: 0 }, trail: 0 });
     }
     var orbs = core.orbs = {
       pool: pool,
@@ -151,14 +161,14 @@
         orb.age = 0; orb.launched = false; orb.cd = 0; orb.trail = 0; orb.h = owner.face;
         orb.x = owner.x + Math.sin(owner.face + orb.off) * 1.5; orb.z = owner.z + Math.cos(owner.face + orb.off) * 1.5; orb.y = 1.9;
         var c = orb.kind === 'slag' ? [1, .45, .12] : [.5, .3, 1];
-        orb.glow.material.color.setRGB(c[0] * .8, c[1] * .8, c[2] * .9); orb.core.material.color.setRGB(.95, .85, .9);
+        orb.glow.material.color.setRGB(c[0]*.6,c[1]*.6,c[2]*.65);orb.glow.material.opacity=.24;orb.core.material.color.setRGB(c[0]*.75,c[1]*.75,c[2]*.8);orb.core.material.opacity=.22;
         orb.hz.damage = o.damage || 12; orb.hz.owner = owner; orb.hz.enemy = owner.name; orb.hz.attack = o.name || 'Küre';
-        orb.glow.visible = orb.core.visible = true; orb.ring.visible = true; orb.ring.material.color.setRGB(1, .19, .10);
+        orb.glow.visible = orb.core.visible = orb.body.visible = true; orb.ring.visible = true; orb.ring.material.color.setRGB(1, .19, .10);
         return orb;
       },
       kill: function (orb, quiet) {
         if (!orb.on) return;
-        orb.on = false; orb.glow.visible = orb.core.visible = orb.ring.visible = false;
+        orb.on = false; orb.glow.visible = orb.core.visible = orb.body.visible = orb.ring.visible = false;
         if (!quiet && orb.launched) {
           ext.fx('boss2Orb', { x: orb.x, z: orb.z, y: 1, kind: orb.kind, end: true });
           if (orb.kind === 'slag' && orb.owner && !orb.owner.dead && ext.walkable(orb.x, orb.z, .3)) core.ground(orb.owner, { x: orb.x, z: orb.z, radius: 1.7, duration: 3.6, damage: 4, name: 'Cüruf Birikintisi', warn: .55 });
@@ -203,6 +213,7 @@
           }
         }
         o.glow.position.set(o.x, o.y, o.z); o.core.position.set(o.x, o.y, o.z); o.ring.position.set(o.x, world.effectHeightAt ? world.effectHeightAt(o.x,o.z,1) : .07, o.z);
+        o.body.position.set(o.x,o.y,o.z);o.body.rotation.set(o.age*.31+i*.8,o.age*.53+i*1.4,o.age*.17);o.body.scale.setScalar(.72+.28*Math.min(1,o.age/o.hold));
       }
     }
 
@@ -535,8 +546,9 @@
       orbs.clear(); glowTex.dispose(); ringGeo.dispose(); if (world.__boss2 && world.__boss2.p === pillars) world.__boss2.p = null;
       group.traverse(function (o) {
         if (o.isSprite || (o.isMesh && o.material && o.material !== coverMaterial)) { if (o.material && !o.material.__shared) o.material.dispose(); }
-        if (o.isMesh && o.geometry && o.geometry !== ringGeo) o.geometry.dispose();
+        if (o.isMesh && o.geometry && o.geometry !== ringGeo && o.geometry !== orbBodyGeo && o.geometry !== orbShardGeo) o.geometry.dispose();
       });
+      orbBodyGeo.dispose();orbShardGeo.dispose();orbBodyMat.dispose();orbShardMat.dispose();orbStoneTex.dispose();
       group.removeFromParent();
       if (Boss2.current === core) Boss2.current = null;
     };

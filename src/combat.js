@@ -1212,7 +1212,14 @@
 
     // ---- Round 7: new executioner moves (TBC-raid mechanics seen through a top-down lens; every one has a >= .7 s ground tell, gold = ordinary, crimson = must-dodge).
     // Mechanic state (cool-downs, orbs, ritual anchors, the frenzy clock) lives in boss-mech.js; here are only the move builders and the choice tables.
-    mech = BABA.BossMech ? BABA.BossMech.create({ root, player, game, hazards, addHazard, cancelHazards, walkable, emit, sound, fx,
+    // A rite anchor must fit on the owner's side of the closed entrance. The static floor also exists beyond that seal.
+    function anchorWalkable(x, z, radius, owner) {
+      if (!walkable(x, z, radius)) return false;
+      const seal = owner && seals.find(s => s.encounter === owner.encounter);
+      if (!seal || seal.open) return true;
+      return owner.z < seal.z ? z + radius <= seal.z : z - radius >= seal.z;
+    }
+    mech = BABA.BossMech ? BABA.BossMech.create({ root, player, game, hazards, addHazard, cancelHazards, walkable, anchorWalkable, emit, sound, fx,
       groundY: (x, z) => world.effectHeightAt ? world.effectHeightAt(x, z, .6) : .06 }) : null;
     const PACE = () => game.difficulty === 'hard' ? 1 : game.difficulty === 'easy' ? 1.2 : 1.12;   // beginMove stretches every move by this; timers that run outside a move follow it
     // Zincir Çekişi (gravity pull, then the slam on the spot where you land): a gold ring drags everything inside it to the executioner, a crimson circle under him
