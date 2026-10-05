@@ -480,7 +480,7 @@
       parts.forEach(function (part) { if (part.geometry.index && part.geometry.index.count === 0) return; (byKey[part.key] = byKey[part.key] || []).push(part.geometry); });
       var skeleton = new T.Skeleton(bones, inverses), meshes = [];
       Object.keys(byKey).forEach(function (key) {
-        var geo = mergeSkinned(byKey[key]), mat = materials[key] || gearMaterial(key);
+        var geo = mergeSkinned(byKey[key]), mat = materials[key] || gearMaterial(key === 'mantle-brooch' ? 'dark' : key === 'base-straps' ? 'leather' : key);
         // Eyes, brows, lashes and teeth sit inside the head silhouette: their shadow is invisible, but each
         // was one more skinned draw in every shadow pass.
         var mesh = new T.SkinnedMesh(geo, mat); mesh.name = key; mesh.receiveShadow = true; mesh.castShadow = !HIDDEN_CASTER.test(key);
@@ -492,7 +492,7 @@
       meshes.forEach(function (mesh) {
         var m = mesh.material, key = mesh.name;
         if (!mesh.castShadow || !m || Array.isArray(m) || m.transparent || m.alphaTest > 0 || m.alphaMap || m.displacementMap || m.visible === false || /^equipment:/.test(key)) return;
-        if (A.base === 'barbarian' && (PROXY_FLARE[key] || key === 'iron')) return;   // whirlwind-flared fur / cloth / beard and the swappable chest iron stay real casters
+        if (A.base === 'barbarian' && (PROXY_FLARE[key] || key === 'iron' || key === 'base-straps' || key === 'mantle-brooch')) return;   // whirlwind-flared fur / cloth / beard and the swappable chest iron stay real casters
         var side = m.shadowSide !== null && m.shadowSide !== undefined ? 'x' + m.shadowSide : 's' + m.side;
         (groups[side] = groups[side] || []).push(mesh);
       });
@@ -892,47 +892,9 @@
 
   // Equipment uses the same packaged CC0 scans as the world. Colour grading sits over their albedo,
   // relief and ARM maps; changing an item never allocates a texture, a material or geometry.
-  function equipmentMaterial(key) {
-    var name = 'equipment-' + key; if (library[name]) return library[name];
-    var scan = 'rust', cls = 'metal', tint = [.78, .78, .8], sat = .08, rough = .68, metalness = .76, wear = 1, grime = .25;
-    if (key === 'rust') { tint = [.65, .47, .32]; sat = .55; rough = .88; metalness = .52; grime = .46; }
-    else if (key === 'steel') { tint = [1.16, 1.12, 1.07]; rough = .44; wear = 1.12; }
-    else if (key === 'salt') { tint = [.90, 1.01, 1.04]; rough = .52; wear = 1.18; }
-    else if (key === 'edge') { tint = [1.6, 1.63, 1.7]; rough = .3; metalness = .9; wear = .6; grime = .12; }
-    else if (key === 'brass') { tint = [1.12, .76, .34]; sat = .18; rough = .48; }
-    else if (key === 'dark') { tint = [.28, .3, .32]; rough = .82; }
-    else if (key === 'leather' || key === 'strap') { scan = 'leather'; cls = 'leather'; tint = key === 'strap' ? [.44, .34, .26] : [.8, .66, .52]; sat = .6; rough = .88; metalness = 0; }
-    else if (key === 'cloth' || key === 'rag') { scan = 'linen'; cls = 'cloth'; tint = key === 'rag' ? [.36, .28, .22] : [.62, .57, .49]; sat = .35; rough = 1; metalness = 0; grime = .4; }
-    else if (key === 'wood') { scan = 'wood'; cls = 'wood'; tint = [.78, .62, .45]; sat = .7; rough = .84; metalness = 0; }
-    else if (key === 'bone') { scan = 'masonry'; cls = 'bone'; tint = [1.2, 1.05, .8]; sat = .15; rough = .85; metalness = 0; }
-    var m = std(surfaceProps(scan === 'rust' ? 'iron' : scan, { roughness: rough, metalness: metalness, side: cls === 'cloth' ? T.DoubleSide : T.FrontSide }),
-      { cls: cls, sat: sat, tint: tint, grime: grime, wear: wear, blood: cls === 'metal' ? .12 : .06, tear: key === 'rag', scale: 9 });
-    m.normalScale.set(cls === 'metal' ? .48 : .75, cls === 'metal' ? .48 : .75);
-    if (key === 'cloth') m.color.setHex(0x5a4549);
-    if (key === 'rag') m.color.setHex(0x82664e);
-    m.name = 'kara-' + name; library[name] = m; return m;
-  }
-  var EQUIPMENT_FINISHES = ['ash', 'rust', 'brine', 'blood', 'bone'], equipmentPalette = {};
-  function equipmentFinish(source, finish) {
-    if (EQUIPMENT_FINISHES.indexOf(finish) < 0 || !/^kara-equipment-/.test(source.name)) return source;
-    // Keep bright cutting edges, buckles and dark seams readable against the main surface.
-    if (/-(edge|brass|dark|strap|bone)$/.test(source.name)) return source;
-    var cls = source.defines && source.defines.KARA_CLASS, kind = cls === 1 ? 'metal' : cls === 2 ? 'leather' : cls === 3 ? 'cloth' : cls === 6 ? 'wood' : null;
-    if (!kind) return source;
-    var tear = source.defines.KARA_TEAR !== undefined, key = kind + (tear ? '-torn' : '') + '-' + finish;
-    if (equipmentPalette[key]) return equipmentPalette[key];
-    var tones = { ash: [.46, .5, .56], rust: [.82, .48, .27], brine: [.7, 1.05, 1.16], blood: [.68, .3, .25], bone: [1.25, 1.12, .83] };
-    var tint = tones[finish].slice();
-    if (kind === 'leather' || kind === 'wood') { tint[0] *= .75; tint[1] *= .62; tint[2] *= .5; }
-    var m = source.clone();
-    m.userData = {};
-    grade(m, { cls: kind === 'metal' ? 'metal' : kind, tint: tint, sat: finish === 'rust' ? .55 : .15,
-      grime: finish === 'ash' ? .42 : .25, blood: finish === 'blood' ? .52 : .08,
-      rust: finish === 'rust' && kind === 'metal' ? .28 : .02, wear: finish === 'brine' ? 1.35 : 1,
-      tear: tear, scale: 9 });
-    if (kind === 'metal') m.roughness = finish === 'rust' ? .86 : finish === 'brine' ? .56 : .65;
-    m.name = 'kara-equipment-' + key; equipmentPalette[key] = m; return m;
-  }
+  function equipmentMaterial(key) { return B.EquipmentArt.material(key); }
+  var EQUIPMENT_FINISHES = ['ash', 'rust', 'brine', 'blood', 'bone'], equipmentPalette = B.EquipmentArt.finishes;
+  function equipmentFinish(source, finish) { return B.EquipmentArt.finish(source, finish); }
   function equipmentItem(id, slot) {
     var item = id && B.Progression && B.Progression.catalog[id];
     return item && item.slot === slot ? item : null;
@@ -959,26 +921,6 @@
     if (scale) piece.tip.multiply(new T.Vector3().fromArray(scale));
     piece.materials = mats; piece.id = id; piece.type = type; return piece;
   }
-  function equipmentSpear(bell) {
-    var P = { wood: [], steel: [], edge: [], dark: [], leather: [], bone: [], brass: [] }, top = bell ? 1.86 : 1.66;
-    P.wood.push(G.tube([[0, -.55, 0], [.008, .05, -.003], [-.006, .75, .004], [0, top - .38, 0]], .026, 12, 36, true));
-    var leaf = G.blade(top - .42, top, 40, function (y) { var t = (y - top + .42) / .42, w = .014 + Math.sin(t * PI) * (bell ? .083 : .067); if (t > .9) w *= (1 - t) * 10; return [-w, w]; }, .024, .3);
-    P.steel.push(leaf.body); P.edge.push(leaf.edge);
-    [-.48, .34, top - .41].forEach(function (y, i) { P.dark.push(G.ring(.031, .006, [0, y, 0], null, 6, 20)); if (i > 0) P.bone.push(G.ring(.035, .008, [0, y + .02, 0], null, 7, 24)); });
-    var wrap = []; for (var i = 0; i <= 96; i++) { var t = i / 96, a = t * TAU * 8; wrap.push([Math.cos(a) * .029, -.22 + t * .35, Math.sin(a) * .029]); }
-    P.leather.push(G.tube(wrap, .0045, 5, 96, true));
-    P.dark.push(G.cyl(.019, .036, .15, 8, [0, -.6, 0]));
-    if (bell) {
-      // A silent, cracked bell with a suspended iron clapper, seated below the long leaf blade.
-      P.brass.push(G.lathe([[.024, -.1], [.029, -.07], [.034, -.015], [.054, .035], [.071, .05], [.073, .065]], 24).translate(0, top - .54, 0));
-      P.dark.push(G.tube([[0, top - .6, 0], [0, top - .49, 0]], .006, 6, 10, true), G.sphere(.015, [0, top - .49, 0], [1, 1.25, 1], 10, 8));
-      [-1, 1].forEach(function (s) { P.steel.push(G.extrude([[s * .02, top - .42], [s * .14, top - .5], [s * .17, top - .44], [s * .075, top - .31]], .018, .004)); });
-      P.brass.push(G.chain([[.03, .38, 0], [.085, .18, .01], [.045, .04, .025]], .032));
-    } else {
-      for (i = 0; i < 3; i++) P.bone.push(G.ring(.036 + i * .0015, .01, [0, top - .39 + i * .03, 0], null, 7, 20));
-    }
-    return { parts: P, tip: new T.Vector3(0, top, 0) };
-  }
   function heroEquipment(A) {
     var data = { armor: {}, weapons: {}, materials: {} }, BODY = ['skin', 'leather'], TORSO = ['pelvis', 'spine01', 'spine02', 'spine03', 'shoulderL', 'shoulderR'];
     function part(slot, id, material, geometry, bone, opts) {
@@ -989,194 +931,7 @@
       if (bone) A.rigid(key, geometry, bone); else A.transfer(key, geometry, BODY, opts || { bones: TORSO });
       A.parts[A.parts.length - 1].equipment = true;
     }
-    var headCloud = A.cloud(['head'], ['skin'], .6), headBox = A.box(headCloud), hc = headBox.getCenter(new T.Vector3()), hs = headBox.getSize(new T.Vector3()), headRay = rayRadius(headCloud, hc, .022), hd = new T.Vector3();
-    function hoodPoint(u, v) {
-      var az = mix(.72, TAU - .72, u), el = mix(-.64, PI * .5, v);
-      hd.set(Math.sin(az) * Math.cos(el), Math.sin(el), Math.cos(az) * Math.cos(el));
-      var r = headRay(hd) + .019 + .008 * Math.sin(az * 7 + v * 3) * (1 - v);
-      var p = hc.clone().addScaledVector(hd, r);
-      p.y += .065 * Math.pow(v, 5); // a tailored pointed crown instead of a shrink-wrapped sack
-      p.z -= .018 * Math.pow(v, 3);
-      return p.toArray();
-    }
-    part('head', 'cloth-hood', 'cloth', G.shell(32, 12, hoodPoint, .009, false), 'head');
-    var hoodEdge = []; for (var j = 0; j <= 12; j++) hoodEdge.push(hoodPoint(0, j / 12)); for (j = 12; j >= 0; j--) hoodEdge.push(hoodPoint(1, j / 12));
-    part('head', 'cloth-hood', 'strap', G.tube(hoodEdge, .004, 5, 40, true), 'head');
-    // A collar, a stitched face opening and a shoulder-length cowl give cloth its own silhouette.
-    ['cloth-hood','prayer-hood','buried-hood'].forEach(function(id,k) {
-      var mantle = G.shell(36,8,function(u,v) {
-        var a=u*TAU, r=mix(.075,.20+k*.018,v);
-        return [hc.x+Math.sin(a)*r, hc.y-hs.y*.34-v*(.12+k*.025)+Math.sin(a*6)*.008*v, hc.z+Math.cos(a)*r*.72];
-      },.009,true);
-      part('head',id,'cloth',mantle,'spine03');
-      var trim=[];for(var n=0;n<=36;n++){var a=n/36*TAU;trim.push([hc.x+Math.sin(a)*(.20+k*.018),hc.y-hs.y*.34-.12-k*.025+Math.sin(a*6)*.008,hc.z+Math.cos(a)*(.20+k*.018)*.72]);}
-      part('head',id,k===2?'bone':'strap',G.tube(trim,.0045,5,40,true),'spine03');
-      if(k!==2) {var clasp=G.buckle(.025,.032,.003);clasp.translate(hc.x,hc.y-hs.y*.33-.075,hc.z+.12);part('head',id,'brass',clasp,'spine03');}
-      var stitches=[];for(var n=1;n<11;n++){var p=hoodPoint(0,n/12);stitches.push(G.sphere(.0028,p,[1,1,1],6,4));p=hoodPoint(1,n/12);stitches.push(G.sphere(.0028,p,[1,1,1],6,4));}
-      part('head',id,'strap',G.merge(stitches),'head');
-    });
-    ['iron-helm', 'drowned-helm'].forEach(function (id, k) {
-      var helm = G.greatHelm(Math.max(hs.x, hs.z) * .5 + .009, hs.y * .83), m = T4(hc.x, hc.y + hs.y * .08, hc.z + .003);
-      helm.parts.edge = []; helm.parts.dark.splice(-9);
-      Object.keys(helm.parts).forEach(function (key) { if (!helm.parts[key].length) return; var g = G.merge(helm.parts[key]); g.applyMatrix4(m); part('head', id, key === 'iron' ? (k ? 'salt' : 'steel') : key === 'void' ? 'dark' : key, g, 'head'); });
-      if(!k){var crest=G.extrude([[-.045,0],[.045,0],[.027,.11],[-.02,.075]],.08,.006);crest.translate(hc.x,hc.y+hs.y*.48,hc.z-.01);part('head',id,'steel',crest,'head');}
-      if (k) { var crest = G.extrude([[-.037, 0], [.037, 0], [.048, .13], [0, .185], [-.048, .13]], .013, .003); crest.translate(hc.x, hc.y + hs.y * .46, hc.z); part('head', id, 'brass', crest, 'head'); }
-    });
-    // Different silhouettes remain readable at the play camera: cowls, closed masks and broken crowns.
-    ['prayer-hood','buried-hood'].forEach(function(id,k){
-      part('head',id,'cloth',G.shell(28,10,function(u,v){var p=hoodPoint(u,v);p[1]+=(1-v)*(.045+k*.03);p[2]-=.018;return p;},.012,false),'head');
-      var brow=G.box(hs.x*.78,.027,.012,[hc.x,hc.y+hs.y*.26,hc.z+hs.z*.49]);part('head',id,k?'bone':'strap',brow,'head');
-      [-1,1].forEach(function(s){part('head',id,'cloth',G.box(.045,.18+k*.07,.013,[hc.x+s*hs.x*.4,hc.y-hs.y*.18,hc.z+hs.z*.3]),'head');});
-    });
-    ['sealed-mask','furnace-mask','bell-helm','bone-crown','warden-crown'].forEach(function(id,k){
-      var helm=G.greatHelm(Math.max(hs.x,hs.z)*.5+.015,hs.y*(k>=3?.62:.84)),m=T4(hc.x,hc.y+hs.y*.08,hc.z);
-      helm.parts.edge=[];helm.parts.dark.splice(-9);
-      if(k===2){var brim=G.lathe([[hs.x*.53,0],[hs.x*.73,-.024],[hs.x*.75,-.031]],32);brim.translate(hc.x,hc.y+hs.y*.3,hc.z);part('head',id,'brass',brim,'head');}
-      Object.keys(helm.parts).forEach(function(key){if(helm.parts[key].length){var g=G.merge(helm.parts[key]);g.applyMatrix4(m);part('head',id,key==='void'?'dark':key==='iron'?'steel':key,g,'head');}});
-      if(k===0||k===1){var plate=G.extrude([[-hs.x*.42,hs.y*.22],[hs.x*.42,hs.y*.22],[hs.x*.32,-hs.y*.38],[0,-hs.y*.48],[-hs.x*.32,-hs.y*.38]],.018,.003);plate.translate(hc.x,hc.y,hc.z+hs.z*.51);part('head',id,k?'dark':'steel',plate,'head');[-1,1].forEach(function(s){part('head',id,'brass',G.box(hs.x*.22,.008,.021,[hc.x+s*hs.x*.22,hc.y+hs.y*.12,hc.z+hs.z*.52]),'head');});}
-      if(k===2){var bell=G.lathe([[.025,0],[.032,.035],[.07,.085],[.079,.1]],16);bell.translate(hc.x,hc.y+hs.y*.39,hc.z);part('head',id,'brass',bell,'head');}
-      if(k>=3){for(var c=0;c<7;c++){var a=c/7*TAU,r=Math.max(hs.x,hs.z)*.55;part('head',id,'bone',G.cyl(.004,.019,.1+(c%2)*.05,6,[hc.x+Math.sin(a)*r,hc.y+hs.y*.48,hc.z+Math.cos(a)*r]),'head');}if(k===4)[-1,1].forEach(function(s){part('head',id,'bone',G.tube([[hc.x+s*hs.x*.48,hc.y+hs.y*.2,hc.z],[hc.x+s*hs.x*.7,hc.y+hs.y*.5,hc.z-.02],[hc.x+s*hs.x*.64,hc.y+hs.y*.83,hc.z-.045]],.018,6,14,true),'head');});}
-    });
-    var torso = A.cloud(['pelvis', 'spine01', 'spine02', 'spine03'], BODY, .15), cz = A.P('spine03').z - .01, field = radialField(torso, 0, cz, .065, .32);
-    function armorShoulder(sign) {
-      var cloud=A.cloud(['upper_arm'+(sign>0?'L':'R')],['skin'],.4),box=A.box(cloud),p=box.getCenter(new T.Vector3());
-      p.y=box.max.y+.012;return p;
-    }
-    function chestPoint(u, v, offset) { var a = u * TAU, side = Math.abs(Math.sin(a)), low = .89 - .025 * Math.cos(a), high = 1.53 - .065 * side + .018 * Math.cos(a), y = mix(low, high, v), forged = offset > .02 ? 1 : 0;
-      // Pressed breastplate keel and four shallow flutes are formed from the existing shell vertices.
-      // They catch the key light as the torso turns without extra meshes, a normal-map pass or a decal.
-      var front = Math.max(0, Math.cos(a)), flute = Math.pow(Math.max(0, Math.cos(a * 6)), 6),
-        ridge = forged * Math.sin(v * PI) * (.014 * Math.pow(front, 14) + .0045 * flute),
-        r = Math.max(.11, field(a, y)) + offset + ridge;
-      y -= forged * .018 * Math.pow(front, 6) * Math.pow(1 - v, 3);
-      return [Math.sin(a) * r, y, cz + Math.cos(a) * r]; }
-    ['torn-chest', 'grave-chest', 'coast-chest'].forEach(function (id, k) {
-      var offset = k ? .023 : .012, shell = G.shell(36, 12, function (u, v) { var p = chestPoint(u, v, offset); if (!k) { p[1] += Math.pow(1 - v, 8) * (G.hash(u * 29, 8, 3) - .5) * .055; var fold = (Math.sin(u * TAU * 7 + v * 1.2) * .009 + (G.fbm(u * 12, v * 8, 3) - .5) * .004) * Math.pow(1 - v, 1.3); p[0] += Math.sin(u * TAU) * fold; p[2] += Math.cos(u * TAU) * fold; } return p; }, k ? .013 : .006, true);
-      G.uvScale(shell, 2, 1.1); part('chest', id, k ? (k === 2 ? 'salt' : 'steel') : 'rag', shell);
-      var fittings = [], borders = [];
-      for (var i = 0; i <= 36; i++) { var u = i / 36; borders.push(chestPoint(u, .03, offset + .004)); if (i < 36 && i % (k ? 2 : 4) === 0) { var p = chestPoint(u, .07, offset + .006), n = new T.Vector3(Math.sin(u * TAU), 0, Math.cos(u * TAU)); fittings.push(G.stud(k ? .006 : .0038, p, n)); } }
-      part('chest', id, k ? 'dark' : 'strap', G.tube(borders, k ? .006 : .0035, 5, 60, true));
-      if (fittings.length) part('chest', id, k ? 'brass' : 'strap', G.merge(fittings));
-      [-1, 1].forEach(function (s) { var p = chestPoint(s > 0 ? .23 : .77, .35, offset + .006), buckle = G.buckle(.023, .034, .003); buckle.applyMatrix4(onBody(A, p, BODY, null, offset + .012)); part('chest', id, 'strap', buckle, null, { bones: TORSO, pin: true }); });
-      if (!k) {
-        // Two visible hand-sewn side seams on the starter cloth. They join the existing strap
-        // mesh/material; stitch boxes are tiny solid thread crossings, not transparent decals.
-        var stitches = [], seams = [];
-        [.17,.83].forEach(function(u) {
-          var a=u*TAU, line=[];
-          for(var j=0;j<=12;j++)line.push(chestPoint(u,.12+j/12*.70,offset+.004));
-          seams.push(G.tube(line,.0024,4,12,true));
-          for(var j=0;j<9;j++){var p=chestPoint(u,.15+j*.073,offset+.006),thread=G.box(.017,.0028,.0028);
-            thread.rotateZ((j%2?1:-1)*.24);thread.rotateY(a);thread.translate(p[0],p[1],p[2]);stitches.push(thread);}
-        });
-        part('chest',id,'strap',G.merge(seams.concat(stitches)));
-      }
-      if(k) {
-        [-1,1].forEach(function(sign){var bone='upper_arm'+(sign>0?'L':'R'),at=armorShoulder(sign);
-          for(var layer=0;layer<3;layer++)part('chest',id,k===2?'salt':'steel',G.sphere(.115+layer*.018,[at.x+sign*layer*.027,at.y+.032-layer*.023,at.z],[1.2,.42,1.02],20,12),bone);
-        });
-        var lames=[];for(var layer=0;layer<3;layer++)lames.push(G.shell(32,3,function(u,v){var p=chestPoint(u,.05,.03+layer*.004);p[1]-=.02+layer*.031+v*.025;return p;},.008,true));part('chest',id,k===2?'salt':'steel',G.merge(lames),null,{bones:['pelvis','spine01']});
-      }
-      if (k === 2) {
-        var emblem = G.lathe([[.004, -.018], [.023, -.01], [.03, .01], [.027, .015]], 20).rotateX(PI / 2); var ep = chestPoint(0, .64, offset + .014); emblem.translate(ep[0], ep[1], ep[2]); part('chest', id, 'brass', emblem, 'spine03');
-        var chain = G.chain([chestPoint(.07, .85, offset + .01), chestPoint(0, .4, offset + .028), chestPoint(.93, .85, offset + .01)], .034); part('chest', id, 'dark', chain);
-      }
-    });
-    // Three separate constructions: riveted leather, overlapping metal scales and a sailor's split coat.
-    ['brigandine-chest','lamellar-chest','sailcoat-chest'].forEach(function(id,k) {
-      part('chest',id,k===1?'dark':'leather',G.shell(36,14,function(u,v){return chestPoint(u,v,.021);},.012,true));
-      var plates=[],rivets=[],seams=[];
-      for(var row=0;row<4;row++)for(var col=0;col<9;col++) {
-        var u=(col+.5)/9, v=.18+row*.18, p=chestPoint(u,v,.036), a=u*TAU;
-        if(k===1){var plate=G.box(.066,.066,.009);plate.rotateY(a);plate.rotateZ(Math.sin(a)*.1);plate.translate(p[0],p[1],p[2]);plates.push(plate);}
-        if(k!==2)rivets.push(G.stud(k===1?.004:.0035,p,new T.Vector3(Math.sin(a),0,Math.cos(a))));
-      }
-      if(plates.length)part('chest',id,'steel',G.merge(plates));
-      if(rivets.length)part('chest',id,'brass',G.merge(rivets));
-      [.075,.925].forEach(function(u){var line=[];for(var n=0;n<=14;n++)line.push(chestPoint(u,.08+n/14*.88,.031));seams.push(G.tube(line,.005,6,18,true));});
-      part('chest',id,k===2?'cloth':'strap',G.merge(seams));
-      var belt=[];for(var n=0;n<=36;n++)belt.push(chestPoint(n/36,.10,.035));part('chest',id,'strap',G.tube(belt,.012,6,40,true));
-      var p=chestPoint(0,.12,.045), buckle=G.buckle(.043,.028,.004);buckle.translate(p[0],p[1],p[2]);part('chest',id,'brass',buckle,'spine01');
-      [-1,1].forEach(function(sign){var bone='shoulder'+(sign>0?'L':'R'), at=A.P(bone);
-        for(var layer=0;layer<(k===1?3:2);layer++)part('chest',id,k===1?'steel':'leather',G.sphere(.115+layer*.018,[at.x+sign*layer*.025,at.y+.032-layer*.021,at.z],[1.25,.38,1.08],20,12),bone);
-      });
-      if(k===2) {for(var side=0;side<2;side++){var tail=G.shell(18,8,function(u,v){var a=mix(side?PI+.15:.15,side?TAU-.15:PI-.15,u),r=.19+v*.018;return [Math.sin(a)*r,1.1-v*.22,cz+Math.cos(a)*r];},.009,false);part('chest',id,'cloth',tail,null,{bones:['pelvis','spine01']});}}
-    });
-    ['chainmail-chest','warden-chest','rib-chest'].forEach(function(id,k){
-      part('chest',id,k===0?'dark':'steel',G.shell(28,10,function(u,v){return chestPoint(u,v,.027);},.014,true));
-      [-1,1].forEach(function(s){
-        if(k===0){for(var n=0;n<5;n++){var p=chestPoint(s>0?.07:.93,.25+n*.12,.041);part('chest',id,'steel',G.ring(.026,.006,p,[PI/2,0,0],6,10));}}
-        else{for(var n=0;n<4;n++){var p=chestPoint(0,.25+n*.16,.046),rib=G.tube([[s*.035,p[1]+.012,p[2]+.01],[s*.10,p[1]+.027,p[2]-.005],[s*.15,p[1]-.01,p[2]-.045]],.011,6,12,true);part('chest',id,k===2?'bone':'dark',rib);}}
-        var shoulder=armorShoulder(s);part('chest',id,k===2?'bone':'steel',G.sphere(.12,[shoulder.x,shoulder.y+.018,shoulder.z],[1.2,.48,1.05],12,8),'upper_arm'+(s>0?'L':'R'));
-      });
-      if(k===1){var p=chestPoint(0,.66,.055);part('chest',id,'brass',G.extrude([[-.03,.025],[0,.055],[.03,.025],[.018,-.03],[-.018,-.03]],.012,.002).translate(p[0],p[1],p[2]),'spine03');}
-    });
-    ['L', 'R'].forEach(function (s) {
-      var fore = 'forearm' + s, hand = 'hand' + s, shin = 'shin' + s, foot = 'tarsal' + s;
-      ['rag-wraps', 'chain-gloves', 'salt-gauntlets'].forEach(function (id, k) {
-        var cover = sleeve(A, fore, hand, k ? .33 : .4, .96, .012 + k * .003, .007, BODY);
-        G.uvScale(cover.geometry, 1.6, 1); part('hands', id, k ? 'leather' : 'cloth', cover.geometry, fore);
-        var bindings = []; for (var i = 0; i <= 84; i++) { var t = i / 84, p = cover.at(t * TAU * (k ? 4 : 6), mix(k ? .36 : .43, .93, t), .006)[0]; bindings.push(p); }
-        part('hands', id, k ? 'dark' : 'rag', G.tube(bindings, k ? .0045 : .006, 5, 84, true), fore);
-        if (k) {
-          var steel = sleeve(A, fore, hand, .4, .84, .025, .01, BODY); part('hands', id, k === 2 ? 'salt' : 'steel', steel.geometry, fore);
-          var hp = A.P(hand), cap = G.box(.074, .013, .07, [hp.x + (s === 'L' ? .032 : -.032), hp.y + .026, hp.z]); part('hands', id, k === 2 ? 'salt' : 'dark', cap, hand);
-          var rivets = []; for (i = 0; i < 6; i++) { var q = steel.at(i / 6 * TAU, .45, .006); rivets.push(G.stud(.004, q[0], q[1])); } part('hands', id, 'brass', G.merge(rivets), fore);
-        }
-      });
-      ['chain-gloves','salt-gauntlets'].forEach(function(id,k){var cover=sleeve(A,fore,hand,.30,.82,.030,.012,BODY),parts=[];
-        for(var n=0;n<3;n++){var p=cover.at(PI/2,.37+n*.15,.007);parts.push(G.stud(.006,p[0],p[1]));}
-        part('hands',id,'brass',G.merge(parts),fore);
-        var hp=A.P(hand);for(var n=0;n<3;n++)part('hands',id,k?'salt':'steel',G.sphere(.014,[hp.x+(s==='L'?1:-1)*(.02+n*.018),hp.y+.035,hp.z+.02],[1,.6,1.25],10,6),hand);
-      });
-      var feet = A.cloud([foot, 'toe' + s], ['skin'], .35), fb = A.box(feet), fc = fb.getCenter(new T.Vector3()), fs = fb.getSize(new T.Vector3());
-      ['worn-boots', 'grave-boots', 'tide-boots'].forEach(function (id, k) {
-        var cover = sleeve(A, shin, foot, k ? .54 : .69, 1.03, .015, .008, BODY); G.uvScale(cover.geometry, 1.3, 1.4); part('boots', id, 'leather', cover.geometry, shin);
-        var shoe = G.sphere(1, fc.toArray(), [Math.max(fs.x * .65, .055), Math.max(fs.y * .6, .04), Math.max(fs.z * .72, .1)], 24, 16);
-        var p = shoe.attributes.position; for (var i = 0; i < p.count; i++) p.setY(i, Math.max(fb.min.y, p.getY(i))); shoe.computeVertexNormals(); part('boots', id, 'leather', shoe, foot);
-        var buckleAt = cover.at(PI / 2, .83, .01), buckle = G.buckle(.028, .028, .003); G.orient(buckle, buckleAt[0], buckleAt[1]); part('boots', id, 'brass', buckle, shin);
-        if (k) {
-          var plate = sleeve(A, shin, foot, k === 2 ? .48 : .66, .89, .027, .01, BODY); part('boots', id, k === 2 ? 'salt' : 'steel', plate.geometry, shin);
-          var studs = []; for (i = 0; i < 8; i++) { var q = plate.at(i / 8 * TAU, .75, .005); studs.push(G.stud(.0045, q[0], q[1])); } part('boots', id, 'brass', G.merge(studs), shin);
-        }
-      });
-      ['grave-boots','tide-boots'].forEach(function(id,k){var bands=[];for(var n=0;n<3;n++){var cap=G.sphere(1,[fc.x,fc.y+.016,fc.z+(n-1)*fs.z*.16],[Math.max(fs.x*.65,.06),.024,Math.max(fs.z*.19,.025)],16,8);bands.push(cap);}part('boots',id,k?'salt':'steel',G.merge(bands),foot);});
-      ['claw-gauntlets','warden-grasp'].forEach(function(id,k){
-        var steel=sleeve(A,fore,hand,.3,.91,.032,.012,BODY);part('hands',id,'steel',steel.geometry,fore);
-        var hp=A.P(hand),sign=s==='L'?1:-1;
-        for(var f=0;f<3;f++){var x=hp.x+sign*(.018+f*.022);part('hands',id,k?'bone':'dark',G.tube([[x,hp.y+.025,hp.z-.035],[x,hp.y+.045,hp.z+.025],[x+sign*.009,hp.y+.015,hp.z+.075]],.008,5,10,true),hand);}
-        if(k)for(var n=0;n<3;n++){var p=steel.at(PI/2,.4+n*.16,.006)[0];part('hands',id,'bone',G.cyl(.003,.018,.07,6,[p.x,p.y+.025,p.z]),fore);}
-      });
-      ['shackle-boots','crown-boots'].forEach(function(id,k){
-        var cover=sleeve(A,shin,foot,.46,.99,.029,.012,BODY);part('boots',id,'steel',cover.geometry,shin);
-        part('boots',id,'leather',G.sphere(1,fc.toArray(),[Math.max(fs.x*.65,.06),Math.max(fs.y*.55,.04),Math.max(fs.z*.72,.11)],16,10),foot);
-        var ankle=cover.at(0,.87,.009)[0];part('boots',id,'dark',G.ring(.055,.012,ankle.toArray(),[PI/2,0,0],7,14),shin);
-        if(k){for(var n=0;n<3;n++){var p=cover.at(0,.55+n*.11,.012)[0];part('boots',id,'bone',G.box(.09,.018,.021,p.toArray()),shin);}}
-        else part('boots',id,'dark',G.chain([ankle.toArray(),[ankle.x+.025,ankle.y-.045,ankle.z+.01],[ankle.x,ankle.y-.09,ankle.z+.015]],.024),shin);
-      });
-    });
-    data.weapons['dull-sword'] = equipmentWeapon(G.falchion(), 'dull-sword', 'sword', 'rust', [.86, .94, .92]);
-    data.weapons['grave-sword'] = equipmentWeapon(G.cleaver(), 'grave-sword', 'sword', 'steel');
-    data.weapons['rust-axe'] = equipmentWeapon(G.bossAxe(), 'rust-axe', 'axe', 'rust', [.58, .65, .75]);
-    data.weapons['executioner-axe'] = equipmentWeapon(G.bossAxe(), 'executioner-axe', 'axe', 'steel', [.77, .82, .9]);
-    data.weapons['bone-spear'] = equipmentWeapon(equipmentSpear(false), 'bone-spear', 'spear', 'steel');
-    data.weapons['bell-spear'] = equipmentWeapon(equipmentSpear(true), 'bell-spear', 'spear', 'salt');
-    ['vow-sword','tide-blade','slag-blade','crown-blade'].forEach(function(id,k){
-      var P={wood:[],steel:[],edge:[],dark:[],bone:[],brass:[]},top=1.12+k*.065;
-      P.wood.push(G.cyl(.028,.032,.33,10,[0,-.17,0]));P.dark.push(G.box(.29,.038,.065,[0,.035,0]));
-      var blade=G.blade(.055,top,32,function(y){var t=(y-.055)/(top-.055),w=(k===1?.07:k===2?.105:.075)*(1-t*.45);if(t>.82)w*=(1-t)/.18;if(k===2)w*=1+(Math.floor(t*10)%2)*.23;return[-w,w];},.032,.4);P.steel.push(blade.body);P.edge.push(blade.edge);
-      if(k===0){for(var n=0;n<4;n++)P.bone.push(G.ring(.035,.005,[0,-.30+n*.06,0],[PI/2,0,0],5,12));}
-      if(k===1)[-1,1].forEach(function(s){P.steel.push(G.extrude([[s*.05,.13],[s*.15,.26],[s*.17,.48],[s*.09,.36]],.022,.003));});
-      if(k===2)P.dark.push(G.box(.025,.74,.039,[0,.47,0]));
-      if(k===3){for(var n=-2;n<=2;n++){P.brass.push(G.cyl(.003,.018,.09+(n%2?0:.035),6,[n*.065,.10,0]));}P.bone.push(G.ring(.038,.01,[0,-.36,0],[PI/2,0,0],6,14));}
-      data.weapons[id]=equipmentWeapon({parts:P,tip:new T.Vector3(0,top,0)},id,'sword','steel');
-    });
-    ['hook-axe','furnace-axe'].forEach(function(id,k){var piece=G.bossAxe();
-      piece.parts.bone=piece.parts.bone||[];piece.parts.brass=piece.parts.brass||[];
-      [-1,1].forEach(function(s){piece.parts.bone.push(G.extrude([[s*.06,.73],[s*(k?.32:.24),.84],[s*(k?.36:.21),1.09],[s*.10,.99]],.045,.006));});
-      if(k)for(var n=0;n<3;n++)piece.parts.brass.push(G.box(.045,.019,.065,[0,.67+n*.09,0]));
-      data.weapons[id]=equipmentWeapon(piece,id,'axe',k?'steel':'rust',[.69,.77,.85]);});
-    var fork=equipmentSpear(false);[-1,1].forEach(function(s){fork.parts.bone.push(G.tube([[s*.035,1.29,0],[s*.13,1.47,0],[s*.115,1.72,0]],.017,6,18,true));});data.weapons['fork-spear']=equipmentWeapon(fork,'fork-spear','spear','steel');
+    data.weapons = B.EquipmentArt.build({ A: A, part: part, sleeve: sleeve, equipmentWeapon: equipmentWeapon, rayRadius: rayRadius });
     return data;
   }
 
@@ -1187,7 +942,8 @@
     var body = A.addFrom(base, function (n) { return /LOW_body/.test(n.name); }, 'skin')[0];
     var eyes = A.addFrom(base, function (n) { return /LOW_eyes/.test(n.name); }, 'eye');
     openEyes(body.geometry, eyes[0].geometry, .22); eyes.forEach(function (p) { heroEyes(p.geometry); });
-    A.addFrom(base, function (n) { return /LOW_(cloth|leather)/.test(n.name) && !/leather_(boots|forearm)/.test(n.name); }, 'leather');
+    A.addFrom(base, function (n) { return /LOW_(cloth|leather)/.test(n.name) && !/leather_(boots|forearm|sbelts)/.test(n.name); }, 'leather');
+    A.addFrom(base, function (n) { return /LOW_leather_sbelts/.test(n.name); }, 'base-straps');
     A.addFrom(base, function (n) { return /LOW_metal/.test(n.name); }, 'iron');
     fitBeard(A, A.addFrom(base, function (n) { return /Beard/.test(n.name); }, 'beard'), A.addFrom(base, function (n) { return /Moustache/.test(n.name); }, 'moustache'));
     A.rigid('brow', browHair(A), 'head'); A.rigid('beardmass', beardMass(A), 'head');
@@ -1229,7 +985,7 @@
     [.03, .97].forEach(function (ub, k) {
       var pb = V3(mantlePoint(ub, .74, .014)), nb = pb.clone().sub(c).normalize(), st = [G.lathe([[0, .013], [.022, .012], [.034, .007], [.04, .002], [.038, -.004], [0, -.004]], 16), G.sphere(.009, [0, .014, 0], [1, .6, 1], 8, 6)];
       for (var q = 0; q < 8; q++) { var a = q / 8 * TAU; st.push(G.stud(.0045, [Math.cos(a) * .031, .008, Math.sin(a) * .031], [Math.cos(a) * .3, 1, Math.sin(a) * .3])); }
-      var g = G.merge(st); G.orient(g, pb, nb, k * .4); A.transfer('dark', g, BODY, { pin: true });
+      var g = G.merge(st); G.orient(g, pb, nb, k * .4); A.transfer('mantle-brooch', g, BODY, { pin: true });
     });
     // hip pouch (right), hanging from the belt with a strap loop and an iron toggle
     var pm = onBody(A, [-.205, 1.0, .035], ['leather', 'iron', 'skin'], null, .004);
@@ -1913,7 +1669,7 @@
     var marker = new T.Object3D(); marker.name = 'weapon_tip';
     var equipment = null, equipmentMeshes = [], equipmentArms = {}, armorMeshes = [], baseMantle = [], baseIron = null, equipmentMaterials = new Map();
     if (bp.equipmentWeapons) {
-      scene.traverse(function(n){if(n.isMesh && n.material && /^kara-fur(?:fringe)?$/.test(n.material.name))baseMantle.push(n);});
+      scene.traverse(function(n){if(n.isMesh && n.material && (/^kara-fur(?:fringe)?$/.test(n.material.name) || n.name === 'mantle-brooch' || n.name === 'base-straps'))baseMantle.push(n);});
       equipment = { weaponType: 'sword', weaponId: 'dull-sword', headId: null, chestId: 'torn-chest', handsId: null, bootsId: null };
       Object.keys(bp.equipmentWeapons).forEach(function (id) {
         var src = bp.equipmentWeapons[id], art = src.art.clone(), meshes = [];
@@ -2049,7 +1805,7 @@
       });
       var chestItem = equipmentItem(equipment.chestId, 'chest'), chestModel = equipmentModel(chestItem,equipment.chestId);
       baseMantle.forEach(function(m){m.visible = !chestModel || chestModel === 'torn-chest';});
-      if (baseIron) baseIron.visible = chestModel === 'grave-chest' || chestModel === 'coast-chest';
+      if (baseIron) baseIron.visible = false;
       marker.visible = weaponId !== null;
       if (weaponId !== null) marker.position.copy(equipmentArms[weaponModel].tip).multiply(equipmentArms[weaponModel].art.scale);
       else marker.position.set(0, 0, 0);
