@@ -3,7 +3,7 @@
 (() => {
   'use strict';
   const B = window.BABA = window.BABA || {};
-  const defaults = Object.freeze({ displayVersion: 3, displayMode: 'auto', msaa: 2 });
+  const defaults = Object.freeze({ displayVersion: 3, displayMode: 'auto', renderScale: 1, msaa: 2 });
   const MODES = ['auto', 'native'];
   const MIN_DYNAMIC = .75;
 
@@ -14,6 +14,7 @@
     return {
       displayVersion: defaults.displayVersion,
       displayMode,
+      renderScale: [1, 1.25, 1.5].includes(raw.renderScale) ? raw.renderScale : 1,
       msaa: defaults.msaa   // legacy key, no longer a sample count: edge smoothing is always on (SMAA, post.js)
     };
   }
@@ -36,7 +37,7 @@
     }
     // Automatic resolution steps (createScaler) only ever remove a little: never below 0.8 of the chosen size per axis.
     const dyn = raw && Number.isFinite(raw.dynScale) ? Math.min(1, Math.max(MIN_DYNAMIC, raw.dynScale)) : 1;
-    requestedRatio *= dyn;
+    requestedRatio *= cfg.renderScale * (cfg.renderScale > 1 ? 1 : dyn);
     const scale = requestedRatio / nativeRatio;
     const maxSize = Number.isFinite(v.maxSize) && v.maxSize > 0 ? pixels(v.maxSize) : Infinity;
     const pixelRatio = Math.min(requestedRatio, maxSize / cssWidth, maxSize / cssHeight);

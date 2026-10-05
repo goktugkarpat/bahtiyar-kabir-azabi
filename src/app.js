@@ -665,7 +665,7 @@
   // Report the real output, including hardware fallback, separately from the requested choice.
   function paintGraphicsNotes() {
     if (!renderer || !displayPlan) return;
-    const r = $('display-note'), mode = $('displayMode-note'), rate = $('frameRate-note');
+    const r = $('display-note'), mode = $('displayMode-note'), rate = $('frameRate-note'), resolution = $('renderScale-note');
     if (r) r.textContent = `Şu an: ${post.width} × ${post.height} piksel · ${cfg.fps ? 'en fazla ' + cfg.fps + ' FPS' : 'FPS sınırı kapalı'}.` +
       (displayPlan.limited ? ' Ekran kartının görüntü boyutu sınırı uygulanıyor.' : '') +
       (cfg.dynScale < 1 ? ` Akıcılığı korumak için çizim boyutu geçici olarak %${Math.round(cfg.dynScale * 100)} düzeyinde.` : '');
@@ -674,6 +674,7 @@
         ? 'Otomatik: yüksek çözünürlüklü ekranlarda grafik kalitesine uygun boyut seçer. Düşük ayar bilgisayarı daha az çalıştırır. Yazılar net kalır.'
         : 'Ekranın bütün piksellerini kullanır. Retina ekranda Düşük kalite seçilse de çizim boyutu azalmaz.';
     }
+    if (resolution) resolution.textContent = 'Seçilen görüntü boyutunu büyütür. 1.25× daha net, 1.50× en ayrıntılı görüntüdür; daha fazla ekran kartı gücü kullanır.';
     if (rate) rate.textContent = cfg.fps ? 'En fazla ' + cfg.fps + ' kare/sn. Ekranın yenileme hızına uymayan bir sınır kare atlamalarına yol açabilir (G-Sync/FreeSync varsa sorun olmaz). Düşük sınır işlemci yükünü ve fan sesini azaltır: 90 FPS yaklaşık %25, 60 FPS yaklaşık %35 daha az işlemci kullanır.' : 'Ekranın her yenilemesinde çizer (G-Sync / FreeSync / ProMotion ile en düzgünü).';
   }
   function renderSettings() {
@@ -690,6 +691,7 @@
     paintQuality(); video.append(q);
     const displayNote = document.createElement('small'); displayNote.id = 'display-note'; q.append(displayNote);
     video.append(choiceRow('displayMode', 'Görüntü boyutu', ['auto', 'native'], v => ({ auto: 'Otomatik', native: 'Tam boyut' })[v]),
+      choiceRow('renderScale', 'Render çözünürlüğü', [1, 1.25, 1.5], v => v.toFixed(v === 1 ? 1 : 2) + '×'),
       choiceRow('frameRate', 'Kare hızı', FRAME_RATES, v => v ? v + ' FPS' : 'Ekran hızı'),
       choiceRow('uiScale', 'Arayüz boyutu', UI_STEPS, v => v < 1 ? 'Küçük' : 'Normal'));
     // Edge smoothing (SMAA post pass in post.js) is always on: no settings row.
@@ -1482,7 +1484,7 @@
       location: { room: world.rooms?.[roomId]?.name || roomId, x: game.player.x, z: game.player.z },
       display: { width: post.width, height: post.height, windowWidth: innerWidth, windowHeight: innerHeight,
         devicePixelRatio: window.devicePixelRatio || 1, renderPixelRatio: renderer.getPixelRatio() },
-      settings: { quality: cfg.quality, displayMode: cfg.displayMode, displayScale: displayPlan?.scale, edgeSmoothing: 'smaa-1x', smaa: post.smaa, frameLimit: cfg.fps },
+      settings: { quality: cfg.quality, displayMode: cfg.displayMode, displayScale: displayPlan?.scale, renderScale: cfg.renderScale, edgeSmoothing: 'smaa-1x', smaa: post.smaa, frameLimit: cfg.fps },
       adapter: readGraphicsAdapter(), ...performanceMeter.report(),
       gpu: { available: post.timingAvailable, enabled: post.timingEnabled, ready: post.timingReady,
         error: post.timingError, sampleIntervalMs: post.timingSampleIntervalMs, milliseconds: post.gpuSections },
@@ -1580,7 +1582,7 @@
       // A size change clears the browser canvas. Apply it before drawing the
       // visible frame, so a completed frame is never erased before presentation.
       // Automatic resolution: only while really playing, and never on 120 Hz-class targets (see Display.createScaler).
-      const scaling = AUTO_SCALE && view === 'playing' && game.state === 'playing' && !paused && !warming && document.visibilityState === 'visible';
+      const scaling = AUTO_SCALE && cfg.renderScale === 1 && view === 'playing' && game.state === 'playing' && !paused && !warming && document.visibilityState === 'visible';
       if (scaling) {
         // Prediction: three or more awake enemies close by (or the boss) means a heavy frame is coming; step down now.
         let near = 0, boss = false;
@@ -1730,7 +1732,7 @@
   }
   // Automatic-resolution sizes are built ahead, so a later step is only a reference swap (sizes already built are skipped).
   function prewarmScaler() {
-    if (!(AUTO_SCALE && cfg.fps > 0 && cfg.fps <= 64 && post.prewarm && renderer && !graphicsLost)) return;
+    if (!(AUTO_SCALE && cfg.renderScale === 1 && cfg.fps > 0 && cfg.fps <= 64 && post.prewarm && renderer && !graphicsLost)) return;
     safe(() => {
       const sizes = [], v = { width: innerWidth, height: innerHeight, pixelRatio: window.devicePixelRatio };
       for (const lv of scaler.levels) { const pl = DISPLAY.plan(v, { ...cfg, dynScale: lv }); if (!sizes.some(z => z[0] === pl.width && z[1] === pl.height)) sizes.push([pl.width, pl.height]); }

@@ -28,7 +28,11 @@
     camera.position.set(0, 1.42, 4.8); camera.lookAt(0, 1.18, 0); camera.updateMatrixWorld(true);
     const viewport = new T.Vector4(), scissor = new T.Vector4(), clearColor = new T.Color();
     const state = { time: 0, move: 0, attack: 0, attackTime: -1, heavy: false, dodge: 0, hurt: 0, dead: false, reset: false };
-    let lastTime = null, animationTime = 0, seenWorldFrame = -1, revision = -1, sourceModel = null, disposed = false, lastCanvas = null;
+    const portraitTarget = new T.WebGLRenderTarget(1, 1, { depthBuffer: true, stencilBuffer: false, samples: Math.min(4, renderer.capabilities.maxSamples || 0) });
+    portraitTarget.texture.colorSpace = T.SRGBColorSpace;
+    const maxPortraitSize = Math.min(renderer.capabilities.maxTextureSize, renderer.capabilities.maxRenderbufferSize || renderer.capabilities.maxTextureSize);
+    let portraitPixels = null, portraitImage = null;
+    let lastTime = null, animationTime = 0, revision = -1, sourceModel = null, disposed = false, lastCanvas = null;
     function syncEquipment() {
       const source = game.player && game.player.model;
       if (!source) return false;
@@ -42,34 +46,39 @@
       if (document.body.dataset.view !== 'character' || disposed || !canvas || !canvas.isConnected || !game.player.model || !canvas.width || !canvas.height) return false;
       syncEnvironment();
       const changed = syncEquipment(), time = Number.isFinite(now) ? now : performance.now();
-      // The portrait is rendered into the main (non-preserved) drawing buffer, so it may only draw in a tick where the
-      // world itself drew; otherwise that presented buffer holds only the portrait crop and the whole backdrop flashes.
-      const worldFrame = renderer.info.render.frame, worldDrew = worldFrame !== seenWorldFrame; seenWorldFrame = worldFrame;
-      if (!worldDrew) return false;
-      if (!changed && canvas === lastCanvas && lastTime !== null && time - lastTime < 24) return false;
+      // The isolated render target preserves the world framebuffer and needs no world redraw.
+      if (!changed && canvas === lastCanvas && lastTime !== null && time - lastTime < 33) return false;
       const dt = lastTime !== null ? Math.min(.08, Math.max(0, (time - lastTime) / 1000)) : 1 / 30;
       lastTime = time; lastCanvas = canvas; animationTime += dt; state.time = animationTime;
       model.animate(dt, state); scene.updateMatrixWorld(true);
-      const source = renderer.domElement, canvasRect = canvas.getBoundingClientRect(), sourceRect = source.getBoundingClientRect();
-      if (!sourceRect.width || !sourceRect.height || canvasRect.bottom <= sourceRect.top || canvasRect.top >= sourceRect.bottom) return false;
-      // Render only beneath the opaque portrait card; copying this crop avoids a full scene/post render.
-      const sx = source.width / sourceRect.width, sy = source.height / sourceRect.height;
-      const portraitScale = Math.min(sx, sy, 512 / canvasRect.width, 768 / canvasRect.height);
+      const canvasRect = canvas.getBoundingClientRect();
+      if (!canvasRect.width || !canvasRect.height) return false;
+      // A dedicated multisampled target keeps the portrait crisp even when the world uses Auto/DRS.
+      const portraitScale = Math.min(Math.max(1.5, window.devicePixelRatio || 1), 1024 / canvasRect.width, 1536 / canvasRect.height, maxPortraitSize / canvasRect.width, maxPortraitSize / canvasRect.height);
       const w = Math.max(1, Math.round(canvasRect.width * portraitScale)), h = Math.max(1, Math.round(canvasRect.height * portraitScale));
-      const x = Math.max(0, Math.min(source.width - w, Math.round((canvasRect.left - sourceRect.left) * sx)));
-      const y = Math.max(0, Math.min(source.height - h, Math.round(source.height - (canvasRect.top - sourceRect.top) * sy - h)));
+      if (portraitTarget.width !== w || portraitTarget.height !== h) {
+        portraitTarget.setSize(w, h); portraitPixels = new Uint8Array(w * h * 4); portraitImage = null;
+      }
+      if (!portraitPixels) portraitPixels = new Uint8Array(w * h * 4);
       camera.aspect = w / h; camera.updateProjectionMatrix();
       renderer.getViewport(viewport); renderer.getScissor(scissor); renderer.getClearColor(clearColor);
       const target = renderer.getRenderTarget(), oldScissor = renderer.getScissorTest(), autoClear = renderer.autoClear, alpha = renderer.getClearAlpha();
-      const pixelRatio = renderer.getPixelRatio ? renderer.getPixelRatio() : 1, outputColorSpace = renderer.outputColorSpace, toneMapping = renderer.toneMapping, exposure = renderer.toneMappingExposure;
+      const outputColorSpace = renderer.outputColorSpace, toneMapping = renderer.toneMapping, exposure = renderer.toneMappingExposure;
       try {
-        // Three accepts logical coordinates here; the canvas crop below is in physical pixels.
         renderer.outputColorSpace = T.SRGBColorSpace; renderer.toneMapping = T.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.1;
-        renderer.setRenderTarget(null); renderer.setViewport(x / pixelRatio, y / pixelRatio, w / pixelRatio, h / pixelRatio); renderer.setScissor(x / pixelRatio, y / pixelRatio, w / pixelRatio, h / pixelRatio); renderer.setScissorTest(true); renderer.autoClear = true;
-        renderer.render(scene, camera); seenWorldFrame = renderer.info.render.frame;
+        renderer.setRenderTarget(portraitTarget); renderer.setViewport(0, 0, w, h); renderer.setScissorTest(false); renderer.autoClear = true;
+        renderer.render(scene, camera);
+        // Switching targets resolves MSAA before the bounded portrait readback.
+        renderer.setRenderTarget(target);
+        renderer.readRenderTargetPixels(portraitTarget, 0, 0, w, h, portraitPixels);
         if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
         const ctx = canvas.getContext('2d', { alpha: false });
-        if (ctx) { ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high'; ctx.drawImage(source, x, source.height - y - h, w, h, 0, 0, canvas.width, canvas.height); }
+        if (ctx) {
+          if (!portraitImage || portraitImage.width !== w || portraitImage.height !== h) portraitImage = ctx.createImageData(w, h);
+          const rowBytes = w * 4;
+          for (let row = 0; row < h; row++) portraitImage.data.set(portraitPixels.subarray((h - row - 1) * rowBytes, (h - row) * rowBytes), row * rowBytes);
+          ctx.putImageData(portraitImage, 0, 0);
+        }
       } finally {
         renderer.outputColorSpace = outputColorSpace; renderer.toneMapping = toneMapping; renderer.toneMappingExposure = exposure;
         renderer.setRenderTarget(target); renderer.setViewport(viewport); renderer.setScissor(scissor); renderer.setScissorTest(oldScissor); renderer.autoClear = autoClear; renderer.setClearColor(clearColor, alpha);
@@ -100,7 +109,7 @@
       }
     }
     syncEquipment(); model.animate(0, state);
-    return { draw, warm, turn(direction) { model.root.rotation.y += direction * Math.PI / 6; lastTime = null; }, warmScene: scene, warmCamera: camera, model, dispose() { if (disposed) return; disposed = true; model.dispose(); stageGeometry.forEach(g => g.dispose()); stageMaterials.forEach(m => m.dispose()); owned.forEach(t => t.dispose()); scene.clear(); } };
+    return { draw, warm, turn(direction) { model.root.rotation.y += direction * Math.PI / 6; lastTime = null; }, warmScene: scene, warmCamera: camera, model, dispose() { if (disposed) return; disposed = true; portraitTarget.dispose(); portraitPixels = portraitImage = null; model.dispose(); stageGeometry.forEach(g => g.dispose()); stageMaterials.forEach(m => m.dispose()); owned.forEach(t => t.dispose()); scene.clear(); } };
   }
   B.CharacterPreview = { create };
 })();

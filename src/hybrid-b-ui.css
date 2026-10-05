@@ -1,18 +1,18 @@
 /* Selected hybrid B: embossed burgundy leather, cast bronze, readable ivory typography. */
-#character,#settings {--text:Georgia,'Times New Roman',serif;--ch-ink:#eadfc9;--ch-muted:#c6bca7;background:#080708;}
-#character .character-panel,#settings .settings-panel {
+#character,#settings,#journal {--text:Georgia,'Times New Roman',serif;--ch-ink:#eadfc9;--ch-muted:#c6bca7;background:#080708;}
+#character .character-panel,#settings .settings-panel,#journal .journal-panel {
  width:min(96vw,calc(94dvh * 1586 / 992));height:94dvh;max-height:1040px;max-width:1663px;
  padding:0;border:0;border-radius:0;box-shadow:0 12px 65px #000b;position:relative;
  background:url(../assets/ui/hybrid-b-chamber.png) center/100% 100% no-repeat;overflow:hidden;
 }
 #character .character-panel::before,#character .character-panel::after,
-#settings .settings-panel::before,#settings .settings-panel::after {display:none;}
-#character .panel-head,#settings .panel-head {
+#settings .settings-panel::before,#settings .settings-panel::after,#journal .journal-panel::before,#journal .journal-panel::after {display:none;}
+#character .panel-head,#settings .panel-head,#journal .panel-head {
  position:absolute;top:2.3%;left:6.5%;width:87%;padding:0;margin:0;border:0;gap:0;
 }
-#character .mourning-title,#settings .panel-head .eyebrow {font:400 clamp(28px,2.65vw,44px)/1.05 Georgia,serif;letter-spacing:.075em;color:#f0e3c9;text-shadow:0 2px 3px #000;}
-#character .panel-head h2,#settings .panel-head h2 {font:400 18px/1.15 Georgia,serif;letter-spacing:.06em;color:#e6d7b9;margin-top:4px;}
-#character .panel-head .close,#settings .panel-head .close {top:0;right:0;width:32px;height:32px;min-height:32px;background:#0c0908d9;border:1px solid #ba9864;color:#e6d6b6;}
+#character .mourning-title,#settings .panel-head .eyebrow,#journal .panel-head .eyebrow {font:400 clamp(28px,2.65vw,44px)/1.05 Georgia,serif;letter-spacing:.075em;color:#f0e3c9;text-shadow:0 2px 3px #000;}
+#character .panel-head h2,#settings .panel-head h2,#journal .panel-head h2 {font:400 18px/1.15 Georgia,serif;letter-spacing:.06em;color:#e6d7b9;margin-top:4px;}
+#character .panel-head .close,#settings .panel-head .close,#journal .panel-head .close {top:0;right:0;width:32px;height:32px;min-height:32px;background:#0c0908d9;border:1px solid #ba9864;color:#e6d6b6;}
 #character .char-progress {margin-top:8px;}
 #character .char-progress>div:first-child {font-size:12px;gap:14px;}
 #character .char-progress strong {font-size:14px;}
@@ -82,8 +82,8 @@
 #settings .segmented button {font:400 14px Georgia,serif;border:2px ridge #80633e;min-height:36px;color:#ebdfc9;}
 #settings .segmented button.selected {background:linear-gradient(#58232880,#220c0e80),url(../assets/ui/funeral-cloth.png) center/180px;border-color:#b69359;}
 @media(max-height:850px) and (min-width:1000px) {
- #character .mourning-title,#settings .panel-head .eyebrow {font-size:30px;}
- #character .panel-head h2,#settings .panel-head h2 {font-size:14px;margin-top:3px;}
+ #character .mourning-title,#settings .panel-head .eyebrow,#journal .panel-head .eyebrow {font-size:30px;}
+ #character .panel-head h2,#settings .panel-head h2,#journal .panel-head h2 {font-size:14px;margin-top:3px;}
  #character .char-progress {margin-top:5px;} #character .char-progress strong {font-size:12px;}
  #character .char-progress>div:first-child {font-size:10px;} #character .char-points {font-size:10px;}
  #character .char-tabs button {font-size:15px;min-height:30px;padding:4px 16px;}
@@ -118,7 +118,7 @@
  #settings #settings-video:not(.hidden),#settings #settings-audio:not(.hidden) {gap:6px 14px;}
 }
 @media(max-width:999px) {
- #character .character-panel,#settings .settings-panel {width:100vw;height:100dvh;max-height:none;}
+ #character .character-panel,#settings .settings-panel,#journal .journal-panel {width:100vw;height:100dvh;max-height:none;}
  #character .skt-wrap {grid-template-columns:minmax(0,1fr) 270px;}
  #character .skt-col {grid-template-columns:60px minmax(0,1fr) 4px minmax(0,1fr) 4px minmax(0,1fr);}
  #character .skt-node strong {font-size:11px;} #character .skt-col>header b {font-size:11px;}
@@ -126,8 +126,8 @@
  #character .skt-node::before,#character .skt-node::after {width:calc(50% - 22px);}
 }
 @media(max-width:699px) {
- #character .character-panel,#settings .settings-panel {background-size:cover;}
- #character .mourning-title,#settings .panel-head .eyebrow {font-size:26px;}
+ #character .character-panel,#settings .settings-panel,#journal .journal-panel {background-size:cover;}
+ #character .mourning-title,#settings .panel-head .eyebrow,#journal .panel-head .eyebrow {font-size:26px;}
  #character .char-content {overflow-y:auto;} #character .char-inventory-layout.has-preview {grid-template-columns:1fr;height:auto;}
  #character .char-sheet {min-height:440px;} #character .char-bag {min-height:440px;}
  #character .skt-wrap {display:flex;flex-direction:column;height:auto;} #character .skt-workspace {display:contents;}
@@ -155,3 +155,58 @@
 #character .skt-inspect:has(.skt-assign)>.skt-delta {display:none;}
 #character .skt-inspect:has(.skt-assign) .skt-facts:has(.skt-fact:nth-child(7)) {grid-template-columns:repeat(2,minmax(0,1fr));gap:3px 10px;}
 #character .skt-inspect:has(.skt-assign) .skt-facts:has(.skt-fact:nth-child(7)) .skt-fact {column-gap:4px;}
+
+/* The story ledger shares B's materials and rhythm with character and settings. */
+#journal .panel-head>div {width:100%;text-align:center;}
+#journal-intro {position:absolute;top:16%;left:6.5%;right:6.5%;max-width:none;margin:0;color:#d5c7b0;font:400 16px/1.5 Georgia,serif;}
+#journal-content {position:absolute;top:25%;bottom:11%;left:6.5%;right:6.5%;padding:0;gap:16px;overflow:auto;scrollbar-width:thin;scrollbar-color:#997849 #100d0b;align-items:stretch;}
+#journal .journal-quest {position:relative;min-height:0;padding:20px;border:3px ridge #9d7b49;border-radius:3px;background:linear-gradient(#11100df0,#080909f0),url(../assets/ui/funeral-cloth-dark.png) center/220px;box-shadow:inset 0 0 0 2px #000a,0 3px 7px #0009;}
+#journal .journal-quest::before {content:'';position:absolute;inset:0;pointer-events:none;opacity:.75;background:url(../assets/ui/frame-tl.png) left top/30px 30px no-repeat,url(../assets/ui/frame-tr.png) right top/30px 30px no-repeat,url(../assets/ui/frame-bl.png) left bottom/30px 30px no-repeat,url(../assets/ui/frame-br.png) right bottom/30px 30px no-repeat;}
+#journal .journal-quest header {padding:10px 12px;margin:-5px -5px 0;gap:14px;border-bottom:1px solid #9d7b4970;background:linear-gradient(90deg,#56252d60,transparent),url(../assets/ui/funeral-cloth.png) center/180px;}
+#journal .journal-number {width:42px;height:42px;border:2px ridge #a48450;color:#eddbb5;background:#160d0c;font:400 25px Georgia,serif;}
+#journal .journal-quest h3 {font:400 24px/1.2 Georgia,serif;color:#f0e3c9;}
+#journal .journal-quest header small {font:400 12px/1.3 Georgia,serif;letter-spacing:.06em;color:#c7af83;}
+#journal .journal-description {font:400 16px/1.5 Georgia,serif;color:#d2c4af;margin:18px 0 24px;}
+#journal .journal-steps li {gap:16px;padding:12px 10px 20px;border-top:1px solid #aa87552b;color:#d3c6b3;}
+#journal .journal-steps li:last-child {padding-bottom:12px;}
+#journal .journal-steps li:not(:last-child)::after {left:15px;top:28px;bottom:-2px;background:#9b78485c;}
+#journal .journal-steps b {font:400 19px/1.25 Georgia,serif;}
+#journal .journal-steps p {font:400 15px/1.5 Georgia,serif;color:#bcaf9b;margin-top:7px;}
+#journal .journal-steps .current {background:linear-gradient(90deg,#66312a45,transparent);color:#f2ddb1;}
+#journal .journal-steps .current p {color:#dfcaa9;}
+#journal .journal-steps .done {color:#b3c3a2;}
+#journal .journal-steps .done p {color:#abb7a0;}
+#journal footer {position:absolute;left:6.5%;right:6.5%;bottom:2.1%;height:5.4%;padding:0;margin:0;border:0;}
+#journal #journal-done {font:400 18px/1.15 Georgia,serif;min-height:34px;height:34px;padding:4px 22px;}
+#journal #journal-gate {font:400 14px/1.4 Georgia,serif;color:#dbc8a5;}
+@media(max-height:850px) and (min-width:1000px) {
+ #journal .panel-head .eyebrow {font-size:30px;}
+ #journal .panel-head h2 {font-size:15px;}
+ #journal-intro {font-size:14px;line-height:1.4;}
+ #journal-content {gap:12px;}
+ #journal .journal-quest {padding:13px;}
+ #journal .journal-quest h3 {font-size:20px;}
+ #journal .journal-description {font-size:14px;margin:12px 0;}
+ #journal .journal-steps li {padding:10px 8px 14px;}
+ #journal .journal-steps b {font-size:16px;}
+ #journal .journal-steps p {font-size:13px;line-height:1.4;margin-top:5px;}
+}
+@media(max-width:999px) {
+ #journal .journal-panel {width:100vw;height:100dvh;max-height:none;}
+ #journal-intro {font-size:14px;}
+ #journal .journal-quest {padding:12px;}
+ #journal .journal-quest h3 {font-size:20px;}
+ #journal .journal-description,#journal .journal-steps p {font-size:14px;}
+ #journal .journal-steps b {font-size:17px;}
+}
+@media(max-width:699px) {
+ #journal .panel-head .eyebrow {font-size:24px;}
+ #journal .panel-head h2 {font-size:14px;}
+ #journal-intro {top:15%;font-size:13px;}
+ #journal-content {top:27%;grid-template-columns:1fr;align-items:start;}
+ #journal footer {height:7%;gap:10px;}
+ #journal #journal-gate {font-size:11px;}
+ #journal #journal-done {font-size:15px;padding:4px 12px;flex:none;}
+}
+
+#journal #journal-done {border:2px ridge #987949;border-radius:0;background:linear-gradient(#58232880,#220c0e80),url(../assets/ui/funeral-cloth.png) center/180px;color:#eedfc0;}
