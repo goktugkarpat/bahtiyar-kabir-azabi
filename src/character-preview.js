@@ -9,7 +9,7 @@
     // at most portrait angles; no second environment render or texture allocation is needed.
     function syncEnvironment() {
       if (worldScene && scene.environment !== worldScene.environment) scene.environment = worldScene.environment;
-      scene.environmentIntensity = .65;
+      scene.environmentIntensity = 1.25;
     }
     syncEnvironment();
     model.root.rotation.y = -.22;
@@ -17,6 +17,7 @@
     const key = new T.DirectionalLight(0xffe0b8, 2.7); key.position.set(-3, 4, 5); scene.add(key);
     // The resting blade tilts down; the existing fill reveals its metal from below eye level.
     const rim = new T.DirectionalLight(0x8fabc7, 1.15); rim.position.set(3, .3, 4); scene.add(rim);
+    const backLight = new T.DirectionalLight(0xb8c9df, .9); backLight.position.set(2, 3, -4); scene.add(backLight);
     const owned = [], stageGeometry = [], stageMaterials = [];
     const stone = new T.MeshStandardMaterial({ ...B.CoastMaterials.createSurface('crypt', owned), color: 0x44596a, roughness: .94, metalness: 0, normalScale: new T.Vector2(.6, .6) });
     stageMaterials.push(stone);

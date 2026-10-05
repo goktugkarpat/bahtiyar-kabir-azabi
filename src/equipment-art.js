@@ -3,7 +3,8 @@
   'use strict';
   const B = window.BABA, T = window.THREE, G = B.Gear, PI = Math.PI, TAU = PI * 2;
   const mix = (a,b,t) => a+(b-a)*t, clamp = (v,a,b) => Math.max(a,Math.min(b,v));
-  const surfaces = {}, palette = {}, finishes = {};
+  const surfaces = {}, palette = {}, finishes = {}, scanned = {};
+  let prepared;
   function surface(kind) {
     if (surfaces[kind]) return surfaces[kind];
     const n = 512, heights = new Float32Array(n*n), color = new Uint8Array(n*n*4), normal = new Uint8Array(n*n*4), rough = new Uint8Array(n*n*4);
@@ -26,22 +27,52 @@
     const tex = (bytes,srgb) => { const t=new T.DataTexture(bytes,n,n,T.RGBAFormat);t.wrapS=t.wrapT=T.RepeatWrapping;t.magFilter=T.LinearFilter;t.minFilter=T.LinearMipmapLinearFilter;t.generateMipmaps=true;t.anisotropy=4;t.colorSpace=srgb?T.SRGBColorSpace:T.NoColorSpace;t.needsUpdate=true;return t; };
     return surfaces[kind]={map:tex(color,true),normalMap:tex(normal,false),roughnessMap:tex(rough,false)};
   }
+  function prepare() {
+    if(prepared)return prepared;
+    const loader=new T.TextureLoader();
+    prepared=Promise.all([['leather','aged-leather'],['metal','forged-steel']].map(async([kind,file])=>{
+      const map=await loader.loadAsync(B.EquipmentTextureData[kind]);
+      map.wrapS=map.wrapT=T.RepeatWrapping;map.anisotropy=8;
+      map.colorSpace=kind==='metal'?T.NoColorSpace:T.SRGBColorSpace;
+      map.name='equipment-scan-'+kind;
+      // Companion maps are derived once, before shader warm-up. A local file
+      // origin can deny canvas readback; retain the procedural companions there.
+      const maps={...surface(kind),map};
+      try {
+        const n=512,canvas=document.createElement('canvas');canvas.width=canvas.height=n;
+        const ctx=canvas.getContext('2d',{willReadFrequently:true});ctx.drawImage(map.image,0,0,n,n);
+        const rgba=ctx.getImageData(0,0,n,n).data,h=new Float32Array(n*n),normal=new Uint8Array(n*n*4),rough=new Uint8Array(n*n*4);
+        for(let i=0;i<h.length;i++)h[i]=(rgba[i*4]*.2126+rgba[i*4+1]*.7152+rgba[i*4+2]*.0722)/255;
+        for(let y=0;y<n;y++)for(let x=0;x<n;x++){
+          const i=y*n+x,k=i*4,scale=kind==='leather'?2.8:1.4,
+            dx=(h[y*n+(x+n-1)%n]-h[y*n+(x+1)%n])*scale,
+            dy=(h[((y+n-1)%n)*n+x]-h[((y+1)%n)*n+x])*scale,inv=1/Math.hypot(dx,dy,1);
+          normal[k]=(dx*inv*.5+.5)*255;normal[k+1]=(dy*inv*.5+.5)*255;normal[k+2]=(inv*.5+.5)*255;normal[k+3]=255;
+          const r=kind==='leather'?clamp(.93-h[i]*.28,.67,.93):clamp(.86-h[i]*.52,.40,.80);
+          rough[k]=rough[k+1]=rough[k+2]=r*255;rough[k+3]=255;
+        }
+        const tex=bytes=>{const t=new T.DataTexture(bytes,n,n,T.RGBAFormat);t.wrapS=t.wrapT=T.RepeatWrapping;t.minFilter=T.LinearMipmapLinearFilter;t.generateMipmaps=true;t.anisotropy=8;t.needsUpdate=true;return t;};
+        maps.normalMap=tex(normal);maps.roughnessMap=tex(rough);
+      }catch(error){if(location.protocol!=='file:')throw error;}
+      scanned[kind]=maps;
+    }));return prepared;
+  }
   const spec = {
-    steel:['metal',0xb1b6bb,.62,.94], salt:['metal',0x819aa0,.72,.9], rust:['metal',0x786c60,.95,.74],
-    edge:['metal',0xe1e3e0,.36,1], brass:['metal',0x9d7845,.68,.88], dark:['metal',0x353b42,.8,.86],
-    leather:['leather',0x654234,1,0], strap:['leather',0x30271f,1,0], cloth:['cloth',0x413b3b,1,0],
+    steel:['metal',0xe0e4e5,.58,.94], salt:['metal',0xb3cbcc,.66,.9], rust:['metal',0xa59786,.82,.78],
+    edge:['metal',0xffffff,.30,1], brass:['metal',0xd3ac68,.55,.88], dark:['metal',0x647078,.64,.88],
+    leather:['leather',0xe0d3c5,.92,0], strap:['leather',0x817063,.95,0], cloth:['cloth',0x413b3b,1,0],
     rag:['cloth',0x777060,1,0], wood:['wood',0x65482c,1,0], bone:['bone',0xb9b09a,1,0]
   };
   function material(key) {
     if(palette[key])return palette[key];const s=spec[key]||spec.steel;
-    const m=new T.MeshStandardMaterial({...surface(s[0]),color:s[1],roughness:s[2],metalness:s[3],normalScale:new T.Vector2(s[0]==='metal'?.18:.38,s[0]==='metal'?.18:.38)});
+    const m=new T.MeshStandardMaterial({...(key==='edge'?surface(s[0]):scanned[s[0]]||surface(s[0])),color:s[1],roughness:s[2],metalness:s[3],normalScale:new T.Vector2(s[0]==='metal'?.36:.72,s[0]==='metal'?.36:.72)});
     m.name='kara-equipment-'+key;m.userData.equipmentKind=s[0];return palette[key]=m;
   }
   function finish(source,name) {
     if(!name||!source.userData.equipmentKind||/-(edge|brass|dark|strap|bone)$/.test(source.name))return source;
     const tones={ash:0x79818b,rust:0x9b7760,brine:0x7b9998,blood:0x86534b,bone:0xb0a187};if(!tones[name])return source;
     const key=source.name+':'+name;if(finishes[key])return finishes[key];
-    const m=source.clone();m.color.lerp(new T.Color(tones[name]),source.userData.equipmentKind==='metal'?.32:.45);m.name=source.name+'-'+name;
+    const m=source.clone();m.color.lerp(new T.Color(tones[name]),source.userData.equipmentKind==='metal'?.26:.26);m.name=source.name+'-'+name;
     m.roughness=clamp(source.roughness+(name==='rust'?.08:0),0,1);return finishes[key]=m;
   }
   function build({A,part,sleeve,equipmentWeapon,rayRadius}) {
@@ -161,24 +192,24 @@
         part('chest',id,'leather',G.shell(8,24,strap,.01,false));
         for(const e of[0,1]){piping('chest',id,'strap',v=>strap(e,v),null,.0025);stitch(v=>strap(e,v),24);}
       }
-      // Short overlapping leather tassets complete the starter silhouette.
-      // Each is a separate shaped flap; the open sides preserve leg movement.
-      if(style===0)for(const side of[-1,1])for(let leaf=0;leaf<3;leaf++){
-        const flap=(u,v)=>{
-          const a=side*(.017+leaf*.062+u*.069),r=.225+v*.028,
-            y=1.005-v*(.20-.018*leaf)+.015*v*v*Math.pow(Math.abs(u-.5)*2,2);
-          return[Math.sin(a*TAU)*r,y,cz+Math.cos(a*TAU)*r];
-        };
-        part('chest',id,leaf%2?'strap':'leather',G.shell(10,16,flap,.008,false,side>0),null,{bones:['pelvis','spine01']});
-        piping('chest',id,'strap',u=>flap(u,1),'pelvis',.0027);
-        for(const x of[.2,.8]){const p=flap(x,.06);part('chest',id,'brass',G.stud(.003,p,new T.Vector3(side*.3,0,1)),'pelvis');}
-      }
       emit('chest',id,'strap',seams);emit('chest',id,'rag',thread);
       // Waist belt is separate hardware, with a tongue, keeper and dark holes.
       part('chest',id,'strap',G.shell(64,5,(u,v)=>chest(u,.19+v*.075,.046),.005,true),null,{bones:['pelvis','spine01']});
       const bp=chest(.035,.228,.057),buckle=G.buckle(.048,.038,.004);buckle.rotateY(.035*TAU);buckle.translate(...bp);part('chest',id,'brass',buckle,'spine01');
       piping('chest',id,'brass',t=>[bp[0]-.014+t*.027,bp[1],bp[2]+.006],'spine01',.0018);
       studs('chest',id,u=>chest(.07+u*.09,.228,.053),6,'spine01','dark',.0018);
+      if(style===0){
+        shoulder(id,'L','leather');
+        const patches=[],nails=[];
+        for(const side of[-1,1])for(let row=0;row<3;row++){
+          const x=.28,y=.23+row*.19;
+          patches.push(G.shell(16,8,(u,v)=>panel(side,x+u*.43,y+v*.13,.042),.007,false,side<0));
+          for(const u of[.32,.65]){const p=panel(side,u,y+.075,.050);nails.push(G.stud(.0038,p,new T.Vector3(side*.35,0,1)));}
+        }
+        emit('chest',id,'strap',patches);emit('chest',id,'brass',nails);
+        // A diagonal load-bearing harness lies on the leather, with a keeper.
+        for(const side of[-1,1])part('chest',id,'strap',G.shell(6,32,(u,v)=>panel(side,.34+v*.32+(u-.5)*.085,.15+v*.79,.052),.004,false,side<0));
+      }
       if(armored)['L','R'].forEach(s=>shoulder(id,s,'dark'));
       if(coat)for(const side of['L','R']){
         const upper='upper_arm'+side,fore='forearm'+side,hand='hand'+side;
@@ -189,9 +220,26 @@
         shoulder(id,side,'leather');
       }
     }
+    function warSkirt(id,mat,plate) {
+      const guard=[],trim=[],bolts=[];
+      for(const sign of[-1,1])for(let leaf=0;leaf<3;leaf++){
+        const u0=sign*(.012+leaf*.071),width=.070;
+        const flap=(u,v)=>{
+          const a=u0+sign*u*width,waist=chest(a,.17,.055),r=Math.hypot(waist[0],waist[2]-cz)+v*.020+.006*Math.sin(u*PI),
+            y=1.002-v*(.255-leaf*.02)+.025*v*v*Math.pow(Math.abs(u-.5)*2,2);
+          return[Math.sin(a*TAU)*r,y,cz+Math.cos(a*TAU)*r];
+        };
+        guard.push(G.shell(12,18,flap,plate?.009:.01,false,sign>0,{rim:.0017}));
+        trim.push(G.tube(line(u=>flap(u,1),20),.0026,6,20,true));
+        for(const u of[.16,.84]){const p=flap(u,.08);bolts.push(G.stud(.0043,p,new T.Vector3(Math.sin(u0*TAU),0,Math.cos(u0*TAU))));}
+        if(plate)trim.push(G.tube(line(v=>flap(.5,.10+v*.76),20),.0022,5,20,true));
+      }
+      emit('chest',id,mat,guard,null,{bones:['pelvis','spine01']});
+      emit('chest',id,plate?'edge':'strap',trim,'pelvis');emit('chest',id,'brass',bolts,'pelvis');
+    }
     const chestIDs=['torn-chest','grave-chest','coast-chest','brigandine-chest','lamellar-chest','sailcoat-chest','chainmail-chest','warden-chest','rib-chest'];
     chestIDs.forEach((id,k)=>{
-      if(k===0||k===3||k===5){tailoredChest(id,k===0?0:k===3?1:2);return;}
+      if(k===0||k===3||k===5){tailoredChest(id,k===0?0:k===3?1:2);warSkirt(id,k===3?'dark':'leather',k===3);return;}
       const plate=[1,2,7,8].includes(k), mat=plate?(k===2?'salt':'steel'):k===6?'dark':'leather';
       part('chest',id,mat,G.shell(64,32,(u,v)=>chest(u,v,.027,plate),plate?.009:.006,true));
       [0,1].forEach(v=>piping('chest',id,plate?'brass':'strap',u=>chest(u,v,.032,plate),null,plate?.0035:.0025));
@@ -209,6 +257,16 @@
           channels.push(G.tube(line(t=>chest(side*(.018+n*.023+t*.025),.23+t*.61,.038,true),24),.00165,5,32,true));
         }
         emit('chest',id,'dark',channels);
+        const relief=[],emboss=[];
+        for(const side of[-1,1]){
+          for(let rib=0;rib<3;rib++){
+            const path=line(t=>chest(side*(.034+rib*.027+t*.017),.31+t*.53,.048+.004*Math.sin(t*PI),true),32);
+            relief.push(G.tube(path,.0034,8,32,true));
+          }
+          const scroll=line(t=>{const a=t*TAU*1.25,r=.017*(1-t*.65);return chest(side*(.086+Math.sin(a)*r),.78+Math.cos(a)*r*3,.052,true);},40);
+          emboss.push(G.tube(scroll,.0025,6,40,true));
+        }
+        emit('chest',id,mat,relief);emit('chest',id,'brass',emboss);
         // An embossed bronze escutcheon is seated on the breastplate, with a steel inset.
         const p=chest(0,.72,.039,true),crest=G.extrude([[-.025,.029],[0,.041],[.025,.029],[.019,-.013],[0,-.035],[-.019,-.013]],.007,.0025);
         crest.translate(...p);part('chest',id,'brass',crest,'spine03');
@@ -221,6 +279,7 @@
       }emit('chest',id,k===8?'bone':'brass',ornaments);
         const keel=line(v=>chest(0,.15+v*.7,.046,true),32);part('chest',id,'dark',G.tube(keel,.0025,6,36,true));
       }
+      warSkirt(id,plate?mat:k===6?'dark':'leather',plate||k===6);
       // A broad leather belt, with a bevelled buckle and punched fastening holes.
       part('chest',id,'strap',G.shell(48,4,(u,v)=>chest(u,.095+v*.07,.040,plate),.004,true),null,{bones:['pelvis','spine01']});
       const bp=chest(0,.13,.047,plate),buckle=G.buckle(.045,.032,.0035);buckle.translate(...bp);part('chest',id,'brass',buckle,'spine01');
@@ -249,6 +308,13 @@
         if(k===4){part('head',id,mat,G.shell(64,4,(u,v)=>{const p=dome(u,.1),a=u*TAU;return[p[0]+Math.sin(a)*v*.045,p[1]-.015*v,p[2]+Math.cos(a)*v*.045];},.004,true),'head');}
       }
       if(k===0||k===1||k===3){part('head',id,'dark',G.shell(6,32,(u,v)=>{const e=mix(-.1,PI-.05,v),r=ry+.008+.012*Math.sin(v*PI);return[hc.x+(u-.5)*.009,hc.y+Math.sin(e)*r,hc.z+Math.cos(e)*rz];},.004,false),'head');}
+      const seams=[];
+      for(const u of[.12,.88,.5])seams.push(G.tube(line(v=>dome(u,.08+v*.79),32),.0024,6,32,true));
+      emit('head',id,k===5?'bone':'brass',seams,'head');
+      if(!crown){
+        const p=[hc.x,hc.y+ry*.11,hc.z+rz+.021];
+        const nasal=G.extrude([[-.007,.028],[.007,.028],[.011,-.037],[0,-.052],[-.011,-.037]],.008,.002);nasal.translate(...p);part('head',id,'brass',nasal,'head');
+      }
       if(crown){const teeth=[];for(let i=0;i<9;i++){const a=i/9*TAU,p=dome(i/9,0),h=.05+(i%2)*.025;const g=G.extrude([[-.015,0],[.015,0],[.008,h*.65],[0,h],[-.008,h*.65]],.006,.002);g.rotateY(a);g.translate(p[0],p[1]-.007,p[2]);teeth.push(g);}emit('head',id,k===5?'bone':'brass',teeth,'head');}
     });
     for(const s of['L','R']){
@@ -259,6 +325,10 @@
         const armor=sleeve(A,fore,hand,.29,.83,.023,.007,BODY,.008);part('hands',id,k===2?'salt':'steel',armor.geometry,fore);
         for(const t of[.31,.80])piping('hands',id,'brass',u=>armor.at(u*TAU,t,.003)[0].toArray(),fore,.0025);
         for(let l=0;l<3;l++){const arm=sleeve(A,fore,hand,.80+l*.045,.86+l*.045,.018,.004,BODY);part('hands',id,k===2?'salt':'steel',arm.geometry,fore);}
+        const flute=[],bolts=[];
+        for(const a of[-.65,0,.65])flute.push(G.tube(line(t=>armor.at(a,.37+t*.35,.012)[0].toArray(),24),.0022,6,24,true));
+        for(let i=0;i<8;i++){const q=armor.at(i/8*TAU,.37,.008);bolts.push(G.stud(.0035,q[0],q[1]));}
+        emit('hands',id,'edge',flute,fore);emit('hands',id,'brass',bolts,fore);
         const hb=A.box(A.cloud([hand],['skin'],.5)),c=hb.getCenter(new T.Vector3()),sz=hb.getSize(new T.Vector3());
         part('hands',id,'strap',G.sphere(1,c.toArray(),[Math.max(sz.x*.55,.025),Math.max(sz.y*.56,.024),Math.max(sz.z*.54,.035)],28,18),hand);
         part('hands',id,'steel',G.shell(18,14,(u,v)=>[mix(hb.min.x-.006,hb.max.x+.006,u),hb.max.y+.009+.014*Math.sin(u*PI)*Math.sin(v*PI),mix(hb.min.z-.006,hb.max.z+.006,v)],.005,false),hand);
@@ -272,11 +342,14 @@
         const sole=fb.min.y-.012, w=Math.max(fs.x*.58,.055), length=Math.max(fs.z*.6,.115);
         const shoe=(u,v)=>{const a=u*TAU,e=v*PI/2,r=Math.cos(e),z=fc.z+Math.cos(a)*length*r;const toe=.90+.10*Math.cos(a);return[fc.x+Math.sin(a)*w*toe*r,sole+.018+Math.sin(e)*Math.max(fs.y*.85,.072)*(1-.23*Math.cos(a)),z];};
         part('boots',id,'leather',G.shell(48,20,shoe,.006,true),foot);
-        part('boots',id,'strap',G.shell(48,3,(u,v)=>{const p=shoe(u,0);p[1]=sole+v*.022;return p;},.012,true),foot);
+        part('boots',id,'strap',G.shell(48,3,(u,v)=>{const p=shoe(u,0);p[1]=sole+v*.030;return p;},.012,true),foot);
         piping('boots',id,'rag',u=>{const p=shoe(u,0);p[1]+=.008;return p;},foot,.0015);
         // Sewn uppers and a distinct heel/toe silhouette replace the old flattened sphere.
         for(const u of[.12,.88])piping('boots',id,'strap',v=>shoe(u,.05+v*.83),foot,.002);
         for(const t of[.74,.89]){part('boots',id,'strap',G.shell(40,3,(u,v)=>cover.at(u*TAU,t+v*.04,.005)[0].toArray(),.004,true),shin);const q=cover.at(0,t+.02,.012),b=G.buckle(.026,.026,.0025);G.orient(b,q[0],q[1]);part('boots',id,'brass',b,shin);}
+        const welt=[];for(let stitch=0;stitch<48;stitch++){
+          const p=shoe(stitch/48,0),q=shoe((stitch+.42)/48,0);p[1]+=.025;q[1]+=.025;welt.push(G.tube([p,q],.0012,4,2,true));
+        }emit('boots',id,'rag',welt,foot);
         if(k){const greave=sleeve(A,shin,foot,.49,.89,.027,.007,BODY,.011);part('boots',id,k===2?'salt':'steel',G.shell(40,24,(u,v)=>greave.at(mix(-PI*.72,PI*.72,u),.49+v*.40,.004+.007*Math.pow(Math.cos(mix(-PI*.72,PI*.72,u)),8))[0].toArray(),.007,false),shin);
           piping('boots',id,'brass',u=>greave.at(u*TAU,.5,.004)[0].toArray(),shin,.0027);
           for(let l=0;l<4;l++)part('boots',id,k===2?'salt':'steel',G.shell(28,8,(u,v)=>{const a=mix(-PI*.43,PI*.43,u),t=.20+l*.18+v*.22,e=mix(.07,.82,t),r=Math.cos(e);return[fc.x+Math.sin(a)*w*1.06*r,sole+.027+Math.sin(e)*Math.max(fs.y*.9,.076),fc.z+Math.cos(a)*length*1.02*r];},.005,false),foot);
@@ -287,14 +360,20 @@
     }
     const weapons={};
     const baseParts=()=>({steel:[],edge:[],dark:[],brass:[],leather:[],wood:[],bone:[]});
-    function grip(P,length=.29,y=-.28){G.add(P,G.grip(length,.023,12,y));P.brass.push(G.lathe([[0,-.025],[.026,-.025],[.039,-.01],[.035,.014],[.019,.025],[0,.025]],32).translate(0,y-.03,0));}
+    function grip(P,length=.29,y=-.28){G.add(P,G.grip(length,.023,12,y));for(const yy of[y+.02,y+length-.015])P.brass.push(G.ring(.024,.0025,[0,yy,0],null,8,28));P.brass.push(G.lathe([[0,-.025],[.026,-.025],[.039,-.01],[.035,.014],[.019,.025],[0,.025]],32).translate(0,y-.03,0));}
     ['dull-sword','grave-sword','vow-sword','tide-blade','slag-blade','crown-blade'].forEach((id,k)=>{
       const P=baseParts(),top=[1.04,1.34,1.22,1.30,1.28,1.38][k],b=G.blade(.095,top,80,y=>{const t=(y-.095)/(top-.095),tip=clamp((1-t)/.17,0,1);
         if(k===0){const edge=.046+.05*Math.sin(t*PI*.85),back=-.032+(t>.72?(t-.72)*.30:0);return[back,Math.max(back+.001,edge*clamp((1-t)/.06,0,1))];}
         if(k===1){let back=-.066-t*.044,edge=.072+t*.075;if(t>.91)back=mix(back,edge-.003,(t-.91)/.09);return[back,edge];}
         const curve=k===3?.14*t*t:0,w=([.052,.087,.061,.080,.088,.074][k])*(1-.32*t)*tip;
         const notch=k===4?.009*Math.pow(Math.max(0,Math.sin(t*PI*12)),8)*Math.sin(t*PI):0;return[curve-w+notch,curve+w-notch];},.028,.24,[.28,.56]);
-      P.steel.push(b.body);P.edge.push(b.edge);grip(P,k===1?.34:.29,k===1?-.34:-.29);
+      P.steel.push(b.body);P.edge.push(b.edge);
+      for(const side of[-1,1]){
+        const fuller=line(t=>{const y=.20+t*(top-.33),curve=k===3?.14*Math.pow((y-.095)/(top-.095),2):0;return[curve,y,side*.0145];},48);
+        P.dark.push(G.tube(fuller,.0028,6,48,true));
+        P.brass.push(G.tube(fuller.slice(0,10),.0015,6,12,true));
+      }
+      grip(P,k===1?.34:.29,k===1?-.34:-.29);
       const guard=G.extrude([[-.20,.036],[-.18,.073],[-.075,.088],[0,.062],[.075,.088],[.18,.073],[.20,.036],[.17,.025],[.067,.048],[-.067,.048],[-.17,.025]],.044,.006);P.dark.push(guard);
       P.brass.push(G.tube([[-.185,.056,.026],[-.09,.068,.027],[0,.061,.027],[.09,.068,.027],[.185,.056,.026]],.0025,6,32,true));
       P.steel.push(G.extrude([[-.043,.058],[.043,.058],[.04,.15],[-.04,.15]],.032,.003));
@@ -335,5 +414,5 @@
     });
     return weapons;
   }
-  B.EquipmentArt={material,finish,build,finishes};
+  B.EquipmentArt={material,finish,build,finishes,prepare};
 })();

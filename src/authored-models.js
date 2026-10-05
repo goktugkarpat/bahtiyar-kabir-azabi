@@ -480,7 +480,7 @@
       parts.forEach(function (part) { if (part.geometry.index && part.geometry.index.count === 0) return; (byKey[part.key] = byKey[part.key] || []).push(part.geometry); });
       var skeleton = new T.Skeleton(bones, inverses), meshes = [];
       Object.keys(byKey).forEach(function (key) {
-        var geo = mergeSkinned(byKey[key]), mat = materials[key] || gearMaterial(key === 'mantle-brooch' ? 'dark' : key === 'base-straps' ? 'leather' : key);
+        var geo = mergeSkinned(byKey[key]), mat = materials[key] || gearMaterial(key === 'mantle-brooch' ? 'dark' : key === 'base-straps' || key === 'base-skirt' ? 'leather' : key);
         // Eyes, brows, lashes and teeth sit inside the head silhouette: their shadow is invisible, but each
         // was one more skinned draw in every shadow pass.
         var mesh = new T.SkinnedMesh(geo, mat); mesh.name = key; mesh.receiveShadow = true; mesh.castShadow = !HIDDEN_CASTER.test(key);
@@ -914,7 +914,7 @@
   }
   function equipmentWeapon(piece, id, type, finish, scale) {
     var mats = {}; Object.keys(piece.parts).forEach(function (key) {
-      var material = /^(blade|iron|steel)$/.test(key) ? finish : key === 'edge' ? (finish === 'rust' ? 'rust' : 'edge') : key;
+      var material = /^(blade|iron|steel)$/.test(key) ? finish : key === 'edge' ? 'edge' : key;
       mats[key] = equipmentMaterial(material);
       if (scale) piece.parts[key].forEach(function (g) { g.scale(scale[0], scale[1], scale[2]); });
     });
@@ -942,7 +942,8 @@
     var body = A.addFrom(base, function (n) { return /LOW_body/.test(n.name); }, 'skin')[0];
     var eyes = A.addFrom(base, function (n) { return /LOW_eyes/.test(n.name); }, 'eye');
     openEyes(body.geometry, eyes[0].geometry, .22); eyes.forEach(function (p) { heroEyes(p.geometry); });
-    A.addFrom(base, function (n) { return /LOW_(cloth|leather)/.test(n.name) && !/leather_(boots|forearm|sbelts)/.test(n.name); }, 'leather');
+    A.addFrom(base, function (n) { return /LOW_(cloth|leather)/.test(n.name) && !/leather_(boots|forearm|sbelts)/.test(n.name) && n.name !== 'LOW_cloth'; }, 'leather');
+    A.addFrom(base, function (n) { return n.name === 'LOW_cloth'; }, 'base-skirt');
     A.addFrom(base, function (n) { return /LOW_leather_sbelts/.test(n.name); }, 'base-straps');
     A.addFrom(base, function (n) { return /LOW_metal/.test(n.name); }, 'iron');
     fitBeard(A, A.addFrom(base, function (n) { return /Beard/.test(n.name); }, 'beard'), A.addFrom(base, function (n) { return /Moustache/.test(n.name); }, 'moustache'));
@@ -1498,7 +1499,8 @@
         model.traverse(function (n) { if (!n.isMesh) return; var ms = Array.isArray(n.material) ? n.material : [n.material]; ms.forEach(function (m) { ['map', 'normalMap', 'roughnessMap', 'aoMap', 'metalnessMap'].forEach(function (k) { if (m[k]) m[k].anisotropy = 8; }); }); });
         return fitTextures(model, opts);
       });
-    })).then(function () {
+    })).then(async function () {
+      await B.EquipmentArt.prepare();
       if (B.Materials) ['rust', 'leather', 'linen', 'wood', 'masonry'].forEach(function (s) { surfaces[s === 'rust' ? 'iron' : s] = B.Materials.createSurface(s, surfaceTextures, 1); });
       types.forEach(blueprint);
       // Every blueprint owns its own merged geometry now; release the imported source meshes (materials/textures stay shared).
@@ -1669,7 +1671,7 @@
     var marker = new T.Object3D(); marker.name = 'weapon_tip';
     var equipment = null, equipmentMeshes = [], equipmentArms = {}, armorMeshes = [], baseMantle = [], baseIron = null, equipmentMaterials = new Map();
     if (bp.equipmentWeapons) {
-      scene.traverse(function(n){if(n.isMesh && n.material && (/^kara-fur(?:fringe)?$/.test(n.material.name) || n.name === 'mantle-brooch' || n.name === 'base-straps'))baseMantle.push(n);});
+      scene.traverse(function(n){if(n.isMesh && n.material && (/^kara-fur(?:fringe)?$/.test(n.material.name) || n.name === 'mantle-brooch' || n.name === 'base-straps' || n.name === 'base-skirt'))baseMantle.push(n);});
       equipment = { weaponType: 'sword', weaponId: 'dull-sword', headId: null, chestId: 'torn-chest', handsId: null, bootsId: null };
       Object.keys(bp.equipmentWeapons).forEach(function (id) {
         var src = bp.equipmentWeapons[id], art = src.art.clone(), meshes = [];
@@ -1804,7 +1806,7 @@
         m.material = equipmentFinish(equipmentMaterials.get(m), m.visible && item && item.finish);
       });
       var chestItem = equipmentItem(equipment.chestId, 'chest'), chestModel = equipmentModel(chestItem,equipment.chestId);
-      baseMantle.forEach(function(m){m.visible = !chestModel || chestModel === 'torn-chest';});
+      baseMantle.forEach(function(m){m.visible = !chestModel;});
       if (baseIron) baseIron.visible = false;
       marker.visible = weaponId !== null;
       if (weaponId !== null) marker.position.copy(equipmentArms[weaponModel].tip).multiply(equipmentArms[weaponModel].art.scale);

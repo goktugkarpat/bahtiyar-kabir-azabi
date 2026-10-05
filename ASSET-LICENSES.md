@@ -300,3 +300,7 @@ The new menu backdrop, card illustrations, frame corners, ability miniatures and
 Local gothic UI figures and funeral cloth textures were authored with the built-in image generation tool. Prompt and extraction details are recorded in UI-ART-PROMPTS.md. No third-party download is used for these ornaments.
 
 The active banner-demon-left.png and banner-demon-right.png ornaments were also authored with built-in image_gen (exec-98ba2491-1b78-425a-9659-c2a7e9d132eb.png). Their prompt and alpha extraction details are recorded in UI-ART-PROMPTS.md.
+
+
+## Equipment material scans
+Leather and steel albedo maps in `assets/equipment/material-scans.js`: original generated material textures created for this game using OpenAI image generation, October 2026. No third-party texture source.
