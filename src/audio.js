@@ -671,6 +671,18 @@
     // Unblockable blow coming: a deep bell under the usual wind-up.
     if (o.unblockable && throttle('ubell', .45)) { const s = spatial(o.x, o.z); sample('bell', { vol: .32 * k, rate: .55, at, send: .5, prio: 1 }); ring(t, { f: 98, partials: [1, 2.4, 3.9, 5.3], decay: 2.2, vol: .05 * k * s.gain, pan: s.pan, send: .6 }); }
     switch (type) {
+      case 'ashbound': vocal('prisonerYell', .58, {rate:.8,lp:3100}); sample('armorStep',{vol:.18*k,at,rate:.9}); break;
+      case 'shardseer': vocal('tortWhisper', .33, {rate:.83,lp:2300,send:.28}); sample('rune',{vol:.2*k,at,rate:1.18,send:.2}); break;
+      case 'cavefang': vocal('stalkerShriek', .62, {rate:1.12}); sample('bone',{vol:.15*k,at,rate:1.1}); break;
+      case 'gravemason': vocal('guardGrunt', .6, {rate:.72,lp:2900}); sample('debris',{vol:.22*k,at,rate:.8}); break;
+      case 'ruinwarden': vocal('guardGrunt', .72, {rate:.8}); sample('armorStep',{vol:.3*k,at,rate:.72}); break;
+      case 'hollowking': vocal('bossRoar', .68, {rate:.68,lp:3800}); sample('bone',{vol:.24*k,at,rate:.7}); break;
+      case 'emberbound': vocal('prisonerYell', .55, {rate:.74,lp:2600}); sample('metal',{vol:.15*k,at,rate:.85}); break;
+      case 'chainseer': vocal('tortWhisper', .34, {rate:.7,lp:1800}); sample('winch',{vol:.28*k,at,rate:.82}); sample('chain',{vol:.25*k,at,rate:1.08,delay:.08}); break;
+      case 'slagcrawler': vocal('carrierGurgle', .45, {rate:.66,lp:1900}); sample('scuff',{vol:.18*k,at,rate:.7}); break;
+      case 'forgesentinel': vocal('guardGrunt', .58, {rate:.65,lp:2400}); sample('metal',{vol:.3*k,at,rate:.62}); break;
+      case 'ashwarden': vocal('bossRoar', .52, {rate:.8,lp:3200}); sample('chain',{vol:.36*k,at,rate:.78}); break;
+      case 'furnaceheart': vocal('bossRoar', .74, {rate:.61,lp:2900}); sample('winch',{vol:.32*k,at,rate:.65}); break;
       case 'drowned': vocal('carrierGurgle', .7, {rate:.7}); break;
       case 'rootborn': sample('winch',{vol:.3*k,at,rate:.55}); break;
       case 'crawler': vocal('stalkerShriek', .5, {rate:1.15}); break;
@@ -699,6 +711,18 @@
   H.enemyAttack = (o, k) => {
     const at = { x: o.x, z: o.z }, t = now(), a = o.attack || '', s = spatial(o.x, o.z), pan = s.pan;
     switch (o.type) {
+      case 'ashbound': sample('swish',{vol:.38*k,at,rate:.9});sample('armor',{vol:.16*k,at,rate:.9});break;
+      case 'shardseer': sample('rune',{vol:.38*k,at,rate:1.22,send:.18});sample('bone',{vol:.2*k,at,rate:1.24});break;
+      case 'cavefang': sample('swish',{vol:.43*k,at,rate:1.4});sample('bone',{vol:.22*k,at,rate:1.12});break;
+      case 'gravemason': sample('stomp',{vol:.52*k,at,rate:.8});sample('debris',{vol:.42*k,at,rate:.9});thud(t,{f0:105,f1:42,dur:.24,vol:.35*k*s.gain,pan});break;
+      case 'ruinwarden': sample('swish',{vol:.5*k,at,rate:.73});sample('armor',{vol:.3*k,at,rate:.76});break;
+      case 'hollowking': sample('swish',{vol:.58*k,at,rate:.61});sample('bone',{vol:.28*k,at,rate:.72});thud(t,{f0:82,f1:35,dur:.27,vol:.34*k*s.gain,pan});break;
+      case 'emberbound': sample('swish',{vol:.4*k,at,rate:.88});sample('metal',{vol:.22*k,at,rate:.92});break;
+      case 'chainseer': sample('chain',{vol:.5*k,at,rate:1.08});sample('winch',{vol:.24*k,at,rate:.83});break;
+      case 'slagcrawler': sample('scuff',{vol:.3*k,at,rate:.72});sample('bone',{vol:.26*k,at,rate:.67});sample('swish',{vol:.28*k,at,rate:1.17});break;
+      case 'forgesentinel': sample('metal',{vol:.48*k,at,rate:.64});sample('stomp',{vol:.36*k,at,rate:.73});thud(t,{f0:91,f1:33,dur:.28,vol:.4*k*s.gain,pan});break;
+      case 'ashwarden': sample('chain',{vol:.4*k,at,rate:.8});sample('swish',{vol:.48*k,at,rate:.66});sample('metal',{vol:.26*k,at,rate:.75});break;
+      case 'furnaceheart': sample('metal',{vol:.55*k,at,rate:.57});sample('winch',{vol:.28*k,at,rate:.63});thud(t,{f0:68,f1:27,dur:.34,vol:.48*k*s.gain,pan,send:.15});break;
       case 'drowned': sample('swish',{vol:.45*k,at,rate:.75});sample('wetStep',{vol:.20*k,at,rate:.6});break;
       case 'rootborn': sample('debris',{vol:.40*k,at,rate:.7});sample('winch',{vol:.2*k,at,rate:.6});break;
       case 'crawler': sample('swish',{vol:.4*k,at,rate:1.25});sample('bone',{vol:.17*k,at,rate:1.1});break;
@@ -738,6 +762,31 @@
     // biçme ve savuruşlar
     whoosh(t - .18, { dur: .55, peak: .45, f0: 140, f1: 800, f2: 200, q: .8, vol: .8 * v, pan0: s.pan + .5, pan1: s.pan - .5, low: 240, send: .25 });
     sample('chain', { vol: .6 * v, at, delay: .02, rate: .75 }); thud(t, { f0: 80, f1: 30, dur: .4, vol: .6 * v, pan: s.pan });
+  };
+  // Physical mechanism contacts: one short material signature at the actual endpoint.
+  H.boss2Shatter = (o, k) => {
+    if (B.app && B.app.warming) return;
+    if (!throttle('boss2Shatter', .045)) return;
+    const t=now(), at={x:o.x,z:o.z}, s=spatial(o.x,o.z);
+    sample('hitCrack',{vol:.48*k,at,rate:.82,prio:1});
+    sample('debris',{vol:.55*k,at,rate:1.05,delay:.035,send:.16});
+    thud(t,{f0:112,f1:48,dur:.23,vol:.33*k*s.gain,pan:s.pan,send:.1});
+  };
+  H.boss2Nova = (o, k) => {
+    if (B.app && B.app.warming) return;
+    if (!throttle('boss2Nova', .18)) return;
+    const t=now(), s=spatial(o.x,o.z), at={x:o.x,z:o.z};
+    thud(t,{f0:62,f1:23,dur:.48,vol:.78*k*s.gain,pan:s.pan,send:.24});
+    burst(t,.25,.11*k*s.gain,410,{f1:110,q:.5,pan:s.pan,send:.18});
+    sample('debris',{vol:.26*k,at,rate:.78,delay:.045});
+  };
+  H.boss2OrbImpact = (o, k) => {
+    if (B.app && B.app.warming) return;
+    if (!throttle('boss2OrbImpact', .06)) return;
+    const t=now(), s=spatial(o.x,o.z), at={x:o.x,z:o.z};
+    sample(o.forge?'metal':'hitCrack',{vol:.36*k,at,rate:o.forge?.86:1.16,send:.12});
+    sample('debris',{vol:.20*k,at,rate:o.forge?.85:1.25,delay:.02});
+    thud(t,{f0:o.forge?98:146,f1:48,dur:.17,vol:.24*k*s.gain,pan:s.pan});
   };
   H.poison = (o, k) => {
     const at = { x: o.x, z: o.z }, t = now(), s = spatial(o.x, o.z);

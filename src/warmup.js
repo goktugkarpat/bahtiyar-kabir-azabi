@@ -265,7 +265,7 @@
     list.push(['boss1Toll', { ...at, radius: 5 }]);
     return list;
   }
-  function showAll(scene) {
+  function showAll(scene, keepCulling) {
     const rec = [];
     scene.traverse(o => {
       if (o === scene || o.isLight || o.isCamera) return;
@@ -276,7 +276,7 @@
         if (n >= 1) { dr = [g, g.drawRange.start, g.drawRange.count]; g.setDrawRange(0, Math.min(n, o.isPoints ? 1 : 3)); }
       }
       rec.push(o, o.visible, o.frustumCulled, o.isInstancedMesh ? o.count : -1, dr);
-      o.visible = true; o.frustumCulled = false;
+      o.visible = true; if (!keepCulling) o.frustumCulled = false;
       if (o.isInstancedMesh && o.count === 0) o.count = 1;
     });
     return rec;
@@ -368,7 +368,9 @@
           camera.position.set(p.x, c.cameraHeight, p.z + c.cameraBack);
           camera.lookAt(p.x, .7, p.z - .8); camera.updateMatrixWorld(true);
           if (c.step) c.step();
-          const visibility = showAll(scene);
+          // Every nearby actor is visible, but distant rooms keep their camera culling.
+          // drawAll() still exercises every layout globally once.
+          const visibility = showAll(scene, true);
           try {
             renderer.shadowMap.needsUpdate = true; c.post.render(0);
             const gl = renderer.getContext(), fence = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0);

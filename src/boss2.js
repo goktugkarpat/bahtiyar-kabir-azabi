@@ -52,6 +52,7 @@
     var forge = d.kind === 'slag' || d.forge;
     var col = forge ? AMBER : VIOLET, k = calm ? .5 : 1;
     if (name === 'boss2Orb') {
+      if(d.end){if(out&&out.fragments)out.fragments(x,d.y||1.0,z,{metal:forge,count:calm?2:5,spread:.12,speed:1.5,lift:1.8,size:.065});if(out&&out.sound)out.sound('boss2OrbImpact',{x:x,z:z,kind:d.kind,forge:forge});}
       if (tells && !calm) tells.glowBurst(x, z, { radius: d.end ? 1.1 : .75, life: .3, color: [col[0] * .35, col[1] * .35, col[2] * .35], peak: .18 });
       if (emit) for (i = 0, n = Math.round(10 * k); i < n; i++) { a = Math.random() * TAU; emit(x, d.y || 1.2, z, 1, col, Math.sin(a) * 2.4, .5 + Math.random() * 1.3, Math.cos(a) * 2.4, .3, .07); }
     } else if (name === 'boss2Shards') {          // crystal / slag spurts along a line: x,z origin, face, length, width
@@ -64,6 +65,7 @@
     } else if (name === 'boss2Shatter') {         // a pillar bursts
       // A consumed shelter sheds physical stone; it does not draw a false damage circle.
       col=BONE;
+      if(out&&out.sound)out.sound('boss2Shatter',{x:x,z:z,shelter:!!d.shelter});
       if(out&&out.fragments)out.fragments(x,.3,z,{count:calm?10:20,spread:.65,speed:3.2,lift:4.0,size:.13});
       if (emit) for (i = 0, n = Math.round(28 * k); i < n; i++) { a = Math.random() * TAU; r = Math.random() * .7; emit(x + Math.sin(a) * r, .3 + Math.random() * 2.4, z + Math.cos(a) * r, 2, ASH, Math.sin(a) * (1.5 + Math.random() * 3), 1 + Math.random() * 3, Math.cos(a) * (1.5 + Math.random() * 3), .5 + Math.random() * .4, .1); }
     } else if (name === 'boss2Echo') {            // a shadow column steps out of the floor
@@ -81,6 +83,7 @@
       if (tells) tells.wave(x, z, { radius: 3.4, life: .55, width: .065, color: forge ? [.48,.17,.045] : [.22,.18,.38], soft: 0 });
     } else if (name === 'boss2Nova') {            // channel charge (phase 'charge') and release
       if (d.phase === 'release') {
+        if(out&&out.sound)out.sound('boss2Nova',{x:x,z:z,forge:forge});
         if (tells) { tells.wave(x, z, { radius: 17, life: .75, width: .07, color: [col[0] * .3, col[1] * .3, col[2] * .3], soft: .08 }); tells.glowBurst(x, z, { radius: 1.7, life: .35, color: [col[0] * .5, col[1] * .5, col[2] * .5], peak: .25 }); }
         burst('impact', { x: x, z: z });
       } else if (emit) for (i = 0, n = Math.round(6 * k); i < n; i++) { a = Math.random() * TAU; r = 5 + Math.random() * 6; emit(x + Math.sin(a) * r, .3 + Math.random() * 1.6, z + Math.cos(a) * r, 3, col, -Math.sin(a) * r / .9, 0, -Math.cos(a) * r / .9, .85, .11); }

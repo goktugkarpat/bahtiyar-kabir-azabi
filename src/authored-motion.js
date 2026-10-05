@@ -180,7 +180,7 @@
     else if (style === 'shardseer' || style === 'chainseer') { lifeRate=1.65;lifeLean=.026;lifeSway=.048; }
     else if (style === 'cavefang' || style === 'slagcrawler') { lifeRate=2.7;lifeLean=.050;lifeSway=.082; }
     else if (style === 'gravemason' || style === 'forgesentinel') { lifeRate=1.45;lifeLean=.045;lifeSway=.038; }
-    var initialized = false, disposed = false, wasDead = false, settled = false, lastHitAngle = 0, lookCur = 0, lookPitch = 0, lifeSeed = Math.random() * 40, shiftCur = 0, legYawCur = 0, backwardMotion = false;
+    var initialized = false, disposed = false, wasDead = false, settled = false, lastHitAngle = 0, lookCur = 0, lookPitch = 0, lifeSeed = Math.random() * 40, shiftCur = 0, legYawCur = 0, backwardMotion = false, fearCur = 0;
     var footfall = root.userData.footfall = { serial: 0, side: 0, x: 0, z: 0, strength: 0, kind: 'step' };
     var motionInfo = root.userData.authoredMotion = { clip: '', source: 'Quaternius CC0', phase: 0, strike: '' };
     root.updateWorldMatrix(true, true); root.getWorldQuaternion(qRoot); invRoot.copy(qRoot).invert();
@@ -656,7 +656,7 @@
       motionInfo.refreshed = false;
       if (state.reset) {
         initialized = false; clock = finite(state.time, 0); gait = 0; speed = 0; moveWeight = 0; mode = ''; modeAge = 0; deathTime = 0; deathYaw = 0; deathKind = '';
-        hurtTime = 2; previousHurt = 0; previousAttack = 0; comboMemory = -1; previousDodge = 0; wasDead = false; turnRate = 0; footfall.serial = 0; rollRecover = 9; lookCur = 0; lookPitch = 0; shiftCur = 0; legYawCur = 0; backwardMotion = false;
+        hurtTime = 2; previousHurt = 0; previousAttack = 0; comboMemory = -1; previousDodge = 0; wasDead = false; turnRate = 0; footfall.serial = 0; rollRecover = 9; lookCur = 0; lookPitch = 0; shiftCur = 0; legYawCur = 0; backwardMotion = false; fearCur = 0;
         originalLocal.forEach(function (r) { r.node.position.copy(r.p); r.node.quaternion.copy(r.q); }); feet.forEach(function (f) { f.locked = false; f.weight = 0; });
       }
       // A corpse whose fall has finished holds one fixed local pose (death clip clamped at its end, slide eased out, no
@@ -830,6 +830,22 @@
         var lookMix = (hero && moveWeight > .3 ? .35 : 1) * (state.block ? .6 : 1);
         euler.set(lookPitch + .015 * Math.sin(lt2 * 1.3), lookCur * .62 * lookMix + .04 * Math.sin(lt2 * .43), 0, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(wanted, 4, qa);
         euler.set(0, lookCur * .18 * lookMix, 0, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(wanted, 3, qa);
+      }
+      // Fear survives the initial flinch as a restrained defensive posture.
+      // It stays below authored attacks, hurt, stagger and death; gait clocks
+      // and planted feet are unchanged, and bosses retain their composure.
+      var fearEligible = !hero && !boss && !state.dead && !acting && !dodge && !leap && hurt <= .01 && !stagger,
+        fearTarget = fearEligible ? clamp(finite(state.fear, 0) / .6, 0, 1) : 0;
+      fearCur += (fearTarget - fearCur) * (dt > 0 ? damp(10, dt) : 0);
+      motionInfo.fear = fearEligible ? fearCur : 0;
+      if (fearCur > .002 && fearEligible) {
+        var cower = fearCur * (1 - moveWeight * .22);
+        spineLayer(wanted, -.045 * cower, .21 * cower, .025 * cower);
+        euler.set(.13 * cower, 0, -.035 * cower, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(wanted, 4, qa);
+        euler.set(-.16 * cower, 0, .12 * cower, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(wanted, 7, qa);
+        if (!armed) { euler.set(0, -.13 * cower, .19 * cower, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(wanted, 8, qa); }
+        euler.set(-.045 * cower, 0, -.055 * cower, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(wanted, 11, qa);
+        wanted.p.y -= .014 * cower / Math.max(.4, characterScale);
       }
       if (nextMode !== mode) { copyPose(transition, output); mode = nextMode; modeAge = 0; } else modeAge += dt;
       if (!initialized || dt === 0) copyPose(output, wanted);

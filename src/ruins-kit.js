@@ -214,7 +214,7 @@
       vertexShader: [
         'attribute vec2 aCorner; attribute vec2 aSize; attribute vec4 aCol; attribute vec4 aKind; uniform float uTime; varying vec2 vC; varying vec4 vCol; varying vec4 vK;',
         'void main(){ float kind=aKind.x, ph=aKind.y, sp=aKind.z, ex=aKind.w; vec3 c=position; vec2 sz=aSize; float life=1., t=0.;',
-        ' if(kind>1.5&&kind<2.5){ t=fract(uTime*sp+ph); c.y+=t*ex; c.x+=sin(ph*47.+t*2.3)*.55*t; c.z+=cos(ph*31.+t*1.9)*.55*t; sz*=.5+t*1.15; life=sin(t*3.14159); }',
+        ' if(kind>1.5&&kind<2.5){ t=fract(uTime*sp+ph); c.y+=t*ex; c.x+=sin(ph*47.+t*2.3)*.55*t; c.z+=cos(ph*31.+t*1.9)*.55*t; sz*=' + (forge ? 'vec2(.42+t*.9,.5+t*1.35)' : '(.5+t*1.15)') + '; life=sin(t*3.14159); }',
         ' else if(kind>2.5&&kind<3.5){ t=fract(uTime*sp+ph); c.y+=t*ex; c.x+=sin(uTime*1.3+ph*40.)*.6*t; c.z+=cos(uTime*1.1+ph*29.)*.6*t; life=smoothstep(0.,.08,t)*(1.-t)*(.55+.45*sin(uTime*9.+ph*80.)); }',
         ' else if(kind>3.5&&kind<4.5){ c+=ex*vec3(sin(uTime*sp+ph*40.),sin(uTime*sp*.7+ph*23.)*.45,cos(uTime*sp*.8+ph*31.)); life=.5+.5*sin(uTime*sp*1.7+ph*60.); }',
         ' else if(kind>5.5){ life=1.+.1*sin(uTime*6.7+ph*30.)+.06*sin(uTime*12.3+ph*11.); }',
@@ -233,7 +233,7 @@
         ' else if(kind<.5){ a=exp(-r2*3.4)*(1.-smoothstep(.78,1.,rr)); }',
         ' else if(kind<1.5){ vec2 p=vec2(q.x,q.y*.5+.5); float sway=(n(vec2(p.y*2.6-uTime*3.1,ph*9.))-.5)*.7*p.y; float wd=pow(max(1.-p.y,0.),1.15)*.82+.04; float d=abs(p.x-sway)/wd;',
         '  float shape=(1.-smoothstep(.25,1.,d))*(1.-smoothstep(.55,1.,p.y))*smoothstep(0.,.1,p.y); float fl=.65+.7*n(vec2(p.x*3.+ph*7.,p.y*4.-uTime*5.5)); a=shape*fl; col=mix(col,vec3(1.35,1.05,.62),pow(shape,3.)*.85); }',
-        forge ? ' else if(kind<2.5){ float v=n(q*1.9+ph*13.+vec2(uTime*.04,uTime*.1))*.62+n(q*4.+ph*7.+vec2(-uTime*.06,uTime*.08))*.38; a=smoothstep(.1,.72,v)*pow(1.-smoothstep(.1,1.,rr),1.5); ao=a; }'   // forge: softer, no hard holes
+        forge ? ' else if(kind<2.5){ vec2 p=q+vec2(.10*sin(q.y*3.5+uTime*.37+ph*9.),.06*sin(q.x*3.+uTime*.28+ph*17.)); float v=n(p*3.2+ph*13.+vec2(uTime*.04,uTime*.1))*.53+n(p*7.1+ph*7.+vec2(-uTime*.06,uTime*.08))*.31+n(p*12.4-ph*11.+vec2(uTime*.03,-uTime*.11))*.16; float edge=1.-smoothstep(.24,.92,length(p)+(v-.5)*.15); a=pow(smoothstep(.18,.82,v),1.25)*edge*.82; col*=.65+.45*v; ao=a; }'   // forge: softer, no hard holes
           : ' else if(kind<2.5){ float v=n(q*2.4+ph*13.+vec2(uTime*.05,uTime*.11))*.62+n(q*5.1-ph*7.+vec2(-uTime*.07,uTime*.09))*.38; a=smoothstep(.22,.82,v)*(1.-smoothstep(.45,1.,rr)); ao=a; }',
         ' else if(kind<3.5){ a=exp(-r2*8.)*1.5; }',
         ' else if(kind<4.5){ a=exp(-r2*7.); }',

@@ -1526,7 +1526,7 @@
         emit('encounterCleared', { name: seal.encounter.name, roomName: seal.encounter.roomName, nextName: seal.encounter.nextName, room: seal.encounter.room, x: seal.x, z: seal.z, text: seal.encounter.clearText });
         emit('toast', { text: enemy.boss ? 'Arena açıldı. Boss yenildi.' : seal.encounter.clearText });
       }
-      emit('kill', { name: enemy.name, boss: enemy.boss, x: enemy.x, z: enemy.z }); sound(enemy.boss ? 'bossDeath' : 'kill', { type: enemy.type });
+      emit('kill', { name: enemy.name, boss: enemy.boss, x: enemy.x, z: enemy.z }); sound(enemy.boss ? 'bossDeath' : 'kill', { type: enemy.type, x: enemy.x, z: enemy.z });
       fx('death', { x: enemy.x, y: .8, z: enemy.z, boss: enemy.boss });
       if (globes && !enemy.boss) globes.roll(enemy, enemy.deathKind === 'blown' ? 'heavy' : 'light', angleTo(player, enemy), () => rand(enemy));   // health globe (seeded by the foe's own RNG)
       if (enemy.type === 'carrier') {
@@ -2459,7 +2459,7 @@
           es.attackSerial = action ? action.serial : 0; es.rushTime = action && action.movement ? action.movement.duration : 0;
           es.lookYaw = enemy.active && !enemy.dead && !player.dead ? angleDifference(angleTo(enemy, player), enemy.face) : undefined;
           es.hitAngle = enemy.hitAngle || 0; es.hurtHeavy = !!enemy.hurtHeavy; es.deathKind = enemy.deathKind || ''; es.blockImpact = enemy.blockImpact || 0;
-          es.stagger = enemy.stagger > 0 && !enemy.dead ? 1 - enemy.stagger / Math.max(enemy.stagger, enemy.staggerTotal || 0) : 0; es.staggerTime = enemy.staggerTotal || 0;
+          es.stagger = enemy.stagger > 0 && !enemy.dead ? 1 - enemy.stagger / Math.max(enemy.stagger, enemy.staggerTotal || 0) : 0; es.staggerTime = enemy.staggerTotal || 0; es.fear = enemy.fear || 0;
           es.attack = enemyAttackPose(enemy); es.contactPhase = enemy.boss || enemy.type === 'guard' ? .56 : .41; es.pose = beat ? beat.pose : '';
           es.action = action ? action.attack : ''; es.actionProgress = action ? action.age / action.duration : 0; es.leap = leap;
           es.heavy = !!(action && (enemy.boss || enemy.type === 'guard'));

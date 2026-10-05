@@ -1411,7 +1411,9 @@
     // Same reach as the stone's own auto-seal (combat.js): the button shows when enemies still keep it from sealing.
     const cp = world.checkpoint, near = cp && Math.hypot(p.x - cp.x, p.z - cp.z) < 6.1 && game.checkpointIndex === 0;
     const prompt = game.quests && game.quests.prompt;
-    $('interact').classList.toggle('hidden', !near && !prompt);
+    const blockedPrompt = !!prompt && !prompt.available;
+    $('interact').classList.toggle('unavailable', blockedPrompt);
+    $('interact').classList.toggle('hidden', (!near && !prompt) || (blockedPrompt && document.body.classList.contains('in-combat')));
     hudText('interact-label', prompt ? prompt.text : 'Yemin taşına dokun');
     if (questUI) questUI.update(dt);
     if (atlasUI) atlasUI.update(dt);
@@ -1811,7 +1813,7 @@
     // Separate real preparation phases; uploads can take longer than shader compilation.
     const report = () => progress(.25 + .17 * Math.min(1,next / Math.max(1,work.jobs.length))
       + .36 * Math.min(1,tex / Math.max(1,work.textures.length))
-      + .18 * Math.min(1,geo / Math.max(1,work.geometryObjects.length)));
+      + .14 * Math.min(1,geo / Math.max(1,work.geometryObjects.length)));
     async function run() {
       checkContext();
       // Cut meshes are expensive to build on a foe's first killing blow. Prepare
@@ -1895,10 +1897,13 @@
           // Advance only the lighting fade: dt=0 leaves new scatter slots inactive,
           // so a real draw would still miss their first-use executables.
           post, rasterWarmup: B.Lighting.shaderPreparation.rasterWarmup, step: () => atmosphereStep(.25),
-          cameraHeight: (wide ? 19 : touch ? 15.6 : 13.8) * CAM_NEAR, cameraBack: (wide ? 16 : 11.4) * CAM_NEAR });
+          cameraHeight: (wide ? 19 : touch ? 15.6 : 13.8) * CAM_NEAR, cameraBack: (wide ? 16 : 11.4) * CAM_NEAR,
+          progress: k => progress(.93 + .014 * k, 'Bölüm hazırlanıyor… ' + Math.round(k * world.rooms.length) + ' / ' + world.rooms.length) });
         checkContext();
+        progress(.947, 'Savaş efektleri hazırlanıyor…');
         warmStats.fxDraw = await B.Warmup.drawAll({ scene, camera, renderer, post, feedback, game, step: () => { cameraStep(0); atmosphereStep(0); }, elapsed: () => elapsed });
         checkContext();
+        progress(.955, 'Arayüz hazırlanıyor…');
         warmStats.domPaint = await B.Warmup.paintDom(liveHudPaint);
         warmStats.newPrograms = B.Warmup.stats.programs;
       }

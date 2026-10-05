@@ -655,69 +655,47 @@
     }
     // The war cry: breath drawn in, then the roar goes out through the floor.
     function warCryGather(d) {
-      const x = d.x, z = d.z, gather = d.life > 0 ? d.life : .3;   // the breath is drawn in until the roar goes out
-      for (let i = 0; i < scaleCount(34); i++) {
-        const a = Math.random() * Math.PI * 2, r = 2.4 + Math.random() * 1.4, px = x + Math.sin(a) * r, pz = z + Math.cos(a) * r, y = .15 + Math.random() * 1.2, life = gather;
-        emit(px, y, pz, 5, i % 3 ? [.08, .065, .055] : [2.0, .45, .12], (x - px) / life * .9, (1.2 - y) / life * .5, (z - pz) / life * .9, life, i % 3 ? .2 : .06);
+      const x=d.x,z=d.z,gather=d.life>0?d.life:.3;
+      for(let i=0;i<scaleCount(14);i++){
+        const a=Math.random()*Math.PI*2,r=.8+Math.random()*1.0,px=x+Math.sin(a)*r,pz=z+Math.cos(a)*r,y=.1+Math.random()*.6;
+        emit(px,y,pz,5,i%4?[.06,.05,.04]:[.65,.26,.09],(x-px)/gather*.65,(.8-y)/gather*.35,(z-pz)/gather*.65,gather,i%4?.12:.035);
       }
-      if (tells) tells.glowBurst(x, z, { radius: 1.6, life: gather + .1, color: [1.6, .3, .08], peak: .45 });
+      if(tells)tells.glowBurst(x,z,{radius:1.0,life:gather+.08,color:[.52,.23,.08],peak:.065});
     }
     function warCry(d) {
-      const game = getGame(), x = d.x, z = d.z, R = d.radius || 5.2, F = d.far || R * 1.5, calm = reduced.matches;
-      // Parent: the war cry left a huge mark. Everything drawn (not the gameplay radii near/far) uses V = 60 % of the reach; cracks shrink further and fade within ~1.6 s.
-      const V = R * .6, VF = F * .6;
-      if (tells) {
-        // The floor splits outward (glowing cracks for ~2.6 s) under a white-hot front that runs ahead of a red one; the smooth rings below are drawn by this file.
-        tells.wave(x, z, { radius: V + .5, life: .5, width: .16, color: [1.6, .4, .1], crack: .8, crackR: R * .42, crackLife: 1.5, soft: 0 });
-        tells.wave(x, z, { radius: VF, life: .62, width: .14, color: [1.8, 1.1, .8], soft: 0, delay: .03 });
-        tells.wave(x, z, { radius: V * .55, life: .4, width: .16, color: [2.2, .4, .1], crack: .45, crackR: R * .28, crackLife: 1.1, soft: 0, delay: .16 });
-        tells.glowBurst(x, z, { radius: 2.4, life: .7, color: [2.2, .35, .1], peak: .12 });
+      const game=getGame(),x=d.x,z=d.z,R=d.radius||5.2,calm=reduced.matches,V=R*.6;
+      // The first cry is a pressure pulse through grit, not a white-hot spell disc.
+      // Gameplay near/far ranges remain owned by combat; this is only the visual echo.
+      if(tells){
+        tells.wave(x,z,{radius:V+.25,life:.50,width:.045,color:[.48,.32,.18],crack:.16,crackR:R*.22,crackLife:.9,soft:.12});
+        tells.glowBurst(x,z,{radius:1.5,life:.42,color:[.55,.23,.08],peak:.06});
       }
-      chRing(x, z, V * 1.05, .55, [1.15, .13, .08]); chRing(x, z, V * .6, .38, [1.25, .63, .38]); chRing(x, z, V * .95, .8, [.28, .12, .07]);   // last: the slow dust ring
-      scar(x, z, 0, { shape: 'circle', radius: 1.6, life: 2, heat: .5 });
-      flash(x, 1.2, z, 2.0, new T.Color('#e07040'), .18, 0, softMap);
-      const ringDust = scaleCount(28); for (let i = 0; i < ringDust; i++) { const a = i / ringDust * Math.PI * 2; particle(x + Math.sin(a) * .7, .1, z + Math.cos(a) * .7, 2, DUST, 2.0, a, .4); }
-      // Sparks thrown out along the floor as stretched streaks, and a fountain of hot flecks lifted along the crack ring.
-      for (let i = 0; i < (calm ? 8 : Math.round(scaleCount(40) * .9)); i++) { const a = Math.random() * Math.PI * 2; streak(x + Math.sin(a) * .8, .25 + Math.random() * .5, z + Math.cos(a) * .8, Math.sin(a) * (4.5 + Math.random() * 5.5), 1 + Math.random() * 3, Math.cos(a) * (4.5 + Math.random() * 5.5), .3 + Math.random() * .3, .05 + Math.random() * .04, Math.random() < .3 ? [3.4, 2.4, 1.2] : [3.0, 1.1, .3]); }
-      skMesh.visible = true;
-      for (let i = 0; i < scaleCount(46); i++) {
-        const a = Math.random() * Math.PI * 2, r = V * (.35 + Math.random() * .65);
-        emit(x + Math.sin(a) * r, .05, z + Math.cos(a) * r, 4, Math.random() < .3 ? [3.4, 1.8, .8] : [2.6, .6, .12], Math.sin(a) * 1.0, 1.6 + Math.random() * 2.2, Math.cos(a) * 1.0, .7 + Math.random() * .8, .045);
-      }
-      roarSpiral.on = true; roarSpiral.t = 0; roarSpiral.x = x; roarSpiral.z = z; roarSpiral.R = V;   // continuous ember spiral, see roarSpiralStep
-      // Tier accents (Ölüm Çığlığı / Kıyamet Narası): an amber ground-splitting wave, then a cold violet one with a column of sparks; same primitives, no new objects.
-      const tier = d.tier || 1;
-      if (tier > 1 && tells) {
-        tells.wave(x, z, { radius: VF * 1.12, life: .7, width: .2, color: [2.4, 1.5, .45], crack: .9, crackR: R * .5, crackLife: 1.6, soft: 0, delay: .08 });
-        tells.glowBurst(x, z, { radius: 3.2, life: .6, color: [2.6, 1.6, .5], peak: .3 });
-        for (let i = 0; i < (calm ? 4 : scaleCount(26)); i++) { const a = i / 26 * Math.PI * 2 + Math.random() * .2; streak(x + Math.sin(a) * V * .9, .2, z + Math.cos(a) * V * .9, Math.sin(a) * 2, 3 + Math.random() * 3, Math.cos(a) * 2, .45, .1, [2.6, 1.7, .6]); }
-      }
-      if (tier > 2 && tells) {
-        tells.wave(x, z, { radius: VF * 1.3, life: .85, width: .22, color: [1.5, .9, 2.8], soft: 0, delay: .16 });
-        tells.glowBurst(x, z, { radius: 4, life: .8, color: [1.2, .7, 2.6], peak: .3 });
-      }
-      // Cowed foes: a dark shudder rises off each one the roar reached.
-      if (game) for (const e of game.enemies) if (!e.dead && e.fear > 1 && e.model.root.visible) for (let i = 0; i < scaleCount(8); i++) emit(e.x + rnd(-.3, .3), 1.2 + Math.random() * .6, e.z + rnd(-.3, .3), 2, [.04, .03, .03], rnd(-.3, .3), .6, rnd(-.3, .3), .8, .3);
+      scar(x,z,0,{shape:'circle',radius:1.15,life:1.15,heat:.16});
+      fragments(x,floorAt(x,z,.3)+.07,z,{count:calm?4:8,spread:.8,speed:1.7,lift:1.5,size:.065});
+      flash(x,1.1,z,.72,new T.Color('#b78556'),.07,0,softMap);
+      const ringDust=scaleCount(14);for(let i=0;i<ringDust;i++){const a=i/ringDust*Math.PI*2;particle(x+Math.sin(a)*.8,.08,z+Math.cos(a)*.8,2,DUST,1.2,a,.20);}
+      for(let i=0;i<(calm?4:scaleCount(12));i++){const a=Math.random()*Math.PI*2;streak(x+Math.sin(a)*.8,.12+Math.random()*.15,z+Math.cos(a)*.8,Math.sin(a)*(2.3+Math.random()*1.5),.45+Math.random()*.7,Math.cos(a)*(2.3+Math.random()*1.5),.22+Math.random()*.15,.028,[.85,.40,.13]);}
+      roarSpiral.on=!calm;roarSpiral.t=0;roarSpiral.x=x;roarSpiral.z=z;roarSpiral.R=Math.min(2.3,V*.6);
+      if(game)for(const e of game.enemies)if(!e.dead&&e.fear>1&&e.model.root.visible)for(let i=0;i<scaleCount(4);i++)emit(e.x+rnd(-.25,.25),1.0+Math.random()*.5,e.z+rnd(-.25,.25),2,[.035,.03,.025],rnd(-.2,.2),.45,rnd(-.2,.2),.6,.16);
     }
-    // Three helix arms of embers wind up and out around the father for a second after the roar; spawned in small time steps so the arms are unbroken lines, not bursts.
-    const roarSpiral = { on: false, t: 0, x: 0, z: 0, R: 5 };
-    function roarSpiralStep(dt) {
-      if (!roarSpiral.on || dt <= 0) return; const rs = roarSpiral, bud = clamp(budget() / 1100, .3, 1), D = .9;
-      const steps = Math.max(1, Math.ceil(dt / (1 / 200)));
-      for (let k = 0; k < steps; k++) {
-        const t = rs.t + dt * (k + .5) / steps; if (t > D) break;
-        for (let arm = 0; arm < 3; arm++) { if (Math.random() > bud * (reduced.matches ? .3 : 1)) continue;
-          const a = t * 10 + arm * 2.094, r = .5 + (t / D) * rs.R * .8, y = .1 + t * 1.6;
-          emit(rs.x + Math.sin(a) * r, y, rs.z + Math.cos(a) * r, 4, arm ? [2.6, .65, .14] : [3.4, 1.8, .8], Math.cos(a) * 3.2, 1.0 + Math.random() * .6, -Math.sin(a) * 3.2, .5 + Math.random() * .35, .05); }
+    // Brief low ember eddies dissipate around the planted feet after the cry.
+    const roarSpiral={on:false,t:0,x:0,z:0,R:2};
+    function roarSpiralStep(dt){
+      if(!roarSpiral.on||dt<=0)return;const rs=roarSpiral,bud=clamp(budget()/1100,.3,1),D=.48;
+      const steps=Math.max(1,Math.ceil(dt/(1/60)));
+      for(let k=0;k<steps;k++){
+        const t=rs.t+dt*(k+.5)/steps;if(t>D)break;
+        for(let arm=0;arm<2;arm++){if(Math.random()>bud)continue;const a=t*5+arm*Math.PI,r=.6+(t/D)*rs.R,y=.08+t*.55;
+          emit(rs.x+Math.sin(a)*r,y,rs.z+Math.cos(a)*r,4,[.75,.28,.09],Math.cos(a)*.8,.35,-Math.sin(a)*.8,.25+Math.random()*.15,.025);
+        }
       }
-      rs.t += dt; if (rs.t > D) rs.on = false;
+      rs.t+=dt;if(rs.t>D)rs.on=false;
     }
-    // Follow-up rings of the tier-3 cry (Kıyamet Narası): each one is a pale violet front with a few chain-link sparks along it.
-    function warCryWave(d) {
-      const x = d.x, z = d.z, V = (d.radius || 6) * .6, calm = reduced.matches, n = d.n || 1;
-      if (tells) tells.wave(x, z, { radius: V + .6, life: .55, width: .2, color: n % 2 ? [1.6, 1.0, 2.8] : [2.4, 1.3, .6], crack: n === 1 ? .5 : 0, crackR: V * .6, crackLife: 1.1, soft: 0 });
-      for (let i = 0; i < (calm ? 4 : scaleCount(22)); i++) { const a = Math.random() * Math.PI * 2; streak(x + Math.sin(a) * V * .8, .25 + Math.random() * .4, z + Math.cos(a) * V * .8, Math.sin(a) * 3, 1.5 + Math.random() * 2.5, Math.cos(a) * 3, .35 + Math.random() * .25, .09, [1.8, 1.1, 2.6]); }
-      const ringDust = scaleCount(20); for (let i = 0; i < ringDust; i++) { const a = i / ringDust * Math.PI * 2; particle(x + Math.sin(a) * V * .7, .1, z + Math.cos(a) * V * .7, 2, DUST, 1.6, a, .3); }
+    function warCryWave(d){
+      const x=d.x,z=d.z,V=(d.radius||6)*.6,calm=reduced.matches,n=d.n||1;
+      if(tells)tells.wave(x,z,{radius:V+.25,life:.5,width:.045,color:n%2?[.30,.21,.36]:[.45,.27,.12],crack:n===1?.14:0,crackR:V*.4,crackLife:.8,soft:.12});
+      for(let i=0;i<(calm?3:scaleCount(8));i++){const a=Math.random()*Math.PI*2;streak(x+Math.sin(a)*V*.7,.15,z+Math.cos(a)*V*.7,Math.sin(a)*1.5,.6+Math.random()*.8,Math.cos(a)*1.5,.25,.025,[.50,.32,.40]);}
+      const ringDust=scaleCount(12);for(let i=0;i<ringDust;i++){const a=i/ringDust*Math.PI*2;particle(x+Math.sin(a)*V*.6,.08,z+Math.cos(a)*V*.6,2,DUST,1.2,a,.2);}
     }
     // Tier accents of the heavy-strike line: the base blow keeps its crescent; Kemik Kıran adds a gold seal burst, Kabir Balyozu a cold-white flame fan.
     function skillAccent(d) {
