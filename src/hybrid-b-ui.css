@@ -1,0 +1,157 @@
+/* Selected hybrid B: embossed burgundy leather, cast bronze, readable ivory typography. */
+#character,#settings {--text:Georgia,'Times New Roman',serif;--ch-ink:#eadfc9;--ch-muted:#c6bca7;background:#080708;}
+#character .character-panel,#settings .settings-panel {
+ width:min(96vw,calc(94dvh * 1586 / 992));height:94dvh;max-height:1040px;max-width:1663px;
+ padding:0;border:0;border-radius:0;box-shadow:0 12px 65px #000b;position:relative;
+ background:url(../assets/ui/hybrid-b-chamber.png) center/100% 100% no-repeat;overflow:hidden;
+}
+#character .character-panel::before,#character .character-panel::after,
+#settings .settings-panel::before,#settings .settings-panel::after {display:none;}
+#character .panel-head,#settings .panel-head {
+ position:absolute;top:2.3%;left:6.5%;width:87%;padding:0;margin:0;border:0;gap:0;
+}
+#character .mourning-title,#settings .panel-head .eyebrow {font:400 clamp(28px,2.65vw,44px)/1.05 Georgia,serif;letter-spacing:.075em;color:#f0e3c9;text-shadow:0 2px 3px #000;}
+#character .panel-head h2,#settings .panel-head h2 {font:400 18px/1.15 Georgia,serif;letter-spacing:.06em;color:#e6d7b9;margin-top:4px;}
+#character .panel-head .close,#settings .panel-head .close {top:0;right:0;width:32px;height:32px;min-height:32px;background:#0c0908d9;border:1px solid #ba9864;color:#e6d6b6;}
+#character .char-progress {margin-top:8px;}
+#character .char-progress>div:first-child {font-size:12px;gap:14px;}
+#character .char-progress strong {font-size:14px;}
+#character .char-xp-track {height:3px;margin-top:5px;background:#100c0960;border-color:#a98a5840;}
+#character .char-tabs {position:absolute;left:6.5%;top:14%;width:87%;padding:0;gap:6px;}
+#character .char-tabs button {font:400 18px/1.1 Georgia,serif;padding:7px 20px;min-height:36px;border:2px ridge #8e7148;border-radius:0;background:linear-gradient(#100c0990,#080706b0),url(../assets/ui/funeral-cloth-dark.png) center/180px;box-shadow:inset 0 0 0 2px #0005;}
+#character .char-tabs button.active,#settings .settings-nav button.active {background:linear-gradient(#4f171943,#1b0b0c80),url(../assets/ui/funeral-cloth.png) center/180px;border-color:#bc9a61;color:#f3e5c7;}
+#character .char-content {position:absolute;left:6.5%;right:6.5%;top:20%;bottom:11%;width:auto;height:auto;}
+#character .char-footer,#settings footer {position:absolute;left:6.5%;right:6.5%;bottom:2.1%;height:5.4%;min-height:0;margin:0;padding:0;border:0;}
+#character .char-footer::before,#settings footer::before {display:none;}
+#character .char-footer .btn,#settings #settings-done {font:400 18px/1.15 Georgia,serif;min-height:34px;height:34px;padding:4px 22px;}
+#character .char-sheet,#character .char-bag,#character .char-detail,#character .skt-tree,#character .skt-inspect,#character .skt-loadout {
+ position:relative;border:3px ridge #9d7b49;border-radius:3px;padding:12px;background:linear-gradient(#11100df0,#080909f0),url(../assets/ui/funeral-cloth-dark.png) center/220px;
+ box-shadow:inset 0 0 0 2px #000a,inset 0 1px 0 #d6b36a38,0 3px 7px #0009;
+}
+#character .char-sheet::before,#character .char-bag::before,#character .char-detail::before,#character .skt-tree::before,#character .skt-inspect::before,#character .skt-loadout::before {
+ content:'';position:absolute;inset:0;z-index:2;pointer-events:none;opacity:.75;
+ background:url(../assets/ui/frame-tl.png) left top/30px 30px no-repeat,url(../assets/ui/frame-tr.png) right top/30px 30px no-repeat,url(../assets/ui/frame-bl.png) left bottom/30px 30px no-repeat,url(../assets/ui/frame-br.png) right bottom/30px 30px no-repeat;
+}
+#character .char-sheet>h3,#character .char-bag>h3 {font:400 19px/1.2 Georgia,serif;letter-spacing:.02em;background:linear-gradient(90deg,#56252d60,transparent),url(../assets/ui/funeral-cloth.png) center/180px;border-bottom:1px solid #9d7b4960;padding:5px 6px 9px;margin-bottom:9px;}
+#character .char-sheet>h3 small,#character .char-bag>h3 small {font-size:12px;color:#d1c3a8;}
+#character .char-inventory-layout.has-preview {grid-template-columns:minmax(0,1.1fr) minmax(0,1fr) minmax(0,.9fr);gap:10px;}
+#character .char-doll {grid-template-columns:56px minmax(0,1fr) 56px;gap:5px;}
+#character .char-preview {border:2px ridge #977647;background:#080909;}
+#character .char-filter {min-height:34px;font-size:12px;border-color:#8a6b4560;}
+#character .char-bag-help {font-size:11px;line-height:1.3;}
+#character .cd-title h3 {font:400 24px/1.2 Georgia,serif;color:#f1e4ca;}
+#character .cd-note,#character .cd-lore {font-size:14px;line-height:1.5;color:#d6ccb8;}
+#character .cd-art {height:clamp(70px,14dvh,140px);background:linear-gradient(#240e1340,#080909b0),url(../assets/ui/funeral-cloth.png) center/180px;border:2px ridge #89693c;}
+#character .cd-actions .cd-btn,#character .skt-learn {background:linear-gradient(#4e1b2360,#180b0ec0),url(../assets/ui/funeral-cloth.png) center/180px;border:3px ridge #987949;font:400 18px Georgia,serif;color:#eedfc0;}
+#character .skt-wrap {grid-template-columns:minmax(0,1fr) minmax(300px,.4fr);grid-template-rows:minmax(0,1fr) 116px;gap:10px;}
+#character .skt-tree {grid-column:1;grid-row:1 / span 2;}
+#character .skt-inspect {grid-column:2;grid-row:1;height:100%;gap:8px;}
+#character .skt-top {grid-column:2;grid-row:2;display:flex;height:100%;min-height:0;}
+#character .skt-loadout {width:100%;height:100%;padding:8px 10px;}
+#character .skt-loadout h4 {font:400 14px/1.2 Georgia,serif;letter-spacing:.035em;margin-bottom:6px;color:#f0e3c9;}
+#character .skt-loadout h4 small {display:none;}
+#character .skt-slots {height:76px;gap:6px;grid-template-columns:repeat(4,minmax(0,1fr));}
+#character .skt-slot {position:relative;display:flex;flex-direction:column;gap:2px;min-height:0;padding:2px;border:2px ridge #927347;background:#070909;}
+#character .skt-slot .skt-cap {font:400 10px Georgia,serif;width:100%;text-align:center;min-height:19px;padding:2px;min-width:0;border:0;border-bottom:1px solid #8b704b70;background:#20170d;}
+#character .skt-slot button:not(.skt-remove) {width:100%;height:100%;min-height:0;display:flex;align-items:center;justify-content:center;padding:0;}
+#character .skt-slot button:not(.skt-remove)>span {display:none;}
+#character .skt-slot .char-icon {width:42px;height:42px;max-height:100%;object-fit:contain;}
+#character .skt-slot.empty button::before {content:'+';font:400 30px Georgia,serif;color:#a89779;}
+#character .skt-remove {position:absolute;right:1px;bottom:0;min-height:20px;width:20px;padding:0;background:#180b0be0;}
+#character .skt-col {grid-template-columns:96px minmax(0,1fr) 14px minmax(0,1fr) 14px minmax(0,1fr);border:2px ridge #886b42;background:linear-gradient(90deg,#35151ccb,#100e0ee8),url(../assets/ui/funeral-cloth.png) center/180px;box-shadow:inset 0 0 0 2px #0006;}
+#character .skt-col>header b {font:400 15px/1.2 Georgia,serif;}
+#character .skt-node strong {font:400 16px/1.15 Georgia,serif;color:#ebdfc8;}
+#character .skt-state {font:400 11px/1.2 Georgia,serif;}
+#character .skt-emblem {width:clamp(54px,8dvh,82px);height:clamp(54px,8dvh,82px);border:3px ridge #b09158;box-shadow:0 0 0 2px #080707,0 2px 9px #0009;}
+#character .skt-node::before,#character .skt-node::after {width:calc(50% - clamp(27px,4dvh,41px));}
+#character .skt-link,#character .skt-node::before,#character .skt-node::after {height:2px;background:linear-gradient(#bd9860,#735335);opacity:.8;}
+#character .skt-link::before {display:block;content:'';width:5px;height:5px;background:#3c2717;border:1px solid #c3a573;transform:rotate(45deg);position:absolute;top:-2px;left:50%;}
+#character .skt-inspect header .char-icon {width:66px;height:66px;border:3px ridge #b3935c;}
+#character .skt-inspect h3 {font:400 25px/1.15 Georgia,serif;color:#f2e6ce;}
+#character .skt-inspect>p {font:400 14px/1.45 Georgia,serif;color:#d9ceba;}
+#character .skt-fact {font:400 14px/1.25 Georgia,serif;padding:5px 0;}
+#character .skt-fact b {font:400 15px/1.2 Georgia,serif;}
+#settings .settings-workspace {position:absolute;left:6.5%;right:6.5%;top:17%;bottom:11%;margin:0;grid-template-columns:165px minmax(0,1fr);gap:18px;}
+#settings .settings-nav {padding-right:12px;border-right:1px solid #91724a70;}
+#settings .settings-nav button {font:400 18px/1.2 Georgia,serif;min-height:62px;border:2px ridge #8c6c40;padding:10px 8px;background:linear-gradient(#100d0bb0,#090908e0),url(../assets/ui/funeral-cloth-dark.png) center/180px;}
+#settings .settings-nav small {font:400 11px/1.3 Georgia,serif;color:#c6bda8;}
+#settings .settings-pages {background:linear-gradient(#100e0cbd,#080909d9);border:2px ridge #987747;padding:12px;}
+#settings .settings-pages h3 {font:400 24px/1.2 Georgia,serif;color:#f0e4ca;background:none;}
+#settings .setting>label {font:400 17px/1.25 Georgia,serif;color:#ecdfc7;}
+#settings .setting small,#settings .setting p {font:400 13px/1.45 Georgia,serif;color:#d0c5af;}
+#settings .segmented button {font:400 14px Georgia,serif;border:2px ridge #80633e;min-height:36px;color:#ebdfc9;}
+#settings .segmented button.selected {background:linear-gradient(#58232880,#220c0e80),url(../assets/ui/funeral-cloth.png) center/180px;border-color:#b69359;}
+@media(max-height:850px) and (min-width:1000px) {
+ #character .mourning-title,#settings .panel-head .eyebrow {font-size:30px;}
+ #character .panel-head h2,#settings .panel-head h2 {font-size:14px;margin-top:3px;}
+ #character .char-progress {margin-top:5px;} #character .char-progress strong {font-size:12px;}
+ #character .char-progress>div:first-child {font-size:10px;} #character .char-points {font-size:10px;}
+ #character .char-tabs button {font-size:15px;min-height:30px;padding:4px 16px;}
+ #character .char-content {top:20%;}
+ #character .char-sheet,#character .char-bag,#character .char-detail,#character .skt-tree,#character .skt-inspect {padding:7px;}
+ #character .char-sheet>h3,#character .char-bag>h3 {font-size:15px;padding:3px 3px 6px;margin-bottom:6px;}
+ #character .char-doll {grid-template-columns:44px minmax(0,1fr) 44px;}
+ #character .char-filter {min-height:29px;font-size:10px;}
+ #character .char-bag-help {font-size:10px;}
+ #character .cd-title h3 {font-size:20px;} #character .cd-lore,#character .cd-note {font-size:12px;line-height:1.3;}
+ #character .cd-art {height:72px;} #character .cd-actions .cd-btn {font-size:16px;}
+ #character .skt-wrap {grid-template-columns:minmax(0,1fr) 290px;grid-template-rows:minmax(0,1fr) 96px;gap:7px;}
+ #character .skt-slots {height:59px;} #character .skt-loadout {padding:5px 7px;}
+ #character .skt-loadout h4 {font-size:12px;margin-bottom:4px;}
+ #character .skt-col {grid-template-columns:72px minmax(0,1fr) 8px minmax(0,1fr) 8px minmax(0,1fr);padding:2px;}
+ #character .skt-col>header b {font-size:12px;} #character .skt-node strong {font-size:12px;}
+ #character .skt-emblem {width:52px;height:52px;}
+ #character .skt-node::before,#character .skt-node::after {width:calc(50% - 26px);}
+ #character .skt-inspect {gap:5px;} #character .skt-inspect header .char-icon {width:44px;height:44px;}
+ #character .skt-inspect h3 {font-size:20px;} #character .skt-inspect>p {font-size:12px;line-height:1.3;}
+ #character .skt-inspect>.skt-delta {font-size:10px;padding:3px;}
+ #character .skt-fact {font-size:11px;padding:2px 0;} #character .skt-fact b {font-size:12px;}
+ #character .skt-learn {font-size:14px;min-height:30px;}
+ #character .skt-note {font-size:9px;margin-top:5px;}
+ #settings .settings-workspace {grid-template-columns:130px minmax(0,1fr);gap:12px;}
+ #settings .settings-nav button {font-size:14px;min-height:54px;padding:7px 5px;}
+ #settings .settings-nav small {font-size:10px;}
+ #settings .settings-pages {padding:8px;} #settings .settings-pages h3 {font-size:20px;padding-bottom:5px;margin-bottom:3px;}
+ #settings .setting {padding:4px 0;} #settings .setting>label {font-size:14px;}
+ #settings .setting small,#settings .setting p {font-size:11px;line-height:1.3;margin-top:4px;}
+ #settings .segmented button {font-size:12px;min-height:29px;padding:4px;}
+ #settings #settings-video:not(.hidden),#settings #settings-audio:not(.hidden) {gap:6px 14px;}
+}
+@media(max-width:999px) {
+ #character .character-panel,#settings .settings-panel {width:100vw;height:100dvh;max-height:none;}
+ #character .skt-wrap {grid-template-columns:minmax(0,1fr) 270px;}
+ #character .skt-col {grid-template-columns:60px minmax(0,1fr) 4px minmax(0,1fr) 4px minmax(0,1fr);}
+ #character .skt-node strong {font-size:11px;} #character .skt-col>header b {font-size:11px;}
+ #character .skt-emblem {width:44px;height:44px;}
+ #character .skt-node::before,#character .skt-node::after {width:calc(50% - 22px);}
+}
+@media(max-width:699px) {
+ #character .character-panel,#settings .settings-panel {background-size:cover;}
+ #character .mourning-title,#settings .panel-head .eyebrow {font-size:26px;}
+ #character .char-content {overflow-y:auto;} #character .char-inventory-layout.has-preview {grid-template-columns:1fr;height:auto;}
+ #character .char-sheet {min-height:440px;} #character .char-bag {min-height:440px;}
+ #character .skt-wrap {display:flex;flex-direction:column;height:auto;} #character .skt-workspace {display:contents;}
+ #character .skt-tree {order:0;min-height:480px;} #character .skt-inspect {order:1;height:auto;}
+ #character .skt-top {order:2;height:116px;flex:none;} #character .skt-slots {grid-template-columns:repeat(4,minmax(0,1fr));}
+ #settings .settings-workspace {display:flex;flex-direction:column;top:16%;}
+}
+
+/* The lower leather band keeps progression separate from the carved title plaque. */
+#character .char-progress {position:absolute;top:calc(94dvh * .9);left:0;width:72%;margin:0;}
+#character .char-progress>div:first-child {justify-content:flex-start;}
+@media(max-height:850px) and (min-width:1000px) {
+ #character .skt-facts:has(.skt-fact:nth-child(7)) {grid-template-columns:repeat(2,minmax(0,1fr));gap:3px 10px;}
+ #character .skt-facts:has(.skt-fact:nth-child(7)) .skt-fact {column-gap:4px;align-items:center;min-height:23px;}
+}
+@media(max-width:999px) {#character .char-progress {top:calc(100dvh * .9);width:70%;}}
+@media(max-width:699px) {#character .char-progress {top:calc(100dvh * .88);width:100%;} #character .char-progress .char-points {font-size:10px;} }
+
+#character .char-footer .char-progress {position:absolute;top:auto;bottom:0;left:0;width:72%;margin:0;}
+@media(max-width:699px) {#character .char-footer .char-progress {bottom:42px;width:100%;}}
+
+#character .skt-assign>div {grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;}
+#character .skt-assign button {justify-content:center;padding:3px;min-height:28px;}
+#character .skt-assign button>span:last-child {display:none;}
+#character .skt-inspect:has(.skt-assign)>.skt-delta {display:none;}
+#character .skt-inspect:has(.skt-assign) .skt-facts:has(.skt-fact:nth-child(7)) {grid-template-columns:repeat(2,minmax(0,1fr));gap:3px 10px;}
+#character .skt-inspect:has(.skt-assign) .skt-facts:has(.skt-fact:nth-child(7)) .skt-fact {column-gap:4px;}

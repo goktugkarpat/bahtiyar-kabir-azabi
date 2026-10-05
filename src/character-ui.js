@@ -267,16 +267,16 @@
     const getState = () => getGame() && getGame().progression;
     const overlay = document.createElement('section'); overlay.id = 'character'; overlay.className = 'screen overlay modal hidden';
     overlay.setAttribute('role', 'dialog'); overlay.setAttribute('aria-modal', 'true'); overlay.setAttribute('aria-labelledby', 'character-title');
-    overlay.innerHTML = '<div class="panel character-panel"><span class="funeral-effigy effigy-left" aria-hidden="true"></span><span class="funeral-effigy effigy-right" aria-hidden="true"></span><header class="panel-head"><div><span class="mourning-title">KABİR AZABI</span><h2 id="character-title">Bahtiyar</h2></div><div class="char-progress"></div><button class="close" data-char="close" aria-label="Oyuna dön">×</button></header>' +
+    overlay.innerHTML = '<div class="panel character-panel"><span class="funeral-effigy effigy-left" aria-hidden="true"></span><span class="funeral-effigy effigy-right" aria-hidden="true"></span><header class="panel-head"><div><span class="mourning-title">KABİR AZABI</span><h2 id="character-title">Karakter ve yetenekler</h2></div><button class="close" data-char="close" aria-label="Oyuna dön">×</button></header>' +
       '<div class="funeral-verses"><span><span class="banner-inscription">Ölüm hakkın tezahürüdür</span></span><span><span class="banner-inscription">Her nefis ölümü tadacaktır</span></span></div><nav class="char-tabs" aria-label="Karakter sayfaları"><button data-char="tab" data-tab="inventory">Karakter ve çanta</button><button data-char="tab" data-tab="skills">Yetenek ağacı</button></nav>' +
-      '<div class="char-content"></div><footer class="char-footer"><span class="char-status" role="status" aria-live="polite"></span><span class="funeral-quote"><span class="banner-inscription">Sonra bize döndürüleceksiniz</span></span><button class="btn small" data-char="close">Oyuna dön</button></footer></div>';
+      '<div class="char-content"></div><footer class="char-footer"><div class="char-progress"></div><span class="char-status" role="status" aria-live="polite"></span><span class="funeral-quote"><span class="banner-inscription">Sonra bize döndürüleceksiniz</span></span><button class="btn small" data-char="close">Oyuna dön</button></footer></div>';
     document.body.appendChild(overlay);
     if (!document.getElementById('skill-tree-style')) { const st = document.createElement('style'); st.id = 'skill-tree-style'; st.textContent = SKILL_TREE_CSS; document.head.appendChild(st); }
     const progress = overlay.querySelector('.char-progress'), content = overlay.querySelector('.char-content'), status = overlay.querySelector('.char-status');
     let renderedFilter = 'all';
-    let opened = false, tab = 'inventory', selected = null, lastRevision = -1, priorFocus = null, previewFrame = 0, selectedSkill = 'cleave', selectedSlot = null, bagFilter = 'all', lastPointerType = 'mouse', tap = null, inspectScroll = 0;
+    let opened = false, tab = 'inventory', selected = null, lastRevision = -1, priorFocus = null, previewFrame = 0, selectedSkill = 'cleave', selectedSlot = null, bagFilter = 'all', bagPage = 0, lastPointerType = 'mouse', tap = null, inspectScroll = 0;
     // ---- Item presentation: name, type line, one big primary stat with a difference arrow, then the rest. ----
-    const ATTR = { damage: ['Silah hasarı', true], defense: ['Hasar azaltma', true], hp: ['Can gücü', false] };
+    const ATTR = { damage: ['Hasar bonusu', true], defense: ['Hasar azaltma', true], hp: ['Can gücü', false] };
     const arrow = (d, pct) => Math.abs(d) < .00001 ? '<b class="cmp same" title="Aynı">=</b>' : '<b class="cmp ' + (d > 0 ? 'gain' : 'loss') + '"><i aria-hidden="true">' + (d > 0 ? '▲' : '▼') + '</i>' + (d > 0 ? '+' : '−') + (pct ? percent(Math.abs(d)) : Math.abs(d)) + '</b>';
     const amount = (v, pct) => v ? '+' + (pct ? percent(v) : v) : pct ? '0%' : '0';
     function statLines(def, old, compare) {
@@ -318,10 +318,14 @@
         const def = state.itemForSlot(slot), uid = state.equipment[slot], active = uid ? uid === selected : slot === selectedSlot;
         return '<button class="char-equipment ' + (def ? 'worn rarity-' + def.rarity : 'empty') + (active ? ' selected' : '') + '" data-slot="' + slot + '" data-char="select" data-uid="' + escape(uid || '') + '" aria-pressed="' + active + '" aria-label="' + escape(LABELS[slot] + ' · ' + (def ? def.name + ' · Kuşanıldı · Çift tıkla çıkar' : 'Boş yuva')) + '">' + (def ? '<i class="eq-ribbon" aria-hidden="true" title="Kuşanıldı">✓</i>' : '') + '<span class="char-item-art">' + (def ? menuGearIcon(def) : icon(slot)) + '</span><span class="eq-label">' + LABELS[slot] + '</span><span class="eq-name">' + escape(def ? def.name : 'Boş') + '</span></button>';
       }).join('');
-      const list = visible.map(entry => {
+      const pageCount = Math.max(1, Math.ceil(visible.length / 16));
+      bagPage = Math.min(bagPage, pageCount - 1);
+      const pageItems = visible.slice(bagPage * 16, (bagPage + 1) * 16);
+      const list = pageItems.map(entry => {
         const def = B.Progression.resolveItem(entry), equipped = state.equipment[def.slot] === entry.uid, upgrade = state.isUpgrade(entry), locked = def.level > state.level;
         return '<button class="char-item rarity-' + def.rarity + (entry.uid === selected ? ' selected' : '') + (equipped ? ' equipped' : '') + (locked ? ' too-high' : '') + '" data-char="select" data-uid="' + escape(entry.uid) + '" data-item-slot="' + def.slot + '" aria-pressed="' + (entry.uid === selected) + '" aria-label="' + escape(def.name + ' · ' + RARITY[def.rarity] + ' · Seviye ' + def.level + ' · Güç ' + def.power + (equipped ? ' · Kuşanıldı' : upgrade ? ' · Kuşandığından daha iyi' : '')) + '"><span class="char-item-art">' + menuGearIcon(def) + '</span><span class="char-item-level" aria-hidden="true">' + (locked ? 'Sv ' + def.level : def.power) + '</span><strong class="char-item-name">' + escape(def.name) + '</strong>' + (upgrade && !locked ? '<b class="char-item-upgrade" title="Kuşandığından daha iyi" aria-label="Kuşandığından daha iyi">▲</b>' : '') + (equipped ? '<i class="char-item-ribbon" aria-hidden="true" title="Kuşanıldı">✓</i>' : '') + '<i class="char-quality" aria-hidden="true" title="' + RARITY[def.rarity] + '"></i></button>';
-      }).join('') + '<span class="char-item-empty" aria-hidden="true"></span>'.repeat(Math.max(0, (bagFilter === 'all' ? 30 : 15) - visible.length));
+      }).join('') + '<span class="char-item-empty" aria-hidden="true"></span>'.repeat(Math.max(0, 16 - pageItems.length));
+      const pagination = '<div class="bag-pagination"><button data-char="bag-page" data-direction="-1" aria-label="Önceki eşya sayfası" ' + (bagPage === 0 ? 'disabled' : '') + '>‹</button><span>' + (visible.length ? visible.length + ' eşya · ' : 'Bu türde eşyan yok · ') + (bagPage + 1) + ' / ' + pageCount + '</span><button data-char="bag-page" data-direction="1" aria-label="Sonraki eşya sayfası" ' + (bagPage + 1 >= pageCount ? 'disabled' : '') + '>›</button></div>';
       const entry = state.inventory.find(i => i.uid === selected), def = B.Progression.resolveItem(entry);
       const filters = ['all', ...B.Progression.slots].map(slot => '<button class="char-filter' + (bagFilter === slot ? ' active' : '') + '" data-char="filter" data-filter="' + slot + '" aria-pressed="' + (bagFilter === slot) + '" title="' + (slot === 'all' ? 'Bütün eşyalar' : LABELS[slot]) + '" aria-label="' + (slot === 'all' ? 'Bütün eşyalar' : LABELS[slot] + ' eşyaları') + '">' + (slot === 'all' ? 'Tümü' : icon(slot)) + '</button>').join('');
       const preview = typeof options.onPreview === 'function' ? '<figure class="char-preview"><span class="char-preview-label">Bahtiyar</span><canvas id="character-preview" width="420" height="520" aria-label="Bahtiyar’ın kuşandığı silah ve zırhları gösteren canlı karakter görünümü"></canvas><div class="char-preview-turn"><button data-char="turn" data-direction="-1" aria-label="Karakteri sola çevir">‹</button><button data-char="turn" data-direction="1" aria-label="Karakteri sağa çevir">›</button></div><figcaption>' + escape(weapon ? (TYPE[weapon.type] || 'Silah') + ' · ' + weapon.name : 'Silah yuvası boş') + '</figcaption></figure>' : '';
@@ -329,7 +333,7 @@
       const tile = (key, label, value) => '<span class="st-tile">' + statIcon(key) + '<span class="st-text"><small>' + label + '</small><strong style="color:' + STAT[key][0] + '">' + value + '</strong></span></span>';
       const statGrid = '<div class="char-stat-grid">' + tile('hp', 'Can', stats.maxHp) + tile('hit', 'Normal vuruş', Math.round(Math.round(25 * stats.damage) * damageScale) + '–' + Math.round(Math.round(36 * stats.damage) * damageScale)) + tile('def', 'Hasar azaltma', percent(stats.defense)) + tile('crit', 'Kritik ihtimali', percent(stats.criticalChance)) + tile('critx', 'Kritik hasarı', '×' + stats.criticalMultiplier.toFixed(1)) + tile('power', 'Donanım gücü', gear) + '</div>';
       return '<div class="char-inventory-layout' + (preview ? ' has-preview' : '') + '"><section class="char-sheet"><h3>Donanım <small>Kuşandıkların</small></h3>' + (preview ? '<div class="char-doll">' + preview + equipment + '</div>' : equipment) + statGrid + '</section>' +
-        '<section class="char-bag"><h3>Çanta <small>' + state.inventory.length + ' eşya</small></h3><div class="char-bag-toolbar">' + filters + '</div><div class="char-item-list char-bag-grid">' + (visible.length ? '' : '<p class="char-bag-empty">Bu türde eşyan yok.</p>') + list + '</div><p class="char-bag-help">Seç: incele · Çift tıkla veya iki kez dokun: kuşan / çıkar</p></section><section class="char-detail' + (def ? ' rarity-' + def.rarity : '') + '">' + itemDetail(state, entry, false) + '</section></div>';
+        '<section class="char-bag"><h3>Çanta <small>' + state.inventory.length + ' eşya</small></h3><div class="char-bag-toolbar">' + filters + '</div><div class="char-item-list char-bag-grid">' + (visible.length ? '' : '<p class="char-bag-empty">Bu türde eşyan yok.</p>') + list + '</div>' + pagination + '<p class="char-bag-help">Seç: incele · Çift tıkla veya iki kez dokun: kuşan / çıkar</p></section><section class="char-detail' + (def ? ' rarity-' + def.rarity : '') + '">' + itemDetail(state, entry, false) + '</section></div>';
     }
     // ---- Skill tree page: four horizontal paths, three tiers in each path. A lower tier upgrades the one above it in the same slot.
     const ROMAN = ['', 'I', 'II', 'III'];
@@ -359,23 +363,23 @@
       }).join('');
       const facts = P.skillFacts(chosen).map(([label, value]) => {
         const before = prevFacts ? prevFacts.get(label) : undefined, changed = before !== undefined && before !== value;
-        return '<div class="skt-fact' + (changed ? ' changed' : '') + '"><span>' + escape(label) + (changed ? ' <em>(önceki ' + escape(before) + ')</em>' : '') + '</span><b>' + escape(value) + '</b></div>';
+        return '<div class="skt-fact' + (changed ? ' changed' : '') + '"><span' + (changed ? ' title="Önceki aşama: ' + escape(before) + '"' : '') + '>' + escape(label) + '</span><b>' + escape(value) + '</b></div>';
       }).join('');
       const assignment = learned ? '<div class="skt-assign"><small>Hangi yuvaya konsun?</small><div>' + [0, 1, 2, 3].map(slot => {
         const here = state.loadout[slot] === chosen.id, other = byId.get(state.loadout[slot]);
-        return '<button data-char="assign" data-skill="' + chosen.id + '" data-slot="' + slot + '" ' + (here ? 'disabled' : '') + '><span class="skt-cap">' + capHtml(slot === 0 ? 'SAĞ TIK' : keys[slot]) + '</span><span>' + (here ? 'Burada' : other ? escape(other.name) + ' yerine' : 'Boş yuva') + '</span></button>';
+        return '<button aria-label="' + escape(slotWord(keys[slot], slot) + ' yuvasına ' + chosen.name + ' ata') + '" title="' + escape(here ? 'Bu yuvada' : other ? other.name + ' yerine ata' : 'Boş yuvaya ata') + '" data-char="assign" data-skill="' + chosen.id + '" data-slot="' + slot + '" ' + (here ? 'disabled' : '') + '><span class="skt-cap">' + capHtml(slot === 0 ? 'SAĞ TIK' : keys[slot]) + '</span><span>' + (here ? 'Burada' : other ? escape(other.name) + ' yerine' : 'Boş yuva') + '</span></button>';
       }).join('') + '</div></div>' : '';
       const loadout = state.loadout.map((id, slot) => {
         const s = byId.get(id), label = slot === 0 ? 'SAĞ TIK' : keys[slot];
-        return '<div class="skt-slot' + (s ? '' : ' empty') + '"' + (s ? ' data-line="' + s.line + '" style="--line:' + lineOf(s.line).color + '"' : '') + '><span class="skt-cap">' + capHtml(label) + '</span><button data-char="skill" data-skill="' + (id || chosen.id) + '">' + (s ? icon(s.id) + '<span><strong>' + escape(s.name) + '</strong><small>' + ROMAN[s.tier] + '. aşama</small></span>' : '<span><strong>Boş yuva</strong><small>Yetenek öğren ve ata</small></span>') + '</button>' + (s ? '<button class="skt-remove" data-char="assign" data-slot="' + slot + '" data-skill="" aria-label="' + escape(s.name) + ' yuvasını boşalt">×</button>' : '') + '</div>';
+        return '<div class="skt-slot' + (s ? '' : ' empty') + '"' + (s ? ' data-line="' + s.line + '" style="--line:' + lineOf(s.line).color + '"' : '') + '><span class="skt-cap">' + capHtml(label) + '</span><button aria-label="' + escape((s ? s.name : 'Boş yetenek yuvası') + ' · ' + label) + '" title="' + escape(s ? s.name : 'Yetenek öğren ve ata') + '" data-char="skill" data-skill="' + (id || chosen.id) + '">' + (s ? icon(s.id) + '<span><strong>' + escape(s.name) + '</strong><small>' + ROMAN[s.tier] + '. aşama</small></span>' : '<span><strong>Boş yuva</strong><small>Yetenek öğren ve ata</small></span>') + '</button>' + (s ? '<button class="skt-remove" data-char="assign" data-slot="' + slot + '" data-skill="" aria-label="' + escape(s.name) + ' yuvasını boşalt">×</button>' : '') + '</div>';
       }).join('');
       const line = lineOf(chosen.line);
-      return '<div class="skt-wrap"><div class="skt-top"><div class="skt-loadout"><h4>Yetenek yuvaları <small>' + capHtml('SAĞ TIK') + ' · ' + escape(keys[1]) + ' · ' + escape(keys[2]) + ' · ' + escape(keys[3]) + '</small></h4><div class="skt-slots">' + loadout + '</div></div>' +
+      return '<div class="skt-wrap"><div class="skt-top"><div class="skt-loadout"><h4>Donanılan yetenekler <small>' + capHtml('SAĞ TIK') + ' · ' + escape(keys[1]) + ' · ' + escape(keys[2]) + ' · ' + escape(keys[3]) + '</small></h4><div class="skt-slots">' + loadout + '</div></div>' +
         '<span class="skt-points"><b>' + state.points + '</b> yetenek puanı</span></div>' +
         '<div class="skt-workspace"><div class="skt-tree"><div class="skt-cols">' + columns + '</div><p class="skt-note">Çift tıkla veya iki kez dokun: yeteneği öğren. Yeni aşama aynı tuşta öncekinin yerini alır. Dört yolu birden kullanabilirsin; normal vuruş her zaman açıktır.</p></div>' +
         '<aside class="skt-inspect" data-line="' + chosen.line + '" style="--line:' + line.color + '"><small class="skt-kicker"><span class="skt-tiernum" data-tier="' + chosen.tier + '">' + ROMAN[chosen.tier] + '. AŞAMA</span> ' + escape(line.name) + ' · seviye ' + chosen.level + '</small>' +
         '<header>' + icon(chosen.id) + '<h3>' + escape(chosen.name) + '</h3></header><p>' + escape(chosen.description) + '</p>' +
-        (chosen.delta ? '<p class="skt-delta"><b>▲ ' + ROMAN[chosen.tier] + '. aşama:</b> ' + escape(chosen.delta) + '</p>' : '') +
+        (chosen.delta ? '<p class="skt-delta" title="' + escape(chosen.delta) + '"><b>▲ ' + ROMAN[chosen.tier] + '. aşama:</b> Önceki aşamaya göre güçlendi.</p>' : '') +
         '<div class="skt-facts">' + facts + '</div>' +
         '<button class="skt-learn" data-char="unlock" data-skill="' + chosen.id + '" ' + (learned || low || missing || !state.points ? 'disabled' : '') + '>' + escape(reason) + '</button>' + assignment + '</aside></div></div>';
     }
@@ -421,6 +425,7 @@
       progress.innerHTML = '<div><strong>Seviye ' + state.level + '</strong><span>' + (max ? 'Tecrübe ' + (state.xp - min) + ' / ' + (max - min) : 'En yüksek seviye') + '</span><b class="char-points' + (state.points ? ' on' : '') + '">' + state.points + ' yetenek puanı</b></div><div class="char-xp-track" role="progressbar" aria-label="Seviye ilerlemesi" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + Math.round(fraction * 100) + '"><i style="width:' + (fraction * 100).toFixed(1) + '%"></i></div>';
       overlay.querySelectorAll('[data-char="tab"]').forEach(el => { const active = el.dataset.tab === tab; el.classList.toggle('active', active); el.setAttribute('aria-pressed', String(active)); });
       overlay.querySelector('.character-panel').dataset.page = tab;
+      overlay.querySelector('#character-title').textContent = tab === 'skills' ? 'Yetenek ağacı' : 'Karakter ve çanta';
       overlay.querySelector('[data-tab="skills"]').dataset.points = state.points;
       stopPreview(); content.innerHTML = tab === 'skills' ? talents(state) : inventory(state);
       if (samePage) {
@@ -553,7 +558,8 @@
         case 'turn': if (typeof options.onPreviewTurn === 'function') options.onPreviewTurn(Number(button.dataset.direction)); break;
         case 'close': close(); break;
         case 'tab': tap = null; tab = button.dataset.tab; status.textContent = ''; refresh(true); content.scrollTop = 0; break;
-        case 'filter': tap = null; bagFilter = button.dataset.filter; selectedSlot = null; refresh(true); break;
+        case 'bag-page': tap = null; bagPage = Math.max(0, bagPage + Number(button.dataset.direction)); refresh(true); break;
+        case 'filter': tap = null; bagPage = 0; bagFilter = button.dataset.filter; selectedSlot = null; refresh(true); break;
         case 'select': {
           inspect(button, event);
           const key = (button.classList.contains('char-equipment') ? 'slot:' + button.dataset.slot : 'item:' + button.dataset.uid), now = performance.now();

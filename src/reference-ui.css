@@ -1,0 +1,39 @@
+/* Illustrated pause menu only; preserve the original image proportions. */
+#pause {padding:0; background:#050506; align-items:center; justify-content:center;}
+#pause .sepulchral-pause {
+ width:min(100vw,calc(100dvh * 1586 / 992)); height:auto; aspect-ratio:1586 / 992;
+ flex:none; min-height:0; max-height:none; max-width:none; box-sizing:border-box;
+ border:0; border-image:none; border-radius:0; padding:0; margin:0; box-shadow:none; overflow:hidden; zoom:1;
+}
+#pause .sepulchral-pause { background:url(../assets/ui/pause-reference-v2.png) center/contain no-repeat; }
+#pause .panel::before,#pause .panel::after { display:none; }
+#pause .mourning-head,#pause .funeral-verses,#pause .funeral-effigy,#pause .pause-stats,#pause #pause-difficulty,#pause .save-note,#pause .funeral-quote { display:none; }
+#pause .menu-stack,#pause .funeral-menu-grid { display:contents; }
+#pause .funeral-card,#pause #resume {
+ position:absolute; min-height:0; margin:0; padding:0; aspect-ratio:auto; border:0; border-radius:3px; background:none; box-shadow:none;
+}
+#pause .funeral-card::before { display:none; }
+#pause .funeral-card>span,#pause #resume>span {
+ position:absolute; inset:0; padding:0; color:transparent; background:none; border:0; text-shadow:none;
+}
+#pause .funeral-card kbd,#pause #resume kbd { color:transparent; }
+#pause #pause-character { left:27.4%; top:20.9%; width:22.3%; height:24.7%; }
+#pause #pause-talents { left:50.5%; top:20.9%; width:22.1%; height:24.7%; }
+#pause #pause-journal { left:27.4%; top:46.6%; width:22.3%; height:24.7%; }
+#pause #pause-settings { left:50.5%; top:46.6%; width:22.1%; height:24.7%; }
+#pause #resume { left:28%; top:74.3%; width:44.2%; height:12%; }
+#pause .funeral-card:hover,#pause #resume:hover { filter:none; box-shadow:inset 0 0 35px #e0bd6b20; outline:1px solid #d0ab6c; outline-offset:-6px; }
+#pause .funeral-card:focus-visible,#pause #resume:focus-visible { outline:2px solid #ead4a0; outline-offset:-6px; box-shadow:inset 0 0 24px #e0bd6b30; }
+#pause .pause-secondary { position:absolute; bottom:1.1%; left:30%; width:40%; gap:22px; justify-content:center; }
+#pause .pause-secondary button { padding:2px 4px; color:#d3bd99; font:400 clamp(10px,.85vw,14px)/1.2 Georgia,serif; background:#0b090870; text-shadow:0 1px 2px #000; }
+
+/* Return the other menus to the previous panel layout without ornamental figures or quotations. */
+#character .funeral-verses,#settings .funeral-verses,
+#character .funeral-quote,#settings .funeral-quote,
+#character .funeral-effigy,#settings .funeral-effigy {display:none;}
+#character .character-panel,#settings .settings-panel {padding-left:clamp(20px,3vw,48px);padding-right:clamp(20px,3vw,48px);}
+#character .cd-art {display:flex;align-items:center;justify-content:center;overflow:hidden;}
+#character .cd-art .char-gear-icon {height:100% !important;min-height:0 !important;max-height:100% !important;width:auto !important;max-width:100%;object-fit:contain;}
+
+#character .char-footer .funeral-quote,#settings footer .funeral-quote {display:none;}
+
