@@ -359,7 +359,7 @@
       const line = lineOf(chosen.line);
       return '<div class="skt-wrap"><div class="skt-top"><div class="skt-loadout"><h4>Yetenek yuvaları <small>' + capHtml('SAĞ TIK') + ' · ' + escape(keys[1]) + ' · ' + escape(keys[2]) + ' · ' + escape(keys[3]) + '</small></h4><div class="skt-slots">' + loadout + '</div></div>' +
         '<span class="skt-points"><b>' + state.points + '</b> yetenek puanı</span></div>' +
-        '<div class="skt-workspace"><div class="skt-tree"><div class="skt-cols">' + columns + '</div><p class="skt-note">Her yol aşağı doğru güçlenir. Yeni aşama aynı tuşta öncekinin yerini alır. Dört yolu birden kullanabilirsin; normal vuruş her zaman açıktır.</p></div>' +
+        '<div class="skt-workspace"><div class="skt-tree"><div class="skt-cols">' + columns + '</div><p class="skt-note">Çift tıkla veya iki kez dokun: yeteneği öğren. Yeni aşama aynı tuşta öncekinin yerini alır. Dört yolu birden kullanabilirsin; normal vuruş her zaman açıktır.</p></div>' +
         '<aside class="skt-inspect" data-line="' + chosen.line + '" style="--line:' + line.color + '"><small class="skt-kicker"><span class="skt-tiernum" data-tier="' + chosen.tier + '">' + ROMAN[chosen.tier] + '. AŞAMA</span> ' + escape(line.name) + ' · seviye ' + chosen.level + '</small>' +
         '<header>' + icon(chosen.id) + '<h3>' + escape(chosen.name) + '</h3></header><p>' + escape(chosen.description) + '</p>' +
         (chosen.delta ? '<p class="skt-delta"><b>▲ ' + ROMAN[chosen.tier] + '. aşama:</b> ' + escape(chosen.delta) + '</p>' : '') +
@@ -513,6 +513,25 @@
         doEquip(entry.uid, button);
       }
     }
+    // Keep the clicked skill node mounted: replacing the tree on the first click
+    // prevents the browser from delivering a double-click on that same node.
+    function inspectSkill(button) {
+      selectedSkill = button.dataset.skill;
+      const state = getState(); if (!state) return;
+      const holder = document.createElement('div'); holder.innerHTML = talents(state);
+      const current = content.querySelector('.skt-inspect'), next = holder.querySelector('.skt-inspect');
+      if (current && next) current.replaceWith(next);
+      content.querySelectorAll('[data-char="skill"]').forEach(node => {
+        const selected = node.dataset.skill === selectedSkill;
+        node.classList.toggle('selected', selected); node.setAttribute('aria-pressed', String(selected));
+      });
+    }
+    function learnSkill(id) {
+      const state = getState(); if (!state || state.learned.includes(id)) return;
+      selectedSkill = id;
+      const skill = B.Progression.skills.find(s => s.id === id);
+      change(state.unlock(id), skill ? 'Öğrenildi: ' + skill.name : undefined);
+    }
     overlay.addEventListener('pointerdown', event => { lastPointerType = event.pointerType || 'mouse'; hideTooltip(); });
     overlay.addEventListener('click', event => {
       const button = event.target.closest('[data-char]'); if (!button || !overlay.contains(button)) return;
@@ -534,15 +553,27 @@
         }
         case 'equip': if (state) doEquip(button.dataset.uid, null); break;
         case 'unequip': if (state) doUnequip(button.dataset.slot, null); break;
-        case 'skill': selectedSkill = button.dataset.skill; refresh(true); if (window.innerWidth <= 900) content.querySelector('.skt-inspect').scrollIntoView({ block: 'nearest' }); break;
+        case 'skill': {
+          inspectSkill(button);
+          const isNode = button.classList.contains('skt-node'), now = performance.now();
+          if (isNode && (lastPointerType === 'touch' || lastPointerType === 'pen') && event.detail > 0) {
+            const key = 'skill:' + button.dataset.skill;
+            if (tap && tap.key === key && now - tap.time < 380 && Math.hypot(event.clientX - tap.x, event.clientY - tap.y) < 20) {
+              tap = null; touchActionAt = now; learnSkill(button.dataset.skill);
+            } else tap = { key, time: now, x: event.clientX, y: event.clientY };
+          } else tap = null;
+          if (!isNode && window.innerWidth <= 900) content.querySelector('.skt-inspect').scrollIntoView({ block: 'nearest' });
+          break;
+        }
         case 'assign': if (state) change(state.assign(Number(button.dataset.slot), button.dataset.skill || null)); break;
         case 'unlock': if (state) change(state.unlock(button.dataset.skill)); break;
       }
     });
     overlay.addEventListener('dblclick', event => {
-      const button = event.target.closest('[data-char="select"]'); if (!button || !overlay.contains(button)) return;
+      const button = event.target.closest('[data-char="select"],.skt-node[data-char="skill"]'); if (!button || !overlay.contains(button)) return;
       event.preventDefault(); event.stopPropagation();
-      if (performance.now() - touchActionAt > 500) toggleEquipment(button);
+      if (performance.now() - touchActionAt <= 500) return;
+      if (button.dataset.char === 'skill') learnSkill(button.dataset.skill); else toggleEquipment(button);
     });
     overlay.addEventListener('pointerover', event => {
       if (event.pointerType === 'touch' || event.pointerType === 'pen' || !window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
