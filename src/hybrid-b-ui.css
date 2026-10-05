@@ -210,3 +210,15 @@
 }
 
 #journal #journal-done {border:2px ridge #987949;border-radius:0;background:linear-gradient(#58232880,#220c0e80),url(../assets/ui/funeral-cloth.png) center/180px;color:#eedfc0;}
+
+/* Bounded equipment captions: names never stretch the slot or overlap its neighbour. */
+#character .char-equipment {overflow:hidden;grid-template-rows:minmax(0,1fr) 14px 26px;gap:3px;}
+#character .char-equipment .eq-label {width:100%;height:14px;font-size:10px;line-height:14px;letter-spacing:.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+#character .char-equipment .eq-name {display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;width:100%;height:26px;max-height:26px;font-size:11px;line-height:13px;overflow:hidden;overflow-wrap:normal;word-break:normal;}
+#character .char-doll {grid-template-columns:clamp(56px,5.2vw,82px) minmax(0,1fr) clamp(56px,5.2vw,82px);}
+@media(max-height:850px) and (min-width:1000px) {
+ #character .char-doll {grid-template-columns:56px minmax(0,1fr) 56px;}
+ #character .char-equipment {grid-template-rows:minmax(0,1fr) 13px 24px;gap:2px;}
+ #character .char-equipment .eq-label {font-size:9px;letter-spacing:.025em;}
+ #character .char-equipment .eq-name {height:24px;max-height:24px;font-size:10px;line-height:12px;}
+}

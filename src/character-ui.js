@@ -635,7 +635,7 @@
     async function warm() {
       if (opened || !getState()) return;
       // Decode menu textures under the existing loading cover, never during combat.
-      const art = ['sepulchral-backdrop.png', 'menu-character.png', 'menu-talents.png', 'menu-journal.png', 'menu-settings.png', 'frame-tl.png', 'frame-tr.png', 'frame-bl.png', 'frame-br.png', 'effigy-left.png', 'effigy-right.png', 'funeral-cloth.png', 'funeral-cloth-dark.png', 'banner-demon-left.png', 'banner-demon-right.png'];
+      const art = ['hybrid-b-chamber.png', 'sepulchral-backdrop.png', 'menu-character.png', 'menu-talents.png', 'menu-journal.png', 'menu-settings.png', 'frame-tl.png', 'frame-tr.png', 'frame-bl.png', 'frame-br.png', 'effigy-left.png', 'effigy-right.png', 'funeral-cloth.png', 'funeral-cloth-dark.png', 'banner-demon-left.png', 'banner-demon-right.png'];
       for (let i = 0; i < 16; i++) art.push('gear/' + i + '.png');
       await Promise.all(art.map(name => { const image = new Image(); image.src = 'assets/ui/' + name; return image.decode().catch(() => {}); }));
       const frame = () => new Promise(res => { let done = false; const go = () => { if (!done) { done = true; res(); } }; requestAnimationFrame(go); setTimeout(go, 120); });
@@ -647,7 +647,7 @@
         for (const page of ['inventory', 'skills', 'inventory']) {
           tab = page; overlay.classList.remove('hidden'); refresh(true);
           const canvas = content.querySelector('#character-preview');
-          if (canvas) { stopPreview(); canvas.width = 256; canvas.height = 384; const ctx = canvas.getContext('2d', { alpha: false }); if (ctx) ctx.fillRect(0, 0, 8, 8); }
+          if (canvas) { stopPreview(); if (typeof options.onPreview === 'function') options.onPreview(canvas, performance.now(), true); }
           for (let i = 0; i < 4; i++) await frame();
         }
       } finally {

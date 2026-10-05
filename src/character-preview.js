@@ -42,8 +42,8 @@
       if (source.equipment && model.setEquipment) model.setEquipment(source.equipment);
       return true;
     }
-    function draw(canvas, now) {
-      if (document.body.dataset.view !== 'character' || disposed || !canvas || !canvas.isConnected || !game.player.model || !canvas.width || !canvas.height) return false;
+    function draw(canvas, now, preparing = false) {
+      if ((!preparing && document.body.dataset.view !== 'character') || disposed || !canvas || !canvas.isConnected || !game.player.model || !canvas.width || !canvas.height) return false;
       syncEnvironment();
       const changed = syncEquipment(), time = Number.isFinite(now) ? now : performance.now();
       // The isolated render target preserves the world framebuffer and needs no world redraw.
@@ -60,13 +60,20 @@
         portraitTarget.setSize(w, h); portraitPixels = new Uint8Array(w * h * 4); portraitImage = null;
       }
       if (!portraitPixels) portraitPixels = new Uint8Array(w * h * 4);
-      camera.aspect = w / h; camera.updateProjectionMatrix();
+      camera.aspect = w / h;
+      const halfFov = Math.tan(camera.fov * Math.PI / 360);
+      const distance = Math.max(4.8, (model.height + .4) / (2 * halfFov), 1.6 / (2 * halfFov * camera.aspect));
+      camera.position.set(0, 1.35, distance); camera.lookAt(0, 1.22, 0);
+      camera.updateProjectionMatrix(); camera.updateMatrixWorld(true);
       renderer.getViewport(viewport); renderer.getScissor(scissor); renderer.getClearColor(clearColor);
       const target = renderer.getRenderTarget(), oldScissor = renderer.getScissorTest(), autoClear = renderer.autoClear, alpha = renderer.getClearAlpha();
       const outputColorSpace = renderer.outputColorSpace, toneMapping = renderer.toneMapping, exposure = renderer.toneMappingExposure;
       try {
         renderer.outputColorSpace = T.SRGBColorSpace; renderer.toneMapping = T.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.1;
-        renderer.setRenderTarget(portraitTarget); renderer.setViewport(0, 0, w, h); renderer.setScissorTest(false); renderer.autoClear = true;
+        // Render targets already use physical pixels. setViewport() would multiply them
+        // by the world's pixel ratio again and crop/shift the portrait at 1.25x/1.5x.
+        portraitTarget.viewport.set(0, 0, w, h);
+        renderer.setRenderTarget(portraitTarget); renderer.setScissorTest(false); renderer.autoClear = true;
         renderer.render(scene, camera);
         // Switching targets resolves MSAA before the bounded portrait readback.
         renderer.setRenderTarget(target);
@@ -92,15 +99,17 @@
       model.root.traverse(o => { visibility.push([o, o.visible]); o.visible = true; });
       renderer.getViewport(viewport); renderer.getScissor(scissor); renderer.getClearColor(clearColor);
       const target = renderer.getRenderTarget(), oldScissor = renderer.getScissorTest(), autoClear = renderer.autoClear, alpha = renderer.getClearAlpha();
-      const pixelRatio = renderer.getPixelRatio ? renderer.getPixelRatio() : 1, outputColorSpace = renderer.outputColorSpace, toneMapping = renderer.toneMapping, exposure = renderer.toneMappingExposure;
+      const outputColorSpace = renderer.outputColorSpace, toneMapping = renderer.toneMapping, exposure = renderer.toneMappingExposure;
       try {
         renderer.outputColorSpace = T.SRGBColorSpace; renderer.toneMapping = T.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.1;
-        renderer.setRenderTarget(null);
+        // Compile the same offscreen shader variants used by draw(), not the world's
+        // default framebuffer variants (which differ in tone mapping/output colour).
+        portraitTarget.setSize(8, 8); portraitTarget.viewport.set(0, 0, 8, 8);
+        renderer.setRenderTarget(portraitTarget); renderer.setScissorTest(false);
         if (renderer.compileAsync) await renderer.compileAsync(scene, camera); else renderer.compile(scene, camera);
         if (disposed) return;
-        // The loading overlay covers this tiny default-framebuffer warm-up. Skeleton buffers and
-        // all prepared equipment geometries are uploaded before the first inventory frame.
-        renderer.setRenderTarget(null); renderer.setViewport(0, 0, 8 / pixelRatio, 8 / pixelRatio); renderer.setScissor(0, 0, 8 / pixelRatio, 8 / pixelRatio); renderer.setScissorTest(true); renderer.autoClear = true;
+        // Upload the shared skeleton, surfaces and equipment while the loading cover is up.
+        renderer.setRenderTarget(portraitTarget); renderer.setScissorTest(false); renderer.autoClear = true;
         renderer.render(scene, camera);
       } finally {
         for (const entry of visibility) entry[0].visible = entry[1];
