@@ -12,7 +12,7 @@
       const i=y*n+x, grain=hash(x,y), broad=hash(Math.floor(x/12),Math.floor(y/12));
       let h=.5, c=.84, r=.7;
       if(kind==='metal') { h=.5+(grain-.5)*.065+Math.sin(y*1.8)*.025; c=.82+(grain-.5)*.07; r=.75+(grain-.5)*.18; }
-      if(kind==='leather') { h=.45+Math.pow(grain,3)*.16+(broad-.5)*.04; c=.69+grain*.12+(broad-.5)*.035; r=.83+grain*.12; }
+      if(kind==='leather') { const fold=Math.sin(x*.041+Math.sin(y*.023)*2.5)*Math.sin(y*.035+Math.cos(x*.017)), pores=Math.pow(grain,5); h=.45+pores*.12+fold*.045; c=.73+fold*.08+(grain-.5)*.06; r=.86+pores*.10+fold*.025; }
       if(kind==='cloth') { const a=Math.sin(x*TAU/8), b=Math.sin(y*TAU/8); h=.5+.12*a*b+.03*grain; c=.77+.08*a*b; r=.95; }
       if(kind==='wood') { const line=Math.sin((x+Math.sin(y*.024)*6)*.22); h=.5+line*.035+grain*.03; c=.64+.11*line+grain*.04; r=.78; }
       if(kind==='bone') { h=.5+Math.sin(x*.18+y*.011)*.018+grain*.035; c=.89+grain*.07; r=.74; }
@@ -50,7 +50,7 @@
     const line=(fn,count=48)=>Array.from({length:count+1},(_,i)=>fn(i/count));
     // Smooth the sampled body field before shaping fitted breastplates. Sparse body triangles
     // must not produce the ridges and holes of a raw nearest-vertex shrink wrap.
-    const cloud=A.cloud(torsoBones,BODY,.2), cz=A.P('spine03').z-.008, grid=[], NU=48,NV=32;
+    const cloud=A.cloud(torsoBones,['skin'],.25), cz=A.P('spine03').z-.008, grid=[], NU=48,NV=32;
     for(let j=0;j<=NV;j++){grid[j]=[];const y=mix(.86,1.58,j/NV);for(let i=0;i<NU;i++){const a=i/NU*TAU;let r=0;for(const p of cloud){if(Math.abs(p.y-y)>.055)continue;const d=Math.atan2(Math.sin(Math.atan2(p.x,p.z-cz)-a),Math.cos(Math.atan2(p.x,p.z-cz)-a));if(Math.abs(d)<.25)r=Math.max(r,Math.hypot(p.x,p.z-cz)*Math.cos(d));}grid[j][i]=r||(.17+.035*Math.sin(j/NV*PI));}}
     for(let pass=0;pass<5;pass++){const next=grid.map((row,j)=>row.map((r,i)=>{let sum=0;for(let dj=-1;dj<=1;dj++)for(let di=-1;di<=1;di++)sum+=grid[clamp(j+dj,0,NV)][(i+di+NU)%NU];return Math.max(r*.975,sum/9);}));for(let j=0;j<=NV;j++)grid[j]=next[j];}
     function chest(u,v,lift=.025,metal=false) {
@@ -71,18 +71,131 @@
       for(let l=1;l<=3;l++){part('chest',id,mat,G.shell(40,5,(u,v)=>{const p=cap(u,.71+v*.27,l);p[1]-=l*.012;return p;},.006,true),bone);piping('chest',id,mat==='leather'?'strap':'edge',u=>{const p=cap(u,.98,l);p[1]-=l*.012;return p;},bone,.0024);}
       const riv=[];for(let i=0;i<10;i++){const p=cap(i/10,.76,0);riv.push(G.stud(.0035,p,v3(p).sub(c).normalize()));}emit('chest',id,'brass',riv,bone);
     }
+    // Tailored garments have an open neckline and separate fronts, back and
+    // shoulder bridges. They are not closed breastplate cylinders in cloth.
+    function tailoredChest(id,style) {
+      const coat=style===2, armored=style===1;
+      function panel(side,u,v,lift=.028) {
+        const a=side*mix(.009,.244,u), angle=Math.abs(a);
+        // V neck rises to the shoulder, then falls into the actual armhole.
+        const top=angle<.12?mix(style===0?1.355:1.44,1.515,(angle-.009)/.111):mix(1.515,1.275,(angle-.12)/.124);
+        const hem=.945+.038*Math.sin(u*PI)+.015*Math.cos(u*PI*3);
+        const y=mix(hem,top,v), bodyTop=1.51-.135*Math.pow(Math.abs(Math.sin(a*TAU)),3);
+        const q=chest(a,(y-.89)/(bodyTop-.89),lift,false);
+        const fold=.004*Math.sin(u*PI*5+v*.8)*Math.sin(v*PI)+.003*Math.sin(v*PI*4)*Math.sin(u*PI);
+        q[0]+=Math.sin(a*TAU)*fold;q[2]+=Math.cos(a*TAU)*fold;
+        return q;
+      }
+      const backSkin=cloud.filter(p=>p.z<cz);
+      function backDepth(x,y){
+        const near=backSkin.map(p=>({p,d:(p.x-x)**2+(p.y-y)**2})).sort((a,b)=>a.d-b.d).slice(0,8);
+        let weight=0,depth=0;for(const n of near){const w=1/(.00015+n.d);weight+=w;depth+=n.p.z*w;}
+        return weight?depth/weight:cz-.16;
+      }
+      const back=(u,v,lift=.028)=>{
+        const a=mix(.258,.742,u),top=1.28+.245*Math.pow(Math.sin(u*PI),.55),y=mix(.97,top,v);
+        const p=chest(a,(y-.89)/(1.51-.135*Math.pow(Math.abs(Math.sin(a*TAU)),3)-.89),lift);
+        // Fit the back in Cartesian space; a single radial origin turns the
+        // curved spine into an inflated, bottle-shaped leather sack.
+        p[2]=mix(p[2],backDepth(p[0],y)-lift,Math.pow(Math.sin(u*PI),.5));return p;
+      };
+      const thread=[],seams=[];
+      const stitch=(fn,n=40)=>{for(let j=0;j<n;j++){const p=fn((j+.15)/n),q=fn((j+.65)/n);thread.push(G.tube([p,q],.0008,4,2,true));}};
+      for(const side of[-1,1]) {
+        part('chest',id,coat?'cloth':'leather',G.shell(32,30,(u,v)=>panel(side,u,v),.009,false,side<0));
+        for(const edge of[0,1]){
+          piping('chest',id,'strap',v=>panel(side,edge,v,.035),null,.0032);
+          stitch(v=>panel(side,edge? .98:.02,v,.037));
+        }
+        for(const edge of[0,1]){
+          piping('chest',id,'strap',u=>panel(side,u,edge,.034),null,.0032);
+          stitch(u=>panel(side,u,edge?.978:.024,.037));
+        }
+        // Raised tailored side seams, rather than a striped barrel.
+        seams.push(G.tube(line(v=>panel(side,.70,v,.031),28),.0016,5,28,true));
+        stitch(v=>panel(side,.72,v,.034));
+        // Folded lapels define the open front and break the flat silhouette.
+        part('chest',id,'strap',G.shell(10,20,(u,v)=>{
+          const q=panel(side,.01+u*.13,.48+v*.51,.039+.014*Math.sin(u*PI));
+          q[0]+=side*.007*Math.sin(v*PI);return q;
+        },.006,false,side<0));
+        // Riveted attachment tabs and actual crossing laces below the V.
+        for(let row=0;row<4;row++){
+          const v=.13+row*.09,p=panel(side,.018,v,.041),n=new T.Vector3(side*.12,0,1).normalize();
+          part('chest',id,'brass',G.stud(.0035,p,n));
+          const q=panel(-side,.018,v+.055,.041);
+          part('chest',id,'strap',G.tube([p,[(p[0]+q[0])*.5,(p[1]+q[1])*.5,(p[2]+q[2])*.5+.007],q],.0022,6,12,true));
+        }
+        if(armored){
+          const plates=[],rivets=[];
+          for(let r=0;r<5;r++)for(let c=0;c<3;c++){
+            const x=.19+c*.23,y=.10+r*.14;
+            plates.push(G.shell(5,5,(u,v)=>panel(side,x+u*.19,y+v*.12,.041),.004,false,side<0));
+            for(const dx of[.025,.16]){const p=panel(side,x+dx,y+.09,.047);rivets.push(G.stud(.0027,p,new T.Vector3(side*.5,0,1)));}
+          }
+          emit('chest',id,'dark',plates);emit('chest',id,'brass',rivets);
+        }
+        // A short split coat skirt follows each hip, leaving the legs free.
+        if(coat){
+          const skirt=(u,v)=>{
+            const a=side*mix(.055,.45,u),r=.23+v*.027+.004*Math.sin(u*PI*5),y=.97-v*(.28+.025*Math.sin(u*PI));
+            return[Math.sin(a*TAU)*r,y,cz+Math.cos(a*TAU)*r];
+          };
+          part('chest',id,'cloth',G.shell(34,20,skirt,.008,false,side>0),null,{bones:['pelvis','spine01']});
+          piping('chest',id,'strap',u=>skirt(u,1),'pelvis',.003);
+        }
+      }
+      part('chest',id,coat?'cloth':'leather',G.shell(48,26,(u,v)=>back(u,v),.009,false));
+      for(const edge of[0,1]){piping('chest',id,'strap',u=>back(u,edge,.034),null,.003);stitch(u=>back(u,edge?.98:.02,.037),56);}
+      for(const u of[.22,.5,.78]){
+        piping('chest',id,'strap',v=>back(u,v,.032),null,.002);
+        stitch(v=>back(u+.009,v,.035),40);
+      }
+      // Wide curved shoulder bridges connect front and back above the armholes.
+      for(const side of[-1,1]){
+        const strap=(u,v)=>{
+          const f=v3(panel(side,.43+u*.12,1,.032)),b=v3(back(side>0?.22-u*.05:.78+u*.05,1,.032));
+          const p=f.lerp(b,v);p.y+=.085*Math.sin(v*PI);
+          return p.toArray();
+        };
+        part('chest',id,'leather',G.shell(8,24,strap,.01,false));
+        for(const e of[0,1]){piping('chest',id,'strap',v=>strap(e,v),null,.0025);stitch(v=>strap(e,v),24);}
+      }
+      // Short overlapping leather tassets complete the starter silhouette.
+      // Each is a separate shaped flap; the open sides preserve leg movement.
+      if(style===0)for(const side of[-1,1])for(let leaf=0;leaf<3;leaf++){
+        const flap=(u,v)=>{
+          const a=side*(.017+leaf*.062+u*.069),r=.225+v*.028,
+            y=1.005-v*(.20-.018*leaf)+.015*v*v*Math.pow(Math.abs(u-.5)*2,2);
+          return[Math.sin(a*TAU)*r,y,cz+Math.cos(a*TAU)*r];
+        };
+        part('chest',id,leaf%2?'strap':'leather',G.shell(10,16,flap,.008,false,side>0),null,{bones:['pelvis','spine01']});
+        piping('chest',id,'strap',u=>flap(u,1),'pelvis',.0027);
+        for(const x of[.2,.8]){const p=flap(x,.06);part('chest',id,'brass',G.stud(.003,p,new T.Vector3(side*.3,0,1)),'pelvis');}
+      }
+      emit('chest',id,'strap',seams);emit('chest',id,'rag',thread);
+      // Waist belt is separate hardware, with a tongue, keeper and dark holes.
+      part('chest',id,'strap',G.shell(64,5,(u,v)=>chest(u,.19+v*.075,.046),.005,true),null,{bones:['pelvis','spine01']});
+      const bp=chest(.035,.228,.057),buckle=G.buckle(.048,.038,.004);buckle.rotateY(.035*TAU);buckle.translate(...bp);part('chest',id,'brass',buckle,'spine01');
+      piping('chest',id,'brass',t=>[bp[0]-.014+t*.027,bp[1],bp[2]+.006],'spine01',.0018);
+      studs('chest',id,u=>chest(.07+u*.09,.228,.053),6,'spine01','dark',.0018);
+      if(armored)['L','R'].forEach(s=>shoulder(id,s,'dark'));
+      if(coat)for(const side of['L','R']){
+        const upper='upper_arm'+side,fore='forearm'+side,hand='hand'+side;
+        part('chest',id,'cloth',sleeve(A,upper,fore,.02,1.03,.018,.006,['skin']).geometry,upper);
+        part('chest',id,'cloth',sleeve(A,fore,hand,-.02,.82,.014,.005,['skin']).geometry,fore);
+        const cuff=sleeve(A,fore,hand,.73,.84,.021,.005,['skin']);part('chest',id,'strap',cuff.geometry,fore);
+        piping('chest',id,'brass',u=>cuff.at(u*TAU,.76,.005)[0].toArray(),fore,.0018);
+        shoulder(id,side,'leather');
+      }
+    }
     const chestIDs=['torn-chest','grave-chest','coast-chest','brigandine-chest','lamellar-chest','sailcoat-chest','chainmail-chest','warden-chest','rib-chest'];
     chestIDs.forEach((id,k)=>{
-      const plate=[1,2,7,8].includes(k), mat=plate?(k===2?'salt':'steel'):k===6?'dark':k===0?'rag':k===5?'cloth':'leather';
+      if(k===0||k===3||k===5){tailoredChest(id,k===0?0:k===3?1:2);return;}
+      const plate=[1,2,7,8].includes(k), mat=plate?(k===2?'salt':'steel'):k===6?'dark':'leather';
       part('chest',id,mat,G.shell(64,32,(u,v)=>chest(u,v,.027,plate),plate?.009:.006,true));
-      // Deliberate fitted edging: neckline, armholes and waist are outlined in the same material family.
       [0,1].forEach(v=>piping('chest',id,plate?'brass':'strap',u=>chest(u,v,.032,plate),null,plate?.0035:.0025));
-      if(k!==0)['L','R'].forEach(s=>shoulder(id,s,[3,5].includes(k)?'leather':k===2?'salt':k===8?'dark':'steel'));
-      if(k===0||k===3||k===5){
-        const seams=[],thread=[];for(let col=0;col<12;col++){const u=(col+.5)/12;seams.push(G.tube(line(v=>chest(u,.03+v*.94,.029)),.0017,4,24,true));for(let row=0;row<18;row++){const v=.04+row*.052;const p=chest(u-.005,v,.031),q=chest(u+.005,v+.009,.031);thread.push(G.tube([p,q],.0009,4,2,true));}}
-        emit('chest',id,'strap',seams);emit('chest',id,'rag',thread);
-        if(k===3){for(let row=0;row<9;row++)studs('chest',id,u=>chest(u,.08+row*.1,.033),28,null,'brass',.0028);}
-      }
+      ['L','R'].forEach(s=>shoulder(id,s,k===2?'salt':k===8?'dark':'steel'));
       if(k===4){const scales=[],riv=[];for(let row=0;row<9;row++)for(let col=0;col<28;col++){
         const u=(col+(row%2)*.5)/28,v=.03+row*.103;
         scales.push(G.shell(5,4,(x,y)=>chest(u+(x-.5)*.034,v+y*.113,.034+.004*Math.sin(y*PI),true),.004,false));
@@ -108,7 +221,6 @@
       }emit('chest',id,k===8?'bone':'brass',ornaments);
         const keel=line(v=>chest(0,.15+v*.7,.046,true),32);part('chest',id,'dark',G.tube(keel,.0025,6,36,true));
       }
-      if(k===5){for(let side=0;side<2;side++)part('chest',id,'cloth',G.shell(30,18,(u,v)=>{const a=mix(side?PI+.13:.13,side?TAU-.13:PI-.13,u),r=.22+v*.02+.004*Math.sin(u*PI*8);return[Math.sin(a)*r,.94-v*.30,cz+Math.cos(a)*r];},.006,false),null,{bones:['pelvis','spine01']});}
       // A broad leather belt, with a bevelled buckle and punched fastening holes.
       part('chest',id,'strap',G.shell(48,4,(u,v)=>chest(u,.095+v*.07,.040,plate),.004,true),null,{bones:['pelvis','spine01']});
       const bp=chest(0,.13,.047,plate),buckle=G.buckle(.045,.032,.0035);buckle.translate(...bp);part('chest',id,'brass',buckle,'spine01');
