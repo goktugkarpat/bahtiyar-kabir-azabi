@@ -1,0 +1,487 @@
+/* Local sepulchral menu pass. Static artwork; no gameplay paint or animation loop. */
+#pause, #character { background: #07090b url(../assets/ui/sepulchral-backdrop.png) center / cover no-repeat; backdrop-filter: none; -webkit-backdrop-filter: none; }
+#character { --funeral-chain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='9' viewBox='0 0 18 9'%3E%3Cellipse cx='5' cy='4.5' rx='4.5' ry='3' fill='%2315100c' stroke='%23a9916d' stroke-width='1.5'/%3E%3Cellipse cx='14' cy='4.5' rx='5' ry='1.5' fill='%232b241b' stroke='%237d6b52' stroke-width='1.5'/%3E%3C/svg%3E"); }
+.mourning-title { display: block; color: #d4cabc; font: 500 clamp(26px,3vw,44px)/1.12 Georgia, 'Times New Roman', serif; letter-spacing: .08em; text-shadow: 0 2px 2px #000; }
+.funeral-verses { display: flex; justify-content: space-between; gap: 20px; color: #b5a184; font: 500 13px/1.4 var(--text); letter-spacing: .035em; padding: 8px 4px 12px; border-bottom: 1px solid #80684655; }
+.funeral-quote { color: #b9a584; font: 500 14px/1.4 Georgia, serif; letter-spacing: .035em; text-align: center; }
+#pause .panel::before, #character .character-panel::before { inset: 0; background: url(../assets/ui/frame-tl.png) left top / 76px 76px no-repeat, url(../assets/ui/frame-tr.png) right top / 76px 76px no-repeat, url(../assets/ui/frame-bl.png) left bottom / 76px 76px no-repeat, url(../assets/ui/frame-br.png) right bottom / 76px 76px no-repeat; }
+#character .character-panel::before { background-size: 40px 40px; }
+#title .wordmark, #loading .wordmark { font-family: Georgia, 'Times New Roman', serif; font-weight: 500; letter-spacing: .07em; color: #d6cbbc; text-shadow: 0 2px 3px #000; }
+#pause .sepulchral-pause { width: min(720px,62vw); max-height: 94dvh; padding: 20px 30px 16px; gap: 6px; overflow: auto; border: 3px double #9c805d; border-image: none; background: linear-gradient(#0b0b0be6,#080909eb),url(../assets/ui/iron.webp) center / 400px; box-shadow: 0 0 0 5px #080706,0 0 0 7px #68543d,inset 0 0 0 5px #58442b44; }
+#pause .mourning-head { text-align: center; padding-bottom: 8px; }
+#pause .mourning-head h2 { color: #cbbfa9; font-size: 17px; font-weight: 500; letter-spacing: .25em; margin: 8px 0 0; filter: none; }
+#pause .funeral-verses { font-size: 12px; }
+#pause .pause-stats { display: none; }
+#pause #pause-difficulty { text-align: center; margin: 4px 0; }
+#pause .pause-stats b { font-size: 15px; }
+#pause .pause-stats small { font-size: 10px; }
+#pause .menu-stack { display: flex; flex-direction: column; gap: 12px; margin-top: 10px; }
+.funeral-menu-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }
+#pause .funeral-card { position: relative; height: auto; aspect-ratio: 793 / 497; min-height: 0; width: 100%; padding: 0; overflow: hidden; border: 3px double #9c805d; border-image: none; border-radius: 2px; background: #090a0c; box-shadow: inset 0 0 0 3px #000,0 3px 8px #0009; }
+#pause .funeral-card::before { content: ''; position: absolute; inset: 0; background: url(../assets/ui/menu-character.png) center / cover no-repeat; }
+#pause .card-talents::before { background-image: url(../assets/ui/menu-talents.png); }
+#pause .card-journal::before { background-image: url(../assets/ui/menu-journal.png); }
+#pause .card-settings::before { background-image: url(../assets/ui/menu-settings.png); }
+#pause .funeral-card > span { position: absolute; inset: auto 0 0; display: flex; align-items: center; justify-content: center; gap: 10px; padding: 9px 6px; color: #e6d9c2; background: #080908ed; border-top: 1px solid #8d715255; font: 600 20px/1.2 var(--text); text-shadow: 0 1px 2px #000; }
+#pause .funeral-card:hover { filter: none; border-color: #d3b37b; }
+#pause .funeral-card:focus-visible { outline: 2px solid #dec48c; outline-offset: 3px; }
+#pause kbd { font: 600 12px/1 var(--text); opacity: .65; border: 0; background: transparent; }
+#pause #resume { height: 50px; border: 3px double #ac8c5b; border-image: none; background: linear-gradient(#411b1e,#230e11),url(../assets/ui/btn-red.webp); color: #e5d5ba; box-shadow: inset 0 0 0 3px #0005; }
+.pause-secondary { display: flex; justify-content: center; flex-wrap: wrap; gap: 14px; }
+#pause .pause-secondary button { padding: 4px 8px; color: #b9ad9a; font-size: 12px; }
+#pause .save-note { display: block; margin-top: 6px; font-size: 11px; }
+#pause .funeral-quote { margin: 10px 0 0; padding-top: 9px; border-top: 1px solid #82684755; font-size: 14px; }
+/* Character chamber: forged frame, live paper doll, bag, item inspection. */
+#character .character-panel { width: min(1440px,94vw,150.4dvh); height: min(900px,94dvh,58.75vw); max-height: 94dvh; padding: 20px 32px 16px; border: 3px double #a1845c; border-image: none; background: linear-gradient(#0d0d0de8,#080909ef),url(../assets/ui/iron.webp) center/380px; box-shadow: 0 0 0 5px #080706,0 0 0 7px #68543d,inset 0 0 0 5px #58442b44; }
+#character .panel-head { min-height: 55px; margin-bottom: 0; padding-bottom: 10px; }
+#character .panel-head h2 { display: none; }
+#character .mourning-title { font-size: clamp(24px,2.9vw,40px); }
+#character .panel-head .close { width: 40px; height: 40px; background: #14110e; border: 1px solid #8d7152; box-shadow: inset 0 0 0 2px #000; }
+#character .char-progress { max-width: 510px; margin-right: 10px; }
+#character .char-progress > div:first-child { font-size: 12px; gap: 10px; }
+#character .char-progress strong { font-size: 17px; }
+#character .char-progress .char-points.on { background: #302619; color: #e4c68a; box-shadow: none; }
+#character .char-tabs { justify-content: center; margin: 8px 0; padding-bottom: 8px; }
+#character .char-tabs button { background: #15120f; color: #bdaf98; border: 3px double #7c6244; box-shadow: inset 0 1px 0 #b5975130; min-height: 40px; padding: 8px 28px; }
+#character .char-tabs button.active { background: linear-gradient(#421b20,#251115); color: #e5d2b8; border-color: #b99a64; box-shadow: inset 0 0 0 2px #0006; }
+#character .char-inventory-layout.has-preview { grid-template-columns: minmax(320px,1.15fr) minmax(280px,1fr) minmax(230px,.83fr); gap: 16px; }
+#character .char-sheet, #character .char-bag, #character .char-detail { padding: 12px; border: 3px double #7c6244; border-radius: 5px; background: linear-gradient(#141211e8,#0a0b0cf7),url(../assets/ui/stone.webp) center / 350px; box-shadow: inset 0 0 0 3px #0007; }
+#character .char-sheet > h3, #character .char-bag > h3 { color: #d2c3ab; font-size: 13px; }
+#character .char-doll { grid-template-columns: 74px minmax(0,1fr) 74px; gap: 8px; height: clamp(310px,43dvh,470px); }
+#character .char-preview { border-radius: 45% 45% 3px 3px / 16% 16% 3px 3px; border: 2px solid #806947; background: #0b1116; }
+#character .char-preview-label { background: #101110; color: #bdab8b; }
+#character .char-preview figcaption { font-size: 10px; background: #111110; }
+#character .char-equipment, #character .char-item { background: radial-gradient(ellipse at 50% 85%,color-mix(in srgb,var(--rarity,#998064) 15%,transparent),transparent 70%),linear-gradient(#191b1c,#0b0e10); border: 2px ridge color-mix(in srgb,var(--rarity,#998064) 62%,#201b17); box-shadow: inset 0 0 0 2px #0006; }
+#character .char-equipment .eq-name { font-size: 10px; }
+#character .char-bag-grid { grid-template-columns: repeat(4,minmax(0,1fr)); gap: 7px; max-height: clamp(320px,49dvh,535px); }
+#character .char-item .char-gear-icon { width: 82%; height: 82%; }
+#character img.char-gear-icon { object-fit: contain; padding: 0; filter: none; }
+.char-fly img { width: 100%; height: 100%; object-fit: contain; }
+#character .char-equipment .char-gear-icon { width: 62px; height: 62px; max-height: 62px; }
+#character .char-item-name { font-size: 9px; }
+#character .char-item-empty { border: 2px ridge #55452f55; background: #0d1011; }
+#character .char-bag-toolbar { gap: 4px; }
+#character .char-filter { min-width: 0; font-size: 11px; min-height: 38px; background: #151411; border-color: #75604466; }
+#character .char-filter .char-icon { width: 22px; height: 22px; }
+#character .cd-head { flex-direction: column; align-items: flex-start; }
+#character .cd-art { width: 100%; height: 150px; background: radial-gradient(ellipse,color-mix(in srgb,var(--rarity) 12%,#17110f),#0b0b0b); border: 1px solid #6d543c55; }
+#character .cd-art .char-gear-icon { width: 130px; height: 130px; }
+#character .char-hover-tooltip .cd-head { flex-direction: row; }
+#character .char-hover-tooltip .cd-art { width: 52px; height: 52px; }
+#character .char-hover-tooltip .cd-art .char-gear-icon { width: 42px; height: 42px; }
+#character .cd-title h3 { font-size: 21px; }
+#character .cd-pline strong { font-size: 30px; }
+#character .cd-btn.go { background: linear-gradient(#421b20,#251115); border: 3px double #a88c5b; color: #e5d2b8; box-shadow: inset 0 0 0 2px #0006; }
+#character .char-stat-grid { background: #10100e; border: 1px solid #75604466; gap: 6px; padding: 10px 4px; margin-top: 10px; }
+#character .st-tile { padding: 5px; }
+#character .char-footer { padding: 12px 0 4px; margin-top: 8px; }
+#character .char-footer .funeral-quote { flex: 1; font-size: 12px; }
+#character .character-panel[data-page="skills"] .funeral-verses { display: none; }
+#character .character-panel[data-page="skills"] .char-footer { padding-top: 8px; padding-bottom: 0; }
+/* Four horizontal paths retain all existing prerequisites, slots and skill events. */
+#character .skt-wrap { display: flex; flex-direction: column; gap: 12px; }
+#character .skt-top { order: 2; }
+#character .skt-points { display: none; }
+#character .skt-workspace { grid-template-columns: minmax(0,1fr) 280px; gap: 16px; }
+#character .skt-tree { padding: 12px; border: 3px double #7c6244; background: #10100fea; box-shadow: inset 0 0 0 3px #0006; }
+#character .skt-cols { grid-template-columns: 1fr; gap: 8px; }
+#character .skt-col { display: grid; grid-template-columns: minmax(115px,.85fr) minmax(85px,1fr) 30px minmax(85px,1fr) 30px minmax(85px,1fr); align-items: center; padding: 3px 8px; min-height: 96px; background: linear-gradient(#1a1813,#0d0e0e); border: 3px double #6d573c; border-radius: 6px; box-shadow: inset 0 0 0 2px #0009; }
+#character .skt-col > header { margin: 0; border: 0; text-align: left; padding: 8px; }
+#character .skt-col > header b { font-size: 13px; line-height: 1.4; letter-spacing: .04em; color: #c8b89c; }
+#character .skt-col > header small { font-size: 11px; color: #928779; }
+#character .skt-node { min-height: 94px; height: auto; padding: 3px; border-radius: 4px; }
+#character .skt-node::before, #character .skt-node::after { content: ''; position: absolute; top: 28px; height: 9px; width: calc(50% - 28px); background: var(--funeral-chain) left center / 18px 9px repeat-x; pointer-events: none; }
+#character .skt-node::before { left: 0; }
+#character .skt-node::after { right: 0; }
+#character .skt-node[data-tier="1"]::before, #character .skt-node[data-tier="3"]::after { display: none; }
+#character .skt-node.selected { background: transparent; border-color: transparent; }
+#character .skt-node.selected .skt-emblem { outline: 2px solid #d5b780; outline-offset: 3px; }
+#character .skt-emblem { width: 56px; height: 56px; border: 3px ridge #967c54; background: #111; box-shadow: inset 0 0 0 2px #000,0 2px 5px #000; }
+#character .skt-emblem .char-icon { width: 100%; height: 100%; padding: 0; border-radius: 50%; object-fit: cover; filter: none; }
+#character .skt-node strong { font-size: 12px; line-height: 1.1; margin-top: 4px; }
+#character .skt-state { font-size: 10px; line-height: 1.1; margin-top: 2px; }
+#character .skt-node.locked .skt-emblem { filter: saturate(.4); opacity: .6; }
+#character .skt-node.learned .skt-emblem, #character .skt-node.available .skt-emblem { animation: none; background: #111; border-color: #c2a373; box-shadow: inset 0 0 0 2px #000,0 0 0 1px #655239; }
+#character .skt-link { align-self: start; width: 100%; height: 9px; margin: 32px 0 0; background: var(--funeral-chain) left center / 18px 9px repeat-x; border: 0; border-radius: 0; box-shadow: none; }
+#character .skt-link::before, #character .skt-link::after { display: none; }
+#character .skt-link.ready { background: var(--funeral-chain) left center / 18px 9px repeat-x; }
+#character .skt-link.lit { background: var(--funeral-chain) left center / 18px 9px repeat-x; opacity: 1; box-shadow: none; }
+#character .skt-inspect { height: 505px; max-height: 62dvh; overflow: auto; scrollbar-width: thin; scrollbar-color: #8c7454 #10100e; padding: 18px; border: 3px double #9c8058; border-radius: 5px; background: linear-gradient(#281417aa,#0c0c0ef9),url(../assets/ui/iron.webp) center / 280px; box-shadow: inset 0 0 0 3px #0006; }
+#character .skt-inspect header { flex-direction: column; align-items: center; padding: 10px 0; }
+#character .skt-inspect header .char-icon { width: 100px; height: 100px; padding: 0; border: 3px ridge #9b805b; border-radius: 50%; filter: none; }
+#character .skt-inspect h3 { font-size: 24px; text-align: center; }
+#character .skt-inspect > p { font-size: 13px; }
+#character .skt-fact { padding: 6px 0; background: transparent; border-bottom: 1px solid #80684633; }
+#character .skt-learn { background: linear-gradient(#421b20,#251115); border: 3px double #b79763; min-height: 46px; }
+#character .skt-note { font-size: 11px; line-height: 1.5; margin: 12px 4px 0; }
+#character .skt-slots { grid-template-columns: repeat(4,minmax(0,1fr)); }
+#character .skt-slot { background: #12120f; border: 3px double #7e6644; padding: 10px; }
+#character .skt-slot .char-icon { border-radius: 50%; width: 38px; height: 38px; padding: 0; filter: none; }
+#character .skt-slot strong { font-size: 12px; }
+#character .skt-cap { font-size: 10px; min-width: 30px; padding: 4px; background: #221b12; border-color: #806846; }
+#character .skt-slotcap { right: 0; top: 0; font-size: 8px; padding: 1px 3px; }
+#character .skt-assign button { font-size: 12px; background: #191511; }
+@media(max-width:1150px) {
+  #character .character-panel { padding-inline: 20px; }
+  #character .char-inventory-layout.has-preview { grid-template-columns: minmax(270px,1fr) minmax(240px,1fr); }
+  #character .char-detail { grid-column: 1 / -1; }
+  #character .char-detail .cd-head { flex-direction: row; }
+  #character .char-detail .cd-art { width: 95px; height: 95px; }
+  #character .char-detail .cd-art .char-gear-icon { width: 80px; height: 80px; }
+  #character .skt-workspace { grid-template-columns: minmax(0,1fr) 240px; }
+  #character .skt-col { grid-template-columns: 100px minmax(70px,1fr) 15px minmax(70px,1fr) 15px minmax(70px,1fr); padding: 6px 3px; }
+  #character .skt-col > header b { font-size: 11px; }
+  #character .skt-emblem { width: 48px; height: 48px; }
+  #character .skt-node::before, #character .skt-node::after { top: 24px; width: calc(50% - 24px); }
+  #character .skt-link { margin-top: 28px; }
+  #character .char-progress > div:first-child > span { display: none; }
+}
+@media(max-width:900px) {
+  #character .character-panel { height: 94dvh; width: 94vw; }
+  #pause .sepulchral-pause { width: min(720px,86vw); }
+  #character .skt-workspace { grid-template-columns: 1fr; }
+  #character .skt-inspect header { flex-direction: row; }
+  #character .skt-inspect header .char-icon { width: 65px; height: 65px; }
+  #character .skt-inspect { align-self: stretch; }
+  #character .skt-slots { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  #character .char-footer .funeral-quote { display: none; }
+}
+@media(max-width:600px) {
+  #pause .sepulchral-pause { width: 94vw; padding: 16px; }
+  #pause .funeral-card { height: auto; }
+  #pause .funeral-card > span { font-size: 17px; }
+  .funeral-verses { font-size: 10px; gap: 10px; }
+  #character .character-panel { width: 96vw; padding: 14px 12px 10px; }
+  #character .mourning-title { font-size: 22px; letter-spacing: .04em; }
+  #character .char-progress { margin: 0 6px 0 auto; }
+  #character .char-progress strong { font-size: 12px; }
+  #character .char-progress .char-points { padding: 3px 4px; font-size: 10px; }
+  #character .char-progress > div:first-child { flex-direction: column; gap: 3px; }
+  #character .panel-head .close { width: 32px; height: 32px; }
+  #character .char-tabs { gap: 5px; }
+  #character .char-tabs button { font-size: 12px; padding-inline: 10px; }
+  #character .char-inventory-layout.has-preview { grid-template-columns: minmax(0,1fr); }
+  #character .char-doll { height: 390px; }
+  #character .char-bag-grid { max-height: 420px; }
+  #character .skt-tree { padding: 5px; }
+  #character .skt-col { grid-template-columns: 72px minmax(50px,1fr) 8px minmax(50px,1fr) 8px minmax(50px,1fr); }
+  #character .skt-col > header { padding: 3px; }
+  #character .skt-col > header b { font-size: 9px; }
+  #character .skt-col > header small { font-size: 9px; }
+  #character .skt-emblem { width: 42px; height: 42px; }
+  #character .skt-node::before, #character .skt-node::after { top: 21px; width: calc(50% - 21px); }
+  #character .skt-link { margin-top: 25px; }
+  #character .skt-node strong { font-size: 10px; }
+  #character .skt-state { font-size: 9px; }
+  #character .skt-slotcap { display: none; }
+  #character .skt-inspect { padding: 12px; }
+  #character .char-footer { gap: 8px; }
+  #character .char-status { font-size: 11px; }
+  #character .char-footer .btn { padding-inline: 12px; font-size: 13px; }
+}
+@media(max-height:650px) and (min-width:601px) {
+  #pause .sepulchral-pause { width: min(760px,78vw); padding: 12px 24px; }
+  #pause .mourning-title { font-size: 28px; }
+  #pause .funeral-card { height: auto; }
+  #pause .pause-stats { padding: 3px 0; margin: 3px 0; }
+  #pause .funeral-verses { padding: 4px; }
+  #pause .menu-stack { gap: 7px; }
+  #pause #resume { height: 42px; }
+}
+
+/* Balanced chamber pass: carved stone, restrained bronze, worn crimson accents. */
+#pause, #character, #settings {
+  background: linear-gradient(#08090965,#08090988),url(../assets/ui/sepulchral-backdrop.png) center / cover no-repeat;
+  backdrop-filter: none; -webkit-backdrop-filter: none;
+}
+#pause .sepulchral-pause { background: linear-gradient(#0b0a099e,#0a090acf),url(../assets/ui/iron.webp) center / 380px; }
+#pause .panel::before { background-size: 54px 54px; }
+#pause .funeral-card { border-color: #8a7354; box-shadow: inset 0 0 0 2px #000,0 2px 4px #0007; }
+#pause .funeral-card::before { filter: saturate(.75) brightness(.86); }
+#character .character-panel, #settings .settings-panel {
+  background: linear-gradient(#11100dac,#080909cd),url(../assets/ui/iron.webp) center / 380px;
+  border: 3px double #947d5b; border-image: none;
+  box-shadow: 0 0 0 4px #080706,0 0 0 6px #514432,inset 0 0 0 4px #58442b44;
+}
+#character .panel-head, #settings .panel-head {
+  background: linear-gradient(90deg,transparent,#30161980,transparent);
+  border-bottom: 1px solid #9b805b65;
+}
+#character .char-sheet, #character .char-bag, #character .char-detail {
+  background: linear-gradient(#12100eb0,#090a0bbb),url(../assets/ui/stone.webp) center / 320px;
+  border-color: #8b7250;
+  box-shadow: inset 0 1px 0 #d0b58336,inset 0 0 0 3px #0007,0 2px 5px #0007;
+}
+#character .char-sheet > h3, #character .char-bag > h3 {
+  padding: 8px 10px; margin-top: 0;
+  background: linear-gradient(90deg,#39252890,#15100e20),url(../assets/ui/plate.webp) center / 280px;
+  border-top: 1px solid #a2885d65; border-bottom: 1px solid #a2885d65;
+  letter-spacing: .08em;
+}
+#character .char-tabs button {
+  background: linear-gradient(#16120f90,#0a090bc0),url(../assets/ui/btn.webp) center / cover;
+}
+#character .char-tabs button.active {
+  background: linear-gradient(#39171b75,#1b0b10a0),url(../assets/ui/btn-red.webp) center / cover;
+}
+#character .skt-tree {
+  background: linear-gradient(#100e0a80,#080909b0),url(../assets/ui/stone.webp) center / 350px;
+}
+#character .skt-col {
+  background: linear-gradient(90deg,#311b1e8c,#1312118c 35%,#101010a0),url(../assets/ui/iron.webp) center / 280px;
+  border-color: #867050;
+  box-shadow: inset 0 1px 0 #dac0982e,inset 0 0 0 2px #0009,0 2px 3px #0007;
+}
+#character .skt-col > header { border-right: 1px solid #8d74545a; }
+#character .skt-inspect {
+  background: linear-gradient(#37171b80,#0c0c0eb0),url(../assets/ui/iron.webp) center / 280px;
+}
+#character .skt-slot {
+  background: linear-gradient(#1b17109c,#101010b0),url(../assets/ui/plate.webp) center / 220px;
+}
+#settings .settings-panel { padding: 26px 30px 22px; }
+#settings .settings-panel::before {
+  inset: 0; pointer-events: none;
+  background: url(../assets/ui/frame-tl.png) left top / 44px 44px no-repeat,
+    url(../assets/ui/frame-tr.png) right top / 44px 44px no-repeat,
+    url(../assets/ui/frame-bl.png) left bottom / 44px 44px no-repeat,
+    url(../assets/ui/frame-br.png) right bottom / 44px 44px no-repeat;
+}
+#settings .panel-head { margin-bottom: 18px; padding-bottom: 14px; }
+#settings .panel-head h2 { font-size: clamp(26px,3vw,36px); color: #ded2bd; }
+#settings .eyebrow { color: #b49a73; letter-spacing: .16em; }
+#settings .close { background: #17110f; border: 3px double #8c7454; color: #e4d5bb; width: 40px; height: 40px; }
+#settings .settings-nav { border-color: #9b805b55; }
+#settings .settings-nav button {
+  background: linear-gradient(#16120f99,#0a090ba6),url(../assets/ui/iron.webp) center / 240px;
+  border: 3px double #746146; color: #c6bda9; box-shadow: inset 0 1px 0 #bfa17b26;
+}
+#settings .settings-nav button.active {
+  background: linear-gradient(#481f268c,#210e17a8),url(../assets/ui/iron.webp) center / 240px;
+  border-color: #b99b6c; color: #f0dfc1; box-shadow: inset 0 0 0 2px #0005;
+}
+#settings .settings-nav small { color: #a49a88; }
+#settings .settings-pages { scrollbar-color: #927650 #100c0b; }
+#settings .settings-pages h3 {
+  color: #d7c5a8; padding: 10px 12px; border: 3px double #7a6245;
+  background: linear-gradient(90deg,#36171b80,#12110e70),url(../assets/ui/plate.webp) center / 280px;
+  box-shadow: inset 0 1px 0 #c0a57b2e;
+}
+#settings .setting { border-bottom-color: #8b72503f; }
+#settings .setting > label { color: #d9cfbf; }
+#settings .setting small, #settings .setting p, #settings #settings-note { color: #b3a995; }
+#settings .segmented button {
+  color: #c7bca8; border: 3px double #80694b; border-image: none;
+  background: linear-gradient(#19140e85,#100c0ca0),url(../assets/ui/btn.webp) center / cover;
+  box-shadow: inset 0 1px 0 #c8aa762e,inset 0 -2px 0 #0006;
+}
+#settings .segmented button.selected {
+  color: #f0dfc1; border-color: #bea071;
+  background: linear-gradient(#48212975,#23101498),url(../assets/ui/btn-red.webp) center / cover;
+  box-shadow: inset 0 0 0 2px #0005;
+}
+#settings footer { border-top-color: #90765166; padding-top: 16px; gap: 12px; }
+#settings #settings-done {
+  border: 3px double #ab8e5f; border-image: none;
+  background: linear-gradient(#43202685,#210d1490),url(../assets/ui/btn-red.webp) center / cover;
+  box-shadow: inset 0 0 0 2px #0005; color: #e5d6be;
+}
+@media(max-width:600px) {
+  #settings .settings-panel { padding: 20px 16px 16px; }
+  #settings .settings-nav button { padding: 6px 3px; }
+  #settings .segmented button { font-size: 12px; }
+  #settings .settings-panel::before { background-size: 30px 30px; }
+  #character .char-sheet > h3, #character .char-bag > h3 { padding: 5px 6px; }
+}
+
+/* Static funerary figures and woven banners; artwork keeps its native ratio. */
+.funeral-effigy { display: none; pointer-events: none; position: absolute; top: 50%; transform: translateY(-50%); width: 78px; height: min(420px,65%); background-position: center; background-size: contain; background-repeat: no-repeat; opacity: .86; }
+.effigy-left { left: 8px; background-image: url(../assets/ui/effigy-left.png); }
+.effigy-right { right: 8px; background-image: url(../assets/ui/effigy-right.png); }
+#character .funeral-verses, #settings .funeral-verses { align-items: center; border-bottom: 0; padding: 6px 0 8px; }
+#character .funeral-verses > span, #settings .funeral-verses > span,
+#character .char-footer .funeral-quote, #settings footer .funeral-quote {
+  position: relative; display: block; text-align: center; margin: 0;
+  padding: 11px 23px 12px; color: #deceb3; text-shadow: 0 1px 2px #000;
+  background: linear-gradient(#180b1226,#08050855),url(../assets/ui/funeral-cloth.png) center / 180px 100px repeat;
+  border-top: 1px solid #b3966580; border-bottom: 1px solid #6d4c3870;
+  clip-path: polygon(0 0,100% 0,98% 55%,100% 94%,96% 93%,90% 100%,80% 96%,68% 100%,57% 96%,44% 100%,32% 96%,20% 100%,10% 96%,3% 100%,0 88%,2% 55%);
+  box-shadow: inset 0 2px 4px #0006;
+}
+#character .funeral-verses > span, #settings .funeral-verses > span { width: min(310px,46%); font-size: 12px; line-height: 1.25; }
+#character .char-footer .funeral-quote, #settings footer .funeral-quote {
+  background-image: linear-gradient(#10100924,#06060855),url(../assets/ui/funeral-cloth-dark.png);
+  flex: 0 1 340px; font-size: 12px; line-height: 1.3;
+}
+#character .char-footer .funeral-quote { margin-inline: auto; }
+#settings .funeral-verses { flex: none; }
+#settings footer .funeral-quote { margin-right: auto; }
+#settings #settings-note { display: none; }
+#character .char-footer .btn {
+  background: linear-gradient(#30151b80,#150b1090),url(../assets/ui/btn-red.webp) center / cover;
+  border: 3px double #9a8059; border-image: none; color: #dfcfb6;
+}
+@media(min-width:1200px) {
+  #character .character-panel, #settings .settings-panel { padding-inline: 94px; }
+  #character .funeral-effigy, #settings .funeral-effigy { display: block; }
+  #character .skt-workspace { grid-template-columns: minmax(0,1fr) 255px; gap: 12px; }
+  #character .skt-col { grid-template-columns: 106px minmax(75px,1fr) 22px minmax(75px,1fr) 22px minmax(75px,1fr); }
+}
+@media(max-width:1199px) and (min-width:601px) {
+  #character .funeral-effigy, #settings .funeral-effigy { display: block; width: 30px; height: 110px; top: auto; bottom: 2px; transform: none; opacity: .8; }
+  #character .effigy-left, #settings .effigy-left { left: 1px; }
+  #character .effigy-right, #settings .effigy-right { right: 1px; }
+}
+@media(max-width:600px) {
+  #character .funeral-verses > span, #settings .funeral-verses > span { font-size: 10px; padding: 8px 12px; }
+  #settings footer .funeral-quote { font-size: 10px; padding: 8px 12px; flex-basis: 100%; }
+  #settings footer { gap: 6px; padding-top: 8px; }
+}
+
+/* Monumental figures: large silhouettes flank the content rather than badge ornaments. */
+@media(min-width:1200px) {
+  #character .character-panel, #settings .settings-panel { padding-inline: 158px; }
+  #character .funeral-effigy, #settings .funeral-effigy { width: 164px; height: min(650px,80%); top: 52%; opacity: .96; }
+  #character .effigy-left, #settings .effigy-left { left: -6px; }
+  #character .effigy-right, #settings .effigy-right { right: -6px; }
+  #character .char-progress { max-width: 440px; }
+  #settings .settings-workspace { grid-template-columns: 150px minmax(0,1fr); gap: 18px; }
+  #settings .settings-nav { padding-right: 10px; }
+  #settings .settings-nav button { padding-inline: 8px; font-size: 14px; gap: 7px; }
+  #settings .settings-nav small { font-size: 10px; }
+}
+@media(min-width:1200px) and (max-width:1400px) {
+  #character .char-inventory-layout.has-preview { grid-template-columns: minmax(270px,1fr) minmax(240px,1fr); }
+  #character .char-detail { grid-column: 1 / -1; }
+}
+@media(max-width:1199px) and (min-width:601px) {
+  #character .character-panel, #settings .settings-panel { padding-inline: 72px; }
+  #character .funeral-effigy, #settings .funeral-effigy { width: 62px; height: 260px; top: 52%; bottom: auto; transform: translateY(-50%); opacity: .94; }
+  #character .effigy-left, #settings .effigy-left { left: 3px; }
+  #character .effigy-right, #settings .effigy-right { right: 3px; }
+}
+
+/* Funeral sayings hang from sculpted clasps instead of floating labels. */
+#character .funeral-verses > span, #settings .funeral-verses > span,
+#character .char-footer .funeral-quote, #settings footer .funeral-quote {
+  padding: 0; border: 0; background: none; clip-path: none; box-shadow: none;
+  overflow: visible;
+}
+#character .banner-inscription, #settings .banner-inscription {
+  display: block; position: relative; padding: 11px 40px 12px; min-height: 38px;
+  background: linear-gradient(90deg,#0d060850,transparent 20%,transparent 80%,#0d060850),linear-gradient(#180b1226,#08050855),url(../assets/ui/funeral-cloth.png) center / 180px 100px repeat;
+  border-top: 2px ridge #a58a60; border-bottom: 1px solid #63462d;
+  clip-path: polygon(0 0,100% 0,100% 91%,96% 93%,90% 100%,80% 96%,68% 100%,57% 96%,44% 100%,32% 96%,20% 100%,10% 96%,3% 100%,0 88%);
+  box-shadow: inset 0 3px 5px #0006;
+}
+#character .char-footer .banner-inscription, #settings footer .banner-inscription {
+  background-image: linear-gradient(90deg,#06060860,transparent 20%,transparent 80%,#06060860),linear-gradient(#10100924,#06060855),url(../assets/ui/funeral-cloth-dark.png);
+}
+#character .funeral-verses > span::before, #settings .funeral-verses > span::before,
+#character .char-footer .funeral-quote::before, #settings footer .funeral-quote::before,
+#character .funeral-verses > span::after, #settings .funeral-verses > span::after,
+#character .char-footer .funeral-quote::after, #settings footer .funeral-quote::after {
+  content: ''; position: absolute; z-index: 1; pointer-events: none; top: 50%; transform: translateY(-50%);
+  width: 46px; height: 80px; background: url(../assets/ui/banner-demon-left.png) center / contain no-repeat;
+}
+#character .funeral-verses > span::before, #settings .funeral-verses > span::before,
+#character .char-footer .funeral-quote::before, #settings footer .funeral-quote::before { left: -12px; }
+#character .funeral-verses > span::after, #settings .funeral-verses > span::after,
+#character .char-footer .funeral-quote::after, #settings footer .funeral-quote::after { right: -12px; background-image: url(../assets/ui/banner-demon-right.png); }
+#character .funeral-verses, #settings .funeral-verses { padding-block: 10px; }
+@media(max-width:600px) {
+  #character .banner-inscription, #settings .banner-inscription { padding: 8px 23px; min-height: 32px; }
+  #character .funeral-verses > span::before, #settings .funeral-verses > span::before,
+  #character .funeral-verses > span::after, #settings .funeral-verses > span::after,
+  #settings footer .funeral-quote::before, #settings footer .funeral-quote::after { width: 28px; height: 48px; }
+  #character .funeral-verses > span::before, #settings .funeral-verses > span::before,
+  #settings footer .funeral-quote::before { left: -6px; }
+  #character .funeral-verses > span::after, #settings .funeral-verses > span::after,
+  #settings footer .funeral-quote::after { right: -6px; }
+}
+
+#settings { --funeral-chain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='9' viewBox='0 0 18 9'%3E%3Cellipse cx='5' cy='4.5' rx='4.5' ry='3' fill='%2315100c' stroke='%23a9916d' stroke-width='1.5'/%3E%3Cellipse cx='14' cy='4.5' rx='5' ry='1.5' fill='%232b241b' stroke='%237d6b52' stroke-width='1.5'/%3E%3C/svg%3E"); }
+#character .banner-inscription::before, #settings .banner-inscription::before { content: ""; position: absolute; left: 35px; right: 35px; top: 2px; height: 6px; background: var(--funeral-chain) left center / 12px 6px repeat-x; opacity: .7; pointer-events: none; }
+
+/* Winged demon shrine supports for the funeral inscriptions. */
+#character .funeral-verses > span::before, #settings .funeral-verses > span::before,
+#character .funeral-verses > span::after, #settings .funeral-verses > span::after {
+  width: 68px; height: 100px; transform: translateY(-48%);
+}
+#character .char-footer .funeral-quote::before, #settings footer .funeral-quote::before,
+#character .char-footer .funeral-quote::after, #settings footer .funeral-quote::after { width: 64px; height: 88px; }
+#character .funeral-verses > span::before, #settings .funeral-verses > span::before,
+#character .char-footer .funeral-quote::before, #settings footer .funeral-quote::before { left: -24px; }
+#character .funeral-verses > span::after, #settings .funeral-verses > span::after,
+#character .char-footer .funeral-quote::after, #settings footer .funeral-quote::after { right: -24px; }
+#character .banner-inscription, #settings .banner-inscription { padding-inline: 48px; }
+#character .banner-inscription::after, #settings .banner-inscription::after {
+  content: ''; position: absolute; left: 36px; right: 36px; bottom: 0; height: 10px;
+  background: url(../assets/ui/divider.webp) center / contain no-repeat; pointer-events: none;
+}
+@media(max-width:600px) {
+  #character .funeral-verses > span::before, #settings .funeral-verses > span::before,
+  #character .funeral-verses > span::after, #settings .funeral-verses > span::after,
+  #settings footer .funeral-quote::before, #settings footer .funeral-quote::after { width: 36px; height: 56px; }
+  #character .funeral-verses > span::before, #settings .funeral-verses > span::before,
+  #settings footer .funeral-quote::before { left: -8px; }
+  #character .funeral-verses > span::after, #settings .funeral-verses > span::after,
+  #settings footer .funeral-quote::after { right: -8px; }
+  #character .banner-inscription, #settings .banner-inscription { padding-inline: 28px; }
+}
+
+/* Ornaments occupy real grid cells: no absolute overflow into adjacent UI. */
+#character .funeral-verses > span, #settings .funeral-verses > span,
+#character .char-footer .funeral-quote, #settings footer .funeral-quote {
+  display: grid; grid-template-columns: 52px minmax(0,1fr) 52px;
+  align-items: center; min-height: 72px; overflow: hidden; isolation: isolate;
+}
+#character .funeral-verses > span::before, #settings .funeral-verses > span::before,
+#character .funeral-verses > span::after, #settings .funeral-verses > span::after,
+#character .char-footer .funeral-quote::before, #settings footer .funeral-quote::before,
+#character .char-footer .funeral-quote::after, #settings footer .funeral-quote::after {
+  position: static; transform: none; width: 52px; height: 72px;
+  inset: auto; align-self: center; grid-row: 1;
+}
+#character .funeral-verses > span::before, #settings .funeral-verses > span::before,
+#character .char-footer .funeral-quote::before, #settings footer .funeral-quote::before { grid-column: 1; }
+#character .funeral-verses > span::after, #settings .funeral-verses > span::after,
+#character .char-footer .funeral-quote::after, #settings footer .funeral-quote::after { grid-column: 3; }
+#character .banner-inscription, #settings .banner-inscription {
+  grid-column: 2; grid-row: 1; min-width: 0; padding: 11px 4px 12px;
+}
+#character .banner-inscription::before, #settings .banner-inscription::before { left: 4px; right: 4px; }
+#character .banner-inscription::after, #settings .banner-inscription::after { left: 6px; right: 6px; }
+#character .char-footer .funeral-quote, #settings footer .funeral-quote {
+  grid-template-columns: 38px minmax(0,1fr) 38px; min-height: 52px;
+}
+#character .char-footer .funeral-quote::before, #settings footer .funeral-quote::before,
+#character .char-footer .funeral-quote::after, #settings footer .funeral-quote::after { width: 38px; height: 52px; }
+#character .skt-inspect { height: 485px; }
+#character .skt-node { min-height: 88px; }
+@media(max-width:600px) {
+  #character .funeral-verses > span, #settings .funeral-verses > span { grid-template-columns: 26px minmax(0,1fr) 26px; min-height: 50px; }
+  #character .funeral-verses > span::before, #settings .funeral-verses > span::before,
+  #character .funeral-verses > span::after, #settings .funeral-verses > span::after { width: 26px; height: 44px; }
+  #character .banner-inscription, #settings .banner-inscription { padding: 8px 2px 10px; }
+}
+
+@media(min-width:1401px) {
+  #character .character-panel[data-page="inventory"] .char-doll { height: auto; min-height: 260px; }
+  #character .char-equipment .char-gear-icon { height: 100%; max-height: 62px; }
+  #character .char-detail { max-height: 100%; overflow: auto; }
+  #character .char-detail .cd-art { height: 120px; }
+  #character .char-detail .cd-art .char-gear-icon { width: 104px; height: 104px; }
+}
+
+@media(min-width:1401px) {
+  #character .character-panel[data-page="inventory"] .char-doll { min-height: 300px; }
+  #character .char-equipment { padding: 10px 4px 4px; }
+  #character .char-equipment .char-item-art { flex: none; height: 38px; min-height: 38px; overflow: visible; }
+  #character .char-equipment .char-gear-icon { width: 38px; height: 38px; max-height: 38px; }
+  #character .char-equipment .eq-label { font-size: 10px; line-height: 1.1; }
+  #character .st-tile { gap: 4px; }
+  #character .st-ico { width: 20px; height: 20px; }
+  #character .st-text small { font-size: 11px; }
+  #character .st-text strong { font-size: 19px; }
+}

@@ -66,7 +66,7 @@ Boss'u yenince bölüm biter. İlk üç bölümün sonunda oyun kendiliğinden s
 
 ### Yetenek ağacı
 
-**4 yol × 3 aşama** vardır. Üst aşamayı öğrenince, alttaki yetenek yuvadaki yerinden çıkıp onun yerine geçer. Aynı anda dört yolun dördünden birer yetenek takabilirsin: **sağ tık, 1, 2 ve 3** yuvaları. Yetenek puanları seviye atladıkça kazanılır.
+**4 yol × 3 aşama** yatay yollar halinde gösterilir. Bir yeteneğe çift tıklayarak veya iki kez dokunarak öğrenebilirsin; seviye ve önceki aşama şartları geçerlidir. Üst aşamayı öğrenince, alttaki yetenek yuvadaki yerinden çıkıp onun yerine geçer. Aynı anda dört yolun dördünden birer yetenek takabilirsin: **sağ tık, 1, 2 ve 3** yuvaları. Yetenek puanları seviye atladıkça kazanılır.
 
 | Yol | 1. aşama | 2. aşama | 3. aşama |
 |---|---|---|---|
@@ -110,11 +110,11 @@ Zincirlerin dövüldüğü yeraltı ocağı. Odalar arasında Kör Körükler, K
 - **Boss:** Ocağın Kalbi.
 - **Görevler:** Son Mahkûmun Yemini (yemin halkasını al, vinçte kullan) ve Kalbi Besleyen Ateş (döküm, cüruf ve ana besleme vanalarını kapat).
 
-Her bölümde onlarca düşman vardır; mola menüsü yenilen / toplam düşman sayısını gösterir.
+Her bölümde onlarca düşman vardır.
 
 ## Mola ve ayarlar
 
-Esc ile **Mola** açılır: devam, ayarlar, karakter, yetenekler, görev günlüğü, kontroller, baştan başla, ana menü.
+Esc ile **Mola** açılır: devam, ayarlar, karakter, yetenekler, görev günlüğü, kontroller, baştan başla, ana menü. Mola, karakter, yetenek ve ayar ekranları ortak gotik taş, metal ve kumaş görünümü kullanır; sözlerin bulunduğu flamalar demon kabartmalarıyla çevrilidir.
 
 - **Oynanış:** zorluk **Kolay / Normal / Zor**. Oyun her açılışta Normal başlar.
 - **Görüntü:** grafik kalitesi **Düşük / Yüksek**; görüntü boyutu **Otomatik / Tam boyut**; kare hızı **60, 90, 120 FPS veya ekran hızı** (Mac'te başlangıç 60); arayüz boyutu **Küçük / Normal**; parlaklık; kamera sarsıntısı. Kenar yumuşatma her zaman açıktır.
@@ -132,6 +132,7 @@ Esc ile **Mola** açılır: devam, ayarlar, karakter, yetenekler, görev günlü
 | `vendor/` | Yerel üç boyutlu görüntü kütüphanesi (three.js) ve yükleyici |
 | `manifest.webmanifest`, `sw.js`, `icons/`, `icon.svg` | Ana Ekrana Ekleme ve internetsiz çalışma |
 | `credits.html` | Kaynaklar ve lisanslar sayfası |
+| `UI-ART-PROMPTS.md` | Özgün arayüz görsellerinin üretim notları |
 | `ASSET-LICENSES.md` | Kaynakların ayrıntılı lisans kaydı |
 | `yayinla.command` | Mac'te çift tıkla, GitHub'a gönderir |
 

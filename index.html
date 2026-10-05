@@ -16,6 +16,7 @@
 <link rel="stylesheet" href="src/ui.css?v=150"><link rel="stylesheet" href="src/quests.css?v=150">
 <link rel="stylesheet" href="src/character-ui.css?v=150">
 <link rel="stylesheet" href="src/ui-polish.css?v=150">
+<link rel="stylesheet" href="src/sepulchral-ui.css?v=151">
 </head>
 <body>
 <svg class="icon-library" aria-hidden="true"><defs>
@@ -117,20 +118,23 @@ KG_LOAD(.04);
   <div id="portrait-note">Daha geniş görüş için cihazını yatay çevir.</div>
 </div>
 
-<div id="pause" class="screen modal hidden" role="dialog" aria-modal="true" aria-label="Mola"><div class="panel compact">
-  <img class="panel-crest" src="assets/ui/crest.webp" alt="" aria-hidden="true">
-  <span class="eyebrow">Kurban Tapınağı</span><h2>Mola</h2><i class="divider" aria-hidden="true"></i>
-  <div class="pause-stats"><div><svg class="icon" aria-hidden="true"><use href="#i-seal"/></svg><b id="pause-room">Kül Eşiği</b><small>Bölge</small></div><div><svg class="icon" aria-hidden="true"><use href="#i-hourglass"/></svg><b id="pause-time">0:00</b><small>Süre</small></div><div><svg class="icon" aria-hidden="true"><use href="#i-cross"/></svg><b id="pause-kills">0 / 31</b><small>Alt edilen</small></div></div>
+<div id="pause" class="screen modal hidden" role="dialog" aria-modal="true" aria-label="Mola"><div class="panel compact sepulchral-pause">
+  <header class="mourning-head"><span class="mourning-title">KABİR AZABI</span><h2>Mola</h2></header>
+  <div class="funeral-verses"><span><span class="banner-inscription">Ölüm hakkın tezahürüdür</span></span><span><span class="banner-inscription">Her nefis ölümü tadacaktır</span></span></div>
+  <div class="pause-stats"><div><b id="pause-room">Kül Eşiği</b><small>Bölge</small></div><div><b id="pause-time">0:00</b><small>Süre</small></div><div><b id="pause-kills">0 / 31</b><small>Alt edilen</small></div></div>
   <small id="pause-difficulty">Zorluk: Normal</small>
-  <nav class="menu-stack">
-    <button id="resume" class="btn primary"><svg class="icon" aria-hidden="true"><use href="#i-play"/></svg><span>Devam et</span></button>
-    <button id="pause-settings" class="btn"><svg class="icon" aria-hidden="true"><use href="#i-gear"/></svg><span>Ayarlar</span></button>
-    <div class="btn-row"><button id="pause-character" class="btn"><svg class="icon" aria-hidden="true"><use href="#i-skull"/></svg><span>Karakter</span></button><button id="pause-talents" class="btn"><svg class="icon" aria-hidden="true"><use href="#i-chain"/></svg><span>Yetenekler</span></button></div>
-    <button id="pause-journal" class="btn"><svg class="icon" aria-hidden="true"><use href="#i-seal"/></svg><span>Görev günlüğü</span></button>
-    <button id="pause-controls" class="btn"><svg class="icon" aria-hidden="true"><use href="#i-keys"/></svg><span>Kontroller</span></button>
-    <div class="btn-row"><button id="restart" class="btn danger"><span>Baştan başla</span></button><button id="return-title" class="btn"><span>Ana menü</span></button></div>
+  <nav class="menu-stack" aria-label="Mola menüsü">
+    <div class="funeral-menu-grid">
+      <button id="pause-character" class="btn funeral-card card-character"><span>Karakter <kbd>I</kbd></span></button>
+      <button id="pause-talents" class="btn funeral-card card-talents"><span>Yetenekler <kbd>T</kbd></span></button>
+      <button id="pause-journal" class="btn funeral-card card-journal"><span>Görevler</span></button>
+      <button id="pause-settings" class="btn funeral-card card-settings"><span>Ayarlar</span></button>
+    </div>
+    <button id="resume" class="btn primary"><span>Oyuna dön <kbd>ESC</kbd></span></button>
+    <div class="pause-secondary"><button id="pause-controls" class="text-button">Kontroller</button><button id="restart" class="text-button">Baştan başla</button><button id="return-title" class="text-button">Ana menü</button></div>
   </nav>
-  <small class="save-note">Karakterin ve çantan korunur. Ölümde son yemin noktasına dönersin.</small>
+  <small class="save-note">Karakterin ve çantan korunur.</small>
+  <p class="funeral-quote"><span class="banner-inscription">Sonra bize döndürüleceksiniz</span></p>
 </div></div>
 
 <div id="journal" class="screen modal hidden" role="dialog" aria-modal="true" aria-labelledby="journal-title"><div class="panel journal-panel">
@@ -139,8 +143,9 @@ KG_LOAD(.04);
   <footer><div id="journal-gate"><svg class="icon" aria-hidden="true"><use href="#i-seal"/></svg><span id="journal-gate-text"></span></div><button id="journal-done" class="btn small"><span>Geri dön</span></button></footer>
 </div></div>
 
-<div id="settings" class="screen modal hidden" role="dialog" aria-modal="true" aria-labelledby="settings-title"><div class="panel settings-panel">
+<div id="settings" class="screen modal hidden" role="dialog" aria-modal="true" aria-labelledby="settings-title"><div class="panel settings-panel"><span class="funeral-effigy effigy-left" aria-hidden="true"></span><span class="funeral-effigy effigy-right" aria-hidden="true"></span>
   <header class="panel-head"><div><span class="eyebrow">Kabir Azabı</span><h2 id="settings-title">Ayarlar</h2></div><button id="settings-close" class="close" aria-label="Ayarları kapat">×</button></header>
+  <div class="funeral-verses"><span><span class="banner-inscription">Ölüm hakkın tezahürüdür</span></span><span><span class="banner-inscription">Her nefis ölümü tadacaktır</span></span></div>
   <div class="settings-workspace">
     <nav class="settings-nav" aria-label="Ayar kategorileri">
       <button data-settings-page="game" aria-pressed="false"><svg class="icon" aria-hidden="true"><use href="#i-skull"/></svg><span>Oynanış<small>Zorluk ve yolculuk</small></span></button>
@@ -157,7 +162,7 @@ KG_LOAD(.04);
       <section id="settings-input" class="hidden" aria-label="Kontrol ayarları"><h3>Kontroller</h3><p class="input-intro">Her savaşın bir ritmi var. Tuşları kendi eline göre düzenle.</p><div class="input-actions"><button id="settings-keys" class="btn small kb-only"><svg class="icon" aria-hidden="true"><use href="#i-keys"/></svg><span>Fare ve klavye tuşları</span></button><button id="settings-controls" class="btn small"><svg class="icon" aria-hidden="true"><use href="#i-eye"/></svg><span>Nasıl oynanır?</span></button></div></section>
     </div>
   </div>
-  <footer><span id="settings-note">Seçimler hemen uygulanır.</span><button id="settings-reset" class="text-button">Varsayılanlar</button><button id="settings-done" class="btn primary small"><span>Tamam</span></button></footer>
+  <footer><span class="funeral-quote"><span class="banner-inscription">Sonra bize döndürüleceksiniz</span></span><span id="settings-note">Seçimler hemen uygulanır.</span><button id="settings-reset" class="text-button">Varsayılanlar</button><button id="settings-done" class="btn primary small"><span>Tamam</span></button></footer>
 </div></div>
 
 <div id="controls" class="screen modal hidden"><div class="panel controls-panel">
@@ -238,9 +243,9 @@ KG_LOAD(.04);
 <script src="assets/characters/authored-clips.js?v=150"></script>
 <script src="src/authored-motion.js?v=150"></script><script src="src/authored-models.js?v=150&amp;surface=1"></script><script src="src/coast-models.js?v=150"></script><script src="src/ruins-models.js?v=150"></script><script src="src/forge-models.js?v=150"></script><script src="src/limbs.js?v=150"></script><script src="src/globes.js?v=150"></script><script src="src/coast-combat.js?v=150"></script><script src="src/ruins-combat.js?v=150"></script><script src="src/forge-combat.js?v=150"></script><script src="src/progression.js?v=150"></script><script src="src/boss-mech.js?v=150"></script>
 <script src="src/ground-loot.js?v=150"></script><script src="src/quests.js?v=150"></script><script src="src/gate.js?v=150"></script><script src="src/combat.js?v=150&amp;energy=12"></script><script>KG_LOAD(.16);</script>
-<script src="src/narration.js?v=150"></script><script src="src/music.js?v=150"></script><script src="src/audio.js?v=150"></script><script src="src/telegraphs.js?v=150"></script><script src="src/effects.js?v=150"></script><script src="src/coast-effects.js?v=150"></script><script src="src/ruins-effects.js?v=150"></script><script src="src/forge-effects.js?v=150"></script><script src="src/boss2.js?v=150"></script><script src="src/skill-art.js?v=150"></script><script src="src/hud.js?v=150"></script><script src="src/buffs.js?v=150"></script><script src="src/target-hud.js?v=150"></script><script src="src/lighting.js?v=150"></script><script src="src/display.js?v=150"></script><script src="src/pacing.js?v=150"></script><script src="src/performance.js?v=150"></script><script src="src/smaa.js?v=150"></script><script src="src/post.js?v=150&amp;surface=1"></script><script src="src/levelup.js?v=150"></script><script src="src/charge.js?v=150"></script><script src="src/skill-fx.js?v=150"></script>
+<script src="src/narration.js?v=150"></script><script src="src/music.js?v=150"></script><script src="src/audio.js?v=150"></script><script src="src/telegraphs.js?v=150"></script><script src="src/effects.js?v=150"></script><script src="src/coast-effects.js?v=150"></script><script src="src/ruins-effects.js?v=150"></script><script src="src/forge-effects.js?v=150"></script><script src="src/boss2.js?v=150"></script><script src="src/skill-art.js?v=151"></script><script src="src/hud.js?v=150"></script><script src="src/buffs.js?v=150"></script><script src="src/target-hud.js?v=150"></script><script src="src/lighting.js?v=150"></script><script src="src/display.js?v=150"></script><script src="src/pacing.js?v=150"></script><script src="src/performance.js?v=150"></script><script src="src/smaa.js?v=150"></script><script src="src/post.js?v=150&amp;surface=1"></script><script src="src/levelup.js?v=150"></script><script src="src/charge.js?v=150"></script><script src="src/skill-fx.js?v=150"></script>
 <script src="src/character-preview.js?v=150"></script>
-<script src="src/character-ui.js?v=150&learn=1"></script>
+<script src="src/character-ui.js?v=151&amp;learn=1"></script>
 <script src="src/warmup.js?v=150"></script><script src="src/controller.js?v=150"></script>
 <script src="src/quest-ui.js?v=150"></script><script src="src/app.js?v=150"></script><script>KG_LOAD(.18,'Karanlık yol hazırlanıyor…');</script>
 </body></html>

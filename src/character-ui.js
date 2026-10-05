@@ -7,9 +7,22 @@
   const TYPE = { sword: 'Kılıç', axe: 'Balta', spear: 'Mızrak' };
   const escape = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const percent = n => Number((n * 100).toFixed(1)).toLocaleString('tr-TR') + '%';
+  // Prepainted miniatures match the weapon / armour family. The actual worn
+  // object remains the live animated 3D figure; no extra thumbnail renderer is used.
+  function menuGearIcon(def) {
+    // Hand-painted families follow the actual weapon / armour silhouette.
+    // An item keeps its own name, finish, stats and quality frame.
+    const familyKey = def.id || def.modelId || '';
+    const tile = def.type === 'sword' ? (/dull/.test(familyKey) ? 0 : /crown|royal|throne/.test(familyKey) ? 5 : 1) :
+      def.type === 'axe' ? (/forge|furnace|ember|ash/.test(familyKey) ? 4 : 2) : def.type === 'spear' ? 3 :
+      def.slot === 'chest' ? (/torn|leather|cloth|pilgrim|worker|mourning/.test(familyKey) ? 6 : /chain|coast|salt|sunken/.test(familyKey) ? 7 : 8) :
+      def.slot === 'head' ? (/hood|cloth|veil|shroud/.test(familyKey) ? 9 : /crown|royal|throne/.test(familyKey) ? 11 : 10) :
+      def.slot === 'hands' ? (/wrap|cloth|rag/.test(familyKey) ? 13 : 12) : def.slot === 'boots' ? (/worn|cloth|wrap|pilgrim/.test(familyKey) ? 14 : 15) : null;
+    if (tile !== null) return '<img class="char-icon char-gear-icon" src="assets/ui/gear/' + tile + '.png" width="256" height="256" alt="" aria-hidden="true" draggable="false">';
+    return gearIcon(def);
+  }
+  // The loot renderer consumes this original SVG API; menu pictures stay separate.
   let gearSerial = 0;
-  // Painted, original SVG miniatures match the weapon/armour family. The actual worn
-  // object remains the animated 3D figure; no thumbnail renderer or texture fetch is needed.
   function gearIcon(def) {
     const id = 'gear-art-' + (++gearSerial), base = def.id || def.modelId, worn = def.finish || 'worn';
     const tones = { worn: ['#c2c9ca','#6b777a','#253035'], ash: ['#d6cfbe','#8e8778','#343333'], rust: ['#d2b086','#996442','#362722'], brine: ['#b8d1d1','#668d91','#20353e'], blood: ['#cabaa4','#8f5b52','#38262a'], bone: ['#e3d9b9','#9f9477','#3d3a32'] };
@@ -254,9 +267,9 @@
     const getState = () => getGame() && getGame().progression;
     const overlay = document.createElement('section'); overlay.id = 'character'; overlay.className = 'screen overlay modal hidden';
     overlay.setAttribute('role', 'dialog'); overlay.setAttribute('aria-modal', 'true'); overlay.setAttribute('aria-labelledby', 'character-title');
-    overlay.innerHTML = '<div class="panel character-panel"><header class="panel-head"><div><span class="eyebrow">Küllerden yükselen</span><h2 id="character-title">Bahtiyar</h2></div><div class="char-progress"></div><button class="close" data-char="close" aria-label="Oyuna dön">×</button></header>' +
-      '<nav class="char-tabs" aria-label="Karakter sayfaları"><button data-char="tab" data-tab="inventory">Karakter ve çanta</button><button data-char="tab" data-tab="skills">Yetenek ağacı</button></nav>' +
-      '<div class="char-content"></div><footer class="char-footer"><span class="char-status" role="status" aria-live="polite"></span><button class="btn small" data-char="close">Oyuna dön</button></footer></div>';
+    overlay.innerHTML = '<div class="panel character-panel"><span class="funeral-effigy effigy-left" aria-hidden="true"></span><span class="funeral-effigy effigy-right" aria-hidden="true"></span><header class="panel-head"><div><span class="mourning-title">KABİR AZABI</span><h2 id="character-title">Bahtiyar</h2></div><div class="char-progress"></div><button class="close" data-char="close" aria-label="Oyuna dön">×</button></header>' +
+      '<div class="funeral-verses"><span><span class="banner-inscription">Ölüm hakkın tezahürüdür</span></span><span><span class="banner-inscription">Her nefis ölümü tadacaktır</span></span></div><nav class="char-tabs" aria-label="Karakter sayfaları"><button data-char="tab" data-tab="inventory">Karakter ve çanta</button><button data-char="tab" data-tab="skills">Yetenek ağacı</button></nav>' +
+      '<div class="char-content"></div><footer class="char-footer"><span class="char-status" role="status" aria-live="polite"></span><span class="funeral-quote"><span class="banner-inscription">Sonra bize döndürüleceksiniz</span></span><button class="btn small" data-char="close">Oyuna dön</button></footer></div>';
     document.body.appendChild(overlay);
     if (!document.getElementById('skill-tree-style')) { const st = document.createElement('style'); st.id = 'skill-tree-style'; st.textContent = SKILL_TREE_CSS; document.head.appendChild(st); }
     const progress = overlay.querySelector('.char-progress'), content = overlay.querySelector('.char-content'), status = overlay.querySelector('.char-status');
@@ -276,7 +289,7 @@
       if (!def) return '<div class="char-empty-detail">' + icon(selectedSlot || 'chest') + '<h3>' + (selectedSlot ? LABELS[selectedSlot] + ' yuvası boş' : 'Bir eşya seç') + '</h3><p>Çantadan bir parçaya dokun. Özelliklerini ve giydiğinle farkını burada göreceksin.</p></div>';
       const old = state.itemForSlot(def.slot), equipped = state.equipment[def.slot] === entry.uid, compare = !equipped && !!old, locked = def.level > state.level;
       const lines = statLines(def, equipped ? null : old, compare);
-      const head = '<div class="cd-head"><span class="char-item-art cd-art">' + gearIcon(def) + '</span><div class="cd-title"><span class="cd-sub">' + RARITY[def.rarity] + ' · ' + (TYPE[def.type] || LABELS[def.slot]) + '</span><h3>' + escape(def.name) + '</h3></div></div>';
+      const head = '<div class="cd-head"><span class="char-item-art cd-art">' + menuGearIcon(def) + '</span><div class="cd-title"><span class="cd-sub">' + RARITY[def.rarity] + ' · ' + (TYPE[def.type] || LABELS[def.slot]) + '</span><h3>' + escape(def.name) + '</h3></div></div>';
       const primary = '<div class="cd-primary"><span class="cd-plabel">' + lines.main.label + '</span><div class="cd-pline"><strong>' + lines.main.text + '</strong>' + lines.main.arrow + '</div></div>';
       const rest = lines.rest.length ? '<div class="cd-rest">' + lines.rest.map(r => '<div class="cd-row"><span>' + r.label + '</span><strong>' + r.text + '</strong>' + r.arrow + '</div>').join('') + '</div>' : '';
       const req = '<div class="cd-chips"><span class="cd-chip ' + (locked ? 'bad' : 'ok') + '">' + (locked ? def.level + '. seviye gerekli' : 'Seviye ' + def.level) + '</span><span class="cd-chip power" title="Eşya gücü">Güç ' + def.power + '</span>' + (def.roll ? '<span class="cd-chip ' + (def.roll > 0 ? 'ok' : 'bad') + '" title="İşçilik">İşçilik ' + (def.roll > 0 ? '+' : '−') + Math.abs(def.roll) + '</span>' : '') + '</div>';
@@ -303,11 +316,11 @@
       const damageScale = difficulty === 'normal' || difficulty === 'easy' ? 1.18 : 1;
       const equipment = B.Progression.slots.map(slot => {
         const def = state.itemForSlot(slot), uid = state.equipment[slot], active = uid ? uid === selected : slot === selectedSlot;
-        return '<button class="char-equipment ' + (def ? 'worn rarity-' + def.rarity : 'empty') + (active ? ' selected' : '') + '" data-slot="' + slot + '" data-char="select" data-uid="' + escape(uid || '') + '" aria-pressed="' + active + '" aria-label="' + escape(LABELS[slot] + ' · ' + (def ? def.name + ' · Kuşanıldı · Çift tıkla çıkar' : 'Boş yuva')) + '">' + (def ? '<i class="eq-ribbon" aria-hidden="true" title="Kuşanıldı">✓</i>' : '') + '<span class="char-item-art">' + (def ? gearIcon(def) : icon(slot)) + '</span><span class="eq-label">' + LABELS[slot] + '</span><span class="eq-name">' + escape(def ? def.name : 'Boş') + '</span></button>';
+        return '<button class="char-equipment ' + (def ? 'worn rarity-' + def.rarity : 'empty') + (active ? ' selected' : '') + '" data-slot="' + slot + '" data-char="select" data-uid="' + escape(uid || '') + '" aria-pressed="' + active + '" aria-label="' + escape(LABELS[slot] + ' · ' + (def ? def.name + ' · Kuşanıldı · Çift tıkla çıkar' : 'Boş yuva')) + '">' + (def ? '<i class="eq-ribbon" aria-hidden="true" title="Kuşanıldı">✓</i>' : '') + '<span class="char-item-art">' + (def ? menuGearIcon(def) : icon(slot)) + '</span><span class="eq-label">' + LABELS[slot] + '</span><span class="eq-name">' + escape(def ? def.name : 'Boş') + '</span></button>';
       }).join('');
       const list = visible.map(entry => {
         const def = B.Progression.resolveItem(entry), equipped = state.equipment[def.slot] === entry.uid, upgrade = state.isUpgrade(entry), locked = def.level > state.level;
-        return '<button class="char-item rarity-' + def.rarity + (entry.uid === selected ? ' selected' : '') + (equipped ? ' equipped' : '') + (locked ? ' too-high' : '') + '" data-char="select" data-uid="' + escape(entry.uid) + '" data-item-slot="' + def.slot + '" aria-pressed="' + (entry.uid === selected) + '" aria-label="' + escape(def.name + ' · ' + RARITY[def.rarity] + ' · Seviye ' + def.level + ' · Güç ' + def.power + (equipped ? ' · Kuşanıldı' : upgrade ? ' · Kuşandığından daha iyi' : '')) + '"><span class="char-item-art">' + gearIcon(def) + '</span><span class="char-item-level" aria-hidden="true">' + (locked ? 'Sv ' + def.level : def.power) + '</span><strong class="char-item-name">' + escape(def.name) + '</strong>' + (upgrade && !locked ? '<b class="char-item-upgrade" title="Kuşandığından daha iyi" aria-label="Kuşandığından daha iyi">▲</b>' : '') + (equipped ? '<i class="char-item-ribbon" aria-hidden="true" title="Kuşanıldı">✓</i>' : '') + '<i class="char-quality" aria-hidden="true" title="' + RARITY[def.rarity] + '"></i></button>';
+        return '<button class="char-item rarity-' + def.rarity + (entry.uid === selected ? ' selected' : '') + (equipped ? ' equipped' : '') + (locked ? ' too-high' : '') + '" data-char="select" data-uid="' + escape(entry.uid) + '" data-item-slot="' + def.slot + '" aria-pressed="' + (entry.uid === selected) + '" aria-label="' + escape(def.name + ' · ' + RARITY[def.rarity] + ' · Seviye ' + def.level + ' · Güç ' + def.power + (equipped ? ' · Kuşanıldı' : upgrade ? ' · Kuşandığından daha iyi' : '')) + '"><span class="char-item-art">' + menuGearIcon(def) + '</span><span class="char-item-level" aria-hidden="true">' + (locked ? 'Sv ' + def.level : def.power) + '</span><strong class="char-item-name">' + escape(def.name) + '</strong>' + (upgrade && !locked ? '<b class="char-item-upgrade" title="Kuşandığından daha iyi" aria-label="Kuşandığından daha iyi">▲</b>' : '') + (equipped ? '<i class="char-item-ribbon" aria-hidden="true" title="Kuşanıldı">✓</i>' : '') + '<i class="char-quality" aria-hidden="true" title="' + RARITY[def.rarity] + '"></i></button>';
       }).join('') + '<span class="char-item-empty" aria-hidden="true"></span>'.repeat(Math.max(0, (bagFilter === 'all' ? 30 : 15) - visible.length));
       const entry = state.inventory.find(i => i.uid === selected), def = B.Progression.resolveItem(entry);
       const filters = ['all', ...B.Progression.slots].map(slot => '<button class="char-filter' + (bagFilter === slot ? ' active' : '') + '" data-char="filter" data-filter="' + slot + '" aria-pressed="' + (bagFilter === slot) + '" title="' + (slot === 'all' ? 'Bütün eşyalar' : LABELS[slot]) + '" aria-label="' + (slot === 'all' ? 'Bütün eşyalar' : LABELS[slot] + ' eşyaları') + '">' + (slot === 'all' ? 'Tümü' : icon(slot)) + '</button>').join('');
@@ -318,7 +331,7 @@
       return '<div class="char-inventory-layout' + (preview ? ' has-preview' : '') + '"><section class="char-sheet"><h3>Donanım <small>Kuşandıkların</small></h3>' + (preview ? '<div class="char-doll">' + preview + equipment + '</div>' : equipment) + statGrid + '</section>' +
         '<section class="char-bag"><h3>Çanta <small>' + state.inventory.length + ' eşya</small></h3><div class="char-bag-toolbar">' + filters + '</div><div class="char-item-list char-bag-grid">' + (visible.length ? '' : '<p class="char-bag-empty">Bu türde eşyan yok.</p>') + list + '</div><p class="char-bag-help">Seç: incele · Çift tıkla veya iki kez dokun: kuşan / çıkar</p></section><section class="char-detail' + (def ? ' rarity-' + def.rarity : '') + '">' + itemDetail(state, entry, false) + '</section></div>';
     }
-    // ---- Skill tree page (round 6): four lines (columns) x three tiers (rows). A lower tier upgrades the one above it in the same slot.
+    // ---- Skill tree page: four horizontal paths, three tiers in each path. A lower tier upgrades the one above it in the same slot.
     const ROMAN = ['', 'I', 'II', 'III'];
     const keyLabels = () => { try { const k = typeof options.keyLabels === 'function' ? options.keyLabels() : null; if (Array.isArray(k) && k.length >= 4) return k; } catch (_) { /* fall back */ } return ['SAĞ TIK', '1', '2', '3']; };
     const capHtml = label => (label === 'SAĞ TIK' ? '<svg class="skt-mouse" aria-hidden="true"><use href="#i-mouse-r"/></svg>' : '') + escape(label);
@@ -476,12 +489,12 @@
       if (kind === 'equip') {
         try { if (B.Audio && B.Audio.play) B.Audio.play('parry', { volume: .17 }); } catch (e) { /* sound is optional */ }
         if (slotEl) slotEl.classList.add('fx-await');
-        fly(gearIcon(def), from, artRect(slotEl), color, false, () => {
+        fly(menuGearIcon(def), from, artRect(slotEl), color, false, () => {
           if (slotEl) slotEl.classList.remove('fx-await');
           pulse(slotEl, 'fx-equip', color); pulse(portrait, 'fx-equip', color); pulse(cell, 'fx-bag', color);
         });
       } else {
-        fly(gearIcon(def), from, cell ? artRect(cell) : null, color, true, () => { pulse(slotEl, 'fx-unequip', color); pulse(portrait, 'fx-unequip', color); pulse(cell, 'fx-bag', color); });
+        fly(menuGearIcon(def), from, cell ? artRect(cell) : null, color, true, () => { pulse(slotEl, 'fx-unequip', color); pulse(portrait, 'fx-unequip', color); pulse(cell, 'fx-bag', color); });
         if (!cell) { pulse(slotEl, 'fx-unequip', color); pulse(portrait, 'fx-unequip', color); }
       }
     }
@@ -615,6 +628,10 @@
     // draw the panel, the item icons, the skill tree and the portrait's 2D canvas for the first time during play.
     async function warm() {
       if (opened || !getState()) return;
+      // Decode menu textures under the existing loading cover, never during combat.
+      const art = ['sepulchral-backdrop.png', 'menu-character.png', 'menu-talents.png', 'menu-journal.png', 'menu-settings.png', 'frame-tl.png', 'frame-tr.png', 'frame-bl.png', 'frame-br.png', 'effigy-left.png', 'effigy-right.png', 'funeral-cloth.png', 'funeral-cloth-dark.png', 'banner-demon-left.png', 'banner-demon-right.png'];
+      for (let i = 0; i < 16; i++) art.push('gear/' + i + '.png');
+      await Promise.all(art.map(name => { const image = new Image(); image.src = 'assets/ui/' + name; return image.decode().catch(() => {}); }));
       const frame = () => new Promise(res => { let done = false; const go = () => { if (!done) { done = true; res(); } }; requestAnimationFrame(go); setTimeout(go, 120); });
       const style = overlay.getAttribute('style');
       overlay.inert = true; overlay.setAttribute('aria-hidden', 'true');

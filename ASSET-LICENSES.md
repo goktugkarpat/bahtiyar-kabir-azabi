@@ -291,3 +291,12 @@ Yeni zemin kaynağı: [Monastery Stone Floor](https://polyhaven.com/a/monastery_
 Duvar, doğal kaya ve demir yüzeyler mevcut CC0 Poly Haven taramalarını kullanır. Yüzey izdüşümü artık renk, normal, pürüzlülük ve ortam örtüşmesi haritalarında aynı fiziksel ölçeği ve yönü izler. Yivli sütunlar, taş kemer parçaları, mezar bezemeleri, düzensiz mağara kayaları, ocak kazanları ve fırın çerçeveleri oyuna özgü geometridir. Eklenen çevre ayrıntıları oda başına örneklenir; yeni dinamik ışık eklenmedi.
 
 III/IV hedef portreleri (`assets/ui/target-ashbound.webp` ile `target-furnaceheart.webp` arasındaki 12 düşman resmi), `src/ruins-models.js` ve `src/forge-models.js` içindeki gerçek oyun modellerinden hazırlanmıştır. Yukarıdaki karakter, hareket ve kaplama lisansları geçerlidir; yeni dış kaynak kullanılmamıştır. 256×256 WebP resimleri ilgili bölümün yükleme ekranında hazırlanır; oyun sırasında portre için canlı üç boyutlu çizim yapılmaz.
+
+
+## Local sepulchral UI artwork
+
+The new menu backdrop, card illustrations, frame corners, ability miniatures and inventory family miniatures were generated specifically for this game with the built-in image generation tool. They are local files under `assets/ui/`; prompts and extraction mappings are documented in `UI-ART-PROMPTS.md`. This pass does not replace any third-party gameplay models or textures.
+
+Local gothic UI figures and funeral cloth textures were authored with the built-in image generation tool. Prompt and extraction details are recorded in UI-ART-PROMPTS.md. No third-party download is used for these ornaments.
+
+The active banner-demon-left.png and banner-demon-right.png ornaments were also authored with built-in image_gen (exec-98ba2491-1b78-425a-9659-c2a7e9d132eb.png). Their prompt and alpha extraction details are recorded in UI-ART-PROMPTS.md.
