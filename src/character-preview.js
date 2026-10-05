@@ -4,22 +4,22 @@
   const B = window.BABA, T = window.THREE;
   function create({ renderer, game, worldScene }) {
     const scene = new T.Scene(), camera = new T.PerspectiveCamera(34, .7, .1, 20), model = B.Models.create('hero');
-    scene.name = 'character-preview'; scene.background = new T.Color('#101820'); scene.add(model.root);
+    scene.name = 'character-preview'; scene.background = new T.Color('#151615'); scene.add(model.root);
     // Share the already prepared world reflections. Metallic blades otherwise turn black
     // at most portrait angles; no second environment render or texture allocation is needed.
     function syncEnvironment() {
       if (worldScene && scene.environment !== worldScene.environment) scene.environment = worldScene.environment;
-      scene.environmentIntensity = 1.25;
+      scene.environmentIntensity = 1.0;
     }
     syncEnvironment();
     model.root.rotation.y = -.22;
-    scene.add(new T.HemisphereLight(0xd7deea, 0x332322, 1.7));
-    const key = new T.DirectionalLight(0xffe0b8, 2.7); key.position.set(-3, 4, 5); scene.add(key);
+    scene.add(new T.HemisphereLight(0xd7deea, 0x332322, 1.35));
+    const key = new T.DirectionalLight(0xffe0b8, 2.15); key.position.set(-3, 4, 5); scene.add(key);
     // The resting blade tilts down; the existing fill reveals its metal from below eye level.
-    const rim = new T.DirectionalLight(0x8fabc7, 1.15); rim.position.set(3, .3, 4); scene.add(rim);
+    const rim = new T.DirectionalLight(0x8fabc7, .85); rim.position.set(3, .3, 4); scene.add(rim);
     const backLight = new T.DirectionalLight(0xb8c9df, .9); backLight.position.set(2, 3, -4); scene.add(backLight);
     const owned = [], stageGeometry = [], stageMaterials = [];
-    const stone = new T.MeshStandardMaterial({ ...B.CoastMaterials.createSurface('crypt', owned), color: 0x44596a, roughness: .94, metalness: 0, normalScale: new T.Vector2(.6, .6) });
+    const stone = new T.MeshStandardMaterial({ ...B.CoastMaterials.createSurface('crypt', owned), color: 0x373b3a, roughness: .94, metalness: 0, normalScale: new T.Vector2(.6, .6) });
     stageMaterials.push(stone);
     const plinthGeometry = new T.CylinderGeometry(1.05, 1.14, .13, 32); stageGeometry.push(plinthGeometry);
     const plinth = new T.Mesh(plinthGeometry, stone); plinth.position.y = -.08; scene.add(plinth);
@@ -70,7 +70,7 @@
       const target = renderer.getRenderTarget(), oldScissor = renderer.getScissorTest(), autoClear = renderer.autoClear, alpha = renderer.getClearAlpha();
       const outputColorSpace = renderer.outputColorSpace, toneMapping = renderer.toneMapping, exposure = renderer.toneMappingExposure;
       try {
-        renderer.outputColorSpace = T.SRGBColorSpace; renderer.toneMapping = T.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.1;
+        renderer.outputColorSpace = T.SRGBColorSpace; renderer.toneMapping = T.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.0;
         // Render targets already use physical pixels. setViewport() would multiply them
         // by the world's pixel ratio again and crop/shift the portrait at 1.25x/1.5x.
         portraitTarget.viewport.set(0, 0, w, h);
@@ -102,7 +102,7 @@
       const target = renderer.getRenderTarget(), oldScissor = renderer.getScissorTest(), autoClear = renderer.autoClear, alpha = renderer.getClearAlpha();
       const outputColorSpace = renderer.outputColorSpace, toneMapping = renderer.toneMapping, exposure = renderer.toneMappingExposure;
       try {
-        renderer.outputColorSpace = T.SRGBColorSpace; renderer.toneMapping = T.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.1;
+        renderer.outputColorSpace = T.SRGBColorSpace; renderer.toneMapping = T.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.0;
         // Compile the same offscreen shader variants used by draw(), not the world's
         // default framebuffer variants (which differ in tone mapping/output colour).
         portraitTarget.setSize(8, 8); portraitTarget.viewport.set(0, 0, 8, 8);

@@ -15,7 +15,7 @@
   function damp(rate, dt) { return 1 - Math.exp(-rate * dt); }
   function wrap(x) { return x - Math.floor(x); }
   function signedAngle(x) { return Math.atan2(Math.sin(x), Math.cos(x)); }
-  var decoded = Object.create(null), sourceRest = [], sourcePos = [], crouchReference = null;
+  var decoded = Object.create(null), sourceRest = [], sourcePos = [], crouchReference = null, gripReference = null;
   if (!D) throw new Error('Authored animation data must load before authored-motion.js');
   D.rest.forEach(function (r) { sourceRest.push(new T.Quaternion().fromArray(r.q)); sourcePos.push(new T.Vector3().fromArray(r.p)); });
   function clip(name) {
@@ -91,7 +91,10 @@
     // Signature moves (combat.js passes the beat's pose): whips, shoves, thrusts, casts, throws, the kick and the roar.
     whip: { clip: 'meleeHook', chamber: .2, contact: .25, follow: .36, end: .4667, swing: .1, over: .75, twist: -.75, bend: -.1, strikeBend: .3, tremble: .05, hold: .15 },
     shove: { clip: 'shieldIdle', still: true, chamber: 0, contact: 0, follow: 0, end: 0, swing: .14, over: .3, twist: -.3, bend: -.2, strikeBend: .55, tremble: .05 },
-    stab: { clip: 'attackA', chamber: .19, contact: .25, follow: .30, end: .62, swing: .075, over: .25, twist: -.25, bend: -.12, strikeBend: .42, tremble: .04, hold: .1 },
+    stab: { clip: 'combatIdle', still: true, stillAt: 0, spear: true, chamber: 0, contact: 0, follow: 0, end: 0, swing: .10, over: .25, twist: -.22, bend: -.12, strikeBend: .32, tremble: .04, hold: .1 },
+    spearJab: { clip: 'combatIdle', still: true, stillAt: 0, spear: true, chamber: 0, contact: 0, follow: 0, end: 0, swing: .085, over: .2, twist: -.12, bend: -.08, strikeBend: .23 },
+    spearCross: { clip: 'combatIdle', still: true, stillAt: 0, spear: true, chamber: 0, contact: 0, follow: 0, end: 0, swing: .095, over: .22, twist: .22, bend: -.07, strikeBend: .28 },
+    spearDrive: { clip: 'combatIdle', still: true, stillAt: 0, spear: true, chamber: 0, contact: 0, follow: 0, end: 0, swing: .105, over: .27, twist: -.2, bend: -.13, strikeBend: .4 },
     invokeHigh: { clip: 'swordAttack', chamber: .30, contact: .44, follow: .50, end: .9, swing: .16, over: .15, twist: 0, bend: -.5, strikeBend: .2, tremble: .06, hold: .3 },
     toss: { clip: 'meleeHook', chamber: .2, contact: .25, follow: .34, end: .4667, swing: .09, over: .6, twist: -.55, bend: -.18, strikeBend: .3, tremble: .04 },
     exhale: { clip: 'zombieScratch', chamber: .5, contact: .62, follow: .72, end: 1.1, swing: .2, over: .2, twist: 0, bend: -.62, strikeBend: .7, tremble: .1, hold: .3 },
@@ -106,7 +109,7 @@
     cast: ['invoke', 'invoke'], castHigh: ['invokeHigh', 'invokeHigh'], kneel: ['ritual', 'ritual'], grab: ['maul', 'maul'], spit: ['retch', 'retch'], roar: ['roar', 'roar'],
     spin: ['spin', 'hook'], crouch: ['pounce', 'pounce'], leap: ['pounce', 'pounce'], strafe: ['rake', 'rake']
   };
-  function heroMove(combo, heavy) { return heavy ? MOVES.heavy : combo === 2 ? MOVES.cleave : combo === 1 ? MOVES.slashB : MOVES.slashA; }
+  function heroMove(combo, heavy, weaponType) { if (!heavy && weaponType === 'spear') return combo === 2 ? MOVES.spearDrive : combo === 1 ? MOVES.spearCross : MOVES.spearJab; return heavy ? MOVES.heavy : combo === 2 ? MOVES.cleave : combo === 1 ? MOVES.slashB : MOVES.slashA; }
   function enemyMove(type, action, beat, pose) {
     if (pose && POSES[pose]) {
       if (type === 'carrier' && pose === 'roar') return MOVES.exhale;
@@ -362,13 +365,14 @@
         }
         return curve;
       }
-      if (t < snap) { u = easeOut(t / snap, m.ease); curve.ct = c0 + (m.chamber - c0) * u; curve.coil = .8 * u; curve.strike = 0; curve.phase = 'wind'; }
-      else if (t < A) { u = (t - snap) / Math.max(.001, A - snap); curve.ct = m.chamber; curve.coil = .8 + .2 * u * u; curve.strike = 0; curve.hold = u; curve.phase = 'hold'; }
+      if (t < snap) { u = easeOut(t / snap, m.ease); curve.ct = c0 + (m.chamber - c0) * u * .92; curve.coil = .8 * u; curve.strike = 0; curve.phase = 'wind'; }
+      else if (t < A) { u = (t - snap) / Math.max(.001, A - snap); curve.ct = m.chamber - (m.chamber - c0) * .08 * (1 - smooth(u)); curve.coil = .8 + .2 * smooth(u); curve.strike = 0; curve.hold = u; curve.phase = 'hold'; }
       else if (t < Tc) { u = (t - A) / swing; curve.ct = m.chamber + (m.contact - m.chamber) * u * u; curve.coil = 1 - u; curve.strike = u * u; curve.phase = 'swing'; }
       else if (t < Tc + follow) { u = easeOut((t - Tc) / follow, 2); curve.ct = m.contact + (m.follow - m.contact) * u; curve.coil = -m.over * u; curve.strike = 1; curve.phase = 'follow'; }
       else {
-        u = clamp((t - Tc - follow) / Math.max(.001, Tend - Tc - follow), 0, 1); var h = m.hold || 0, v = u < h ? 0 : smooth((u - h) / (1 - h));
-        curve.ct = m.follow + (m.end - m.follow) * v + (u < h ? (m.end - m.follow) * .06 * u / Math.max(.01, h) : 0);
+        u = clamp((t - Tc - follow) / Math.max(.001, Tend - Tc - follow), 0, 1); var h = m.hold || 0, v = smooth(u) * (.22 + .78 * smooth(u / Math.max(.01, 1 - h)));
+        // Recovery slows under weight but never resets backwards at the end of a held follow-through.
+        curve.ct = m.follow + (m.end - m.follow) * v;
         curve.coil = -m.over * (1 - v); curve.strike = 1 - v; curve.phase = 'recover';
       }
       // flow: follow-through and recovery share one ease-out, so the clip never comes to a dead stop between them.
@@ -396,7 +400,7 @@
       tier = tier || 1;
       var span = Math.max(.05, Td - Tr), rw = Math.min(.14, span * .5), fw = Math.min(.22, span * .6);   // release ramp and settle scale with a short roar
       var g = smooth(t / Math.max(.05, Tr)), rel = t >= Tr ? easeOut((t - Tr) / rw, 2) : 0, fade = t > Td - fw ? smooth((Td - t) / fw) : 1;
-      var shake = rel > 0 && t < Td - fw * 1.1 ? Math.sin(clock * 47) * (.035 + .02 * (tier - 1)) * fade : 0;
+      var shake = rel > 0 && t < Td - fw * 1.1 ? Math.sin(clock * 14) * (.012 + .008 * (tier - 1)) * fade : 0;
       var gather = g * (1 - rel);
       if (tier === 2) {
         // Ölüm Çığlığı: a scream - crouched and clenched in the gather, then the chest arches right back, the head is thrown up and BOTH arms fly wide.
@@ -440,6 +444,7 @@
     }
     // Read-only source pose, shared by rigs. Cache during construction, never on the first attack.
     if(!crouchReference){crouchReference=pose();sample('crouch',0,crouchReference,true);}
+    if(!gripReference){gripReference=pose();sample('punchJab',.12,gripReference,false);}
     // Kabir Balyozu follows the combat-owned airborne arc; the blade keeps moving toward the
     // same contact frame. Legs compress, tuck and extend continuously instead of swapping fixed poses.
     function poundPose(m, c, p, t, Tc, Tend, state) {
@@ -490,6 +495,40 @@
       if (w < .002) return;
       wq.setFromUnitVectors(armDir(p, wd), tv); qa.identity().slerp(wq, w); rotateSubtree(p, 11, qa);
       wv.set(0, 0, 1).applyQuaternion(p.q[13]); wq.setFromUnitVectors(wv, bv); qa.identity().slerp(wq, w * wrist); rotateSubtree(p, 13, qa);
+    }
+    var reachUpper=new T.Vector3(),reachFore=new T.Vector3(),reachTarget=new T.Vector3(),reachElbow=new T.Vector3(),reachBend=new T.Vector3(),reachAxis=new T.Vector3(),reachQ=new T.Quaternion(),reachRest=new T.Quaternion();
+    var SPEAR_FORWARD=new T.Vector3(.14,-.14,1).normalize(),SPEAR_BRACE=new T.Vector3(-.68,-.22,.68).normalize(),SPEAR_BLADE=new T.Vector3(.06,.02,1).normalize();
+    // Two-bone pose-space reach: the elbow bends outside the chest while the
+    // spear hand extends along its shaft. It never stretches a native bone.
+    function reachArm(p,index,direction,extension,side) {
+      reachUpper.copy(sourcePos[index+1]).sub(sourcePos[index]);reachFore.copy(sourcePos[index+2]).sub(sourcePos[index+1]);
+      var a=reachUpper.length(),b=reachFore.length(),len=clamp((a+b)*extension,Math.abs(a-b)+.01,a+b-.012);
+      reachTarget.copy(direction).multiplyScalar(len);
+      reachBend.set(side*.85,-.3,-.12).addScaledVector(direction,-reachBend.dot(direction)).normalize();
+      var along=(a*a+len*len-b*b)/(2*len);
+      reachElbow.copy(direction).multiplyScalar(along).addScaledVector(reachBend,Math.sqrt(Math.max(0,a*a-along*along)));
+      reachRest.copy(sourceRest[index]).invert();reachQ.copy(p.q[index]).multiply(reachRest);reachUpper.applyQuaternion(reachQ).normalize();
+      reachAxis.copy(reachElbow).normalize();reachQ.setFromUnitVectors(reachUpper,reachAxis);rotateSubtree(p,index,reachQ);
+      reachRest.copy(sourceRest[index+1]).invert();reachQ.copy(p.q[index+1]).multiply(reachRest);reachFore.applyQuaternion(reachQ).normalize();
+      reachAxis.copy(reachTarget).sub(reachElbow).normalize();reachQ.setFromUnitVectors(reachFore,reachAxis);rotateSubtree(p,index+1,reachQ);
+    }
+    function spearLayer(p,c,t,Tc,Tend,state) {
+      var engage=smooth(t/.065),recover=t>Tc?smooth((t-Tc)/Math.max(.04,Tend-Tc)):0,weight=engage*(1-recover);
+      if(weight<.001)return;
+      copyPose(roarBuf,p);
+      var drive=c.strike,coil=Math.max(0,c.coil),combo=finite(state.combo,0),extension=.69+.27*drive-.15*coil;
+      reachArm(roarBuf,11,SPEAR_FORWARD,extension,-1);
+      wv.set(0,0,1).applyQuaternion(roarBuf.q[13]);reachQ.setFromUnitVectors(wv,SPEAR_BLADE);rotateSubtree(roarBuf,13,reachQ);
+      if(hero){reachArm(roarBuf,7,SPEAR_BRACE,.82+.1*drive,1);blendPose(p,roarBuf,weight,7,10);blendPose(p,roarBuf,weight,22,37);}
+      blendPose(p,roarBuf,weight,11,14);blendPose(p,roarBuf,weight,37,52);
+      // Finger rotations are world-space source poses: carry the cached fist into
+      // each new hand frame, rather than leaving fingers facing their old idle direction.
+      for(var handSide=hero?0:1;handSide<2;handSide++){
+        var hi=handSide?13:9,first=handSide?37:22,last=handSide?52:37;
+        reachRest.copy(gripReference.q[hi]).invert();reachQ.copy(p.q[hi]).multiply(reachRest);
+        for(var finger=first;finger<last;finger++){qa.copy(reachQ).multiply(gripReference.q[finger]);p.q[finger].slerp(qa,weight*.92);}
+      }
+      p.p.y-=.025*drive*(combo===2?1.5:1);p.p.z+=.045*drive;
     }
     function whirlPose(p, u, t, dt, yaw) {
       var D = u > .001 ? t / u : WHIRL_D, tt = t * WHIRL_D / clamp(D, .4, 3), inv = 1 / Math.max(.4, characterScale), wt3 = D > 1.8 ? 2 : D > 1.45 ? 1 : 0;   // wt3: tier from the spin length (1.3 / 1.6 / 2.05 s): bigger lean, deeper crouch, faster feet
@@ -577,26 +616,29 @@
       if (m.leap && t >= Tc - m.swing) {
         // Pounce: coiled crouch, airborne reach, then a clawing landing that recoils into the recovery.
         var air = clamp((t - (Tc - m.swing)) / m.swing, 0, 1);
-        if (air < 1) { sample('jump', 0, destination, false); spineLayer(destination, 0, .25 - .35 * air, 0); }
+        if (air < 1) { sample('jump', clip('jump').duration * (.12 + .56 * smooth(air)), destination, false); spineLayer(destination, 0, .25 - .35 * air, 0); }
         else { sample('land', clamp((t - Tc) * 1.6, 0, clip('land').duration), destination, false); sample('meleeHook', .30, extra, false); blendPose(destination, extra, .55 * (1 - smooth((t - Tc) / .5)), 1, 14); }
         return c;
       }
       sampleMove(m, c.ct, destination);
-      var tremble = (m.tremble || 0) * c.hold * (boss ? .7 : 1), shake = tremble ? Math.sin(clock * 53) * tremble : 0;
+      // Tension reads as deliberate breathing and rising weight, not a high-frequency vibrating rig.
+      var tremble = (m.tremble || 0) * c.hold * (boss ? .5 : .7), shake = tremble ? Math.sin(clock * lifeRate * 2.1 + lifeSeed) * tremble * .18 : 0;
       spineLayer(destination, m.twist * c.coil + shake * .7, m.bend * Math.max(0, c.coil) + m.strikeBend * c.strike + shake, 0);
+      if (m.spear) spearLayer(destination,c,t,Tc,Tend,state);
       // The blow is still sampled at the exact gameplay contact. Only AFTER contact, the neck
       // follows the shoulder mass and the free arm catches the body's weight before settling.
       // Analytic envelopes are independent of frame rate; scratch quaternions are already pooled.
-      if (hero && t > Tc && t < Tend && !m.still) {
+      if (t > Tc && t < Tend && !m.still) {
         var recovery = clamp((t - Tc) / Math.max(.04,Tend - Tc),0,1),
           weight = Math.sin(recovery * PI) * (1 - recovery),
-          heft = m === MOVES.strikeBrand ? 1.4 : m === MOVES.heavy ? 1.0 : .52,
+          heft = hero ? (m === MOVES.strikeBrand ? 1.4 : m === MOVES.heavy ? 1.0 : .52) : boss ? 1.6 : type === 'guard' || type === 'carrier' ? 1.1 : .65,
           side = m.twist < 0 ? 1 : -1;
         euler.set(-.095 * weight * heft,-.12 * weight * heft * side,.025 * weight * side,'YXZ');
         qa.setFromEuler(euler);rotateSubtree(destination,4,qa);
         euler.set(-.055 * weight * heft,0,.11 * weight * heft,'YXZ');
         qa.setFromEuler(euler);rotateSubtree(destination,7,qa);
       }
+      if (hero && state.weaponType === 'axe' && !m.spear) { spineLayer(destination,m.twist*.18*c.coil,.08*c.strike-.025*Math.max(0,c.coil),-.035*c.strike); destination.p.y-=.018*c.strike; }
       if (m.kick) kickLayer(destination, c);
       // Moves cut from a held pose (shield bash / shove, charge crouch) get a weight shift so the wind-up reads: the body sinks and draws back in the
       // coil and drives forward through the blow (the pelvis only; the strike frame and timing are unchanged).
@@ -709,7 +751,7 @@
       var strikePhase = '';
       if (Number.isFinite(state.attackTime) && state.attackTime >= 0) {
         // Hero: exact gameplay clock (seconds), so the blade crosses the target on the damage frame.
-        var m = state.skillTier > 1 ? (state.skillTier > 2 ? MOVES.strikePound : MOVES.strikeBrand) : heroMove(combo, heavy); nextMode = 'attack' + finite(state.attackSerial, 0); fade = .06;
+        var m = state.skillTier > 1 ? (state.skillTier > 2 ? MOVES.strikePound : MOVES.strikeBrand) : heroMove(combo, heavy, state.weaponType); nextMode = 'attack' + finite(state.attackSerial, 0); fade = .06;
         strikePhase = applyMove(m, state.attackTime, finite(state.attackStrike, .2), finite(state.attackDuration, .51), wanted, state).phase;
       } else if (Number.isFinite(state.beatTime) && state.beatTime >= 0) {
         var em = enemyMove(type, action, finite(state.beat, 0), state.pose); nextMode = 'act' + finite(state.attackSerial, 0) + ':' + finite(state.beat, 0); fade = .09;
@@ -811,7 +853,9 @@
         node.updateWorldMatrix(false, false);
       }
       if (model === root || poseNodes.has(model)) refreshRest(model); else model.updateWorldMatrix(false, true);
-      var lowest = Infinity;
+      var motionWorld=B.app&&B.app.world,groundOffset=motionWorld&&motionWorld.effectHeightAt?motionWorld.effectHeightAt(rootNow.x,rootNow.z,0)-.035:0;
+      groundOffset=Number.isFinite(groundOffset)?Math.max(0,groundOffset):0;
+      var floorReference=rootNow.y+groundOffset,lowest = Infinity;
       for (var fi2 = 0; fi2 < feet.length; fi2++) {
         var foot = feet[fi2]; if (!foot.ankle || !foot.toe) continue;
         wpos(foot.ankle, va); wpos(foot.toe, vb);
@@ -819,7 +863,7 @@
       }
       if (Number.isFinite(lowest)) {
         var authoredClearance = Math.max(0, Math.min(output.sole[0], output.sole[1])) * characterScale;
-        moveHipY(clamp(rootNow.y + authoredClearance - lowest, -.45 * characterScale, .45 * characterScale));
+        moveHipY(clamp(floorReference + authoredClearance - lowest, -.45 * characterScale, .45 * characterScale));
       }
       if (dodge > 0 || (state.dead && deathKind === 'blown')) {
         var rollFloor = Infinity;
@@ -830,7 +874,7 @@
           if (index === 5) va.add(vb.set(0, .105 * characterScale, 0).applyQuaternion(qa));
           rollFloor = Math.min(rollFloor, va.y - (index === 5 ? .135 : .18) * characterScale);
         }
-        if (rollFloor < rootNow.y + .015) moveHipY(rootNow.y + .015 - rollFloor);
+        if (rollFloor < floorReference + .015) moveHipY(floorReference + .015 - rollFloor);
       }
       var canPlant = initialized && dt > 0 && !teleported && !state.dead && !dodge && !leap && moveWeight > .05 && !acting && !stagger && modeAge > .1;
       for (var f = 0; f < feet.length; f++) {

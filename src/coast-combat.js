@@ -118,6 +118,7 @@
           var list = [];
           if (e.type === 'drowned') list = [
             { id: 'oar', ok: d < 3.5, w: 4, move: function () { return cone(e, 'oar', 'Kırık Kürek', 3.1, 2.3, 13, 'sweep', .72); } },
+            { id: 'oarButt', ok: d < 2.9, w: 2, move: function () { return { id: 'oarButt', name: 'Kürek Kabzası', duration: 1.35, pose: 'thrust', hits: [hit(.70,.70,'line',0,10,'thrust',{width:1.1,length:3.1,style:'blunt',fill:'forward'})] }; } },
             { id: 'waterLunge', sp: 1, ok: d > 3 && d < 10, w: 2, move: function () {
               var hits=[];for(var i=0;i<3;i++)hits.push(hit(1.0+i*.3,.85,'line',0,13,'roar',{origin:{x:e.x+Math.sin(e.face)*i*2.3,z:e.z+Math.cos(e.face)*i*2.3},face:e.face,width:2.3,length:2.6,style:'tide',fill:'forward',knockback:1.8,beat:i===0}));
               return {id:'waterLunge',name:'Boğulmuş Akıntı',duration:2.4,pose:'roar',hits:hits};
@@ -126,6 +127,7 @@
           ];
           else if (e.type === 'rootborn') list = [
             { id: 'rootClub', ok: d < 4.3, w: 4, move: function () { return cone(e, 'rootClub', 'Kök Tokmağı', 4, 2, 19, 'overhead', .95); } },
+            { id: 'rootShoulder', ok: d < 2.8, w: 2, move: function () { var mv=cone(e,'rootShoulder','Kök Omzu',3.0,2.2,11,'bash',.78);mv.hits[0].knockback=1.8;return mv; } },
             { id: 'rootRows', sp: 1, ok: d > 3 && d < 10, w: 2, move: function () { return rootRows(e, 'Mezar Kökleri', 2); } },
             { id: 'rootCrown', sp: 1, ok: d < 6, w: 2, move: function () { return { id: 'rootCrown', name: 'Çürük Taç', duration: 2.4, pose: 'roar', hits: [hit(1.2, 1.2, 'ring', 6, 19, 'roar', { inner: 2, arc: TAU, style: 'root', fill: 'radial', unblockable: true })] }; } }
           ];

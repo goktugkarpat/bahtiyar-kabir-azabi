@@ -107,7 +107,7 @@ void main(){
   float life=pow(1.-k,1.05)*smoothstep(0.,.07,vAge);
   vec3 col=mix(uC0,uC1,smoothstep(0.,.3,k));col=mix(col,uC2,smoothstep(.25,.95,k));col*=mix(uE,vec3(1.),core);
   float a=(core*.66+soft*.22+wake*.29)*fl+speck*1.3*soft;a*=life*uA*.5;
-  if(a<.004)discard;gl_FragColor=vec4(col*a,1.);
+  if(a<.004)discard;gl_FragColor=vec4(col*a*.22,1.);
 }`;
   // Impact quad (one mesh, premultiplied alpha so fissures can be DARK): wind-up gather ring, slam shock ring + soft heat, stone fissures (tier II six, tier III eight + branches,
   // dark cores with ember-lit edges that cool and stay as scars), the tier-III second slam with twelve long fissures.
@@ -127,24 +127,24 @@ void fissure(float r,float a,float N,float R,float Lm,float t,float so,float thi
   float halo=(1.-smoothstep(wid, wid*2.6, dist))*run;   // broken stone: a wide dark rim round a narrow lit core
   float core=(1.-smoothstep(wid*.3,wid*.8,dist))*run;
   float heat=pow(max(0.,1.-t/1.1),1.4);float fade=1.-smoothstep(2.3,3.3,t);
-  CC+=mix(uCc*vec3(.3,.08,.08),uCc,heat)*core*(.08+.3*heat)*fade;
+  CC+=mix(uCc*vec3(.3,.08,.08),uCc,heat)*core*(.035+.09*heat)*fade;
   CA=max(CA,halo*.8*fade);
 }
 void main(){
   vec2 p=(vUv-.5)*uSize;float r=length(p);float a=atan(p.x,p.y);vec3 col=vec3(0.);CC=vec3(0.);CA=0.;
-  if(uG>0.){float e=uGR*(1.-uG)+.35;col+=uCa*.6*ring(r,e,.07+.08*(1.-uG))*uG*.55+uCb*exp(-r*r/.5)*uG*uG*.5;}
+  if(uG>0.){float e=uGR*(1.-uG)+.35;col+=uCa*.12*ring(r,e,.05+.035*(1.-uG))*uG*.35+uCb*exp(-r*r/.5)*uG*uG*.05;}
   if(uT1>=0.){
-    float k=clamp(uT1/.5,0.,1.);float e=uR*(1.-pow(1.-k,3.));float w=.11+.2*k*uR*.35;
+    float k=clamp(uT1/.5,0.,1.);float e=uR*(1.-pow(1.-k,3.));float w=.045+.075*k*uR*.25;
     float life=pow(1.-k,1.35)*smoothstep(0.,.02,uT1);
-    col+=(uCa*ring(r,e,w*.58)+uCb*ring(r,e,w*3.2)*.18)*life;
+    col+=(uCa*ring(r,e,w*.58)+uCb*ring(r,e,w*2.2)*.10)*life*.12;
     col+=uCa*.5*exp(-r*r/(uR*uR*.22))*pow(1.-k,2.2)*.04*smoothstep(0.,.015,uT1);
-    float k2=clamp((uT1-.05)/.5,0.,1.);col+=uCb*.9*ring(r,uR*.62*(1.-pow(1.-k2,2.5)),.07+.1*k2)*pow(1.-k2,1.6)*step(.05,uT1)*.6;
+    float k2=clamp((uT1-.05)/.5,0.,1.);col+=uCb*.9*ring(r,uR*.62*(1.-pow(1.-k2,2.5)),.07+.1*k2)*pow(1.-k2,1.6)*step(.05,uT1)*.075;
     if(uTier>1.5){fissure(r,a,uTier>2.5?8.:6.,uR,uTier>2.5?1.05:.85,uT1,0.,1.);}
   }
   if(uT2>=0.){
-    float k=clamp(uT2/.5,0.,1.);float e=uR2*(1.-pow(1.-k,3.));float w=.13+.22*k*uR2*.3;float life=pow(1.-k,1.3)*smoothstep(0.,.02,uT2);
-    col+=(uCa*1.1*ring(r,e,w*.62)+uCb*1.3*ring(r,e,w*3.6)*.18)*life;
-    float k3=clamp((uT2-.07)/.5,0.,1.);col+=uCb*ring(r,uR2*.7*(1.-pow(1.-k3,2.5)),.1+.12*k3)*pow(1.-k3,1.5)*step(.07,uT2)*.55;
+    float k=clamp(uT2/.5,0.,1.);float e=uR2*(1.-pow(1.-k,3.));float w=.055+.08*k*uR2*.25;float life=pow(1.-k,1.3)*smoothstep(0.,.02,uT2);
+    col+=(uCa*ring(r,e,w*.62)+uCb*ring(r,e,w*2.5)*.12)*life*.14;
+    float k3=clamp((uT2-.07)/.5,0.,1.);col+=uCb*ring(r,uR2*.7*(1.-pow(1.-k3,2.5)),.1+.12*k3)*pow(1.-k3,1.5)*step(.07,uT2)*.085;
     col+=uCa*.5*exp(-r*r/(uR2*uR2*.2))*pow(1.-k,2.4)*.03*smoothstep(0.,.015,uT2);
     fissure(r,a,9.,uR2,1.0,uT2,7.,1.2);
   }
@@ -270,6 +270,7 @@ void main(){
         else if (scarFx) { scarFx(x, z, 0, { shape: 'circle', radius: radius * .8, heat: .3 }); const L = Math.hypot(x - startX, z - startZ); if (L > 1) scarFx(startX, startZ, face, { shape: 'line', width: t === 3 ? 2.1 : 1.1, length: L, heat: .3 }); }
       } else { IU.uR2.value = r2 || radius; quadAge2 = 0; IU.uT2.value = 0; shownUntil = clock + 9; if (scarFx) scarFx(x, z, 0, { shape: 'circle', radius: (r2 || radius) * .75, heat: .3 }); }
       const floor = floorY, n = sc(second ? 30 : 18 + 10 * t);
+      if (o.fragments) o.fragments(x, floor + .12, z, { count: second ? 24 : 10 + 6*t, spread: .65*big, speed: 3.4*big, lift: second ? 6 : 3.8*big, face, arc: second ? TAU : 3.4, size: .075 });
       for (let i = 0; i < n; i++) { const a = i / n * TAU + R() * .25; emit(x + Math.sin(a) * .5, floor + .1, z + Math.cos(a) * .5, 2, pal.dust, Math.sin(a) * rr(2.6, 4.4) * big, .45, Math.cos(a) * rr(2.6, 4.4) * big, .75 + R() * .4, .34 + R() * .3 + .1 * t); }
       for (let i = 0, m = sc(second ? 20 : 14 * big); i < m; i++) particle(x, floor + .15, z, 0, pal.debris, 1.5 * big, R() * TAU, 1.3);
       for (let i = 0, m = sc(second ? 16 : 14 * big); i < m; i++) { const a = (second ? R() * TAU : face + rr(-1.5, 1.5)); particle(x, floor + .25, z, 1, i % 3 ? pal.spark : pal.emberHot, 1.3 * big, a, .8); }

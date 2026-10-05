@@ -10,6 +10,8 @@
   // Prepainted miniatures match the weapon / armour family. The actual worn
   // object remains the live animated 3D figure; no extra thumbnail renderer is used.
   function menuGearIcon(def) {
+    const thumbnail = B.EquipmentThumbnails && B.EquipmentThumbnails[def.id || def.modelId];
+    if (typeof thumbnail === 'string' && thumbnail.startsWith('data:image/')) return '<img class="char-icon char-gear-icon char-model-thumbnail" src="' + thumbnail + '" width="256" height="256" alt="" aria-hidden="true" draggable="false">';
     // Hand-painted families follow the actual weapon / armour silhouette.
     // An item keeps its own name, finish, stats and quality frame.
     const familyKey = def.id || def.modelId || '';
@@ -314,6 +316,8 @@
       if (!selectedSlot && !visible.some(i => i.uid === selected)) selected = visible[0] && visible[0].uid;
       const stats = state.stats(), weapon = state.itemForSlot('weapon'), difficulty = getGame().difficulty;
       const damageScale = difficulty === 'normal' || difficulty === 'easy' ? 1.18 : 1;
+      const attackProfile = typeof getGame().normalAttackProfile === 'function' ? getGame().normalAttackProfile() : null;
+      const attackDamage = attackProfile && Array.isArray(attackProfile.damage) ? attackProfile.damage : [25, 29, 36];
       const equipment = B.Progression.slots.map(slot => {
         const def = state.itemForSlot(slot), uid = state.equipment[slot], active = uid ? uid === selected : slot === selectedSlot;
         return '<button class="char-equipment ' + (def ? 'worn rarity-' + def.rarity : 'empty') + (active ? ' selected' : '') + '" data-slot="' + slot + '" data-char="select" data-uid="' + escape(uid || '') + '" aria-pressed="' + active + '" aria-label="' + escape(LABELS[slot] + ' · ' + (def ? def.name + ' · Kuşanıldı · Çift tıkla çıkar' : 'Boş yuva')) + '">' + (def ? '<i class="eq-ribbon" aria-hidden="true" title="Kuşanıldı">✓</i>' : '') + '<span class="char-item-art">' + (def ? menuGearIcon(def) : icon(slot)) + '</span><span class="eq-label">' + LABELS[slot] + '</span><span class="eq-name">' + escape(def ? def.name : 'Boş') + '</span></button>';
@@ -331,7 +335,7 @@
       const preview = typeof options.onPreview === 'function' ? '<figure class="char-preview"><span class="char-preview-label">Bahtiyar</span><canvas id="character-preview" width="420" height="520" aria-label="Bahtiyar’ın kuşandığı silah ve zırhları gösteren canlı karakter görünümü"></canvas><div class="char-preview-turn"><button data-char="turn" data-direction="-1" aria-label="Karakteri sola çevir">‹</button><button data-char="turn" data-direction="1" aria-label="Karakteri sağa çevir">›</button></div><figcaption>' + escape(weapon ? (TYPE[weapon.type] || 'Silah') + ' · ' + weapon.name : 'Silah yuvası boş') + '</figcaption></figure>' : '';
       const gear = B.Progression.slots.reduce((sum, slot) => sum + (state.itemForSlot(slot)?.power || 0), 0);
       const tile = (key, label, value) => '<span class="st-tile">' + statIcon(key) + '<span class="st-text"><small>' + label + '</small><strong style="color:' + STAT[key][0] + '">' + value + '</strong></span></span>';
-      const statGrid = '<div class="char-stat-grid">' + tile('hp', 'Can', stats.maxHp) + tile('hit', 'Normal vuruş', Math.round(Math.round(25 * stats.damage) * damageScale) + '–' + Math.round(Math.round(36 * stats.damage) * damageScale)) + tile('def', 'Hasar azaltma', percent(stats.defense)) + tile('crit', 'Kritik ihtimali', percent(stats.criticalChance)) + tile('critx', 'Kritik hasarı', '×' + stats.criticalMultiplier.toFixed(1)) + tile('power', 'Donanım gücü', gear) + '</div>';
+      const statGrid = '<div class="char-stat-grid">' + tile('hp', 'Can', stats.maxHp) + tile('hit', 'Normal vuruş', Math.round(Math.round(attackDamage[0] * stats.damage) * damageScale) + '–' + Math.round(Math.round(attackDamage[2] * stats.damage) * damageScale)) + tile('def', 'Hasar azaltma', percent(stats.defense)) + tile('crit', 'Kritik ihtimali', percent(stats.criticalChance)) + tile('critx', 'Kritik hasarı', '×' + stats.criticalMultiplier.toFixed(1)) + tile('power', 'Donanım gücü', gear) + '</div>';
       return '<div class="char-inventory-layout' + (preview ? ' has-preview' : '') + '"><section class="char-sheet"><h3>Donanım <small>Kuşandıkların</small></h3>' + (preview ? '<div class="char-doll">' + preview + equipment + '</div>' : equipment) + statGrid + '</section>' +
         '<section class="char-bag"><h3>Çanta <small>' + state.inventory.length + ' eşya</small></h3><div class="char-bag-toolbar">' + filters + '</div><div class="char-item-list char-bag-grid">' + (visible.length ? '' : '<p class="char-bag-empty">Bu türde eşyan yok.</p>') + list + '</div>' + pagination + '<p class="char-bag-help">Seç: incele · Çift tıkla veya iki kez dokun: kuşan / çıkar</p></section><section class="char-detail' + (def ? ' rarity-' + def.rarity : '') + '">' + itemDetail(state, entry, false) + '</section></div>';
     }
@@ -627,7 +631,8 @@
       if (!opened) return;
       stopPreview(); hideTooltip(); if (inspectScroll) clearTimeout(inspectScroll); inspectScroll = 0; tap = null;
       opened = false; overlay.classList.add('hidden');
-      if (priorFocus && priorFocus.isConnected && priorFocus.focus) priorFocus.focus();
+      if (priorFocus && priorFocus.isConnected && priorFocus.focus && priorFocus.getClientRects().length) priorFocus.focus({ preventScroll: true });
+      priorFocus = null;
       if (!silent && typeof options.onClose === 'function') options.onClose();
     }
     // Paints both pages once, almost transparent and above the loading cover, so the first I / T press does not
@@ -656,7 +661,7 @@
         if (style == null) overlay.removeAttribute('style'); else overlay.setAttribute('style', style);
       }
     }
-    return { open, close, refresh, warm, get isOpen() { return opened; }, element: overlay,
+    return { open, close, refresh, warm, get isOpen() { return opened; }, get activeTab() { return tab; }, element: overlay,
       dispose: () => { close(true); stopPreview(); document.removeEventListener('keydown', onKey, true); overlay.remove(); } };
   }
   B.CharacterUI = Object.freeze({ create, gearIcon });

@@ -521,8 +521,10 @@
       pan0: s.pan + .12, pan1: s.pan - .12, low: heavy ? 180 : 0, edge: boss ? .12 : 0, send: .1 });
   };
   H.hit = H.heavyHit = H.blood = (o, k, name) => {
-    const t = now(), pa = (player() || {}).attack;
-    const tier = pa ? (pa.heavy ? 2 : pa.combo === 2 ? 1 : 0) : name === 'heavyHit' ? (k >= .99 ? 1 : 2) : o.heavy ? 2 : 0;
+    const t = now(), p = player(), pa = (p || {}).attack;
+    const tier = o.heavy ? 2 : o.finisher ? 1 : pa ? (pa.heavy ? 2 : pa.combo === 2 ? 1 : 0) : name === 'heavyHit' ? (k >= .99 ? 1 : 2) : 0;
+    const weapon = o.weaponType || (p && p.model && p.model.equipment && p.model.equipment.weaponType) || 'sword';
+    k *= weapon === 'axe' ? 1.07 : weapon === 'spear' ? .96 : 1;
     let targets = struckEnemies();
     if (!targets.length) { if (t - lastEnemyBlock < .08) return; targets = [{ type: o.type || 'prisoner', x: NaN, z: NaN }]; }
     k *= [1.22, .95, .8][tier] * rand(.92, 1.08);   // loudness ladder: light < finisher < heavy < kill, all under the boss slam and the war cry; a little level jitter per blow
@@ -530,6 +532,9 @@
     for (const e of targets) { if (seen.has(e.type) || seen.size >= 2) continue; seen.add(e.type); impact(e.type, tier > 0, scale, e, tier); if (Number.isFinite(e.x)) painVocal(e, tier > 0); }
     // One body punch per blow (dry, centred), deeper and longer for heavy blows; a sub boom under finisher / heavy / kill.
     sample(tier === 2 ? 'hitPunchH' : 'hitPunchL', { vol: (tier === 2 ? .9 : tier === 1 ? .8 : .65) * k, rate: rand(.95, 1.06), send: tier ? .12 : .06, detune: .02 });
+    if (weapon === 'axe' && throttle('axeBite', .08)) sample('hitCrack', { vol: .22*k, rate: .76, delay: .005, send: .06 });
+    if (weapon === 'spear' && throttle('spearBite', .08)) sample('hitCut', { vol: .20*k, rate: 1.2, lp: 4900, send: .03 });
+    if (o.critical && throttle('criticalBite', .16)) { sample('hitCutSteel', { vol: .18*k, rate: 1.14, delay: .003 }); sample('hitRingA', { vol: .10*k, rate: .93, delay: .012, send: .13 }); }
     if (tier || kill) sample('hitSub', { vol: (tier === 2 ? .45 : tier === 1 ? .3 : .22) * k * (kill ? 1.3 : 1), send: .1, detune: .03, delay: .004 });
     if (kill) {   // the finishing blow: bone and wet crunch, a spray, a heavier ring
       const dead = targets.find(e => e.dead), armor = dead && MATERIAL[dead.type] === 'armor', at = dead && Number.isFinite(dead.x) ? dead : null;
@@ -940,6 +945,14 @@
     whoosh(t, { dur: 1.05, peak: .30, f0: 320, f1: 1450, f2: 240, q: .85, low: 240, vol: 1.05 * k, send: .15 });
     tone(t, 140, .43, .20 * k, { type: 'sine', attack: .20, bend: 2, send: .12, lp: 700 });
     tone(t + .28, 280, .64, .19 * k, { type: 'sine', attack: .04, bend: .45, send: .14, lp: 700 });
+  };
+  // Physical handling of the collected piece, kept quieter than combat information.
+  H.lootPickup = (o, k) => {
+    if(!throttle('lootPickup',.10))return;
+    const cloth=o.slot==='chest'||o.slot==='head'||o.slot==='boots';
+    sample(cloth?'cloth':'gear',{vol:(cloth?.19:.22)*k,rate:cloth?.88:1.03,send:.04});
+    if(o.weaponType)sample('metal',{vol:.12*k,rate:o.weaponType==='axe'?.82:1.13,lp:4200,delay:.025,send:.06});
+    if(o.rarity==='epic'||o.rarity==='boss'||o.signature)sample('hitRingA',{vol:.085*k,rate:.70,lp:2500,delay:.035,send:.18});
   };
   H.checkpoint = (o, k) => {
     if (extMusic) B.Music.sting('checkpoint');
@@ -1487,7 +1500,8 @@
   const TELLS = new Set(['enemyWindup', 'enemyAttack', 'slam', 'explosion', 'poison', 'warning', 'hurt', 'guardBreak', 'tellCommit']);
   let caption = null, voiceNode = null, voiceGain = null, current = null, queue = [], nclock = 0, lastTellN = -9;
   const heard = new Set(), recent = {}, voiceBuffers = {};
-  let deathTurn = 0;
+  let deathTurn = 0, narrationMode = 'essential', lastNarrationEnd = -60;
+  const INCIDENTAL_LINES = new Set(['chains','ritual','crypt','rot','coastRoots','coastStreet','coastPier','coastSquare','seal','coastSeal']);
   function updateNarrationDuck() {
     if (!ctx) return;
     const audible = !!(current && voiceNode && volume.voice > 0), tc = audible ? .18 : .6;
@@ -1501,10 +1515,11 @@
   }
   function finishVoice() {
     voiceNode = null; voiceGain = null;
-    current = null; if (caption) caption('');
+    current = null; lastNarrationEnd = nclock; if (caption) caption('');
     updateNarrationDuck();
   }
   function say(key, force = false) {
+    if (narrationMode === 'off' || (narrationMode === 'essential' && INCIDENTAL_LINES.has(key))) return;
     const lines = B.Narration || {};
     if ((key === 'death' || key === 'coastDeath') && force) { const v = (key === 'coastDeath' ? ['coastDeath', 'coastDeath2', 'coastDeath3'] : ['death', 'death2', 'death3']).filter(k => lines[k]); key = v[deathTurn++ % v.length] || key; }
     const line = lines[key]; if (!line) return;
@@ -1568,7 +1583,8 @@
     for (const q of queue) q.age += dt;
     queue = queue.filter(q => q.force || q.age < 150);
     const next = queue[0];
-    if (!current && next && next.ready && !suspended) {
+    const breathingRoom = next && (next.force || URGENT.has(next.key) || nclock - lastNarrationEnd >= (narrationMode === 'essential' ? 24 : 9));
+    if (!current && next && next.ready && !suspended && breathingRoom) {
       const calm = !st.combat && !tellRecent && calmAround() && !(ctx && ctx.currentTime < T.until);
       if (next.force || calm || (URGENT.has(next.key) && !tellRecent)) { queue.shift(); startVoice(next); }
     }
@@ -1707,6 +1723,11 @@
     for (const key of (Array.isArray(keys) ? keys : [keys]).slice(0, 2)) say(key);
   }
   function set(v) {
+    if (v && ['essential','story','off'].includes(v.narrationMode) && v.narrationMode !== narrationMode) {
+      narrationMode = v.narrationMode;
+      queue = queue.filter(q => narrationMode !== 'off' && (narrationMode !== 'essential' || !INCIDENTAL_LINES.has(q.key)));
+      if (narrationMode === 'off') { if (voiceNode) { try { voiceNode.stop(); } catch (_) {} } finishVoice(); }
+    }
     const voiceWasAudible = volume.voice > 0;
     for (const key of Object.keys(volume)) if (Number.isFinite(v && v[key])) volume[key] = clamp(v[key], 0, 1);
     if (!ctx) return;

@@ -127,7 +127,9 @@
           if(core.time-(e.b2fx||0)>.14&&B.Boss2.out&&B.Boss2.out.emit){e.b2fx=core.time;var a=Math.random()*TAU;B.Boss2.out.emit(e.x+Math.sin(a)*.9,.3+Math.random()*2.2,e.z+Math.cos(a)*.9,4,[3.2,1.1,.3],0,.8,0,.7,.1);}
         }
       },
-      attack:function(e,d){var list=[];
+      attack:function(e,d){
+      if (e.forceMove === 'furnaceCall' && core) { e.forceMove = null; return api.beginMove(e, call(e)); }
+      var list=[];
       if(e.type==='emberbound')list=[
         {id:'coalSweep',ok:d<4,w:4,move:function(){return sweep(e,'coalSweep','Kor Biçişi',3.6,18);}},
         {id:'bellows',sp:1,ok:d>2&&d<7,w:2,move:function(){return bellows(e,6.5);}},
@@ -145,6 +147,7 @@
       ];
       else if(e.type==='forgesentinel')list=[
         {id:'ironHammer',ok:d<5,w:4,move:function(){return cone('ironHammer','Döküm Çekici',4.7,2.0,25,1.05,'overhead');}},
+        {id:'ironShoulder',ok:d<3,w:2,move:function(){var mv=cone('ironShoulder','Demir Omuz',3.3,2.1,14,.82,'bash');mv.hits[0].style='blunt';mv.hits[0].knockback=1.7;return mv;}},
         {id:'piston',sp:1,ok:d>3&&d<11,w:3,move:function(){return piston(e,3);}},
         {id:'vents',sp:1,ok:d<8,w:2,move:function(){return vents(e,4);}}
       ];

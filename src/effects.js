@@ -14,17 +14,31 @@
   B.Effects = { create(scene, getGame, getSettings) {
     const root = new T.Group(); root.name = 'combat_feedback'; scene.add(root);
     const floorAt = (x, z, radius) => { const w = B.app && B.app.world; return w && w.effectHeightAt ? w.effectHeightAt(x, z, radius || 0) : .055; };
+    const physicalFloorAt=(x,z)=>{const w=B.app&&B.app.world,y=w&&w.effectHeightAt?w.effectHeightAt(x,z,0)-.035:0;return Number.isFinite(y)?Math.max(0,y):0;};
     // ------------------------------------------------------------ particles (one draw call)
-    const count = 1600, positions = new Float32Array(count * 3), colors = new Float32Array(count * 3), sizes = new Float32Array(count), alphas = new Float32Array(count), kinds = new Float32Array(count), slots = new Array(count);
+    const count = 1600, positions = new Float32Array(count * 3), colors = new Float32Array(count * 3), sizes = new Float32Array(count), alphas = new Float32Array(count), kinds = new Float32Array(count), ages = new Float32Array(count), seeds = Float32Array.from({ length: count }, (_, i) => (i * .61803398875) % 1), slots = new Array(count);
     const decals = [], waves = [], labels = [], flashes = [], trails = new Map(), ghosts = [], ghostSources = new Map();
     const labelPool = [], freeLabels = [], flashPool = new Set(), freeFlashes = [];
     const particlePool = Array.from({ length: count }, () => ({ x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, time: 0, life: 0, size: 0, kind: 0 }));
     let particleColorDirty = false;
     let cursor = 0; const geometry = new T.BufferGeometry();
-    for (const [n, a, size] of [['position', positions, 3], ['color', colors, 3], ['aSize', sizes, 1], ['aAlpha', alphas, 1], ['aKind', kinds, 1]]) geometry.setAttribute(n, new T.BufferAttribute(a, size).setUsage(T.DynamicDrawUsage));
+    for (const [n, a, size] of [['position', positions, 3], ['color', colors, 3], ['aSize', sizes, 1], ['aAlpha', alphas, 1], ['aKind', kinds, 1], ['aAge', ages, 1], ['aSeed', seeds, 1]]) geometry.setAttribute(n, new T.BufferAttribute(a, size).setUsage(T.DynamicDrawUsage));
     const material = new T.ShaderMaterial({ transparent: true, depthWrite: false, vertexColors: true, uniforms: { height: { value: innerHeight } },
-      vertexShader: `attribute float aSize,aAlpha,aKind;varying vec3 c;varying float a,k;uniform float height;void main(){c=color;a=aAlpha;k=aKind;vec4 mv=modelViewMatrix*vec4(position,1.);gl_PointSize=clamp(aSize*height/max(1.,-mv.z),1.,72.);gl_Position=projectionMatrix*mv;}`,
-      fragmentShader: `varying vec3 c;varying float a,k;void main(){vec2 p=gl_PointCoord*2.-1.;float d=length(p);float mask=(1.-smoothstep(.4,1.,d));if(k<.5){d=length(p*vec2(.82,1.2));mask=(1.-smoothstep(.62,1.,d));mask*=.86+.14*sin(p.x*15.+p.y*9.);}else if(k<1.5){mask=pow(max(0.,1.-d),2.)+.6*pow(max(0.,1.-d*2.2),2.);}else if(k<2.5){mask=(1.-smoothstep(.05,1.,d))*.25;}else if(k<3.5){mask=pow(max(0.,1.-d),2.2);}else{mask=pow(1.-smoothstep(0.,1.,d),2.);}if(mask*a<.015)discard;gl_FragColor=vec4(c,mask*a);}` });
+      vertexShader: `attribute float aSize,aAlpha,aKind,aAge,aSeed;varying vec3 c;varying float a,k,age,seed;uniform float height;
+        void main(){c=color;a=aAlpha;k=aKind;age=aAge;seed=aSeed;vec4 mv=modelViewMatrix*vec4(position,1.);gl_PointSize=clamp(aSize*height/max(1.,-mv.z),1.,96.);gl_Position=projectionMatrix*mv;}`,
+      fragmentShader: `varying vec3 c;varying float a,k,age,seed;
+        float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+        float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),f.x),f.y);}
+        void main(){vec2 p=gl_PointCoord*2.-1.;float d=length(p),mask=1.-smoothstep(.4,1.,d);vec3 col=c;
+          if(k<.5){d=length(p*vec2(.82,1.2));mask=(1.-smoothstep(.62,1.,d))*(.86+.14*sin(p.x*15.+p.y*9.));}
+          else if(k<1.5){mask=pow(max(0.,1.-d),2.)+.6*pow(max(0.,1.-d*2.2),2.);}
+          else if(k<2.5){float rot=seed*6.283+age*.3,cs=cos(rot),sn=sin(rot);vec2 q=mat2(cs,-sn,sn,cs)*p;
+            float n=noise(q*3.1+seed*23.+vec2(age*.22,-age*.35)),fine=noise(q*7.3-seed*11.);
+            float lobes=length(q*vec2(.9,1.08))+.16*(n-.5);mask=(1.-smoothstep(.3,.94,lobes))*smoothstep(.15,.85,n*.72+fine*.28)*.48;
+            col=c*(.75+.5*n);}
+          else if(k<3.5){mask=pow(max(0.,1.-d),2.2);}
+          else{mask=pow(1.-smoothstep(0.,1.,d),2.);}
+          if(mask*a<.009)discard;gl_FragColor=vec4(col,mask*a);}` });
     const particles = new T.Points(geometry, material); particles.frustumCulled = false; particles.visible = false; geometry.setDrawRange(0, 0); root.add(particles);
     function budget() { return Math.max(60, Math.min(count, getSettings().particles || 1100)); }
     function scaleCount(n) { return Math.max(2, Math.round(n * clamp(budget() / 1100, .3, 1))); }
@@ -45,6 +59,86 @@
       colors[i * 3] = color[0]; colors[i * 3 + 1] = color[1]; colors[i * 3 + 2] = color[2]; kinds[i] = kind;
       particleColorDirty = true;
       return slots[i];
+    }
+    // Solid impact fragments share two fixed GPU pools. Their faceted surfaces catch
+    // the room lights; gravity, bounce and friction settle them on the actual floor.
+    // Casting never allocates a mesh or shader, and the low preset bounds their count.
+    const chipGeo = new T.IcosahedronGeometry(1, 0);
+    const chipStoneMat = new T.MeshStandardMaterial({ color: 0xffffff, roughness: .93, metalness: .04 });
+    const chipMetalMat = new T.MeshStandardMaterial({ color: 0xffffff, roughness: .47, metalness: .84 });
+    const chipPools = [
+      { cap: 96, mat: chipStoneMat, metal: false, list: [], mesh: null, cursor: 0 },
+      { cap: 48, mat: chipMetalMat, metal: true, list: [], mesh: null, cursor: 0 }
+    ];
+    const chipDummy = new T.Object3D(), chipTint = new T.Color(), chipProxy={x:0,z:0};
+    for (const pool of chipPools) {
+      pool.mesh = new T.InstancedMesh(chipGeo, pool.mat, pool.cap);
+      pool.mesh.name = pool.metal ? 'forged_impact_fragments' : 'stone_impact_fragments';
+      pool.mesh.instanceMatrix.setUsage(T.DynamicDrawUsage);
+      pool.mesh.frustumCulled = false; pool.mesh.count = 0; pool.mesh.visible = false;
+      pool.mesh.castShadow = false; pool.mesh.receiveShadow = true;
+      for (let i = 0; i < pool.cap; i++) {
+        pool.list.push({ live: false, time: 0, life: 0, x: 0, y: 0, z: 0,
+          vx: 0, vy: 0, vz: 0, rx: 0, ry: 0, rz: 0, wx: 0, wy: 0, wz: 0,
+          sx: 0, sy: 0, sz: 0, floor: 0, bounce: 0, rest: false, shade: 0 });
+        pool.mesh.setColorAt(i, chipTint.setRGB(.3, .27, .23));
+      }
+      pool.mesh.instanceColor.setUsage(T.DynamicDrawUsage); root.add(pool.mesh);
+    }
+    function fragments(x, y, z, o = {}) {
+      const pool = chipPools[o.metal ? 1 : 0], n = Math.min(pool.cap, scaleCount(o.count || 12));
+      const spread = o.spread || .7, speed = o.speed || 4, lift = o.lift || 4,
+        face = o.face || 0, arc = o.arc == null ? Math.PI * 2 : o.arc;
+      for (let i = 0; i < n; i++) {
+        const c = pool.list[pool.cursor++ % pool.cap], a = face + (Math.random() - .5) * arc,
+          r = Math.sqrt(Math.random()) * spread, size = rnd(o.size || .08, (o.size || .08) * 1.8);
+        c.live = true; c.time = 0; c.life = rnd(2.0, 3.8); c.rest = false; c.bounce = 0;
+        c.x = x + Math.sin(a) * r; c.z = z + Math.cos(a) * r;
+        c.floor = physicalFloorAt(c.x,c.z); c.y = Math.max(y, c.floor + size);
+        c.vx = Math.sin(a) * speed * rnd(.35, 1); c.vz = Math.cos(a) * speed * rnd(.35, 1); c.vy = lift * rnd(.55, 1.15);
+        c.rx = rnd(0, 6.28); c.ry = rnd(0, 6.28); c.rz = rnd(0, 6.28);
+        c.wx = rnd(-9, 9); c.wy = rnd(-9, 9); c.wz = rnd(-9, 9);
+        c.sx = size * (pool.metal ? rnd(1.1, 2.1) : rnd(.8, 1.5));
+        c.sy = size * (pool.metal ? rnd(.18, .38) : rnd(.55, .95)); c.sz = size * rnd(.65, 1.25);
+        c.shade = rnd(.7, 1.1);
+      }
+    }
+    function fragmentsStep(dt) {
+      const world=B.app&&B.app.world;
+      for (const pool of chipPools) {
+        let n = 0;
+        for (const c of pool.list) {
+          if (!c.live) continue; c.time += dt;
+          if (c.time >= c.life) { c.live = false; continue; }
+          if (!c.rest && dt > 0) {
+            c.vy-=dt*12.5;const dx=c.vx*dt,dz=c.vz*dt;
+            if(world&&world.move){chipProxy.x=c.x;chipProxy.z=c.z;world.move(chipProxy,dx,dz,Math.min(.14,Math.max(.04,c.sx*.55)));
+              if(Math.abs(chipProxy.x-c.x)<Math.abs(dx)*.55)c.vx*=-.32;
+              if(Math.abs(chipProxy.z-c.z)<Math.abs(dz)*.55)c.vz*=-.32;
+              c.x=chipProxy.x;c.z=chipProxy.z;
+            }else{c.x+=dx;c.z+=dz;}
+            c.y+=c.vy*dt;c.floor=physicalFloorAt(c.x,c.z);
+            c.rx += c.wx * dt; c.ry += c.wy * dt; c.rz += c.wz * dt;
+            if (c.y <= c.floor + c.sy * .6) {
+              c.y = c.floor + c.sy * .6; c.bounce++;
+              c.vy = Math.abs(c.vy) * (pool.metal ? .24 : .18);
+              c.vx *= .55; c.vz *= .55; c.wx *= .4; c.wy *= .4; c.wz *= .4;
+              if (c.bounce > 2 || c.vy < .4) { c.rest = true; c.vy = c.wx = c.wy = c.wz = 0; }
+            }
+          }
+          const vanish = 1 - Math.pow(clamp((c.time - c.life + .55) / .55, 0, 1), 3);
+          chipDummy.position.set(c.x, c.y, c.z); chipDummy.rotation.set(c.rx, c.ry, c.rz);
+          chipDummy.scale.set(c.sx * vanish, c.sy * vanish, c.sz * vanish); chipDummy.updateMatrix();
+          pool.mesh.setMatrixAt(n, chipDummy.matrix);
+          const q = c.shade; chipTint.setRGB(pool.metal ? .31*q : .25*q, pool.metal ? .27*q : .22*q, pool.metal ? .22*q : .19*q);
+          pool.mesh.setColorAt(n, chipTint); n++;
+        }
+        pool.mesh.count = n; pool.mesh.visible = n > 0;
+        if (n) { pool.mesh.instanceMatrix.needsUpdate = true; pool.mesh.instanceColor.needsUpdate = true; }
+      }
+    }
+    function fragmentsClear() {
+      for (const pool of chipPools) { for (const c of pool.list) c.live = false; pool.mesh.count = 0; pool.mesh.visible = false; }
     }
     // ------------------------------------------------------------ textures
     function canvasTexture(size, draw) { const c = document.createElement('canvas'); c.width = c.height = size; draw(c.getContext('2d'), size); const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; return t; }
@@ -138,6 +232,9 @@
     // Primary decals (pools, prints, walls, big splats) keep the preset's cfg.decals limit; landing droplets get their own extra allowance.
     function gdAdd(o, micro) {
       const cfg = getSettings(); if (!(cfg.decals > 0)) return null;
+      // Horizontal blood belongs to the supporting floor; wall decals retain
+      // their explicit height and orientation. Resolve once before caching.
+      if(o.rx==null||Math.abs(o.rx+Math.PI/2)<1e-5)o.y+=physicalFloorAt(o.x,o.z);
       o.t = 0; o.micro = !!micro; o.life = o.life || Math.max(12, cfg.decals) * (micro ? .7 : 1.15); o.a0 = o.a0 == null ? 1 : o.a0; o.rx = o.rx == null ? -Math.PI / 2 : o.rx; o.ry = o.ry || 0; o.sy = o.sy || o.sx;
       const priCap = Math.min(GD - 40, Math.max(20, Math.round(cfg.decals * 1.4))), list = micro ? gdMic : gdPri, micCap = Math.min(GD - priCap, Math.round(cfg.decals * 1.6) + 20);
       list.push(o); while (gdPri.length > priCap) gdPri.shift(); while (gdMic.length > micCap) gdMic.shift(); return o;
@@ -193,7 +290,7 @@
     const bsGeo = new T.BufferGeometry(); bsGeo.setIndex(bsIdx); bsGeo.setAttribute('position', new T.BufferAttribute(bsPos, 3).setUsage(T.DynamicDrawUsage)); bsGeo.setAttribute('uv', new T.BufferAttribute(bsUv, 2)); bsGeo.setAttribute('aCol', new T.BufferAttribute(bsCol, 4).setUsage(T.DynamicDrawUsage));
     const bsMat = new T.ShaderMaterial({ transparent: true, depthWrite: false, side: T.DoubleSide, fog: false,
       vertexShader: 'attribute vec4 aCol;varying vec2 vUv;varying vec4 c;void main(){vUv=uv;c=aCol;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
-      fragmentShader: 'varying vec2 vUv;varying vec4 c;void main(){float ux=clamp(vUv.x,0.,1.);float dy=abs(vUv.y*2.-1.);float prof=.24+.76*smoothstep(0.,.7,ux);float cap=ux>.84?sqrt(max(0.,1.-pow((ux-.84)/.16,2.))):1.;float e=1.-dy/max(prof*cap,.001);float a=smoothstep(0.,.32,e)*(.3+.7*smoothstep(0.,.55,ux))*c.a;if(a<.012)discard;float sh=pow(clamp(1.-dy*1.7,0.,1.),3.)*(.3+.7*ux);vec3 col=c.rgb*(.72+.5*(1.-dy))+vec3(.42,.12,.1)*sh*.32;gl_FragColor=vec4(col,a);}' });
+      fragmentShader: 'varying vec2 vUv;varying vec4 c;void main(){float ux=clamp(vUv.x,0.,1.);float dy=abs(vUv.y*2.-1.);float prof=.24+.76*smoothstep(0.,.7,ux);float cap=ux>.84?sqrt(max(0.,1.-pow((ux-.84)/.16,2.))):1.;float e=1.-dy/max(prof*cap,.001);float a=smoothstep(0.,.32,e)*(.3+.7*smoothstep(0.,.55,ux))*c.a;if(a<.012)discard;float sh=pow(clamp(1.-dy*1.7,0.,1.),3.)*(.3+.7*ux);vec3 col=c.rgb*(.72+.5*(1.-dy))+vec3(.34,.13,.11)*sh*.12;gl_FragColor=vec4(col,a);}' });
     const bsMesh = new T.Mesh(bsGeo, bsMat); bsMesh.frustumCulled = false; bsMesh.renderOrder = 4; bsMesh.visible = false; root.add(bsMesh);
     function bstreak(x, y, z, vx, vy, vz, life, w, col, stick, kid) {
       const cap = Math.max(40, Math.round(GS * gTier())); bs[bsCur++ % cap] = { x, y, z, vx, vy, vz, t: 0, life, w, col: col || BCOL[Math.random() < .6 ? 0 : Math.random() < .75 ? 1 : 2], stick: stick == null ? .3 : stick, kid: !!kid };
@@ -325,10 +422,10 @@
             s.vy -= 10 * dt; const air = Math.exp(-dt * .5); s.vx *= air; s.vz *= air; const nx = s.x + s.vx * dt, ny = s.y + s.vy * dt, nz = s.z + s.vz * dt, wb = ny < 6 ? wallBox(nz) : null;
             if (wb && ny < wb.top && (nx < wb.l || nx > wb.r)) {   // sticks to a wall
               const left = nx < wb.l; if (landBudget > 0 && Math.random() < s.stick && getSettings().decals > 0) { landBudget--; const big = s.w > .04; wallSplat(left ? wb.l : wb.r, Math.max(.2, ny), nz, left, (s.w * 3.6 + .07) * rnd(.9, 1.7), big && Math.random() < .55 ? rnd(.3, .9) : 0, !big); } dead = true;
-            } else if (ny <= .045 && s.vy < 0) {   // lands: a splat (round when slow, elongated when fast), sometimes a hop of smaller drops
+            } else if (ny <= physicalFloorAt(nx,nz)+.045 && s.vy < 0) {   // lands: a splat (round when slow, elongated when fast), sometimes a hop of smaller drops
               if (landBudget > 0 && Math.random() < s.stick && getSettings().decals > 0) { landBudget--; const sp = Math.hypot(s.vx, s.vz), sz = (s.w * 3.4 + .05) * rnd(.8, 1.35);
                 if (sp > 3.5) smear(nx - s.vx / sp * sz * 1.6 * .44 * 2, nz - s.vz / sp * sz * 1.6 * .44 * 2, Math.atan2(s.vx, s.vz), sz * 2.6, sz * .9, true); else splat(nx, nz, sz * 1.2, true); }
-              if (!s.kid && s.w > .03 && Math.random() < .3) for (let k = 0; k < 2; k++) bstreak(nx, .06, nz, s.vx * .35 + rnd(-.8, .8), Math.abs(s.vy) * rnd(.15, .35), s.vz * .35 + rnd(-.8, .8), .5, s.w * .5, s.col, .25, true);
+              if (!s.kid && s.w > .03 && Math.random() < .3) for (let k = 0; k < 2; k++) bstreak(nx, physicalFloorAt(nx,nz)+.06, nz, s.vx * .35 + rnd(-.8, .8), Math.abs(s.vy) * rnd(.15, .35), s.vz * .35 + rnd(-.8, .8), .5, s.w * .5, s.col, .25, true);
               dead = true;
             } else {
               s.x = nx; s.y = ny; s.z = nz;
@@ -336,9 +433,9 @@
             }
           }
           if (dead) { bs[i] = null; bsPos.fill(0, o, o + 12); bsCol.fill(0, i * 16, i * 16 + 16); continue; }
-          const sp = Math.hypot(s.vx, s.vy, s.vz) || 1, len = clamp(sp * .048, s.w * 1.5, 1.1);
+          const sp = Math.hypot(s.vx, s.vy, s.vz) || 1, len = clamp(sp * .018, s.w * 1.15, .35);
           qa.set(s.x, s.y, s.z); cv1.set(s.vx, s.vy, s.vz).multiplyScalar(1 / sp); qb.copy(qa).addScaledVector(cv1, -len);
-          cv2.crossVectors(cv1, camDir); if (cv2.lengthSq() < 1e-6) cv2.set(1, 0, 0); cv2.normalize().multiplyScalar(s.w * .5);
+          cv2.crossVectors(cv1, camDir); if (cv2.lengthSq() < 1e-6) cv2.set(1, 0, 0); cv2.normalize().multiplyScalar(s.w * .34);
           const a = Math.min(1, s.t * 40) * Math.min(1, (s.life - s.t) * 5) * .94;
           bsPos[o] = qb.x - cv2.x; bsPos[o + 1] = qb.y - cv2.y; bsPos[o + 2] = qb.z - cv2.z; bsPos[o + 3] = qb.x + cv2.x; bsPos[o + 4] = qb.y + cv2.y; bsPos[o + 5] = qb.z + cv2.z;
           bsPos[o + 6] = qa.x + cv2.x; bsPos[o + 7] = qa.y + cv2.y; bsPos[o + 8] = qa.z + cv2.z; bsPos[o + 9] = qa.x - cv2.x; bsPos[o + 10] = qa.y - cv2.y; bsPos[o + 11] = qa.z - cv2.z;
@@ -356,8 +453,9 @@
             g.vy -= 11 * dt; g.x += g.vx * dt; g.y += g.vy * dt; g.z += g.vz * dt; g.rx += g.wx * dt; g.ry += g.wy * dt; g.rz += g.wz * dt;
             const wb = wallBox(g.z); if (wb && g.y < wb.top) { if (g.x < wb.l) { g.x = wb.l; g.vx = Math.abs(g.vx) * .3; wallSplat(wb.l, Math.max(.3, g.y), g.z, true, g.size * 4, .5, false); } else if (g.x > wb.r) { g.x = wb.r; g.vx = -Math.abs(g.vx) * .3; wallSplat(wb.r, Math.max(.3, g.y), g.z, false, g.size * 4, .5, false); } }
             g.trail += dt; if (g.trail > .04 && Math.hypot(g.vx, g.vy, g.vz) > 2.5) { g.trail = 0; bstreak(g.x, g.y, g.z, g.vx * .25 + rnd(-.3, .3), g.vy * .2, g.vz * .25 + rnd(-.3, .3), .8, .028, null, .4, true); }
-            if (g.y < g.size * .55) {
-              g.y = g.size * .55; const sp = Math.hypot(g.vx, g.vz);
+            const supportingFloor=physicalFloorAt(g.x,g.z);
+            if (g.y < supportingFloor+g.size*.55) {
+              g.y = supportingFloor+g.size*.55; const sp = Math.hypot(g.vx, g.vz);
               if (g.hit < 3 && landBudget > -8 && getSettings().decals > 0) { landBudget--; splat(g.x, g.z, g.size * (g.hit ? 3.2 : 5), true); if (!g.hit && sp > 1) smear(g.x, g.z, Math.atan2(g.vx, g.vz), g.size * 9 + sp * .12, g.size * 3.2, true); }
               g.hit++; if (g.vy < -1.2 && g.hit < 4) { g.vy = -g.vy * .28; g.vx *= .55; g.vz *= .55; g.wx *= .5; g.wy *= .5; g.wz *= .5; } else { g.vy = 0; g.vx *= Math.exp(-dt * 9); g.vz *= Math.exp(-dt * 9); g.wx = g.wy = g.wz = 0; if (Math.hypot(g.vx, g.vz) < .15) { g.rest = true; g.restAt = g.t; } }
             }
@@ -444,7 +542,7 @@
     const scars = [], scarFree = [];
     function makeScar(map) {
       const dark = new T.MeshBasicMaterial({ color: '#1a0d0a', map, transparent: true, opacity: .6, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
-      const hot = new T.MeshBasicMaterial({ color: new T.Color(2.2, .55, .16), map, transparent: true, opacity: 1, depthWrite: false, blending: T.AdditiveBlending, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 });
+      const hot = new T.MeshBasicMaterial({ color: new T.Color(.85, .36, .13), map, transparent: true, opacity: 1, depthWrite: false, blending: T.AdditiveBlending, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 });
       const group = new T.Group(), a = new T.Mesh(plane, dark), b = new T.Mesh(plane, hot);
       for (const m of [a, b]) { m.rotation.x = -Math.PI / 2; m.renderOrder = -1; group.add(m); }
       return { group, a, b, dark, hot, time: 0, life: 0 };
@@ -452,9 +550,9 @@
     function releaseScar(s) { s.group.removeFromParent(); scarFree.push(s); }
     function scar(x, z, face, o) {
       if (!tells || getSettings().decals <= 0) return;
-      const line = o.shape === 'line', map = line ? tells.textures.scarLine : tells.textures.scarRadial;
+      const line = o.shape === 'line', map = line ? tells.textures.scarLine : tells.textures.scarRadial, hotMap=line?tells.textures.scarLineHot:tells.textures.scarRadialHot;
       const e = scarFree.length ? scarFree.pop() : makeScar(map), { group, a, b, dark, hot } = e, heat = o.heat || 1;
-      dark.map = hot.map = map; dark.opacity = .6; hot.opacity = 1; hot.color.setRGB(2.2 * heat, .55 * heat, .16 * heat);
+      dark.map=map;hot.map=hotMap||map;dark.opacity=.72;hot.opacity=1;hot.color.setRGB(.85*heat,.36*heat,.13*heat);
       // The line art runs bottom -> top of the canvas; after rotation.x the canvas top points to local -Z, so flip it along +Z.
       a.rotation.z = b.rotation.z = line ? Math.PI : 0;
       if (line) { group.scale.set(o.width * 2.2, 1, o.length); group.rotation.y = face; group.position.set(x + Math.sin(face) * o.length / 2, floorAt(x, z, o.length) + .008, z + Math.cos(face) * o.length / 2); }
@@ -465,7 +563,7 @@
     }
     function scarsStep(dt) {
       for (let i = scars.length - 1; i >= 0; i--) {
-        const s = scars[i], sl = s.life || 8, f0 = s.life ? sl * .35 : 6; s.time += dt; s.hot.opacity = Math.pow(Math.max(0, 1 - s.time / (s.life ? Math.min(1.3, sl * .6) : 1.3)), 2); s.dark.opacity = .6 * Math.min(1, s.time / .25) * Math.max(0, 1 - Math.max(0, s.time - f0) / (sl - f0));
+        const s = scars[i], sl = s.life || 8, f0 = s.life ? sl * .35 : 6; s.time += dt; s.hot.opacity = Math.pow(Math.max(0, 1 - s.time / (s.life ? Math.min(1.3, sl * .6) : 1.3)), 2); s.dark.opacity = .72 * Math.min(1, s.time / .1) * Math.max(0, 1 - Math.max(0, s.time - f0) / (sl - f0));
         if (s.time > sl) { releaseScar(s); scars.splice(i, 1); }
       }
     }
@@ -520,6 +618,7 @@
       }
       if (style === 'blunt' || style === 'roar') {
         const cx = d.shape === 'circle' ? x : d.ix, cz = d.shape === 'circle' ? z : d.iz;
+        if (style === 'blunt' && Number.isFinite(cx) && Number.isFinite(cz)) fragments(cx, floorAt(cx, cz, .3) + .1, cz, { count: big ? 16 : 8, spread: .6, speed: big ? 4.2 : 2.6, lift: big ? 4.5 : 2.8, face: f, arc: 2.7 });
         for (let i = 0; i < n(20); i++) particle(cx + rnd(-.4, .4), .1, cz + rnd(-.4, .4), 2, DUST, 1, Math.random() * Math.PI * 2, .4);
         if (style === 'roar' && tells) { tells.wave(x, z, { radius: R, life: .5, width: .35, color: [.55, .3, .15], soft: 0 }); const ringDust = n(30); for (let i = 0; i < ringDust; i++) { const a = i / ringDust * Math.PI * 2; particle(x + Math.sin(a) * 1.2, .1, z + Math.cos(a) * 1.2, 2, DUST, 1.6, a, .35); } }
         return;
@@ -527,6 +626,7 @@
       if (style === 'quake') {
         const line = d.shape === 'line', c = line ? local(0, d.length * .5) : { x, z };
         for (let i = 0; i < n(line ? 20 : 40); i++) { const p = line ? local((Math.random() - .5) * d.width, Math.random() * d.length) : { x: x + rnd(-R, R) * .6, z: z + rnd(-R, R) * .6 }; particle(p.x, .1, p.z, 2, DUST, 1.2, Math.random() * 6, .5); }
+        fragments(c.x, floorAt(c.x, c.z, .3) + .12, c.z, { count: big ? 26 : 15, spread: Math.min(1.5, R * .3), speed: big ? 6 : 4, lift: big ? 6 : 4.3 });
         for (let i = 0; i < n(line ? 10 : 20); i++) particle(c.x, .15, c.z, 0, [.06, .05, .045], 1.4, Math.random() * Math.PI * 2, 1.1);
         for (let i = 0; i < n(12); i++) particle(c.x, .2, c.z, 1, sp, 1.2, Math.random() * Math.PI * 2, .8);
         if (!line) { flash(x, .4, z, 2.4, new T.Color(unb ? '#ff9a7a' : '#ffcf9a'), .1); if (tells) tells.wave(x, z, { radius: R + .6, life: .45, width: .5, color: [1.8, .45, .15], soft: .4 }); }
@@ -650,13 +750,14 @@
     const CH_PITCH = .21, CH_ARM = 28, CH_MAX = CH_ARM * 2, CH_PTS = 40;
     // Whirl look per tier (whirl* prefix): I ember orange chains, II molten gold reaping scythes with a sweeping ground trail, III dark violet / black-red storm with bone-white flashes.
     const WT = [null,
-      { emis: [1, .32, .07], metal: '#3d3a37', glow: [.9, .36, .11], ember: [[2.8, .8, .2], [2.2, .4, .1]], d1: [2.2, .55, .14], d2: [1.9, 1.1, .55], floor: [1, .3, .08], ring: [.7, .22, .06], ringLast: [1, .34, .1], flash: '#ff9550', hit: '#ffb070', head: [1, 1, 1], tail: 1, cres: 0, lag: 1.3, hot: [3.0, 1.1, .3] },
-      { emis: [1, .62, .12], metal: '#4d3f2a', glow: [1, .72, .2], ember: [[4, 2.5, .5], [3.2, 1.5, .25]], d1: [3.3, 1.9, .4], d2: [2.6, 2.0, 1], floor: [1, .62, .14], ring: [.95, .58, .17], ringLast: [1.6, 1.0, .32], flash: '#ffd080', hit: '#ffd890', head: [2.6, 1.15, 1.7], tail: .85, cres: 1, lag: 2.3, hot: [4.2, 2.6, .6] },
-      { emis: [.55, .1, 1], metal: '#1a1520', glow: [.62, .16, 1], ember: [[2.4, .3, 3], [2.8, .12, .25]], d1: [1.4, .22, 2.6], d2: [2.6, 1.8, 2.8], floor: [.55, .1, 1], ring: [.42, .1, .85], ringLast: [.8, .28, 1.5], flash: '#d8c8ff', hit: '#d0c0ff', head: [2.2, 1.6, 1.5], tail: .75, cres: 1.4, lag: 2.9, hot: [3.4, .6, 3.2] }];
+      { emis: [1, .32, .07], metal:'#5b554b', glow: [.9, .36, .11], ember: [[2.8, .8, .2], [2.2, .4, .1]], d1: [2.2, .55, .14], d2: [1.9, 1.1, .55], floor: [1, .3, .08], ring: [.7, .22, .06], ringLast: [1, .34, .1], flash: '#ff9550', hit: '#ffb070', head: [1, 1, 1], tail: 1, cres: 0, lag: 1.3, hot: [3.0, 1.1, .3] },
+      { emis: [1, .62, .12], metal:'#756952', glow: [1, .72, .2], ember: [[4, 2.5, .5], [3.2, 1.5, .25]], d1: [3.3, 1.9, .4], d2: [2.6, 2.0, 1], floor: [1, .62, .14], ring: [.95, .58, .17], ringLast: [1.6, 1.0, .32], flash: '#ffd080', hit: '#ffd890', head: [1.45,1.05,1.15], tail: .85, cres: 1, lag: 2.3, hot: [4.2, 2.6, .6] },
+      { emis: [.25, .07, .3], metal:'#514b58', glow: [.36, .12, .42], ember: [[.9, .24, 1.1], [1, .1, .18]], d1: [.4, .12, .62], d2: [.65, .45, .72], floor: [.3, .08, .4], ring: [.24, .075, .34], ringLast: [.45, .22, .6], flash: '#d8c8ff', hit: '#d0c0ff', head: [1.65,1.15,1.3], tail: .75, cres: 1.4, lag: 2.9, hot: [1.2, .4, 1.3] }];
     const softMap = canvasTexture(128, (ctx, s) => { const g = ctx.createRadialGradient(64, 64, 0, 64, 64, 64); g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(.25, 'rgba(255,255,255,.55)'); g.addColorStop(.6, 'rgba(255,255,255,.14)'); g.addColorStop(1, 'rgba(255,255,255,0)'); ctx.fillStyle = g; ctx.fillRect(0, 0, s, s); });
-    const chLinks = new T.InstancedMesh(new T.TorusGeometry(.085, .03, 8, 18),
-      new T.MeshStandardMaterial({ color: '#3d3a37', metalness: .9, roughness: .42, emissive: new T.Color(1, .32, .07), emissiveIntensity: 0 }), CH_MAX);
-    chLinks.frustumCulled = false; chLinks.visible = false; chLinks.instanceMatrix.setUsage(T.DynamicDrawUsage); root.add(chLinks);
+    const whirlMetal=B.EquipmentArt?B.EquipmentArt.material('steel').clone():new T.MeshStandardMaterial({color:'#5b554b',metalness:.85,roughness:.68});
+    whirlMetal.emissive.setRGB(.4,.1,.025);whirlMetal.emissiveIntensity=0;whirlMetal.roughness=Math.max(.68,whirlMetal.roughness);
+    const chLinks = new T.InstancedMesh(new T.TorusGeometry(.085,.026,10,20),whirlMetal,CH_MAX);
+    chLinks.name='whirl_forged_links';chLinks.receiveShadow=true;chLinks.frustumCulled = false; chLinks.visible = false; chLinks.instanceMatrix.setUsage(T.DynamicDrawUsage); root.add(chLinks);
     // Forged cleaver hooks: a curved cutting edge, a hollow chain eye and bevels that catch the room light.
     // One shared geometry replaces the placeholder cones; both heads retain their existing two draws.
     const hookShape = new T.Shape(); hookShape.moveTo(-.24, .08); hookShape.lineTo(.06, .11);
@@ -665,8 +766,8 @@
     hookShape.lineTo(-.24, -.065); hookShape.closePath();
     const hookEye = new T.Path(); hookEye.absarc(-.135, .0075, .036, 0, Math.PI * 2, true); hookShape.holes.push(hookEye);
     const chHeadGeo = new T.ExtrudeGeometry(hookShape, { depth: .048, bevelEnabled: true, bevelSegments: 2, steps: 1, bevelSize: .012, bevelThickness: .012, curveSegments: 6 }).translate(0, 0, -.024).rotateX(Math.PI / 2);
-    const chHeads = [0, 1].map(() => { const m = new T.Mesh(chHeadGeo, chLinks.material); m.frustumCulled = false; m.visible = false; root.add(m); return m; });
-    const chGlow = [0, 1, 2].map(() => { const sp = new T.Sprite(new T.SpriteMaterial({ map: softMap, color: 0xffffff, transparent: true, depthWrite: false, depthTest: false, blending: T.AdditiveBlending, fog: false })); sp.renderOrder = 29; sp.visible = false; root.add(sp); return sp; });
+    const chHeads = [0, 1].map(() => { const m = new T.Mesh(chHeadGeo, chLinks.material); m.receiveShadow=true;m.frustumCulled=false;m.visible=false;root.add(m);return m;});
+    const chGlow = [0, 1, 2].map(() => { const sp = new T.Sprite(new T.SpriteMaterial({ map: softMap, color: 0xffffff, transparent: true, depthWrite: false, depthTest:true,blending:T.AdditiveBlending,fog:false}));sp.renderOrder=8; sp.visible = false; root.add(sp); return sp; });
     // motion-blur disc at chest height: two comet tails (one per chain) that lengthen with the turning speed
     const chDiscMat = new T.ShaderMaterial({ transparent: true, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide, fog: false, uniforms: { uHead: { value: 0 }, uP: { value: 0 }, uRate: { value: 0 }, uR: { value: 4 }, uT: { value: 0 }, uTail: { value: 1 }, uC1: { value: new T.Vector3(2.2, .55, .14) }, uC2: { value: new T.Vector3(1.9, 1.1, .55) } },
       vertexShader: 'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
@@ -681,7 +782,7 @@
     const chRings = [0, 1, 2, 3].map(() => {
       const mat = new T.ShaderMaterial({ transparent: true, depthWrite: false, blending: T.AdditiveBlending, fog: false, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4, uniforms: { uK: { value: 1 }, uHalf: { value: 3 }, uMax: { value: 3 }, uCol: { value: new T.Vector3(1, .3, .09) } },
         vertexShader: 'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
-        fragmentShader: 'varying vec2 vUv;uniform float uK,uHalf,uMax;uniform vec3 uCol;void main(){float rw=length(vUv-.5)*2.*uHalf;float e=(1.-pow(1.-uK,2.6))*uMax;float w=.10+.18*e/uMax;float x=(rw-e)/w;float ring=exp(-x*x);float wake=clamp(1.-(e-rw)/(w*3.5),0.,1.);wake=wake*wake*step(rw,e)*.18;float edge=1.-smoothstep(.93*uMax,uMax,rw);float a=(ring+wake)*(1.-uK)*edge;if(a<.004)discard;gl_FragColor=vec4(uCol*a,1.);}' });
+        fragmentShader: 'varying vec2 vUv;uniform float uK,uHalf,uMax;uniform vec3 uCol;void main(){float rw=length(vUv-.5)*2.*uHalf;float e=(1.-pow(1.-uK,2.6))*uMax;float a0=atan(vUv.x-.5,vUv.y-.5);float w=.045+.06*e/uMax;float x=(rw-e-.04*sin(a0*13.)-.025*sin(a0*29.))/w;float ring=exp(-x*x*1.8)*(.67+.33*sin(a0*17.+.8));float wake=clamp(1.-(e-rw)/(w*3.5),0.,1.);wake=wake*wake*step(rw,e)*.18;float edge=1.-smoothstep(.93*uMax,uMax,rw);float a=(ring+wake)*(1.-uK)*edge;if(a<.004)discard;gl_FragColor=vec4(uCol*a*.22,1.);}' });
       const m = new T.Mesh(new T.PlaneGeometry(1, 1).rotateX(-Math.PI / 2), mat); m.frustumCulled = false; m.renderOrder = 2; m.visible = false; root.add(m); return { m, mat, t: 9, life: .5, r: 1 };
     });
     // The ring quad only grows as far as the ring has travelled (plus its width), so young rings cost almost no fill.
@@ -712,7 +813,7 @@
         s.vy -= 9 * dt; s.x += s.vx * dt; s.y += s.vy * dt; s.z += s.vz * dt; if (s.y < .06) { s.y = .06; s.vy = Math.abs(s.vy) * .25; s.vx *= .6; s.vz *= .6; }
         const sp = Math.hypot(s.vx, s.vy, s.vz) || 1, len = clamp(sp * .045, .12, .9);   // stretch with speed: continuous motion blur
         qa.set(s.x, s.y, s.z); cv1.set(s.vx, s.vy, s.vz).multiplyScalar(1 / sp); qb.copy(qa).addScaledVector(cv1, -len);
-        cv2.crossVectors(cv1, camDir); if (cv2.lengthSq() < 1e-6) cv2.set(1, 0, 0); cv2.normalize().multiplyScalar(s.w * .5);
+        cv2.crossVectors(cv1, camDir); if (cv2.lengthSq() < 1e-6) cv2.set(1, 0, 0); cv2.normalize().multiplyScalar(s.w * .34);
         const k = 1 - s.t / s.life, a = Math.min(1, s.t * 40) * k * k;
         skPos[o] = qb.x - cv2.x; skPos[o + 1] = qb.y - cv2.y; skPos[o + 2] = qb.z - cv2.z;
         skPos[o + 3] = qb.x + cv2.x; skPos[o + 4] = qb.y + cv2.y; skPos[o + 5] = qb.z + cv2.z;
@@ -732,7 +833,7 @@
     const CK = 3, CKV = 420, chCracks = [];
     const ckMat = new T.ShaderMaterial({ transparent: true, depthWrite: false, fog: false, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3, uniforms: { uHeat: { value: 0 }, uRun: { value: 0 }, uA: { value: 1 }, uTint: { value: new T.Vector3(1, 1, 1) } },
       vertexShader: 'attribute float aV,aT;varying float v,t;void main(){v=aV;t=aT;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
-      fragmentShader: 'varying float v,t;uniform float uHeat,uRun,uA;uniform vec3 uTint;void main(){float q=max(0.,1.-min(1.,abs(v*2.-1.)));float reveal=1.-smoothstep(uRun-.06,uRun,t);float core=q*q;float h=uHeat*(.35+.65*core);vec3 col=mix(vec3(.025,.018,.016),vec3(2.4,.75,.2),h);col=mix(col,vec3(3.,2.,1.2),core*core*uHeat);col*=uTint;float a=(q*.9+.1*core)*reveal*uA;if(a<.01)discard;gl_FragColor=vec4(col,a);}' });
+      fragmentShader: 'varying float v,t;uniform float uHeat,uRun,uA;uniform vec3 uTint;void main(){float q=max(0.,1.-min(1.,abs(v*2.-1.)));float reveal=1.-smoothstep(uRun-.06,uRun,t);float core=q*q;float h=uHeat*core*core;vec3 col=mix(vec3(.025,.018,.016),vec3(.65,.26,.085),h);col=mix(col,vec3(.85,.47,.16),core*core*core*uHeat*.3);col*=uTint;float a=(q*.9+.1*core)*reveal*uA;if(a<.01)discard;gl_FragColor=vec4(col,a);}' });
     for (let i = 0; i < CK; i++) {
       const g = new T.BufferGeometry(), pos = new Float32Array(CKV * 3), av = new Float32Array(CKV), at = new Float32Array(CKV);
       g.setAttribute('position', new T.BufferAttribute(pos, 3)); g.setAttribute('aV', new T.BufferAttribute(av, 1)); g.setAttribute('aT', new T.BufferAttribute(at, 1)); g.setIndex(new T.BufferAttribute(new Uint16Array(CKV * 3), 1));
@@ -803,7 +904,7 @@
         }
         const h = chHeads[arm]; h.visible = pe > .08; h.position.set(chPX[0], chPY[0], chPZ[0]); chT.set(chPX[0] - chPX[1], chPY[0] - chPY[1], chPZ[0] - chPZ[1]); if (chT.lengthSq() < 1e-9) chT.set(1, 0, 0);
         h.quaternion.setFromUnitVectors(cv1.set(1, 0, 0), chT.normalize()); h.scale.set((.6 + .4 * pe) * WTI.head[0], (.6 + .4 * pe) * WTI.head[1], (.6 + .4 * pe) * WTI.head[2]);
-        const gl = chGlow[arm]; gl.visible = pe > .08; gl.position.set(chPX[0], chPY[0] + .05, chPZ[0]); gl.scale.setScalar((.3 + .35 * wh.rate + .12 * P) * (1 + .5 * (wh.tier - 1))); gl.material.color.setRGB(WTI.glow[0] * P, WTI.glow[1] * P, WTI.glow[2] * P);
+        const gl = chGlow[arm]; gl.visible = pe > .08; gl.position.set(chPX[0], chPY[0] + .05, chPZ[0]); gl.scale.setScalar((.13+.13*wh.rate+.035*P)*(1+.12*(wh.tier-1))); gl.material.color.setRGB(WTI.glow[0]*P*.25,WTI.glow[1]*P*.25,WTI.glow[2]*P*.25);
         // embers by distance: every 10 cm the head travelled since the last frame sheds one (interpolated between the two angles)
         if (wh.have && !calm && Math.abs(dth) > 1e-4) {
           const bud = clamp(budget() / 1100, .3, 1), arc = Math.abs(dth) * reach, cnt = Math.min(18 + 6 * (wh.tier - 1), Math.ceil(arc / (.1 / bud / (1 + .5 * (wh.tier - 1)))));
@@ -817,14 +918,14 @@
           if (wh.tier === 2) skMesh.visible = true;
         }
       }
-      chLinks.count = CH_MAX; chLinks.instanceMatrix.needsUpdate = true; chLinks.visible = pe > .06; chLinks.material.emissiveIntensity = .02 + .28 * P * (.5 + .5 * wh.rate);
+      chLinks.count = CH_MAX; chLinks.instanceMatrix.needsUpdate = true; chLinks.visible = pe > .06; chLinks.material.emissiveIntensity=.005+.04*P*(.5+.5*wh.rate);
       // ---- disc and floor swirl
       chDisc.visible = chFloor.visible = true; chDisc.position.set(px, 1.0, pz); chFloor.position.set(px, floorAt(px, pz, wh.R) + .014, pz);
-      chDiscMat.uniforms.uHead.value = th; chDisc.scale.setScalar(wh.k); chFloor.scale.setScalar(wh.k); chDiscMat.uniforms.uP.value = P * (1 - wh.end) * (calm ? .3 : .6) * (1 + .12 * (wh.tier - 1)); chDiscMat.uniforms.uRate.value = wh.rate; chDiscMat.uniforms.uT.value = t % 100;
-      chFloorMat.uniforms.uHead.value = th; chFloorMat.uniforms.uP.value = P * (.7 + .05 * (wh.tier - 1)); chFloorMat.uniforms.uT.value = t % 100; chFloorMat.uniforms.uRim.value = 3.6 * Math.pow(P, .5);
+      chDiscMat.uniforms.uHead.value = th; chDisc.scale.setScalar(wh.k); chFloor.scale.setScalar(wh.k); chDiscMat.uniforms.uP.value = P * (1 - wh.end) * (calm?.09:.18)*(1+.08*(wh.tier-1)); chDiscMat.uniforms.uRate.value = wh.rate; chDiscMat.uniforms.uT.value = t % 100;
+      chFloorMat.uniforms.uHead.value = th; chFloorMat.uniforms.uP.value=P*(.18+.01*(wh.tier-1)); chFloorMat.uniforms.uT.value = t % 100; chFloorMat.uniforms.uRim.value = 3.6 * Math.pow(P, .5);
       // ---- the vortex: ash and embers drawn in and around, by time (not by frame)
       if (wh.on && !calm) {
-        const bud = clamp(budget() / 1100, .3, 1); wh.dust += dt * 60 * bud * (1 + .5 * (wh.tier - 1)); wh.vort += dt * 90 * bud * (1 + .6 * (wh.tier - 1));
+        const bud = clamp(budget() / 1100, .3, 1); wh.dust+=dt*30*bud * (1 + .5 * (wh.tier - 1)); wh.vort+=dt*24*bud * (1 + .6 * (wh.tier - 1));
         while (wh.dust >= 1) { wh.dust--; const a2 = Math.random() * 6.283, r = (2.2 + Math.random() * 1.6) * wh.k; emit(px + Math.sin(a2) * r, .12, pz + Math.cos(a2) * r, 2, t3 ? [.05, .04, .055] : DUST, Math.cos(a2) * 4.5, .5 + Math.random(), -Math.sin(a2) * 4.5, .6 + Math.random() * .4, .3 + Math.random() * .3); }
         while (wh.vort >= 1) { wh.vort--; const a2 = Math.random() * 6.283, r = 4 + Math.random() * 1.6, y = .2 + Math.random() * 1.3; emit(px + Math.sin(a2) * r * wh.k, y, pz + Math.cos(a2) * r * wh.k, 5, WTI.ember[0], -Math.sin(a2) * r * 1.5 + Math.cos(a2) * 3.4, .4, -Math.cos(a2) * r * 1.5 - Math.sin(a2) * 3.4, .5, .05); }
       }
@@ -842,7 +943,7 @@
       if (tier === 2) { streakBurst(x, .5, z, calm ? 3 : 14, d.face || 0, 6.3, 8, W.hot); }
       if (tier === 3) {   // the ground shatters under the hero: dark ring, violet shock ring, stone fissures, camera pulse
         chRing(x, z, R * 1.2, .7, [.3, .05, .6]); chCrack(x, z, R * .8, 3);
-        if (tells) tells.wave(x, z, { radius: R * .9, life: .6, width: .3, color: [.5, .12, .9], crack: .7, crackR: R * .75, crackLife: 1.6, soft: 0 });
+        if (tells) tells.wave(x, z, { radius: R * .9, life: .6, width: .3, color:[.18,.05,.28],crack:.12, crackR: R * .75, crackLife: 1.6, soft: 0 });
         scar(x, z, 0, { shape: 'circle', radius: R * .6, heat: .35 });
         streakBurst(x, .5, z, calm ? 4 : 24, 0, 6.3, 9, W.hot);
         if (B.Charge && B.Charge.punch) B.Charge.punch({ vig: .32, chroma: .1, flash: .02, push: .018, dur: .6, x, z, ringR: R * 1.1, ringW: 1 });
@@ -850,9 +951,9 @@
     }
     function whirlTick(d) {
       const x = d.x, z = d.z, R = d.radius || 3.6, last = d.last, calm = reduced.matches, tier = d.tier || 1, W = WT[tier] || WT[1];
-      chRing(x, z, R * (last ? 1.25 : 1), last ? .6 : .4, last ? W.ringLast : W.ring);
+      if(last||!d.n)chRing(x,z,R*(last?1.05:.85),last?.5:.32,last?W.ringLast:W.ring);
       if (tier === 3 && !last && (d.n % 2 === 0) && B.Charge && B.Charge.punch) B.Charge.punch({ vig: .1, push: .007, dur: .3 });
-      if (last && tier > 1 && tells) tells.wave(x, z, { radius: R * (tier === 3 ? 1.1 : .8), life: tier === 3 ? .7 : .55, width: tier === 3 ? .3 : .2, color: tier > 2 ? [.6, .22, 1.2] : [1.8, 1.1, .3], crack: .6, crackR: R * .6, crackLife: 1.3, soft: 0, delay: .05 });
+      if (last && tier > 1 && tells) tells.wave(x, z, { radius: R * (tier === 3 ? 1.1 : .8), life: tier === 3 ? .7 : .55, width: tier === 3 ? .3 : .2, color:tier>2?[.24,.1,.38]:[.52,.32,.12],crack:.12, crackR: R * .6, crackLife: 1.3, soft: 0, delay: .05 });
       if (last) { chRing(x, z, R * .75, .3, tier === 3 ? [.8, .5, 1.2] : [.8, .45, .22]); flash(x, .9, z, tier === 3 ? 2.2 : 1.2, new T.Color(tier === 3 ? '#efe6ff' : '#d87840'), tier === 3 ? .2 : .16, 0, softMap); chCrack(x, z, R * (tier === 3 ? 1.15 : 1), tier); scar(x, z, 0, { shape: 'circle', radius: R * .75, heat: tier === 3 ? .35 : .3 }); }
       if (last && tier === 3) {   // Son Hüküm: the final slam, a second wide ring, a pulse through the whole screen
         
@@ -958,19 +1059,20 @@
       else if (act && act.beats) { const lead = actor.boss ? .22 : .15; for (const beat of act.beats) if (act.age > beat.strike - lead && act.age < beat.strike + .12) { w.on = true; break; } w.life = actor.boss ? .2 : .13; w.heavy = !!actor.boss; }
       return w;
     }
-    function hasTrail(model) { return model && !model.ownTrail && model.weaponTip && model.bones && model.bones.weapon && model.type !== 'cultist' && model.type !== 'carrier'; }
+    function hasTrail(model) { const def = model && B.Models && B.Models.types[model.type], role = def && def.motionType || model && model.type; return model && !model.ownTrail && model.weaponTip && model.bones && model.bones.weapon && role !== 'cultist' && model.type !== 'carrier'; }
+    function heldWeapon(model) { let armed = false; model.bones.weapon.traverse(n => { if (n.isMesh && !n.isSkinnedMesh && n.geometry && n.name !== 'rim_weapon') armed = true; }); return armed; }
     function makeTrail(actor) {
       const model = actor.model;
       const n = MAXS * SUB, pos = new Float32Array(n * 6 * 3), alpha = new Float32Array(n * 6), edge = new Float32Array(n * 6), geo = new T.BufferGeometry();
       for (let i = 0; i < n; i++) edge.set([0, 1, 1, 0, 1, 0], i * 6);
       geo.setAttribute('aEdge', new T.BufferAttribute(edge, 1)); geo.setAttribute('position', new T.BufferAttribute(pos, 3).setUsage(T.DynamicDrawUsage)); geo.setAttribute('aAlpha', new T.BufferAttribute(alpha, 1).setUsage(T.DynamicDrawUsage)); geo.setDrawRange(0, 0);
-      const mat = trailMaterial.clone(); const armed = model.type === 'hero' || model.type === 'guard' || model.type === 'boss';
+      const mat = trailMaterial.clone(), armed = heldWeapon(model);
       if (model.type === 'hero' && gearBlood > 0) { mat.uniforms.tint.value.lerp(new T.Color('#a5504a'), gearBlood * .5); mat.uniforms.rim.value.lerp(new T.Color('#ffc8b0'), gearBlood * .4); }   // a bloodied blade smears warmer
       if (actor.boss) { mat.uniforms.tint.value.set('#b58a6a'); mat.uniforms.rim.value.set('#ffd2a0'); }
       else if (!armed) { mat.uniforms.tint.value.set('#7a3c3a'); mat.uniforms.rim.value.set('#d9a08f'); mat.uniforms.gain.value = .7; }
       const m = new T.Mesh(geo, mat); m.frustumCulled = false; m.renderOrder = 6; m.visible = false; root.add(m);
       const free = Array.from({ length: MAXS }, () => ({ p: new T.Vector3(), td: new T.Vector3(), tl: 0, bd: new T.Vector3(), bl: 0, age: 0 }));
-      const trail = { mesh: m, model, samples: [], free, pos, alpha, life: .12, active: false }; trails.set(actor, trail); return trail;
+      const trail = { mesh: m, model, samples: [], free, pos, alpha, life: .12, active: false, armed }; trails.set(actor, trail); return trail;
     }
     function dropTrail(actor, trail) { trail.mesh.removeFromParent(); trail.mesh.geometry.dispose(); trail.mesh.material.dispose(); trails.delete(actor); }
     function trailVertex(P, A, v, p, alpha) { P[v * 3] = p.x; P[v * 3 + 1] = p.y; P[v * 3 + 2] = p.z; A[v] = alpha; }
@@ -987,7 +1089,7 @@
       while (trail.samples.length && trail.samples[trail.samples.length - 1].age > trail.life) trail.free.push(trail.samples.pop());
       if (w.on && !actor.dead && !frozen) {
         model.root.getWorldPosition(pivot); pivot.y += (model.height || 2.3) * .56;
-        model.weaponTip.getWorldPosition(tipW); model.bones.weapon.getWorldPosition(baseW); baseW.lerp(tipW, model.type === 'hero' || model.type === 'boss' || model.type === 'guard' ? .3 : 0);
+        model.weaponTip.getWorldPosition(tipW); model.bones.weapon.getWorldPosition(baseW); baseW.lerp(tipW, trail.armed ? .3 : 0);
         trailTip.copy(tipW).sub(pivot); trailBase.copy(baseW).sub(pivot);
         if (trail.samples.length === MAXS) trail.free.push(trail.samples.pop());
         const s = trail.free.pop(); s.p.copy(pivot); s.tl = trailTip.length(); s.bl = trailBase.length(); s.td.copy(trailTip).normalize(); s.bd.copy(trailBase).normalize(); s.age = 0; trail.samples.unshift(s);
@@ -1036,10 +1138,10 @@
       const m = new T.Mesh(plane, mat); m.name = 'mezar-yaran-crescent'; m.rotation.x = -Math.PI / 2; m.visible = false; root.add(m);
       return { m, mat, time: 1, life: .56 };
     });
-    // Level-up (src/levelup.js): rune rings, sigil, light shaft, hero aura and GPU-animated sparks. All materials are created here, at build time, and warmed in warm().
-    const chargeFx = B.Charge && B.Charge.createWorld ? B.Charge.createWorld({ T, root, getGame, getSettings, scaleCount, emit, particle, flash, scar, ring: chRing }) : null;   // src/charge.js
+    // Level-up (src/levelup.js): restrained ground echoes and small GPU-animated reward motes. All materials are created here, at build time, and warmed in warm().
+    const chargeFx = B.Charge && B.Charge.createWorld ? B.Charge.createWorld({ T, root, getGame, getSettings, scaleCount, emit, particle, flash, fragments, scar, ring: chRing }) : null;   // src/charge.js
     const levelFx = B.LevelUp && B.LevelUp.createWorld ? B.LevelUp.createWorld({ T, root, getGame, getSettings, scaleCount, emit, particle, flash }) : null;
-    const skillFx = B.SkillFx && B.SkillFx.createWorld ? B.SkillFx.createWorld({ T, root, getGame, getSettings, scaleCount, emit, particle, flash, streak, scar, tells: () => tells, streakOn: () => { skMesh.visible = true; } }) : null;   // src/skill-fx.js (strike / shout tiers II-III)
+    const skillFx = B.SkillFx && B.SkillFx.createWorld ? B.SkillFx.createWorld({ T, root, getGame, getSettings, scaleCount, emit, particle, flash, fragments, streak, scar, tells: () => tells, streakOn: () => { skMesh.visible = true; } }) : null;   // src/skill-fx.js (strike / shout tiers II-III)
     function signatureStep(dt) {
       for (const o of skillCrescents) if (o.m.visible) { o.time += dt; o.mat.uniforms.uK.value = clamp(o.time / o.life, 0, 1); if (o.time >= o.life) o.m.visible = false; }
       if (levelFx) levelFx.step(dt);
@@ -1064,9 +1166,11 @@
         return;
       }
       if (name === 'boss1Anchor') {
-        if (phase === 'hit') { flash(x, y, z, 1.1, new T.Color('#ffd29a'), .09); for (let i = 0; i < scaleCount(14); i++) particle(x, y, z, 1, [3, 1.8, .7], 1, Math.random() * 6.28, .7); return; }
+        if (phase === 'hit') { fragments(x, y, z, { metal: true, count: 6, spread: .12, speed: 2.7, lift: 2.4, size: .045 }); flash(x, y, z, .48, new T.Color('#ffd29a'), .09); for (let i = 0; i < scaleCount(14); i++) particle(x, y, z, 1, [3, 1.8, .7], 1, Math.random() * 6.28, .7); return; }
         if (phase === 'break') {
-          flash(x, y, z, 2.2, new T.Color('#ff8a50'), .16, 0, softMap);
+          fragments(x, y, z, { metal: true, count: 18, spread: .35, speed: 4.5, lift: 4.2, size: .09 });
+          fragments(x, .25, z, { count: 10, spread: .5, speed: 3, lift: 2.8 });
+          flash(x, y, z, .9, new T.Color('#ff8a50'), .12, 0, softMap);
           if (tells) tells.wave(x, z, { radius: 2.8, life: .5, width: .14, color: [1.4, .3, .1], crack: 0, soft: .2 });
           for (let i = 0; i < scaleCount(22); i++) emit(x + rnd(-.3, .3), y + rnd(0, 1), z + rnd(-.3, .3), 4, i % 2 ? [3, .9, .22] : [1.6, .3, .1], rnd(-1.4, 1.4), rnd(1, 3), rnd(-1.4, 1.4), .8 + Math.random() * .5, .06);
           for (let i = 0; i < scaleCount(16); i++) particle(x, .3, z, 2, [.1, .085, .07], 1.3, Math.random() * 6.28, .6);
@@ -1114,6 +1218,14 @@
         return;
       }
       if (name === 'chargeFx') { if (chargeFx) chargeFx.demo(Object.assign({ x, z }, d)); return; }   // warm-up only (the skill drives chargeFx directly)
+      if (name === 'lootCollect') {
+        const color = linear(d.color || '#bda87a', 1.05), rare = d.rarity === 'epic' || d.rarity === 'legendary' || d.signature;
+        const n = scaleCount(rare ? 12 : 6), floor = floorAt(x, z, .3);
+        for (let i = 0; i < n; i++) { const a = i / n * Math.PI * 2, r = rnd(.18, .42), life = rnd(.3, .6);
+          emit(x + Math.sin(a)*r, floor + .2 + Math.random()*.45, z + Math.cos(a)*r, 5, color, -Math.sin(a)*r/life, rnd(.45, .85), -Math.cos(a)*r/life, life, rare ? .037 : .025); }
+        if (rare && tells) tells.wave(x,z,{radius:.75,life:.32,width:.035,color:color.map(c=>c*.28),soft:0});
+        return;
+      }
       if (name === 'slash') return; // the smear follows the actual blade
       if (name === 'strike') { strike(Object.assign({ x, z }, d)); return; }
       if (name === 'glowBurst') { if (tells) tells.glowBurst(x, z, { radius: d.radius || 1.5, life: d.duration || .5, color: linear(d.color == null ? '#f0d293' : d.color, 1.6), peak: .5 }); return; }
@@ -1220,18 +1332,19 @@
       for (let i = 0; i < count; i++) {
         const p = slots[i]; if (!p) continue;
         particleDirty = true;
-        p.time += dt; if (p.time > p.life) { slots[i] = null; alphas[i] = 0; continue; }
+        p.time += dt; ages[i] = p.time; if (p.time > p.life) { slots[i] = null; alphas[i] = 0; continue; }
         lastParticle = i;
         const soft = p.kind >= 4;
         p.vy -= dt * (p.kind === 2 ? 1.8 : p.kind === 3 ? .4 : p.kind === 4 ? -.35 : p.kind === 5 ? 0 : 9); const drag = p.kind === 2 ? Math.exp(-dt * 2.2) : p.kind === 4 ? Math.exp(-dt * .8) : 1; p.vx *= drag; p.vz *= drag;
         p.x += p.vx * dt; p.y += p.vy * dt; p.z += p.vz * dt;
-        if (p.y < .055) { p.y = .055; p.vy = Math.abs(p.vy) * .17; p.vx *= .55; p.vz *= .55; }
+        const particleFloor=physicalFloorAt(p.x,p.z)+.055;
+        if (p.y < particleFloor) { p.y = particleFloor; p.vy = Math.abs(p.vy) * .17; p.vx *= .55; p.vz *= .55; }
         positions[i * 3] = p.x; positions[i * 3 + 1] = p.y; positions[i * 3 + 2] = p.z;
         alphas[i] = soft ? Math.min(1, p.time * 6) * Math.min(1, (p.life - p.time) * 4) * (p.kind === 4 ? .75 + .25 * Math.sin(p.time * 31 + i) : 1) : Math.min(1, (p.life - p.time) * 3.5);
         sizes[i] = p.size * (p.kind === 2 ? 1 + p.time : 1);
       }
       particles.visible = lastParticle >= 0; geometry.setDrawRange(0, lastParticle + 1);
-      if (particleDirty) { uploadPrefix(geometry.attributes.position, (lastParticle + 1) * 3); uploadPrefix(geometry.attributes.aSize, lastParticle + 1); uploadPrefix(geometry.attributes.aAlpha, lastParticle + 1); }
+      if (particleDirty) { uploadPrefix(geometry.attributes.position, (lastParticle + 1) * 3); uploadPrefix(geometry.attributes.aSize, lastParticle + 1); uploadPrefix(geometry.attributes.aAlpha, lastParticle + 1); uploadPrefix(geometry.attributes.aAge, lastParticle + 1); }
       if (particleColorDirty) { uploadPrefix(geometry.attributes.color, (lastParticle + 1) * 3); uploadPrefix(geometry.attributes.aKind, lastParticle + 1); particleColorDirty = false; }
       for (let i = decals.length - 1; i >= 0; i--) { const d = decals[i]; d.time += dt; d.mesh.material.opacity = (d.grow ? .9 * Math.min(1, d.time / .25) : .86) * clamp((cfg.decals - d.time) / 8, 0, 1);
         if (d.grow) { const k = Math.min(1, d.time / d.grow.dur), e = 1 - Math.pow(1 - k, 3), sz = d.grow.from + (d.grow.to - d.grow.from) * e; d.mesh.scale.set(sz * d.grow.sx, sz / d.grow.sx, 1); } if (d.time > cfg.decals) { d.mesh.removeFromParent(); d.mesh.material.dispose(); decals.splice(i, 1); } }
@@ -1252,7 +1365,7 @@
         g.mat.opacity = g.opacity * Math.max(0, 1 - k) * Math.max(0, 1 - k); if (g.rmat) g.rmat.opacity = g.mat.opacity; if (k >= 1) { g.active = false; g.group.visible = false; }
       }
       if (tells) tells.sync(dt);
-      signatureStep(dt); scarsStep(dt); cracksStep(dt); whirlStep(dt); roarSpiralStep(dt); streaksStep(dt); goreStep(dt);
+      signatureStep(dt); fragmentsStep(dt); scarsStep(dt); cracksStep(dt); whirlStep(dt); roarSpiralStep(dt); streaksStep(dt); goreStep(dt);
     }
     function clear() {
       for (const l of labels) releaseLabel(l); labels.length = 0;
@@ -1265,7 +1378,7 @@
       for (const s of scars) releaseScar(s); scars.length = 0;
       for (const o of skillCrescents) o.m.visible = false; if (levelFx) levelFx.clear(); if (chargeFx) chargeFx.clear(); if (skillFx) skillFx.clear();
       if (tells) tells.clear(); chainClear();
-      goreClear(); gearBlood = 0; gearApply();
+      fragmentsClear(); goreClear(); gearBlood = 0; gearApply();
     }
     function disposeGhosts() {
       for (const g of ghosts) { for (const sk of g.skeletons.values()) sk.dispose(); g.mat.dispose(); if (g.rmat) g.rmat.dispose(); g.group.removeFromParent(); }
@@ -1307,13 +1420,14 @@
       add(new T.Sprite(new T.SpriteMaterial({ map: flashMap, transparent: true, depthWrite: false, depthTest: false, blending: T.AdditiveBlending })));
       add(new T.Mesh(plane, new T.MeshBasicMaterial({ color: '#1a0d0a', map: flashMap, transparent: true, opacity: .6, depthWrite: false })));
       add(new T.Mesh(new T.BufferGeometry(), trailMaterial.clone()));
-      add(new T.InstancedMesh(chLinks.geometry, chLinks.material, 1)); add(new T.Mesh(chHeadGeo, chLinks.material)); add(new T.Mesh(chDisc.geometry, chDiscMat)); add(new T.Mesh(chFloor.geometry, chFloorMat)); add(new T.Mesh(skGeo, skMesh.material)); add(new T.Mesh(chRings[0].m.geometry, chRings[0].mat)); add(new T.Mesh(chCracks[0].m.geometry, ckMat));
+      const warmLinks=new T.InstancedMesh(chLinks.geometry,chLinks.material,1),warmHeads=new T.Mesh(chHeadGeo,chLinks.material);warmLinks.receiveShadow=warmHeads.receiveShadow=true;add(warmLinks);add(warmHeads); add(new T.Mesh(chDisc.geometry, chDiscMat)); add(new T.Mesh(chFloor.geometry, chFloorMat)); add(new T.Mesh(skGeo, skMesh.material)); add(new T.Mesh(chRings[0].m.geometry, chRings[0].mat)); add(new T.Mesh(chCracks[0].m.geometry, ckMat));
       add(new T.Sprite(new T.SpriteMaterial({ map: softMap, transparent: true, depthWrite: false, depthTest: false, blending: T.AdditiveBlending, fog: false })));
       for (const o of skillCrescents) add(new T.Mesh(plane, o.mat)); if (levelFx) for (const part of levelFx.parts) add(part.points ? new T.Points(part.geo, part.mat) : new T.Mesh(part.geo, part.mat)); if (chargeFx) for (const part of chargeFx.parts) add(new T.Mesh(part.geo, part.mat));
       if (skillFx) for (const obj of skillFx.warmObjects()) add(obj);
+      for (const pool of chipPools) { const mesh = new T.InstancedMesh(chipGeo, pool.mat, 1); mesh.setColorAt(0, chipTint.setRGB(.3, .27, .23)); mesh.receiveShadow = true; add(mesh); }
       add(new T.InstancedMesh(gdGeo, gdMat, 1)); add(new T.Mesh(bsGeo, bsMat)); add(new T.InstancedMesh(chGeoG, gcMat, 1));
     }
-    const api = { burst, update, clear, tells, warm, gore, debug: () => ({ pri: gdPri.length, walls: gdPri.concat(gdMic).filter(d => d.rx === 0).length, prints: gdMic.filter(d => d.cell === 3).length, p0: gdMic.filter(d => d.cell === 3).map(d => [+d.x.toFixed(2), +d.z.toFixed(2), +d.a0.toFixed(2)]), mic: gdMic.length, count: gdMesh.count, streaks: bsLive, gibs: gibs.length }), dispose() { if (B.Effects.current === api) B.Effects.current = null; clear(); for (const o of skillCrescents) o.mat.dispose(); if (levelFx) levelFx.dispose(); if (chargeFx) chargeFx.dispose(); if (skillFx) skillFx.dispose(); bsGeo.dispose(); bsMat.dispose(); gdGeo.dispose(); gdMat.dispose(); goreAtlas.dispose(); chGeoG.dispose(); gcMat.dispose(); gcMesh.dispose(); gdMesh.dispose(); for (const s of scarFree) { s.dark.dispose(); s.hot.dispose(); } scarFree.length = 0; if (tells) tells.dispose(); disposeGhosts(); disposePools(); root.removeFromParent(); geometry.dispose(); material.dispose(); trailMaterial.dispose(); chLinks.geometry.dispose(); chLinks.material.dispose(); chLinks.dispose(); for (const s of chGlow) s.material.dispose(); chHeadGeo.dispose(); chDisc.geometry.dispose(); chDiscMat.dispose(); chFloor.geometry.dispose(); chFloorMat.dispose(); skGeo.dispose(); skMesh.material.dispose(); for (const c of chCracks) { c.m.geometry.dispose(); c.m.material.dispose(); } ckMat.dispose(); for (const r of chRings) { r.m.geometry.dispose(); r.mat.dispose(); } softMap.dispose(); bloodMap.dispose(); sprayMap.dispose(); flashMap.dispose(); plane.dispose(); } };
+    const api = { burst, update, clear, tells, warm, gore, debug: () => ({ pri: gdPri.length, walls: gdPri.concat(gdMic).filter(d => d.rx === 0).length, prints: gdMic.filter(d => d.cell === 3).length, p0: gdMic.filter(d => d.cell === 3).map(d => [+d.x.toFixed(2), +d.z.toFixed(2), +d.a0.toFixed(2)]), mic: gdMic.length, count: gdMesh.count, streaks: bsLive, gibs: gibs.length }), dispose() { if (B.Effects.current === api) B.Effects.current = null; clear(); for (const o of skillCrescents) o.mat.dispose(); if (levelFx) levelFx.dispose(); if (chargeFx) chargeFx.dispose(); if (skillFx) skillFx.dispose(); bsGeo.dispose(); bsMat.dispose(); gdGeo.dispose(); gdMat.dispose(); goreAtlas.dispose(); chGeoG.dispose(); gcMat.dispose(); gcMesh.dispose(); gdMesh.dispose(); for (const s of scarFree) { s.dark.dispose(); s.hot.dispose(); } scarFree.length = 0; if (tells) tells.dispose(); disposeGhosts(); disposePools(); for (const pool of chipPools) pool.mesh.dispose(); chipGeo.dispose(); chipStoneMat.dispose(); chipMetalMat.dispose(); root.removeFromParent(); geometry.dispose(); material.dispose(); trailMaterial.dispose(); chLinks.geometry.dispose(); chLinks.material.dispose(); chLinks.dispose(); for (const s of chGlow) s.material.dispose(); chHeadGeo.dispose(); chDisc.geometry.dispose(); chDiscMat.dispose(); chFloor.geometry.dispose(); chFloorMat.dispose(); skGeo.dispose(); skMesh.material.dispose(); for (const c of chCracks) { c.m.geometry.dispose(); c.m.material.dispose(); } ckMat.dispose(); for (const r of chRings) { r.m.geometry.dispose(); r.mat.dispose(); } softMap.dispose(); bloodMap.dispose(); sprayMap.dispose(); flashMap.dispose(); plane.dispose(); } };
     B.Effects.current = api; return api;
   },
   // Same call for code that does not hold the instance (dismemberment): B.Effects.gore('stump', x, y, z, dirX, dirZ, strength).

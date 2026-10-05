@@ -304,3 +304,11 @@ The active banner-demon-left.png and banner-demon-right.png ornaments were also 
 
 ## Equipment material scans
 Leather and steel albedo maps in `assets/equipment/material-scans.js`: original generated material textures created for this game using OpenAI image generation, October 2026. No third-party texture source.
+
+
+### Overnight cloth and narration refresh (6 October 2026)
+
+- Charcoal woven linen albedo: original generated artwork made with the built-in OpenAI image generation tool, embedded in `assets/equipment/material-scans.js` for offline use. Prompt: seamless evenly lit charcoal wool/linen diagonal twill, close material detail, no garment shapes or baked shadows. Normal and roughness companions are derived at preparation.
+- Twenty-four concise Turkish narrator lines: original game text synthesized with Microsoft Edge Turkish `tr-TR-AhmetNeural`, restrained EQ and loudness, leading/trailing silence trimmed while preserving internal speech pauses. Embedded in `src/narration.js`.
+
+Equipment thumbnails in `assets/equipment/thumbnails.js` are offline renders of this project's own equipment geometry and PBR materials; each catalog item uses its actual equipped model.

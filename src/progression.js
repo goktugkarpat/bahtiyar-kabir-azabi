@@ -6,6 +6,7 @@
   const POINTS = Object.freeze([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
   const LEGACY_THRESHOLDS = Object.freeze([0, 40, 100, 350, 850, 1450, 2000]);
   // Expanded route: ~60 temple foes, ~59 coastal foes, then ~60 ruin/cave and ~60 forge foes.
+  // Three opening prisoners award 60 XP: the first seal clear grants level 2 and its first active skill point.
   // Final chapter skills arrive before the forge boss on a mostly-cleared route.
   // Active skill slots: right mouse, key 1, key 2, key 3 (round 7; saves with a 3-entry loadout load with the 4th slot empty / auto-filled).
   const SLOT_COUNT = 4;
@@ -213,7 +214,7 @@
   const slots = Object.freeze(['weapon', 'head', 'chest', 'hands', 'boots']);
   // Drop tuning (round 6): ordinary foes 9 %, elites 35 %, guaranteed after 14 dry kills; see lootPick().
   const LOOT_NORMAL = 18, LOOT_ELITE = 45, LOOT_PITY = 14, LOOT_JUNK = .12;
-  const XP = Object.freeze({ prisoner: 19, guard: 25, cultist: 23, stalker: 23, carrier: 25 });
+  const XP = Object.freeze({ prisoner: 20, guard: 25, cultist: 23, stalker: 23, carrier: 25 });
   const hash = value => { let h = 2166136261; for (let n = 0; n < value.length; n++) h = Math.imul(h ^ value.charCodeAt(n), 16777619); return h >>> 0; };
   const result = (ok, reason) => ({ ok, reason: reason || '' });
   const int = (v, fallback) => Number.isFinite(v) ? Math.max(0, Math.floor(v)) : fallback;

@@ -319,7 +319,7 @@
       }
       s.r = role.r * scale; s.h = Math.max(0, s.L * .5 - s.r * .5);
       s.c0.copy(s.j0).addScaledVector(s.a0, s.L * .5);
-      s.p.copy(s.c0); s.q.identity();
+      s.p.copy(s.c0); s.q.identity(); s.floorY=pieceFloor(s.p.x,s.p.z);
       // throw: along the blade, up, with spin
       const heavy = o.kind === 'heavy' || o.kind === 'finisher' || o.kind === 'whirlLast', dirA = o.face + rnd(-.35, .35);
       const speed = (heavy ? rnd(4.2, 6.4) : rnd(2.6, 4.2)) * (role.round ? .85 : 1);
@@ -373,6 +373,7 @@
       const radius = (s.L + s.r) * sc;
       s.cap.boundingSphere.set(s.p, radius); for (let i = 0; i < s.meshes.length; i++) s.meshes[i].boundingSphere.set(s.p, radius);
     }
+    const pieceFloor=(x,z)=>{const y=world&&world.effectHeightAt?world.effectHeightAt(x,z,0)-.035:0;return Number.isFinite(y)?Math.max(0,y):0;};
     function stepPiece(s, dt) {
       s.age += dt;
       if (s.rest > 0) {   // at rest: wait, then shrink away
@@ -390,12 +391,13 @@
         const wl = s.w.length(); if (wl > 1e-4) { Q1.setFromAxisAngle(V1.copy(s.w).multiplyScalar(1 / wl), wl * h); s.q.premultiply(Q1); }
         V2.copy(s.a0).applyQuaternion(s.q);
         const reach = s.round ? s.r : Math.abs(V2.y) * s.h + s.r, low = s.p.y - reach;
-        if (low < 0) {
-          s.p.y -= low;
+        s.floorY=pieceFloor(s.p.x,s.p.z);
+        if (low < s.floorY) {
+          s.p.y += s.floorY-low;
           if (s.v.y < -.5) {   // bounce
             s.v.y = -s.v.y * .32; s.v.x *= .62; s.v.z *= .62; s.w.multiplyScalar(.6); s.w.x += rnd(-2, 2); s.w.z += rnd(-2, 2); s.bounces++;
             if (s.bounces <= 3) { sound('hit', { volume: s.bounces === 1 ? .55 : .3, x: s.p.x, z: s.p.z }); }
-            if (s.bounces <= 2) { V3.set(s.p.x, .15, s.p.z); spurtFloor(s, V3, s.bounces === 1 ? 1 : .6); }
+            if (s.bounces <= 2) { V3.set(s.p.x, s.floorY+.06, s.p.z); spurtFloor(s, V3, s.bounces === 1 ? 1 : .6); }
           } else {
             s.v.y = 0; const fr = s.round ? 1.7 : 6; s.v.x *= Math.exp(-h * fr); s.v.z *= Math.exp(-h * fr);
             if (s.round) { V3.set(-s.v.z, 0, s.v.x).multiplyScalar(1 / s.r); s.w.lerp(V3, 1 - Math.exp(-h * 7)); }   // the head rolls
@@ -406,11 +408,11 @@
       // smear while sliding / rolling, then a drip trail while flying
       s.trail -= dt; const sp = Math.hypot(s.v.x, s.v.z);
       if (s.trail <= 0 && s.age < 2.6) {
-        const airborne = s.p.y > s.r + .12;
-        if (airborne || sp > 1.1) { s.trail = airborne ? (s.lowFx ? .16 : .085) : (s.lowFx ? .32 : .2); V3.copy(s.j0).sub(s.c0).applyQuaternion(s.q).add(s.p); spurt(V3.x, Math.max(.06, V3.y), V3.z, Math.atan2(s.v.x, s.v.z) + Math.PI, airborne ? .8 : .5, false); }
+        const airborne = s.p.y > s.floorY+s.r+.12;
+        if (airborne || sp > 1.1) { s.trail = airborne ? (s.lowFx ? .16 : .085) : (s.lowFx ? .32 : .2); V3.copy(s.j0).sub(s.c0).applyQuaternion(s.q).add(s.p); spurt(V3.x, Math.max(s.floorY+.025, V3.y), V3.z, Math.atan2(s.v.x, s.v.z) + Math.PI, airborne ? .8 : .5, false); }
       }
-      const still = sp < .18 && s.w.lengthSq() < 1.4 && s.p.y <= s.r + .05 + Math.abs(V2.y) * s.h;
-      if (still && s.bounces > 0) { s.rest = .001; s.v.set(0, 0, 0); s.w.set(0, 0, 0); if (!s.lowFx || s.serial % 2) { V3.set(s.p.x, .15, s.p.z); spurtFloor(s, V3, 1); } }
+      const still = sp < .18 && s.w.lengthSq() < 1.4 && s.p.y <= s.floorY+s.r+.05+Math.abs(V2.y)*s.h;
+      if (still && s.bounces > 0) { s.rest = .001; s.v.set(0, 0, 0); s.w.set(0, 0, 0); if (!s.lowFx || s.serial % 2) { V3.set(s.p.x, s.floorY+.06, s.p.z); spurtFloor(s, V3, 1); } }
       placePiece(s);
     }
     function spurtFloor(s, at, power) { fx('blood', { x: at.x, y: at.y, z: at.z, player: true, damage: 0, heavy: power > .9, face: rnd(0, 6.283), kill: false }); }
@@ -477,12 +479,15 @@
       const bones = []; model.root.traverse(n => { if (n.isBone && /^(spine_0?[123]|spine0?[123]|pelvis)$/i.test(n.name)) bones.push(n); });
       model.animate = function (dt, state) {
         animate.call(model, dt, state);
-        if (state && state.dead && info.t < 1.9) {
-          info.t += dt; const k = Math.exp(-info.t * 1.7) * (info.t < .09 ? info.t / .09 : 1), t = info.t;
+        if (state && state.dead && info.t < 1.25) {
+          info.t += dt; const k = Math.exp(-info.t * 3.8) * (info.t < .055 ? info.t / .055 : 1), t = info.t;
           for (let i = 0; i < bones.length; i++) {
-            const a = k * (.16 * Math.sin(t * 37 + i * 1.7) + .1 * Math.sin(t * 23 + i * 4.1)) * (i + 1) / bones.length;
-            bones[i].rotateX(a); bones[i].rotateZ(a * .7);
+            const a = k * (.09 * Math.sin(t * 21 + i * 1.7) + .04 * Math.sin(t * 11 + i * 4.1)) * (i + 1) / bones.length;
+            bones[i].rotateX(a); bones[i].rotateZ(a * .55);
           }
+          // Authored motion has already refreshed its world matrices. This
+          // cosmetic recoil follows it, so refresh before skinning/stump FX.
+          if(bones.length)model.root.updateMatrixWorld(true);
         }
       };
     }

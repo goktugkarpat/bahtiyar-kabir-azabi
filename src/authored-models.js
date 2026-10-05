@@ -900,6 +900,7 @@
     return item && item.slot === slot ? item : null;
   }
   function equipmentModel(item,id) {
+    if(item && item.slot === 'weapon' && B.EquipmentArt.uniqueWeapons.has(id))return id;
     var special={
       'mourner-chest':'brigandine-chest','salt-shroud':'sailcoat-chest','empty-vow-chest':'lamellar-chest','buried-fire-chest':'lamellar-chest',
       'funeral-hood':'prayer-hood','orphan-hood':'prayer-hood','buried-prayer-hood':'buried-hood','coal-mourner-hood':'buried-hood',
@@ -1774,7 +1775,14 @@
       if (trail.mesh.parent !== parent) parent.add(trail.mesh);
       if (state.reset) trail.clear();
       var c = trailWindow(state); parent.updateWorldMatrix(true, false); trailInv.copy(parent.matrixWorld).invert();
-      marker.getWorldPosition(trailA).applyMatrix4(trailInv); weapon.getWorldPosition(trailB); trailB.applyMatrix4(trailInv); trailB.lerp(trailA, .3);
+      marker.getWorldPosition(trailA).applyMatrix4(trailInv); weapon.getWorldPosition(trailB); trailB.applyMatrix4(trailInv); var spearTrail = equipment && equipment.weaponType === 'spear'; trailB.lerp(trailA, spearTrail ? .83 : .3);
+      if (spearTrail && c.on) { c.life = Math.min(c.life, .11); c.gain *= .62; }
+      if(c.on){
+        var empowered=state.heavy||Number.isFinite(state.whirl)&&state.whirl>=0;
+        var uniforms=trail.mesh.material.uniforms;
+        if(empowered){uniforms.core.value.setRGB(1.0,.2,.03);uniforms.hot.value.setRGB(1.0,.62,.22);}
+        else{uniforms.core.value.setRGB(.40,.36,.29);uniforms.hot.value.setRGB(.90,.83,.68);c.gain*=.58;}
+      }
       trail.update(dt, trailA, trailB, c.on && !state.dead, c);
     });
     function setEquipment(next) {
@@ -1802,7 +1810,7 @@
       });
       armorMeshes.forEach(function (m) {
         var slot = m.userData.equipmentSlot, id = equipment[slot + 'Id'], item = equipmentItem(id, slot), model = equipmentModel(item,id);
-        m.visible = model === m.userData.equipmentId;
+        m.visible = model === m.userData.equipmentId || !!id && m.userData.equipmentId === 'variant@' + id;
         m.material = equipmentFinish(equipmentMaterials.get(m), m.visible && item && item.finish);
       });
       var chestItem = equipmentItem(equipment.chestId, 'chest'), chestModel = equipmentModel(chestItem,equipment.chestId);

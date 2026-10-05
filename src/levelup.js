@@ -5,7 +5,7 @@
         audio.js H.levelUp bunu efekt kanalına bağlar; müzikten bağımsızdır. Yalnız ctx/dry/wet ister, bu yüzden OfflineAudioContext ile de sınanır.
      2. B.LevelUp.create(opts)  ekran katmanı: afiş (SEVİYE ATLADIN), kenar parlaması / renk sapması (post.setAbilityFx), kamera itişi, kısa zaman yavaşlaması.
         app.js progression olayı B.LevelUp.trigger(...) çağırır; her kare B.LevelUp.step(dt) ve B.LevelUp.push() / timeScale() okunur.
-     3. B.LevelUp.createWorld(opts)  dünya efekti (effects.js içinde kurulur): kıvılcım sarmalı, üç rün halkası, ince ışık sütunu, yükselen közler.
+     3. B.LevelUp.createWorld(opts)  dünya efekti (effects.js içinde kurulur): iki ince soluk altın yankı, kısa yükselen közler ve küçük ışık zerreleri.
    Sıfır dinamik ışık, sıfır çalışma zamanı materyal/geometri üretimi (hepsi kurulumda ve ısınmada), kare başına ayırma yok. */
 (() => {
   'use strict';
@@ -210,14 +210,14 @@ body:has(#lu-banner.lu-on) #announcement{opacity:0!important}   /* the arena / r
     if (t > TOTAL) { S.on = false; if (el) el.classList.remove('lu-on'); return; }
     if (post && post.setAbilityFx && t < 1.4) {
       const calm = S.calm;
-      FX.flash = .46 * Math.exp(-t * 8.5) * clamp(t / .012, 0, 1);
-      FX.vig = .72 * clamp(t / .04, 0, 1) * Math.exp(-Math.max(0, t - .04) * 7.5);
-      FX.chroma = calm ? 0 : .3 * Math.exp(-t * 5.2);
-      FX.sat = .28 * Math.exp(-t * 3);
-      FX.spin = calm || t > .4 ? 0 : .3 * Math.exp(-t * 9);
+      FX.flash = .15 * Math.exp(-t * 8.5) * clamp(t / .012, 0, 1);
+      FX.vig = .24 * clamp(t / .04, 0, 1) * Math.exp(-Math.max(0, t - .04) * 7.5);
+      FX.chroma = calm ? 0 : .035 * Math.exp(-t * 5.2);
+      FX.sat = .08 * Math.exp(-t * 3);
+      FX.spin = calm || t > .4 ? 0 : .05 * Math.exp(-t * 9);
       FX.spinAt.x = S.hx; FX.spinAt.z = S.hz;
       const k = t / .9;
-      if (!calm && k < 1) { FX.ring.x = S.hx; FX.ring.z = S.hz; FX.ring.r = 1.2 + 10 * ease(k); FX.ring.w = .75 * (.7 + .9 * k); FX.ring.t = k; post.setAbilityFx(FX); }
+      if (!calm && k < 1) { FX.ring.x = S.hx; FX.ring.z = S.hz; FX.ring.r = .65 + 2.1 * ease(k); FX.ring.w = .18 * (.7 + .9 * k); FX.ring.t = k; post.setAbilityFx(FX); }
       else { const ring = FX.ring; FX.ring = null; post.setAbilityFx(FX); FX.ring = ring; }
     }
   }
@@ -236,105 +236,37 @@ body:has(#lu-banner.lu-on) #announcement{opacity:0!important}   /* the arena / r
   }
 
   // =================================================================== 3. DÜNYA EFEKTİ (effects.js kurar)
-  const GLSL_COMMON = `
-const float PI=3.14159265;
-float hash1(float n){return fract(sin(n*127.1+31.7)*43758.5453);}
-float seg(vec2 p,vec2 a,vec2 b,float w){vec2 pa=p-a,ba=b-a;float h=clamp(dot(pa,ba)/dot(ba,ba),0.,1.);return 1.-smoothstep(w*.4,w,length(pa-ba*h));}
-float rune(vec2 p,float id){
-  float h1=hash1(id),h2=hash1(id+7.3),h3=hash1(id+19.1);
-  float s=seg(p,vec2(0.,-.86),vec2(0.,.86),.15);
-  if(h1>.3)s=max(s,seg(p,vec2(0.,.86*(h2*2.-1.)),vec2(.62,.86*(h3*2.-1.)+.34),.14));
-  if(h2>.42)s=max(s,seg(p,vec2(0.,-.1-.5*h3),vec2(-.62,.5*h1),.14));
-  if(h3>.58)s=max(s,seg(p,vec2(-.56,.72),vec2(.56,.72),.13));
-  if(h1<.22)s=max(s,seg(p,vec2(-.52,-.42),vec2(.52,.22),.13));
-  if(h2<.2)s=max(s,seg(p,vec2(-.5,.1),vec2(.5,.1),.13));
-  return s;
-}`;
   const PLANE_VS = 'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}';
-  const RINGS_FS = `varying vec2 vUv;uniform float uT,uCalm;${GLSL_COMMON}
-void main(){
-  vec2 p=(vUv-.5)*20.;float r=length(p);if(r>9.9)discard;float a=atan(p.x,p.y);vec3 col=vec3(0.);
-  for(int i=0;i<3;i++){
-    float fi=float(i);float age=uT-(.03+.17*fi);if(age<0.)continue;
-    float dur=.85+.17*fi,k=clamp(age/dur,0.,1.),R=3.2+2.4*fi;
-    float rad=uCalm>.5?R*.6:mix(.45,R,1.-pow(1.-k,3.));
-    float life=smoothstep(0.,.05,age)*pow(1.-k,1.1);
-    float w=.05+.035*k,dd=r-rad;
-    float core=exp(-dd*dd/(w*w)),halo=exp(-dd*dd/(w*w*20.))*.34;
-    float bw=.3+.09*fi,bv=(rad-r-.07)/bw;
-    float band=step(0.,bv)*step(bv,1.)*smoothstep(0.,.1,bv)*(1.-smoothstep(.9,1.,bv));
-    float N=20.+9.*fi,ca=(a/(2.*PI)+.5+(fi<1.5?1.:-1.)*age*.05)*N;
-    float rn=rune(vec2(fract(ca)*2.-1.,bv*2.-1.),floor(ca)+fi*57.);
-    col+=(vec3(5.4,2.6,.8)*core+vec3(2.8,.07,.03)*halo+vec3(4.,1.4,.38)*band*(.07+.93*rn))*life;
-  }
-  if(max(col.r,max(col.g,col.b))<.004)discard;
-  gl_FragColor=vec4(col,1.);
-}`;
-  const SIGIL_FS = `varying vec2 vUv;uniform float uT,uCalm;${GLSL_COMMON}
-void main(){
-  vec2 p=(vUv-.5)*5.2;float r=length(p);if(r>2.55)discard;float a=atan(p.x,p.y),t=uT;
-  float L=smoothstep(0.,.16,t)*(1.-smoothstep(1.15,2.05,t));
-  float pul=uCalm>.5?1.:1.+.025*sin(t*10.);
-  float R1=1.95*pul,R2=1.6*pul,R3=.72;
-  float c1=exp(-pow((r-R1)/.036,2.)),c2=exp(-pow((r-R2)/.026,2.))*.8,c3=exp(-pow((r-R3)/.022,2.))*.6;
-  float bv=(r-R2-.035)/(R1-R2-.07);
-  float band=step(0.,bv)*step(bv,1.)*smoothstep(0.,.12,bv)*(1.-smoothstep(.88,1.,bv));
-  float spin=uCalm>.5?0.:t*.07;
-  float ca=(a/(2.*PI)+.5+spin)*26.;
-  float rn=rune(vec2(fract(ca)*2.-1.,bv*2.-1.),floor(ca)+3.);
-  float spokes=pow(max(0.,cos((a+(uCalm>.5?0.:t*.4))*6.)),22.)*smoothstep(R3,R3+.12,r)*(1.-smoothstep(R2-.14,R2-.03,r))*.8;
-  float halo=exp(-pow((r-R1)/.26,2.))*.2;
-  float pool=exp(-r*r/.32)*smoothstep(0.,.05,t)*(1.-smoothstep(.2,1.1,t))*.5;
-  vec3 col=(vec3(5.8,2.7,.8)*(c1+c2+c3)+vec3(3.,.12,.04)*halo+vec3(4.2,1.4,.38)*band*(.07+.93*rn)+vec3(3.4,.5,.11)*spokes)*L+vec3(3.4,1.,.24)*pool;
-  if(max(col.r,max(col.g,col.b))<.004)discard;
-  gl_FragColor=vec4(col,1.);
-}`;
-  const BEAM_VS = `varying vec3 vN,vV;varying float vY;varying vec2 vUv;void main(){vUv=uv;vY=uv.y;vec4 mv=modelViewMatrix*vec4(position,1.);vN=normalize(normalMatrix*normal);vV=normalize(-mv.xyz);gl_Position=projectionMatrix*mv;}`;
-  const BEAM_FS = `varying vec3 vN,vV;varying float vY;varying vec2 vUv;uniform float uT,uCalm;
-void main(){
-  float ndv=abs(dot(normalize(vN),normalize(vV)));float soft=pow(ndv,1.25);
-  float top=uCalm>.5?1.:clamp(uT/.15,0.,1.);float grow=1.-smoothstep(top-.06,top+.001,vY);
-  float env=smoothstep(0.,.05,uT)*(1.-smoothstep(.4,1.5,uT));
-  float st=.5+.5*sin(vUv.x*6.2832*6.+vY*7.-uT*(uCalm>.5?0.:6.)),st2=.5+.5*sin(vUv.x*6.2832*11.-vY*5.+uT*(uCalm>.5?0.:4.));
-  float streak=.3+.7*st*st2;
-  float hf=pow(1.-vY,1.35)*smoothstep(0.,.025,vY);
-  float al=soft*hf*env*grow*streak*.62;
-  vec3 col=mix(vec3(2.8,.14,.05),vec3(6.,3.2,1.1),soft*soft);
-  col*=al;if(max(col.r,max(col.g,col.b))<.004)discard;
-  gl_FragColor=vec4(col,1.);
-}`;
-  const SHELL_FS = `varying vec3 vN,vV;varying float vY;varying vec2 vUv;uniform float uT,uCalm;
-void main(){
-  float ndv=abs(dot(normalize(vN),normalize(vV)));float rim=pow(1.-ndv,2.4);
-  float ym=vY*2.5;vec3 col=vec3(0.);
-  col+=vec3(4.2,1.15,.26)*pow(rim,2.2)*exp(-uT*3.2)*smoothstep(0.,.03,uT)*.5*(1.-smoothstep(.1,.9,vY));
-  if(uCalm<.5){
-    for(int i=0;i<3;i++){float yc=(uT-.02-.15*float(i))*3.1;float c=exp(-pow((ym-yc)/.055,2.))*smoothstep(0.,.12,yc)*(1.-smoothstep(1.9,2.6,yc));
-      float jew=.35+.65*pow(max(0.,cos(vUv.x*6.2832*12.+uT*3.)),10.);
-      col+=mix(vec3(4.4,2.2,.55),vec3(6.5,5.,3.),c)*c*jew;}
-  }
-  if(max(col.r,max(col.g,col.b))<.004)discard;
-  gl_FragColor=vec4(col,1.);
-}`;
+  const RINGS_FS = `varying vec2 vUv;uniform float uT,uCalm;
+    void main(){vec2 p=(vUv-.5)*6.;float r=length(p);if(r>2.9)discard;float angle=atan(p.x,p.y);vec3 col=vec3(0.);
+      for(int i=0;i<2;i++){float fi=float(i),age=uT-.14*fi;if(age<0.)continue;
+        float k=clamp(age/(.64+.14*fi),0.,1.),R=1.15+1.10*fi;
+        float rad=uCalm>.5?R*.6:mix(.4,R,1.-pow(1.-k,2.6));
+        float w=max(fwidth(r)*1.5,.028+.009*k),d=(r-rad)/w;
+        float contour=exp(-d*d),wake=exp(-pow((r-rad+.065)/.09,2.))*.12;
+        float weather=.65+.22*sin(angle*9.+fi)+.13*sin(angle*21.-fi);
+        float env=smoothstep(0.,.04,age)*pow(1.-k,1.8);
+        col+=mix(vec3(.68,.50,.28),vec3(.38,.18,.055),fi)*(contour*weather+wake)*env;
+      }if(max(col.r,max(col.g,col.b))<.003)discard;gl_FragColor=vec4(col,1.);}`;
   const PTS_VS = `attribute vec4 aA,aB;uniform float uT,uScale,uCalm;uniform vec3 uHero,uOrigin;varying vec3 vC;varying float vAlpha;
 void main(){
   float kind=aB.x,size=aB.y,seed=aB.z,life=aB.w;float age=uT-aA.w;float k=age/life;
   if(age<0.||k>=1.||(uCalm>.5&&kind<2.5)){gl_Position=vec4(2.,2.,2.,1.);gl_PointSize=0.;vAlpha=0.;vC=vec3(0.);return;}
   vec3 p;vec3 col;float al;
   if(kind<.5){
-    float h=age*aA.z;float ang=aA.x+age*5.2+h*.3;float r=aA.y*(1.-.4*k)+.1*sin(age*9.+seed*30.);
+    float h=age*aA.z;float ang=aA.x+age*2.1+h*.3;float r=aA.y*(1.-.4*k)+.045*sin(age*3.+seed*30.);
     p=uHero+vec3(sin(ang)*r,.05+h,cos(ang)*r);
-    col=mix(vec3(7.5,4.4,1.5),vec3(3.4,.22,.05),smoothstep(.12,1.,k));
+    col=mix(vec3(1.4,1.1,.75),vec3(.7,.2,.055),smoothstep(.12,1.,k));
     al=smoothstep(0.,.07,k)*pow(1.-k,1.35);
   }else if(kind<1.5){
     p=uOrigin+vec3(sin(aA.x)*aA.y,.1+age*aA.z,cos(aA.x)*aA.y);
     p.x+=sin(age*2.3+seed*40.)*.22;p.z+=cos(age*1.9+seed*33.)*.22;
-    col=seed>.5?vec3(3.6,1.7,.5):vec3(2.8,.2,.07);
-    al=smoothstep(0.,.18,k)*(1.-smoothstep(.55,1.,k))*(.72+.28*sin(age*14.+seed*50.));
+    col=seed>.5?vec3(.85,.62,.31):vec3(.55,.15,.04);
+    al=smoothstep(0.,.18,k)*(1.-smoothstep(.55,1.,k))*(.9+.1*sin(age*4.+seed*50.));
   }else{
     vec3 dir=vec3(sin(aA.x)*cos(aA.y),sin(aA.y),cos(aA.x)*cos(aA.y));
     p=uOrigin+vec3(0.,.9,0.)+dir*aA.z*age*(1.-.4*k);p.y-=5.*age*age;p.y=max(p.y,.06);
-    col=vec3(8.,4.8,1.5);al=pow(1.-k,1.4);
+    col=vec3(1.45,1.15,.7);al=pow(1.-k,1.4);
   }
   vec4 mv=modelViewMatrix*vec4(p,1.);
   gl_PointSize=clamp(size*uScale/max(1.,-mv.z),1.,60.);gl_Position=projectionMatrix*mv;vC=col;vAlpha=al;
@@ -342,66 +274,45 @@ void main(){
   const PTS_FS = `varying vec3 vC;varying float vAlpha;
 void main(){vec2 q=gl_PointCoord*2.-1.;float d=length(q);
   float core=pow(max(0.,1.-d),2.6),halo=pow(max(0.,1.-d),1.15)*.28;
-  float star=(exp(-abs(q.x)*14.)*exp(-abs(q.y)*2.2)+exp(-abs(q.y)*14.)*exp(-abs(q.x)*2.2))*.5;
-  float v=(core+halo+star)*vAlpha;if(v<.004)discard;gl_FragColor=vec4(vC*v,1.);}`;
+  float v=(core+halo*.4)*vAlpha;if(v<.004)discard;gl_FragColor=vec4(vC*v,1.);}`;
 
   /* o: { T, root, getGame, getSettings, scaleCount, emit, particle, flash } (effects.js) */
   function createWorld(o) {
-    const T = o.T, root = o.root;
-    const U = { uT: { value: 99 }, uCalm: { value: 0 }, uScale: { value: 1000 }, uHero: { value: new T.Vector3() }, uOrigin: { value: new T.Vector3() } };
-    const mk = (fs, extra) => new T.ShaderMaterial(Object.assign({ transparent: true, depthWrite: false, blending: T.AdditiveBlending, uniforms: U, vertexShader: PLANE_VS, fragmentShader: fs, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 }, extra || {}));
-    const plane = new T.PlaneGeometry(1, 1);
-    const ringsMat = mk(RINGS_FS), sigilMat = mk(SIGIL_FS);
-    const rings = new T.Mesh(plane, ringsMat); rings.scale.setScalar(20); rings.rotation.x = -Math.PI / 2; rings.renderOrder = 3; rings.name = 'level-rune-rings';
-    const sigil = new T.Mesh(plane, sigilMat); sigil.scale.setScalar(5.2); sigil.rotation.x = -Math.PI / 2; sigil.renderOrder = 4; sigil.name = 'level-sigil';
-    const beamGeo = new T.CylinderGeometry(.11, .23, 6.5, 28, 1, true).translate(0, 3.25, 0);
-    const shellGeo = new T.CylinderGeometry(.46, .52, 2.5, 40, 1, true).translate(0, 1.25, 0);
-    const side = { side: T.DoubleSide, polygonOffset: false, vertexShader: BEAM_VS };
-    const beamMat = mk(BEAM_FS, side), shellMat = mk(SHELL_FS, side);
-    const beam = new T.Mesh(beamGeo, beamMat); beam.renderOrder = 6; beam.name = 'level-light-shaft';
-    const shell = new T.Mesh(shellGeo, shellMat); shell.renderOrder = 7; shell.name = 'level-hero-aura';
-    // GPU-animated points: [24 hot sparks][120 helix][96 motes]; positions are computed in the vertex shader from the time uniform
-    const NS = 24, NH = 120, NM = 96, N = NS + NH + NM, aA = new Float32Array(N * 4), aB = new Float32Array(N * 4);
-    let seed = 20261002; const R = () => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 4294967296; };
-    for (let i = 0; i < NS; i++) { const j = i * 4; aA[j] = R() * 6.2832; aA[j + 1] = .1 + R() * 1.0; aA[j + 2] = 4 + R() * 4.5; aA[j + 3] = R() * .08; aB[j] = 2; aB[j + 1] = .07 + R() * .05; aB[j + 2] = R(); aB[j + 3] = .42 + R() * .4; }
-    for (let m = 0; m < NH; m++) { const i = NS + m, j = i * 4, strand = m & 1, step = m >> 1; aA[j] = strand * Math.PI + step * .38; aA[j + 1] = .95 + R() * .42; aA[j + 2] = 3.6 + R() * 1.7; aA[j + 3] = .05 + step * .0085 + strand * .004; aB[j] = 0; aB[j + 1] = .15 + R() * .11; aB[j + 2] = R(); aB[j + 3] = .85 + R() * .5; }
-    for (let m = 0; m < NM; m++) { const i = NS + NH + m, j = i * 4; aA[j] = R() * 6.2832; aA[j + 1] = .25 + Math.sqrt(R()) * 1.7; aA[j + 2] = .6 + R() * 1.4; aA[j + 3] = .08 + R() * .85; aB[j] = 1; aB[j + 1] = .1 + R() * .09; aB[j + 2] = R(); aB[j + 3] = 1.4 + R() * 1.0; }
-    const pg = new T.BufferGeometry(); pg.setAttribute('position', new T.BufferAttribute(new Float32Array(N * 3), 3)); pg.setAttribute('aA', new T.BufferAttribute(aA, 4)); pg.setAttribute('aB', new T.BufferAttribute(aB, 4));
-    const ptsMat = new T.ShaderMaterial({ transparent: true, depthWrite: false, blending: T.AdditiveBlending, uniforms: U, vertexShader: PTS_VS, fragmentShader: PTS_FS });
-    const pts = new T.Points(pg, ptsMat); pts.frustumCulled = false; pts.renderOrder = 8; pts.name = 'level-sparks'; pg.setDrawRange(0, N);
-    const all = [rings, sigil, beam, shell, pts];
-    for (const m of all) { m.visible = false; m.frustumCulled = false; root.add(m); }
-    let active = false, floorY = .065;
-    const heightAt = (x, z) => { const w = B.app && B.app.world; return w && w.effectHeightAt ? w.effectHeightAt(x, z, .85) : .065; };
-    const color = new T.Color();
-    function place(x, z) {
-      floorY = heightAt(x, z);
-      sigil.position.set(x, floorY + .04, z); beam.position.set(x, floorY, z); shell.position.set(x, floorY, z); U.uHero.value.set(x, floorY, z);
+    const T=o.T,root=o.root;
+    const U={uT:{value:99},uCalm:{value:0},uScale:{value:1000},uHero:{value:new T.Vector3()},uOrigin:{value:new T.Vector3()}};
+    const plane=new T.PlaneGeometry(1,1);
+    const ringsMat=new T.ShaderMaterial({transparent:true,depthWrite:false,blending:T.AdditiveBlending,uniforms:U,vertexShader:PLANE_VS,fragmentShader:RINGS_FS,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-4});
+    const rings=new T.Mesh(plane,ringsMat);rings.scale.setScalar(6);rings.rotation.x=-Math.PI/2;rings.renderOrder=3;rings.name='level-earned-echo';
+    // Small, fixed GPU population: eight sparks, sixteen loose rising embers,
+    // twenty-four motes. The reward never obscures an incoming combat tell.
+    const NS=8,NH=16,NM=24,N=NS+NH+NM,aA=new Float32Array(N*4),aB=new Float32Array(N*4);
+    let seed=20261002;const R=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
+    for(let i=0;i<NS;i++){const j=i*4;aA[j]=R()*6.2832;aA[j+1]=.1+R()*.8;aA[j+2]=2.0+R()*1.8;aA[j+3]=R()*.06;aB[j]=2;aB[j+1]=.03+R()*.025;aB[j+2]=R();aB[j+3]=.36+R()*.25;}
+    for(let m=0;m<NH;m++){const j=(NS+m)*4;aA[j]=R()*6.2832;aA[j+1]=.40+R()*.25;aA[j+2]=1.2+R()*.9;aA[j+3]=.03+R()*.22;aB[j]=0;aB[j+1]=.035+R()*.028;aB[j+2]=R();aB[j+3]=.65+R()*.35;}
+    for(let m=0;m<NM;m++){const j=(NS+NH+m)*4;aA[j]=R()*6.2832;aA[j+1]=.15+Math.sqrt(R())*.85;aA[j+2]=.45+R()*.55;aA[j+3]=.05+R()*.25;aB[j]=1;aB[j+1]=.025+R()*.024;aB[j+2]=R();aB[j+3]=.7+R()*.45;}
+    const pg=new T.BufferGeometry();pg.setAttribute('position',new T.BufferAttribute(new Float32Array(N*3),3));pg.setAttribute('aA',new T.BufferAttribute(aA,4));pg.setAttribute('aB',new T.BufferAttribute(aB,4));
+    const ptsMat=new T.ShaderMaterial({transparent:true,depthWrite:false,blending:T.AdditiveBlending,uniforms:U,vertexShader:PTS_VS,fragmentShader:PTS_FS});
+    const pts=new T.Points(pg,ptsMat);pts.renderOrder=5;pts.name='level-earned-motes';pg.setDrawRange(0,N);
+    const all=[rings,pts];for(const m of all){m.visible=false;m.frustumCulled=false;root.add(m);}
+    let active=false,floorY=.065;
+    const heightAt=(x,z)=>{const w=B.app&&B.app.world;return w&&w.effectHeightAt?w.effectHeightAt(x,z,.85):.065;};
+    const color=new T.Color();
+    function place(x,z){floorY=heightAt(x,z);U.uHero.value.set(x,floorY,z);}
+    function start(x,z){
+      const cfg=o.getSettings(),canvas=B.app&&B.app.renderer?B.app.renderer.domElement:null,q=clamp((cfg.particles||560)/560,.3,1);
+      U.uT.value=0;U.uCalm.value=reduced.matches?1:0;U.uScale.value=canvas&&canvas.height>0?canvas.height:innerHeight;
+      place(x,z);U.uOrigin.value.set(x,floorY,z);rings.position.set(x,floorY+.035,z);
+      pg.setDrawRange(0,q<.45?NS+NH:N);for(const m of all)m.visible=true;active=true;
+      // A tight acknowledgement at the feet, then silence. The earned-level
+      // banner carries the announcement while the world stays readable.
+      const sc=o.scaleCount;
+      for(let i=0,n=sc(7);i<n;i++){const a=R()*6.2832;o.emit(x+Math.sin(a)*.3,floorY+.1,z+Math.cos(a)*.3,4,[.95,.62,.23],Math.sin(a)*.15,.65+R()*.55,Math.cos(a)*.15,.45+R()*.35,.025+R()*.015);}
+      o.flash(x,floorY+.8,z,.65,color.setRGB(.8,.68,.46),.065,0);
     }
-    function start(x, z) {
-      const cfg = o.getSettings(), canvas = B.app && B.app.renderer ? B.app.renderer.domElement : null, q = clamp((cfg.particles || 560) / 560, .3, 1);
-      U.uT.value = 0; U.uCalm.value = reduced.matches ? 1 : 0; U.uScale.value = canvas && canvas.height > 0 ? canvas.height : innerHeight;
-      floorY = heightAt(x, z); U.uOrigin.value.set(x, floorY, z);
-      rings.position.set(x, floorY + .035, z); place(x, z);
-      pg.setDrawRange(0, q < .45 ? NS + 72 : N);   // Low: fewer helix sparks, no motes
-      for (const m of all) m.visible = true;
-      active = true;
-      // Pooled particles (one draw call shared with every other effect): hot sparks along the floor, a few rising embers, one star flash.
-      const e = o.emit, sc = o.scaleCount, floor = floorY;
-      for (let i = 0, n = sc(26); i < n; i++) { const a = i / n * 6.2832 + R() * .3; o.particle(x + Math.sin(a) * .5, floor + .2, z + Math.cos(a) * .5, 1, [5.2, 2.6, .8], 1.9, a, .75); }
-      for (let i = 0, n = sc(16); i < n; i++) { const a = R() * 6.2832, rr = .3 + R() * 1.1; e(x + Math.sin(a) * rr, floor + .1, z + Math.cos(a) * rr, 4, i % 3 ? [3.2, .5, .12] : [3.8, 2.1, .6], Math.sin(a) * .15, .9 + R() * 1.1, Math.cos(a) * .15, 1.3 + R() * 1.0, .06 + R() * .03); }
-      o.flash(x, floor + 1.1, z, 2.6, color.setRGB(1, .82, .56), .1, 0);
-    }
-    function step(dt) {
-      if (!active) return;
-      U.uT.value += dt;
-      const g = o.getGame(), p = g && g.player;
-      if (p && U.uT.value < 2.4) place(p.x, p.z);
-      if (U.uT.value > 2.7) clear();
-    }
-    function clear() { active = false; U.uT.value = 99; for (const m of all) m.visible = false; }
-    function dispose() { clear(); for (const m of all) m.removeFromParent(); for (const g of [plane, beamGeo, shellGeo, pg]) g.dispose(); for (const m of [ringsMat, sigilMat, beamMat, shellMat, ptsMat]) m.dispose(); }
-    return { start, step, clear, dispose, get active() { return active; }, parts: [{ geo: plane, mat: ringsMat }, { geo: plane, mat: sigilMat }, { geo: beamGeo, mat: beamMat }, { geo: shellGeo, mat: shellMat }, { geo: pg, mat: ptsMat, points: true }] };
+    function step(dt){if(!active)return;U.uT.value+=dt;const g=o.getGame(),p=g&&g.player;if(p)place(p.x,p.z);if(U.uT.value>1.5)clear();}
+    function clear(){active=false;U.uT.value=99;for(const m of all)m.visible=false;}
+    function dispose(){clear();for(const m of all)m.removeFromParent();plane.dispose();pg.dispose();ringsMat.dispose();ptsMat.dispose();}
+    return {start,step,clear,dispose,get active(){return active;},parts:[{geo:plane,mat:ringsMat},{geo:pg,mat:ptsMat,points:true}]};
   }
 
   B.LevelUp = Object.assign(B.LevelUp || {}, { sound, trigger, cancel, step, push, timeScale, paintState, createWorld, TOTAL });

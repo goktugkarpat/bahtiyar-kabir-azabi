@@ -74,29 +74,102 @@
       }
 
       // ---------------------------------------------------------------- shared geometry / materials (setup only)
-      var orbGeo = new T.IcosahedronGeometry(.3, 2), haloGeo = new T.SphereGeometry(.66, 14, 10), markGeo = new T.RingGeometry(.55, .72, 28).rotateX(-Math.PI / 2);
-      var postGeo = new T.CylinderGeometry(.2, .3, 1.7, 10), bowlGeo = new T.CylinderGeometry(.62, .34, .42, 12), flameGeo = new T.ConeGeometry(.34, 1.0, 9, 1, true);
-      var baseGeo = new T.CylinderGeometry(.5, .6, .18, 12), ringGeo = new T.RingGeometry(1.35, 1.62, 40).rotateX(-Math.PI / 2), chainGeo = new T.CylinderGeometry(.05, .05, 1, 5);
-      chainGeo.translate(0, .5, 0);
-      var ironMat = new T.MeshStandardMaterial({ color: 0x2c2724, roughness: .52, metalness: .85 });
-      var flameMat = new T.MeshBasicMaterial({ color: new T.Color(1.5, .52, .12), transparent: true, opacity: .65, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide, fog: false });
-      var litRingMat = new T.MeshBasicMaterial({ color: new T.Color(.92, .67, .27), transparent: true, opacity: .42, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide, fog: false });
-      var chainMat = new T.MeshBasicMaterial({ color: new T.Color(.58, .21, .07), transparent: true, opacity: .55, depthWrite: false, blending: T.AdditiveBlending, fog: false });
+      // The rite is forged machinery: stepped stone foot, tapered iron stem,
+      // ribs, collars and a pierced crown. Surfaces use the same scanned PBR
+      // response as equipment; nothing is built when a boss starts channeling.
+      var G = B.Gear;
+      var orbGeo = new T.IcosahedronGeometry(.3, 2), haloGeo = new T.SphereGeometry(.66, 20, 14), markGeo = new T.RingGeometry(.67, .705, 48).rotateX(-Math.PI / 2);
+      var baseGeo = G.merge([
+        G.lathe([[0,0],[.52,0],[.58,.05],[.58,.15],[.48,.2],[.46,.29],[.32,.32],[0,.32]],40),
+        G.lathe([[.29,.28],[.34,.31],[.34,.38],[.25,.4],[.2,.48],[.17,.5]],32)
+      ]);
+      var postParts = [G.lathe([[.16,.38],[.19,.48],[.12,.62],[.1,1.40],[.18,1.49],[.22,1.58],[.18,1.67]],32)];
+      for (var rib=0;rib<6;rib++) {
+        var ra=rib*TAU/6,rs=Math.sin(ra),rc=Math.cos(ra);
+        postParts.push(G.tube([[rs*.2,.48,rc*.2],[rs*.145,.8,rc*.145],[rs*.145,1.2,rc*.145],[rs*.23,1.55,rc*.23]],.026,8,18,true));
+      }
+      var postGeo=G.merge(postParts);
+      var bowlParts=[G.lathe([[.15,1.58],[.25,1.64],[.36,1.76],[.43,1.85],[.43,1.93],[.37,1.95],[.31,1.8],[.16,1.7]],40)];
+      for(var tooth=0;tooth<8;tooth++){
+        var ta=tooth*TAU/8,ts=Math.sin(ta),tc=Math.cos(ta);
+        bowlParts.push(G.tube([[ts*.37,1.86,tc*.37],[ts*.42,2.05,tc*.42],[ts*.36,2.16,tc*.36]],function(t){return .042*(1-.75*t);},7,12,true));
+      }
+      var bowlGeo=G.merge(bowlParts);
+      var collarGeo=G.merge([G.lathe([[.192,.46],[.214,.48],[.214,.53],[.183,.55]],32),G.lathe([[.19,1.48],[.22,1.5],[.22,1.54],[.19,1.56]],32)]);
+      var flameGeo = new T.CylinderGeometry(.36,.29,.88,32,6,true).translate(0,.44,0);
+      var ringGeo = new T.RingGeometry(1.35, 1.42, 64).rotateX(-Math.PI / 2);
+      var chainGeo = new T.TorusGeometry(.106,.025,6,16); chainGeo.scale(.74,1,1);
+      var ironMat = B.EquipmentArt ? B.EquipmentArt.material('dark').clone() : new T.MeshStandardMaterial({color:0x34302b,roughness:.64,metalness:.86});
+      ironMat.color.setHex(0x686059);
+      var collarMat=B.EquipmentArt ? B.EquipmentArt.material('brass').clone() : new T.MeshStandardMaterial({color:0x89734b,roughness:.64,metalness:.8});
+      var chainMat=B.EquipmentArt ? B.EquipmentArt.material('steel').clone() : new T.MeshStandardMaterial({color:0x71675e,roughness:.5,metalness:.9});
+      chainMat.color.setHex(0x8c7967);
+      var flameMat = new T.ShaderMaterial({transparent:true,depthWrite:false,blending:T.AdditiveBlending,side:T.DoubleSide,fog:false,
+        uniforms:{uTime:{value:0},uPower:{value:1}},
+        vertexShader:'varying vec2 vUv;varying float vFacing;void main(){vUv=uv;vec4 mv=modelViewMatrix*vec4(position,1.);vFacing=abs(dot(normalize(normalMatrix*normal),normalize(-mv.xyz)));gl_Position=projectionMatrix*mv;}',
+        fragmentShader:`varying vec2 vUv;varying float vFacing;uniform float uTime,uPower;
+          float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+          float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),f.x),f.y);}
+          void main(){vec2 p=vec2(vUv.x*12.,vUv.y*3.5-uTime*2.2);float n=noise(p)+.45*noise(p*2.1+vec2(7.,uTime));
+            float h=vUv.y,tip=.55+.27*noise(vec2(vUv.x*9.,uTime*.9));float body=smoothstep(.04,.18,h)*(1.-smoothstep(tip-.16,tip+.12,h));
+            float f=body*smoothstep(.24,.95,n)*(.26+.65*(1.-vFacing))*uPower;
+            vec3 cold=vec3(.55,.045,.008),hot=vec3(2.4,.85,.12);vec3 c=mix(cold,hot,pow(max(0.,1.-h),1.8)*clamp(n,0.,1.));
+            if(f<.006)discard;gl_FragColor=vec4(c*f,f);}`});
+      var litRingMat = new T.MeshBasicMaterial({color:new T.Color(.68,.36,.14),transparent:true,opacity:.3,depthWrite:false,blending:T.AdditiveBlending,side:T.DoubleSide,fog:false});
 
+      // Seals and drowned lanterns carry distinct forged silhouettes around their
+      // emissive heart. They stay readable as tangible objects before the fuse.
+      var sealParts=[],lanternParts=[];
+      for(var hoop=0;hoop<3;hoop++) {
+        var hg=new T.TorusGeometry(.385,.025,8,36);hg.rotateX(hoop*Math.PI/3);hg.rotateY(Math.PI/5);sealParts.push(hg);
+      }
+      for(var lr=0;lr<6;lr++) {
+        var la=lr*TAU/6,lx=Math.sin(la),lz=Math.cos(la);
+        lanternParts.push(G.tube([[lx*.23,-.36,lz*.23],[lx*.35,-.15,lz*.35],[lx*.35,.15,lz*.35],[lx*.23,.36,lz*.23]],.021,7,16,true));
+      }
+      for(var end of [-1,1]) {
+        var capProfile=[[.17,end*.3],[.27,end*.32],[.27,end*.36],[.13,end*.41],[0,end*.42]];
+        if(end<0)capProfile.reverse();lanternParts.push(G.lathe(capProfile,32));
+      }
+      var sealGeo=G.merge(sealParts),lanternGeo=G.merge(lanternParts);
+      function orbHaloMaterial(){
+        var m=new T.ShaderMaterial({transparent:true,depthWrite:false,blending:T.AdditiveBlending,fog:false,
+          uniforms:{uColor:{value:new T.Color(1.5,.4,.08)},uAlpha:{value:.18},uTime:{value:0}},
+          vertexShader:'varying vec3 vP,vN,vV;void main(){vP=position;vec4 p=modelViewMatrix*vec4(position,1.);vN=normalize(normalMatrix*normal);vV=normalize(-p.xyz);gl_Position=projectionMatrix*p;}',
+          fragmentShader:`varying vec3 vP,vN,vV;uniform vec3 uColor;uniform float uAlpha,uTime;
+            float h(vec3 p){return fract(sin(dot(p,vec3(127.1,311.7,74.7)))*43758.5453);}
+            float n(vec3 p){vec3 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(mix(h(i),h(i+vec3(1,0,0)),f.x),mix(h(i+vec3(0,1,0)),h(i+vec3(1,1,0)),f.x),f.y),mix(mix(h(i+vec3(0,0,1)),h(i+vec3(1,0,1)),f.x),mix(h(i+vec3(0,1,1)),h(i+vec3(1,1,1)),f.x),f.y),f.z);}
+            void main(){float rim=pow(clamp(1.-abs(dot(normalize(vN),normalize(vV))),0.,1.),2.8);
+              float t=n(vP*9.+vec3(0.,-uTime*.8,uTime*.2)),fine=n(vP*19.+vec3(uTime*.3,-uTime*1.2,0.));
+              float w=smoothstep(.22,.76,t*.7+fine*.3),a=rim*(.08+.72*w)*uAlpha;
+              if(a<.002)discard;gl_FragColor=vec4(uColor*a,a);}`});
+        m.color=m.uniforms.uColor.value;return m;
+      }
+      // A fractured core stays luminous in its seams; cage ribs and cold stone remain legible.
+      var orbCanvas=document.createElement('canvas');orbCanvas.width=orbCanvas.height=256;
+      var orbCtx=orbCanvas.getContext('2d'),orbPixels=orbCtx.createImageData(256,256);
+      function orbHash(x,y){var v=Math.sin(x*127.1+y*311.7)*43758.5453;return v-Math.floor(v);}
+      function orbNoise(x,y){var ix=Math.floor(x),iy=Math.floor(y),fx=x-ix,fy=y-iy;fx=fx*fx*(3-2*fx);fy=fy*fy*(3-2*fy);return (orbHash(ix,iy)*(1-fx)+orbHash(ix+1,iy)*fx)*(1-fy)+(orbHash(ix,iy+1)*(1-fx)+orbHash(ix+1,iy+1)*fx)*fy;}
+      for(var py=0;py<256;py++)for(var px=0;px<256;px++){
+        var v=orbNoise(px/23,py/23)*.57+orbNoise(px/10,py/10)*.28+orbNoise(px/4,py/4)*.15;
+        var seam=Math.pow(Math.max(0,Math.min(1,(v-.30)/.40)),2.1),shade=20+235*seam,j=(py*256+px)*4;
+        orbPixels.data[j]=orbPixels.data[j+1]=orbPixels.data[j+2]=shade;orbPixels.data[j+3]=255;
+      }
+      orbCtx.putImageData(orbPixels,0,0);var orbSurface=new T.CanvasTexture(orbCanvas);orbSurface.wrapS=orbSurface.wrapT=T.RepeatWrapping;
       // ---------------------------------------------------------------- orbs
       var orbs = [], i;
       for (i = 0; i < MAX_ORB; i++) {
-        var oc = new T.MeshBasicMaterial({ color: new T.Color(4, 1.4, .3), fog: false });
-        var oh = new T.MeshBasicMaterial({ color: new T.Color(1.5, .4, .08), transparent: true, opacity: .42, depthWrite: false, blending: T.AdditiveBlending, fog: false });
-        var om = new T.MeshBasicMaterial({ color: new T.Color(1.2, .35, .1), transparent: true, opacity: .5, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide, fog: false });
-        var core = new T.Mesh(orbGeo, oc), halo = new T.Mesh(haloGeo, oh), spot = new T.Mesh(markGeo, om);
-        core.visible = halo.visible = spot.visible = false; core.frustumCulled = halo.frustumCulled = spot.frustumCulled = false;
+        var oc = new T.MeshStandardMaterial({ color: 0x30261d, roughness:.64, metalness:.24, map:orbSurface,emissiveMap:orbSurface,bumpMap:orbSurface,bumpScale:.035,emissive:new T.Color(.7,.16,.025) });
+        var oh = orbHaloMaterial();
+        var om = new T.MeshBasicMaterial({ color: new T.Color(1.2, .35, .1), transparent: true, opacity: .32, depthWrite: false, blending: T.NormalBlending, side: T.DoubleSide, fog: false });
+        var core = new T.Mesh(orbGeo, oc), cage=new T.Mesh(sealGeo,collarMat), halo = new T.Mesh(haloGeo, oh), spot = new T.Mesh(markGeo, om);
+        core.add(cage);cage.frustumCulled=false;core.visible = halo.visible = spot.visible = false; core.frustumCulled = halo.frustumCulled = spot.frustumCulled = false;
         halo.renderOrder = 4; spot.renderOrder = 3; core.name = 'boss1_orb'; halo.name = 'boss1_orb_halo'; spot.name = 'boss1_orb_mark';
         root.add(core, halo, spot);
-        orbs.push({ live: false, state: 0, x: 0, z: 0, y: 1, vx: 0, vz: 0, age: 0, life: 8, speed: 3, fuse: 0, kind: 'ember', owner: null, hazard: null, core: core, halo: halo, mark: spot, cm: oc, hm: oh, mm: om, trail: 0, slot: i });
+        orbs.push({ live: false, state: 0, x: 0, z: 0, y: 1, vx: 0, vz: 0, age: 0, life: 8, speed: 3, fuse: 0, kind: 'ember', owner: null, hazard: null, core: core, cage:cage, halo: halo, mark: spot, cm: oc, hm: oh, mm: om, trail: 0, slot: i });
       }
       function setOrbKind(o, k) {
-        var c = KIND[k]; o.kind = k; o.cm.color.setRGB(c.core[0], c.core[1], c.core[2]); o.hm.color.setRGB(c.halo[0], c.halo[1], c.halo[2]); o.mm.color.setRGB(c.halo[0] * .8, c.halo[1] * .8, c.halo[2] * .8);
+        var c = KIND[k]; o.kind = k; o.cage.geometry=k==='brine'?lanternGeo:sealGeo; o.cage.material=k==='brine'?ironMat:collarMat; o.cm.emissive.setRGB(c.core[0]*.2,c.core[1]*.2,c.core[2]*.2); o.cm.color.setHex(k==='brine'?0x26413b:0x493020); o.hm.color.setRGB(c.halo[0], c.halo[1], c.halo[2]); o.mm.color.setRGB(c.halo[0] * .8, c.halo[1] * .8, c.halo[2] * .8);
       }
       function showOrb(o, on) { o.core.visible = o.halo.visible = o.mark.visible = on; }
       function liveOrbs() { var n = 0; for (var k = 0; k < MAX_ORB; k++) if (orbs[k].live) n++; return n; }
@@ -151,30 +224,47 @@
             var nx = o.x + o.vx * dt, nz = o.z + o.vz * dt;
             if (api.walkable(nx, nz, .25)) { o.x = nx; o.z = nz; } else if (api.walkable(nx, o.z, .25)) o.x = nx; else if (api.walkable(o.x, nz, .25)) o.z = nz; else o.state === 1 && armOrb(o);
           }
-          var gy = api.groundY(o.x, o.z), pulse = o.state === 2 ? 1 + o.fuse * .5 : 1, flick = calm.matches ? 1 : .92 + .08 * Math.sin(o.age * 17 + k * 2);
+          var gy = api.groundY(o.x, o.z), pulse = o.state === 2 ? 1 + o.fuse * .5 : 1, flick = calm.matches ? 1 : .97 + .03 * Math.sin(o.age * 9.5 + k * 2);
           o.core.position.set(o.x, gy + o.y, o.z); o.core.scale.setScalar(pulse * flick);
           o.halo.position.copy(o.core.position); o.halo.scale.setScalar((1.05 + (o.state === 2 ? o.fuse * .75 : 0)) * flick);
           o.mark.position.set(o.x, gy + .05, o.z); o.mark.scale.setScalar(o.state === 2 ? 1.2 + o.fuse * 1.6 : 1);
           // Pale gold target ring only while a real hero blow can destroy it; crimson means leave.
-          o.mm.color.setRGB(o.state===2?1.15:.95,o.state===2?.12:.72,o.state===2?.07:.34);
-          o.hm.opacity=o.state===2?.24:.18;
+          o.mm.color.setRGB(o.state===2?.88:.68,o.state===2?.12:.61,o.state===2?.07:.46);o.mm.opacity=o.state===2?.55:.32;
+          o.hm.opacity=o.state===2?.34:.26;o.hm.uniforms.uAlpha.value=o.hm.opacity;o.hm.uniforms.uTime.value=o.age;
+          if(o.kind==='ember'){o.cage.rotation.set(o.age*.23,o.age*.45,o.age*.12);}else{o.cage.rotation.set(0,0,calm.matches?0:Math.sin(o.age*1.7+k)*.035);}
           o.trail -= dt; if (o.trail <= 0 && o.state < 2) { o.trail = .07; api.fx('boss1Orb', { x: o.x, y: gy + o.y, z: o.z, kind: o.kind, phase: 'trail' }); }
         }
       }
 
       // ---------------------------------------------------------------- anchors (the rite)
-      var anchors = [], rite = null;
+      var anchors = [], rite = null, CHAIN_LINKS=88;
       for (i = 0; i < MAX_ANCHOR; i++) {
         var g = new T.Group(); g.visible = false; g.name = 'boss1_anchor';
-        var base = new T.Mesh(baseGeo, ironMat), post = new T.Mesh(postGeo, ironMat), bowl = new T.Mesh(bowlGeo, ironMat), flame = new T.Mesh(flameGeo, flameMat);
-        var ring = new T.Mesh(ringGeo, litRingMat), chain = new T.Mesh(chainGeo, chainMat);
-        base.position.y = .09; post.position.y = .95; bowl.position.y = 1.92; flame.position.y = 2.55; ring.position.y = .06;
-        base.frustumCulled = post.frustumCulled = bowl.frustumCulled = flame.frustumCulled = ring.frustumCulled = chain.frustumCulled = false;
-        flame.renderOrder = 4; ring.renderOrder = 3; chain.renderOrder = 4; chain.visible = false;
-        g.add(base, post, bowl, flame, ring); root.add(g, chain);
-        anchors.push({ live: false, lit: false, x: 0, z: 0, hp: 3, prog: 0, flash: 0, fade: 0, g: g, flame: flame, ring: ring, chain: chain });
+        var base = new T.Mesh(baseGeo,ironMat),post = new T.Mesh(postGeo,ironMat),bowl = new T.Mesh(bowlGeo,ironMat),collar = new T.Mesh(collarGeo,collarMat),flame = new T.Mesh(flameGeo,flameMat);
+        var ring = new T.Mesh(ringGeo,litRingMat),chain = new T.InstancedMesh(chainGeo,chainMat,CHAIN_LINKS);
+        chain.instanceMatrix.setUsage(T.DynamicDrawUsage); chain.count=0; chain.visible=false;
+        flame.position.y=1.82; ring.position.y=.045;
+        base.frustumCulled=post.frustumCulled=bowl.frustumCulled=collar.frustumCulled=flame.frustumCulled=ring.frustumCulled=chain.frustumCulled=false;
+        base.receiveShadow=post.receiveShadow=bowl.receiveShadow=collar.receiveShadow=true;
+        base.castShadow=post.castShadow=bowl.castShadow=true;
+        flame.renderOrder=4;ring.renderOrder=3;
+        g.add(base,post,bowl,collar,flame,ring);root.add(g,chain);
+        anchors.push({live:false,lit:false,x:0,z:0,hp:3,prog:0,flash:0,fade:0,g:g,flame:flame,ring:ring,chain:chain});
       }
-      var AQ = new T.Quaternion(), AV = new T.Vector3(), AUP = new T.Vector3(0, 1, 0);
+      var AQ=new T.Quaternion(),AV=new T.Vector3(),AUP=new T.Vector3(0,1,0),ALINK=new T.Object3D(),ATAN=new T.Vector3(),AALT=new T.Quaternion().setFromAxisAngle(AUP,Math.PI/2);
+      function drawChain(an,sx,sy,sz,ex,ey,ez,phase) {
+        AV.set(ex-sx,ey-sy,ez-sz);var len=AV.length(),n=Math.min(CHAIN_LINKS,Math.max(2,Math.ceil(len/.18)));
+        if(len<.01){an.chain.count=0;return;}
+        var sag=Math.min(.58,len*.055)*(1-.35*phase),dx=ex-sx,dy=ey-sy,dz=ez-sz;
+        for(var j=0;j<n;j++){
+          var t=(j+.5)/n;
+          ALINK.position.set(sx+dx*t,sy+dy*t-Math.sin(t*Math.PI)*sag,sz+dz*t);
+          ATAN.set(dx,dy-Math.PI*Math.cos(t*Math.PI)*sag,dz).normalize();AQ.setFromUnitVectors(AUP,ATAN);
+          ALINK.quaternion.copy(AQ);if(j%2)ALINK.quaternion.multiply(AALT);
+          ALINK.scale.setScalar(1);ALINK.updateMatrix();an.chain.setMatrixAt(j,ALINK.matrix);
+        }
+        an.chain.count=n;an.chain.instanceMatrix.needsUpdate=true;
+      }
       function litCount() { var n = 0; for (var k = 0; k < MAX_ANCHOR; k++) if (anchors[k].live && anchors[k].lit) n++; return n; }
       // Lays n anchors around the owner at radius r (falls back to nearer rings where the floor is blocked). Returns the number placed.
       function startRite(owner, n, r, seconds) {
@@ -222,6 +312,7 @@
       }
       function stepAnchors(dt) {
         if (!rite) return;
+        flameMat.uniforms.uTime.value=time;
         var o = rite.owner; rite.age += dt;
         if (o.dead || api.game.state !== 'playing' || (!rite.done && (!o.action || o.action.moveId !== 'rite'))) { endRite(); return; }
         if (rite.done) { endRite(); return; }
@@ -245,9 +336,8 @@
             an.flame.scale.set(f * (1 + an.flash * .5), f * (1 + an.flash * .6 + (calm.matches ? 0 : .09 * Math.sin(rite.age * 14 + k * 3))), f * (1 + an.flash * .5));
             an.ring.scale.setScalar(1 + an.prog / 2.4 * .35 + an.flash * .12);
             litRingMat.opacity = .5;
-            // chain from the boss's chest to the brazier
-            var ex = an.x, ey = an.g.position.y + 2.1, ez = an.z; AV.set(ex - sx, ey - sy, ez - sz); var len = AV.length();
-            if (len > .01) { AV.multiplyScalar(1 / len); AQ.setFromUnitVectors(AUP, AV); an.chain.quaternion.copy(AQ); an.chain.position.set(sx, sy, sz); an.chain.scale.set(1, len, 1); }
+            // Interlocked iron links follow a shallow catenary and tighten as the rite advances.
+            drawChain(an,sx,sy,sz,an.x,an.g.position.y+2.05,an.z,Math.min(1,rite.age/rite.seconds));
           } else { an.g.scale.setScalar(Math.max(.01, an.g.scale.x - dt * 2)); an.flame.scale.set(.01, .01, .01); }
         }
       }
@@ -299,7 +389,8 @@
           }
           heroBlows(); stepOrbs(dt); stepAnchors(dt); updateInstruction();
         },
-        dispose: function () { api.root.remove(root); [orbGeo, haloGeo, markGeo, postGeo, bowlGeo, flameGeo, baseGeo, ringGeo, chainGeo, ironMat, flameMat, litRingMat, chainMat].forEach(function (r) { r.dispose(); });
+        dispose: function () { api.root.remove(root); [orbSurface, orbGeo, sealGeo, lanternGeo, haloGeo, markGeo, postGeo, bowlGeo, collarGeo, flameGeo, baseGeo, ringGeo, chainGeo, ironMat, collarMat, flameMat, litRingMat, chainMat].forEach(function (r) { r.dispose(); });
+          anchors.forEach(function(an){an.chain.dispose();});
           orbs.forEach(function (o) { o.cm.dispose(); o.hm.dispose(); o.mm.dispose(); }); if (B.BossMech.current === mech) B.BossMech.current = null; }
       };
       B.BossMech.current = mech;

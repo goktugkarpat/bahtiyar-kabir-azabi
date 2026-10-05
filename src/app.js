@@ -34,7 +34,7 @@
   $('next-chapter').onclick = () => chapterLink(true);
   $('next-chapter').classList.toggle('hidden',forgeChapter);
   if(chapter>1){
-    document.querySelector('#pause .eyebrow').textContent=chapterNames[chapter-1];
+    $('pause').setAttribute('aria-label', chapterNames[chapter-1] + ' · Mola');
     document.querySelector('#pause .save-note').textContent='Karakterin ve çantan korunur. Ölümde son yemin noktasına dönersin.';
     document.querySelector('#fatal h2').textContent='Yol açılmadı.';
     document.querySelector('#victory .eyebrow').textContent='Bölüm '+chapterNumbers[chapter-1]+' tamamlandı';
@@ -70,7 +70,7 @@
   const TEXTURE_NOTE = ' Karakter kaplamaları oyun yeniden açılınca bu ayara geçer.';
   const coarsePointer = matchMedia('(pointer:coarse)').matches;
   // Desktop defaults follow the current display's pixel density. Extra AA is opt-in.
-  const DEFAULTS = { difficulty: 'normal', quality: 'high', qualityVersion: 5, ...DISPLAY.defaults, frameRate: FRAME_LIMIT, exposure: 1.15, shake: .55, master: .65, music: .42, sfx: .75, voice: .85, subtitles: true, uiScale: .85 };
+  const DEFAULTS = { difficulty: 'normal', quality: 'high', qualityVersion: 5, ...DISPLAY.defaults, frameRate: FRAME_LIMIT, exposure: 1.15, shake: .55, master: .65, music: .42, sfx: .75, voice: .85, narrationMode: 'essential', subtitles: true, uiScale: .85 };
   const FRAME_RATES = [60, 90, 120, 0];   // 0 = follow the display (every refresh; best with G-Sync / FreeSync / ProMotion)
   const UI_STEPS = [.85, 1];
   const LIMITS = { exposure: [.7, 1.7], shake: [0, 1], master: [0, 1], music: [0, 1], sfx: [0, 1], voice: [0, 1] };
@@ -177,6 +177,7 @@
       // Difficulty and HUD size always start from the launch defaults.
       for (const k of Object.keys(LIMITS)) if (Number.isFinite(raw[k])) cfg[k] = clamp(raw[k], LIMITS[k][0], LIMITS[k][1]);
       if (typeof raw.subtitles === 'boolean') cfg.subtitles = raw.subtitles;
+      if (['essential','story','off'].includes(raw.narrationMode)) cfg.narrationMode = raw.narrationMode;
       // Preserve valid display choices; retired choices fall back to Auto.
       Object.assign(cfg, DISPLAY.settings(raw));
       if (raw.displayVersion !== DISPLAY.defaults.displayVersion || raw.displayMode !== cfg.displayMode) migrated = true;
@@ -217,13 +218,13 @@
     safe(() => localStorage.setItem(KEY, JSON.stringify(out)));
   }
   readSettings();
-  B.Audio.set({ master: cfg.master, music: cfg.music, sfx: cfg.sfx, ambient: cfg.ambient, voice: cfg.voice });
+  B.Audio.set({ master: cfg.master, music: cfg.music, sfx: cfg.sfx, ambient: cfg.ambient, voice: cfg.voice, narrationMode: cfg.narrationMode });
 
   /* ───────────── State ───────────── */
-  const views = ['title', 'pause', 'settings', 'controls', 'keybinds', 'death', 'victory', 'confirm', 'character', 'journal'];
-  const overlays = new Set(['settings', 'controls', 'keybinds', 'confirm', 'character', 'journal']);
+  const views = ['title', 'pause', 'settings', 'controls', 'keybinds', 'death', 'victory', 'confirm', 'character', 'journal', 'atlas'];
+  const overlays = new Set(['settings', 'controls', 'keybinds', 'confirm', 'character', 'journal', 'atlas']);
   let view = 'title', stack = [];
-  let renderer, scene, camera, world, game, rig, post, characterUI, characterPreview, questUI;
+  let renderer, scene, camera, world, game, rig, post, characterUI, characterPreview, questUI, atlasUI;
   let scalerWarmTimer = 0, limbRoot = null, limbLookup = -1e9;
   const rawDepthTwins = [];
   // Title shot culling (only visible foes are animated there).
@@ -293,6 +294,7 @@
   /* ───────────── Views ───────────── */
   const menuStyle = document.querySelector('link[href*="ui-polish.css"]');
   function show(next) {
+    const previousView = view;
     if (advancing && next !== 'playing') next = 'playing';   // the chapter hand-over cannot be interrupted by menus
     if ((graphicsLost || graphicsRecovering || warming) && next === 'playing') next = 'pause';
     if (next !== view) resetPerformance();
@@ -309,7 +311,7 @@
     clearInput();
     // Settings keep the sound running so volume changes can be heard; the pause menu itself is silent.
     if (next === 'playing' || next === 'settings') B.Audio.resume();
-    else if (next === 'pause') B.Audio.suspend();
+    else if (next === 'pause' || next === 'atlas') B.Audio.suspend();
     if (next === 'title') {
       B.Audio.resume();
       document.body.classList.remove('raging', 'low-hp', 'in-combat');
@@ -322,11 +324,14 @@
     if (next === 'journal' && questUI) questUI.open();
     if (next !== 'journal' && questUI) questUI.close();
     if (characterUI && next !== 'character') characterUI.close(true);
+    if (atlasUI) { if (next === 'atlas') atlasUI.open(); else atlasUI.close(true); }
+    if (next === 'character' && previousView === 'atlas' && characterUI && !characterUI.isOpen) characterUI.open(characterUI.activeTab || 'inventory');
     return next;
   }
   function open(next) { stack.push(view); show(next); }
   function back() { show(stack.pop() || 'title'); }
   function openCharacter(tab = 'inventory') { if (advancing || !game || !['playing', 'pause', 'victory', 'character'].includes(view)) return; if (view !== 'character') open('character'); characterUI.open(tab); }
+  function openAtlas() { if (advancing || !game || !atlasUI || !['playing','pause','character','journal','atlas'].includes(view)) return; if (view === 'atlas') back(); else open('atlas'); }
   function clearInput() {
     keys.clear(); for (const k in actions) delete actions[k];
     heldLight = false; lightPointer = null; touchHold = null; zoneTap = null; clicks.light = clicks.heavy = false; cursor.target = null;
@@ -432,6 +437,7 @@
   }
   const questVoices = { 'lost-names': 'questNames', 'blood-verdict': 'questVerdict', 'last-voice': 'questBell', 'root-memory': 'questMemory', 'kings-name': 'questKing', 'cave-breath': 'questEcho', 'last-prisoner': 'questPrisoner', 'heart-feeds': 'questHeart' };
   function event(name, d = {}) {
+    if (name === 'questChoice') { if (game && ['playing','pause'].includes(view)) open('journal'); if (questUI) questUI.open(); return; }
     if (name === 'quest') { if (questUI) questUI.event(d); if (d.complete && questVoices[d.id] && B.Audio.sayQuest) B.Audio.sayQuest(questVoices[d.id]); return; }
     if (name === 'progression') { if (d.levels > 0) { B.Audio.play('levelUp'); fx('heroSkill', { skill: 'level', phase: 'release', x: game.player.x, z: game.player.z }); announceTimer = 0; $('announcement').classList.remove('show'); if (B.LevelUp) B.LevelUp.trigger(d, game.player); levelUpTimer = 2.7; } if (characterUI) characterUI.refresh(); return; }
     if (name === 'loot') { for (const item of d.items || []) { const def = B.Progression.catalog[item.id]; if (def) notify(B.Progression.qualities[def.rarity].name + ' ganimet · ' + def.name + ' · Çantaya eklendi [I]', 'rarity-' + def.rarity); } return; }
@@ -608,7 +614,7 @@
     $('pause-difficulty').textContent = 'Zorluk: ' + (cfg.difficulty === 'easy' ? 'Kolay' : cfg.difficulty === 'normal' ? 'Normal' : 'Zor');
     rig.setQuality(cfg); post.setQuality(cfg);
     if (world.setQuality) world.setQuality(cfg);
-    B.Audio.set({ master: cfg.master, music: cfg.music, sfx: cfg.sfx, ambient: cfg.ambient, voice: cfg.voice });
+    B.Audio.set({ master: cfg.master, music: cfg.music, sfx: cfg.sfx, ambient: cfg.ambient, voice: cfg.voice, narrationMode: cfg.narrationMode });
     $('fps').classList.toggle('hidden', !cfg.showFps);
     $('narration').classList.toggle('hidden', !cfg.subtitles || !$('narration').querySelector('p').textContent);
     if (game && game.setQuality) game.setQuality(cfg);
@@ -675,7 +681,7 @@
         : 'Ekranın bütün piksellerini kullanır. Retina ekranda Düşük kalite seçilse de çizim boyutu azalmaz.';
     }
     if (resolution) resolution.textContent = 'Seçilen görüntü boyutunu büyütür. 1.25× daha net, 1.50× en ayrıntılı görüntüdür; daha fazla ekran kartı gücü kullanır.';
-    if (rate) rate.textContent = cfg.fps ? 'En fazla ' + cfg.fps + ' kare/sn. Ekranın yenileme hızına uymayan bir sınır kare atlamalarına yol açabilir (G-Sync/FreeSync varsa sorun olmaz). Düşük sınır işlemci yükünü ve fan sesini azaltır: 90 FPS yaklaşık %25, 60 FPS yaklaşık %35 daha az işlemci kullanır.' : 'Ekranın her yenilemesinde çizer (G-Sync / FreeSync / ProMotion ile en düzgünü).';
+    if (rate) rate.textContent = cfg.fps ? 'En fazla ' + cfg.fps + ' kare/sn. Ekranının yenileme hızına uygun bir sınır seç. Daha düşük sınırlar işlemci yükünü ve fan sesini azaltabilir.' : 'Ekranın her yenilemesinde çizer (G-Sync / FreeSync / ProMotion ile en düzgünü).';
   }
   function renderSettings() {
     const video = $('settings-video'), audio = $('settings-audio');
@@ -703,7 +709,8 @@
     sub.innerHTML = '<label for="set-subtitles"><b>Altyazılar</b><small>Anlatıcının sözlerini ekranda göster.</small></label><input id="set-subtitles" type="checkbox">';
     const box = sub.querySelector('input'); box.checked = cfg.subtitles;
     box.addEventListener('change', () => { cfg.subtitles = box.checked; applySettings(); });
-    audio.append(sub);
+    audio.append(sub, choiceRow('narrationMode', 'Anlatım', ['essential','story','off'], v => v === 'essential' ? 'Önemli anlar' : v === 'story' ? 'Tüm öykü' : 'Kapalı'));
+    const narrationNote=document.createElement('small'); narrationNote.className='settings-save-info'; narrationNote.textContent='Önemli anlarda anlatıcı giriş, karar ve dönüm noktalarında konuşur; keşif ve savaşın sesi önde kalır.'; audio.append(narrationNote);
     $('settings-note').textContent = B.Audio.silent ? 'Test modu · sessiz' : 'Seçimler hemen uygulanır.';
   }
   function selectSettingsPage(page) {
@@ -730,6 +737,7 @@
     document.querySelectorAll('[data-settings-page]').forEach(button => { button.onclick = () => selectSettingsPage(button.dataset.settingsPage); });
     $('pause-journal').onclick = $('hud-journal').onclick = () => open('journal');
     $('journal-close').onclick = $('journal-done').onclick = back;
+    $('pause-atlas').onclick = $('hud-atlas').onclick = openAtlas;
     $('pause-talents').onclick = () => openCharacter('skills');
     $('pause-character').onclick = $('victory-character').onclick = () => openCharacter();
     $('play').onclick = () => begin(false);
@@ -803,6 +811,7 @@
         return;
       }
       if (['KeyI', 'KeyC', 'KeyT'].includes(e.code) && !browserChord && !e.repeat && ['playing', 'pause', 'character'].includes(view)) { e.preventDefault(); if (view === 'character') back(); else openCharacter(e.code === 'KeyT' ? 'skills' : 'inventory'); return; }
+      if (e.code === 'KeyM' && !browserChord && !e.altKey && !e.repeat && ['playing','pause','character','journal','atlas'].includes(view)) { e.preventDefault(); openAtlas(); return; }
       if (view !== 'playing' || browserChord) return;
       if (e.code === 'KeyH' && !e.repeat) { show('pause'); openControls(); return; }
       if (e.repeat) keys.add(normCode(e.code)); else pressBind(normCode(e.code));
@@ -844,7 +853,7 @@
     watchPixelDensity();
     controller = B.Controller.create({
       getView: () => view, getMenuRoot: () => $(view), notify,
-      onPause: () => { if (view === 'playing') show('pause'); else if (view === 'pause') show('playing'); else if (['settings', 'controls', 'keybinds', 'character', 'journal'].includes(view)) back(); },
+      onPause: () => { if (view === 'playing') show('pause'); else if (view === 'pause') show('playing'); else if (['settings', 'controls', 'keybinds', 'character', 'journal', 'atlas'].includes(view)) back(); },
       onBack: () => { if (view === 'pause') show('playing'); else if (view !== 'title' && view !== 'death' && view !== 'victory') back(); },
       onCharacter: () => openCharacter(),
       onDisconnect: () => { clearInput(); if (view === 'playing') show('pause'); }
@@ -1384,6 +1393,7 @@
     $('interact').classList.toggle('hidden', !near && !prompt);
     hudText('interact-label', prompt ? prompt.text : 'Yemin taşına dokun');
     if (questUI) questUI.update(dt);
+    if (atlasUI) atlasUI.update(dt);
     if (firstHint > 0) { firstHint -= dt; if (firstHint <= 0) $('tutorial').classList.add('hidden'); }
     if (game.state === 'dead') death(game.lastDeath || {});
     if (game.state === 'won') victory();
@@ -1542,7 +1552,8 @@
     const frameDue = renderClock.due(ts, paused ? (view === 'title' ? (cfg.fps ? Math.min(cfg.fps, 60) : 60) : Math.min(cfg.fps || 30, 30)) : calmIdle ? 60 : cfg.fps);
     if (!frameDue) return;
     const cpuStart = measured ? performance.now() : 0;
-    const dt = clamp((ts - (last || ts)) / 1000, 0, .05); last = ts; elapsed += dt; frame++;
+    // Game.update subdivides this bounded interval into collision-safe 1/60 s steps.
+    const dt = clamp((ts - (last || ts)) / 1000, 0, .10); last = ts; elapsed += dt; frame++;
     visualDt = Math.min(.1, visualDt + dt);
     // Draw rate by situation (CPU/fan): menus 30 (as before), the title screen 60, and a hero who has stood still for 2.5 s with no foe awake
     // nearby 60 (nothing moves, the screen is static); everything else keeps the configured rate (120 locked). Input or a foe restores it at once.
@@ -1747,9 +1758,9 @@
     if (on === 'map') { safe(() => { miniKey = ''; drawMinimapNow(game.player); }); return; }
     if (on === true) {
       if (!el.classList.contains('hidden')) return;
-      liveHudState = el.style.cssText; el.classList.remove('hidden'); el.style.opacity = '.012'; el.style.zIndex = '2147483000';
+      liveHudState = {css:el.style.cssText,aria:el.getAttribute('aria-hidden'),inert:el.inert}; el.setAttribute('aria-hidden','true'); el.inert=true; el.classList.remove('hidden'); el.style.opacity = '.012'; el.style.zIndex = '2147483000';
       safe(() => { if (B.HUD) { B.HUD.vitals(game.player, 0); B.HUD.force(true); if (B.HUD.skills) B.HUD.skills(game.player, 0, game.skills()); } drawMinimapNow(game.player); });
-    } else if (liveHudState !== null) { el.style.cssText = liveHudState; el.classList.add('hidden'); liveHudState = null; }
+    } else if (liveHudState !== null) { el.style.cssText = liveHudState.css; if(liveHudState.aria===null)el.removeAttribute('aria-hidden');else el.setAttribute('aria-hidden',liveHudState.aria); el.inert=liveHudState.inert; el.classList.add('hidden'); liveHudState = null; }
   }
   function warmShaders(overlay, onProgress) {
     if (!renderer || graphicsLost) return Promise.resolve(false);
@@ -1956,6 +1967,7 @@
     game = B.Game.create(world, { scene, emit: event, sound: (n, o) => B.Audio.play(n, o), fx });
     characterUI = B.CharacterUI.create({ game, keyLabels: () => ['heavy', 'special', 'rage', 'fourth'].map(a => { const c = binds[a][0] || binds[a][1]; return c ? capName(c) : '—'; }), onPreview: (canvas,nowMs,preparing) => characterPreview.draw(canvas,nowMs,preparing), onPreviewTurn: direction => characterPreview.turn(direction), onClose: back, onChange: () => { game.syncProgression(); if (game.saveProfileChoices) game.saveProfileChoices(); hud(0); } });
     questUI = B.QuestUI.create({ game });
+    atlasUI = B.Atlas.create({ world, game, onClose: back, onJournal: () => show('journal') }); document.body.append(atlasUI.element);
     makeFX(); postProcess(); characterPreview = B.CharacterPreview.create({ renderer, camera, game, post, worldScene: scene }); setupUI();
     titleCamera();
     const placeNotices = () => {
@@ -1975,7 +1987,7 @@
     safe(() => assignDepthMaterials(scene));
     ready = true; applySettings();
     B.app = { scene, camera, renderer, world, game, post, rig, scaler, resetPerformance, settings: cfg, input, get view() { return view; }, begin, show, fx, applySettings, clearFX, warmShaders,
-      characterUI, openCharacter, controller, characterPreview, questUI,
+      characterUI, openCharacter, controller, characterPreview, questUI, atlasUI, openAtlas,
       get warming() { return !!warming; }, get warmStats() { return warmStats; },
       get performance() { return performanceReport(); }, frameStats,
       // Deterministic frame stepping for headless QA pages (virtual time barely runs requestAnimationFrame).

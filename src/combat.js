@@ -34,8 +34,8 @@
   // Hit-stop freezes every combat clock together (player, enemies, hazards, i-frames), so it never grants an advantage.
   const FEEL = {
     buffer: .22, chainEarly: .12, finisherChainEarly: .06, queueAfter: .06,
-    hitstop: { light: 0, finisher: 0, heavy: .008, extraTarget: 0, kill: 0, bossKill: .008, shield: 0, guardBreak: .008,
-      hurt: 0, hurtHeavy: .008 },
+    hitstop: { light: .014, finisher: .030, heavy: .038, extraTarget: .003, kill: .006, bossKill: .012, shield: .010, guardBreak: .044,
+      hurt: .012, hurtHeavy: .026 },
     knock: { light: .32, finisher: .62, heavy: 1.05, shield: .12, boss: .05, bossHeavy: .16 },
     lunge: [.34, .42, .56], heavyLunge: .72, lungeLead: [.12, .12, .14], heavyLungeLead: .2,
     whoosh: { light: .09, finisher: .11, heavy: .15 },
@@ -106,7 +106,7 @@
   const SPECIAL_HOLD = 1.5, PLAIN_REST = .62, SPECIAL_REST = .9;
   const SPECIAL_IDS = ['rush', 'grab', 'over', 'shove', 'rite', 'pair', 'rune', 'leap', 'flank', 'vial', 'exhale', 'hook', 'slam', 'cyclone', 'hooks', 'waterLunge', 'gurgle', 'rootRows', 'rootCrown', 'skitter', 'brine', 'falseLights', 'tide', 'bells', 'ashTrail', 'caveLeap', 'stoneCrown', 'hollowPulse', 'fall', 'fissures', 'shards', 'chainLanes', 'piston', 'vents', 'bellows', 'slagLeap', 'furnaceCrown'];
   SPECIAL_IDS.push('pull', 'orbs', 'rite', 'lanterns', 'toll', 'tides');   // round 7 (boss-mech.js / bossAttack / coast-combat.js)
-  SPECIAL_IDS.push('orbs', 'crystalStar', 'hollowNova', 'hollowBurrow', 'hollowEcho', 'hollowCall', 'wardenOrb', 'wardenBurrow', 'lavaLanes', 'slagOrbs', 'anvilSlam', 'furnaceClock', 'overheatDash', 'furnaceCall', 'ashLava', 'ashDash');   // round 7 (boss2.js)
+  SPECIAL_IDS.push('kingRush', 'bellRush', 'orbs', 'crystalStar', 'hollowNova', 'hollowBurrow', 'hollowEcho', 'hollowCall', 'wardenOrb', 'wardenBurrow', 'lavaLanes', 'slagOrbs', 'anvilSlam', 'furnaceClock', 'overheatDash', 'furnaceCall', 'ashLava', 'ashDash');   // round 7 (boss2.js)
 
   function create(world, services) {
     const scene = services.scene;
@@ -179,6 +179,15 @@
         window.localStorage.setItem(SAVE_KEY, JSON.stringify(saved));
         return true;
       } catch (_) { return false; }
+    }
+    // The skill module owns pooled motion/pose state: dropping only the handle would leave it active.
+    function cancelPlayerCharge() {
+      const handle = player.chargeHandle;
+      if (!handle) return;
+      if (handle.cancel) handle.cancel();
+      player.chargeHandle = null;
+      if (player.attack && player.attack.line === 'charge') player.attack = null;
+      player.invulnerable = false;
     }
     function selectedSkill(slot) {
       const state = progression, id = state.loadout[slot];
@@ -478,7 +487,7 @@
     // D4 click-target controls (steerOrders): order = the standing mouse / touch order { kind: 'attack' | 'move' | 'stand', enemy, heavy, x, z, owed, held };
     // swingPlan = the swing the order wants this frame (foe in reach / stand); dodgeAim = the cursor / target direction a roll takes when no key is held;
     // pendingClick = a click that arrived during hit-stop; targetRing = the slim ember ring under the foe that is targeted / under the cursor.
-    let order = null, swingPlan = null, dodgeAim = null, pendingClick = null, targetRing = null, rawInput = null, moveMark = null, markX = 0, markZ = 0, markA = 0;
+    let order = null, swingPlan = null, dodgeAim = null, pendingClick = null, pendingDodge = null, targetRing = null, rawInput = null, moveMark = null, markX = 0, markZ = 0, markA = 0;
     let forcedMotion = null, healingAge = 0, comboStep = 0, comboWindow = 0, spinCur = 0;
     let playerHitImmunity = 0, checkpointSnapshot = null, endAnnounced = false;
     let hintCooldown = 0, deniedCooldown = 0, deniedId = '', lackSerial = 0, openingGrace = 8, corpseLifetime = 90, shadowReach = 0;
@@ -492,10 +501,10 @@
     game.globes = globes;
     // Slow motion: every combat clock slows together, exactly like hit-stop, so it never favours a side (no caller since the war cry became quick).
     function slowMotion(seconds) { if (!reducedMotion.matches && seconds > 0 && impactScale > 0) slowmo = Math.max(slowmo, seconds); }
-    // Heavy contact emphasis: at most 8 ms of shared combat time; ordinary blows never hold the frame.
+    // Brief shared-clock contact emphasis, capped below three 60 Hz frames. Inputs stay buffered through the hold.
     function hitStop(seconds, shudder) {
       if (reducedMotion.matches || !(seconds > 0)) return 0;
-      const s = Math.min(.008, seconds * impactScale); freeze = Math.max(freeze, s);
+      const s = Math.min(.048, seconds * impactScale); freeze = Math.max(freeze, s);
       if (shudder) shudder.forEach(v => { if (!victims.some(o => o.body === v.body)) victims.push(v); });
       return s;
     }
@@ -509,7 +518,7 @@
       const f = 1 - Math.exp(-12 * dt), dx = p.x * f, dz = p.z * f; p.x -= dx; p.z -= dz;
       moveBody(body, dx, dz, radius);
     }
-    function sweepAngle(attack) { return attack.face + (attack.heavy ? FEEL.heavySweep : FEEL.sweep[attack.combo] || 0); }
+    function sweepAngle(attack) { return attack.weaponType === 'spear' && !attack.heavy ? attack.face : attack.face + (attack.heavy ? FEEL.heavySweep : FEEL.sweep[attack.combo] || 0); }
 
     function disposeObject(object) {
       if (!object) return;
@@ -559,7 +568,7 @@
     function flashRing(x, z, radius, color, duration) { fx('glowBurst', { x, y: .05, z, radius, color, duration: duration || .32 }); }
     // Per-enemy move memory (also restored on every checkpoint reset so a respawn replays identically).
     function freshEnemyFields(e) {
-      return { seed: 9173 + e.index * 131, lastMove: '', grabCd: 0, riposteCd: 0, blockCount: 0, hooksCd: 6, enraged: false,
+      return { seed: 9173 + e.index * 131, lastMove: '', moveHistory: [], recoveryFloor: 0, forceMove: null, grabCd: 0, riposteCd: 0, blockCount: 0, hooksCd: 6, enraged: false,
         picks: 0, sidestep: 0, retreat: 0, fear: 0, pairWith: null, wrath: 0, spWait: e.tutorialStage >= 0 ? 2 : e.type === 'prisoner' ? 0 : 2, spHold: 0 };
     }
     function healthBar(enemy) {
@@ -629,7 +638,7 @@
       root.add(seal.group); seals.push(seal);
     });
     // Story steps use the ordinary interaction input. Persist each step before its story beat is shown.
-    const quests = BABA.Quests ? BABA.Quests.create({ root, world, chapter, player, emit, sound, fx, onChange() {
+    const quests = BABA.Quests ? BABA.Quests.create({ root, world, chapter, player, enemies, emit, sound, fx, onChange() {
       if (gate) gate.refresh();
       saveProfileChoices();
     } }) : null;
@@ -674,6 +683,7 @@
     game.checkpointIndex = checkpointSnapshot.index;
 
     function resetToSnapshot(snapshot) {
+      cancelPlayerCharge();
       clearHazards(); shudder(false); game.resetSerial++;
       if (!progression.restore(snapshot.progression || initialProfile)) progression.reset();
       syncProgression(true);
@@ -682,7 +692,7 @@
       if (limbs) limbs.reset(enemies);
       if (globes) globes.reset();
       if (groundLoot) groundLoot.reset();
-      simTime = 0; buffer = {}; drinkLeft = 0; order = null; swingPlan = null; dodgeAim = null; pendingClick = null; showTargetRing(null); clearMoveMark();
+      simTime = 0; buffer = {}; drinkLeft = 0; order = null; swingPlan = null; dodgeAim = null; pendingClick = pendingDodge = null; showTargetRing(null); clearMoveMark();
       dodgeAge = 0; forcedMotion = null; healingAge = 0; comboStep = 0; comboWindow = 0; spinCur = 0;
       playerHitImmunity = 0; endAnnounced = false; hintCooldown = 0; deniedCooldown = 0; deniedId = ''; lackSerial = 0; openingGrace = snapshot.index ? 0 : 8;
       freeze = 0; slowmo = 0; victims.length = 0; evadeCooldown = 0; game.hitStop = 0; game.timeScale = 1; pairCd = 0;
@@ -768,6 +778,7 @@
     }
     function activateCheckpoint() {
       if (game.checkpointIndex || !atSafeCheckpoint()) return false;
+      cancelPlayerCharge();
       checkpointSnapshot = {
         index: 1, x: checkpoint.x, z: checkpoint.z,
         dead: enemies.filter(e => e.dead).map(e => e.id), kills: game.kills, elapsed: game.elapsed, progression: progression.snapshot(), quests: quests ? quests.snapshot() : null
@@ -943,6 +954,7 @@
       if (move.faceAt) a.faceAt = { t: move.faceAt.t + shift, face: move.faceAt.face };
       if (move.feint && rand(enemy) < move.feint.chance) { a.feintAt = move.feint.at + shift; a.feintKind = move.feint.kind || 'stop'; }
       enemy.lastMove = move.id; enemy.picks++;
+      const memory = enemy.moveHistory || (enemy.moveHistory = []); memory.push(move.id); if (memory.length > 5) memory.shift();
       if (move.onBegin) move.onBegin(a);
       let first = true;
       for (const hit of hits) {
@@ -960,7 +972,10 @@
     // a move that would break the rhythm or token rule is skipped for the next candidate.
     // Specials (sp) are held back while the enemy still owes plain blows (spWait) and weigh SPECIAL_W of their weight otherwise.
     function pick(enemy, options) {
-      const ok = options.filter(o => o.ok && !(o.sp && enemy.spWait > 0)), weight = o => (o.w || 1) * (o.sp ? SPECIAL_W : 1);
+      const ok = options.filter(o => o.ok && !(o.sp && enemy.spWait > 0));
+      // Preserve authored priorities, but avoid an endless A/B loop when several legal attacks exist.
+      const history = enemy.moveHistory || [], weight = o => (o.w || 1) * (o.sp ? SPECIAL_W : 1) /
+        (1 + history.reduce((n, id, i) => n + (id === o.id ? .45 + i * .18 : 0), 0));
       // Only specials legal (hero out of plain range): chase first instead of throwing one at once.
       if (ok.length && ok.every(o => o.sp)) { enemy.spHold += decisionStep; if (enemy.spHold + 1e-7 < SPECIAL_HOLD) return false; } else enemy.spHold = 0;
       let pool = ok.filter(o => o.id !== enemy.lastMove);
@@ -1006,7 +1021,7 @@
     }
     // Bodyguard: a guard stands between its caster and the hero.
     function guardPost(e) {
-      const w = enemies.find(o => (o.type === 'cultist' || o.type === 'carrier') && o.active && !o.dead && distance(o, e) < 10);
+      const w = enemies.find(o => (o.stats.ranged || o.type === 'cultist' || o.type === 'carrier') && o.active && !o.dead && o.encounter === e.encounter && distance(o, e) < 10);
       if (!w || distance(player, w) < 3) return null;
       const a = angleTo(w, player), dd = Math.max(1.5, distance(w, player) - 2.4), s = (e.index % 2 ? 1.1 : -1.1);
       return { x: w.x + Math.sin(a) * dd + Math.cos(a) * s, z: w.z + Math.cos(a) * dd - Math.sin(a) * s };
@@ -1132,6 +1147,8 @@
       return pick(e, [
         { id: 'spray', ok: d < 5.5, w: 3, move: () => ({ id: 'spray', name: 'Veba Tükürüğü', duration: 1.5, pose: 'spit', hits: [
           { at: .85, warn: .85, shape: 'cone', radius: 5.2, arc: .75, dmg: 12, style: 'bile', fill: 'forward', pose: 'spit' }] }) },
+        { id: 'bodySwipe', ok: d < 2.9, w: 2, move: () => ({ id: 'bodySwipe', name: 'Çürük Kol', duration: 1.38, pose: 'clawL', hits: [
+          { at: .72, warn: .72, shape: 'cone', radius: 2.8, arc: 2.1, dmg: 10, knockback: .8, style: 'blunt', fill: 'sweep', sweepDir: -1, pose: 'clawL' }] }) },
         { id: 'vial', sp: 1, ok: d > 5 && d < 10.5 && pools < 2, w: pools ? 1 : 3, move: () => {
           const t = { x: player.x, z: player.z };
           return { id: 'vial', name: 'Şişe Fırlatma', duration: 1.65, pose: 'throw', hits: [
@@ -1386,7 +1403,10 @@
         if (enemy.boss) cd *= (enemy.enraged ? .65 : enemy.phase === 2 ? .75 : 1) * (distance(enemy, player) < 3.6 && action.cooldown == null ? .55 : 1);
         if (enemy.cdScale) cd *= enemy.cdScale;   // round 7: the chapter I / II bosses rest less (set per phase / frenzy in their attack tables)
         else if (enemy.type === 'prisoner' && enemy.hp < enemy.maxHp * .3) cd *= .7;
-        enemy.cooldown = cd * (game.difficulty === 'easy' ? 1.25 : game.difficulty === 'normal' ? 1.15 : 1) * (enemy.tutorialStage === 0 ? 1.2 : enemy.tutorialStage === 1 ? 1.1 : 1);
+        const scaled = cd * (game.difficulty === 'easy' ? 1.25 : game.difficulty === 'normal' ? 1.15 : 1) * (enemy.tutorialStage === 0 ? 1.2 : enemy.tutorialStage === 1 ? 1.1 : 1);
+        // A visible punish window survives late-phase and frenzy acceleration. Heavy commitments leave longer openings.
+        enemy.recoveryFloor = enemy.boss ? (SPECIAL_IDS.includes(action.moveId) ? .58 : .36) : enemy.elite ? .28 : .14;
+        enemy.cooldown = Math.max(enemy.recoveryFloor, scaled);
       }
     }
     function updateEnemy(enemy, dt) {
@@ -1403,7 +1423,7 @@
       }
       applyPush(enemy, dt, enemy.radius);
       enemy.buff = Math.max(0, enemy.buff - dt); enemy.buffCooldown -= dt;
-      enemy.shieldBroken = Math.max(0, enemy.shieldBroken - dt); enemy.poiseRecovery = Math.max(0, enemy.poiseRecovery - dt); enemy.cooldown -= dt;
+      enemy.shieldBroken = Math.max(0, enemy.shieldBroken - dt); enemy.poiseRecovery = Math.max(0, enemy.poiseRecovery - dt); enemy.cooldown -= dt; enemy.recoveryFloor = Math.max(0, (enemy.recoveryFloor || 0) - dt);
       enemy.grabCd -= dt; enemy.riposteCd -= dt; enemy.hooksCd -= dt; enemy.fear = Math.max(0, enemy.fear - dt);
       enemy.move = 0;
       if (!enemy.active) return;
@@ -1454,21 +1474,24 @@
         const away = angleTo(player, enemy) + (enemy.index % 2 ? .6 : -.6), k = enemy.type === 'stalker' ? 1 : .8;
         moveBody(enemy, Math.sin(away) * speed * k * dt, Math.cos(away) * speed * k * dt, enemy.radius); enemy.move = k;
       } else if (enemy.stats.ranged || enemy.type === 'cultist' || enemy.type === 'carrier') {
-        if (d > ((enemy.spWait > 0 || enemy.spHold > 0) && enemy.type === 'carrier' ? 5.2 : 8.8)) walkTo(enemy, player, speed, dt);   // spit range while its bile moves are held back
-        else if (d < 4.3) {
+        // A caster behind a pillar seeks a sightline; strafing forever into the wall is neither threatening nor fun.
+        if (!clearStrike(enemy, player)) walkTo(enemy, player, speed * .85, dt);
+        else if (d > ((enemy.spWait > 0 || enemy.spHold > 0) && enemy.type === 'carrier' ? 5.2 : 8.8)) walkTo(enemy, player, speed, dt);   // spit range while its bile moves are held back
+        else if (d < 3.2 && enemy.cooldown > .35) {
           const retreatFace = enemy.face + Math.PI;
-          moveBody(enemy, Math.sin(retreatFace) * speed * .75 * dt, Math.cos(retreatFace) * speed * .75 * dt, enemy.radius); enemy.move = .75;
+          // One modest withdrawal, close enough that committing to melee still catches the caster.
+          moveBody(enemy, Math.sin(retreatFace) * speed * .45 * dt, Math.cos(retreatFace) * speed * .45 * dt, enemy.radius); enemy.move = .45;
         } else {
           const strafe = enemy.face + Math.PI / 2 * (enemy.index % 2 ? 1 : -1);
           moveBody(enemy, Math.sin(strafe) * .55 * dt, Math.cos(strafe) * .55 * dt, enemy.radius); enemy.move = .3;
         }
-      } else if (enemy.type === 'stalker' && d > 3 && d < 6.5 && enemy.cooldown > .3) {
+      } else if (['stalker', 'crawler', 'cavefang', 'slagcrawler'].includes(enemy.type) && d > 3 && d < 6.5 && enemy.cooldown > .3) {
         const strafe = enemy.face + Math.PI / 2 * (enemy.index % 2 ? 1 : -1);
         moveBody(enemy, Math.sin(strafe) * speed * .8 * dt, Math.cos(strafe) * speed * .8 * dt, enemy.radius); enemy.move = .8;
-      } else if (enemy.type === 'guard') {
+      } else if (['guard', 'gravemason', 'forgesentinel'].includes(enemy.type)) {
         const post = guardPost(enemy);
-        if (post && distance(enemy, post) > .35) { walkTo(enemy, post, speed * .85, dt); enemy.shield = enemy.shieldBroken <= 0; }
-        else if (!post && d > 2.65) walkTo(enemy, player, speed, dt);
+        if (post && distance(enemy, post) > .35) { walkTo(enemy, post, speed * .85, dt); enemy.shield = enemy.type === 'guard' && enemy.shieldBroken <= 0; }
+        else if (!post && d > (enemy.type === 'guard' ? 2.65 : 3.4)) walkTo(enemy, player, speed, dt);
       } else if (enemy.boss && d < 3.2 && enemy.cooldown > .3) {
         // Between moves he steps back to the length of his axe rather than trading blows at the hero's range.
         const away = angleTo(player, enemy); moveBody(enemy, Math.sin(away) * speed * .75 * dt, Math.cos(away) * speed * .75 * dt, enemy.radius); enemy.move = .75;
@@ -1514,12 +1537,17 @@
       saveProfileChoices();
     }
     // Returns { blocked, killed } so the strike can size hit-stop, sound and camera for the whole swing.
+    // Quest choices are read live, bounded independently of armor, and applied once per event. Never bake them into cached gear stats.
+    function questBenefit(key, max) {
+      const b = quests && quests.info && quests.info.benefits, value = b && b[key];
+      return Number.isFinite(value) ? clamp(value, 0, max) : 0;
+    }
     function hurtEnemy(enemy, damage, heavy, attackFace, attack) {
       if (enemy.dead || gate && gate.blocks(player.x, player.z, enemy.x, enemy.z, .15)) return null;
       // Roll once per committed attack, shared by its targets/ticks; equipment never displays decorative crit stats.
       if (attack && attack.critical === undefined) attack.critical = Math.random() < game.criticalChance;
       const critical = !!(attack && attack.critical);
-      damage = Math.max(1, Math.round(damage * (player.damageMultiplier || 1) * (critical ? game.criticalMultiplier : 1)));
+      damage = Math.max(1, Math.round(damage * (player.damageMultiplier || 1) * (critical ? game.criticalMultiplier : 1) * (enemy.boss ? 1 + questBenefit('bossDamage', .20) : 1)));
       if (game.difficulty !== 'hard') damage = Math.round(damage * 1.18);
       if (attack) trackAttackTarget(enemy);
       const toPlayer = angleTo(enemy, player), fromFront = Math.abs(angleDifference(toPlayer, enemy.face)) < 1.4;
@@ -1557,7 +1585,7 @@
         if (breaksGuard) enemy.guardBroke = true;
       }
       enemy.hp = Math.max(0, enemy.hp - damage); if (enemy.boss && !enemy.action) enemy.wrath += damage;
-      if (player.rageTime > 0 && !blocked && player.hp > 0) player.hp = Math.min(player.maxHp, player.hp + damage * ROAR.steal * 100 / player.effectiveMaxHp);   // blood fury: a little of every blow comes back
+      if (player.rageTime > 0 && !blocked && player.hp > 0) player.hp = Math.min(player.maxHp, player.hp + damage * ROAR.steal * (1 + questBenefit('healingBonus', .20)) * 100 / player.effectiveMaxHp);   // blood fury: a little of every blow comes back
       const killed = enemy.hp <= 0;
       if (killed) enemy.deathKind = !enemy.boss && (heavy || finisher) ? 'blown' : '';
       const spray = attack ? sweepAngle(attack) : attackFace;
@@ -1572,19 +1600,21 @@
         const kind = attack && attack.whirl ? (attack.ticks >= SPECIAL.ticks ? 'whirlLast' : 'whirl') : heavy ? 'heavy' : finisher ? 'finisher' : 'light';
         if (limbs.cut(enemy, kind, attackFace, () => rand(enemy), player) && heavy && !(attack && attack.whirl)) hitStop(.008, [{ body: enemy, model: enemy.model, amp: .07 }]);
       }
-      return { blocked, killed, guardBreak: !!enemy.guardBroke && (enemy.guardBroke = false, true), contact };
+      return { blocked, braced, killed, guardBreak: !!enemy.guardBroke && (enemy.guardBroke = false, true), contact };
     }
     function die(enemyName, attackName) {
       if (game.state !== 'playing' || player.dead) return;
+      cancelPlayerCharge();
       player.dead = true; player.hp = 0; player.attack = null; player.dodge = 0; player.healing = 0; order = null; showTargetRing(null); clearMoveMark();
-      buffer = {}; player.pendingAction = null; player.lack = null; game.attackTarget = null;
+      buffer = {}; pendingDodge = null; player.pendingAction = null; player.lack = null; game.attackTarget = null;
       game.state = 'dead'; game.lastDeath = { enemy: enemyName, attack: attackName };
       sound('death'); emit('death', game.lastDeath);
     }
     function win() {
       if (endAnnounced) return;
+      cancelPlayerCharge();
       endAnnounced = true; game.state = 'won'; clearHazards(); player.attack = null; order = null; showTargetRing(null); clearMoveMark();
-      buffer = {}; player.pendingAction = null; player.lack = null; game.attackTarget = null;
+      buffer = {}; pendingDodge = null; player.pendingAction = null; player.lack = null; game.attackTarget = null;
       progression.completedChapter(chapter); syncProgression();
       // The first boss writes the shore entrance atomically with every earned reward.
       const complete = chapter === 4;
@@ -1606,7 +1636,7 @@
       let damage = hazard.damage;
       if (hazard.owner) damage = Math.round(damage * (hazard.owner.boss ? EASE.bossDamage : EASE.damage) * BALANCE.damage * (hazard.owner.campaignDamage || 1));
       if (game.difficulty !== 'hard') damage = Math.round(damage * (game.difficulty==='easy'?.5:.75));
-      damage = Math.max(1, Math.round(damage * (1 - (player.defense || 0))));
+      damage = Math.max(1, Math.round(damage * (1 - (player.defense || 0)) * (1 - questBenefit('damageReduction', .12))));
       // The display event and the wound use the same final amount after the cry/fury's defence.
       if (player.roar) damage = Math.ceil(damage * .5); else if (player.rageTime > 0) damage = Math.ceil(damage * ROAR.guard);
       damage *= 100 / player.effectiveMaxHp;
@@ -1695,6 +1725,7 @@
 
     function queueInput(input, dt) {
       for (const key of Object.keys(buffer)) { buffer[key] -= dt; if (buffer[key] <= 0) delete buffer[key]; }
+      if (!buffer.dodge) pendingDodge = null;
       holdInput(input);
     }
     // Attack presses use the short combo buffer. Abilities keep a valid press until the current
@@ -1729,10 +1760,11 @@
       if (key === 'dodge' && player.stamina < DODGE.cost) return rejectAction(key, 'stamina', 'Kaçınma için ' + Math.round(DODGE.cost) + ' dayanıklılık gerekiyor.', { cost: DODGE.cost, have: player.stamina });
       return true;
     }
-    function holdInput(input) {
+    function holdInput(input, frozen) {
       for (const key of ['light', 'heavy', 'near', 'dodge', 'heal', 'rage', 'fourth', 'special']) {
         if (!input[key] || !canQueueAbility(key)) continue;
         buffer[key] = Math.max(FEEL.buffer, actionWait(key) + FEEL.buffer);
+        if (key === 'dodge') { const aim = frozen ? input : rawInput || input; pendingDodge = { x: aim.x, z: aim.z, pointX: aim.pointX, pointZ: aim.pointZ, aimX: aim.aimX, aimZ: aim.aimZ, padActive: aim.padActive }; }
       }
       const attack = player.attack;
       if (attack && !attack.skill && input.light && attack.age >= FEEL.queueAfter) attack.queued = 'light';
@@ -1757,9 +1789,11 @@
       if (player.stamina < DODGE.cost) return rejectAction('dodge', 'stamina',
         'Kaçınma için ' + Math.round(DODGE.cost) + ' dayanıklılık gerekiyor (şu an ' + Math.floor(player.stamina) + ').', { cost: DODGE.cost, have: player.stamina });
       // Direction: the keys held (the real ones, not an auto-approach), else the pad's right stick, else the cursor / target of a click order, else the facing.
-      const raw = rawInput || input, rx = Number.isFinite(raw.x) ? raw.x : 0, rz = Number.isFinite(raw.z) ? raw.z : 0, len = Math.hypot(rx, rz);
+      const raw = pendingDodge || rawInput || input; pendingDodge = null;
+      const rx = Number.isFinite(raw.x) ? raw.x : 0, rz = Number.isFinite(raw.z) ? raw.z : 0, len = Math.hypot(rx, rz);
       if (len > .1) dodgeVector = { x: rx / len, z: rz / len };
       else if (!raw.padActive && Number.isFinite(raw.pointX) && Number.isFinite(raw.pointZ) && Math.hypot(raw.pointX - player.x, raw.pointZ - player.z) > .4) { const d = Math.hypot(raw.pointX - player.x, raw.pointZ - player.z); dodgeVector = { x: (raw.pointX - player.x) / d, z: (raw.pointZ - player.z) / d }; }   // Diablo IV: the roll goes toward the mouse cursor
+      else if (Number.isFinite(raw.aimX) && Number.isFinite(raw.aimZ) && Math.hypot(raw.aimX - player.x, raw.aimZ - player.z) > .4) { const d = Math.hypot(raw.aimX - player.x, raw.aimZ - player.z); dodgeVector = { x: (raw.aimX - player.x) / d, z: (raw.aimZ - player.z) / d }; }
       else if (aimFace !== null) dodgeVector = { x: Math.sin(aimFace), z: Math.cos(aimFace) };
       else if (dodgeAim !== null) dodgeVector = { x: Math.sin(dodgeAim), z: Math.cos(dodgeAim) };
       else dodgeVector = { x: Math.sin(player.face), z: Math.cos(player.face) };
@@ -1847,6 +1881,17 @@
       }
       return best;
     }
+    // Distinct weapon handling: axes trade tempo for weight; spears trade sweep coverage for reach. Skill clocks remain independent.
+    const WEAPON_HANDLING = {
+      sword: { durations: [.51,.56,.68], strikes: [.20,.23,.29], damage: [25,29,36], radius: 3.05, arcs: [2.7,2.7,2.7], reach: 0, contact: 1 },
+      axe: { durations: [.55,.615,.76], strikes: [.23,.265,.33], damage: [28,33,41], radius: 3.0, arcs: [3.05,3.05,3.05], reach: 0, contact: 1.15 },
+      spear: { durations: [.49,.535,.65], strikes: [.20,.225,.285], damage: [26,30,35], radius: 3.85, arcs: [1.10,1.15,1.35], reach: .55, contact: .9 }
+    };
+    Object.values(WEAPON_HANDLING).forEach(profile => { Object.values(profile).forEach(value => { if (Array.isArray(value)) Object.freeze(value); }); Object.freeze(profile); });
+    Object.freeze(WEAPON_HANDLING);
+    function weaponHandling() { return WEAPON_HANDLING[progression.stats().weaponType] || WEAPON_HANDLING.sword; }
+    // Character statistics use these same base hits; no separate UI damage table can drift from contact.
+    game.normalAttackProfile = weaponHandling;
     const ASSIST = { range: 3.6, arc: 50 * Math.PI / 180, near: 4.4 };   // attack key / pad button: reach (to the foe's edge) and half-angle of the front cone (near = the touch button, any direction)
     function beginAttack(heavy, hasAim, fromSkill) {
       if (heavy && !fromSkill) return useSkill(0, hasAim);
@@ -1854,7 +1899,8 @@
       if (player.stamina < cost) return rejectAction(heavy ? 'heavy' : 'light', 'stamina',
         (heavy ? 'Ağır' : 'Hafif') + ' darbe için ' + Math.round(cost) + ' dayanıklılık gerekiyor (şu an ' + Math.floor(player.stamina) + ').', { cost, have: player.stamina });
       const combo = heavy ? 0 : comboWindow > 0 ? comboStep % 3 : 0;
-      const durations = [.51, .56, .68], timings = [.20, .23, .29], damages = [25, 29, 36];
+      const handling = weaponHandling(), weaponType = progression.stats().weaponType;
+      const durations = handling.durations, timings = handling.strikes, damages = handling.damage;
       // Who is hit and where the blow goes. A click order (swingPlan) names its foe, or a stand swing (Shift + click) its direction: the cursor. The attack key /
       // pad button / touch button have no order: they swing only if a living foe is inside the narrow front cone (+-50 deg, ~3.6 m; the touch button looks all round
       // to 4.4 m), the foe of the last such swing keeping it a little wider so the target does not flicker. No foe: nothing happens (no swing at empty air).
@@ -1879,9 +1925,9 @@
       const target = foe || frontTarget(player.face, 4.4, .75), want = heavy ? FEEL.heavyLunge : FEEL.lunge[combo];
       const room = target ? Math.max(0, distance(player, target) - target.radius - (hero.radius || .46) - .45) : want;
       player.attack = {
-        heavy, combo, age: 0, duration, strike,
-        hit: false, face: player.face, damage: heavy ? 60 : damages[combo], radius: heavy ? 3.65 : 3.05 + combo * .12,
-        arc: heavy ? 3.65 : 2.7, moveUntil: heavy ? .24 : .13, serial: ++attackSerial, queued: null,
+        heavy, combo, weaponType, contactScale: heavy ? 1 : handling.contact, age: 0, duration, strike,
+        hit: false, face: player.face, damage: heavy ? 60 : damages[combo], radius: heavy ? 3.65 : handling.radius + combo * .12,
+        arc: heavy ? 3.65 : handling.arcs[combo], moveUntil: heavy ? .24 : .13, serial: ++attackSerial, queued: null,
         lunge: stand ? 0 : Math.min(want, room), foe, stand, lungeLead: heavy ? FEEL.heavyLungeLead : FEEL.lungeLead[combo], lunged: 0,
         whooshAt: strike - (heavy ? FEEL.whoosh.heavy : combo === 2 ? FEEL.whoosh.finisher : FEEL.whoosh.light), whooshed: false,
         chainAt: heavy ? duration : duration - (combo === 2 ? FEEL.finisherChainEarly : FEEL.chainEarly)
@@ -1900,7 +1946,7 @@
       attack.hit = true;
       // The blow ends up on the foe it was aimed at (it may have shuffled a little since the swing began), so hits and gore point at it.
       if (attack.foe && !attack.foe.dead && !attack.stand && distance(player, attack.foe) < 6) attack.face = angleTo(player, attack.foe);
-      let hits = 0, blocks = 0, kills = 0, breaks = 0;
+      let hits = 0, blocks = 0, kills = 0, breaks = 0, metalContacts = 0;
       const shudder = [], finisher = !attack.heavy && attack.combo === 2, H = FEEL.hitstop;
       for (const enemy of enemies) {
         if (enemy.dead || distance(player, enemy) > attack.radius + enemy.radius * .6) continue;
@@ -1910,7 +1956,7 @@
         if (!enemy.active) { enemy.active = true; enemy.activated = true; enemy.encounter.activated = true; }
         const damage = Math.round(attack.damage * (player.rageTime > 0 ? 1.48 : 1)); attack.rage = player.rageTime > 0;
         const r = hurtEnemy(enemy, damage, attack.heavy, attack.face, attack); if (!r) continue;
-        hits++; if (r.blocked) blocks++; if (r.killed) kills++; if (r.guardBreak) breaks++;
+        hits++; if (r.blocked) blocks++; if (r.killed) kills++; if (r.guardBreak) breaks++; if (r.blocked || r.braced) metalContacts++;
         if (!r.killed) shudder.push({ body: enemy, model: enemy.model, amp: r.blocked ? .02 : attack.heavy ? .07 : .045 });
         if (game.state === 'won') break;
       }
@@ -1920,16 +1966,17 @@
         if (breaks && attack.heavy) stop = Math.max(stop, H.guardBreak);
         if (kills && attack.heavy) stop += game.state === 'won' ? H.bossKill : H.kill;
         shudder.push({ body: player, model: hero, amp: .012 });
-        hitStop(stop, shudder);
-        if (clean) sound(attack.heavy || finisher ? 'heavyHit' : 'hit', { hits, volume: finisher ? 1 : .9 });
+        hitStop(stop * (attack.contactScale || 1), shudder);
+        if (clean) sound(attack.heavy || finisher ? 'heavyHit' : 'hit', { hits, volume: finisher ? 1 : .9, weaponType: progression.stats().weaponType, material: metalContacts >= clean ? 'metal' : 'flesh', heavy: !!attack.heavy, finisher, critical: !!attack.critical, kill: kills > 0 });
       }
-      if (finisher) {
+      if (finisher && attack.weaponType !== 'spear') {
         // The cleave bites into the floor whether or not it found flesh.
         const gx = player.x + Math.sin(attack.face) * 2.05, gz = player.z + Math.cos(attack.face) * 2.05;
         fx('slam', { x: gx, y: .1, z: gz, radius: 1.35, small: true, face: attack.face }); emit('impact', { x: gx, z: gz, strength: hits ? .5 : .32, radius: 1.3 });
       }
       if (attack.skill === 'cleave') { fx('heroSkill', { skill: 'cleave', tier: 1, phase: 'release', x: player.x, y: .15, z: player.z, face: attack.face, radius: attack.radius, arc: attack.arc }); fx('skillAccent', { line: 'cleave', tier: 1, skill: 'cleave', x: player.x, z: player.z, face: attack.face, radius: attack.radius, hits }); }
-      fx('slash', { x: player.x, y: 1.2, z: player.z, face: attack.face, heavy: attack.heavy, hit: hits > 0 });
+      if (finisher && attack.weaponType === 'spear' && hits) emit('impact', { x: player.x + Math.sin(attack.face) * 2.8, z: player.z + Math.cos(attack.face) * 2.8, strength: .42, radius: 1.1 });
+      fx('slash', { x: player.x, y: 1.2, z: player.z, face: attack.face, heavy: attack.heavy, hit: hits > 0, weaponType: attack.weaponType, reach: attack.radius });
     }
     // ------------------------------------------------------------------ war cry (Öfke)
     function startWarCry() {
@@ -2058,7 +2105,7 @@
           if (order.held) out.x = out.z = 0;
         } else if (order.kind === 'attack') {
           const e = order.enemy, a = angleTo(player, e), selected = order.heavy ? selectedSkill(0) : null;
-          const reach = order.heavy ? (selected ? skillReach[selected.id] || ORDER.reachHeavy : ORDER.reachHeavy) : ORDER.reach;
+          const reach = order.heavy ? (selected ? skillReach[selected.id] || ORDER.reachHeavy : ORDER.reachHeavy) : ORDER.reach + weaponHandling().reach;
           dodgeAim = a; ring = e;
           if (distance(player, e) - e.radius <= reach && clearStrike(player, e)) { swingPlan = { enemy: e, heavy: order.heavy, order }; if (mv <= .08) out.x = out.z = 0; }
           else if (mv <= .08) {
@@ -2095,7 +2142,7 @@
     }
     function ensureTargetRing() {
       if (!targetRing) {
-        targetRing = new THREE.Mesh(new THREE.RingGeometry(.9, 1, 56), new THREE.MeshBasicMaterial({ color: 0xff8a3c, transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, fog: false }));
+        targetRing = new THREE.Mesh(new THREE.RingGeometry(.96, 1, 64), new THREE.MeshBasicMaterial({ color: 0xd2c5af, transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide, blending: THREE.NormalBlending, fog: false }));
         targetRing.rotation.x = -Math.PI / 2; targetRing.renderOrder = 3; targetRing.name = 'TargetRing'; targetRing.visible = false; root.add(targetRing);
       }
     }
@@ -2128,9 +2175,9 @@
       }
       targetRing.visible = !!foe;
       if (!foe) return;
-      const r = foe.radius * 1.5 + .2, pulse = reducedMotion.matches ? 1 : .82 + .18 * Math.sin(simTime * 6);
+      const r = foe.radius * 1.5 + .2, pulse = reducedMotion.matches ? 1 : .94 + .06 * Math.sin(simTime * 3);
       targetRing.position.set(foe.x, .07, foe.z); targetRing.scale.set(r, r, 1);
-      targetRing.material.opacity = (locked ? .85 : .42) * pulse;
+      targetRing.material.opacity = (locked ? .55 : .23) * pulse;
     }
     function updatePlayer(dt, input) {
       input = steerOrders(input, dt);
@@ -2181,7 +2228,7 @@
         else if (!player.flasks) deny('Şifa mataraların boş.');
         else if (player.hp >= player.maxHp) deny('Yaraların zaten kapalı.');
         else {
-          clearLack('heal'); player.flasks--; player.hp = Math.min(player.maxHp, player.hp + 64 * 100 / player.effectiveMaxHp); drinkLeft = DRINK;
+          clearLack('heal'); player.flasks--; player.hp = Math.min(player.maxHp, player.hp + 64 * (1 + questBenefit('healingBonus', .20)) * 100 / player.effectiveMaxHp); drinkLeft = DRINK;
           emit('heal', { hp: player.hp, flasks: player.flasks }); sound('healStart'); sound('heal');
           flashRing(player.x, player.z, 1.3, 0xd7bf88, .6);
         }
@@ -2247,7 +2294,7 @@
       }
       // Energy recovers during every live action, including a held attack.
       if (player.stamina < player.maxStamina) {
-        player.stamina = Math.min(player.maxStamina, player.stamina + REGEN * (player.rageTime > 0 ? 1.65 : 1) * dt);
+        player.stamina = Math.min(player.maxStamina, player.stamina + REGEN * (1 + questBenefit('staminaRecovery', .20)) * (player.rageTime > 0 ? 1.65 : 1) * dt);
       }
       player.status = player.healing ? 'Şifa içiliyor' : player.roar ? 'Savaş narası' : player.rageTime > 0 ? 'Kan öfkesi' : '';
       pendingAction();
@@ -2337,7 +2384,7 @@
       hs.stagger = player.stagger > 0 ? 1 - player.stagger / (player.staggerTotal || .7) : 0; hs.staggerTime = player.staggerTotal || .7;
       hs.contactPhase = player.attack && player.attack.heavy ? .56 : .41;
       hs.heavy = !!(player.attack && player.attack.heavy && !wh); hs.block = false;
-      hs.combo = player.attack ? player.attack.combo : 0; hs.parry = 0;
+      hs.combo = player.attack ? player.attack.combo : 0; hs.parry = 0; hs.weaponType = atk && atk.weaponType || progression.stats().weaponType;
       hs.blockImpact = 0; hs.hitDirection = player.hitDirection || 0;
       hs.dodge = player.dodge ? clamp(dodgeAge / .48, .01, 1) : 0;
       hs.dodgeProgress = player.dodge ? clamp(dodgeAge / .48, .01, 1) : 0;
@@ -2468,7 +2515,7 @@
       if (freeze > 0) {
         // Hit-stop: every combat clock holds together; presses made now are buffered for the next frame.
         const held = Math.min(freeze, dt); freeze -= held; dt -= held;
-        if (game.state === 'playing') { holdInput(input); if (input.clickLight || input.clickHeavy) pendingClick = { heavy: !!input.clickHeavy, target: input.target, x: input.pointX, z: input.pointZ, stand: !!input.stand }; }
+        if (game.state === 'playing') { holdInput(input, true); if (input.clickLight || input.clickHeavy) pendingClick = { heavy: !!input.clickHeavy, target: input.target, x: input.pointX, z: input.pointZ, stand: !!input.stand }; }
         input = Object.assign({}, input, { light: false, heavy: false, near: false, clickLight: false, clickHeavy: false, dodge: false, heal: false, rage: false, special: false, fourth: false });
         pendingAction();
         shudder(freeze > 0); game.hitStop = freeze;
@@ -2490,7 +2537,12 @@
         const substep = Math.min(remaining, 1 / 60);
         const frameInput = first ? input : Object.assign({}, input, { light: false, heavy: false, near: false, clickLight: false, clickHeavy: false, dodge: false, heal: false, rage: false, special: false, fourth: false, interact: false });
         step(substep, frameInput); poseDt += substep; first = false; remaining -= substep;
-        if (freeze > 0) { freeze = Math.max(0, freeze - remaining); break; }
+        if (freeze > 0) {
+          // Contact may happen inside a 33/50/100 ms frame. Consume only its authored hold;
+          // dropping the entire remainder would make attacks slower on a slower device.
+          const held = Math.min(freeze, remaining); freeze -= held; remaining -= held;
+          if (freeze <= .00001) { freeze = 0; shudder(false); }
+        }
       }
       // A 33/50/100 ms update uses 2/3/6 collision steps, but presents one
       // character pose. Preserve all simulated animation time without computing
@@ -2500,6 +2552,7 @@
     }
     function dispose() {
       if (disposed) return; disposed = true;
+      cancelPlayerCharge();
       renderTraversal = false;
       for (const { node, guard, descriptor } of matrixGuards) {
         if (node.updateMatrixWorld !== guard) continue;

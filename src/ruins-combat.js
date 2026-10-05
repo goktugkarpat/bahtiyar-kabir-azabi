@@ -130,9 +130,12 @@
       return self={
         attach:function(c){core=c;if(c.chapter===3)c.hooks.push({tick:function(){self.tick();}});},
         attack:function(e,d){
+          // A phase vow schedules one authored wave; consume it after the roar instead of silently losing it.
+          if (e.forceMove === 'hollowCall' && core) { e.forceMove = null; return api.beginMove(e, call(e)); }
           var list=[];
           if(e.type==='ashbound')list=[
             {id:'ashCut',ok:d<3.7,w:4,move:function(){var m=cone('ashCut','Kül Biçişi',3.4,2.4,16,.75,'sweep');m.hits.push(hit(1.4,.6,'cone',3.5,13,'sweepBack',{arc:2,face:e.face+.5,fill:'sweep',sweepDir:-1}));m.duration=2.05;return m;}},
+            {id:'ashThrust',ok:d>1.7&&d<4.2,w:2,move:function(){return {id:'ashThrust',name:'Yemin Dürtüşü',duration:1.4,pose:'thrust',hits:[hit(.72,.72,'line',0,14,'thrust',{width:1.0,length:4,style:'thrust',fill:'forward'})]};}},
             {id:'ashTrail',sp:1,ok:d<8,w:2,move:function(){return fissures(e,1,'Kül Yolu');}}
           ];
           else if(e.type==='shardseer')list=[
@@ -147,6 +150,7 @@
           ];
           else if(e.type==='gravemason')list=[
             {id:'stoneMaul',ok:d<4.8,w:4,move:function(){return cone('stoneMaul','Mezar Tokmağı',4.5,2.1,23,1.02,'overhead');}},
+            {id:'stoneElbow',ok:d<2.9,w:2,move:function(){var mv=cone('stoneElbow','Taş Dirsek',3.2,2.2,13,.80,'bash');mv.hits[0].style='blunt';mv.hits[0].knockback=1.5;return mv;}},
             {id:'fissures',sp:1,ok:d>3&&d<11,w:3,move:function(){return fissures(e,2,'Kırılan Mezarlar');}},
             {id:'stoneCrown',sp:1,ok:d<7,w:2,move:function(){return rings(e,1);}}
           ];

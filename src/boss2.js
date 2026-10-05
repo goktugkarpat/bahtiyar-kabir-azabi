@@ -262,10 +262,90 @@
         var wm = new T.Mesh(wg, wmat); wm.visible = false; wm.frustumCulled = false; wm.renderOrder = 2; group.add(wm); pillars.wedges.push(wm);
       }
       // the pillars are solid for everybody (hero, foes): wrap the world's collision once; the wrapper always asks the newest game's pillars
-      var hold = world.__boss2 || (world.__boss2 = { p: null, walk: world.isWalkable, move: world.move, on: false });
+      // A fixed small visibility graph steers click orders around the moving cover too.
+      // The static floor graph cannot see these runtime pillars; body collision alone would trap
+      // a hero clicking a safe shadow on the far side. No navigation grid or geometry is rebuilt.
+      function pillarCircleSweep(p, ax, az, bx, bz, radius) {
+        if(p.state!==2 && !(p.state===1 && p.k>.55))return false;
+        var dx=bx-ax,dz=bz-az,L2=dx*dx+dz*dz;
+        var u=L2>1e-12?clamp(((p.x-ax)*dx+(p.z-az)*dz)/L2,0,1):0;
+        var x=ax+dx*u-p.x,z=az+dz*u-p.z,R=p.r+radius+.006;
+        return x*x+z*z<R*R;
+      }
+      function pillarSweep(P, ax, az, bx, bz, radius) {
+        for(var i=0;i<P.list.length;i++)if(pillarCircleSweep(P.list[i],ax,az,bx,bz,radius))return true;
+        return false;
+      }
+      function pillarRoute(P, from, base, radius, hold, host, allCover) {
+        var work=hold.navWork;
+        if(!work) {
+          var nodes=[];for(var k=0;k<96;k++)nodes.push({x:0,z:0});
+          work=hold.navWork={nodes:nodes,dist:new Float64Array(96),parent:new Int16Array(96),done:new Uint8Array(96),links:new Uint8Array(96*96)};
+        }
+        var nodes=work.nodes,N=0;
+        function add(x,z) {if(N>=96)return false;nodes[N].x=x;nodes[N++].z=z;return true;}
+        add(from.x,from.z);
+        var goal=base[base.length-1],cover=P.hits(goal.x,goal.z,radius);
+        if(cover) {
+          var dx=from.x-cover.x,dz=from.z-cover.z,D=Math.hypot(dx,dz)||1,R=cover.r+radius+.2;
+          goal={x:cover.x+dx/D*R,z:cover.z+dz/D*R};
+          if(!hold.walk.call(host,goal.x,goal.z,radius)||P.hits(goal.x,goal.z,radius))return null;
+        }
+        add(goal.x,goal.z);
+        for(var i=0;i<base.length-1;i++)if(!P.hits(base[i].x,base[i].z,radius)) {
+          if(N>=62)return null;add(base[i].x,base[i].z);
+        }
+        // Usually a single pillar blocks the leg: solve its eight corners first.
+        // All cover still participates in every edge test. A rare second obstruction
+        // expands this same bounded workspace once, rather than running 32 nodes every query.
+        var selected=0;
+        for(var i=0;i<P.list.length;i++) {
+          var A=from;for(var k=0;k<base.length;k++){var B=base[k];if(pillarCircleSweep(P.list[i],A.x,A.z,B.x,B.z,radius)){selected|=1<<i;break;}A=B;}
+        }
+        for(var i=0;i<P.list.length;i++) {
+          var p=P.list[i];if(p.state!==2 && !(p.state===1 && p.k>.55)||!allCover&&!(selected&(1<<i)))continue;
+          var R=(p.r+radius+.16)/Math.cos(Math.PI/8);
+          for(var k=0;k<8;k++) {
+            var a=k*Math.PI/4,x=p.x+Math.cos(a)*R,z=p.z+Math.sin(a)*R;
+            if(hold.walk.call(host,x,z,radius)&&!P.hits(x,z,radius))add(x,z);
+          }
+        }
+        work.dist.fill(Infinity);work.parent.fill(-1);work.done.fill(0);work.links.fill(0);work.dist[0]=0;
+        for(var step=0;step<N;step++) {
+          var at=-1,best=Infinity;for(var k=0;k<N;k++)if(!work.done[k]&&work.dist[k]<best){best=work.dist[k];at=k;}
+          if(at<0)break;if(at===1) {
+            var result=[],id=1;while(id>0){result.push({x:nodes[id].x,z:nodes[id].z});id=work.parent[id];}
+            return result.reverse();
+          }
+          work.done[at]=1;
+          for(var k=0;k<N;k++)if(!work.done[k]&&k!==at) {
+            var link=at*96+k,valid=work.links[link];
+            if(!valid) {
+              var A=nodes[at],B=nodes[k];
+              valid=hold.clear.call(host,A.x,A.z,B.x,B.z,radius)&&!pillarSweep(P,A.x,A.z,B.x,B.z,radius)?2:1;
+              work.links[link]=work.links[k*96+at]=valid;
+            }
+            if(valid!==2)continue;
+            var cost=best+Math.hypot(nodes[at].x-nodes[k].x,nodes[at].z-nodes[k].z);
+            if(cost<work.dist[k]){work.dist[k]=cost;work.parent[k]=at;}
+          }
+        }
+        return allCover ? null : pillarRoute(P,from,base,radius,hold,host,true);
+      }
+      var hold = world.__boss2 || (world.__boss2 = { p: null, walk: world.isWalkable, move: world.move, clear: world.hasClearPath, path: world.pathTo, on: false });
       hold.p = pillars;
       if (hold.walk && hold.move && !hold.on) {
         hold.on = true;
+        if(hold.clear)world.hasClearPath=function(ax,az,bx,bz,r) {
+          var P=hold.p,radius=r==null?.46:r;
+          return hold.clear.call(this,ax,az,bx,bz,radius)&&(!P||!P.armed||!pillarSweep(P,ax,az,bx,bz,radius));
+        };
+        if(hold.path&&hold.clear)world.pathTo=function(from,to,r) {
+          var base=hold.path.call(this,from,to,r),P=hold.p,radius=r==null?.46:r;
+          if(!base||!base.length||!P||!P.armed)return base;
+          var A=from,blocked=false;for(var i=0;i<base.length;i++){var B=base[i];if(pillarSweep(P,A.x,A.z,B.x,B.z,radius)){blocked=true;break;}A=B;}
+          return blocked?pillarRoute(P,from,base,radius,hold,this):base;
+        };
         world.isWalkable = function (x, z, r) { var P = hold.p; if (P && P.armed && P.hits(x, z, r == null ? .46 : r)) return false; return hold.walk.call(this, x, z, r); };
         world.move = function (p, dx, dz, r) {
           var P = hold.p;
@@ -409,7 +489,7 @@
       // later phases recover faster: the engine counts the rest down in real seconds, we shave extra off while no move runs
       if (!e.action && e.cooldown > 0) {
         var tn = forge ? Boss2.tune4 : Boss2.tune, k = e.boss ? tn.acc[clamp(e.phase - 1, 0, 2)] + (b.frenzy ? tn.accFrenzy : 0) : tn.accMini;
-        e.cooldown -= dt * k;
+        e.cooldown = Math.max(e.recoveryFloor || 0, e.cooldown - dt * k);
       }
     }
 

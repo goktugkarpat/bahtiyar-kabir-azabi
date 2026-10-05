@@ -28,13 +28,27 @@
       name.textContent = entry.name; names.append(name, state); head.append(numeral, names);
       const description = document.createElement('p'); description.textContent = entry.description; description.className = 'journal-description';
       const steps = document.createElement('ol'); steps.className = 'journal-steps';
-      for (const step of source.steps) {
+      for (const step of source.steps.concat(source.trial ? [source.trial] : [])) {
         const li = document.createElement('li'), symbol = document.createElement('i'); symbol.setAttribute('aria-hidden', 'true');
         const text = document.createElement('div'), stepName = document.createElement('b'), line = document.createElement('p');
         stepName.textContent = step.name; line.textContent = step.objective; text.append(stepName, line); li.append(symbol, text); steps.append(li);
         marks.set(step.id, { li, line, source: step });
       }
-      card.append(head, description, steps); journal.append(card); cards.push({ card, state });
+            const verdict = document.createElement('section'); verdict.className = 'journal-verdict';
+      const verdictName = document.createElement('h4'); verdictName.textContent = source.verdict.title;
+      const question = document.createElement('p'); question.textContent = source.verdict.question;
+      const options = document.createElement('div'); options.className = 'journal-options';
+      const buttons = [];
+      for (const choice of source.verdict.options) {
+        const button = document.createElement('button'); button.type = 'button'; button.className = 'journal-choice';
+        const label = document.createElement('strong'), effect = document.createElement('span'); label.textContent = choice.name; effect.textContent = choice.effect;
+        button.append(label, effect); button.dataset.choice = choice.id;
+        button.onclick = () => { if (q.choose && q.choose(entry.id, choice.id)) { revision = -1; update(); card.scrollIntoView({ block: 'nearest' }); outcome.focus({ preventScroll: true }); } };
+        options.append(button); buttons.push(button);
+      }
+      const outcome = document.createElement('p'); outcome.className = 'journal-outcome'; outcome.hidden = true; outcome.tabIndex = 0; outcome.setAttribute('aria-live', 'polite');
+      verdict.append(verdictName, question, options, outcome);
+      card.append(head, description, steps, verdict); journal.append(card); cards.push({ card, state, verdict, question, options, buttons, outcome });
     }
     function update(dt = 0) {
       if (noticeLeft > 0 && dt > 0) { noticeLeft -= dt; if (noticeLeft <= 0) { notice.classList.remove('show'); showing = false; } }
@@ -43,18 +57,29 @@
       for (let i = 0; i < 2; i++) {
         const entry = q.entries[i], row = rows[i], card = cards[i];
         row.row.classList.toggle('complete', entry.complete); row.count.textContent = entry.complete ? '✓' : entry.step + '/' + entry.steps;
-        card.card.classList.toggle('complete', entry.complete); card.state.textContent = entry.complete ? 'BAĞ ÇÖZÜLDÜ' : entry.step + ' / ' + entry.steps + ' ADIM';
+                card.card.classList.toggle('complete', entry.complete); card.state.textContent = entry.complete ? 'BAĞ ÇÖZÜLDÜ' : entry.step + ' / ' + entry.steps + ' ADIM';
+        const pending = q.pendingChoice && q.pendingChoice.questId === entry.id;
+        card.card.classList.toggle('awaiting-choice', !!pending); card.card.classList.toggle('has-verdict', !!entry.choice);
+        card.verdict.hidden = !pending && !entry.complete && !entry.choice;
+        card.options.hidden = !pending;
+        card.question.hidden = !pending;
+        card.outcome.hidden = !entry.complete && !entry.choice;
+        card.outcome.textContent = entry.outcome ? entry.outcome + ' ' + entry.consequence : 'Bu bağ önceki yolculuğunda çözüldü.';
+        for (const button of card.buttons) button.disabled = !pending;
+        card.state.textContent = pending ? 'SON KARAR SENİN' : card.state.textContent;
       }
       for (const marker of q.markers) {
         const m = marks.get(marker.id); if (!m) continue;
+        const entry = q.entries[marker.quest], selected = definition.quests[marker.quest].verdict.options.find(choice => choice.id === entry.choice);
+        m.li.hidden = !!m.source.trial && !(selected && selected.trial);
         m.li.classList.toggle('done', marker.complete); m.li.classList.toggle('current', marker.active);
-        m.line.textContent = marker.complete ? m.source.story : m.source.objective;
+        m.line.textContent = marker.complete ? 'Tamamlandı' : m.source.objective;
       }
       $('journal-gate').classList.toggle('ready', q.ready);
-      $('journal-gate-text').textContent = q.ready ? 'İki bağ da çözüldü. Efendinin kapısı açık.' : 'İki görevi tamamla. Efendinin kapısı açılsın.';
+      $('journal-gate-text').textContent = q.pendingChoice ? 'Bir karar ver; iki yolu birden seçemezsin.' : q.ready ? 'İki bağ da çözüldü. Efendinin kapısı açık.' : 'Bağları çözerek efendinin kapısını aç.';
     }
     function event(data) {
-      $('quest-notice-state').textContent = data.complete ? 'GÖREV TAMAMLANDI' : 'YOLUN AÇILIYOR';
+      $('quest-notice-state').textContent = data.complete ? 'GÖREV TAMAMLANDI' : data.choice ? 'KARARIN KAYDEDİLDİ' : 'GÖREV İLERLEDİ';
       $('quest-notice-title').textContent = data.name;
       $('quest-notice-text').textContent = data.text;
       notice.classList.toggle('complete', !!data.complete); notice.classList.add('show');
@@ -89,7 +114,9 @@
       update(); if (opened) return;
       opened = true; previousFocus = document.activeElement;
       window.addEventListener('keydown', keydown, true);
-      $('journal-close').focus({ preventScroll: true });
+      const pendingCard = cards.find(card => card.card.classList.contains('awaiting-choice'));
+      if (pendingCard) { pendingCard.card.scrollIntoView({ block: 'nearest' }); pendingCard.buttons[0].focus({ preventScroll: true }); }
+      else $('journal-close').focus({ preventScroll: true });
     }
     function close(restore = true) {
       if (!opened) return;
