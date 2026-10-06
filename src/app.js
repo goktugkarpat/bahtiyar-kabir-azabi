@@ -1306,6 +1306,7 @@
       key += '|' + Math.round(e.x * 40) + ',' + Math.round(e.z * 40) + (e.boss ? 'B' : '') + (e.active ? 'a' : '');
       if (e.active) anyActive = true;
     }
+    if (atlasUI) key += '|a' + atlasUI.terrainVersion;
     if (game.quests) key += '|q' + game.quests.revision;
     if (anyActive) key += '|b' + beatIndex;
     if (key === miniKey) return;
@@ -1316,14 +1317,17 @@
     if (miniBgCtx !== x) { miniBgCtx = x; miniBg = x.createRadialGradient(128, 128, 20, 128, 128, 140); miniBg.addColorStop(0, '#1a1615'); miniBg.addColorStop(1, '#070606'); }
     x.fillStyle = miniBg; x.fillRect(0, 0, 256, 256);
     x.save(); x.translate(cx, cy); x.scale(scale, scale); x.translate(-p.x, -p.z);
-    x.strokeStyle = '#3a302a'; x.lineWidth = 6.8; x.lineCap = 'round'; x.beginPath();
-    world.paths.forEach(path => { x.moveTo(path.a.x,path.a.z);x.lineTo(path.b.x,path.b.z); }); x.stroke();
-    for (const r of world.rooms) {
-      x.fillStyle = here === r ? '#4a3a2e' : '#2a2320'; x.fillRect(r.x - r.w / 2, r.z - r.d / 2, r.w, r.d);
-      x.strokeStyle = here === r ? '#d0ae7a' : '#65574a'; x.lineWidth = here === r ? .5 : .32; x.strokeRect(r.x - r.w / 2, r.z - r.d / 2, r.w, r.d);
+    if (atlasUI && atlasUI.drawTerrain) atlasUI.drawTerrain(x);
+    else {
+      x.strokeStyle = '#3a302a'; x.lineWidth = 6.8; x.lineCap = 'round'; x.beginPath();
+      world.paths.forEach(path => { x.moveTo(path.a.x,path.a.z);x.lineTo(path.b.x,path.b.z); }); x.stroke();
+      for (const r of world.rooms) {
+        x.fillStyle = here === r ? '#4a3a2e' : '#2a2320'; x.fillRect(r.x - r.w / 2, r.z - r.d / 2, r.w, r.d);
+        x.strokeStyle = here === r ? '#d0ae7a' : '#65574a'; x.lineWidth = here === r ? .5 : .32; x.strokeRect(r.x - r.w / 2, r.z - r.d / 2, r.w, r.d);
+      }
+      x.fillStyle = '#0b0909';
+      for (const r of world.colliders) if (Math.abs(r.z - p.z) < 35 && Math.abs(r.x - p.x) < 35) x.fillRect(r.x - r.w / 2, r.z - r.d / 2, r.w, r.d);
     }
-    x.fillStyle = '#0b0909';
-    for (const r of world.colliders) if (Math.abs(r.z - p.z) < 35 && Math.abs(r.x - p.x) < 35) x.fillRect(r.x - r.w / 2, r.z - r.d / 2, r.w, r.d);
     x.restore();
     x.setTransform(1, 0, 0, 1, 0, 0);
     const sx = wx => cx + (wx - p.x) * scale, sy = wz => cy + (wz - p.z) * scale;
@@ -1335,7 +1339,16 @@
       stamp(x, e.active ? miniSprites[set][beatIndex] : miniSprites[set + 'Idle'], sx(e.x), sy(e.z));
     }
     if (game.quests) for (let qi = 0; qi < game.quests.entries.length; qi++) {
-      const goal = game.quests.entries[qi].target; if (!goal) continue;
+      let goal = game.quests.entries[qi].target;
+      if (Array.isArray(game.quests.markers)) {
+        goal = null; let nearest = Infinity;
+        for (const marker of game.quests.markers) {
+          if (marker.quest !== qi || !marker.active || marker.complete) continue;
+          const distance = Math.hypot(marker.x - p.x, marker.z - p.z);
+          if (distance < nearest) { nearest = distance; goal = marker; }
+        }
+      }
+      if (!goal) continue;
       // Targets outside the small map remain as an edge marker. No full-screen map is needed.
       let dx = (goal.x - p.x) * scale, dz = (goal.z - p.z) * scale;
       const length = Math.hypot(dx, dz); if (length > 91) { dx *= 91 / length; dz *= 91 / length; }
@@ -1777,6 +1790,7 @@
   function prepareWarmScene() {
     safe(() => assignDepthMaterials(scene));                                   // casters added since boot
     safe(() => { if (game.prepareGraphics) game.prepareGraphics(); });         // hidden click-to-move and target rings
+    safe(() => { if (atlasUI && atlasUI.prepareTerrain) atlasUI.prepareTerrain(); }); // one shared contour cache, under the loading cover
     safe(() => { if (feedback && feedback.warm) feedback.warm(); });            // hidden blood, sparks, scars, smears, afterimages
     safe(() => { if (feedback) feedback.update(0); });                          // tells: rim shells, rings, glints
     safe(() => { if (rig && rig.prepare) rig.prepare(game); });                 // character rim light is patched in first

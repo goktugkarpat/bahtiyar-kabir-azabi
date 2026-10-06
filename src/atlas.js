@@ -43,18 +43,20 @@
       lastReset = game.resetSerial;
       const snapshot = game.progression && game.progression.snapshot ? game.progression.snapshot() : null;
       const key = String(options.campaignKey === undefined ? snapshot && snapshot.lootSeed !== undefined ? snapshot.lootSeed : 'legacy' : typeof options.campaignKey === 'function' ? options.campaignKey() : options.campaignKey);
-      if (key === campaign) return;
-      campaign = key; visited.clear();
-      try { const saved = JSON.parse(localStorage.getItem(STORAGE)); record = saved && saved.version === 1 && String(saved.campaign) === key && saved.chapters && typeof saved.chapters === 'object' ? saved : { version: 1, campaign: key, chapters: {} }; } catch (_) { record = { version: 1, campaign: key, chapters: {} }; }
-      const stored = record.chapters[chapter]; if (Array.isArray(stored)) for (const id of stored.slice(0, 64)) if (seenIds.has(String(id))) visited.add(String(id));
+      const changed = key !== campaign, knownBefore = visited.size;
+      if (changed) {
+        campaign = key; visited.clear();
+        try { const saved = JSON.parse(localStorage.getItem(STORAGE)); record = saved && saved.version === 1 && String(saved.campaign) === key && saved.chapters && typeof saved.chapters === 'object' ? saved : { version: 1, campaign: key, chapters: {} }; } catch (_) { record = { version: 1, campaign: key, chapters: {} }; }
+        const stored = record.chapters[chapter]; if (Array.isArray(stored)) for (const id of stored.slice(0, 64)) if (seenIds.has(String(id))) visited.add(String(id));
+      }
       // Prior versions did not save exploration. A discovered late checkpoint certifies the main route to that checkpoint, never optional side rooms.
       if (game.checkpointIndex && world.checkpoint) for (const r of rooms) if (Math.abs(r.x - world.checkpoint.x) < 11 && r.z >= world.checkpoint.z - 3) visited.add(String(r.id));
       // A dead encounter is also evidence that its room was visited.
       for (const encounter of world.encounters || []) {
-        const enemies = (game.enemies || []).filter(e => e.encounter === encounter || e.encounter === encounter.id || e.encounter && e.encounter.id === encounter.id || e.encounterId === encounter.id);
+        const enemies = (game.enemies || []).filter(e => !e.reserve && (e.encounter === encounter || e.encounter === encounter.id || e.encounter && e.encounter.id === encounter.id || e.encounterId === encounter.id));
         if (enemies.length && enemies.every(e => e.dead)) visited.add(String(encounter.room));
       }
-      version++; fitOnce = false;
+      if (changed || visited.size !== knownBefore) { version++; fitOnce = false; }
     }
     function persist() { record.chapters[chapter] = Array.from(visited); try { localStorage.setItem(STORAGE, JSON.stringify(record)); } catch (_) {} }
     function explore() {
@@ -97,6 +99,18 @@
         for (let i = 0; i < points.length; i++) { const p = points[i], next = points[(i + 1) % points.length]; floorPath.quadraticCurveTo(bounds.x0 + p[0] * step, bounds.z0 + p[1] * step, bounds.x0 + (p[0] + next[0]) * step / 2, bounds.z0 + (p[1] + next[1]) * step / 2); } floorPath.closePath();
       }
       element.dataset.contours = String(loops); element.dataset.explored = String(visited.size);
+    }
+    // The HUD uses the same cached explored collision contours. Preparing never
+    // explores: the loading room tour must not disclose rooms the hero has not visited.
+    function prepareTerrain() { if (!disposed) rebuild(); }
+    function drawTerrain(ctx) {
+      if (disposed) return false;
+      rebuild();
+      ctx.lineJoin = 'round'; ctx.strokeStyle = '#b49b6526'; ctx.lineWidth = 1.15; ctx.stroke(floorPath);
+      ctx.fillStyle = '#413c2d'; ctx.fill(floorPath, 'evenodd');
+      ctx.strokeStyle = '#ad96698c'; ctx.lineWidth = .19; ctx.stroke(floorPath);
+      ctx.strokeStyle = '#e0c59138'; ctx.lineWidth = .065; ctx.stroke(floorPath);
+      return true;
     }
     function fit(nearby = false) {
       let known = rooms.filter(r => visited.has(String(r.id))); if (!known.length) return;
@@ -161,7 +175,8 @@
         if(current){context.strokeStyle='#c6a16c88';context.lineWidth=.7;context.beginPath();context.moveTo(x-24,y+8);context.lineTo(x+24,y+8);context.stroke();}
       }
       if(world.checkpoint){const cr=world.roomAt&&world.roomAt(world.checkpoint.x,world.checkpoint.z);if(cr&&visited.has(String(cr.id)))mark(world.checkpoint.x,world.checkpoint.z,'oath');}
-      for(let i=0;i<(game.quests&&game.quests.entries.length||0);i++){const target=game.quests.entries[i].target;if(!target)continue;const r=world.roomAt&&world.roomAt(target.x,target.z);if(r&&visited.has(String(r.id)))mark(target.x,target.z,'quest',i?'II':'I');}
+      const questMarkers=game.quests&&Array.isArray(game.quests.markers)?game.quests.markers.filter(marker=>marker.active&&!marker.complete):(game.quests&&game.quests.entries||[]).map((entry,quest)=>entry.target&&Object.assign({quest},entry.target)).filter(Boolean);
+      for(const target of questMarkers){const r=world.roomAt&&world.roomAt(target.x,target.z);if(r&&visited.has(String(r.id)))mark(target.x,target.z,'quest',target.quest?'II':'I');}
       mark(game.player.x,game.player.z,'hero');
       const vignette=context.createRadialGradient(width/2,height/2,Math.min(width,height)*.30,width/2,height/2,Math.max(width,height)*.72);vignette.addColorStop(0,'#08090800');vignette.addColorStop(1,'#080908cc');context.fillStyle=vignette;context.fillRect(0,0,width,height);
       ledger();
@@ -187,7 +202,7 @@
     function clear(){visited.clear();record.chapters[chapter]=[];version++;fitOnce=false;persist();explore();if(opened)fit(true);}
     function dispose(){if(disposed)return;close(false);disposed=true;observer.disconnect();element.remove();footprint=roomIndex=reveals=floorPath=null;}
     explore();
-    return {element,open,close,update,clear,dispose,get explored(){return visited.size;}};
+    return {element,open,close,update,clear,dispose,prepareTerrain,drawTerrain,get terrainVersion(){return version;},get explored(){return visited.size;}};
   }
   B.Atlas={create};
 })();
