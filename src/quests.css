@@ -141,7 +141,7 @@ body.chapter-fading .qc-bars { opacity: 0; transition: opacity .6s }
 .qc-reader[hidden] { display: none }
 .qc-sheet { pointer-events: auto; position: relative; width: min(560px, 86vw); padding: 38px 44px 30px; color: #2a1d12; background: radial-gradient(ellipse at 30% 20%, #e3d1ad 0%, #cdb487 55%, #a88a5c 100%); box-shadow: 0 30px 80px #000d, inset 0 0 60px #5a3b1a99, inset 0 0 4px #3a2410; transform: rotate(-.6deg) translateY(12px); transition: transform .6s cubic-bezier(.2,.7,.2,1); clip-path: polygon(0 2%, 6% 0, 18% 1.5%, 33% 0, 51% 1%, 68% 0, 84% 1.6%, 100% 0, 99% 22%, 100% 47%, 98.5% 73%, 100% 100%, 82% 98.4%, 61% 100%, 44% 98.6%, 26% 100%, 9% 98.5%, 0 100%, 1.4% 74%, 0 49%, 1.2% 25%) }
 .qc-reader.show .qc-sheet { transform: rotate(-.6deg) }
-.qc-sheet::after { content: ''; position: absolute; right: 26px; bottom: 54px; width: 80px; height: 80px; border-radius: 50%; background: radial-gradient(circle, #6a0d0b 0%, #6a0d0b 42%, #6a0d0b00 70%); opacity: .55; transform: rotate(18deg) }
+.qc-sheet::after { content: ''; position: absolute; right: 18px; bottom: 14px; width: 58px; height: 58px; border-radius: 50%; background: radial-gradient(circle, #6a0d0b 0%, #6a0d0b 42%, #6a0d0b00 70%); opacity: .55; transform: rotate(18deg) }
 .qc-sheet .qc-eyebrow { display: block; color: #6b4a26; font: 600 11px/1.2 var(--text); letter-spacing: .26em }
 .qc-sheet .qc-title { margin: 8px 0 16px; color: #3b220e; font: 600 26px/1.2 Georgia, 'Times New Roman', serif }
 .qc-sheet .qc-text { margin: 0; color: #2b1a0c; font: italic 400 19px/1.7 Georgia, 'Times New Roman', serif }
@@ -161,3 +161,6 @@ body.chapter-fading .qc-bars { opacity: 0; transition: opacity .6s }
 @keyframes qc-rise { from { opacity: 0; transform: translateY(8px) } to { opacity: 1; transform: none } }
 @media (prefers-reduced-motion: reduce) { .qc-bars .qc-bar, .qc-caption, .qc-reader, .qc-sheet, .qc-epilogue { transition: none } .qc-para { animation: none; opacity: 1 } }
 .qc-lastwords { display: block; margin-top: 16px; color: #e6c48e; font: italic 400 clamp(15px, 1.4vw, 19px)/1.6 Georgia, 'Times New Roman', serif }
+.qc-root.reading { z-index: 400 }
+.journal-pages li.found { cursor: pointer }
+.journal-pages li.found:hover { background: #2a2216cc }

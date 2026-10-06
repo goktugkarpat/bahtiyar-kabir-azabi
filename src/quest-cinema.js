@@ -33,7 +33,7 @@
     clearTimeout(barTimer);
     barTimer = setTimeout(() => { bars.classList.remove('show'); document.body.classList.remove('qc-cinema'); }, Math.max(4, o.seconds || 8) * 1000);
   }
-  function hideReader() { if (!reader || reader.hidden) return; reader.classList.remove('show'); clearTimeout(readerTimer); setTimeout(() => { reader.hidden = true; }, 450); }
+  function hideReader() { if (!reader || reader.hidden) return; reader.classList.remove('show'); clearTimeout(readerTimer); setTimeout(() => { reader.hidden = true; root.classList.remove('reading'); }, 450); }
   function showReader(o) {
     ensure(); o = o || {};
     const sheet = reader.querySelector('.qc-sheet');
@@ -41,7 +41,7 @@
     sheet.querySelector('.qc-title').textContent = o.title || '';
     sheet.querySelector('.qc-text').textContent = o.text || '';
     const note = sheet.querySelector('.qc-note'); note.textContent = o.note || ''; note.hidden = !o.note;
-    reader.hidden = false; void reader.offsetWidth; reader.classList.add('show');
+    root.classList.add('reading'); reader.hidden = false; void reader.offsetWidth; reader.classList.add('show');
     clearTimeout(readerTimer); readerTimer = setTimeout(hideReader, Math.max(9, Math.min(24, ((o.text || '').length + (o.note || '').length) / 11)) * 1000);
   }
   function epilogue(o) {
