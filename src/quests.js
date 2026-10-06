@@ -313,7 +313,7 @@
     var side = null;
     if (B.QuestSide) try {
       side = B.QuestSide.create({ api: api, world: world, chapter: chapter, info: info, placeSite: placeSite, reserve: reserve,
-        kit: { root: root, T: T, put: put, box: box, cyl: cyl, ring: ring, merge: merge, stone: stone, metal: metal, trim: trim, glow: glow, wood: wood } });
+        kit: { root: root, T: T, put: put, box: box, cyl: cyl, ring: ring, merge: merge, stone: stone, metal: metal, trim: trim, glow: glow, wood: wood, materials: materials } });
     } catch (e) { console.warn('[quests] side quests unavailable', e); side = null; info.side = []; }
     var prompt = { id: '', text: '', name: '', quest: '', x: 0, z: 0, available: false }, nearNode = null, nextScan = 0, tracked = null;
     function refresh() {

@@ -293,17 +293,23 @@
     function prop(kind, x, y, z) {
       var g = new T.Group(), body = [], glowParts = [], lid = [], chains = [];
       g.position.set(x, y, z); g.matrixAutoUpdate = false; g.updateMatrix(); kit.root.add(g);
-      var S = kit.stone, M = kit.metal, R = kit.trim, G = kit.glow, Wd = kit.wood;
+      var S = kit.stone, M = kit.metal, R = kit.trim, G = kit.glow, Wd = kit.wood, mt = kit.materials || {};
+      var BLOOD = mt.blood || mt['coast-corpse-flesh'] || mt.lava || mt.hot || G, EMBER = mt.ember || mt.fire || mt.lava || mt.hot || mt.lamp || G;
+      var PAPER = mt.shroud || mt.cloth || mt.pale || S, BONE = mt.bone || mt['coast-corpse-bone'] || S;
+      g.scale.setScalar(1.3); g.updateMatrix();
       if (kind === 'page') {
         kit.box(body, Wd, .08, .9, .08, 0, .45, 0); kit.box(body, Wd, .5, .05, .5, 0, .02, 0, 0, PI / 4);
         kit.box(body, Wd, .62, .05, .46, 0, .93, 0, -.5); kit.box(body, R, .66, .025, .03, 0, .87, .2, -.5);
-        kit.box(glowParts, G, .44, .012, .32, 0, .965, .01, -.5);
-        kit.cyl(body, S, .05, .05, .16, .26, .99, -.14); kit.put(glowParts, G, new T.SphereGeometry(.035, 8, 6), .26, 1.08, -.14);
+        kit.box(body, PAPER, .44, .012, .32, 0, .965, .01, -.5); kit.box(body, PAPER, .2, .01, .28, .12, .975, .02, -.5, .12);
+        kit.cyl(body, mt.wax || PAPER, .035, .04, .16, .26, .99, -.14); kit.put(glowParts, EMBER, new T.ConeGeometry(.022, .07, 6), .26, 1.1, -.14);
+        kit.box(glowParts, G, .3, .006, .2, -.02, .975, .03, -.5);
       } else if (kind === 'altar') {
         kit.box(body, S, 1.1, .62, .7, 0, .31, 0); kit.box(body, S, 1.24, .1, .82, 0, .67, 0); kit.box(body, R, 1.26, .03, .84, 0, .6, 0);
         kit.cyl(body, M, .3, .24, .14, 0, .79, 0);
-        for (var h = -1; h <= 1; h += 2) { kit.put(body, S, new T.ConeGeometry(.07, .7, 6), h * .5, 1.0, -.22, .25, 0, -h * .45); kit.put(body, S, new T.ConeGeometry(.05, .5, 6), h * .38, .94, .25, -.3, 0, -h * .3); }
-        kit.cyl(glowParts, G, .22, .22, .03, 0, .87, 0);
+        for (var h = -1; h <= 1; h += 2) { kit.put(body, BONE, new T.ConeGeometry(.07, .7, 6), h * .5, 1.0, -.22, .25, 0, -h * .45); kit.put(body, BONE, new T.ConeGeometry(.05, .5, 6), h * .38, .94, .25, -.3, 0, -h * .3); }
+        kit.cyl(body, BLOOD, .24, .24, .03, 0, .86, 0); kit.box(body, BLOOD, .08, .5, .02, .2, .4, .36); kit.box(body, BLOOD, .05, .34, .02, -.25, .46, .36);
+        for (var sk = -1; sk <= 1; sk += 2) kit.put(body, BONE, new T.SphereGeometry(.09, 10, 8), sk * .42, .78, .2);
+        kit.cyl(glowParts, EMBER, .1, .1, .012, 0, .885, 0);
         for (var c = 0; c < 4; c++) kit.ring(chains, M, .09, .02, -.62 + c * .025, .3 + c * .13, .36, c % 2 ? PI / 2 : 0);
       } else if (kind === 'chest') {
         kit.box(body, Wd, .9, .48, .58, 0, .26, 0); kit.box(body, M, .94, .05, .62, 0, .07, 0);
@@ -311,13 +317,13 @@
         kit.box(lid, Wd, .9, .14, .58, 0, 0, .29); kit.box(lid, M, .94, .04, .62, 0, .06, .29); kit.box(lid, R, .12, .14, .04, 0, -.02, .6);
         for (var k = 0; k < 7; k++) kit.ring(chains, M, .075, .022, -.42 + k * .14, .52, .3, PI / 2, 0, (k % 2) * PI / 2);
         for (var k2 = 0; k2 < 3; k2++) kit.ring(chains, M, .075, .022, .05, .3 + k2 * .12, .31, 0, PI / 2, (k2 % 2) * PI / 2);
-        kit.put(glowParts, G, new T.SphereGeometry(.05, 10, 8), 0, .44, .32);
+        kit.put(glowParts, EMBER, new T.SphereGeometry(.045, 10, 8), 0, .44, .32);
       } else if (kind === 'brazier') {
         kit.cyl(body, S, .42, .5, .22, 0, .11, 0); kit.cyl(body, M, .1, .12, .7, 0, .55, 0);
         kit.put(body, M, new T.LatheGeometry([new T.Vector2(.08, 0), new T.Vector2(.42, .12), new T.Vector2(.55, .3), new T.Vector2(.5, .34)], 20), 0, .86, 0);
         kit.ring(body, R, .54, .03, 0, 1.18, 0, PI / 2);
         for (var sp = 0; sp < 3; sp++) { var an = sp * PI * 2 / 3; kit.box(body, M, .05, .9, .05, Math.sin(an) * .3, .45, Math.cos(an) * .3, Math.cos(an) * .35, 0, -Math.sin(an) * .35); }
-        kit.cyl(glowParts, G, .4, .44, .05, 0, 1.13, 0); for (var em = 0; em < 5; em++) kit.put(glowParts, G, new T.OctahedronGeometry(.07, 0), Math.sin(em * 1.3) * .22, 1.18, Math.cos(em * 1.3) * .22);
+        kit.cyl(glowParts, EMBER, .4, .44, .05, 0, 1.13, 0); for (var em = 0; em < 5; em++) kit.put(glowParts, EMBER, new T.OctahedronGeometry(.07, 0), Math.sin(em * 1.3) * .22, 1.18, Math.cos(em * 1.3) * .22);
       } else if (kind === 'post') {
         kit.box(body, Wd, .2, 1.8, .2, 0, .9, 0); kit.box(body, M, .3, .08, .3, 0, 1.2, 0); kit.box(body, S, .7, .12, .7, 0, .06, 0);
         for (var l = 0; l < 6; l++) kit.ring(chains, M, .08, .02, .12 + l * .1, 1.1 - l * .16, .1, l % 2 ? PI / 2 : 0, 0, .7);
