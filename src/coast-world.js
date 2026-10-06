@@ -589,10 +589,12 @@
     function hasClearPath(ax, az, bx, bz, radius) { var d = Math.hypot(bx - ax, bz - az), n = Math.max(1, Math.ceil(d / .3)); for (var i = 0; i <= n; i++) if (!isWalkable(ax + (bx - ax) * i / n, az + (bz - az) * i / n, radius)) return false; return true; }
     function roomAt(x, z) { for(var j=0;j<expansion.rooms.length;j++){var r=expansion.rooms[j];if(Math.abs(x-r.x)<=r.w/2&&Math.abs(z-r.z)<=r.d/2)return r;} for (var i = 0; i < rooms.length; i++) if (Math.abs(x) <= rooms[i].w * .5 + 1 && Math.abs(z - rooms[i].z) <= rooms[i].d * .5 + 1) return rooms[i]; var best = rooms[0]; for (var j = 1; j < rooms.length; j++) if (Math.abs(z - rooms[j].z) < Math.abs(z - best.z)) best = rooms[j]; return best; }
     // Small prepared waypoint graph around the few solid buildings/cargo; never builds a combat-time raster grid.
-    var nodes = [];
-    rooms.forEach(function (r) { [-6,0,6].forEach(function (x) { [-r.d * .33, 0, r.d * .33].forEach(function (z) { if (isWalkable(x+r.x, r.z + z, .85)) nodes.push({ x: x+r.x, z: r.z + z, edges: [] }); }); }); });
-    open.seeds.forEach(function(s){if(isWalkable(s[0],s[1],.85))nodes.push({x:s[0],z:s[1],edges:[]});});
-    for (var i = 0; i < nodes.length; i++) for (var j = i + 1; j < nodes.length; j++) if (Math.hypot(nodes[i].x - nodes[j].x, nodes[i].z - nodes[j].z) < 23 && hasClearPath(nodes[i].x, nodes[i].z, nodes[j].x, nodes[j].z, .85)) { nodes[i].edges.push(j); nodes[j].edges.push(i); }
+    // Graph radius matches the agents' own query radius (~.5 m): with a wider .85 m probe, a 1-1.7 m gap between props split the graph
+    // into islands, and whether a far target was found depended on where the search started.
+    var nodes = [], NAV_R = .55;
+    rooms.forEach(function (r) { [-6,0,6].forEach(function (x) { [-r.d * .33, 0, r.d * .33].forEach(function (z) { if (isWalkable(x+r.x, r.z + z, NAV_R)) nodes.push({ x: x+r.x, z: r.z + z, edges: [] }); }); }); });
+    open.seeds.forEach(function(s){if(isWalkable(s[0],s[1],NAV_R))nodes.push({x:s[0],z:s[1],edges:[]});});
+    for (var i = 0; i < nodes.length; i++) for (var j = i + 1; j < nodes.length; j++) if (Math.hypot(nodes[i].x - nodes[j].x, nodes[i].z - nodes[j].z) < 23 && hasClearPath(nodes[i].x, nodes[i].z, nodes[j].x, nodes[j].z, NAV_R)) { nodes[i].edges.push(j); nodes[j].edges.push(i); }
     var pathCosts=new Float64Array(nodes.length),pathPrev=new Int16Array(nodes.length),pathUsed=new Uint8Array(nodes.length);
     function pathTo(from, to, radius) {
       if (!isWalkable(to.x, to.z, radius)) return [];

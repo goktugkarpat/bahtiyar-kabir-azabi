@@ -92,7 +92,7 @@
       var g = new T.Group(), ladle = new T.Group(), x = W.side * 30.5;
       var shell = new T.Mesh(cyl, ironM); shell.scale.set(1.1, 1.2, 1.1); ladle.add(shell);
       var bottom = new T.Mesh(disc, ironM); bottom.position.y = -.6; bottom.rotation.x = Math.PI; bottom.scale.setScalar(.9); ladle.add(bottom);
-      var melt = new T.Mesh(disc, hotM); melt.position.y = .45; melt.scale.setScalar(1.0); ladle.add(melt);
+      var meltM = new T.MeshBasicMaterial({ color: 0x9a2406, toneMapped: false, fog: false }); own.push(meltM); var melt = new T.Mesh(disc, meltM); melt.position.y = .45; melt.scale.setScalar(1.0); ladle.add(melt);
       [-1, 1].forEach(function (s2) { var r = new T.Mesh(rodG, ironM); r.scale.set(.05, 2.6, .05); r.position.set(s2 * 1.05, 1.6, 0); r.rotation.z = -s2 * .38; ladle.add(r); });
       var hook = new T.Mesh(rodG, ironM); hook.scale.set(.06, 7, .06); hook.position.y = 4.1; ladle.add(hook);
       var streamM = new T.MeshBasicMaterial({ color: 0xd8480e, transparent: true, opacity: .85, blending: T.AdditiveBlending, depthWrite: false, toneMapped: false }); own.push(streamM); var stream = new T.Mesh(rodG, streamM); stream.scale.set(.16, 1, .16); g.add(stream);
