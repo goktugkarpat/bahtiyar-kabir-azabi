@@ -642,7 +642,7 @@
     }
     explore();
     return { element, open, close, update, clear, dispose, prepareTerrain, drawTerrain, drawMinimap, warmMinimap, attachMinimap,
-      get terrainVersion() { return maskVersion; }, get explored() { return visited.size; }, get revealed() { return footCells ? revealedCells / footCells : 0; }, get tracked() { return target(); }, get route() { return route; }, get markers() { return markers.map(b => ({ x: b.x, y: b.y, kind: b.kind, name: b.name, track: !!b.spec })); } };
+      get terrainVersion() { return maskVersion; }, get explored() { return visited.size; }, get revealed() { return footCells ? revealedCells / footCells : 0; }, get tracked() { return target(); }, get pinned() { if (!tracked) return null; const t = target(); return tracked ? t : null; }, get route() { return route; }, get markers() { return markers.map(b => ({ x: b.x, y: b.y, kind: b.kind, name: b.name, track: !!b.spec })); } };
   }
   B.Atlas = { create, icon, STYLES };
 })();

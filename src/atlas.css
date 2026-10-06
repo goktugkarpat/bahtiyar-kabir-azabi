@@ -101,7 +101,7 @@
 @media(max-width:699px) {#atlas .atlas-track {top:8px;max-width:86%;font-size:11px;}}
 /* Minimap tools: small studs on the lower-left of the ring. */
 .minimap-tools {position:absolute;right:calc(6 * var(--m));bottom:calc(26 * var(--m));z-index:3;display:flex;flex-direction:column;gap:calc(4 * var(--m));pointer-events:auto;}
-.minimap-tools button {width:calc(26 * var(--m));height:calc(26 * var(--m));min-height:0;min-width:0;padding:0;display:grid;place-items:center;border-radius:50%;border:1px solid #b8995c99;background:radial-gradient(circle at 40% 35%,#3a2c1e,#0d0a08);color:#e8d4a8;font:600 calc(15 * var(--m))/1 Georgia,serif;box-shadow:0 2px 5px #000c,inset 0 1px 0 #f0d8a830;cursor:pointer;opacity:.82;transition:opacity .15s,transform .15s;}
+.minimap-tools button {width:calc(30 * var(--m));height:calc(30 * var(--m));min-height:0;min-width:0;padding:0;display:grid;place-items:center;border-radius:50%;border:1px solid #b8995c99;background:radial-gradient(circle at 40% 35%,#3a2c1e,#0d0a08);color:#e8d4a8;font:600 calc(17 * var(--m))/1 Georgia,serif;box-shadow:0 2px 5px #000c,inset 0 1px 0 #f0d8a830;cursor:pointer;opacity:.82;transition:opacity .15s,transform .15s;}
 .minimap-tools button:hover,.minimap-tools button:focus-visible {opacity:1;transform:scale(1.08);outline:1px solid #e0c080;outline-offset:1px;}
 .minimap-tools button.on {color:#1a120a;background:radial-gradient(circle at 40% 35%,#f0cf8a,#a07838);}
 .minimap-tools button.open-map {display:none;}
