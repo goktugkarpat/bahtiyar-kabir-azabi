@@ -398,3 +398,44 @@ body.in-combat #hud #interact.unavailable {display:none;}
 
 /* One visible acknowledgement; the persistent live region must not cover equipment statistics. */
 #character .char-footer .char-status {position:absolute;bottom:0;left:0;width:1px;height:1px;max-width:none;margin:0;padding:0;border:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap;}
+
+/* Mola shares the character/settings chamber; all controls stay inside its safe area. */
+#pause {background:#080708;padding:0;align-items:center;justify-content:center;}
+#pause .sepulchral-pause {width:min(96vw,calc(94dvh * 1586 / 992));height:94dvh;max-height:1040px;max-width:1663px;aspect-ratio:auto;position:relative;display:block;padding:0;border:0;border-radius:0;margin:0;background:url(../assets/ui/hybrid-b-chamber.png) center/100% 100% no-repeat;overflow:hidden;zoom:1;box-shadow:0 12px 65px #000b;}
+#pause .mourning-head {display:block;position:absolute;top:2.3%;left:8%;right:8%;padding:0;margin:0;text-align:center;}
+#pause .mourning-title {font:400 clamp(22px,2.65vw,44px)/1.05 Georgia,serif;letter-spacing:.075em;color:#f0e3c9;}
+#pause .mourning-head h2 {font:400 clamp(13px,1.25vw,18px)/1.15 Georgia,serif;margin:4px 0 0;color:#e6d7b9;}
+#pause .pause-stats {display:flex;position:absolute;top:17%;left:8%;right:8%;height:8%;gap:28px;align-items:center;justify-content:flex-end;border:0;background:none;padding:0;box-shadow:none;text-align:left;}
+#pause .pause-stats>div:first-child {margin-right:auto;min-width:0;}
+#pause .pause-stats small {display:block;font:12px/1.4 Arial,sans-serif;color:#b6a88d;}
+#pause .pause-stats b {display:block;font:400 clamp(15px,1.6vw,25px)/1.3 Georgia,serif;color:#eadfc9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+#pause .menu-stack {display:flex;position:absolute;left:7%;right:7%;top:28%;bottom:13%;width:auto;margin:0;gap:3%;min-height:0;}
+#pause .funeral-menu-grid {display:grid;flex:1;min-height:0;grid-template-columns:repeat(4,minmax(0,1fr));grid-template-rows:1fr;gap:14px;}
+#pause .funeral-card {position:relative;inset:auto!important;width:100%!important;height:100%!important;min-height:0;padding:0;border:3px ridge #987849;border-radius:0;background:linear-gradient(#16130ddd,#090a09ed),url(../assets/ui/funeral-cloth-dark.png) center/220px;box-shadow:inset 0 0 0 2px #0009;overflow:hidden;}
+#pause .funeral-card::before {display:block;position:absolute;inset:0 0 36%;background-position:center;background-size:cover;filter:brightness(.73) saturate(.7);}
+#pause .funeral-card>span {position:absolute;inset:64% 0 0;display:block;padding:clamp(8px,1.2vw,18px);border-top:2px ridge #8e6d42;background:#100f0dd9;text-align:left;font:400 clamp(16px,1.7vw,25px)/1.3 Georgia,serif;color:#eadfc9;text-shadow:none;}
+#pause .funeral-card>span small {display:block;margin-top:8px;font:12px/1.5 Arial,sans-serif;color:#b9ae99;}
+#pause kbd {color:#c8b694;border:1px solid #89734e;padding:2px 5px;background:#110e0a;font:11px Arial,sans-serif;}
+#pause .pause-resume-row {display:flex;flex:none;height:17%;min-height:44px;align-items:stretch;gap:22px;}
+#pause #resume {position:relative;inset:auto;width:29%;height:100%;padding:8px;border:2px ridge #b29460;border-radius:0;background:linear-gradient(#58232880,#220c0e80),url(../assets/ui/funeral-cloth.png) center/180px;font:400 clamp(14px,1.5vw,22px) Georgia,serif;box-shadow:none;}
+#pause #resume>span {position:static;display:block;color:#eedfc0;background:none;padding:0;text-shadow:none;}
+#pause .funeral-quote {display:flex;flex:1;flex-direction:column;align-items:center;justify-content:center;position:relative;margin:0;padding:5px 36px;border-top:2px ridge #81643e;border-bottom:2px ridge #81643e;background:url(../assets/ui/funeral-cloth.png) center/190px;}
+#pause .funeral-quote .banner-inscription {font:400 clamp(12px,1.2vw,18px)/1.4 Georgia,serif;}
+#pause .funeral-quote small {font:11px/1.5 Arial,sans-serif;color:#b9ae99;}
+#pause .funeral-quote::before,#pause .funeral-quote::after {content:'';position:absolute;top:-8%;height:116%;width:45px;background:center/contain no-repeat;pointer-events:none;}
+#pause .funeral-quote::before {left:-12px;background-image:url(../assets/ui/banner-demon-left.png);}
+#pause .funeral-quote::after {right:-12px;background-image:url(../assets/ui/banner-demon-right.png);}
+#pause .pause-footer {position:absolute;left:8%;right:8%;top:91%;bottom:4%;display:flex;align-items:center;justify-content:space-between;gap:12px;min-width:0;}
+#pause #pause-difficulty,#pause .pause-escape {display:block;flex:none;margin:0;padding:0;font:12px/1.3 Georgia,serif;color:#d3bd99;white-space:nowrap;}
+#pause .pause-secondary {display:flex;position:static;flex-wrap:wrap;width:auto;margin:0;gap:10px;justify-content:center;min-width:0;}
+#pause .pause-secondary button {font:12px/1.3 Georgia,serif;color:#d3bd99;background:none;padding:3px;}
+#character #character-preview {touch-action:none;cursor:grab;}
+#character #character-preview.turning {cursor:grabbing;}
+@media(max-width:900px){#pause .funeral-menu-grid{gap:8px;}#pause .funeral-card>span small{font-size:10px;}#pause .pause-footer{left:8%;right:8%;gap:7px;}#pause .pause-escape{display:none;}#pause .pause-secondary{gap:7px;}#pause #pause-difficulty,#pause .pause-secondary button{font-size:10px;}}
+@media(max-height:550px){#pause .pause-stats{top:16%;}#pause .pause-stats small{font-size:10px;}#pause .funeral-card>span small{margin-top:2px;font-size:10px;}#pause .pause-resume-row{min-height:30px;}#pause .funeral-quote small{font-size:9px;}#pause .pause-secondary button,#pause #pause-difficulty{font-size:10px;}}
+@media(max-width:600px) and (orientation:portrait){#pause .sepulchral-pause{height:94dvh;background-size:cover;}#pause .mourning-head{top:3%;}#pause .menu-stack{top:23%;bottom:21%;}#pause .pause-stats{top:12%;}#pause .funeral-menu-grid{grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:repeat(2,minmax(0,1fr));}#pause .pause-resume-row{height:auto;flex-direction:column;gap:8px;}#pause #resume{width:100%;height:38px;}#pause .funeral-quote{min-height:45px;}#pause .pause-footer{top:81%;bottom:8%;flex-direction:column;justify-content:center;gap:9px;}}
+
+#pause .mourning-head {width:auto;transform:none;}
+#pause .pause-stats>div {border:0;padding:0;}
+#pause kbd,#pause #resume kbd {color:#c8b694;}
+@media(max-height:550px){#pause .pause-footer{top:89%;bottom:5%;}#pause .pause-secondary button{padding:1px 2px;min-height:0;}#pause .pause-secondary #pause-atlas{min-height:0;padding:1px 2px;}}

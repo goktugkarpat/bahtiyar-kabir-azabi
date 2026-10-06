@@ -399,6 +399,25 @@
     function startPreview() {
       stopPreview(); const canvas = content.querySelector('#character-preview');
       if (!canvas || typeof options.onPreview !== 'function') return;
+      // Pointer capture keeps a drag continuous even when the hand leaves the portrait.
+      let dragPointer = null, dragX = 0;
+      canvas.onpointerdown = event => {
+        if (event.button !== 0 || dragPointer !== null) return;
+        dragPointer = event.pointerId; dragX = event.clientX;
+        canvas.setPointerCapture(dragPointer); canvas.classList.add('turning'); event.preventDefault();
+      };
+      canvas.onpointermove = event => {
+        if (event.pointerId !== dragPointer) return;
+        const delta = event.clientX - dragX; dragX = event.clientX;
+        if (delta && typeof options.onPreviewTurn === 'function') options.onPreviewTurn(delta * .012 / (Math.PI / 6));
+      };
+      const finishTurn = event => {
+        if (event.pointerId !== dragPointer) return;
+        dragPointer = null; canvas.classList.remove('turning');
+        if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
+      };
+      canvas.onpointerup = finishTurn; canvas.onpointercancel = finishTurn; canvas.onlostpointercapture = finishTurn;
+
       function frame(now) {
         previewFrame = 0;
         if (!opened || tab !== 'inventory' || !canvas.isConnected || overlay.classList.contains('hidden')) return;
