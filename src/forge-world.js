@@ -72,7 +72,7 @@
       list = list.filter(function (s) { return isWalkable(s.x, s.z, .6); });
       if (list.length) w.encounters.push({ id: 'forge-wing-' + W.id, room: W.id, name: KabirI18n.t(W.name), clearText: KabirI18n.t('Dökümhanenin bu kanadı sustu. Ana yola dön.'), stage: 1.1 + W.hosts[1] * .016, spawns: list });
     });
-    var sites = {}; [['c4.page1', -30, -10], ['c4.page2', 31, -152], ['c4.page3', -26, -210], ['c4.altar', -35, -230], ['c4.chest', 33, -262], ['c4.hunt', 28, -100]].forEach(function (q) { for (var k = 0; k < 60; k++) { var a = k * 2.4, d = k ? .45 * Math.sqrt(k) : 0, x = q[1] + Math.cos(a) * d, z = q[2] + Math.sin(a) * d; if (isWalkable(x, z, 1.3) && pathTo({ x: 0, z: 12 }, { x: x, z: z }, .5).length) { sites[q[0]] = { x: x, z: z }; break; } } });
+    var sites = {}; [['c4.page1', -30, -10], ['c4.page2', 31, -152], ['c4.page3', -26, -210], ['c4.altar', -35, -230], ['c4.chest', 33, -262], ['c4.hunt', 28, -100], ['c4.siege', 27, -121], ['c4.hunt2', -27, -182], ['c4.escape', -31, -63], ['c4.escape-goal', 2, -116], ['c4.captive', -27, -72]].forEach(function (q) { for (var k = 0; k < 60; k++) { var a = k * 2.4, d = k ? .45 * Math.sqrt(k) : 0, x = q[1] + Math.cos(a) * d, z = q[2] + Math.sin(a) * d; if (isWalkable(x, z, 1.3) && pathTo({ x: 0, z: 12 }, { x: x, z: z }, .5).length) { sites[q[0]] = { x: x, z: z }; break; } } });
     w.questSites = Object.assign(w.questSites || {}, sites);
     w.rooms = rooms.concat(wingRooms); w.colliders = colliders;
     w.isWalkable = isWalkable; w.move = move; w.hasClearPath = hasClearPath; w.pathTo = pathTo; w.roomAt = roomAt;
