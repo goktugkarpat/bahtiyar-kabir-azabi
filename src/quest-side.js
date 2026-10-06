@@ -400,7 +400,14 @@
           best.huntQuest = def.id; best.name = def.target.name; best.elite = true;
           best.baseMaxHp = Math.round((best.baseMaxHp || best.maxHp) * def.target.scale); best.maxHp = Math.round(best.maxHp * def.target.scale); best.hp = best.maxHp;
           best.campaignDamage = (best.campaignDamage || 1) * 1.22; best.radius = (best.radius || .6) * 1.08;
-          if (best.model && best.model.root) best.model.root.scale.multiplyScalar(1.16);
+          if (best.model && best.model.root) {
+            best.model.root.scale.multiplyScalar(1.16);
+            // A thin smouldering brand above the named prey: visible across a hall, never a light source.
+            var mt = kit.materials || {}, brand = [], bg = new T.Group(), hgt = (best.model.height || 2.1) / 1.16 + .28;
+            kit.ring(brand, mt.ember || mt.hot || mt.lava || mt.lamp || kit.glow, .3, .022, 0, hgt, 0, PI / 2);
+            for (var sp2 = 0; sp2 < 6; sp2++) { var an2 = sp2 * PI / 3; kit.put(brand, mt.ember || mt.hot || mt.lava || mt.lamp || kit.glow, new T.ConeGeometry(.035, .16, 5), Math.sin(an2) * .3, hgt + .07, Math.cos(an2) * .3); }
+            kit.merge(brand, bg); bg.name = 'hunt-brand'; best.model.root.add(bg);
+          }
           q.enemy = best;
         } else if (def.kind === 'rescue') {
           q.captive = node(q, 'post', def.site, def.fallback, { verb: L('Zincirini çöz', 'Break the chain'), role: 'captive' });
