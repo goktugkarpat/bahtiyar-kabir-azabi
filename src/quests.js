@@ -68,6 +68,12 @@
     ] }
   ] };
 
+  // The ledger introductions carry the campaign arc (who Bahtiyar was, what each master owes him).
+  CHAPTERS[1].introduction = L5('Seni ölü sanıp Kurban Tapınağı’nın kuyusuna attılar. Yirmi yıl Kara Defter’e ad yazan kâtip, şimdi o adların zincirleri arasında uyanıyor. Cellat yalnız bedenleri değil, isimleri ve yeminleri de kapıya bağlamış.', 'They thought you dead and threw you into the well of the Temple of Sacrifice. The scribe who wrote names in the Black Ledger for twenty years now wakes among the chains of those names. The Executioner bound more than bodies: he chained names and vows to his gate.');
+  CHAPTERS[2].introduction = L5('Defter’e “borç ödendi” diye yazdığın kıyı burası. Ölüler çanın sesiyle uyanıyor. Selvi bu kıyıdan geçti; izi tuzun ve köklerin altında bir yerde.', 'This is the shore you marked “debt paid” in the Ledger. The dead wake to the sound of the bell. Selvi passed this way; her trail lies somewhere beneath the salt and the roots.');
+  CHAPTERS[3].introduction = L5('Kıyının çanı sustu; ölüleri çağıran ses mağaranın içinden geliyor. Sana kalemi veren kral, kendi adını bu taşın içine saklamış. Tahtın altında Defter’in kime ait olduğu yazılı.', 'The shore’s bell is silent; the voice that calls the dead comes from within the cave. The king who handed you the pen hid his own name inside this stone. Beneath the throne is written whose Ledger it truly is.');
+  CHAPTERS[4].introduction = L5('Tapınağın hükmü, kıyının ağıdı, kralın sesi: hepsi bu ocakta dövüldü. Yazdığın her ad burada bir halkaya döndü. Kapıyı açmak yetmez; kalbi besleyen düzeni de bozmalısın.', 'The temple’s sentence, the shore’s lament, the king’s voice: all were forged in this furnace. Every name you wrote became a link here. Opening the gate is not enough; you must break the order that feeds its heart.');
+
   function verdict(title, question, options) { return { title: title, question: question, options: options }; }
   function option(id, name, story, benefit, amount, effect) { return { id: id, name: name, story: story, benefit: benefit, amount: amount, effect: effect }; }
   CHAPTERS[1].quests[0].verdict = verdict(KabirI18n.t('İsimler kimin için?'), KabirI18n.t('Levhada celladın gerçek adı da var. Mahkûmlara huzur mu vereceksin, yoksa onun gizlediği zaafı mı açığa çıkaracaksın?'), [
