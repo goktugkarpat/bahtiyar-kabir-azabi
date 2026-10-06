@@ -42,7 +42,7 @@
       var urn = new T.LatheGeometry([new T.Vector2(0, -.5), new T.Vector2(.28, -.5), new T.Vector2(.42, -.25), new T.Vector2(.5, .05), new T.Vector2(.36, .32), new T.Vector2(.22, .4), new T.Vector2(.27, .5), new T.Vector2(0, .5)], 10);
       G['wa-urn'] = urn;
     }
-    if (!K.materials['wa-linen']) { var lin = K.materials.shroud.clone(); lin.vertexColors = false; lin.color.copy(K.linear(.55, .47, .34)); lin.roughness = 1; K.materials['wa-linen'] = lin; }
+    if (!K.materials['wa-linen']) { var lin = K.materials.shroud.clone(); lin.vertexColors = false; lin.color.copy(K.linear(.3, .25, .18)); lin.roughness = 1; K.materials['wa-linen'] = lin; }
     // Small props never cast static shadows (detail level 1): the shadow passes only see walls, piers and big furniture.
     // Inside a side crypt every small prop is baked into ONE mesh per material for the whole room (no shadows):
     // a handful of draw calls instead of one instanced batch per shape x material x detail level.
@@ -573,6 +573,15 @@
         [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(function (c) { skulls(r.x + c[0] * (r.w / 2 - 2.2), r.z + c[1] * (r.d / 2 - 2.4), .75, 12); });
         for (var bt = 0; bt < 6; bt++) { var ba = bt / 6 * 6.28 + .3; bloodTrail(r.x + Math.cos(ba) * 4, r.z - 2 + Math.sin(ba) * 4, r.x + Math.cos(ba) * 11, r.z - 2 + Math.sin(ba) * 11); }
         for (var bb = 0; bb < 10; bb++) K.ribCage(r.x + (bb % 2 ? 1 : -1) * U(10.5, 12.5), r.z + U(-12, 10), R() * 6);
+        // the arena's rim burns: heaps of broken pews and gallows timber smoulder in the four corners
+        [[-1, 1], [1, 1], [-1, -1], [1, -1]].forEach(function (c) { var fx = r.x + c[0] * (r.w / 2 - 1.9), fz = r.z + c[1] * (r.d / 2 - 4.6);
+          pile(fx, fz, .9, 7);
+          for (var tb = 0; tb < 5; tb++) put('box', 'charred', fx + U(-.6, .6), .25 + tb * .05, fz + U(-.6, .6), .16, .14, U(1, 1.8), U(-.3, .3), R() * 6, U(-.3, .3), 1);
+          K.flame(fx, .55, fz, .75, 1.1, 'fire', true, true); K.flame(fx + .3, .4, fz - .25, .45, .7, 'fire', true, false);
+          K.lightSource(fx, 1.1, fz, '#ff6a26', 14, 9, 1.1, { kind: 'brazier' });
+          K.emberSources.push({ x: fx, y: .8, z: fz, count: 8, spread: .5, rise: 3 });
+          K.floorDecal('matte', CELL.soot, fx, fz, 2.6, 2.6, null, COL.soot, 0);
+          solid(fx, fz, 1.6, 1.6); });
       }
       [[-1, -1], [1, -1]].forEach(function (c) { if (r.id === 6 || r.id === 3) return; pile(r.x + c[0] * (r.w / 2 - 1.3), r.z + c[1] * (r.d / 2 - 1.3), 1.0, 9); });
     });
@@ -635,6 +644,19 @@
       if (K.smokeSources) { K.smokeSources.push({ x: -35.8, y: -2, z: -22, count: 8, rate: .06, rise: 7, spread: 1.2, size: 2, alpha: .12, color: [.09, .03, .02] });
         K.smokeSources.push({ x: -30, y: 1.6, z: -132.6, count: 6, rate: .07, rise: 3.5, spread: .6, size: 1.5, alpha: .12, color: [.08, .04, .03] }); }
     }());
+    // A reward at the end of a side path: an open book of names on a lectern, lit by its own candles.
+    function lectern(x, z, yaw) {
+      var c = Math.cos(yaw), s = Math.sin(yaw);
+      put('slab1', 'dark', x, .1, z, .9, .2, .9, 0, yaw, 0); put('wa-drum', 'dark', x, .62, z, .22, 1.05, .22, 0, 0, 0);
+      put('box', 'wood', x, 1.18, z, .9, .08, .62, -.45, yaw, 0); put('box', 'wa-linen', x + s * .02, 1.25, z + c * .02, .78, .03, .5, -.45, yaw, 0);
+      put('box', 'cloth', x, 1.22, z, .05, .05, .7, -.45, yaw, 0);
+      [-1, 1].forEach(function (k) { var cx = x + c * k * .55, cz = z - s * k * .55; put('pole', 'wax', cx, 1.1, cz, .05, .3, .05, 0, 0, 0, 1); K.flame(cx, 1.32, cz, .08, .16, 'fire', false, false); });
+      K.lightSource(x, 1.9, z, '#ffc77a', 9, 6, .4, { kind: 'candle' });
+      K.decal('glow', CELL.glow, x, .02, z, 3, 3, 0, K.linear(.08, .05, .02), 1);
+      K.floorDecal('matte', CELL.wax, x, z, 1.2, 1.2, null, COL.wax, 1);
+      solid(x, z, .9, .9);
+    }
+    lectern(42.6, 6.3, -Math.PI / 2); lectern(32, -111.2, 0); lectern(-41.6, -46.2, Math.PI / 2);
     function inHole(holes, x, z, m) { for (var i = 0; i < holes.length; i++) { var o = holes[i]; if (Math.abs(x - o.x) < o.w / 2 + m && Math.abs(z - o.z) < o.d / 2 + m) return true; } return false; }
     // Lived-in floor: grit, chips of fallen vault, stray bones, stains that run under the furniture.
     function floorLife(r, holes) {
