@@ -363,7 +363,18 @@
       for (var l = 0; l < 2; l++) { var me = new T.Mesh(mistG, M.mist); me.position.set(m[0] + l * 3, .35 + l * .45, m[1] - l * 2); me.scale.set(m[2] * (1 - l * .2), 1, m[2] * .8); me.rotation.y = n + l; me.renderOrder = 3; me.name = 'coast-mist'; K.root.add(me); mists.push({ m: me, x: me.position.x, z: me.position.z, p: n * 1.7 + l }); }
     });
 
+    // Breaking surf: broken foam rings that swell and fade around everything standing in the sea.
+    var ringC = document.createElement('canvas'); ringC.width = ringC.height = 256; var rg = ringC.getContext('2d');
+    for (var f = 0; f < 140; f++) { var fa = rnd() * PI * 2, frr = 86 + rnd() * 26, fx = 128 + Math.cos(fa) * frr, fy = 128 + Math.sin(fa) * frr, fr = 5 + rnd() * 12, fg = rg.createRadialGradient(fx, fy, 0, fx, fy, fr); fg.addColorStop(0, 'rgba(190,215,212,.55)'); fg.addColorStop(1, 'rgba(190,215,212,0)'); rg.fillStyle = fg; rg.fillRect(fx - fr, fy - fr, fr * 2, fr * 2); }
+    var ringT = new T.CanvasTexture(ringC); K.textures.push(ringT);
+    M.surf = new T.MeshBasicMaterial({ map: ringT, transparent: true, opacity: .5, depthWrite: false, fog: true, color: 0x9fb7b5 });
+    var surfG = geo(new T.PlaneGeometry(1, 1)); surfG.rotateX(-PI / 2); var surfs = [];
+    [[26, 2, 4.5], [33, -58, 5.5], [46, -100, 7], [30, -160, 4.5], [55, -40, 6], [52, -150, 8], [37, -28, 11], [41, -128, 11], [29.2, -86.4, 5.5], [33, -78.5, 5]].forEach(function (s, n) {
+      var m = new T.Mesh(surfG, M.surf); m.position.set(s[0], -.3, s[1]); m.scale.set(s[2] * 2, 1, s[2] * 2); m.rotation.y = n * 1.3; m.renderOrder = 2; m.name = 'coast-surf'; K.root.add(m); surfs.push({ m: m, s: s[2] * 2, p: n * 1.9 });
+    });
     function update(time, p) {
+      for (var u = 0; u < surfs.length; u++) { var o2 = surfs[u], w2 = .5 + .5 * Math.sin(time * .9 + o2.p); o2.m.scale.set(o2.s * (1 + w2 * .12), 1, o2.s * (1 + w2 * .12)); o2.m.visible = Math.abs(o2.m.position.z - p.z) < 50; }
+      M.surf.opacity = .38 + .14 * Math.sin(time * .9);
       for (var i = 0; i < mists.length; i++) { var o = mists[i]; o.m.position.x = o.x + Math.sin(time * .05 + o.p) * 2.2; o.m.position.z = o.z + Math.cos(time * .04 + o.p) * 1.6; o.m.rotation.y += .0004; o.m.visible = Math.abs(o.z - p.z) < 46; }
     }
     return { update: update };
