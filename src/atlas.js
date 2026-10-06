@@ -185,6 +185,7 @@
       if(world.checkpoint){const cr=world.roomAt&&world.roomAt(world.checkpoint.x,world.checkpoint.z);if(cr&&visited.has(String(cr.id)))mark(world.checkpoint.x,world.checkpoint.z,'oath');}
       const questMarkers=game.quests&&Array.isArray(game.quests.markers)?game.quests.markers.filter(marker=>marker.active&&!marker.complete):(game.quests&&game.quests.entries||[]).map((entry,quest)=>entry.target&&Object.assign({quest},entry.target)).filter(Boolean);
       for(const target of questMarkers){const r=world.roomAt&&world.roomAt(target.x,target.z);if(r&&visited.has(String(r.id)))mark(target.x,target.z,'quest',target.quest?'II':'I');}
+      /* ajan:quests: discovered side threads (hunt target moves) */ for(const target of (game.quests&&game.quests.sideMarkers||[]).filter(m=>m.active&&!m.complete)){const r=world.roomAt&&world.roomAt(target.x,target.z);if(r&&visited.has(String(r.id)))mark(target.x,target.z,'quest',({hunt:'✠',rescue:'⛓',lore:'¶',altar:'♱',chest:'▣',siege:'♨',escape:'➶',puzzle:'⁂'})[target.kind]||'•');}
       const reward=game.pendingBossReward;
       if(reward&&Number.isFinite(reward.x)&&Number.isFinite(reward.z)){const r=world.roomAt&&world.roomAt(reward.x,reward.z);if(r&&visited.has(String(r.id)))mark(reward.x,reward.z,'quest','★');}
       mark(game.player.x,game.player.z,'hero');

@@ -230,6 +230,7 @@
     item("last-worker-boots", KabirI18n.t("Son İşçinin Çizmeleri"), "boots", 11, "epic", 0, 0.055, 6, null, KabirI18n.t("Yırtık tabanları kat kat deriyle kapanmış. Sahibi ocağın son sesini bunlarla duymuş."), "worn-boots", "blood"),
     item("dead-forge-steps", KabirI18n.t("Ölü Dövmenin İzleri"), "boots", 12, "epic", 0, 0.1, 1, null, KabirI18n.t("Demir uçlarında kapanmış dökümhanenin işaretleri bulunur. Hiçbir kapı artık bu izleri tanımaz."), "tide-boots", "rust")
     ,item('warden-verdict-helm', KabirI18n.t('Harabe Yargıcının Son Yüzü'), 'head', 8, 'boss', 0, .065, 3, null, KabirI18n.t('Harabelerin ikinci muhafızının kemik perçinli hüküm miğferi. Bir daha aynı hüküm verilmeyecek.'), 'iron-helm', 'bone')
+    /* ajan:quests */ ,...(Array.isArray(B.QuestItemSpecs) ? B.QuestItemSpecs.map(spec => item.apply(null, spec)) : []) /* /ajan:quests */
     ,item('ash-warden-grasp', KabirI18n.t('Kül Muhafızının Son Pençesi'), 'hands', 11, 'boss', 0, .085, 3, null, KabirI18n.t('İkinci ocak muhafızının kan çizgili döküm eldiveni. Tutsakları ocağa sürükleyen parmaklar artık sessiz.'), 'salt-gauntlets', 'blood')
   ]);
   const catalog = Object.freeze(Object.fromEntries(items.map(i => [i.id, i])));
@@ -269,11 +270,32 @@
     const state = { level: 1, xp: 0, points: 0, learned: [], loadout: [null, null, null, null], inventory: [],
       equipment: {}, groundLoot: [], revision: 0, chapter: chapterId(options.chapter), completed: [] };
     let lootSeed = 0, lootDry = 0, lootSeen = [], lootIdentities = new Set(), lootSlots = [], signatureClaims = Object.create(null), rewards = Object.create(null), serial = 0, statCache = null, statRevision = -1;
+    // ajan:quests — permanent quest boons (skill tokens, flask capacity, small vitality / damage) travel with the profile.
+    let boons = { points: 0, flasks: 0, hp: 0, damage: 0, claimed: [] };
+    function cleanBoons(raw) {
+      const b = raw && typeof raw === 'object' ? raw : {}, n = (v, lo, hi) => Number.isFinite(v) ? Math.max(lo, Math.min(hi, v)) : 0;
+      return { points: Math.round(n(b.points, 0, 8)), flasks: Math.round(n(b.flasks, 0, 3)), hp: Math.round(n(b.hp, -40, 40)), damage: n(b.damage, -.2, .2),
+        claimed: (Array.isArray(b.claimed) ? b.claimed : []).filter(k => typeof k === 'string' && k.length < 80).slice(0, 120) };
+    }
+    function grantQuest(key, reward) {
+      if (typeof key !== 'string' || !key || boons.claimed.includes(key)) return null;
+      reward = reward || {}; boons.claimed.push(key);
+      const gained = { key, items: [] };
+      if (reward.points) { boons.points = Math.min(8, boons.points + reward.points); gained.points = reward.points; }
+      if (reward.flasks) { boons.flasks = Math.min(3, boons.flasks + reward.flasks); gained.flasks = reward.flasks; }
+      if (reward.hp) { boons.hp = Math.max(-40, Math.min(40, boons.hp + reward.hp)); gained.hp = reward.hp; }
+      if (reward.damage) { boons.damage = Math.max(-.2, Math.min(.2, boons.damage + reward.damage)); gained.damage = reward.damage; }
+      if (reward.xp) { const before = state.xp; state.xp = Math.min(THRESHOLDS[MAX_LEVEL - 1], state.xp + reward.xp); gained.xp = state.xp - before; }
+      for (const id of [].concat(reward.item || [])) { const entry = catalog[id] && !state.inventory.some(i => i.id === id) ? addItem(id, 'quest-' + id) : null; if (entry) gained.items.push(entry); }
+      recalculate(); changed('progression', Object.assign({ quest: true, level: state.level, points: state.points }, gained));
+      if (gained.items.length) changed('loot', { items: gained.items, boss: false, chapter: state.chapter, quest: true });
+      return gained;
+    }
     function changed(kind, data) { state.revision++; statCache = null; emit(kind || 'progression', data || { level: state.level, points: state.points }); }
     function recalculate() {
       state.level = 1;
       for (let i = 1; i < MAX_LEVEL; i++) if (state.xp >= THRESHOLDS[i]) state.level = i + 1;
-      state.points = Math.max(0, POINTS[state.level - 1] - state.learned.length);
+      state.points = Math.max(0, POINTS[state.level - 1] + boons.points - state.learned.length);
     }
     function addItem(id, uid, roll = 0) {
       if (!catalog[id]) return null;
@@ -286,7 +308,7 @@
       state.level = 1; state.xp = 0; state.points = 0; state.learned = []; state.loadout = [null, null, null, null];
       state.inventory = []; state.groundLoot = []; state.equipment = { weapon: null, head: null, chest: null, hands: null, boots: null };
       lootSeed = Math.floor(Math.random() * 4294967296) >>> 0; lootDry = 0; lootSeen = []; lootIdentities = new Set(); lootSlots = []; signatureClaims = Object.create(null);
-      state.chapter = 1; state.completed = []; rewards = Object.create(null); serial = 0;
+      state.chapter = 1; state.completed = []; rewards = Object.create(null); serial = 0; boons = cleanBoons(null);
       state.equipment.weapon = addItem('dull-sword').uid;
       state.equipment.chest = addItem('torn-chest').uid;
       changed(); return state;
@@ -295,7 +317,7 @@
       return { version: VERSION, level: state.level, xp: state.xp, points: state.points,
         learned: state.learned.slice(), loadout: state.loadout.slice(), inventory: state.inventory.map(i => ({ uid: i.uid, id: i.id, roll: i.roll || 0 })),
         equipment: Object.assign({}, state.equipment), chapter: state.chapter, completed: state.completed.slice(),
-        rewards: Object.keys(rewards), serial, lootSeed, lootDry, lootSeen: lootSeen.slice(-40), lootIdentities:Array.from(lootIdentities), lootSlots:lootSlots.slice(-6), signatureClaims:Object.assign({},signatureClaims),
+        rewards: Object.keys(rewards), serial, boons: { points: boons.points, flasks: boons.flasks, hp: boons.hp, damage: boons.damage, claimed: boons.claimed.slice() }, lootSeed, lootDry, lootSeen: lootSeen.slice(-40), lootIdentities:Array.from(lootIdentities), lootSlots:lootSlots.slice(-6), signatureClaims:Object.assign({},signatureClaims),
         groundLoot: state.groundLoot.map(i => ({ uid:i.uid, id:i.id, roll:i.roll, x:i.x, z:i.z, chapter:i.chapter, boss:i.boss })) };
     }
     function restore(profile) {
@@ -315,9 +337,10 @@
         const fraction = tier < LEGACY_THRESHOLDS.length - 1 ? (restoredXp - LEGACY_THRESHOLDS[tier]) / (LEGACY_THRESHOLDS[tier + 1] - LEGACY_THRESHOLDS[tier]) : 0;
         restoredXp = Math.floor(THRESHOLDS[tier] + fraction * (THRESHOLDS[tier + 1] - THRESHOLDS[tier]));
       }
+      boons = cleanBoons(profile.boons);
       state.xp = Math.min(THRESHOLDS[MAX_LEVEL - 1], restoredXp); recalculate();
       const learned = new Set(B.TalentTree ? B.TalentTree.validate(profile.learned, state.level) : []);
-      if (!B.TalentTree) for (const skill of skills) if (learned.size < POINTS[state.level - 1] && Array.isArray(profile.learned) && profile.learned.includes(skill.id) && state.level >= skill.level &&
+      if (!B.TalentTree) for (const skill of skills) if (learned.size < POINTS[state.level - 1] + boons.points && Array.isArray(profile.learned) && profile.learned.includes(skill.id) && state.level >= skill.level &&
         (!skill.requires || learned.has(skill.requires))) learned.add(skill.id);
       state.learned = B.TalentTree ? Array.from(learned) : Array.isArray(profile.learned) ? profile.learned.filter((id, n, list) => learned.has(id) && list.indexOf(id) === n) : []; recalculate();
       const seen = new Set();
@@ -406,6 +429,7 @@
       hp = Math.min(184, hp); damage = Math.min(1.95, damage); defense = Math.min(.30, defense);
       const tal = B.TalentTree ? B.TalentTree.effects(state.learned) : null;
       if (tal) hp = Math.round(hp * tal.hpMul + tal.hpAdd);
+      hp = Math.max(60, hp + boons.hp); damage *= 1 + boons.damage;   // ajan:quests boons sit on top of the gear caps
       statRevision = state.revision;
       statCache = Object.freeze({ maxHp: hp, maxHealth: hp, damage, damageMultiplier: damage, defense, defenseReduction: defense,
         weaponId, weaponType: weaponId ? catalog[weaponId].type : 'unarmed', criticalChance: .08 + (tal ? tal.crit : 0), criticalMultiplier: 1.5 });
@@ -542,7 +566,7 @@
       if(carried.length)changed('loot',{items:carried,boss:true,chapter,transition:true});
       state.chapter = Math.min(4, chapter + 1); changed(); return true;
     }
-    Object.assign(state, { snapshot, restore, grantEnemy, unlock, assign, equip, stats, loot, completedChapter, reset, refund, respec,
+    Object.assign(state, { grantQuest, boons: () => boons, snapshot, restore, grantEnemy, unlock, assign, equip, stats, loot, completedChapter, reset, refund, respec,
       skillForSlot: slot => { const s = skillIndex[state.loadout[slot]] || null; return s && B.TalentTree ? B.TalentTree.effective(s, state.learned) : s; },
       collectLoot, unequip, isUpgrade,
       itemForSlot: slot => { const entry = state.inventory.find(i => i.uid === state.equipment[slot]); return resolveItem(entry); },
