@@ -13,7 +13,7 @@
     novice: { reaction: .42, miss: .35, lead: .22, flaskAt: .35, skills: false, spam: false },
     average: { reaction: .30, miss: .18, lead: .26, flaskAt: .42, skills: true, spam: false },
     skilled: { reaction: .20, miss: .06, lead: .24, flaskAt: .38, skills: true, spam: false },
-    spam: { reaction: .30, miss: .18, lead: .26, flaskAt: .42, skills: true, spam: true }
+    spam: { reaction: .15, miss: .05, lead: .9, flaskAt: .42, skills: true, spam: true }
   };
   // Expected kit per chapter (what a player who equips the drops wears on arrival): weapon + four armour pieces.
   const GEAR = {
@@ -101,8 +101,50 @@
     } finally { prog.grantEnemy = grant; for (const e of hidden) { e.dead = false; e.hp = e.maxHp; } hidden.clear(); }
     const sum = k => results.reduce((s, r) => s + (r[k] || 0), 0);
     return { chapter, difficulty: o.difficulty, bot: o.bot, profile: { level: profile.level, dmg: +profile.stats.damageMultiplier.toFixed(2), hp: profile.stats.maxHp, def: +profile.stats.defense.toFixed(3), loadout: profile.loadout },
-      total: { fights: results.length, deaths: sum('died'), timeouts: sum('timeout'), time: +sum('time').toFixed(1), hpLost: Math.round(sum('hpLost')), flasks: sum('flasks'), rolls: sum('rolls'), hitsTaken: sum('hitsTaken') },
+      total: { fights: results.length, deaths: sum('died'), timeouts: sum('timeout'), time: +sum('time').toFixed(1), hpLost: Math.round(sum('hpLost')), flasks: sum('flasks'), rolls: sum('rolls'), hitsTaken: sum('hitsTaken'), denied: sum('denied'), perfect: sum('perfect') },
       results };
+  }
+  // One frame of the bot: returns the input object combat.js reads (same fields as app.js pollInput()).
+  function decide(game, live, bot, seen, seed, stat) {
+    const p = game.player;
+    const input = { x: 0, z: 0 };
+    // Nearest living foe of the encounter is the target.
+    let target = null, best = Infinity;
+    for (const e of live) { const d = Math.hypot(e.x - p.x, e.z - p.z); if (d < best) { best = d; target = e; } }
+    // Threat scan.
+    let threat = null, soon = Infinity, pool = null;
+    for (const h of game.hazards) {
+      if (h.harmless || h.age < 0) continue;
+      if (!seen.has(h.serial)) seen.set(h.serial, hash(h.serial * 7919 + (seed || 1)) < bot.miss);
+      if (h.persistent && h.periodic) { if (h.active && inside(h, p, .3)) pool = h; continue; }
+      if (seen.get(h.serial) || h.age < bot.reaction || h.hit) continue;
+      const left = h.warn - h.age;
+      if (left < -(h.duration || .17) || !inside(h, p, .15)) continue;
+      if (left < soon) { soon = left; threat = h; }
+    }
+    const cost = (game.dodgeCost ? game.dodgeCost() : 18.2);
+    if (threat && soon <= bot.lead && !p.dodge && p.stamina < cost) stat.denied++;
+    if (bot.spam && !threat && target && best < 3.5 && p.stamina >= cost && !p.dodge && Math.random() < .025) {
+      const a = Math.random() * TAU; input.x = Math.sin(a); input.z = Math.cos(a); input.dodge = true;
+    } else if (threat && soon <= bot.lead && !p.dodge && p.stamina >= cost) {
+      const v = escape(threat, p); input.x = v.x; input.z = v.z; input.dodge = true;
+    } else if (pool && !p.dodge) {
+      const v = escape(pool, p); input.x = v.x; input.z = v.z;
+    } else {
+      if (p.hp < 100 * bot.flaskAt && p.flasks > 0 && !threat) input.heal = true;
+      const skills = game.skills ? game.skills() : [];
+      const near = live.filter(e => Math.hypot(e.x - p.x, e.z - p.z) < 4.2).length;
+      const reserve = cost + 4;
+      const ready = slot => { const s = skills[slot]; return s && s.skill && s.cooldown <= 0 && p.stamina >= s.cost + reserve; };
+      if (bot.skills && target && !threat) {
+        if (ready(2) && (near >= 2 || target.boss) && best < 5) input.rage = true;
+        else if (ready(1) && (near >= 2 || target.boss) && best < 3.4) input.special = true;
+        else if (ready(3) && best > 4.5 && best < 9) { input.fourth = true; input.aimX = target.x; input.aimZ = target.z; }
+        else if (ready(0) && best < 3.4) { input.heavy = true; }
+      }
+      if (target) { input.holdLight = true; input.target = target; input.pointX = target.x; input.pointZ = target.z; }
+    }
+    return input;
   }
   const hidden = new Set();
   function fight(game, world, g, spawn, bot, o, chapter) {
@@ -117,7 +159,7 @@
     p.x = at.x; p.z = at.z; game.player.face = Math.atan2(at.cx - at.x, at.cz - at.z);
     if (g.boss) for (const e of g.list) { e.active = e.activated = true; e.encounter.activated = true; }
     const startHp = p.hp, startFlasks = p.flasks, seen = new Map();
-    let bossStop = false, t = 0, rolls = 0, hits = 0, lastHp = p.hp, damageTaken = 0, biggest = 0, killTimes = [], alive = g.list.filter(e => !e.dead).length, firstContact = -1;
+    const stat = { denied: 0 }; let perfect0 = game.perfectDodges || 0, bossStop = false, t = 0, rolls = 0, hits = 0, lastHp = p.hp, damageTaken = 0, biggest = 0, killTimes = [], alive = g.list.filter(e => !e.dead).length, firstContact = -1;
     const counter = n => { rolls += n; };
     const dt = o.dt;
     while (t < o.limit) {
@@ -126,43 +168,8 @@
       // A boss is stopped at 10 % health (its death would end the chapter and leave the page); the clock is scaled to a full kill.
       if (g.boss && live.some(e => e.boss && e.hp <= e.maxHp * .1)) { bossStop = true; break; }
       if (live.length < alive) { killTimes.push(+t.toFixed(1)); alive = live.length; }
-      const input = { x: 0, z: 0 };
-      // Nearest living foe of the encounter is the target.
-      let target = null, best = Infinity;
-      for (const e of live) { const d = Math.hypot(e.x - p.x, e.z - p.z); if (d < best) { best = d; target = e; } }
       if (firstContact < 0 && live.some(e => e.active)) firstContact = t;
-      // Threat scan.
-      let threat = null, soon = Infinity, pool = null;
-      for (const h of game.hazards) {
-        if (h.harmless || h.age < 0) continue;
-        if (!seen.has(h.serial)) seen.set(h.serial, hash(h.serial * 7919 + (o.seed || 1)) < bot.miss);
-        if (h.persistent && h.periodic) { if (h.active && inside(h, p, .3)) pool = h; continue; }
-        if (seen.get(h.serial) || h.age < bot.reaction || h.hit) continue;
-        const left = h.warn - h.age;
-        if (left < -(h.duration || .17) || !inside(h, p, .15)) continue;
-        if (left < soon) { soon = left; threat = h; }
-      }
-      const cost = (game.dodgeCost ? game.dodgeCost() : 18.2);
-      if (bot.spam && target && best < 4 && p.stamina >= cost && !p.dodge && Math.random() < .08) {
-        const a = Math.random() * TAU; input.x = Math.sin(a); input.z = Math.cos(a); input.dodge = true;
-      } else if (threat && soon <= bot.lead && !p.dodge && p.stamina >= cost) {
-        const v = escape(threat, p); input.x = v.x; input.z = v.z; input.dodge = true;
-      } else if (pool && !p.dodge) {
-        const v = escape(pool, p); input.x = v.x; input.z = v.z;
-      } else {
-        if (p.hp < 100 * bot.flaskAt && p.flasks > 0 && !threat) input.heal = true;
-        const skills = game.skills ? game.skills() : [];
-        const near = live.filter(e => Math.hypot(e.x - p.x, e.z - p.z) < 4.2).length;
-        const reserve = cost + 4;
-        const ready = slot => { const s = skills[slot]; return s && s.skill && s.cooldown <= 0 && p.stamina >= s.cost + reserve; };
-        if (bot.skills && target && !threat) {
-          if (ready(2) && (near >= 2 || target.boss) && best < 5) input.rage = true;
-          else if (ready(1) && (near >= 2 || target.boss) && best < 3.4) input.special = true;
-          else if (ready(3) && best > 4.5 && best < 9) { input.fourth = true; input.aimX = target.x; input.aimZ = target.z; }
-          else if (ready(0) && best < 3.4) { input.heavy = true; }
-        }
-        if (target) { input.holdLight = true; input.target = target; input.pointX = target.x; input.pointZ = target.z; }
-      }
+      const input = decide(game, live, bot, seen, o.seed, stat);
       if (input.dodge) counter(1);
       game.update(dt, input);
       t += dt;
@@ -174,7 +181,16 @@
     const flasksUsed = startFlasks - p.flasks;
     return { index: g.index, name: g.enc.name, boss: g.boss, types: g.list.map(e => e.type + (e.elite ? '*' : '')).join(','), foes: g.list.length,
       died, cleared: cleared ? 1 : 0, timeout: !died && !cleared ? 1 : 0, time: +t.toFixed(1), fightTime: +(t - Math.max(0, firstContact)).toFixed(1),
-      hpLost: Math.round(damageTaken), endHp: Math.round(p.hp), flasks: flasksUsed, rolls, hitsTaken: hits, biggestHit: Math.round(biggest), kills: killTimes };
+      hpLost: Math.round(damageTaken), endHp: Math.round(p.hp), flasks: flasksUsed, rolls, hitsTaken: hits, biggestHit: Math.round(biggest), kills: killTimes, denied: stat.denied, perfect: (game.perfectDodges || 0) - perfect0 };
   }
-  B.Balance = { run, bots: BOTS, gear: GEAR };
+  // Rendered capture: the bot takes over app.js input for the given encounter foes (BABA.app.step keeps drawing). detach() restores it.
+  function attach(list, botName) {
+    const game = B.app.game, bot = BOTS[botName || 'average'], seen = new Map(), stat = { denied: 0 }, update = game.update;
+    game.update = function (dt, input) {
+      const live = (list || game.enemies).filter(e => !e.dead && (list || e.active));
+      return update.call(game, dt, live.length && game.state === 'playing' ? decide(game, live, bot, seen, 1, stat) : input);
+    };
+    return { detach() { game.update = update; }, stat };
+  }
+  B.Balance = { run, attach, bots: BOTS, gear: GEAR, setupProfile, groups, approach };
 })();

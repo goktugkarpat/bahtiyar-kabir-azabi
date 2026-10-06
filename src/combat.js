@@ -2383,7 +2383,7 @@
         else if (!player.flasks) deny(KabirI18n.t('Şifa mataraların boş.'));
         else if (player.hp >= player.maxHp) deny(KabirI18n.t('Yaraların zaten kapalı.'));
         else {
-          clearLack('heal'); player.flasks--; player.hp = Math.min(player.maxHp, player.hp + 64 * (1 + questBenefit('healingBonus', .20)) * 100 / player.effectiveMaxHp); drinkLeft = DRINK;
+          clearLack('heal'); player.flasks--; player.hp = Math.min(player.maxHp, player.hp + 64 * (tuning() ? tuning().flaskHeal : 1) * (1 + questBenefit('healingBonus', .20)) * 100 / player.effectiveMaxHp); drinkLeft = DRINK;
           emit('heal', { hp: player.hp, flasks: player.flasks }); sound('healStart'); sound('heal');
           flashRing(player.x, player.z, 1.3, 0xd7bf88, .6);
         }
