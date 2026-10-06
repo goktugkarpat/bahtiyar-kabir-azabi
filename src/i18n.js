@@ -13,3 +13,13 @@ function localizeStatic(){document.documentElement.lang=lang;if(lang==='en'){con
 window.KabirI18n={get lang(){return lang;},getLanguage:()=>lang,t,source,setLanguage,missing:()=>Array.from(missing),dictionary:EN};
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',localizeStatic,{once:true});else localizeStatic();
 })();
+
+/* ajan:world-b */
+(function(){var d=window.KabirI18n&&window.KabirI18n.dictionary;if(!d)return;Object.assign(d,{
+'Asılmışlar Tepesi':'Hill of the Hanged','Kırık Mendirek':'The Broken Mole','Sarp Patika':'The Cliff Path','Uçurumdaki Nöbetçiler':'Sentinels of the Cliff',
+'Patika sustu. Kıyı boyunca keşfe devam et.':'The path is silent. Keep exploring along the coast.','Darağacı boşaldı. Tepeden kıyı görünüyor.':'The gallows stand empty. From the hill the whole coast lies below.',
+'Asılmışların Bekçisi':'Warden of the Hanged','Mendirek temizlendi. Fenerin közü hâlâ yanıyor.':'The mole is clear. The beacon\'s embers still burn.',
+'Cüruf Tarlası':'The Slag Fields','Dev Körükler Galerisi':'Gallery of the Great Bellows','Erimiş Nehir Yatağı':'The Molten Riverbed','Hurda ve Zincir Mezarlığı':'Graveyard of Scrap and Chains',
+'Körüklerin Bekçisi':'Keeper of the Bellows','Hurdanın Efendisi':'Lord of the Scrap','Dökümhanenin bu kanadı sustu. Ana yola dön.':'This wing of the foundry is silent. Return to the main road.'
+});}());
+/* /ajan:world-b */
