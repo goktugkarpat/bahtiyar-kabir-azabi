@@ -94,4 +94,13 @@
 #character .tt-node.skt-node:hover, #character .tt-node.skt-node:focus-visible, #character .tt-node.skt-node.selected { background:none; border:0; outline:none; }
 @media (prefers-reduced-motion: reduce) { #character .tt-node .tt-art, #character .tt-link.ready { animation:none !important; } }
 
+.tt-tip { position:fixed; z-index:2147483600; width:260px; padding:9px 11px; pointer-events:none; font:400 12.5px/1.4 Georgia,serif; color:#ddd0b6;
+  background:linear-gradient(#1d1210f5,#0d0807f5); border:2px ridge #8a6b42; box-shadow:0 8px 24px #000c, 0 0 0 1px #000; border-top-color:var(--c); }
+.tt-tip[hidden] { display:none; }
+.tt-tip small { display:block; font-size:10px; letter-spacing:.08em; color:var(--c); text-transform:uppercase; }
+.tt-tip b { display:block; font:400 17px/1.2 Georgia,serif; color:#f3e5c8; margin:2px 0 4px; }
+.tt-tip p { margin:0 0 6px; }
+.tt-tip .tt-tip-price { color:#e0705c; font-style:italic; }
+.tt-tip em { display:block; font-style:normal; font-size:11.5px; padding-top:5px; border-top:1px solid #6b513155; }
+.tt-tip em.ok { color:#9fc27a; } .tt-tip em.go { color:#f0c070; } .tt-tip em.no { color:#c47a64; }
 #character .tt-inspect { overflow-y:auto; overflow-x:hidden; scrollbar-width:thin; }

@@ -114,5 +114,29 @@
     const top = '<div class="skt-top"><div class="skt-loadout"><h4>' + esc(t('Donanılan yetenekler')) + '</h4><div class="skt-slots">' + loadout + '</div></div></div>';
     return '<div class="skt-wrap tt-wrap">' + top + '<div class="skt-workspace"><div class="skt-tree tt-tree">' + head + board + note + '</div>' + inspect + '</div></div>';
   }
-  B.TalentTreeUI = Object.freeze({ render });
+  // Hover card next to the node (mouse only): name, kind, text, price and why it is locked. The inspect panel stays the click target.
+  let tip = null, tipFor = null, lastState = null;
+  function hoverCard(event) {
+    if (event.pointerType && event.pointerType !== 'mouse') return;
+    const el = event.target.closest && event.target.closest('.tt-node');
+    if (!el) { if (tip && tipFor && !(event.relatedTarget && tipFor.contains(event.relatedTarget))) { tip.hidden = true; tipFor = null; } return; }
+    if (el === tipFor || !lastState) return;
+    const T = B.TalentTree, n = T.get(el.dataset.skill); if (!n) return;
+    if (!tip) { tip = document.createElement('div'); tip.className = 'tt-tip'; tip.setAttribute('role', 'tooltip'); document.body.appendChild(tip); }
+    const a = T.access(lastState, n.id), c = T.cols[n.col].color, esc = s => String(s).replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
+    tip.style.setProperty('--c', c);
+    tip.innerHTML = '<small>' + esc(KIND[n.kind]) + ' · ' + esc(T.cols[n.col].name) + '</small><b>' + esc(n.name) + '</b><p>' + esc(n.desc) + '</p>' + (n.price ? '<p class="tt-tip-price">' + esc(n.price) + '</p>' : '') +
+      '<em class="' + (a.known ? 'ok' : a.canLearn ? 'go' : 'no') + '">' + esc(a.known ? t('Öğrenildi') : a.canLearn ? t('Çift tıkla: öğren') : a.reason) + '</em>';
+    tip.hidden = false; tipFor = el;
+    const r = el.getBoundingClientRect(), w = tip.offsetWidth, h = tip.offsetHeight;
+    let x = r.right + 10; if (x + w > innerWidth - 8) x = r.left - w - 10;
+    tip.style.left = Math.max(8, x) + 'px'; tip.style.top = Math.max(8, Math.min(innerHeight - h - 8, r.top + r.height / 2 - h / 2)) + 'px';
+  }
+  function hideCard() { if (tip) tip.hidden = true; tipFor = null; }
+  document.addEventListener('pointerover', hoverCard, true);
+  document.addEventListener('pointerdown', hideCard, true);
+  document.addEventListener('keydown', e => { if (e.code === 'Escape' || e.code === 'KeyT' || e.code === 'KeyI') hideCard(); }, true);
+  const renderBase = render;
+  function renderTracked(state, h) { lastState = state; hideCard(); return renderBase(state, h); }
+  B.TalentTreeUI = Object.freeze({ render: renderTracked });
 }());
