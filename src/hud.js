@@ -366,7 +366,7 @@
   let dismissSkillTips = () => {};
   function dismissTips() { dismissSkillTips(); }
   function initTips() {
-    const tip = document.createElement('div'); tip.id = 'skill-tip'; tip.setAttribute('role', 'tooltip'); document.body.appendChild(tip);
+    const tip = document.createElement('div'); tip.id = 'skill-tip'; tip.setAttribute('role', 'tooltip'); tip.setAttribute('aria-hidden', 'true'); document.body.appendChild(tip);
     let hideTimer = 0;
     const pressTimers = new Set();
     function show(btn) {
@@ -388,12 +388,13 @@
         tip.appendChild(list);
       }
       tip.appendChild(foot);
+      tip.setAttribute('aria-hidden', 'false');
       tip.classList.add('show');
       const r = btn.getBoundingClientRect(), w = tip.offsetWidth, h = tip.offsetHeight;
       tip.style.left = Math.max(8, Math.min(innerWidth - w - 8, r.left + r.width / 2 - w / 2)) + 'px';
       tip.style.top = Math.max(8, r.top - h - 12) + 'px';
     }
-    function hide() { clearTimeout(hideTimer); hideTimer = 0; tip.classList.remove('show'); }
+    function hide() { clearTimeout(hideTimer); hideTimer = 0; tip.classList.remove('show'); tip.setAttribute('aria-hidden', 'true'); }
     dismissSkillTips = () => { hide(); pressTimers.forEach(timer => clearTimeout(timer)); pressTimers.clear(); };
     for (const btn of document.querySelectorAll('.combat-pad .action, .flask-button')) {
       btn.addEventListener('pointerenter', e => { if (e.pointerType === 'mouse') show(btn); });
