@@ -69,7 +69,7 @@
       '#bf-cine .card.show strong{animation:bf-in 1.5s cubic-bezier(.2,.8,.2,1) both}' +
       '#bf-cine .card.phase{top:63%}#bf-cine .card.phase strong{font-size:clamp(24px,3.4vw,46px)}' +
       'body.bf-intro #announcement,body.bf-intro #boss-mechanic{visibility:hidden}' +
-      '#bf-cine .flash{position:absolute;left:50%;top:73%;transform:translateX(-50%);font-size:clamp(13px,1.4vw,19px);letter-spacing:.42em;color:#f3d38b;opacity:0;text-shadow:0 0 14px rgba(240,170,60,.75),0 0 4px #000;transition:opacity .25s}' +
+      '#bf-cine .flash{position:absolute;left:50%;top:73%;transform:translateX(-50%);font-size:clamp(15px,1.7vw,24px);font-weight:600;letter-spacing:.42em;color:#ffdc8f;opacity:0;text-shadow:0 0 14px rgba(240,170,60,.75),0 0 4px #000;transition:opacity .25s}' +
       '#bf-cine .flash.show{opacity:1;animation:bf-pop .5s cubic-bezier(.2,.8,.2,1) both}' +
       '@keyframes bf-in{from{letter-spacing:.42em;opacity:0;filter:blur(6px)}to{letter-spacing:.09em;opacity:1;filter:blur(0)}}' +
       '@keyframes bf-pop{from{transform:translateX(-50%) scale(1.35);opacity:0}to{transform:translateX(-50%) scale(1);opacity:1}}' +
@@ -114,8 +114,8 @@
   }
   var LINKS = 30;
   function chainMesh() {
-    var mat = new T.MeshStandardMaterial({ color: 0x3b302a, roughness: .45, metalness: .9, emissive: new T.Color(.9, .28, .07), emissiveIntensity: .0 });
-    var m = new T.InstancedMesh(new T.TorusGeometry(.11, .028, 6, 12), mat, LINKS); m.frustumCulled = false; m.name = 'bf_tether'; m.castShadow = false;
+    var mat = new T.MeshStandardMaterial({ color: 0x3b302a, roughness: .45, metalness: .9, emissive: new T.Color(1.6, .45, .1), emissiveIntensity: 1.2 });
+    var m = new T.InstancedMesh(new T.TorusGeometry(.14, .036, 6, 12), mat, LINKS); m.frustumCulled = false; m.name = 'bf_tether'; m.castShadow = false;
     return m;
   }
 
@@ -250,7 +250,7 @@
         chain.setMatrixAt(i, tmp.matrix);
       }
       chain.count = n; chain.instanceMatrix.needsUpdate = true;
-      chain.material.emissiveIntensity = .9 + .5 * Math.sin(time * 6) + (tt.over > 0 ? 1.4 : 0);
+      chain.material.emissiveIntensity = 1.5 + .7 * Math.sin(time * 6) + (tt.over > 0 ? 2.5 : 0);
     }
 
     /* ---- enrage: closing arena (a persistent burning band around the walls; owner-less so the bosses' own floor counters ignore it) */
