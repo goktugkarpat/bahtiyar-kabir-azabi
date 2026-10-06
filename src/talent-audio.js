@@ -4,7 +4,7 @@
 (function () {
   'use strict';
   const B = window.BABA = window.BABA || {};
-  const NAMES = new Set(['talentIgnite', 'talentSeal', 'talentKnell', 'talentRot', 'talentBurst', 'talentChain', 'talentChainMiss', 'talentBlood', 'talentExecute']);
+  const NAMES = new Set(['talentIgnite', 'talentSeal', 'talentKnell', 'talentRot', 'talentBurst', 'talentChain', 'talentChainMiss', 'talentBlood', 'talentExecute', 'talentLearn', 'talentKeystone']);
   const cache = new WeakMap();
   function noiseOf(ctx) {
     let b = cache.get(ctx); if (b) return b;
@@ -58,6 +58,12 @@
       }
       case 'talentBlood':
         thump(t, 62, 40, .25, .55); thump(t + .26, 58, 38, .3, .42); { const a = g(0), bp = f('bandpass', 700, 2, a); hiss(t, .3, bp); env(a, t, .18 * k, .01, .25); } break;
+      case 'talentLearn':
+        // a seal pressed into hot iron: low knock, short metallic ring, a breath of sparks
+        thump(t, 130, 70, .22, .4); metal(t + .01, 520, .09, .7, [1, 1.52, 2.33, 3.1]); whoosh(t, .3, 2400, 600, .08, 1.2); crackle(t + .04, .3, 6, .08); break;
+      case 'talentKeystone':
+        thump(t, 80, 32, .9, .55); metal(t, 147, .2, 2.4, [.5, 1, 1.2, 1.5, 2, 2.76]); whoosh(t, 1.1, 180, 1800, .14, .7); crackle(t + .2, 1.1, 18, .1);
+        { const a = g(0), o1 = osc('sawtooth', 55, t, 2.4, f('lowpass', 300, .8, a)); env(a, t + .05, .08 * k, .4, 1.8); void o1; } break;
       case 'talentExecute':
         whoosh(t, .16, 1200, 5200, .3, 2); thump(t + .05, 150, 40, .4, .55); metal(t + .04, 420, .12, .5, [1, 2.1, 3.3]); crackle(t + .05, .1, 5, .18, 1500); break;
     }

@@ -590,7 +590,7 @@
       selectedSkill = id;
       const skill = B.TalentTree ? B.TalentTree.get(id) : B.Progression.skills.find(s => s.id === id);
       const result = state.unlock(id);
-      if (result && result.ok) try { if (B.Audio && B.Audio.play) B.Audio.play(skill && skill.kind === 'key' ? 'talentKnell' : 'talentIgnite', { volume: .45 }); } catch (_) { /* sound is optional */ }
+      if (result && result.ok) try { if (B.Audio && B.Audio.play) B.Audio.play(skill && skill.kind === 'key' ? 'talentKeystone' : 'talentLearn', { volume: .6 }); } catch (_) { /* sound is optional */ }
       change(result, skill ? KabirI18n.t('Öğrenildi: ') + skill.name : undefined);
     }
     overlay.addEventListener('pointerdown', event => { lastPointerType = event.pointerType || 'mouse'; hideTooltip(); });

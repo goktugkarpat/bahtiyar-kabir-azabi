@@ -275,11 +275,24 @@
       // build aura on the hero (talent-runtime passes the dominant path)
       if (auraOf && auraOf.player && !auraOf.player.dead) {
         const p = auraOf.player, g0 = gy(p.x, p.z), kind = auraOf.kind, moving = auraOf.moving;
-        auraAcc += dt * (kind === 'rot' ? 16 : kind === 'fire' ? 26 : kind === 'blood' ? 7 : 10);
+        // the weapon carries the path: sparks / rot / blood run along the blade (hand bone -> model.weaponTip)
+        const mdl = p.model;
+        if (mdl && mdl.root && mdl.weaponTip && mdl.weaponTip.getWorldPosition && kind !== 'stone' && kind !== 'gold') {
+          if (!mdl.__ttHand) mdl.__ttHand = mdl.root.getObjectByName('handR') || null;
+          if (mdl.__ttHand && Math.random() < dt * (kind === 'fire' ? 34 : 16)) {
+            mdl.weaponTip.getWorldPosition(_p); const tx = _p.x, ty = _p.y, tz = _p.z; mdl.__ttHand.getWorldPosition(_p);
+            const u = .25 + Math.random() * .75, bx = _p.x + (tx - _p.x) * u, by = _p.y + (ty - _p.y) * u, bz = _p.z + (tz - _p.z) * u;
+            if (kind === 'fire') spark(bx, by, bz, rnd(-.15, .15), rnd(.5, 1.3), rnd(-.15, .15), Math.random() < .4 ? [2.4, 1.2, .3] : [1.9, .45, .06], rnd(.25, .5), rnd(.05, .09), .5);
+            else if (kind === 'rot') spark(bx, by, bz, 0, rnd(-.2, .2), 0, [.3, .85, .16], rnd(.5, .9), rnd(.08, .14), -1.5);
+            else if (kind === 'blood') spark(bx, by, bz, 0, -.1, 0, COLORS.blood, rnd(.5, .8), rnd(.05, .08), -9);
+            else if (kind === 'chain') spark(bx, by, bz, 0, 0, 0, [.9, .95, 1.1], .25, .05, 0);
+          }
+        }
+        auraAcc += dt * (kind === 'rot' ? 16 : kind === 'fire' ? 40 : kind === 'blood' ? 12 : 10);
         while (auraAcc >= 1) {
           auraAcc--;
           const a = Math.random() * 6.283, r = rnd(.15, .55);
-          if (kind === 'fire') spark(p.x + Math.sin(a) * r, g0 + rnd(.4, 1.7), p.z + Math.cos(a) * r, rnd(-.2, .2), rnd(.8, 1.8), rnd(-.2, .2), Math.random() < .3 ? [2.2, 1.1, .3] : COLORS.fire, rnd(.35, .7), rnd(.05, .1), .8);
+          if (kind === 'fire') spark(p.x + Math.sin(a) * r, g0 + rnd(.4, 1.7), p.z + Math.cos(a) * r, rnd(-.2, .2), rnd(.8, 1.8), rnd(-.2, .2), Math.random() < .3 ? [2.4, 1.2, .3] : [1.9, .42, .06], rnd(.4, .8), rnd(.08, .15), .8);
           else if (kind === 'rot') spark(p.x + Math.sin(a) * rnd(.3, .9), g0 + rnd(.05, .5), p.z + Math.cos(a) * rnd(.3, .9), Math.sin(a) * .3, rnd(.15, .45), Math.cos(a) * .3, [.16, .42, .1], rnd(1, 1.6), rnd(.3, .5), 0);
           else if (kind === 'blood') spark(p.x + Math.sin(a) * .35, g0 + rnd(.9, 1.3), p.z + Math.cos(a) * .35, 0, -.2, 0, COLORS.blood, rnd(.4, .6), rnd(.05, .08), -9);
           else if (kind === 'chain') { const b = time * 2.2 + a; spark(p.x + Math.sin(b) * .9, g0 + rnd(.5, 1.4), p.z + Math.cos(b) * .9, Math.cos(b) * 1.3, 0, -Math.sin(b) * 1.3, COLORS.chain, .5, .05, 0); }
