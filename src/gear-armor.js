@@ -19,8 +19,25 @@
   const SIG = () => new Set(Object.values(B.Progression.bossSignatures || {}).flat());
   const trimOf = (item, unique) => unique ? 'gold' : item.finish === 'bone' ? 'bone' : item.finish === 'blood' ? 'black' : item.finish === 'brine' ? 'bronze' : 'brass';
   const MASKS = new Set(['sealed-mask', 'furnace-mask']);
+  // gear-*: lighter tessellation for hidden-until-equipped parts (iPad memory); silhouettes keep their shape.
+  const lodGear = (S, k) => Object.assign({}, S, {
+    tube: (p, r, rad, tub, caps) => S.tube(p, r, Math.max(3, Math.round((rad || 8) * .75)), Math.max(2, Math.ceil((tub || Math.max(4, p.length * 5)) * k)), caps),
+    shell: (nu, nv, fn, t, c, f, o) => S.shell(Math.max(2, Math.round(nu * k)), Math.max(1, Math.round(nv * k)), fn, t, c, f, o),
+    sphere: (r, p, s, ws, hs) => S.sphere(r, p, s, Math.max(6, Math.round((ws || 14) * .7)), Math.max(4, Math.round((hs || 10) * .7))),
+    lathe: (pr, seg, a, b) => S.lathe(pr, Math.max(8, Math.round((seg || 24) * .7)), a, b) });
   function build(ctx) {
-    const { A, part, sleeve, chest, hc, rx, ry, rz, facingAngle, modelOf } = ctx, G = B.Gear;
+    const { A, sleeve, chest, hc, rx, ry, rz, facingAngle, modelOf } = ctx, G = lodGear(B.Gear, .7);
+    // Pieces with identical fittings share one look: calls are recorded per item, fingerprinted, and only new looks are submitted.
+    let rec = null; const part = (slot, id, mat, geometry, bone, opts) => rec.push([slot, mat, geometry, bone, opts]);
+    const looks = new Map(), lookOf = {};
+    function commit(itemId) {
+      if (!rec.length) return;
+      const key = rec.map(([slot, mat, g, bone, opts]) => { const p = g.attributes.position; return [slot, mat, bone || '', opts ? JSON.stringify(opts) : '', p.count, p.getX(0).toFixed(4), p.getY(0).toFixed(4), p.getZ(p.count - 1).toFixed(4)].join(':'); }).join('|');
+      let look = looks.get(key);
+      if (look) rec.forEach(r => r[2].dispose());
+      else { look = 'look@' + looks.size; looks.set(key, look); rec.forEach(([slot, mat, g, bone, opts]) => ctx.part(slot, look, mat, g, bone, opts)); }
+      lookOf[itemId] = look;
+    }
     const line = (fn, n) => Array.from({ length: n + 1 }, (_, i) => fn(i / n));
     const emit = (slot, id, mat, list, bone, opts) => { list = list.filter(Boolean); if (list.length) part(slot, id, mat, G.merge(list), bone, opts); };
     // ------------------------------------------------------------- head pieces
@@ -38,8 +55,8 @@
     }
     function aventail(id, depth, mat) {
       const sheet = (u, v) => { const a = mix(-2.35, 2.35, u) + PI, y = mix(hc.y - ry * .18, hc.y - ry * (.62 + depth), v), r = mix(1.0, 1.32 + depth * .5, v), fold = .006 * Math.sin(u * 40) * v; return [hc.x + Math.sin(a) * (rx * r + fold), y, hc.z + Math.cos(a) * (rz * r + fold) - .01 * v]; };
-      part('head', id, mat || 'mail', G.shell(40, 10, sheet, .004, false), 'head');
-      const rim = []; for (let n = 0; n < 40; n++) { const q = sheet((n + .5) / 40, 1); rim.push(G.ring(.006, .0014, q, [0, 0, 0], 3, 8)); } emit('head', id, 'steel', rim, 'head');
+      part('head', id, mat || 'mail', G.shell(40, 10, sheet, .004, false), null, { bones: ['head', 'neck', 'spine03'] });
+      const rim = []; for (let n = 0; n < 40; n++) { const q = sheet((n + .5) / 40, 1); rim.push(G.ring(.006, .0014, q, [0, 0, 0], 3, 8)); } emit('head', id, 'steel', rim, null, { bones: ['head', 'neck', 'spine03'] });
       part('head', id, 'strap', G.tube(line(u => sheet(u, 0), 30), .0035, 5, 40, true), 'head');
     }
     function crest(id, mat, count, h) {
@@ -155,6 +172,7 @@
     // ------------------------------------------------------------- catalogue pass
     const sig = SIG();
     for (const item of B.Progression.items) {
+      rec = [];
       if (item.slot === 'weapon') continue;
       const unique = item.rarity === 'boss' || sig.has(item.id), id = 'variant@' + item.id, glowKey = theme(item), trim = trimOf(item, unique), rank = { common: 0, uncommon: 1, rare: 2, epic: 3, boss: 4 }[item.rarity] || 0, core = modelOf(item);
       const glow = rank >= 3 ? glowKey : null;
@@ -191,7 +209,9 @@
           else if (rank === 2) kneeSpikes(id, 'dark', trim, null, false);
         }
       } catch (error) { console.warn('gear-armor', item.id, error); }
+      commit(item.id);
     }
+    B.GearArmor.looks = lookOf;
   }
-  B.GearArmor = { build };
+  B.GearArmor = { build, looks: {} };
 })();
