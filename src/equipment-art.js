@@ -867,5 +867,5 @@
     if(B.GearWeapons&&!/[?&]oldgear/.test(location.search)){try{Object.assign(weapons,B.GearWeapons.build({equipmentWeapon}));}catch(error){console.warn('gear-weapons',error);}}
     return weapons;
   }
-  B.EquipmentArt={material,finish,build,finishes,prepare,uniqueWeapons:new Set(['dull-sword', 'grave-sword', 'widow-sword', 'black-tide-sword', 'slag-edge-sword', 'hollow-crown-blade', 'ruin-lament-sword', 'cave-verdict-sword', 'black-forge-sword', 'rust-axe', 'executioner-axe', 'mourning-axe', 'furnace-oath-axe', 'sepulcher-axe', 'broken-throne-axe', 'ember-vow-axe', 'bone-spear', 'bell-spear', 'orphan-spear', 'starved-spear', 'furnace-mourning-spear', 'last-coal-spear'])};
+  B.EquipmentArt={material,finish,build,finishes,prepare,uniqueWeapons:new Set(['last-verdict-blade', 'void-oath-axe', 'chain-court-spear', 'dull-sword', 'grave-sword', 'widow-sword', 'black-tide-sword', 'slag-edge-sword', 'hollow-crown-blade', 'ruin-lament-sword', 'cave-verdict-sword', 'black-forge-sword', 'rust-axe', 'executioner-axe', 'mourning-axe', 'furnace-oath-axe', 'sepulcher-axe', 'broken-throne-axe', 'ember-vow-axe', 'bone-spear', 'bell-spear', 'orphan-spear', 'starved-spear', 'furnace-mourning-spear', 'last-coal-spear'])};
 })();

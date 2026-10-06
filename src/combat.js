@@ -1400,7 +1400,7 @@
     const coast = BABA.CoastCombat ? BABA.CoastCombat.create({ player, pick, beginMove, clipLine, walkable, cancelHazards, emit, sound, fx, bonus: (x,z,n) => { if (globes) globes.bonus(x,z,n); } }) : null;
     const ruins = BABA.RuinsCombat ? BABA.RuinsCombat.create({ player, pick, beginMove, clipLine, walkable, cancelHazards, emit, sound, fx, bonus: (x,z,n) => { if (globes) globes.bonus(x,z,n); } }) : null;
     const forge = BABA.ForgeCombat ? BABA.ForgeCombat.create({ player, pick, beginMove, clipLine, walkable, cancelHazards, emit, sound, fx, bonus: (x,z,n) => { if (globes) globes.bonus(x,z,n); } }) : null;
-    const finale = BABA.FinaleCombat && chapter === FINAL ? BABA.FinaleCombat.create({ player, pick, beginMove, clipLine, walkable, cancelHazards, emit, sound, fx, game, enemies, bonus: (x,z,n) => { if (globes) globes.bonus(x,z,n); } }) : null;
+    const finale = BABA.FinaleCombat && chapter === FINAL ? BABA.FinaleCombat.create({ player, pick, beginMove, clipLine, walkable, cancelHazards, emit, sound, fx, game, enemies, slow: s => slowMotion(s), bonus: (x,z,n) => { if (globes) globes.bonus(x,z,n); } }) : null;
     // Round 7: chapter III / IV boss set pieces (orbs, cover pillars, adds, burning ground) live in boss2.js; the move tables get a handle on it.
     if (BABA.Boss2 && chapter >= 2) {
       boss2 = BABA.Boss2.create({ root, world, chapter, game, player, enemies, hazards, emit, sound, fx, walkable, hitPlayer, hazardFrom, addHazard, killEnemy, restoreEnemy: enemy => { if (limbs) limbs.restore(enemy); Object.assign(enemy, freshEnemyFields(enemy)); enemy.poiseRecovery = 0; } });
@@ -1577,8 +1577,8 @@
       if (!enemy.stats.coast && !enemy.stats.ruins && !enemy.stats.forge && enemy.boss) { enemy.wrath = Math.max(0, enemy.wrath - dt * 12); if (enemy.wrath >= 70 && d < 3.2) { enemy.wrath = 0; if (beginMove(enemy, kickMove())) { advanceEnemyAction(enemy, dt); return; } } }
       if (enemy.cooldown <= 0 && enemy.fear <= 0 && openAttackSlots(enemy)) {
         let attacked = false;
-        if (enemy.stats.finale && finale) attacked = finale.attack(enemy, d);
         if (enemy.boss && director && director.attack(enemy, d)) attacked = true;
+        else if (enemy.stats.finale && finale) attacked = finale.attack(enemy, d);
         else if (enemy.stats.forge) attacked = forge.attack(enemy, d);
         else if (enemy.stats.ruins) attacked = ruins.attack(enemy, d);
         else if (enemy.stats.coast) attacked = coast.attack(enemy, d);
