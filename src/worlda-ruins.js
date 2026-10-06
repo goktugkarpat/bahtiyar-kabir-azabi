@@ -12,6 +12,8 @@
   var BONE = [1.28, 1.18, .96], DARK = [.25, .24, .26];
   // Rooms whose north threshold becomes a broad cave passage (index of the room south of the gap).
   var WIDE = { 6: 1, 7: 1, 8: 1, 9: 1, 10: 1 }, WIDE_W = 13;
+  // Side nooks off the ruined city's halls (room index -> wall side): a doorway in the arcade wall opens into a small shrine.
+  var NOOK = { 0: 1, 1: -1, 5: 1 };
 
   function dress(K, rooms, env) {
     var S = K.SPR || {}, solid = env.solid, floors = env.floors;
@@ -53,6 +55,31 @@
       }
     }
 
+    // ---- side nooks: open the wall collider, add the nook's floor, walls and shrine ----
+    Object.keys(NOOK).forEach(function (key) {
+      var i = +key, r = rooms[i], s = NOOK[i], R = K.rng(i, 909), wx = r.x + s * r.w / 2, t = [.86, .88, .94];
+      if (env.colliders) for (var c = env.colliders.length - 1; c >= 0; c--) { var q = env.colliders[c]; if (Math.abs(q.x - wx) < .01 && Math.abs(q.z - r.z) < .01 && Math.abs(q.d - r.d) < .01) env.colliders.splice(c, 1); }
+      var seg = (r.d - 4) / 2; [-1, 1].forEach(function (k) { solid(wx, r.z + k * (2 + seg / 2), .7, seg); });
+      var nx0 = wx, nx1 = wx + s * 6.6, ncx = (nx0 + nx1) / 2;
+      floors.push({ x: ncx, z: r.z, w: 6.8, d: 4 });
+      for (var gx = 0; gx < 3; gx++) for (var gz = 0; gz < 2; gz++) { var b = .85 + R() * .25; K.put(i, 'tile', 'floor', wx + s * (1.1 + gx * 2.2), -.07, r.z - 1 + gz * 2, 2.12, .18, 1.92, (R() - .5) * .03, 0, 0, [.8 * b, .84 * b, .94 * b], 0); }
+      K.put(i, 'box', 'earth', ncx, -.2, r.z, 7, .36, 4.6, 0, 0, 0, [.7, .7, .72], 0);
+      [-1, 1].forEach(function (k) { K.wall(i, ncx, r.z + k * 2.45, 6.8, .9, k < 0 ? 3.8 : 1.2, true, 0, -k, { tint: t, ruin: k < 0 ? .3 : 0, pil: k < 0 ? 3.2 : 0, noPil: k > 0 }); solid(ncx, r.z + k * 2.45, 6.8, .9); });
+      K.wall(i, nx1 + s * .45, r.z, 5.8, .9, 3.8, false, -s, 0, { tint: t, ruin: .2, niche: true, noPil: true }); solid(nx1 + s * .45, r.z, .9, 5.8);
+      // collapsed masonry heaped against the nook's outer walls blends it into the ruin
+      [-1, 1].forEach(function (k) { K.rubble(i, ncx + (R() - .5) * 3, r.z + k * 3.6, 1.8, 14, 1.4, 'stone', t, R); }); K.rubble(i, nx1 + s * 1.6, r.z + (R() - .5) * 2, 1.8, 12, 1.6, 'stone', t, R);
+      // lintel over the doorway
+      K.put(i, 'block', 'stone', wx, 4.4, r.z, 1.4, .8, 4.8, 0, 0, 0, t, .3);
+      // the shrine: a weathered saint at the far end, votive candles, bones of those who prayed here
+      K.put(i, 'box', 'stone', nx1 - s * .5, .3, r.z, 1.2, .6, 2.2, 0, 0, 0, t, .5);
+      K.statue(i, nx1 - s * .5, r.z, s > 0 ? -PI / 2 : PI / 2, { tint: t, pose: 1, s: .62 });
+      solid(nx1 - s * .5, r.z, 1.2, 2.2);
+      candles(i, nx1 - s * 1.6, r.z - 1.2, 6, R); candles(i, nx1 - s * 1.6, r.z + 1.3, 5, R);
+      skullHeap(i, wx + s * 1.6, r.z + 1.4, .55, 7, R);
+      K.dec(i, 3, ncx, r.z, 6, 3.6, 0, [1, 1, 1], .6); K.dec(i, 0, ncx, r.z, 4, 3, R() * 6, [1, 1, 1], .8);
+      K.light(i, nx1 - s * 1.8, 1.4, r.z, 0xffa860, 14, 8, { scatter: .7, glow: 1.2, flicker: .25 });
+      for (var m = 0; m < 10; m++) K.spr(i, S.mote, ncx + (R() - .5) * 5, .4 + R() * 3, r.z + (R() - .5) * 3, .04, .04, [1.1, .9, .7], .6, R(), .4 + R() * .4, 1.2);
+    });
     rooms.forEach(function (r, i) {
       var R = K.rng(i, 4242), cave = i >= 6 && i <= 9, gold = i >= 10, X = function (v) { return r.x + v; }, Z = function (v) { return r.z + v; };
       // ---- broad cave passage to the next room ----
@@ -116,9 +143,9 @@
   }
   // Quest anchors (STORY.md: world.questSites), chapter 3 only.
   var SITES = {
-    'c3.page1': { x: -9.4, z: -12 },        // Yitik Sütunlar: by the fallen colonnade shaft
+    'c3.page1': { x: -21.2, z: -18 },       // Yitik Sütunlar: in the saint's nook behind the west arcade
     'c3.page2': { x: -9.4, z: -145.2 },     // Mağaranın Ağzı: by the crystal seam, west wall
     'c3.chest': { x: 3, z: -297.6 }         // Tahtın Nöbeti: on the red carpet before the throne arch
   };
-  B.WorldARuins = { active: !/[?&]nowa\b/.test(location.search), dress: dress, wide: WIDE, sites: SITES };
+  B.WorldARuins = { active: !/[?&]nowa\b/.test(location.search), dress: dress, wide: WIDE, nook: NOOK, sites: SITES };
 }());

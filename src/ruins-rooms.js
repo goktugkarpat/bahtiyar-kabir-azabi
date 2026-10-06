@@ -53,7 +53,9 @@
     function arcade(tint, o) {
       o = o || {};
       [-1, 1].forEach(function (s) {
-        K.wall(i, X(s * (r.w / 2 + .45)), Z(0), r.d + .2, .9, o.wallH || 6.6, false, -s, 0, { tint: tint, ruin: o.ruin == null ? .35 : o.ruin, niche: true, pil: 5.2 });
+        var nook = B.WorldARuins && B.WorldARuins.nook && B.WorldARuins.nook[i] === s;   // ajan:world-a: a doorway into a side nook
+        if (nook) { var nl = (r.d + .2 - 4) / 2; [-1, 1].forEach(function (k) { K.wall(i, X(s * (r.w / 2 + .45)), Z(k * (2 + nl / 2)), nl, .9, o.wallH || 6.6, false, -s, 0, { tint: tint, ruin: o.ruin == null ? .35 : o.ruin, niche: true, pil: 5.2 }); }); }
+        else K.wall(i, X(s * (r.w / 2 + .45)), Z(0), r.d + .2, .9, o.wallH || 6.6, false, -s, 0, { tint: tint, ruin: o.ruin == null ? .35 : o.ruin, niche: true, pil: 5.2 });
         for (var n = 0; n < 4; n++) {
           var z = (n - 1.5) * 5.2, h = [4.6, 3.5, 5.3, 2.7][(n + i + (s > 0 ? 1 : 0)) % 4], broken = ((n + i + (s > 0 ? 0 : 2)) % 3 === 2) || o.broken;
           K.column(i, X(s * (r.w / 2 - 2.2)), Z(z), h, 1.15, 'stone', { tint: tint, broken: broken, cut: R() * .25 });
