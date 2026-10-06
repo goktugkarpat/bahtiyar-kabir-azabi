@@ -15,7 +15,7 @@
   // Side nooks off the ruined city's halls (room index -> wall side): a doorway in the arcade wall opens into a small shrine.
   var NOOK = { 0: 1, 1: -1, 5: 1 };
   // Open courts: the north facade of these halls is broken wide (half-width in metres) and the 7 m corridor becomes a broad forecourt.
-  var OPEN = { 1: 8.6, 3: 8.6 };
+  var OPEN = { 1: 8.6, 3: 8.6, 4: 8.6 };
 
   function dress(K, rooms, env) {
     var S = K.SPR || {}, solid = env.solid, floors = env.floors;
@@ -76,6 +76,7 @@
         K.brazier(i, s * 3.6, mid, { s: .8, col: [1.4, .66, .26], intensity: 18 });
       });
       K.dec(i, 10, 0, mid, half * 1.6, d + 3, 0, [.7, .72, .78], .8); K.dec(i, 0, (R() - .5) * 4, mid, 6, 5, R() * 6, [1, 1, 1], .8);
+      if (i === 4) [-1, 1].forEach(function (s) { solid(s * 4.75, r.z - r.d / 2 - .35, 1.7, 1.9); });   // the old gate now stands free in the forecourt
       if (i === 3) [-1, 1].forEach(function (s) { [4.3, 7.4].forEach(function (cx) { solid(s * cx, r.z - 11.1, 1.25, 1.25); }); });   // the portico's columns now stand in the way
     });
     // ---- landmarks seen from afar: a colossal fallen king outside the ruined city, a moon shaft on his head ----
