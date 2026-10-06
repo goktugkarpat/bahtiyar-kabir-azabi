@@ -347,7 +347,7 @@
       K.put(i, 'crag', 'rock', b.x, -2.6, b.z, b.w * .9, 3.4, b.d * .9, R() * 6, 0, 0, [.28, .26, .26], .4);
       K.put(i, 'spike', 'rock', b.x, -7, b.z, b.w * .5, 7, b.d * .6, R() * 6, PI, 0, [.24, .22, .22], .2);
       // runes along the causeway's spine (faint)
-      K.dec(i, 6, b.x, b.z, Math.min(5, b.w * .6), Math.min(5, b.w * .6), R() * 6, [.5, .06, .04], .12, 'glow');
+      K.dec(i, 6, b.x, b.z, Math.min(4, b.w * .45), Math.min(4, b.w * .45), R() * 6, [.5, .06, .04], .05, 'glow');
     });
   }
   B.FinaleRooms = { dress: dress, bridges: bridges, moodBase: moodBase, moodSpecs: moodSpecs };

@@ -155,7 +155,7 @@
           if (core) { var hz = core.ext.hazards; for (var i = hz.length - 1; i >= 0; i--) if (hz[i].b2ground && hz[i].owner === e && !hz[i].active) hz.splice(i, 1); }
           e.forceMove = 'kadiCall'; if (next === 3) { e.overheat = true; api.fx('boss2Overheat', { x: e.x, z: e.z }); }
           api.bonus(e.x, e.z, 2); api.emit('warning', { x: e.x, z: e.z, text: next === 2 ? KabirI18n.t('EFENDİLERİN YANKISI') : KabirI18n.t('SON HÜKÜM') });
-          api.sound('bossPhase'); api.fx('bossPhase', { x: e.x, y: 1.8, z: e.z, phase: next }); api.emit('impact', { x: e.x, z: e.z, strength: 1, radius: 10 });
+          api.sound('bossPhase'); api.fx('bossPhase', { x: e.x, y: 1.8, z: e.z, phase: next }); if (B.Audio && B.Audio.say) B.Audio.say(next === 2 ? 'ch5Echo' : 'ch5LastVerdict'); api.emit('impact', { x: e.x, z: e.z, strength: 1, radius: 10 });
           api.beginMove(e, { id: 'roar', name: KabirI18n.t('Kadı’nın Hükmü'), duration: 2.3, pose: 'roar', hits: [hit(1.3, 1.3, 'ring', 5, 0, 'roar', { inner: 0, arc: TAU, harmless: true })] });
         }
       };
