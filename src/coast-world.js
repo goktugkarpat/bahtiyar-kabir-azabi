@@ -95,7 +95,7 @@
     surface('stone','masonry',0xffffff,.92);surface('wall','masonry',0xffffff,.93);surface('rock','masonry',0xffffff,.9);
     surface('floor','floor',0xffffff,.9);surface('sand','floor',0xffffff,.96);
     surface('earth','masonry',0xffffff,.96);surface('char','wood',0xffffff,.94);
-    surface('wood','wood',0xffffff,.90);surface('rust','rust',0x908474,.74,.5);
+    surface('wood','wood',0xffffff,.90);surface('rust','rust',0xa89a88,.6,.55);
     surface('cloth','linen',0x827c65,.96);surface('flesh','leather',0x57443d,.6);
     materials.cloth.side = T.DoubleSide;
     // Roots share the scanned bark and compiled material; exposed ridges catch the coastal light.
@@ -103,7 +103,7 @@
     materials.root.color.setRGB(.63,.58,.48,T.LinearSRGBColorSpace);materials.root.normalScale.set(1.12,1.12);
     materials.root.onBeforeCompile=materials.char.onBeforeCompile;materials.root.customProgramCacheKey=materials.char.customProgramCacheKey;
     materials.funeralPaving=materials.floor.clone();materials.funeralPaving.name='coast-funeral-paving';
-    materials.funeralPaving.color.multiplyScalar(.68);materials.funeralPaving.roughness=.98;
+    materials.funeralPaving.color.multiplyScalar(.5);materials.funeralPaving.roughness=.62;
     materials.funeralPaving.onBeforeCompile=materials.floor.onBeforeCompile;materials.funeralPaving.customProgramCacheKey=materials.floor.customProgramCacheKey;
     materials.grave=materials.earth.clone();materials.grave.name='coast-grave';materials.grave.onBeforeCompile=materials.earth.onBeforeCompile;materials.grave.customProgramCacheKey=materials.earth.customProgramCacheKey;
 
@@ -387,7 +387,7 @@
     // Broken funeral paving gives the graveyard and forest a legible forward line.
     // The relief remains below the attack-warning plane and changes no collision or quest footprint.
     [0,1].forEach(function(id){var r=rooms[id];for(var row=0;row<17;row++)for(var col=0;col<5;col++){
-      var wear=B.Gear.hash(row,col,id+91);if(wear<(col===0||col===4?.63:.34))continue;
+      var wear=B.Gear.hash(row,col,id+91);if(wear<(col===0||col===4?.72:.5))continue;
       var shift=B.Gear.hash(col,row,id+37),size=B.Gear.hash(row+8,col+2,id+19);
       var xx=(col-2)*.92+Math.sin(row*.49+id)*.28+(shift-.5)*.30,zz=r.z+(row-8)*1.18+(wear-.5)*.40;
       add(id,paving[(row+col+id)%3],'funeralPaving',xx,.007,zz,.52+size*.32,.34,.57+shift*.33,0,(wear-.5)*.74,0);
@@ -400,7 +400,7 @@
     add(0, box, 'wood', -6.7, 2.1, 13, 3, .23, .3, 0, 0, -.25);
     for (var i = 0; i < 5; i++) add(0, cone, 'rust', -7.8 + i * .6, 2.5, 13, .06, .5, .06);
     // The graveyard is a ruined burial precinct, with niches and uneven walls around the outer route.
-    for(var side=-1;side<=1;side+=2){var xx=side<0?-12.8:10.8;for(var j=0;j<10;j++){var zz=12-j*2.0,hh=.45+(j%3)*.23;if(side<0&&Math.abs(zz-4)<4.9)continue;add(0,masonry,'stone',xx,hh*.5,zz,.65,hh,1.80,0,side*.06);if(j%3===0){add(0,masonry,'stone',xx,1.12,zz,.86,1.45,.82);add(0,masonry,'stone',xx,1.94,zz,1.04,.16,1.02);}}}
+    for(var side=-1;side<=0;side+=2){var xx=side<0?-12.8:10.8;for(var j=0;j<10;j++){var zz=12-j*2.0,hh=.45+(j%3)*.23;if(side<0&&Math.abs(zz-4)<4.9)continue;add(0,masonry,'stone',xx,hh*.5,zz,.65,hh,1.80,0,side*.06);if(j%3===0){add(0,masonry,'stone',xx,1.12,zz,.86,1.45,.82);add(0,masonry,'stone',xx,1.94,zz,1.04,.16,1.02);}}}
     for(var j=0;j<6;j++){var xx=-9.6+j*.39;add(0,cylinder,'rust',xx,.66,10.5,.022,1.18,.022,0,0,(j%2-.5)*.08);add(0,cone,'rust',xx,1.3,10.5,.055,.16,.055);}beam(0,'rust',[-9.8,.85,10.5],[-7.4,.8,10.5],.025);
     corpse(0,-8,6,.6);corpse(0,6,-2,2.4);skull(0,-7,.12,1,.4);
     // 1: a collapsed root arch and a charred shelter. The route beneath stays wide and flat.
