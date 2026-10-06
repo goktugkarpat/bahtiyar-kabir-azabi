@@ -1705,7 +1705,7 @@
         skull: skull, boneScatter: boneScatter, ribCage: ribCage, rubble: rubble, slab: slab, cage: cage, chain: chain, candleCluster: candleCluster, alcove: alcove,
         vaultRib: vaultRib, funeraryEffigy: funeraryEffigy, censer: censer, hangingIron: hangingIron, hangedBody: hangedBody, shroudedRemains: shroudedRemains,
         puddle: puddle, banner: banner, torch: torch, sconce: sconce, flame: flame, lightSource: lightSource, emberSources: emberSources, smokeSources: smokeSources,
-        part: part, hangerGroup: hangerGroup, swinging: swinging, floorRing: floorRing, ritualPavement: ritualPavement, architectureMesh: architectureMesh, spot: spot, setChunkBias: function (b) { chunkBias = b || 0; }, portalHalf: portalHalf, floors: floors, breach: BREACH, root: root, uniqueMaterials: uniqueMaterials, uniqueGeometries: uniqueGeometries });
+        part: part, hangerGroup: hangerGroup, swinging: swinging, floorRing: floorRing, ritualPavement: ritualPavement, architectureMesh: architectureMesh, spot: spot, setChunkBias: function (b) { chunkBias = b || 0; }, portalHalf: portalHalf, floors: floors, breach: BREACH, root: root, mergeParts: mergeParts, uniqueMaterials: uniqueMaterials, uniqueGeometries: uniqueGeometries });
       /* /ajan:world-a */
 
       // ---- light shafts and particles ----------------------------------------------------------------------

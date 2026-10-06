@@ -44,9 +44,28 @@
     }
     if (!K.materials['wa-linen']) { var lin = K.materials.shroud.clone(); lin.vertexColors = false; lin.color.copy(K.linear(.55, .47, .34)); lin.roughness = 1; K.materials['wa-linen'] = lin; }
     // Small props never cast static shadows (detail level 1): the shadow passes only see walls, piers and big furniture.
+    // Inside a side crypt every small prop is baked into ONE mesh per material for the whole room (no shadows):
+    // a handful of draw calls instead of one instanced batch per shape x material x detail level.
+    var mergeOn = false, mergeBuckets = null, mtmp = new T.Object3D();
+    var MERGE_MAT = { stone: 'stone~p', pale: 'pale~p', dark: 'dark~p' };
     function put(geo, mat, x, y, z, sx, sy, sz, rx, ry, rz, level, color) {
       if (!level && mat !== 'floor' && Math.max(Math.abs(sx), Math.abs(sy), Math.abs(sz)) < 1.6) level = 1;
+      if (mergeOn && level && mat !== 'floor' && K.mergeParts && G[geo] && G[geo].attributes.normal) {
+        var mk = MERGE_MAT[mat] || mat; if (!K.materials[mk]) mk = mat;
+        mtmp.position.set(x, y, z); mtmp.rotation.set(rx || 0, ry || 0, rz || 0); mtmp.scale.set(sx, sy, sz); mtmp.updateMatrix();
+        (mergeBuckets[mk] = mergeBuckets[mk] || []).push({ geo: G[geo], matrix: mtmp.matrix.clone() });
+        return;
+      }
       K.put(geo, mat, x, y, z, sx, sy, sz, rx, ry, rz, level, color);
+    }
+    function beginMerge() { mergeOn = !!(K.mergeParts && K.root); mergeBuckets = {}; }
+    function endMerge(name) {
+      if (!mergeOn) return; mergeOn = false;
+      Object.keys(mergeBuckets).forEach(function (mk) {
+        var m = new T.Mesh(K.mergeParts(mergeBuckets[mk]), K.materials[mk]); m.name = 'wa-merged:' + name + ':' + mk;
+        m.castShadow = false; m.receiveShadow = true; m.updateMatrix(); m.matrixAutoUpdate = false; K.root.add(m);
+      });
+      mergeBuckets = null;
     }
     function box(mat, x, y, z, w, h, d, angle, level, color) { put('box', mat, x, y, z, w, h, d, 0, angle || 0, 0, level, color); }
     var rod = K.rod, solid = K.solid;
@@ -534,6 +553,7 @@
     };
     ROOMS.forEach(function (r) {
       if (K.setChunkBias) K.setChunkBias(r.x > 0 ? 500 : 700);
+      beginMerge();
       var holes = [];
       var s = r.x < 0 ? 1 : -1, back = r.x - s * r.w / 2, north = r.z - r.d / 2;
       if (r.theme === 'ossuary') holes.push({ x: back + s * 3.2, z: r.z - 1, w: 3.2, d: 9 });
@@ -542,6 +562,7 @@
       var S = shell(r);
       THEMES[r.theme](r, S, holes);
       floorLife(r, holes);
+      endMerge(r.id);
       if (K.setChunkBias) K.setChunkBias(0);
     });
     // Main halls: grit and stray bones on the floor, fallen vault stones heaped into the dark corners (no colliders: walls already bound them).
@@ -599,7 +620,7 @@
         [-1, 1].forEach(function (s) { var ax = s * (BR[5] - .9);
           for (var l = 0; l < 16; l++) put('link', 'iron', ax, 1 + l * .62, z5, .5, .8, .5, 0, l % 2 ? Math.PI / 2 : 0, 0, 1);
           put('link', 'rust', ax, .5, z5, .9, .9, .5, Math.PI / 2, 0, 0, 1); put('slab1', 'dark', ax, .2, z5, 1.3, .4, 1.3, 0, 0, 0, 1); solid(ax, z5, 1.3, 1.3); }); }
-      beam(-35.8, -22, 1.2, 1.6, 16, '#ff3010', .07, -5);
+      beam(-35.8, -22, 1.2, 1.6, 16, '#ff3010', .04, -5);
     }());
     function inHole(holes, x, z, m) { for (var i = 0; i < holes.length; i++) { var o = holes[i]; if (Math.abs(x - o.x) < o.w / 2 + m && Math.abs(z - o.z) < o.d / 2 + m) return true; } return false; }
     // Lived-in floor: grit, chips of fallen vault, stray bones, stains that run under the furniture.
