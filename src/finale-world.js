@@ -110,12 +110,13 @@
         ' float f=.5+(a.r-.5)*2.4+(b.g-.5)*1.5;float crust=smoothstep(.5,.64,f);vec2 e=min(vUv,1.-vUv)*vE.xy*2.;float bank=1.-smoothstep(0.,.45,min(e.x,e.y));crust=clamp(crust+bank*.85,0.,1.);',
         ' float pulse=.55+.45*sin(clock*1.1+p.y*.7+a.g*7.);vec3 molten=mix(vec3(.2,.012,.008),vec3(.48,.06,.02),pulse*.6+b.g*.4);vec3 crustCol=vec3(.025,.012,.012);',
         ' gl_FragColor=vec4(mix(molten,crustCol,smoothstep(.2,.7,crust)),1.);}'].join('\n') });
-    var abyssMat = new T.ShaderMaterial({ uniforms: { clock: clock, norm: { value: flowNormal } }, depthWrite: false, toneMapped: false, transparent: false, fog: false,
+    var wrath = { value: 0 };   // 0..1: the court answers the Black Qadi's later phases (abyss veins flare, verdict glow pulses)
+    var abyssMat = new T.ShaderMaterial({ uniforms: { clock: clock, norm: { value: flowNormal }, wrath: wrath }, depthWrite: false, toneMapped: false, transparent: false, fog: false,
       vertexShader: 'varying vec3 vP;void main(){vP=(modelMatrix*vec4(position,1.)).xyz;gl_Position=projectionMatrix*viewMatrix*vec4(vP,1.);}',
-      fragmentShader: ['varying vec3 vP;uniform float clock;uniform sampler2D norm;',
+      fragmentShader: ['varying vec3 vP;uniform float clock;uniform sampler2D norm;uniform float wrath;',
         'void main(){vec2 p=vP.xz;vec3 a=texture2D(norm,p*.006+vec2(clock*.002,-clock*.003)).rgb;vec3 b=texture2D(norm,p*.019-vec2(clock*.009,clock*.003)+(a.rg-.5)*.6).rgb;vec3 c=texture2D(norm,p*.045+(b.rg-.5)*.5+vec2(0.,clock*.006)).rgb;',
         ' float v=(a.r-.5)*1.8+(b.g-.5)*1.4+(c.r-.5)*.6;float vein=smoothstep(.18,.0,abs(v-.05));float pool=smoothstep(.25,.75,a.g*.6+b.r*.5);',
-        ' float pulse=.75+.25*sin(clock*.6+a.b*9.);vec3 col=vec3(.004,.002,.003)+vec3(.11,.008,.005)*vein*vein*pulse+vec3(.018,.002,.002)*pool;',
+        ' float pulse=.75+.25*sin(clock*.6+a.b*9.);vec3 col=vec3(.004,.002,.003)+vec3(.11,.008,.005)*vein*vein*pulse*(1.+wrath*2.2)+vec3(.018,.002,.002)*pool*(1.+wrath);',
         ' float d=distance(cameraPosition,vP);col*=1.-smoothstep(60.,130.,d)*.9;gl_FragColor=vec4(col,1.);}'].join('\n') });
     materials.abyss = abyssMat;
     var rooms = LAYOUT.map(function (L, i) { return { id: i, name: NAMES[i], x: L.x, z: 8 - i * 26, w: L.w, d: L.d, shape: L.shape }; });
@@ -219,6 +220,10 @@
       if (materials.crystalA) materials.crystalA.emissiveIntensity = 1.1 + (oath ? .35 : 0) + .12 * Math.sin((time || 0) * 1.7);
       if (materials.crystal) materials.crystal.emissiveIntensity = 1.15 + .2 * Math.sin((time || 0) * .8);
       if (materials.slag) materials.slag.emissiveIntensity = 1.25 + .2 * Math.sin((time || 0) * 1.3 + 1);
+      var g = B.app && B.app.game, boss = g && g.boss, want = boss && boss.active && !boss.dead && p.z < rooms[13].z + 16 ? (boss.phase >= 3 ? 1 : boss.phase >= 2 ? .45 : .1) : 0;
+      wrath.value += (want - wrath.value) * Math.min(1, (dt || 0) * 1.5);
+      var beat = wrath.value > .02 ? 1 + wrath.value * (.25 + .25 * Math.sin((time || 0) * (2.2 + wrath.value * 2))) : 1;
+      materials.hot.color.setRGB(beat, beat, beat); materials.lamp.color.setHex(0xff7a5a).multiplyScalar(beat);
     }
     // Quest sites for quests.js (STORY.md contract): every point walkable, clear of colliders and of the fixed formations.
     var questSites = {};
