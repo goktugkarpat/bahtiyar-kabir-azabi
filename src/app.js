@@ -35,7 +35,6 @@
   $('next-chapter').classList.toggle('hidden',forgeChapter);
   if(chapter>1){
     $('pause').setAttribute('aria-label', chapterNames[chapter-1] + ' · Mola');
-    document.querySelector('#pause .save-note').textContent='Karakterin ve çantan korunur. Ölümde son yemin noktasına dönersin.';
     document.querySelector('#fatal h2').textContent='Yol açılmadı.';
     document.querySelector('#victory .eyebrow').textContent='Bölüm '+chapterNumbers[chapter-1]+' tamamlandı';
     document.querySelector('#victory .end-quote').textContent=coastChapter?'Çanın içindeki kırık mühür, kıyının ardındaki kral harabelerini gösterdi. Denizden uzaklaş; seni çağıran ses henüz susmadı.':ruinsChapter?'Boş taht kırıldı. Altından gelen körük sesi, kralın zincirlerinin hâlâ dövüldüğünü gösterdi. Kızıl Ocak’a in; bu yeminin kaynağını söndür.':'Son döküm soğudu. Zincirin yapıldığı ocak artık sessiz. Mezarın, denizin ve taşın sesi geride kaldı.';
