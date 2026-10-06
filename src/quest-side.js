@@ -314,25 +314,32 @@
       var actor = { x: 0, z: 0, face: 0, speed: 0, model: null, root: null, time: 0, cower: 0 };
       try {
         if (B.Models && B.Models.create) {
-          actor.model = B.Models.create(def.female && B.Models.types && B.Models.types.selvi ? 'selvi' : 'prisoner'); actor.root = actor.model.root;
+          // Only the active chapter's character bases are decoded: pick the most human figure this chapter owns.
+          var types = B.Models.types || {}, active = B.ActiveChapter || chapter;
+          var wish = [def.female ? 'selvi' : null, 'prisoner', 'gravemason', 'drowned', 'emberbound', 'cultist', 'ashbound', 'lantern', 'chainseer'].filter(Boolean);
+          var pick = wish.find(function (t) { return types[t] && (types[t].chapter || 1) === active; }) || 'prisoner';
+          actor.model = B.Models.create(pick); actor.root = actor.model.root;
           actor.root.traverse(function (n) { if (n.name === 'weapon') n.visible = false; });
           actor.root.scale.setScalar(def.female ? .9 : .97);
         }
-      } catch (e) { actor.model = null; }
+      } catch (e) { console.warn('[quests] captive model', e && e.message); actor.model = null; actor.root = null; }
       if (!actor.root) {
         var parts = [], grp = new T.Group();
         kit.cyl(parts, kit.wood, .28, .18, 1.1, 0, .55, 0); kit.put(parts, kit.stone, new T.SphereGeometry(.16, 10, 8), 0, 1.25, 0); kit.merge(parts, grp); actor.root = grp;
       }
       actor.root.name = def.npc; kit.root.add(actor.root);
+      // A pale oath ring under the living captive keeps them apart from the hostile dead that share their silhouette.
+      var halo = [], hg = new T.Group(); kit.ring(halo, kit.glow, .55, .018, 0, .04, 0, PI / 2); kit.merge(halo, hg); actor.halo = hg; kit.root.add(hg);
       return actor;
     }
     var pose = { time: 0, move: 0, attack: 0, dead: false, face: 0, phase: 'idle', action: '', actionProgress: 0, hurt: 0, block: false, dodge: 0, stagger: 0, beat: 0, beatTime: -1, leap: 0, lookYaw: undefined, fear: 0, deathKind: '', hitAngle: 0 };
     function animateActor(actor, dt) {
       actor.time += dt;
       actor.root.position.set(actor.x, world.heightAt ? world.heightAt(actor.x, actor.z) || 0 : 0, actor.z); actor.root.rotation.y = actor.face;
+      if (actor.halo) { actor.halo.position.set(actor.x, actor.root.position.y, actor.z); actor.halo.visible = actor.root.visible; }
       if (actor.model && actor.model.animate) {
         pose.time = actor.time; pose.move = actor.speed; pose.face = actor.face; pose.fear = actor.cower; pose.phase = 'idle';
-        try { actor.model.animate(dt, pose); } catch (e) { actor.model = null; }
+        try { actor.model.animate(dt, pose); } catch (e) { console.warn('[quests] captive pose', e && e.message); actor.model = null; }
       }
     }
 
@@ -519,8 +526,9 @@
         // Walk the navigation graph like the foes do; a captive left far behind (or wedged) catches up out of sight.
         a.repath = (a.repath || 0) - dt;
         if (a.repath <= 0 && gap > 1.1) { a.repath = .4; a.route = world.pathTo ? world.pathTo({ x: a.x, z: a.z }, { x: tx, z: tz }, .4) : [{ x: tx, z: tz }]; a.leg = 0; }
-        a.stuck = gap > 3 && a.speed < .2 ? (a.stuck || 0) + dt : 0;
-        if (gap > 22 || a.stuck > 2.5 || gap > 6 && !(a.route && a.route.length)) { a.x = tx; a.z = tz; gap = 0; a.route = null; a.stuck = 0; }
+        // Progress watchdog: if the gap has not shrunk for 2.5 s (door, ledge, odd nav cell), step in behind the hero.
+        if (gap <= 3 || a.best === undefined || gap < a.best - .3) { a.best = gap; a.stuck = 0; } else a.stuck = (a.stuck || 0) + dt;
+        if (gap > 22 || a.stuck > 2.5 || gap > 6 && !(a.route && a.route.length)) { a.x = tx; a.z = tz; gap = 0; a.route = null; a.stuck = 0; a.best = undefined; }
         var wp = a.route && a.route[a.leg || 0];
         while (wp && Math.hypot(wp.x - a.x, wp.z - a.z) < .25 && a.leg < a.route.length - 1) wp = a.route[++a.leg];
         var dx = wp ? wp.x - a.x : 0, dz = wp ? wp.z - a.z : 0, dist = Math.hypot(dx, dz);
