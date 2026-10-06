@@ -148,6 +148,15 @@
       } catch (err) { /* soft */ }
     };
     talents.gearPowerStats = () => Object.assign({}, procs);
+    // Equip feedback: a short metal/leather sound for every piece put on.
+    if (typeof progression.equip === 'function' && !progression.__gearEquip) {
+      const equip = progression.equip; progression.__gearEquip = true;
+      progression.equip = function (uid) {
+        const r = equip.apply(this, arguments);
+        try { if (r && r.ok) { const e = progression.inventory.find(i => i.uid === uid), def = e && B.Progression.catalog[e.id]; if (def) ctx.sound('gearEquip', { slot: def.slot, rarity: def.rarity }); } } catch (err) { /* soft */ }
+        return r;
+      };
+    }
     talents.reset = function () { base.reset(); dots.clear(); trails.length = 0; crown = []; primed = false; hits = 0; if (look) look.reset(); };
   }
   B.GearPowers = { attach, describe, text: TEXT };

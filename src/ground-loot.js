@@ -91,7 +91,7 @@
       }`});
     owned.push(pillarMaterial);
     const pillar = mesh(pillarGeometry,pillarMaterial,true); pillar.name = 'GroundLootLightPillars'; pillar.renderOrder = 5;
-    const PILLAR = { rare: .9, epic: 1.9, boss: 3.6 };
+    const PILLAR = { rare: .9, epic: 1.9, boss: 3.6 }, pillarGold = new T.Color(1.6, 1.1, .35);
     const object = new T.Object3D(), color = new T.Color(), motion = new Map();
     let clock = 0, disposed = false, picked = 0;
     function update(dt) {
@@ -104,7 +104,7 @@
         const def=B.Progression.catalog[drop.id]; if(!def)continue;
         const quality=B.Progression.qualities[def.rarity];
         let m=motion.get(drop.uid);
-        if (!m) { m={age:0,flight:0,flying:false,x:drop.x,z:drop.z}; motion.set(drop.uid,m); }
+        if (!m) { m={age:0,flight:0,flying:false,x:drop.x,z:drop.z}; motion.set(drop.uid,m); if(sound&&(drop.boss||def.rarity==='boss'))sound('gearUniqueDrop',{x:drop.x,z:drop.z}); }
         m.age+=dt;
         const distance=Math.hypot(player.x-drop.x,player.z-drop.z);
         if (!m.flying && m.age>=(drop.boss?BOSS_DELAY:DELAY) && distance<=(drop.boss?BOSS_REACH:REACH) && (!world.hasClearPath || world.hasClearPath(player.x,player.z,drop.x,drop.z,.08))) m.flying=true;
@@ -129,7 +129,7 @@
         object.position.set(x,base+.018,z); object.rotation.set(-Math.PI/2,0,0); object.scale.setScalar(m.flying?0:scale); object.updateMatrix();
         groundGlow.setMatrixAt(count,object.matrix); groundGlow.setColorAt(count,color);
         const ph = drop.boss ? PILLAR.boss : PILLAR[def.rarity] || 0;
-        if (ph && !m.flying) { object.position.set(x,base,z); object.rotation.set(0,0,0); object.scale.set(1,ph*Math.min(1,m.age/.35),1); object.updateMatrix(); pillar.setMatrixAt(pillars,object.matrix); pillar.setColorAt(pillars,color); pillars++; }
+        if (ph && !m.flying) { object.position.set(x,base,z); object.rotation.set(0,0,0); const wide=drop.boss||def.rarity==='boss'?1.8:1; object.scale.set(wide,ph*Math.min(1,m.age/.35),wide); object.updateMatrix(); pillar.setMatrixAt(pillars,object.matrix); pillar.setColorAt(pillars,wide>1?pillarGold:color); pillars++; }
         count++;
       }
       for (const [uid] of motion) if (!drops.some(drop=>drop.uid===uid)) motion.delete(uid);

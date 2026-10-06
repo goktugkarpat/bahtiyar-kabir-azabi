@@ -163,7 +163,7 @@
     }
     function furCollar(id) {
       const tufts = [], cz0 = A.P('spine03').z;
-      for (let i = 0; i < 46; i++) { const u = i / 46, p = chest(u, .97, .03), out = new T.Vector3(p[0], 0, p[2] - cz0).normalize(), L = .05 + .03 * G.hash(i, 5, 1); tufts.push(G.spike(.022, p, [p[0] + out.x * L, p[1] + .045 + .02 * G.hash(i, 2, 2), p[2] + out.z * L], 5)); }
+      for (let i = 0; i < 46; i++) { const u = i / 46, p = chest(u, .97, .03), out = new T.Vector3(p[0], 0, p[2] - cz0).normalize(), L = .08 + .05 * G.hash(i, 5, 1); tufts.push(G.spike(.03, p, [p[0] + out.x * L, p[1] + .06 + .03 * G.hash(i, 2, 2), p[2] + out.z * L], 5)); }
       emit('chest', id, 'fur', tufts, null, TORSO_W);
       const beads = []; for (let i = 0; i < 13; i++) { const t = i / 12, p = chest(mix(-.11, .11, t), .8 - .1 * Math.sin(t * PI), .05); beads.push(i % 3 === 1 ? G.spike(.009, p, [p[0], p[1] - .04, p[2] + .01], 5) : G.sphere(.008, p, null, 8, 6)); }
       emit('chest', id, 'bone', beads, 'spine02');
@@ -173,7 +173,7 @@
       part('chest', id, 'brass', G.sphere(.016, chest(0, .58, .055), [1, 1, .5], 10, 8), 'spine02');
     }
     function tabard(id, cloth, trim, glow) {
-      const panel = (u, v) => { const p = chest((u - .5) * .1, .62, .058); return [p[0] * (1 + v * .15), mix(p[1], .62, v), p[2] + .01 + .015 * v + .006 * Math.sin(u * PI * 3) * v]; };
+      const panel = (u, v) => { const p = chest((u - .5) * .14, .62, .058); return [p[0] * (1 + v * .2), mix(p[1], .62, v), p[2] + .01 + .015 * v + .006 * Math.sin(u * PI * 3) * v]; };
       part('chest', id, cloth, G.shell(10, 16, panel, .004, false), null, TORSO_W);
       for (const e of [0, 1]) part('chest', id, trim, G.tube(line(v => panel(e, v), 16), .0025, 4, 20, true), null, TORSO_W);
       const q = chest(0, .42, .07), cross = G.extrude([[-.012, .05], [.012, .05], [.012, .014], [.04, .014], [.04, -.012], [.012, -.012], [.012, -.07], [-.012, -.07], [-.012, -.012], [-.04, -.012], [-.04, .014], [-.012, .014]], .006, .002);
@@ -199,7 +199,7 @@
     }
     // Family pauldron silhouettes for epic chests.
     function bellPauldron(id, mat, trim) { for (const s of ['L', 'R']) { const { bone, c, sign } = shoulderInfo[s]; const g = G.lathe([[0, .1], [.04, .095], [.075, .06], [.095, .0], [.12, -.06], [.125, -.075]], 20); g.rotateZ(sign * .55); g.translate(c.x + sign * .03, c.y, c.z); part('chest', id, mat, g, bone); const r = G.ring(.124, .004, [0, -.075, 0], null, 5, 30); r.rotateZ(sign * .55); r.translate(c.x + sign * .03, c.y, c.z); part('chest', id, trim, r, bone); } }
-    function emberOrbs(id, glow) { for (const s of ['L', 'R']) { const { bone, c, sign } = shoulderInfo[s]; const o = []; for (let i = 0; i < 3; i++) o.push(G.sphere(.012 + .004 * i, [c.x + sign * (.07 + i * .03), c.y + .16 + i * .045, c.z - .02 + i * .01], null, 8, 6)); emit('chest', id, glow, o, bone); } }
+    function emberOrbs(id, glow) { for (const s of ['L', 'R']) { const { bone, c, sign } = shoulderInfo[s]; const o = []; for (let i = 0; i < 4; i++) o.push(G.sphere(.02 + .007 * i, [c.x + sign * (.06 + i * .035), c.y + .15 + i * .055, c.z - .02 + i * .012], null, 10, 8)); emit('chest', id, glow, o, bone); } }
     function chainMantle(id) { const out = []; for (let r = 0; r < 3; r++) out.push(G.chain(line(u => chest(mix(.12, .88, u), .98 - r * .1, .05 + r * .005), 18), .026, .2)); emit('chest', id, 'dark', out, null, TORSO_W); }
     function boneTeeth(id) { for (const s of ['L', 'R']) { const { bone, c, sign } = shoulderInfo[s]; const t = []; for (let i = 0; i < 5; i++) { const a = mix(-.8, .8, i / 4), b = [c.x + sign * .06, c.y + .08, c.z + Math.sin(a) * .07]; t.push(G.tube(line(u => [b[0] + sign * (.03 + .1 * u), b[1] + .1 * Math.sin(u * PI * .6) - .02 * u, b[2] + Math.sin(a) * .03 * u], 8), u => mix(.012, .002, u), 6, 12, true)); } emit('chest', id, 'bone', t, bone); } }
     function wingPauldron(id, mat, trim) { for (const s of ['L', 'R']) { const { bone, c, sign } = shoulderInfo[s]; const w = G.extrude([[0, 0], [.08, .05], [.16, .16], [.12, .06], [.18, .08], [.1, -.01], [.04, -.03]].map(p => [p[0] * sign, p[1]]), .012, .003); w.translate(c.x + sign * .07, c.y + .03, c.z - .03); part('chest', id, mat, w, bone); part('chest', id, trim, G.sphere(.014, [c.x + sign * .07, c.y + .03, c.z - .02], null, 8, 6), bone); } }
@@ -275,7 +275,7 @@
           if (rank >= 2) {
             if (fam === 'lamellar') { silkSash(id, 'crimson'); tassets(id, 'steel', 'brass', 2); }
             else if (fam === 'barbarian') { furCollar(id); crossStraps(id); }
-            else if (fam === 'iron') { tabard(id, 'sable', 'gold', glow); tassets(id, 'dark', 'steel', 2); }
+            else if (fam === 'iron') { tabard(id, 'crimson', 'gold', glow); tassets(id, 'dark', 'steel', 2); }
             else if (fam === 'holy') tassets(id, 'black', 'gold', 2);
           }
           if (rank >= 3 && !unique) {
