@@ -182,7 +182,7 @@
     /* cave helpers */
     function caveGap() {
       var zg = r.z - r.d / 2 - 2;
-      [-1, 1].forEach(function (s) { for (var q = 0; q < 4; q++) K.put(i, 'crag', 'rock', s * (5.6 + q * 3.3), 2.0, zg + (R() - .5) * 1.2, 4.4, 4.0 + R() * 2, 4.2, R() * 6, .1, 0, [.55, .62, .66], .5, 3); });
+      [-1, 1].forEach(function (s) { var x0 = B.WorldARuins && B.WorldARuins.wide && B.WorldARuins.wide[i] ? 8.2 : 5.6; /* ajan:world-a: broad cave passages */ for (var q = 0; q < 4; q++) K.put(i, 'crag', 'rock', s * (x0 + q * 3.3), 2.0, zg + (R() - .5) * 1.2, 4.4, 4.0 + R() * 2, 4.2, R() * 6, .1, 0, [.55, .62, .66], .5, 3); });
     }
     function caveRoom(o) { caveGap();
       K.patches(i, r, { n: o.patches || 46, tint: o.tint, min: 1.2, max: 3.2 });
