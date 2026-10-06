@@ -8,19 +8,31 @@ ROOT=pathlib.Path(__file__).resolve().parent.parent
 KABIR=(ROOT/'src/narration.js').exists()
 TEXT=ROOT/('src/narration-en-text.json' if KABIR else 'voice-en-text.json')
 OUT=ROOT/('src/narration-en.js' if KABIR else 'sesler-en.js')
-CACHE=ROOT/'.english-voice-cache'
-FFMPEG=shutil.which('ffmpeg') or '/opt/homebrew/bin/ffmpeg'
+import tempfile
+CACHE=pathlib.Path(tempfile.gettempdir())/'kabir-english-voice-cache'   # outside Dropbox: sync locks the temp files
+try:
+ import imageio_ffmpeg
+ _IIO=imageio_ffmpeg.get_ffmpeg_exe()
+except Exception:
+ _IIO=None
+FFMPEG=shutil.which('ffmpeg') or _IIO or '/opt/homebrew/bin/ffmpeg'
 FFPROBE=shutil.which('ffprobe') or '/opt/homebrew/bin/ffprobe'
 LINES=json.loads(TEXT.read_text())
 TR=json.JSONDecoder().raw_decode((ROOT/'src/narration.js').read_text().split('window.BABA.Narration = ',1)[1])[0] if KABIR else {}
 TRIM='silenceremove=start_periods=1:start_threshold=-48dB:start_silence=0.035:detection=peak,areverse,silenceremove=start_periods=1:start_threshold=-48dB:start_silence=0.10:detection=peak,areverse,afade=t=in:d=0.006'
 def config(key):
  if not KABIR:return 'en-GB-SoniaNeural','-3%','+1Hz',TRIM
- voice='en-US-GuyNeural' if key=='heroOath' else 'en-US-ChristopherNeural' if key=='cellat' else 'en-GB-ThomasNeural'
- # Native articulation remains intact; subtle low end and a short room tail, no robotic pitch shifting.
- return voice,'-8%','-3Hz',TRIM+',highpass=f=65,lowpass=f=8500,equalizer=f=170:t=q:w=0.8:g=2,aecho=0.8:0.88:48:0.07,alimiter=limit=0.92'
+ # Dark storyteller: slow, low, filtered, short stone-hall echo. Narrator Steffan, hero Eric, executioner Christopher (heavier filter).
+ if key=='cellat':
+  return 'en-US-ChristopherNeural','-24%','-24Hz',TRIM+',highpass=f=80,lowpass=f=4200,equalizer=f=100:t=q:w=0.9:g=7,equalizer=f=2000:t=q:w=1:g=-8,asoftclip=type=tanh:threshold=0.6,acompressor=threshold=-26dB:ratio=4:attack=15:release=300,aecho=0.78:0.82:140|300|520:0.35|0.24|0.14,alimiter=limit=0.9'
+ if key=='heroOath':
+  return 'en-US-EricNeural','-16%','-10Hz',TRIM+',highpass=f=60,lowpass=f=7000,equalizer=f=130:t=q:w=0.9:g=4,equalizer=f=3000:t=q:w=1:g=-3,aecho=0.8:0.86:70|150:0.2|0.1,alimiter=limit=0.92'
+ return 'en-US-SteffanNeural','-20%','-16Hz',TRIM+',highpass=f=60,lowpass=f=6800,equalizer=f=120:t=q:w=0.9:g=5,equalizer=f=2800:t=q:w=1:g=-4,aecho=0.8:0.85:80|170:0.25|0.14,alimiter=limit=0.92'
+def spoken(text):
+ # short pauses between sentences for a storyteller rhythm
+ return text.replace('. ','... ').replace('? ','?... ').replace('! ','!... ')
 def path(key,text):
- return CACHE/(hashlib.sha256(json.dumps([text,*config(key)]).encode()).hexdigest()+'.mp3')
+ return CACHE/(hashlib.sha256(json.dumps([spoken(text),*config(key)]).encode()).hexdigest()+'.mp3')
 async def record(key,text,sem):
  p=path(key,text)
  if p.exists() and p.stat().st_size>1000:return
@@ -29,7 +41,7 @@ async def record(key,text,sem):
   for attempt in range(5):
    raw=p.with_suffix('.raw.mp3')
    try:
-    await edge_tts.Communicate(text,voice,rate=rate,pitch=pitch).save(str(raw))
+    await edge_tts.Communicate(spoken(text),voice,rate=rate,pitch=pitch).save(str(raw))
     subprocess.run([FFMPEG,'-y','-loglevel','error','-i',str(raw),'-af',filters,'-ac','1','-ar','24000','-c:a','libmp3lame','-b:a','48k',str(p)],check=True)
     raw.unlink(missing_ok=True)
     if p.stat().st_size<1000:raise RuntimeError('empty recording')
@@ -38,13 +50,18 @@ async def record(key,text,sem):
     raw.unlink(missing_ok=True)
     if attempt==4:raise RuntimeError(f'{key}: {e}')
     await asyncio.sleep(2*(attempt+1))
+def duration(p):
+ import re
+ r=subprocess.run([FFMPEG,'-i',str(p),'-f','null','-'],capture_output=True,text=True)
+ m=re.findall(r'time=(\d+):(\d+):([\d.]+)',r.stderr)[-1]
+ return int(m[0])*3600+int(m[1])*60+float(m[2])
 async def main():
  CACHE.mkdir(exist_ok=True)
  sem=asyncio.Semaphore(3)
  await asyncio.gather(*(record(k,t,sem) for k,t in LINES.items()))
  mp3={};dur={};records={}
  for k,t in LINES.items():
-  p=path(k,t);d=float(subprocess.check_output([FFPROBE,'-v','error','-show_entries','format=duration','-of','csv=p=0',str(p)],text=True).strip())
+  p=path(k,t);d=duration(p)
   if d<.25:raise RuntimeError(f'{k}: recording too short')
   b=base64.b64encode(p.read_bytes()).decode();mp3[k]=b;dur[k]=round(d,3)
   if KABIR: records[k]={'text':t,'speaker':'Bahtiyar' if k=='heroOath' else 'Chain Executioner' if k=='cellat' else 'Narrator','voice':config(k)[0],'style':TR[k]['style'],'duration':dur[k],'audio':b}
