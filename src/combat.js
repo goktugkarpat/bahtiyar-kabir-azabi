@@ -106,7 +106,7 @@
   const SPECIAL_HOLD = 1.5, PLAIN_REST = .62, SPECIAL_REST = .9;
   const SPECIAL_IDS = ['rush', 'grab', 'over', 'shove', 'rite', 'pair', 'rune', 'leap', 'flank', 'vial', 'exhale', 'hook', 'slam', 'cyclone', 'hooks', 'waterLunge', 'gurgle', 'rootRows', 'rootCrown', 'skitter', 'brine', 'falseLights', 'tide', 'bells', 'ashTrail', 'caveLeap', 'stoneCrown', 'hollowPulse', 'fall', 'fissures', 'shards', 'chainLanes', 'piston', 'vents', 'bellows', 'slagLeap', 'furnaceCrown'];
   SPECIAL_IDS.push('pull', 'orbs', 'rite', 'lanterns', 'toll', 'tides');   // round 7 (boss-mech.js / bossAttack / coast-combat.js)
-  SPECIAL_IDS.push('kingRush', 'bellRush', 'orbs', 'crystalStar', 'hollowNova', 'hollowBurrow', 'hollowEcho', 'hollowCall', 'wardenOrb', 'wardenBurrow', 'lavaLanes', 'slagOrbs', 'anvilSlam', 'furnaceClock', 'overheatDash', 'furnaceCall', 'ashLava', 'ashDash');   // round 7 (boss2.js)
+  SPECIAL_IDS.push('kingRush', 'bellRush', 'orbs', 'crystalStar', 'hollowNova', 'hollowBurrow', 'hollowEcho', 'hollowCall', 'wardenOrb', 'wardenBurrow', 'lavaLanes', 'slagOrbs', 'anvilSlam', 'furnaceClock', 'overheatDash', 'furnaceCall', 'drownedCall', 'ashLava', 'ashDash');   // round 7 (boss2.js)
 
   function create(world, services) {
     const scene = services.scene;
@@ -141,7 +141,7 @@
       nextName: ((world.rooms || [])[(world.rooms || []).findIndex(room => String(room.id) === String(encounter.room)) + 1] || {}).name || '',
       spawns: (encounter.spawns || []).filter(s => STATS[s.type]), enemies: []
     }));
-    if (BABA.Boss2 && chapter >= 3) BABA.Boss2.reserve(chapter, encounterDefs);   // dormant adds of the boss fights (boss2.js)
+    if (BABA.Boss2 && chapter >= 2) BABA.Boss2.reserve(chapter, encounterDefs);   // dormant adds of the boss fights (boss2.js)
     const game = {
       player, enemies, hazards, state: 'ready', checkpointIndex: 0,
       elapsed: 0, kills: 0, totalKills: 0, lastDeath: null, hasSave: false,
@@ -259,7 +259,17 @@
           return hurtEnemy(enemy, Math.round(amount * (player.rageTime > 0 ? 1.48 : 1)), true, opts && Number.isFinite(opts.face) ? opts.face : attack.face, attack);
         },
         stun(enemy, seconds) { stunEnemy(enemy, seconds, 'heavy'); },
-        push(enemy, dx, dz, force) { if (enemy && !enemy.dead && force > 0 && (dx || dz)) { enemy.push = null; push(enemy, Math.atan2(dx, dz), enemy.boss ? force * .3 : force); } },
+        push(enemy, dx, dz, force) {
+          if (enemy && !enemy.dead && force > 0 && (dx || dz)) {
+            const direction=Math.atan2(dx,dz);enemy.push=null;push(enemy,direction,enemy.boss?force*.3:force);
+            // Tier III displacement carries a brief airborne reaction, never a standing slide.
+            // Walls still constrain the same ground capsule; bosses retain their immunity.
+            if(skill.tier===3&&!enemy.boss&&force>1){
+              enemy.launchAt=simTime;enemy.launchDirection=direction;enemy.launchHeight=Math.min(.65,.24+force*.055);
+              stunEnemy(enemy,.40,'heavy');
+            }
+          }
+        },
         move(dx, dz) { moveBody(player, dx, dz, hero.radius || .5); },
         canHit(enemy) {
           return !!enemy && !enemy.dead && !enemyUnderground(enemy) && enemy.model.root.visible && clearStrike(player, enemy);
@@ -589,7 +599,7 @@
     // Per-enemy move memory (also restored on every checkpoint reset so a respawn replays identically).
     function freshEnemyFields(e) {
       return { seed: 9173 + e.index * 131, lastMove: '', moveHistory: [], recoveryFloor: 0, forceMove: null, grabCd: 0, riposteCd: 0, blockCount: 0, hooksCd: 6, enraged: false,
-        picks: 0, sidestep: 0, retreat: 0, fear: 0, pairWith: null, wrath: 0, spWait: e.boss && chapter >= 2 ? 0 : e.tutorialStage >= 0 ? 2 : e.type === 'prisoner' ? 0 : 2, spHold: 0 };
+        picks: 0, sidestep: 0, retreat: 0, fear: 0, pairWith: null, wrath: 0, spWait: e.boss && chapter >= 2 ? 0 : e.tutorialStage >= 0 ? 2 : e.type === 'prisoner' ? 0 : 2, spHold: 0, spStreak: 0, launchAt: -99, launchDirection: 0, launchHeight: 0 };
     }
     function healthBar(enemy) {
       const bar = new THREE.Group();
@@ -686,15 +696,17 @@
           kills: Number.isSafeInteger(saved.kills) && saved.kills >= 0 ? saved.kills : 0,
           elapsed: clamp(Number(saved.elapsed) || 0, 0, 86400), quests: saved.quests || null });
         if (saved.transition && chapter >= 2 && saved.index === 0) return freshSnapshot(saved.progression);
-        if ((saved.signature !== signature && !signature.startsWith(saved.signature + '|')) || ![0,1].includes(saved.index) || saved.index===0 && !saved.ongoing) return null;
+        // Reserve composition can change without moving a single campaign foe.
+        // Compare the authored non-reserve entries as well, keeping old checkpoints valid.
+        const reserveIds = new Set(enemies.filter(e => e.reserve).map(e => e.id));
+        const withoutReserve = text => typeof text === 'string' ? text.split('|').filter(entry => !reserveIds.has(entry.split('@')[0])).join('|') : '';
+        const sameCampaign = withoutReserve(saved.signature) === withoutReserve(signature);
+        if ((saved.signature !== signature && !signature.startsWith(saved.signature + '|') && !sameCampaign) || ![0,1].includes(saved.index) || saved.index===0 && !saved.ongoing) return null;
         const validIds = new Set(enemies.map(e => e.id));
         if (!Array.isArray(saved.dead) || saved.dead.some(id => !validIds.has(id))) return null;
         const dead = Array.from(new Set(saved.dead));
-        // Dormant reserve markers describe the pool, not defeated foes. Preserve
-        // an exact saved tally (summons can be defeated more than once); legacy
-        // fallback counts ordinary bodies and chapter-local reserve reward claims.
-        const claims = new Set(Array.isArray(saved.progression.rewards) ? saved.progression.rewards : []), deadIds = new Set(dead);
-        const kills = Number.isSafeInteger(saved.kills) && saved.kills >= 0 ? saved.kills : enemies.filter(e => e.reserve ? claims.has(chapter + ':' + e.id) : deadIds.has(e.id)).length;
+        // The HUD counts authored campaign foes, not repeatable boss helpers.
+        const deadIds = new Set(dead), kills = enemies.filter(e => !e.reserve && deadIds.has(e.id)).length;
         return { chapter, index: saved.index, x: saved.index ? checkpoint.x : spawn.x, z: saved.index ? checkpoint.z : spawn.z, ongoing:!!saved.ongoing, dead, kills,
           elapsed: clamp(Number(saved.elapsed) || 0, 0, 86400), progression: saved.progression, quests: saved.quests || null };
       } catch (_) { return null; }
@@ -1020,7 +1032,14 @@
       while (pool.length) {
         let r = rand(enemy) * pool.reduce((s, o) => s + weight(o), 0), chosen = pool[pool.length - 1];
         for (const o of pool) if ((r -= weight(o)) <= 0) { chosen = o; break; }
-        if (beginMove(enemy, Object.assign(chosen.move(), { plain: !chosen.sp }))) { enemy.spHold = 0; enemy.spWait = chosen.sp ? ((enemy.stats.coast || enemy.stats.ruins || enemy.stats.forge) ? (enemy.boss ? 1 : 2) : enemy.tutorialStage >= 0 ? 3 : SPECIAL_GAP[enemy.boss && enemy.phase === 2 ? 'boss2' : enemy.type]) : Math.max(0, enemy.spWait - 1); return true; }
+        if (beginMove(enemy, Object.assign(chosen.move(), { plain: !chosen.sp }))) {
+          enemy.spHold=0;
+          enemy.spWait=chosen.sp?((enemy.stats.coast||enemy.stats.ruins||enemy.stats.forge)?(enemy.boss?1:2):enemy.tutorialStage>=0?3:SPECIAL_GAP[enemy.boss&&enemy.phase===2?'boss2':enemy.type]):Math.max(0,enemy.spWait-1);
+          // Later bosses can follow one special with another, then owe a plain
+          // commitment. Existing cooldown, no-repeat and arena overlap guards apply.
+          if(enemy.boss&&chapter>=2){enemy.spStreak=chosen.sp?(enemy.spStreak||0)+1:0;if(chosen.sp)enemy.spWait=enemy.spStreak>=2?1:0;}
+          return true;
+        }
         pool = pool.filter(o => o !== chosen);
       }
       return false;
@@ -1323,8 +1342,8 @@
     const ruins = BABA.RuinsCombat ? BABA.RuinsCombat.create({ player, pick, beginMove, clipLine, walkable, cancelHazards, emit, sound, fx, bonus: (x,z,n) => { if (globes) globes.bonus(x,z,n); } }) : null;
     const forge = BABA.ForgeCombat ? BABA.ForgeCombat.create({ player, pick, beginMove, clipLine, walkable, cancelHazards, emit, sound, fx, bonus: (x,z,n) => { if (globes) globes.bonus(x,z,n); } }) : null;
     // Round 7: chapter III / IV boss set pieces (orbs, cover pillars, adds, burning ground) live in boss2.js; the move tables get a handle on it.
-    if (BABA.Boss2 && chapter >= 3) {
-      boss2 = BABA.Boss2.create({ root, world, chapter, game, player, enemies, hazards, emit, sound, fx, walkable, hitPlayer, hazardFrom, addHazard, killEnemy });
+    if (BABA.Boss2 && chapter >= 2) {
+      boss2 = BABA.Boss2.create({ root, world, chapter, game, player, enemies, hazards, emit, sound, fx, walkable, hitPlayer, hazardFrom, addHazard, killEnemy, restoreEnemy: enemy => { if (limbs) limbs.restore(enemy); Object.assign(enemy, freshEnemyFields(enemy)); enemy.poiseRecovery = 0; } });
       if (ruins && ruins.attach) ruins.attach(boss2);
       if (forge && forge.attach) forge.attach(boss2);
     }
@@ -1555,7 +1574,7 @@
       if (enemy.dead) return;
       enemy.dead = true; enemy.hp = 0; enemy.deadAge = 0; enemy.action = null; enemy.shield = false; enemy.active = false; enemy.stagger = 0;
       if (game.attackTarget === enemy) game.attackTarget = null;
-      cancelHazards(enemy, false); game.kills++;
+      cancelHazards(enemy, false); if (!enemy.reserve) game.kills++;
       progression.grantEnemy(enemy.id, enemy.type, enemy.boss, chapter, game.difficulty, enemy.elite, enemy);
       syncProgression();
       if (gate) gate.kill(enemy);
@@ -2524,18 +2543,21 @@
         } else if (enemy._shadowOn === false && (shadowReach === 0 || !visible)) {
           enemy._shadowOn = true; for (const part of enemy._shadowParts) part.castShadow = true;
         }
-        enemy.model.root.position.set(enemy.x, 0, enemy.z); enemy.model.root.rotation.y = enemy.face;
+        const launchAge=!enemy.dead&&!enemy.boss?simTime-(enemy.launchAt==null?-99:enemy.launchAt):-1;
+        const launchU=launchAge>=0&&launchAge<.40?launchAge/.40:-1;
+        const launchLift=launchU>=0?4*launchU*(1-launchU)*(enemy.launchHeight||0):0;
+        enemy.model.root.position.set(enemy.x, launchLift, enemy.z); enemy.model.root.rotation.y = enemy.face;
         if (visible && !posing) {
           enemy._lodAcc = (enemy._lodAcc || 0) + dt;
           const action = enemy.action;
           const leap = action && action.movement && action.movement.leap
             ? clamp((action.age - action.movement.start) / action.movement.duration, 0, 1) : 0;
-          enemy.model.root.position.y = Math.sin(leap * Math.PI) * 1.15;
+          enemy.model.root.position.y = launchLift + Math.sin(leap * Math.PI) * 1.15;
         } else if (visible) {
           const action = enemy.action;
           const leap = action && action.movement && action.movement.leap
             ? clamp((action.age - action.movement.start) / action.movement.duration, 0, 1) : 0;
-          enemy.model.root.position.y = Math.sin(leap * Math.PI) * 1.15;
+          enemy.model.root.position.y = launchLift + Math.sin(leap * Math.PI) * 1.15;
           const beat = enemyBeat(enemy);
           const es = em;   // the enemy's reused animation state; same fields as the old per-callback spread
           es.time = simTime + enemy.index * .31;
@@ -2545,6 +2567,7 @@
           es.hitAngle = enemy.hitAngle || 0; es.hurtHeavy = !!enemy.hurtHeavy; es.deathKind = enemy.deathKind || ''; es.blockImpact = enemy.blockImpact || 0;
           es.stagger = enemy.stagger > 0 && !enemy.dead ? 1 - enemy.stagger / Math.max(enemy.stagger, enemy.staggerTotal || 0) : 0; es.staggerTime = enemy.staggerTotal || 0; es.fear = enemy.fear || 0;
           es.attack = enemyAttackPose(enemy); es.contactPhase = enemy.boss || enemy.type === 'guard' ? .56 : .41; es.pose = beat ? beat.pose : '';
+          es.launchTime=launchU>=0?launchAge:-1;es.launchDuration=.40;es.launchDirection=angleDifference(enemy.launchDirection||0,enemy.face);
           es.action = action ? action.attack : ''; es.actionProgress = action ? action.age / action.duration : 0; es.leap = leap;
           es.heavy = !!(action && (enemy.boss || enemy.type === 'guard'));
           es.block = enemy.shield && !enemy.dead; es.dodge = 0; es.hurt = enemy.hurt; es.hitDirection = enemy.hitDirection || 0; es.dead = enemy.dead;
@@ -2554,7 +2577,7 @@
           enemy._lodPosed = true; enemy._lodX = enemy.x; enemy._lodZ = enemy.z; enemy._lodFace = enemy.face;
         }
         enemy.bar.root.visible = visible && !enemy.dead && enemy.active && enemy.hp < enemy.maxHp;
-        enemy.bar.root.position.set(enemy.x, (enemy.model.height || 2.2) + .34, enemy.z);
+        enemy.bar.root.position.set(enemy.x, (enemy.model.height || 2.2) + .34 + launchLift, enemy.z);
         const fraction = Math.max(.001, enemy.hp / enemy.maxHp);
         enemy.bar.fill.scale.x = fraction; enemy.bar.fill.position.x = -(enemy.boss ? 2.16 : 1.16) * (1 - fraction) / 2;
       }

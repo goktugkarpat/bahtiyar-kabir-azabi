@@ -93,8 +93,9 @@
     // Add wave: two gold circles, the dormant thralls of the furnace climb out (forced after every phase change).
     function call(e){
       track('furnaceCall');
+        cd(e, 'furnaceCall', (e.phase >= 3 ? 17 : e.phase >= 2 ? 20 : 24) * (core.ext.game.difficulty === 'easy' ? 1.25 : 1)); e.spWait = 1; e.spStreak = 0;
       var p=point(),hits=[],found=0,have=core?core.freeReserve(e):0;
-      for(var k=0;k<(e.phase>=3?2:1)&&k<have;k++){
+      for(var k=0;k<(e.phase>=2?2:1)&&k<have;k++){
         for(var tries=0;tries<8;tries++){
           var o=at(e,{a:e.face+(k?1:-1)*(1.1+tries*.22),r:6.5+tries*.4});
           if(core.inArena(o,3)&&api.walkable(o.x,o.z,.7)&&Math.hypot(o.x-p.x,o.z-p.z)>3.4){
@@ -128,7 +129,9 @@
         }
       },
       attack:function(e,d){
-      if (e.forceMove === 'furnaceCall' && core) { e.forceMove = null; return api.beginMove(e, call(e)); }
+      // Calls are deliberate pressure beats; no new wave while orbs, a nova or burning lanes already occupy the court.
+          if (core && e.boss && !e.dead && core.freeReserve(e) > 0 && core.orbs.count() === 0 && core.groundCount() === 0 && !core.nova.on && (e.forceMove === 'furnaceCall' || e.b2 && e.b2.t >= 12 && ready(e, 'furnaceCall'))) { e.forceMove = null; return api.beginMove(e, call(e)); }
+          if (e.forceMove === 'furnaceCall' && core && core.freeReserve(e) === 0) e.forceMove = null;
       var list=[];
       if(e.type==='emberbound')list=[
         {id:'coalSweep',ok:d<4,w:4,move:function(){return sweep(e,'coalSweep','Kor Biçişi',3.6,18);}},

@@ -61,12 +61,13 @@
         if(id==='pull')text='Zincir seni çeker; merkeze düştüğünde hemen yana kaç.';
         else if(id==='hooks'||id==='hook')text='Kancanın çizgisinden yana çık; ardından gelen savuruşu bekle.';
         else if(id==='tides')text='Dalgaların arasındaki açık koridoru kullan.';
-        else if(id==='toll'||id==='tide'||id==='hollowPulse'||id==='furnaceCrown'||id==='anvilSlam'||id==='cyclone')text='Halkalar sırayla patlar. İşaretsiz aralığa geç.';
+        else if(id==='tide')text='Halkaların arasına geç; son çöküşte merkezden çık.';
+        else if(id==='toll'||id==='hollowPulse'||id==='furnaceCrown'||id==='anvilSlam'||id==='cyclone')text='Halkalar sırayla patlar. İşaretsiz aralığa geç.';
         else if(id==='crystalStar'||id==='lavaLanes'||id==='chainWhip'||id==='fissures'||id==='vents'||id==='fall'||id==='bells'||id==='ashLava'||id==='chainLanes'||id==='piston'||id==='wardenStar')text='İşaretler sırayla vurur. Parlayan sınırların dışına çık.';
         else if(id==='hollowBurrow'||id==='kingRush'||id==='overheatDash'||id==='bellRush'||id==='wardenBurrow'||id==='ashDash'||id==='slam'||id==='leap'||id==='charge')text='Kızıl alanı boşalt. Darbeden sonra karşılık ver.';
-        else if(id==='hollowCall'||id==='furnaceCall')text='Çağrı çemberinden uzak dur; çıkan yaratıkları yen.';
+        else if(id==='hollowCall'||id==='furnaceCall'||id==='drownedCall')text='Çağrı çemberinden uzak dur; çıkan yaratıkları yen.';
         else if(id==='hollowEcho')text='Yankılar sırayla vurur. Altın dilimlerin dışına çık.';
-        if(text){say(id==='hollowCall'||id==='furnaceCall'?'adds':'move',a.attack||'Boss saldırısı',text,a.age,a.duration,false,0,boss);return;}
+        if(text){say(id==='hollowCall'||id==='furnaceCall'||id==='drownedCall'?'adds':'move',a.attack||'Boss saldırısı',text,a.age,a.duration,false,0,boss);return;}
         if(id==='lanterns'){say('shelter','Karanlık Gelgit','Mavi siper hazırlanıyor; sınırı dolunca içinde kal.',a.age,1.9,false,0,boss);return;}
         if(id==='brine'&&boss.type==='bell'){say('move','Tuzlu Havuzlar','Dairelerden uzaklaş; kızıl kenarlı su hasar vermeyi sürdürür.',a.age,a.duration,false,0,boss);return;}
         if(floorCount(boss)){say('move','Tehlikeli Zemin','Sınırı kızıl olan su ve köz birikintilerinden uzak dur.',0,0,false,0,boss);return;}

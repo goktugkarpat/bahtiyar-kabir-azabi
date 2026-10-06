@@ -54,7 +54,7 @@ Her bölümde **iki hikâye görevi** vardır; görev günlüğüne (alt çubukt
 
 **Boss kapısı:** Boss odasının önündeki kapı, o bölümün **iki görevi de bitince** açılır. Kapıya yaklaşınca kaç görevin tamamlandığı ekranda yazar. Düşman öldürmek kapıyı açmaz; ama seviye ve eşya için yine de savaşman gerekir.
 
-İkinci bölümün ikinci yarısından itibaren düşmanların sağlığı, hasarı ve saldırı temposu kademeli artar; üçüncü ve dördüncü bölüm bu baskıyı sürdürür. Son üç boss özel saldırılarını daha sık kullanır; saldırı uyarıları ve kaçınma fırsatları korunur.
+İkinci bölümün ikinci yarısından itibaren düşmanların sağlığı, hasarı ve saldırı temposu kademeli artar; üçüncü ve dördüncü bölüm bu baskıyı sürdürür. Son üç boss özel saldırılarını daha sık kullanır; saldırı uyarıları ve kaçınma fırsatları korunur. İki özel saldırıyı art arda kullanabilir, ardından normal saldırıya dönerek karşılık verme fırsatı bırakırlar. İkinci, üçüncü ve dördüncü boss aralıklı olarak yakın ve uzak saldıran yardımcılar çağırır; aynı anda Normal/Zor’da en çok iki, Kolay’da bir yardımcı bulunur. Çağrılar büyük alan mekanikleriyle üst üste yığılmaz. Çancı’nın çapa kombosu ve medcezirin sonunda çöken merkez, tek kaçınmadan sonra yerinde kalmayı cezalandırır.
 
 Boss'u yenince bölüm biter. İlk üç bölümün sonunda oyun kendiliğinden sonraki bölümü yükler; karakterin, çantan ve yeteneklerin sonraki bölüme taşınır. Dördüncü bölümden sonra yolculuk sona erer ve **Yeni yolculuk** başlatabilirsin.
 

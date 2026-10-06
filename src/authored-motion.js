@@ -69,9 +69,9 @@
     // the wind-up into the swing without a held coil, then flows through contact and recovery.
     heavy: { clip: 'attackC', start: .24, chamber: .58, contact: .686, follow: .80, end: 1.2, swing: .12, over: .5, twist: -.55, bend: -.1, strikeBend: .18, hold: 0, snapK: .88, ease: 1.7, flow: 1.5, continuous: true },
     // Heavy-strike tiers 2 / 3 (hero only): continuous overhead anticipation, committed swing and recovery.
-    // Kabir Balyozu also blends crouch, takeoff and landing; it never holds a frozen sword or jump frame in mid-air.
+    // Kabir Balyozu lands into a forward diagonal weapon stroke; its anticipation and recovery stay continuous.
     strikeBrand: { clip: 'swordAttack', chamber: .30, contact: .44, follow: .50, end: .96, swing: .16, over: .12, twist: -.20, bend: -.30, strikeBend: .48, tremble: 0, hold: 0, snapK: .8, flow: 1.2, continuous: true },
-    strikePound: { clip: 'swordAttack', chamber: .30, contact: .44, follow: .50, end: .96, swing: .13, over: .1, twist: -.08, bend: -.28, strikeBend: .65, tremble: 0, hold: 0, snapK: .5, flow: 1.35, continuous: true, pound: true },
+    strikePound: { clip: 'swordAttack', chamber: .30, contact: .44, follow: .50, end: .96, swing: .13, over: .1, twist: -.56, bend: -.12, strikeBend: .16, tremble: 0, hold: 0, snapK: .5, flow: 1.35, continuous: true, pound: true },
     // enemies (unarmed ones swing the same arcs with claws/hands)
     hook: { clip: 'meleeHook', chamber: .215, contact: .25, follow: .34, end: .4667, swing: .12, over: .5, twist: -.45, bend: -.12, strikeBend: .24, tremble: .05 },
     hookL: { clip: 'meleeHook', mirror: true, chamber: .215, contact: .25, follow: .34, end: .4667, swing: .12, over: .5, twist: .45, bend: -.12, strikeBend: .24, tremble: .05 },
@@ -446,25 +446,36 @@
     // Read-only source pose, shared by rigs. Cache during construction, never on the first attack.
     if(!crouchReference){crouchReference=pose();sample('crouch',0,crouchReference,true);}
     if(!gripReference){gripReference=pose();sample('punchJab',.12,gripReference,false);}
-    // Kabir Balyozu follows the combat-owned airborne arc; the blade keeps moving toward the
-    // same contact frame. Legs compress, tuck and extend continuously instead of swapping fixed poses.
+    // A landing cleave, rather than driving the blade into the floor. The combat clock,
+    // airborne travel and contact frame are unchanged; the shoulder leads a diagonal
+    // stroke through the target and the hips absorb its weight without a held pose.
+    var POUND_COIL_T=new T.Vector3(-.82,.57,-.06).normalize(),POUND_COIL_B=new T.Vector3(-.28,.88,-.38).normalize();
+    var POUND_HIT_T=new T.Vector3(-.12,.10,.99).normalize(),POUND_HIT_B=new T.Vector3(.67,.12,.73).normalize();
+    var POUND_FOLLOW_T=new T.Vector3(.58,.02,.81).normalize(),POUND_FOLLOW_B=new T.Vector3(.94,-.12,.32).normalize();
     function poundPose(m, c, p, t, Tc, Tend, state) {
-      var air = clamp(finite(state.leapAir, .38), .1, .6), A0 = Math.max(.05, Tc - air), inv=1/Math.max(.4,characterScale);
+      var air=clamp(finite(state.leapAir,.38),.1,.6),A0=Math.max(.05,Tc-air),inv=1/Math.max(.4,characterScale);
+      var release=Math.max(.025,Tc-Math.min(.14,Tc*.62)),swing=smooth((t-release)/Math.max(.02,Tc-release));
+      var recovery=clamp((t-Tc)/Math.max(.08,Tend-Tc),0,1),settle=smooth(recovery),carry=smooth((t-Tc)/.14);
+      var coil=smooth(t/release)*(1-swing),keep=1-settle,brace=t>=Tc?1-smooth((t-Tc)/.30):0;
       sampleMove(m,c.ct,p);
-      if (t < Tc) {
+      if(t<Tc){
         var cu=smooth(t/A0),au=clamp((t-A0)/air,0,1),rise=smooth(au/.32),land=smooth((au-.55)/.45);
-        blendPose(p,crouchReference,t<A0?.85*cu:.85*(1-rise)+.58*land,14,22);
+        blendPose(p,crouchReference,t<A0?.72*cu:.72*(1-rise)+.42*land,14,22);
         if(t>=A0){sample('jump',clip('jump').duration*(.08+.65*au),extra,false);blendPose(p,extra,rise*(1-land),14,22);}
-        var bend=t<A0?.22*cu:.22-.48*Math.pow(Math.sin(au*PI),2)+.38*smooth(au);
-        spineLayer(p,0,bend,0);p.p.y-=(t<A0?.15*cu:.15*(1-rise)+.12*land)*inv;
-        curve.phase=t<A0?'wind':au<.55?'rise':'swing';return;
+        p.p.y-=(t<A0?.11*cu:.11*(1-rise)+.07*land)*inv;
+        c.phase=t<A0?'wind':au<.55?'rise':'swing';
+      }else{
+        blendPose(p,crouchReference,.40*brace,14,22);p.p.y-=.075*brace*inv;
       }
-      spineLayer(p,m.twist*c.coil,m.bend*Math.max(0,c.coil)+m.strikeBend*c.strike,0);
-      var sink=1-smooth((t-Tc)/Math.min(.32,Math.max(.08,Tend-Tc)));
-      blendPose(p,crouchReference,.58*sink,14,22);p.p.y-=.12*sink*inv;
-      // Land into the stroke, then the shoulders rebound while the feet stay grounded.
-      var rebound=Math.sin(clamp((t-Tc)/Math.max(.08,Tend-Tc),0,1)*PI)*sink;
-      spineLayer(p,-.12*rebound,-.14*rebound,0);
+      // The chest unwinds across the enemy; the head counters the turn and the free
+      // arm balances the landing. All envelopes resolve to the source recovery pose.
+      spineLayer(p,-.56*coil+(.26*swing+.30*carry)*keep,-.10*coil+.16*swing*keep,.07*swing*keep);
+      euler.set(-.06*swing*keep,-.16*swing*keep,0,'YXZ');qa.setFromEuler(euler);rotateSubtree(p,4,qa);
+      euler.set(-.30*coil-.18*swing*keep,0,.42*swing*keep,'YXZ');qa.setFromEuler(euler);rotateSubtree(p,7,qa);
+      wt.copy(POUND_COIL_T);wb.copy(POUND_COIL_B);
+      slerpV(wt,wt,POUND_HIT_T,swing);slerpV(wb,wb,POUND_HIT_B,swing);
+      slerpV(wt,wt,POUND_FOLLOW_T,carry);slerpV(wb,wb,POUND_FOLLOW_B,carry);
+      aimCleaver(p,smooth(t/.045)*keep,wt,wb,1);
     }
     // Whirlwind (Zincir Kasırgası, hero only). The game turns the whole root (unwrapped yaw, accelerating to ~3 turns/s); this layer is everything the body does
     // inside that turn, on a nominal 1.3 s timeline (tt): a .12 s coil (crouch, torso wound back, cleaver hauled behind), the release into the spin (knees bent, torso
@@ -876,6 +887,19 @@
           sample('shieldBreak', st, wanted, false);
           spineLayer(wanted, -Math.sin(lastHitAngle) * .35 * (1 - stagger), -.3 * (1 - smooth(stagger / .8)), 0);
         }
+      }
+      if(!hero&&!boss&&!state.dead&&Number.isFinite(state.launchTime)&&state.launchTime>=0){
+        // Short directional toss: feet tuck clear of the floor, arms lose balance,
+        // torso follows the force, then blends back into the existing stunned pose.
+        var thrown=clamp(state.launchTime/Math.max(.1,finite(state.launchDuration,.40)),0,1),
+          thrownWeight=smooth(thrown/.08)*(1-smooth((thrown-.70)/.30)),
+          thrownAngle=finite(state.launchDirection,0),thrownFront=Math.cos(thrownAngle),thrownSide=Math.sin(thrownAngle);
+        nextMode='launch';fade=.025;
+        sample('jump',clip('jump').duration*(.16+.48*thrown),extra,false);blendPose(wanted,extra,.85*thrownWeight,14,22);
+        spineLayer(wanted,-.22*thrownSide*thrownWeight,.66*thrownFront*thrownWeight,-.24*thrownSide*thrownWeight);
+        euler.set(-.38*thrownWeight,0,.48*thrownWeight,'YXZ');qa.setFromEuler(euler);rotateSubtree(wanted,7,qa);
+        euler.set(-.28*thrownWeight,0,-.38*thrownWeight,'YXZ');qa.setFromEuler(euler);rotateSubtree(wanted,11,qa);
+        euler.set(.18*thrownFront*thrownWeight,0,0,'YXZ');qa.setFromEuler(euler);rotateSubtree(wanted,4,qa);
       }
       if (leap > 0 && !dodge && !strikePhase) { nextMode = 'leap'; sample('jump', 0, wanted, false); }
       if (dodge > 0) {

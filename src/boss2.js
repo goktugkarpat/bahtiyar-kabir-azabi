@@ -16,8 +16,8 @@
   var reduced = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : { matches: false };
   var Boss2 = B.Boss2 = { out: null, moves: {}, baseSpeed: {}, current: null,
     // balance knobs: extra rest-time shaved per phase (boss), per mini-boss, in frenzy; speed multipliers per phase; adds' health / damage vs. the room's foes
-    tune: { acc: [.14, .28, .42], accMini: .1, accFrenzy: .1, spd: [1, 1.03, 1.05], spdFrenzy: 1.06, addHp: .3, addDmg: .55 },
-    tune4: { acc: [.16, .30, .46], accMini: .1, accFrenzy: .1, spd: [1, 1.02, 1.05], spdFrenzy: 1.06, addHp: .4, addDmg: .65 } };
+    tune: { acc: [.14, .28, .42], accMini: .1, accFrenzy: .1, spd: [1, 1.03, 1.05], spdFrenzy: 1.06, addHp: .42, addDmg: .55 },
+    tune4: { acc: [.16, .30, .46], accMini: .1, accFrenzy: .1, spd: [1, 1.02, 1.05], spdFrenzy: 1.06, addHp: .50, addDmg: .65 } };
 
   /* ---------------------------------------------------------------- hooks into the existing renderers (no edits to their files) */
   // The telegraph renderer receives the shared particle emitter from effects.js: keep a handle on it.
@@ -99,9 +99,11 @@
 
   /* ---------------------------------------------------------------- dormant reserve enemies of the boss encounter */
   Boss2.reserve = function (chapter, defs) {
-    var set = chapter === 3
-      ? [['cavefang', 'Oyuk Çenesi'], ['cavefang', 'Oyuk Çenesi'], ['ashbound', 'Taht Yeminlisi'], ['ashbound', 'Taht Yeminlisi']]
-      : [['slagcrawler', 'Döküm Kölesi'], ['slagcrawler', 'Döküm Kölesi'], ['emberbound', 'Kor Kölesi'], ['emberbound', 'Kor Kölesi']];
+    var set = chapter === 2
+      ? [['drowned', 'Çanın Boğulmuşu'], ['urchin', 'Tuz Muhafızı'], ['rootborn', 'Batık Kök'], ['lantern', 'Çanın Fenercisi']]
+      : chapter === 3
+      ? [['cavefang', 'Oyuk Çenesi'], ['shardseer', 'Taht Kehanetçisi'], ['ashbound', 'Taht Yeminlisi'], ['shardseer', 'Oyuk Kehanetçisi']]
+      : [['slagcrawler', 'Döküm Kölesi'], ['chainseer', 'Ocak Zincircisi'], ['emberbound', 'Kor Kölesi'], ['chainseer', 'Kül Zincircisi']];
     defs.forEach(function (enc) {
       var boss = enc.spawns.find(function (s) { return s.boss; });
       if (!boss || enc.spawns.some(function (s) { return s.reserve; })) return;
@@ -114,7 +116,8 @@
     var chapter = ext.chapter, player = ext.player, enemies = ext.enemies, hazards = ext.hazards, game = ext.game, world = ext.world;
     var forge = chapter === 4, core = { chapter: chapter, ext: ext, hooks: [], time: 0 };
     Boss2.current = core;
-    var room = (world.rooms || [])[13];
+    var bossRoom = game.boss && game.boss.encounter.room;
+    var room = (world.rooms || []).find(function (r) { return String(r.id) === String(bossRoom); }) || (world.rooms || [])[bossRoom] || (world.rooms || [])[13];
     core.arena = room ? { x: room.x, z: room.z, w: room.w, d: room.d } : { x: 0, z: -330, w: 32, d: 26 };
     var group = new T.Group(); group.name = 'boss2_props'; ext.root.add(group);
     // inside the sealed court (margin m from the walls): add waves never appear behind the seal or in a wall niche
@@ -467,18 +470,25 @@
     };
 
     /* ---------------- adds ---------------- */
+    // Recycle the four authored rigs, never create actors during combat. A corpse rests before reuse; stable IDs keep rewards deduplicated.
+    core.addLimit = function () { return game.difficulty === 'easy' ? 1 : 2; };
     core.freeReserve = function (owner) {
-      var n = 0; enemies.forEach(function (e) { if (e.reserve && e.dead && !e.used && e.encounter === owner.encounter) n++; }); return n;
+      var n = 0; enemies.forEach(function (e) { if (e.reserve && e.dead && (!e.used || e.deadAge >= 6) && e.encounter === owner.encounter) n++; });
+      return Math.min(n, Math.max(0, core.addLimit() - core.aliveAdds()));
     };
     core.aliveAdds = function () { var n = 0; enemies.forEach(function (e) { if (e.reserve && !e.dead && e.summoned) n++; }); return n; };
     // Revive the next dormant reserve enemy at (x,z); returns it or null.
     core.summon = function (owner, x, z) {
-      var e = null; for (var i = 0; i < enemies.length; i++) { var c = enemies[i]; if (c.reserve && c.dead && !c.used && c.encounter === owner.encounter) { e = c; break; } }
+      if (!owner || owner.dead || core.aliveAdds() >= core.addLimit()) return null;
+      // Prefer fresh identities, then the oldest eligible corpse so melee and ranged helpers alternate.
+      var rangedLive = enemies.some(function (a) { return a.reserve && a.summoned && !a.dead && a.stats.ranged; });
+      var e = null; for (var i = 0; i < enemies.length; i++) { var c = enemies[i]; if (c.reserve && c.dead && (!c.used || c.deadAge >= 6) && c.encounter === owner.encounter && (!rangedLive || !c.stats.ranged) && (!e || !c.used && e.used || c.used === e.used && c.deadAge > e.deadAge)) e = c; }
       if (!e) return null;
+      if (e.used && ext.restoreEnemy) ext.restoreEnemy(e);
       var face = Math.atan2(player.x - x, player.z - z);
       e.x = x; e.z = z; e.spawnX = x; e.spawnZ = z; e.face = face; e.hp = e.maxHp; e.dead = false; e.deadAge = 0; e.active = true; e.activated = true; e.returning = false;
       var tn = forge ? Boss2.tune4 : Boss2.tune, fh = Math.round(e.b2full.hp * tn.addHp); e.baseMaxHp = fh; e.maxHp = Math.round(fh * (game.difficulty === 'easy' ? .72 : 1)); e.hp = e.maxHp; e.campaignDamage = e.b2full.dmg * tn.addDmg;
-      e.action = null; e.stagger = 0; e.hurt = 0; e.cooldown = 2.0; e.faceLocked = false; e.push = null; e.navigation = null; e.spWait = 1; e.summoned = true; e.used = true;
+      e.action = null; e.stagger = 0; e.hurt = 0; e.cooldown = 2.0; e.faceLocked = false; e.push = null; e.navigation = null; e.spWait = 1; e.summoned = true; e.used = true; e.launchAt = -99; e.launchHeight = 0; e.launchDirection = 0;
       e.model.root.visible = true; e.holder.visible = true; e.model.root.position.set(x, 0, z); e.model.root.rotation.y = face;
       e.model.animate(0, { reset: true, time: 0, move: 0, attack: 0, dead: false, phase: 'idle', face: face });
       ext.fx('boss2Summon', { x: x, z: z, forge: forge });

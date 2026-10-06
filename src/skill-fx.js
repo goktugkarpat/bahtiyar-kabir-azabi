@@ -4,7 +4,7 @@
      strike II  "Kemik Kıran"    overhead chop: physical rubble, a blood-red blade score with a bone-white heart, restrained heat front and falling sparks
      strike III "Kabir Balyozu"  leap + ground pound: dark violet / black-red - directional scored fissures, restrained heat fronts, heavy stone fragments and smoke
      shout  II  "Ölüm Çığlığı"   head thrown back: bone-white and amber toothed rings spreading, skull wisps, glowing cracks, gold sparks, cowed foes shudder
-     shout  III "Kıyamet Narası" two stages: dark-red ember pillar around the hero, long radial fissures, three rings (one per stage / follow-up wave), a screen pulse per stage
+     shout  III "Kıyamet Narası" two stages: bone-white shock waves and low spiralling embers, long radial fissures, three rings (one per stage / follow-up wave), a screen pulse per stage
    Contract (effects.js owns the instance): B.SkillFx.createWorld(opts) -> { event(name, d), step(dt), clear(), parts, warmObjects(), dispose() }.
    Events: strikeGather {tier, x, z, face, reach, radius, strike, air}, strikeImpact {tier, skill, x, z, ox, oz, face, radius, arc, hits},
            shoutGather {tier, x, z, life, radius}, shoutRelease {tier, x, z, radius, far}, shoutWave {x, z, radius, n}.
@@ -72,12 +72,6 @@
       float wake=clamp(1.-(e-rw)/(w*3.8),0.,1.);wake=wake*wake*step(rw,e);float echo=exp(-pow((rw-e+w*2.2)/(w*.45),2.))*.18;
       float edge=1.-smoothstep(.94*uMax,uMax,rw);float life=(1.-uK)*(1.-uK)*smoothstep(0.,.04,uK);
       float k=(edgeLine*fluting+wake*.2+echo)*edge*life*uA*.68;if(k<.004)discard;gl_FragColor=vec4(uCol*k,1.);}`;
-  // Ember pillar: an open cylinder, vertical streaks drifting upward, thick at the foot and fading toward the top; additive and see-through (the hero stays readable).
-  const PIL_VS = 'varying vec2 vUv;varying float vF;void main(){vUv=uv;vec4 mv=modelViewMatrix*vec4(position,1.);vF=abs(dot(normalize(normalMatrix*normal),normalize(-mv.xyz)));gl_Position=projectionMatrix*mv;}';
-  const PIL_FS = `varying vec2 vUv;varying float vF;uniform float uT,uA;uniform vec3 uHot,uCold;
-    void main(){float y=vUv.y;float u=vUv.x;float s=.5+.5*sin((y-uT*1.4)*16.+sin(u*38.+uT*3.)*2.4+u*25.);s=s*s;float s2=.5+.5*sin((y-uT*2.2)*9.-u*61.);s2=s2*s2*s2;
-      float prof=smoothstep(0.,.07,y)*(1.-smoothstep(.45,1.,y));float k=(s*.7+s2*.5)*prof*uA*(.4+.9*(1.-y))*(.1+.9*pow(1.-vF,1.4))*.55;if(k<.004)discard;vec3 col=mix(uCold,uHot,(1.-y)*s);gl_FragColor=vec4(col*k,1.);}`;
-
   function createWorld(o) {
     const T = o.T, root = o.root, scaleCount = o.scaleCount, emit = o.emit, particle = o.particle, flash = o.flash, getGame = o.getGame, getSettings = o.getSettings;
     const streak = o.streak, scar = o.scar, tells = () => (o.tells ? o.tells() : null), skOn = o.streakOn;
@@ -101,10 +95,7 @@
       c.m.position.set(x,floorAt(x,z,R)+.028,z);c.m.rotation.y=face;c.m.scale.set(tier===2?1.05:1.4,1,R*.94);
       c.mat.uniforms.uAge.value=0;c.mat.uniforms.uHot.value.set(1.8,1.55,1.3);c.mat.uniforms.uEdge.value.set(tier===2?1.8:1.2,.12,tier===2?.065:.16);
     }
-    const pillarMat = new T.ShaderMaterial({ transparent: true, depthWrite: false, side: T.DoubleSide, blending: T.AdditiveBlending, fog: false,
-      uniforms: { uT: { value: 0 }, uA: { value: 0 }, uHot: { value: new T.Vector3(3.2, 1.0, .25) }, uCold: { value: new T.Vector3(.8, .06, .08) } }, vertexShader: PIL_VS, fragmentShader: PIL_FS });
-    const pillar = new T.Mesh(new T.CylinderGeometry(1, 1, 1, 36, 1, true).translate(0, .5, 0), pillarMat); pillar.frustumCulled = false; pillar.renderOrder = 3; pillar.visible = false; root.add(pillar);
-    const pil = { on: false, t: 0, life: 1.7, x: 0, z: 0, R: 1.3, H: 3.4, floor: .055 };
+
     // Ephemeral deaths are real sculpted forms with socket depth, jaw and teeth;
     // lighting changes around their volume instead of revealing a flat face card.
     const skullParts=B.Gear.skull(1,true).parts;
@@ -265,17 +256,16 @@
       }
       // tier III - stage one (the rings of stage two come as shoutWave)
       flash(x, 1.4, z, 1.4, new T.Color('#b8a0ac'), .08);
-      ring(x, z, V * .85, { life:.52, thick:.06, col:[.26,.11,.30], a:.6 });
+      ring(x, z, V * .85, { life:.52, thick:.065, col:[.60,.48,.32], a:.6 });
       ring(x, z, V * 1.2, { life:.64, thick:.05, col:[.45,.12,.065], delay:.08, a:.55 });
       fissure(x, z, near * .72, { arms:7, span:6.283, len:1, hot:[.6,.18,.08], edge:[.18,.025,.016], life:1.9, grow:.32, face:Math.random()*6 });
       fissure(x, z, 2.8, { arms:5, span:6.283, len:.8, hot:[.75,.23,.10], edge:[.25,.06,.02], life:1.6, grow:.25, face:Math.random()*6 });
       floorGlow(x, z, near * .4, .65, [.55,.07,.045], .10);
-      // the pillar of dark red embers around the hero
-      pil.on = true; pil.t = 0; pil.x = x; pil.z = z; pil.floor = floorAt(x, z, 2); pillar.visible = true; pillarMat.uniforms.uA.value = 0;
-      embersUp(x, z, 32, 1.15, [[1.4,.34,.08],[.75,.12,.045],[.36,.18,.5]], 3.2, 1.1, .038);
+      // A spreading surge of loose embers, not a solid wall around the hero.
+      embersUp(x, z, 44, 1.6, [[1.35,.38,.10],[.85,.16,.055],[.85,.70,.48]], 1.8, .95, .036);
       for (let i = 0; i < 6 && !calm(); i++) wisp(x, 1.3, z, i / 6 * 6.283 + rnd(-.2, .2), rnd(3.4, 5.4), rnd(.7,.95), rnd(.34,.5), i % 2 ? [.9, .85, 1.0] : [1.0, .45, .35]);
       sparks(x, z, scaleCount(22), 7.5, [1.35,.34,.12], 2.7); rubble(x, z, 16, 4.4, 5.4); dustRing(x, z, 34, V, [.1, .08, .09], .4);
-      for (let i = 0; i < scaleCount(24); i++) { const a = Math.random() * 6.283; emit(x + Math.sin(a) * rnd(0, 1.4), .25, z + Math.cos(a) * rnd(0, 1.4), 2, [.035, .026, .04], Math.sin(a) * rnd(1.2, 3.8), rnd(.4, 1.3), Math.cos(a) * rnd(1.2, 3.8), rnd(1, 1.7), .55); }
+      for (let i = 0; i < scaleCount(12); i++) { const a = Math.random() * 6.283; emit(x + Math.sin(a) * rnd(0, 1.4), .25, z + Math.cos(a) * rnd(0, 1.4), 2, [.035, .026, .04], Math.sin(a) * rnd(1.2, 3.8), rnd(.4, 1.3), Math.cos(a) * rnd(1.2, 3.8), rnd(1, 1.7), .55); }
       if (scar) scar(x, z, 0, { shape: 'circle', radius: 3.4, heat: .55, life: 3 });
       if (game) for (const e of game.enemies) if (!e.dead && e.fear > 1 && e.model.root.visible && shaken.length < 14) shaken.push({ e, t: 0, life: Math.min(2.4, e.stagger > 0 ? e.stagger : 1.6), amp: .035 });
       pulse(1.0, .03, .32, .1, .14); hitPause(70); kick(.045);
@@ -287,7 +277,8 @@
       ring(x, z, V * 1.12, { life:.56, thick:.055, col:n%2?[.36,.23,.48]:[.55,.19,.065], a:.6 });
       fissure(x, z, V * 1.1, { arms:6, len:1, hot:n%2?[.6,.27,.35]:[.72,.36,.12], edge:[.15,.05,.02], life:1.3, grow:.3, face:Math.random()*6, a:.6 });
       sparks(x, z, scaleCount(14), 7, n%2?[.6,.32,.85]:[1.15,.5,.15], 2.4);
-      pil.t = Math.min(pil.t, .5); embersUp(x, z, 14, 1.1, [[1.4,.34,.08],[.36,.18,.5]], 3.1, 1, .038);   // the pillar flares again
+      embersUp(x, z, 22, 1.6, [[1.4,.34,.08],[.85,.70,.48]], 1.9, .85, .035);
+      ring(x,z,V*.82,{life:.42,thick:.035,col:[.56,.45,.30],delay:.055,a:.40});
       for (let i = 0; i < 3 && !calm(); i++) wisp(x, 1.3, z, i / 3 * 6.283 + rnd(0,1.2), rnd(3.4,5), rnd(.65,.85), rnd(.30,.44), [.95, .9, 1.0]);
       pulse(.7, .02 + .005 * n, .26, .08, .1); hitPause(n > 1 ? 80 : 50); kick(.03 + .01 * n);
       S.ringAt = nowMs(); S.ringDur = .6; S.ringX = x; S.ringZ = z; S.ringR = V * 1.6; S.ringW = 1.0;
@@ -301,12 +292,6 @@
       for (const r of rings) {
         if (r.t >= r.life) continue; r.t += dt; if (r.t < 0) continue;
         const k = clamp(r.t / r.life, 0, 1); r.m.visible = true; r.mat.uniforms.uK.value = k; sizeRing(r, k); if (r.t >= r.life) r.m.visible = false;
-      }
-      if (pil.on) {
-        pil.t += dt; const k = pil.t / pil.life, u = pillarMat.uniforms; u.uT.value = pil.t; u.uA.value = (calm() ? .35 : 1) * Math.sin(Math.min(1, pil.t / .18) * 1.5708) * (1 - clamp((pil.t - pil.life * .55) / (pil.life * .45), 0, 1));
-        const g = getGame(), p = g && g.player, grow = 1 - Math.pow(1 - clamp(pil.t / .3, 0, 1), 3);
-        if (p) { pil.x = p.x; pil.z = p.z; pil.floor=floorAt(pil.x,pil.z,2); } pillar.position.set(pil.x, pil.floor, pil.z); pillar.scale.set(pil.R * (.55 + .45 * grow), pil.H * grow, pil.R * (.55 + .45 * grow));
-        if (k >= 1) { pil.on = false; pillar.visible = false; }
       }
       for (const w of wisps) if (w.on) {
         w.t += dt; const k = w.t / w.life; if (k >= 1) { w.on = false; w.sp.visible = false; continue; }
@@ -350,12 +335,12 @@
     }
     function clear() {
       sched.length = 0; shaken.length = 0; for(const c of cuts){c.m.visible=false;c.t=c.life;} for (const f of fis) { f.m.visible = false; f.t = 9; f.life = 1; } for (const r of rings) { r.m.visible = false; r.t = 9; r.life = 1; }
-      pil.on = false; pillar.visible = false; for (const w of wisps) { w.on = false; w.sp.visible = false; }
+      for (const w of wisps) { w.on = false; w.sp.visible = false; }
       S.stopUntil = 0; S.pushAt = -1e9; S.ringAt = -1e9; for (const q of S.pulses) q.t0 = -1e9;
     }
     // objects effects.js adds to its hidden warm group (they share geometry and materials with the live ones)
     function warmObjects() {
-      const out = [new T.Mesh(plane,cuts[0].mat), new T.Mesh(plane, fis[0].mat), new T.Mesh(plane, rings[0].mat), new T.Mesh(pillar.geometry, pillarMat)];
+      const out = [new T.Mesh(plane,cuts[0].mat), new T.Mesh(plane, fis[0].mat), new T.Mesh(plane, rings[0].mat)];
       out.push(new T.Mesh(skullBoneGeo,wisps[0].mat),new T.Mesh(skullVoidGeo,wisps[0].eyeMat));
       return out;
     }
@@ -369,7 +354,7 @@
     }
     function dispose() {
       clear(); for (const f of fis) { f.m.removeFromParent(); f.mat.dispose(); } for (const r of rings) { r.m.removeFromParent(); r.mat.dispose(); }
-      for(const c of cuts){c.m.removeFromParent();c.mat.dispose();}cutBase.dispose();fisBase.dispose(); ringBase.dispose(); pillar.removeFromParent(); pillar.geometry.dispose(); pillarMat.dispose();
+      for(const c of cuts){c.m.removeFromParent();c.mat.dispose();}cutBase.dispose();fisBase.dispose(); ringBase.dispose();
       for (const w of wisps) { w.sp.removeFromParent(); w.mat.dispose(); w.eyeMat.dispose(); } skullBoneGeo.dispose();skullVoidGeo.dispose();plane.dispose();
     }
     return { event, step, clear, warmObjects, demo, dispose, parts: [] };

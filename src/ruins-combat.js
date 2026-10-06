@@ -82,7 +82,7 @@
       // Channelled nova: hide behind a crystal pillar (it takes the blast and shatters) or roll through the burst.
       function nova(e){
         track('hollowNova');
-        var T=e.phase>=3?3.9:4.6,o={x:e.x,z:e.z};core.novaBegin(e);cd(e,'hollowNova',e.phase>=3?17:21);
+        var T=e.phase>=3?2.8:3.4,o={x:e.x,z:e.z};core.novaBegin(e);cd(e,'hollowNova',e.phase>=3?17:21);
         return {id:'hollowNova',name:'Sessiz Nova',duration:T+1.5,pose:'roar',cooldown:1.3,hits:[
           hit(.85,.85,'ring',3,0,'roar',{origin:o,inner:0,arc:TAU,harmless:true,style:'shadow'}),
           hit(T,T,'circle',Math.hypot(core.arena.w,core.arena.d),0,'roar',{origin:o,style:'blunt',tellGain:.55,fill:'inward',unblockable:true,hit:true,attack:'Sessiz Nova',onActive:function(){core.novaResolve(e,e.phase>=3?32:28,'Sessiz Nova');}})]};
@@ -114,8 +114,9 @@
       // Add wave: two gold circles open in the floor, the dormant foes of the court climb out (forced after every phase change).
       function call(e){
         track('hollowCall');
+        cd(e, 'hollowCall', (e.phase >= 3 ? 17 : e.phase >= 2 ? 20 : 24) * (core.ext.game.difficulty === 'easy' ? 1.25 : 1)); e.spWait = 1; e.spStreak = 0;
         var p=point(),hits=[],found=0,have=core?core.freeReserve(e):0;
-        for(var k=0;k<(e.phase>=3?2:1)&&k<have;k++){
+        for(var k=0;k<(e.phase>=2?2:1)&&k<have;k++){
           for(var tries=0;tries<8;tries++){
             var o=at(e,{a:e.face+(k?1:-1)*(1.1+tries*.22),r:6.5+tries*.4});
             if(core.inArena(o,3)&&api.walkable(o.x,o.z,.7)&&Math.hypot(o.x-p.x,o.z-p.z)>3.4){
@@ -131,7 +132,9 @@
         attach:function(c){core=c;if(c.chapter===3)c.hooks.push({tick:function(){self.tick();}});},
         attack:function(e,d){
           // A phase vow schedules one authored wave; consume it after the roar instead of silently losing it.
-          if (e.forceMove === 'hollowCall' && core) { e.forceMove = null; return api.beginMove(e, call(e)); }
+          // Calls are deliberate pressure beats; no new wave while orbs, a nova or burning lanes already occupy the court.
+          if (core && e.boss && !e.dead && core.freeReserve(e) > 0 && core.orbs.count() === 0 && core.groundCount() === 0 && !core.nova.on && (e.forceMove === 'hollowCall' || e.b2 && e.b2.t >= 12 && ready(e, 'hollowCall'))) { e.forceMove = null; return api.beginMove(e, call(e)); }
+          if (e.forceMove === 'hollowCall' && core && core.freeReserve(e) === 0) e.forceMove = null;
           var list=[];
           if(e.type==='ashbound')list=[
             {id:'ashCut',ok:d<3.7,w:4,move:function(){var m=cone('ashCut','Kül Biçişi',3.4,2.4,16,.75,'sweep');m.hits.push(hit(1.4,.6,'cone',3.5,13,'sweepBack',{arc:2,face:e.face+.5,fill:'sweep',sweepDir:-1}));m.duration=2.05;return m;}},

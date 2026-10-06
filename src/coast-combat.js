@@ -50,6 +50,8 @@
         // Successive annuli leave a real inner safe pocket and an outer escape route.
         for (var i = 0; i < count; i++) hits.push(hit(1.35 + i * .62, i ? .62 : 1.35, 'ring', 4.3 + i * 3.2, 19, 'roar',
           { inner: 2 + i * 3.2, arc: TAU, origin: o, style: 'tide', fill: 'radial', unblockable: true }));
+        // The quiet inner pocket is temporary: a final, announced collapse makes melee campers reposition.
+        hits.push(hit(1.35 + count * .62, 1.1, 'circle', 2.45, 22, 'overhead', { origin: o, style: 'tide', fill: 'inward', unblockable: true, attack: 'Medcezir Çöküşü' }));
         return { id: 'tide', name: 'Kara Medcezir', duration: 2.3 + count * .62, pose: 'roar', hits: hits, cooldown: 2.15 };
       }
       function bells(e) {
@@ -113,6 +115,19 @@
         return { id: 'orbs', name: 'Boğulmuş Fenerler', duration: 2.5, pose: 'castHigh', onBegin: function () { mark(e, 'orbs'); }, hits: [
           hit(1.0, 1.0, 'circle', .1, 0, 'castHigh', { harmless: true, beat: true, style: 'tide', onActive: function () { var m = mech(); if (m && !e.dead) m.launchOrbs(e, n, { kind: 'brine', speed: e.phase >= 4 ? 3.3 : 3.05 }); } })] };
       }
+      // A bounded melee/ranged escort rises from two announced circles. Uses the existing reserve rigs and stable reward IDs.
+      function drownedCall(e, core) {
+        var p = point(), hits = [], found = 0, have = core.freeReserve(e), want = e.phase >= 2 ? 2 : 1;
+        for (var k = 0; k < want && k < have; k++) for (var tries = 0; tries < 8; tries++) {
+          var a = e.face + (k ? 1 : -1) * (1.1 + tries * .22), r = 6.5 + tries * .4, o = { x: e.x + Math.sin(a) * r, z: e.z + Math.cos(a) * r };
+          if (core.inArena(o, 3) && api.walkable(o.x, o.z, .7) && Math.hypot(o.x - p.x, o.z - p.z) > 3.4) {
+            (function (o) { hits.push(hit(1.4, 1.4, 'circle', 2.1, 14, 'roar', { origin: o, style: 'tide', fill: 'inward', attack: 'Batıkların Çağrısı', beat: found === 0, onActive: function () { core.summon(e, o.x, o.z); } })); })(o); found++; break;
+          }
+        }
+        if (!found) { e.b2cd.drownedCall = core.time + 2; return null; }
+        e.b2cd = e.b2cd || {}; e.b2cd.drownedCall = core.time + (e.phase >= 3 ? 17 : 22) * (core.ext.game.difficulty === 'easy' ? 1.25 : 1); e.spWait = 1; e.spStreak = 0;
+        return { id: 'drownedCall', name: 'Batıkların Çağrısı', duration: 2.5, pose: 'roar', cooldown: .9, hits: hits };
+      }
       return {
         attack: function (e, d) {
           var list = [];
@@ -149,13 +164,17 @@
             { id: 'falseLights', sp: 1, ok: d < 12, w: 2, move: function () { var m = circle(e, 'falseLights', 'Bataklık Fenerleri', 1.8, 15, 1.1, { style: 'shadow', unblockable: true }); var p = point(); m.hits.push(hit(1.7, 1.1, 'circle', 1.8, 15, 'castHigh', { origin: { x: p.x + Math.cos(e.face) * 3.6, z: p.z - Math.sin(e.face) * 3.6 }, style: 'shadow', fill: 'radial', unblockable: true })); m.hits.push(hit(2.1,1.1,'circle',1.8,15,'castHigh',{origin:{x:p.x-Math.cos(e.face)*3.6,z:p.z+Math.sin(e.face)*3.6},style:'shadow',fill:'radial',unblockable:true}));m.duration = 2.9; return m; } }
           ];
           else if (e.type === 'bell') {
-            var m = mech();
+            var m = mech(), core = B.Boss2 && B.Boss2.current;
+            if (core && core.chapter === 2) {
+              e.b2cd = e.b2cd || {}; if (e.b2cd.drownedCall == null) e.b2cd.drownedCall = core.time + 12;
+              if (core.freeReserve(e) > 0 && core.time >= e.b2cd.drownedCall && (!m || !m.majorActive(e) && m.floorCount(e) === 0 && m.liveOrbs() === 0)) { var call = drownedCall(e, core); if (call) return api.beginMove(e, call); }
+            }
             // Announced phase signature waits for any previous major field/orbs to clear; no stacked arena mechanics.
             if (e.forceMove === 'coastPhase' && (!m || !m.majorActive(e) && m.floorCount(e) === 0 && m.liveOrbs() === 0)) { e.forceMove = null; e.spWait = 1; return api.beginMove(e, e.phase === 2 ? tide(e, 2) : e.phase === 3 ? rootRows(e, 'Derin Kökler', 3) : toll(e, 4)); }
             var ph = e.phase, rest = [1.0, .88, .78, .68][ph - 1], fr = m && m.frenzied(e) ? .82 : 1, f = function (id, cd) { return !!m && m.ready(e, id, cd); };
             e.cdScale = [.88, .84, .78, .74][ph - 1] * fr;
             list = [
-              { id: 'anchor', ok: d < 6.5, w: 4, move: function () { var mv = cone(e, 'anchor', 'Batık Çapa', 5.7, 3.4, 25, 'sweep', .95); if (e.phase >= 2) { mv.hits.push(hit(1.7, .75, 'cone', 5.9, 22, 'sweepBack', { arc: 3.3, face: e.face + .35, sweepDir: -1 })); mv.duration = 2.5; } mv.cooldown = rest; return mv; } },
+              { id: 'anchor', ok: d < 6.5, w: 4, move: function () { var mv = cone(e, 'anchor', 'Batık Çapa', 5.7, 3.4, 25, 'sweep', .95); mv.hits.push(hit(1.7, .75, 'cone', 5.9, 22, 'sweepBack', { arc: 3.3, face: e.face + .35, sweepDir: -1 })); mv.duration = 2.5; if (e.phase >= 3) { mv.hits.push(hit(2.65, .95, 'circle', 3.2, 24, 'overhead', { origin: { x: e.x, z: e.z }, style: 'tide', fill: 'inward', unblockable: true, attack: 'Çapa Çöküşü' })); mv.duration = 3.35; } mv.cooldown = rest; return mv; } },
               { id: 'bellRush', ok: d > 6 && d < 15, w: ph >= 2 ? 4 : 3, move: function () { var mv = dash(e, 'bellRush', 'Kıyıyı Yaran', 24, .4); mv.hits[0].radius = 2.8; mv.hits[0].at = 1.35; mv.duration = 2.2; mv.cooldown = rest + .05; return mv; } },
               { id: 'tide', sp: 1, ok: d < 14, w: 3, move: function () { return tide(e, e.phase >= 3 ? 3 : 2); } },
               { id: 'rootRows', sp: 1, ok: d > 2.5 && d < 14, w: e.phase >= 2 ? 3 : 1, move: function () { return rootRows(e, 'Derin Kökler', e.phase >= 3 ? 5 : 3); } },
