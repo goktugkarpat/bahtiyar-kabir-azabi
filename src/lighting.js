@@ -7,6 +7,10 @@
   var B = window.BABA = window.BABA || {};
   var T = window.THREE;
   var MAX_SCATTER = 12;
+  // Hero focus pool in the post composite (ajan:visual-dark): [strength, radius m]; rooms may override with atmosphere.focus / focusRadius. QA: ?focus=s,r
+  var FOCUS = ((/[?&]focus=([\d.]+),([\d.]+)/.exec(location.search) || []).slice(1).map(Number));
+  if (FOCUS.length !== 2) FOCUS = [.4, 6];
+  var FOCUS_CH = { 2: 1.4, 4: 1.25 };   // the darkest chapters carry a stronger pool so the hero never sinks into the floor
 
   // ---------------------------------------------------------------- fog chunks (all built-in materials)
   // Distance fog stays three's FogExp2; on top of it every lit surface integrates a low mist layer (thick at the
@@ -152,7 +156,11 @@
     karaRimDir: { value: new T.Vector3(0, .6, -.8) }, karaRimColor: { value: new T.Vector3(.4, .45, .6) },
     karaRimParams: { value: new T.Vector4(2.4, 1, .9, 0) }, karaFill: { value: new T.Vector3(.02, .02, .025) }
   };
-  var RIM_HEAD = 'uniform vec3 karaRimDir; uniform vec3 karaRimColor; uniform vec4 karaRimParams; uniform vec3 karaFill;';
+  var RIM_HEAD = 'uniform vec3 karaRimDir; uniform vec3 karaRimColor; uniform vec4 karaRimParams; uniform vec3 karaFill;\n#ifdef KARA_NO_HIT\nconst vec3 vKaraHit = vec3( 0.0 );\n#else\nvarying vec3 vKaraHit;\n#endif\n';
+  // Hit flash (ajan:visual-dark): a struck enemy flares for a heartbeat. Materials are shared between enemies, so the per-enemy value
+  // rides in the spare last texel of that enemy's own bone texture (x = flash, y = HIT_MAGIC marks it as ours; no bone matrix holds it there; z = corpse fade).
+  var HIT_MAGIC = 4093, EMBER_TYPES = /ember|ash|slag|furnace|forge|chain/;
+  var RIM_VERT = '#ifdef USE_SKINNING\n{ int kbs = textureSize( boneTexture, 0 ).x; vec4 kbt = texelFetch( boneTexture, ivec2( kbs - 1, kbs - 1 ), 0 ); vKaraHit = abs( kbt.y - ' + HIT_MAGIC + '.0 ) < 0.5 ? clamp( kbt.xzw, 0.0, 1.0 ) : vec3( 0.0 ); }\n#else\nvKaraHit = vec3( 0.0 );\n#endif';
   var RIM_BODY = [
     '{',
     '  float kNV = saturate( dot( normal, geometryViewDir ) );',
@@ -167,6 +175,13 @@
     '  reflectedLight.directDiffuse += kR * kF * ( material.diffuseColor * 0.7 + 0.1 ) * karaRimParams.y;',
     // camera-side fill (characters only): faces toward the view stay readable, silhouettes keep their shape
     '  reflectedLight.indirectDiffuse += karaFill * material.diffuseColor * ( 0.3 + 0.7 * kNV );',
+    // hit flash: hot white from the silhouette inward, over the body's own colour (reads on dark and pale foes alike)
+    '  if ( vKaraHit.x > 0.001 ) reflectedLight.directDiffuse += vec3( 1.0, 0.8, 0.66 ) * vKaraHit.x * ( 0.45 + 2.2 * kF ) * ( material.diffuseColor * 0.6 + 0.12 );',
+    // corpse fade: the dead lose their colour and sink toward the floor's value, so the living stay the brightest shapes on screen
+    '  if ( vKaraHit.y > 0.001 ) { float kd = vKaraHit.y; vec3 kq = reflectedLight.directDiffuse; reflectedLight.directDiffuse = mix( kq, vec3( dot( kq, vec3( 0.2126, 0.7152, 0.0722 ) ) ) * vec3( 0.9, 0.86, 0.84 ), kd * 0.7 ) * ( 1.0 - 0.45 * kd );',
+    '    reflectedLight.indirectDiffuse *= 1.0 - 0.45 * kd; reflectedLight.directSpecular *= 1.0 - 0.6 * kd; }',
+    // ember death (forge / ash foes): the corpse glows like a cooling coal, hottest at the silhouette, then goes out
+    '  if ( vKaraHit.z > 0.001 ) { float ke = vKaraHit.z * pow( 1.0 - kNV, 2.5 ); reflectedLight.directDiffuse = reflectedLight.directDiffuse * ( 1.0 - 0.5 * vKaraHit.z ) + vec3( 1.0, 0.26, 0.04 ) * ke * 1.4; }',
     '}'].join('\n');
   function patchRim(m) {
     if (!m || m.userData.karaRim || !(m.isMeshStandardMaterial || m.isMeshPhysicalMaterial)) return;
@@ -176,10 +191,12 @@
       if (before) before.call(this, sh, r);
       Object.keys(RIM).forEach(function (k) { sh.uniforms[k] = RIM[k]; });
       if (sh.fragmentShader.indexOf('#include <lights_fragment_end>') < 0) return;
-      sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\n' + RIM_HEAD)
+      var hit = sh.vertexShader.indexOf('#include <skinning_vertex>') >= 0 && sh.vertexShader.indexOf('#include <common>') >= 0;
+      if (hit) sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vKaraHit;').replace('#include <skinning_vertex>', '#include <skinning_vertex>\n' + RIM_VERT);
+      sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\n' + (hit ? '' : '#define KARA_NO_HIT\n') + RIM_HEAD)
         .replace('#include <lights_fragment_end>', '#include <lights_fragment_end>\n' + RIM_BODY);
     };
-    m.customProgramCacheKey = function () { return (key ? key.call(this) : '') + '|kara-rim-1'; };
+    m.customProgramCacheKey = function () { return (key ? key.call(this) : '') + '|kara-rim-2'; };
     m.needsUpdate = true;
   }
   function patchModel(root) {
@@ -226,6 +243,8 @@
 
     // Scripted moments.
     var director = { bossSeen: false, bossActiveAt: -1, phase2At: -1, bossDeadAt: -1, checkpointAt: -1, lastCheckpoint: null, ritualLive: 1, wasBoss: false };
+    var contact = B.ContactShadows ? B.ContactShadows.create(scene) : null;   // (ajan:visual-dark) soft occlusion under every body
+    var motes = B.AmbientMotes ? B.AmbientMotes.create(scene) : null;   // (ajan:visual-dark) per-chapter air around the hero
     var grade = { lift: new T.Vector3(), gain: new T.Vector3(1, 1, 1), saturation: 1, contrast: .12, shadowTint: new T.Vector3(1, 1, 1), highTint: new T.Vector3(1, 1, 1),
       vignette: .5, vignetteColor: new T.Vector3(), bloom: .6, bloomTint: new T.Vector3(1, 1, 1), exposure: 1.15 };
     var target = { fog: new T.Color(), mist: new T.Color(), sky: new T.Color(), ground: new T.Color(), key: new T.Color(), rim: new T.Color(), charRim: new T.Color() };
@@ -263,6 +282,70 @@
       rim.position.set(p.x + 3.5, 4.6, p.z - 13); rim.target.position.set(p.x, .9, p.z); rim.target.updateMatrixWorld();
     }
 
+    // Writes each enemy's hit flash into its bone textures (see RIM_VERT). Only changed values touch a texture.
+    // Battle blood (ajan:visual-dark): every kill close to the hero leaves more blood on his skin and gear (the graded materials'
+    // own blood layer); it dries off slowly once the fighting stops. Only hero/equipment materials are touched (enemy materials are shared).
+    var blood = { level: 0, quiet: 0, clock: 0, game: null, root: null, rev: -1, mats: [] };
+    function battleBlood(game, dt) {
+      var p = game && game.player; if (!p || !p.model || !p.model.root) return;
+      if (blood.game !== game) { blood.game = game; blood.level = 0; blood.quiet = 0; blood.root = null; }
+      var enemies = game.enemies || [];
+      for (var i = 0; i < enemies.length; i++) {
+        var e = enemies[i];
+        if (e && e.dead && !e.karaBloodSeen) { e.karaBloodSeen = true; if (Math.hypot(e.x - p.x, e.z - p.z) < 4.5) { blood.level = Math.min(1, blood.level + (e.boss ? .45 : e.elite ? .22 : .14)); blood.quiet = 0; } }
+        else if (e && !e.dead && e.karaBloodSeen) e.karaBloodSeen = false;   // restored / revived foes count again
+      }
+      blood.quiet += dt; if (blood.quiet > 25) blood.level = Math.max(0, blood.level - dt * .012);
+      blood.clock -= dt; if (blood.clock > 0) return; blood.clock = .25;
+      var root = p.model.root, rev = root.userData.equipmentRevision || 0;
+      if (root !== blood.root || rev !== blood.rev) {
+        blood.root = root; blood.rev = rev; blood.mats = [];
+        root.traverse(function (o) {
+          if (!o.isMesh || !o.material) return;
+          (Array.isArray(o.material) ? o.material : [o.material]).forEach(function (m) {
+            var g = m.userData && m.userData.grade;
+            if (g && g.kBlood && /^kara-(hero|equipment)-/.test(m.name || '') && blood.mats.indexOf(m) < 0) {
+              if (!Number.isFinite(m.userData.karaBloodBase)) m.userData.karaBloodBase = g.kBlood.value;
+              blood.mats.push(m);
+            }
+          });
+        });
+      }
+      for (var j = 0; j < blood.mats.length; j++) { var mm = blood.mats[j]; mm.userData.grade.kBlood.value = mm.userData.karaBloodBase + blood.level * .7; }
+    }
+    // Chapter colour identity (ajan:visual-dark), applied by the post cinematic layer on top of every room grade:
+    // [shadow hue, highlight hue]. Temple amber-violet, Coast cold green-grey, Throne gold-blue, Forge red-black, Finale blood-violet.
+    var LOOK = { 1: [[.96, .9, 1.12], [1.07, 1.0, .88]], 2: [[.88, 1.04, 1.0], [.99, 1.02, .97]], 3: [[.86, .95, 1.16], [1.08, 1.01, .84]],
+      4: [[1.06, .9, .88], [1.09, .96, .84]], 5: [[1.06, .84, 1.1], [1.07, .9, .94]] };
+    grade.cineTint = new T.Vector3(.9, 1, 1.08); grade.cineHigh = new T.Vector3(1.05, 1, .93);
+    var lookTint = new T.Vector3(), lookHigh = new T.Vector3();
+    function chapterLook(dt) {
+      var L5 = LOOK[B.ActiveChapter] || LOOK[1], k = 1 - Math.exp(-(dt || 0) * 1.5);
+      grade.cineTint.lerp(lookTint.fromArray(L5[0]), k); grade.cineHigh.lerp(lookHigh.fromArray(L5[1]), k);
+    }
+    function hitFlash(game, dt) {
+      var enemies = game && game.enemies; if (!enemies) return;
+      for (var i = 0; i < enemies.length; i++) {
+        var e = enemies[i], m = e && e.model; if (!m || !m.root) continue;
+        // The flash runs on its own clock from the moment hurt rises (an idle foe's hurt value may not decay while it is inactive).
+        var h = Number.isFinite(e.hurt) ? e.hurt : 0;
+        if (h > (e.karaHurtPrev || 0) + .05 || (e.dead && !e.karaWasDead)) e.karaHitT = 0; else if (Number.isFinite(e.karaHitT)) e.karaHitT += dt;
+        e.karaHurtPrev = h; e.karaWasDead = !!e.dead;   // the killing blow flashes too
+        var ht = Number.isFinite(e.karaHitT) ? e.karaHitT : 9, v = reducedMotion || ht > .16 ? 0 : Math.round(Math.pow(1 - ht / .16, 1.6) * 40) / 40;
+        var dead = e.dead ? Math.round(smooth(((e.deadAge || 0) - 1.2) / 4) * 20) / 20 : 0;   // starts after the fall, 4 s, 5 % steps
+        var ember = e.dead && EMBER_TYPES.test(e.type || '') ? Math.round(Math.min(1, (e.deadAge || 0) / .35) * (1 - smooth(((e.deadAge || 0) - .4) / 4.5)) * 20) / 20 : 0;
+        if (v === e.karaHitShown && dead === e.karaDeadShown && ember === e.karaEmberShown) continue;
+        var sk = m.root.userData.karaSkeletons;
+        if (!sk) { sk = []; m.root.traverse(function (o) { if (o.isSkinnedMesh && o.skeleton && sk.indexOf(o.skeleton) < 0) sk.push(o.skeleton); }); m.root.userData.karaSkeletons = sk; }
+        var wrote = false;
+        for (var j = 0; j < sk.length; j++) {
+          var s = sk[j], a = s.boneMatrices, n = a ? a.length : 0;
+          if (!s.boneTexture || s.bones.length * 16 > n - 4) continue;   // texture not built yet, or no spare texel: this one never flashes
+          a[n - 4] = v; a[n - 3] = HIT_MAGIC; a[n - 2] = dead; a[n - 1] = ember; s.boneTexture.needsUpdate = true; wrote = true;
+        }
+        if (wrote) { e.karaHitShown = v; e.karaDeadShown = dead; e.karaEmberShown = ember; }
+      }
+    }
     function patchCharacters(game) {
       if (!game) return;
       var enemies = game.enemies || [];
@@ -696,6 +779,8 @@
         && L && L.deferShadowRefresh) L.deferShadowRefresh();
       var p = game.player, a = world.atmosphereAt(p.x, p.z);
       patchClock -= dt; if (patchClock <= 0) { patchClock = 1; patchCharacters(game); splitCharacters(game); }
+      hitFlash(game, dt); battleBlood(game, dt); if (contact) contact.update(game);
+      if (motes) motes.update(dt, game && game.player, camera, opts.post ? opts.post.height : 720, reducedMotion);
       directorStep(dt, time, game, a);
       corpseClock -= dt; if (corpseClock <= 0 && L && L.setCorpses) { corpseClock = .5; flyCorpses(game); }
       var k = ready ? 1 - Math.exp(-dt * 2.2) : 1; ready = true;
@@ -728,12 +813,14 @@
       grade.exposure = (cfgRef.exposure || 1.15) * a.exposure;
       var fx = p.x, fz = p.z - 2;
       updateScatter(fx, fz, dt);
-      if (opts.post) { updateHeat(opts.post.heat(), fx, fz); if (opts.post.pulse) warCryPost(opts.post.heat(), opts.post.pulse(), p); opts.post.setGrade(grade); }
+      if (opts.post) { updateHeat(opts.post.heat(), fx, fz); if (opts.post.pulse) warCryPost(opts.post.heat(), opts.post.pulse(), p); chapterLook(dt); opts.post.setGrade(grade); if (opts.post.setFocus) opts.post.setFocus(p.x, .9, p.z, Number.isFinite(a.focusRadius) ? a.focusRadius : FOCUS[1], Number.isFinite(a.focus) ? a.focus : FOCUS[0] * (FOCUS_CH[B.ActiveChapter] || 1)); }
       if (!ab.stepped) abilityStep(dt, game, time);
       ab.stepped = false;
     }
     function dispose() {
       [hemi, moon, rim, moonTarget, rim.target].forEach(function (o) { scene.remove(o); });
+      if (contact) contact.dispose();
+      if (motes) motes.dispose();
       if (moon.shadow.map) moon.shadow.map.dispose();
       if (scene.environment) { scene.environment.dispose(); scene.environment = null; }
     }

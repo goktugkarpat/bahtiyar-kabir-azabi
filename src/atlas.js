@@ -2,11 +2,11 @@
 (function () {
   'use strict';
   const B = window.BABA = window.BABA || {};
-  const TITLES = [KabirI18n.t('Kurban Tapınağı'), KabirI18n.t('Boğulmuş Kıyı'), KabirI18n.t('Sessiz Taht'), KabirI18n.t('Kızıl Ocak')];
+  const TITLES = [KabirI18n.t('Kurban Tapınağı'), KabirI18n.t('Boğulmuş Kıyı'), KabirI18n.t('Sessiz Taht'), KabirI18n.t('Kızıl Ocak'), KabirI18n.t('Son Mahkeme')];
   const STORAGE = 'kabir-azabi-atlas-v1';
   function node(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; }
   function create(options) {
-    const world = options.world, game = options.game, chapter = Math.max(1, Math.min(4, world.chapter || game.chapter || 1));
+    const world = options.world, game = options.game, chapter = Math.max(1, Math.min(TITLES.length, world.chapter || game.chapter || 1));
     const rooms = world.rooms || [], visited = new Set(), seenIds = new Set(rooms.map(r => String(r.id)));
     let opened = false, disposed = false, timer = 0, camera = { x: game.player.x, z: game.player.z, scale: 4 }, dragging = null;
     let campaign = null, lastReset = -1, version = 0, drawnVersion = -1, floorPath = null, reveals = null, previousFocus = null, lastLedger = null;
@@ -185,6 +185,7 @@
       if(world.checkpoint){const cr=world.roomAt&&world.roomAt(world.checkpoint.x,world.checkpoint.z);if(cr&&visited.has(String(cr.id)))mark(world.checkpoint.x,world.checkpoint.z,'oath');}
       const questMarkers=game.quests&&Array.isArray(game.quests.markers)?game.quests.markers.filter(marker=>marker.active&&!marker.complete):(game.quests&&game.quests.entries||[]).map((entry,quest)=>entry.target&&Object.assign({quest},entry.target)).filter(Boolean);
       for(const target of questMarkers){const r=world.roomAt&&world.roomAt(target.x,target.z);if(r&&visited.has(String(r.id)))mark(target.x,target.z,'quest',target.quest?'II':'I');}
+      /* ajan:quests: discovered side threads (hunt target moves) */ for(const target of (game.quests&&game.quests.sideMarkers||[]).filter(m=>m.active&&!m.complete)){const r=world.roomAt&&world.roomAt(target.x,target.z);if(r&&visited.has(String(r.id)))mark(target.x,target.z,'quest',({hunt:'✠',rescue:'⛓',lore:'¶',altar:'♱',chest:'▣',siege:'♨',escape:'➶',puzzle:'⁂'})[target.kind]||'•');}
       const reward=game.pendingBossReward;
       if(reward&&Number.isFinite(reward.x)&&Number.isFinite(reward.z)){const r=world.roomAt&&world.roomAt(reward.x,reward.z);if(r&&visited.has(String(r.id)))mark(reward.x,reward.z,'quest','★');}
       mark(game.player.x,game.player.z,'hero');

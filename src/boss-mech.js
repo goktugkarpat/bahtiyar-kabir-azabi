@@ -67,6 +67,7 @@
         else if(id==='hollowBurrow'||id==='kingRush'||id==='overheatDash'||id==='bellRush'||id==='wardenBurrow'||id==='ashDash'||id==='slam'||id==='leap'||id==='charge')text=KabirI18n.t('Kızıl alanı boşalt. Darbeden sonra karşılık ver.');
         else if(id==='hollowCall'||id==='furnaceCall'||id==='drownedCall')text=KabirI18n.t('Çağrı çemberinden uzak dur; çıkan yaratıkları yen.');
         else if(id==='hollowEcho')text=KabirI18n.t('Yankılar sırayla vurur. Altın dilimlerin dışına çık.');
+        if(!text&&id&&B.BossFramework)text=B.BossFramework.hint(id);   /* ajan:bosses */
         if(text){say(id==='hollowCall'||id==='furnaceCall'||id==='drownedCall'?'adds':'move',a.attack||KabirI18n.t('Boss saldırısı'),text,a.age,a.duration,false,0,boss);return;}
         if(id==='lanterns'){say('shelter',KabirI18n.t('Karanlık Gelgit'),KabirI18n.t('Mavi siper hazırlanıyor; sınırı dolunca içinde kal.'),a.age,1.9,false,0,boss);return;}
         if(id==='brine'&&boss.type==='bell'){say('move','Tuzlu Havuzlar',KabirI18n.t('Dairelerden uzaklaş; kızıl kenarlı su hasar vermeyi sürdürür.'),a.age,a.duration,false,0,boss);return;}

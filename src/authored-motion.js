@@ -714,6 +714,14 @@
         spineLayer(destination,.16*c.strike,-.09*settle,0);
         euler.set(-.12*c.strike,0,.30*c.strike,'YXZ');qa.setFromEuler(euler);rotateSubtree(destination,7,qa);
       }
+      // Hero sword combo + heavy: weight transfer. The mass rocks back onto the rear foot while the blade coils,
+      // drives down and through the target on the strike, and settles with a small dip as it lands (the finisher deepest).
+      if (hero && (m === MOVES.slashA || m === MOVES.slashB || m === MOVES.cleave || m === MOVES.heavy)) {
+        var ws = 1 / Math.max(.4, characterScale), fin = m === MOVES.cleave ? 1.5 : m === MOVES.heavy ? 1.3 : 1,
+          aft = t > Tc ? clamp((t - Tc) / Math.max(.04, Tend - Tc), 0, 1) : 0, land = Math.sin(aft * PI) * (1 - aft), back = Math.max(0, c.coil) * (t < Tc ? 1 : 0);
+        destination.p.z += (-.028 * back + .042 * c.strike * (1 - .7 * aft)) * fin * ws;
+        destination.p.y -= (.01 * back + .022 * c.strike * (1 - aft) + .03 * land) * fin * ws;
+      }
       // The blow is still sampled at the exact gameplay contact. Only AFTER contact, the neck
       // follows the shoulder mass and the free arm catches the body's weight before settling.
       // Analytic envelopes are independent of frame rate; scratch quaternions are already pooled.
@@ -886,6 +894,16 @@
           var st = stagger < .3 ? easeOut(stagger / .3) * .46 : stagger < .6 ? .46 + (stagger - .3) / .3 * .1 : .56 + smooth((stagger - .6) / .4) * .5;
           sample('shieldBreak', st, wanted, false);
           spineLayer(wanted, -Math.sin(lastHitAngle) * .35 * (1 - stagger), -.3 * (1 - smooth(stagger / .8)), 0);
+        }
+        // Combat feel round: three reactions so a crowd does not reel in unison (state.staggerVariant from combat.js):
+        // 0 the reel above, 1 twisted aside away from the blow, 2 buckled at the knees, doubled over. Peaks mid-stagger, gone at recovery.
+        var sv = finite(state.staggerVariant, 0) | 0, sw = Math.sin(clamp(stagger, 0, 1) * PI) * (boss ? .4 : 1), sc = Math.max(.4, characterScale);
+        if (sv === 1) {
+          euler.set(0, (Math.sin(lastHitAngle) >= 0 ? -1 : 1) * .6 * sw, .14 * sw, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(wanted, 4, qa);
+          wanted.p.x += Math.sin(lastHitAngle) * .12 * sw / sc;
+        } else if (sv === 2) {
+          wanted.p.y -= .17 * sw / sc;
+          euler.set(.42 * sw, 0, 0, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(wanted, 4, qa);
         }
       }
       if(!hero&&!boss&&!state.dead&&Number.isFinite(state.launchTime)&&state.launchTime>=0){

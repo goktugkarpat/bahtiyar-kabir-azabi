@@ -12,8 +12,8 @@
   // Everything the quality preset controls in the post chain.
   var PRESETS = {
     // abTaps: radial spin-blur taps of the special ability (0 = none), abChroma: colour fringe (two extra taps)
-    low:  { ao: 0,    samples: 0,  radius: 0,   bloomLevels: 2, bloomHalf: false, haze: false, grain: .014, abTaps: 0, abChroma: false },
-    high: { ao: .925, samples: 10, radius: .95, bloomLevels: 4, bloomHalf: true, haze: true, grain: .021, abTaps: 6, abChroma: true }
+    low:  { ao: 0,    samples: 0,  radius: 0,   bloomLevels: 2, bloomHalf: false, haze: false, grain: .014, abTaps: 0, abChroma: false, sharp: 0 },
+    high: { ao: .925, samples: 10, radius: .95, bloomLevels: 4, bloomHalf: true, haze: true, grain: .021, abTaps: 6, abChroma: true, sharp: .55 }
   };
   var MAX_HEAT = 6;
 
@@ -104,6 +104,12 @@
     'uniform vec3 uLift, uGain, uShadowTint, uHighTint, uVigColor, uBloomTint;',
     'uniform vec4 uHeat[' + MAX_HEAT + '];',
     'uniform vec4 uPulse;',   // war cry shockwave: xy = centre (uv), z = ring radius (height units), w = strength (0 = off)
+    // Cinematic layer over every room grade (ajan:visual-dark): x shadow desaturation, y shadow range (linear luma), z toe (black crush),
+    // w highlight warmth; uCineTint = hue the drained shadows sink toward. uSharp = adaptive detail (SHARP variant only).
+    'uniform vec4 uCine; uniform vec3 uCineTint, uCineHigh; uniform float uSharp, uPunch;',
+    // Hero focus (ajan:visual-dark): xy = hero centre (uv), z = radius (height units), w = strength. The hero carries a soft pool of
+    // exposure with him and the frame falls away into darkness around it, so a darker world never swallows the player.
+    'uniform vec4 uFocus;',
     // Special ability (only in the ABILITY variant, which is drawn while Post.setAbilityFx is being fed; otherwise this block does not exist):
     // A = spin (radial blur), chroma, flash (exposure + bloom), saturation punch; B = vignette pulse, hit-freeze desaturation, ring strength;
     // C = ring centre (uv), ring radius and width (height units of the ground ellipse); D = hero centre (uv), 1 / sin(camera pitch)
@@ -194,6 +200,21 @@
     '  #else',
     '  c = texture2D(tScene, uv).rgb;',
     '  #endif',
+    '  #if SHARP',
+    // Contrast-adaptive detail: the plain cross of neighbours, pushed only where local contrast is low (texture, pores, rust, stone grain),
+    // clamped to the neighbourhood so silhouettes never ring and SMAA still sees clean edges.
+    '  { vec3 n0 = texture2D(tScene, uv + vec2(uTexel.x, 0.)).rgb, n1 = texture2D(tScene, uv - vec2(uTexel.x, 0.)).rgb,',
+    '         n2 = texture2D(tScene, uv + vec2(0., uTexel.y)).rgb, n3 = texture2D(tScene, uv - vec2(0., uTexel.y)).rgb;',
+    '    vec3 mn = min(c, min(min(n0, n1), min(n2, n3))), mx = max(c, max(max(n0, n1), max(n2, n3)));',
+    '    float lmn = luma(mn), lmx = luma(mx), sw = uSharp * (1. - smoothstep(.12, .7, (lmx - lmn) / (lmx + .03)));',
+    // Very light depth of field: the far top of the frame and the nearest strip at the bottom soften (camera-lens depth, never the
+    // play area in the middle); the detail push fades out there instead of fighting the blur.
+    '    float dof = smoothstep(.66, 1., vUv.y) * .85 + (1. - smoothstep(0., .1, vUv.y)) * .45;',
+    '    if (dof > .02) { vec2 dr = uTexel * 2.2;',
+    '      vec3 bl = (texture2D(tScene, uv + dr).rgb + texture2D(tScene, uv - dr).rgb + texture2D(tScene, uv + vec2(dr.x, -dr.y)).rgb + texture2D(tScene, uv - vec2(dr.x, -dr.y)).rgb) * .17 + (n0 + n1 + n2 + n3) * .08;',
+    '      c = mix(c, bl, dof); }',
+    '    else c = clamp(c + (c - (n0 + n1 + n2 + n3) * .25) * sw * 1.6, mn, mx); }',
+    '  #endif',
     '  if (pring > 0.) { c.r = texture2D(tScene, uv + pca).r; c.b = texture2D(tScene, uv - pca).b; }',
     '  #if ABILITY',
     '  abEx = 1. + uAbA.z * .55; abBl = 1. + uAbA.z * 1.6; sat = uSat * (1. + uAbA.w); abFr = uAbB.y; abVg = uAbB.x;',
@@ -209,11 +230,20 @@
     '  c *= mix(1., ao, uAO * (1. - .5 * smoothstep(.5, 3., l0)));',
     '  #endif',
     '  c += texture2D(tBloom, uv).rgb * uBloom * uBloomTint * abBl;',
+    '  if (uFocus.w > 0.) { vec2 fd = (vUv - uFocus.xy) * vec2(uAspect, 1.) / uFocus.z; float ff = exp(-dot(fd, fd));',
+    '    c *= mix(1. - uFocus.w * .22, 1. + uFocus.w * .85, ff); }',
     '  c = aces(c * uExposure * abEx);',
     '  float l = luma(c);',
     '  c *= mix(uShadowTint, uHighTint, smoothstep(.02, .42, l));',
     '  c = c * uGain + uLift * (1. - c);',
     '  c = max(mix(vec3(luma(c)), c, sat), 0.);',
+    // Cinematic layer: shadows drain toward a cold, nearly colourless tone (painted-realism, not cartoon colour), the toe sinks so
+    // darkness reads as darkness, and lit highlights warm a touch (fire against cold stone).
+    // uPunch: log-space contrast around mid grey (.18) — weight in the image without touching the room grade's own S-curve.
+    '  { float lc = luma(c); c *= pow(max(lc, 1e-4) / .18, uPunch) ; lc = luma(c); float shd = 1. - smoothstep(0., uCine.y, lc);',
+    '    c = mix(c, vec3(lc) * uCineTint, shd * shd * uCine.x);',
+    '    c *= (lc + uCine.z * .25) / (lc + uCine.z);',
+    '    c *= mix(vec3(1.), uCineHigh, smoothstep(.3, .9, lc) * uCine.w); }',
     '  #if ABILITY',
     // hit-freeze on the last tick: colour drains and the picture snaps harder for a heartbeat
     '  if (abFr > 0.) { c = mix(c, vec3(luma(c)) * 1.12, abFr * .12); c = c * (1. + abFr * .08) + abFr * .01; }',
@@ -362,20 +392,21 @@
       uLift: { value: new T.Vector3() }, uGain: { value: new T.Vector3(1, 1, 1) }, uShadowTint: { value: new T.Vector3(1, 1, 1) },
       uHighTint: { value: new T.Vector3(1, 1, 1) }, uVigColor: { value: new T.Vector3(0, 0, 0) }, uBloomTint: { value: new T.Vector3(1, 1, 1) },
       uHeat: { value: heat }, uPulse: { value: new T.Vector4(.5, .5, 0, 0) },
+      uCine: { value: new T.Vector4(.38, .12, .006, .5) }, uCineTint: { value: new T.Vector3(.9, 1, 1.08) }, uCineHigh: { value: new T.Vector3(1.05, 1, .93) }, uSharp: { value: .55 }, uPunch: { value: .08 }, uFocus: { value: new T.Vector4(.5, .5, .5, 0) },
       uOvl: { value: new T.Vector4() }, uCss: { value: new T.Vector2(typeof innerWidth === 'number' ? innerWidth : 1280, typeof innerHeight === 'number' ? innerHeight : 800) },
       uAbA: { value: new T.Vector4() }, uAbB: { value: new T.Vector4() }, uAbC: { value: new T.Vector4(.5, .5, 0, .1) }, uAbD: { value: new T.Vector4(.5, .5, 1, 0) }
     };
     var compositeMat = null, abilityMat = null;
     var settingsRef = settings || {}, preset = PRESETS.high, width = 1, height = 1, compositeKey = '';
     function buildComposite() {
-      var key = [preset.ao > 0, preset.haze, preset.abTaps, preset.abChroma].join();
+      var key = [preset.ao > 0, preset.haze, preset.abTaps, preset.abChroma, preset.sharp > 0].join();
       if (key === compositeKey && compositeMat) return;
       compositeKey = key;
       [compositeMat, abilityMat].forEach(function (m) { if (m) { m.dispose(); materials.splice(materials.indexOf(m), 1); } });
-      compositeMat = pass(COMPOSITE_FS, U, { AO: preset.ao > 0 ? 1 : 0, HAZE: preset.haze ? 1 : 0, ABILITY: 0, ABTAPS: 0, ABCHROMA: 0 });
+      compositeMat = pass(COMPOSITE_FS, U, { AO: preset.ao > 0 ? 1 : 0, HAZE: preset.haze ? 1 : 0, ABILITY: 0, ABTAPS: 0, ABCHROMA: 0, SHARP: preset.sharp > 0 ? 1 : 0 });
       // The special-ability variant is a second program (compiled with the rest in compile(), so its first use never stalls); it is only
       // drawn while setAbilityFx is being fed, otherwise the frame is exactly the plain composite above.
-      abilityMat = pass(COMPOSITE_FS, U, { AO: preset.ao > 0 ? 1 : 0, HAZE: preset.haze ? 1 : 0, ABILITY: 1, ABTAPS: preset.abTaps || 0, ABCHROMA: preset.abChroma ? 1 : 0 });
+      abilityMat = pass(COMPOSITE_FS, U, { AO: preset.ao > 0 ? 1 : 0, HAZE: preset.haze ? 1 : 0, ABILITY: 1, ABTAPS: preset.abTaps || 0, ABCHROMA: preset.abChroma ? 1 : 0, SHARP: preset.sharp > 0 ? 1 : 0 });
     }
     function rebuildMips() {
       mips.forEach(function (m) { m.dispose(); }); mips = [];
@@ -483,7 +514,7 @@
       if (weightsMat.defines.SMAA_MAX_SEARCH_STEPS !== smaaPreset.steps) { weightsMat.defines.SMAA_MAX_SEARCH_STEPS = smaaPreset.steps; weightsMat.needsUpdate = true; }
       sceneRT.resolveDepthBuffer = true;
       if (aoMat.defines.SAMPLES !== Math.max(1, p.samples)) { aoMat.defines.SAMPLES = Math.max(1, p.samples); aoMat.needsUpdate = true; }
-      U.uAO.value = p.ao; U.uGrain.value = p.grain;
+      U.uAO.value = p.ao; U.uGrain.value = p.grain; U.uSharp.value = p.sharp || 0;
       U.tAO.value = p.ao > 0 ? aoA.texture : white;
       if (cfg && Number.isFinite(cfg.exposure)) U.uExposure.value = cfg.exposure;
       buildComposite();
@@ -501,6 +532,9 @@
       if (Number.isFinite(g.vignette)) U.uVignette.value = g.vignette;
       if (Number.isFinite(g.bloom)) U.uBloom.value = g.bloom;
       if (Number.isFinite(g.exposure)) U.uExposure.value = g.exposure;
+      if (g.cine) U.uCine.value.copy(g.cine);
+      if (g.cineTint) U.uCineTint.value.copy(g.cineTint);
+      if (g.cineHigh) U.uCineHigh.value.copy(g.cineHigh);
     }
     function draw(mat, rt) { quad.material = mat; renderer.setRenderTarget(rt); renderer.render(quadScene, quadCamera); }
 
@@ -765,6 +799,17 @@
       ab.spin = ab.chroma = ab.flash = ab.sat = ab.vig = ab.freeze = ab.ringA = 0; ab.hasSpin = ab.live = false;
       return any;
     }
+    // Hero focus pool: world point of the hero (call every frame; strength 0 turns it off). Radius in metres at the hero's depth.
+    var focusPoint = new T.Vector3();
+    function setFocus(x, y, z, radius, strength) {
+      if (!(strength > 0) || !Number.isFinite(x) || !Number.isFinite(z)) { U.uFocus.value.w = 0; return; }
+      camera.updateMatrixWorld();
+      focusPoint.set(x, y, z); var depth = -focusPoint.applyMatrix4(camera.matrixWorldInverse).z;
+      if (!(depth > .1)) { U.uFocus.value.w = 0; return; }
+      var unit = 1 / (2 * depth * Math.tan(camera.fov * Math.PI / 360));
+      focusPoint.set(x, y, z).project(camera);
+      U.uFocus.value.set(focusPoint.x * .5 + .5, focusPoint.y * .5 + .5, Math.max(.05, radius * unit), Math.min(1, strength));
+    }
     function heatSources() { return heat; }
     function pulse() { return U.uPulse.value; }
     function dispose() {
@@ -796,7 +841,7 @@
         U.uOvl.value.set(flash || 0, (rage || 0) * .32, low || 0, 0);
         if (cssW > 0 && cssH > 0) U.uCss.value.set(cssW, cssH);
       },
-      render: render, setSize: setSize, setQuality: setQuality, setGrade: setGrade, heat: heatSources, pulse: pulse, setAbilityFx: setAbilityFx, clearAbilityFx: clearAbilityFx, dispose: dispose, compile: compile,
+      render: render, setSize: setSize, setQuality: setQuality, setGrade: setGrade, heat: heatSources, pulse: pulse, setAbilityFx: setAbilityFx, clearAbilityFx: clearAbilityFx, setFocus: setFocus, dispose: dispose, compile: compile,
       setTiming: setTiming, resetTiming: resetTiming,
       uniforms: U, get target() { return sceneRT; }, prewarm: prewarm, keepSizes: setKeepSets,
       get samples() { return 0; },

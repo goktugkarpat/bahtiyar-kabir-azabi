@@ -27,6 +27,7 @@
   if (BABA.CoastCombat) Object.assign(STATS, BABA.CoastCombat.stats);
   if (BABA.RuinsCombat) Object.assign(STATS, BABA.RuinsCombat.stats);
   if (BABA.ForgeCombat) Object.assign(STATS, BABA.ForgeCombat.stats);
+  if (BABA.FinaleCombat) Object.assign(STATS, BABA.FinaleCombat.stats);   // chapter V (finale-combat.js): stats carry forge:true + finale:true
   // Stronger enemies resist an unbuffed full Girdap; the boss has faster, explicitly timed normal moves.
   // Apply health once at spawn and damage once at contact so every enemy move follows the same balance.
   const BALANCE = Object.freeze({ health: 1.65, bossHealth: 1.50, damage: 1.70 });
@@ -44,6 +45,9 @@
     // Blade direction at contact relative to facing (radians): slashes sweep across, the finisher chops forward.
     sweep: [Math.PI / 2, -Math.PI / 2, 0], heavySweep: Math.PI / 2
   };
+  // Difficulty profiles, stamina economy and the heavier hit feel live in combat-tuning.js (numbers measured with combat-balance.js).
+  const TUNE = BABA.CombatTuning || null, ECON = TUNE ? TUNE.ECONOMY : null;
+  if (TUNE) { Object.assign(FEEL.hitstop, TUNE.FEEL.hitstop); Object.assign(FEEL.knock, TUNE.FEEL.knock); }
   const reducedMotion = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : { matches: false };
   // Fairness contract (COMBAT_PLAN §1): every strike's ground tell is fixed once visible; openers warn >= .55 s
   // (crimson "unblockable" = severe blows >= .95 s), follow-ups >= .45 s; two different enemies never land within RHYTHM of each other near
@@ -111,7 +115,7 @@
   function create(world, services) {
     const scene = services.scene;
     const SAVE_KEY = 'baba.kabir.campaign.v1';
-    const chapter = Math.max(1, Math.min(4, world.chapter || 1));
+    const chapter = Math.max(1, Math.min(BABA.FINAL_CHAPTER || 5, world.chapter || 1)), FINAL = BABA.FINAL_CHAPTER || 5;
     const emit = (name, data) => { if (services.emit) services.emit(name, data || {}); };
     const sound = (name, opts) => { if (services.sound) services.sound(name, opts || {}); };
     const fx = (name, data) => { if (services.fx) services.fx(name, data || {}); };
@@ -132,7 +136,7 @@
     function propContact(x, z, radius, units, face = 0, arc = Math.PI * 2, ox = x, oz = z) {
       if (mech && game.state === 'playing' && !player.dead) propContacts.push({ x, z, radius, units, face, arc, ox, oz });
     }
-    let hazardSerial = 0, mech = null, boss2 = null;   // boss2: chapter III / IV boss machinery (boss2.js);   // mech: boss-mech.js (round 7 orbs / ritual anchors / fight clock), built next to the executioner's moves
+    let hazardSerial = 0, mech = null, boss2 = null, director = null, mobMods = null, mobAbil = null;   // director: boss-framework.js (intros, pursuit, perfect dodge, signatures); mobMods: mob-mods.js (champions)   // boss2: chapter III / IV boss machinery (boss2.js);   // mech: boss-mech.js (round 7 orbs / ritual anchors / fight clock), built next to the executioner's moves
     const globes = BABA.Globes ? BABA.Globes.create(root, world, { player, fx, sound, emit }) : null;   // health globes dropped by dead foes (globes.js)
     const encounterDefs = (world.encounters || []).map((encounter, index) => ({
       id: String(encounter.id == null ? index : encounter.id), room: encounter.room, stage: encounter.stage,
@@ -161,6 +165,28 @@
     const progression = BABA.Progression.create({ chapter, emit, groundLoot:true });
     let appliedLevel = progression.level;
     game.progression = progression;
+    // Talent tree 3 (src/talent-runtime.js): bleed / burn / curses / burning ground, Kor Mührü + Ölüm Çanı, seals and keystones.
+    const talents = BABA.TalentRuntime ? BABA.TalentRuntime.create({ game, player, enemies, progression, root, fx, sound, emit, groundY: (x, z) => world.effectHeightAt ? world.effectHeightAt(x, z, .6) : .06,
+      strike: (e, amount, face) => { if (!e || e.dead) return null; if (!e.active) { e.active = true; e.activated = true; if (e.encounter) e.encounter.activated = true; } return hurtEnemy(e, Math.round(amount), true, face, { talent: true, combo: 0, face, heavy: true, gained: 99 }); },   // gained: talent bursts never refill the stamina orb (ECONOMY.HIT)
+      dot: (e, amount, kind) => talentTick(e, amount, kind), stun: (e, s) => stunEnemy(e, s, 'heavy'),
+      yank: (e, x, z, keep) => { const d = Math.hypot(x - e.x, z - e.z); if (d > keep) { e.push = null; moveBody(e, (x - e.x) / d * (d - keep), (z - e.z) / d * (d - keep), e.radius); } },
+      canHit: e => !!e && !e.dead && !enemyUnderground(e) && e.model.root.visible && clearStrike(player, e) }) : null;
+    game.talents = talents;
+    // A damage-over-time tick: no knock-back, no stagger, no on-hit procs; numbers and kills as usual.
+    function talentTick(enemy, amount, kind) {
+      if (!enemy || enemy.dead || enemyUnderground(enemy) || game.state !== 'playing') return null;
+      if (!enemy.active) { enemy.active = true; enemy.activated = true; if (enemy.encounter) enemy.encounter.activated = true; }
+      let damage = Math.max(1, Math.round(amount * (player.damageMultiplier || 1)));
+      { const P = tuning(); damage = Math.max(1, Math.round(damage * (P ? P.playerDmg : game.difficulty !== 'hard' ? 1.18 : 1))); }   // same difficulty scale as hurtEnemy
+      if (talents) damage = talents.outgoing(enemy, damage, null);
+      if (mobMods) damage = mobMods.hurt(enemy, damage, false, false, true);   // armoured / warded champions also dampen burn and bleed
+      if (director && enemy.boss) damage = director.hurt(enemy, damage);
+      enemy.hp = Math.max(0, enemy.hp - damage); if (enemy.boss && !enemy.action) enemy.wrath += damage;
+      const killed = enemy.hp <= 0;
+      fx('talentTick', { x: enemy.x, y: 1.4, z: enemy.z, damage, kind, labelTarget: enemy, kill: killed });
+      if (killed) { enemy.deathKind = ''; killEnemy(enemy); } else enemyPhaseChange(enemy);
+      return { killed };
+    }
     const groundLoot = BABA.GroundLoot ? BABA.GroundLoot.create(root, world, {player, progression, chapter, sound, fx, onCollect:saveProfileChoices}) : null;
     game.groundLoot = groundLoot;
     game.syncProgression = syncProgression;
@@ -183,7 +209,7 @@
       }
       try {
         const saved = JSON.parse(window.localStorage.getItem(SAVE_KEY));
-        if (!saved || saved.version !== 3 || ![2, 3, 4].includes(saved.chapter) || (!saved.transition && !saved.completed)) return false;
+        if (!saved || saved.version !== 3 || !(saved.chapter >= 2 && saved.chapter <= FINAL) || (!saved.transition && !saved.completed)) return false;
         saved.progression = progression.snapshot();
         window.localStorage.setItem(SAVE_KEY, JSON.stringify(saved));
         return true;
@@ -200,12 +226,14 @@
     }
     function selectedSkill(slot) {
       const state = progression, id = state.loadout[slot];
-      return id && state.learned.includes(id) ? SKILLS[id] || null : null;
+      const skill = id && state.learned.includes(id) ? SKILLS[id] || null : null;
+      return skill && talents ? talents.effective(skill) : skill;
     }
     function syncProgression(fill) {
       const stats = progression.stats();
       const wasMax = player.effectiveMaxHp || stats.maxHp, woundHp = player.hp * wasMax / 100;
       player.maxHp = 100; player.effectiveMaxHp = stats.maxHp;
+      if (talents && !BABA.QuestSide) { player.maxFlasks = talents.maxFlasks(4); player.flasks = Math.min(player.flasks, player.maxFlasks); }   // with quest-side.js the flask capacity is set there (it adds the talent delta)
       player.damageMultiplier = stats.damageMultiplier; player.defense = stats.defense;
       // Preserve the original effective wounds and growth: 100 is the health unit, not a loss of gear strength.
       const levelHeal = progression.level > appliedLevel ? Math.max(0, stats.maxHp - wasMax) : 0;
@@ -239,7 +267,7 @@
     }
     function stunEnemy(e, seconds, kind) {
       if (e.dead || e.boss || !(seconds > 0)) return;
-      if (seconds > (e.stagger || 0)) { e.stagger = e.staggerTotal = seconds; }
+      if (seconds > (e.stagger || 0)) { e.stagger = e.staggerTotal = seconds; e.staggerVariant = (attackSerial + e.index) % 3; }
       e.staggerKind = kind || 'heavy'; e.action = null; e.faceLocked = false; e.shield = false;
       e.poiseRecovery = Math.max(e.poiseRecovery || 0, 2.2); e.cooldown = Math.max(e.cooldown, 1.2); cancelHazards(e, true);
     }
@@ -347,6 +375,15 @@
           release: SHOUT_TIME.release[skill.tier - 1], duration: SHOUT_TIME.duration[skill.tier - 1], move: SHOUT_TIME.move[skill.tier - 1] });
         player.rageCd = 0; started = startWarCry();
         if (started) player.rageCd = player.rageMaxCd = skill.cooldown;
+      } else if (talents && talents.isActive(skill)) {
+        if (skill.line === 'pyre') {
+          // Kor Mührü: the heavy overhead blow (light damage), the seal is cut into the floor at contact (talent-runtime.js).
+          const savedPlan = swingPlan;
+          if (!swingPlan) swingPlan = { stand: true, face: player.face };
+          started = beginAttack(true, hasAim, true);
+          if (started) { player.stamina -= skill.cost - RESOURCES.costs.heavy; Object.assign(player.attack, { skill: skill.id, line: skill.line, tier: 1, params: P, damage: P.damage, radius: 3, arc: 1.9 }); talents.cast(skill, player.face); }
+          else swingPlan = savedPlan;
+        } else { started = talents.cast(skill, player.face); if (started) player.stamina -= skill.cost; }
       } else if (skill.line === 'charge') {
         const target = chargeTarget(skill, hasAim), attack = { skill: skill.id, line: 'charge', tier: skill.tier, params: P, heavy: true, combo: 0, age: 0, duration: .5, strike: .2, hit: true, face: player.face,
           damage: P.damage, radius: 0, serial: ++attackSerial, queued: null, lunge: 0, lunged: 1, lungeLead: .1, whooshed: true, whooshAt: 99, originX: player.x, originZ: player.z, victims: new Set() };
@@ -376,6 +413,7 @@
         sound(skill.tier >= 3 ? 'strikeWind3' : 'strikeWind2', { x: player.x, z: player.z, strike: P.strike, air: LEAP_AIR });
       }
       if (!started) return false;
+      if (talents) talents.onCast(skill);
       skillCooldowns[skill.line] = skill.cooldown;
       for (const inputKey of skillKeys) delete buffer[inputKey];
       delete buffer.light;
@@ -523,6 +561,16 @@
     let hintCooldown = 0, deniedCooldown = 0, deniedId = '', lackSerial = 0, openingGrace = 8, corpseLifetime = 90, shadowReach = 0;
     let freeze = 0, slowmo = 0, impactScale = 1, attackSerial = 0, actionSerial = 0, evadeCooldown = 0, pairCd = 0;
     let drinkLeft = 0;   // seconds of the flask flourish still to play (also the double-press guard)
+    // Stamina economy (combat-tuning.js): staminaWait = refill pause after a spend, staminaMark = stamina at the end of the last frame,
+    // dodgeChain / lastRollAt = chained-roll surcharge, lastRollCost = what the current roll cost (refunded by a last-moment roll).
+    let staminaWait = 0, staminaMark = 100, dodgeChain = 0, lastRollAt = -99, lastRollCost = 0, perfectCd = 0;
+    const tuning = () => TUNE ? TUNE.profile(game.difficulty) : null;
+    function dodgeCost() {
+      const P = tuning(); if (!P || !ECON) return DODGE.cost;
+      const chained = simTime - lastRollAt < .48 + ECON.DODGE_CHAIN ? Math.min(ECON.CHAIN_MAX, dodgeChain + 1) : 0;
+      return DODGE.cost * (1 + P.dodgeStep * chained);
+    }
+    game.dodgeCost = dodgeCost;
     let navigationBudget = 0;   // at most two searches per update, including slow-frame substeps; the player goes first
     let decisionStep = 1 / 60;   // AI patience is measured in simulation seconds, never rendered frames
     const victims = [];
@@ -534,7 +582,7 @@
     // Brief shared-clock contact emphasis, capped below three 60 Hz frames. Inputs stay buffered through the hold.
     function hitStop(seconds, shudder) {
       if (reducedMotion.matches || !(seconds > 0)) return 0;
-      const s = Math.min(.048, seconds * impactScale); freeze = Math.max(freeze, s);
+      const s = Math.min(FEEL.hitstop.cap || .048, seconds * impactScale); freeze = Math.max(freeze, s);
       if (shudder) shudder.forEach(v => { if (!victims.some(o => o.body === v.body)) victims.push(v); });
       return s;
     }
@@ -612,15 +660,17 @@
     encounterDefs.forEach((enc, ei) => {
       enc.spawns.forEach((s, si) => {
         const stats = STATS[s.type], model = BABA.Models.create(s.type);
-        const stage = enc.stage == null ? (chapter >= 2 ? (chapter === 4 ? 1.3 + ei * .012 : chapter === 3 ? 1.22 + ei * .014 : 1.08 + ei * .025) : ei === 0 ? .48 : ei === 1 ? .62 : .62 + .38 * ei / 5) : enc.stage;
+        const stage = enc.stage == null ? (chapter >= 2 ? (chapter >= 4 ? 1.3 + (chapter - 4) * .04 + ei * .012 : chapter === 3 ? 1.22 + ei * .014 : 1.08 + ei * .025) : ei === 0 ? .48 : ei === 1 ? .62 : .62 + .38 * ei / 5) : enc.stage;
         // Authored room stage remains intact; campaign pressure is additional, so an explicit stage cannot erase chapter progression.
         // Chapter II ramps after its midpoint. Later chapters assume a learned toolkit and retained equipment, never inspect gear to scale enemies.
         const progress = chapter === 2 && world.spawn && world.bossSpawn ? clamp((world.spawn.z - s.z) / Math.max(1, world.spawn.z - world.bossSpawn.z), 0, 1) : clamp(ei / Math.max(1, encounterDefs.length - 1), 0, 1), isBoss = !!stats.boss || s.type === 'boss';
         const pressure = chapter === 2 ? clamp((progress - .45) / .55, 0, 1) : progress;
-        const campaignHealth = chapter === 1 ? 1 : isBoss ? [1, 1, 1.22, 1.38, 1.50][chapter] : chapter === 2 ? 1 + .22 * pressure : chapter === 3 ? 1.24 + .16 * pressure : 1.40 + .16 * pressure;
-        const campaignPace = chapter === 1 || isBoss ? 1 : chapter === 2 ? 1 - .08 * pressure : chapter === 3 ? .92 - .04 * pressure : .88 - .03 * pressure;
-        const campaignDamage = chapter === 1 ? (ei === 0 ? .65 : ei === 1 ? .72 : .72 + .28 * Math.min(ei,5) / 5) : chapter === 2 ? 1.05 + .12 * pressure : chapter === 3 ? 1.22 + .12 * pressure : 1.36 + .12 * pressure;
-        const maxHp = Math.round(stats.hp * (isBoss ? BALANCE.bossHealth : BALANCE.health) * stage * campaignHealth * (s.elite && !stats.elite ? 1.45 : 1));
+        const campaignHealth = chapter === 1 ? 1 : isBoss ? 1.50 + Math.max(0, chapter - 4) * .12 - (chapter < 4 ? [0, .5, .5, .28, .12][chapter] : 0) : chapter === 2 ? 1 + .22 * pressure : chapter === 3 ? 1.24 + .16 * pressure : 1.40 + (chapter - 4) * .12 + .16 * pressure;   // chapter >= 4 grows per chapter index (V: final)
+        const campaignPace = chapter === 1 || isBoss ? 1 : chapter === 2 ? 1 - .08 * pressure : chapter === 3 ? .92 - .04 * pressure : .88 - (chapter - 4) * .02 - .03 * pressure;
+        const campaignDamage = chapter === 1 ? (ei === 0 ? .65 : ei === 1 ? .72 : .72 + .28 * Math.min(ei,5) / 5) : chapter === 2 ? 1.05 + .12 * pressure : chapter === 3 ? 1.22 + .12 * pressure : 1.36 + (chapter - 4) * .1 + .12 * pressure;
+        // Chapter smoothing (combat-tuning.js CHAPTER, measured): common foes of each chapter against the hero's expected level and gear there.
+        const chapterTune = TUNE ? (isBoss ? { hp: 1, dmg: (TUNE.BOSS[chapter] || { dmg: 1 }).dmg } : TUNE.CHAPTER[chapter] || { hp: 1, dmg: 1 }) : { hp: 1, dmg: 1 };
+        const maxHp = Math.round(stats.hp * (isBoss ? BALANCE.bossHealth : BALANCE.health) * stage * campaignHealth * chapterTune.hp * (s.elite && !stats.elite ? 1.45 : 1));
         const holder = new THREE.Group(); holder.name = 'enemy-holder'; holder.add(model.root); root.add(holder);
         guardRenderMatrices(holder); guardRenderMatrices(model.root); model.root.userData.skipFresh = true;
         const enemy = {
@@ -628,7 +678,7 @@
           x: s.x, z: s.z, spawnX: s.x, spawnZ: s.z, face: Math.PI, holder, inView: true,
           hp: maxHp, maxHp, baseMaxHp:maxHp, dead: false, model, elite: !!s.elite || !!stats.elite, boss: !!stats.boss || s.type === 'boss', phase: 1,
           active: false, activated: false, cooldown: .4 + si * .33, action: null,
-          radius: model.radius || stats.radius, stats, tutorialStage: chapter === 1 && ei < 2 && !stats.boss && s.type !== 'boss' ? ei : -1, campaignPace, campaignDamage: (s.elite ? 1.1 : 1) * campaignDamage, hurt: 0, stagger: 0,
+          radius: model.radius || stats.radius, stats, tutorialStage: chapter === 1 && ei < 2 && !stats.boss && s.type !== 'boss' ? ei : -1, campaignPace, campaignDamage: (s.elite ? 1.1 : 1) * campaignDamage * chapterTune.dmg, hurt: 0, stagger: 0,
           deadAge: 0, move: 0, buff: 0, buffCooldown: 7 + si, cycle: 0,
           retreat: 0, shieldBroken: 0, poiseRecovery: 0, shield: s.type === 'guard', faceLocked: false, reserve: !!s.reserve
         };
@@ -692,7 +742,7 @@
       try {
         const saved = JSON.parse(window.localStorage.getItem(SAVE_KEY));
         if (!saved || saved.version !== 3 || saved.chapter !== chapter || !saved.progression || ![1, BABA.Progression.VERSION].includes(saved.progression.version) || !Array.isArray(saved.progression.inventory)) return null;
-        if (saved.completed && chapter === 4 && saved.index === 0) return Object.assign(freshSnapshot(saved.progression), { completed: true,
+        if (saved.completed && chapter === FINAL && saved.index === 0) return Object.assign(freshSnapshot(saved.progression), { completed: true,
           kills: Number.isSafeInteger(saved.kills) && saved.kills >= 0 ? saved.kills : 0,
           elapsed: clamp(Number(saved.elapsed) || 0, 0, 86400), quests: saved.quests || null });
         if (saved.transition && chapter >= 2 && saved.index === 0) return freshSnapshot(saved.progression);
@@ -731,6 +781,7 @@
     function resetToSnapshot(snapshot) {
       cancelPlayerCharge();
       clearHazards(); shudder(false); game.resetSerial++;
+      if (director) director.reset(); if (mobMods) mobMods.reset(); if (mobAbil) mobAbil.reset();
       if (!progression.restore(snapshot.progression || initialProfile)) progression.reset();
       syncProgression(true);
       game.campaignCompleted = !!snapshot.completed;
@@ -738,10 +789,13 @@
       if (limbs) limbs.reset(enemies);
       if (globes) globes.reset();
       if (groundLoot) groundLoot.reset();
+      if (talents) talents.reset();
       simTime = 0; buffer = {}; drinkLeft = 0; blockedPropHold = null; order = null; swingPlan = null; dodgeAim = null; pendingClick = pendingDodge = null; showTargetRing(null); clearMoveMark();
       dodgeAge = 0; forcedMotion = null; healingAge = 0; comboStep = 0; comboWindow = 0; spinCur = 0;
       playerHitImmunity = 0; endAnnounced = false; hintCooldown = 0; deniedCooldown = 0; deniedId = ''; lackSerial = 0; openingGrace = snapshot.index ? 0 : 8;
       freeze = 0; slowmo = 0; victims.length = 0; evadeCooldown = 0; game.hitStop = 0; game.timeScale = 1; pairCd = 0;
+      staminaWait = 0; staminaMark = player.maxStamina; dodgeChain = 0; lastRollAt = -99; lastRollCost = 0; perfectCd = 0; player.opening = 0; player.dodgeCost = DODGE.cost;
+      { const P = tuning(); if (P) player.maxFlasks = P.flasks; }
       aimFace = moveFace = assistFoe = null;
       Object.assign(player, {
         x: snapshot.x, z: snapshot.z, face: Math.PI, yaw: Math.PI, hp: player.maxHp, stamina: player.maxStamina,
@@ -787,6 +841,7 @@
       hero.animate(0, heroPose);
       emit('boss', { name: game.boss ? game.boss.name : STATS.boss.name, active: false });
     }
+    setDifficulty(game.difficulty, true);   // apply the default profile once; app.js calls setDifficulty again with the saved choice
     resetToSnapshot(Object.assign(freshSnapshot(checkpointSnapshot.progression), { completed: !!checkpointSnapshot.completed }));
     // A saved run is only placed on the map when Play is pressed.
     game.checkpointIndex = checkpointSnapshot.index;
@@ -801,7 +856,7 @@
         return;
       }
       game.state = 'playing';
-      emit('toast', { text: chapter === 4 ? (checkpointSnapshot.index ? KabirI18n.t('Son ocak yemininden devam ediyorsun. Ocağın Kalbi ileride.') : KabirI18n.t('Kızıl Ocak. Zincir tezgâhlarını geç; ocağın kalbini söndür.')) : chapter === 3 ? (checkpointSnapshot.index ? KabirI18n.t('Son yemin taşından devam ediyorsun. Oyukların Kralı ileride.') : KabirI18n.t('Sessiz Taht. Harabelerden mağaraya in; oyukların kaynağını sustur.')) : world.chapter === 2 ? (checkpointSnapshot.index ? KabirI18n.t('Son Fener’den devam ediyorsun. Çancı ileride.') : KabirI18n.t('Kara Kıyı. Kökleri yar. Boğulmuş çanı sustur.')) : checkpointSnapshot.index ? KabirI18n.t('Son mühürden devam ediyorsun. Cellat ileride.') : KabirI18n.t('Kurban Tapınağı. Mührü bul. Celladı sustur.') });
+      emit('toast', { text: chapter === 5 ? (checkpointSnapshot.index ? KabirI18n.t('Son yemin taşından devam ediyorsun. Kara Kadı ileride.') : KabirI18n.t('Son Mahkeme. Boşluğun üstündeki yolu geç; hükmü veren eli kır.')) : chapter === 4 ? (checkpointSnapshot.index ? KabirI18n.t('Son ocak yemininden devam ediyorsun. Ocağın Kalbi ileride.') : KabirI18n.t('Kızıl Ocak. Zincir tezgâhlarını geç; ocağın kalbini söndür.')) : chapter === 3 ? (checkpointSnapshot.index ? KabirI18n.t('Son yemin taşından devam ediyorsun. Oyukların Kralı ileride.') : KabirI18n.t('Sessiz Taht. Harabelerden mağaraya in; oyukların kaynağını sustur.')) : world.chapter === 2 ? (checkpointSnapshot.index ? KabirI18n.t('Son Fener’den devam ediyorsun. Çancı ileride.') : KabirI18n.t('Kara Kıyı. Kökleri yar. Boğulmuş çanı sustur.')) : checkpointSnapshot.index ? KabirI18n.t('Son mühürden devam ediyorsun. Cellat ileride.') : KabirI18n.t('Kurban Tapınağı. Mührü bul. Celladı sustur.') });
     }
     function restart() {
       if (disposed) return;
@@ -837,14 +892,14 @@
       game.attackTarget = null;
       if (globes) globes.reset();
       saveCheckpoint(); flashRing(checkpoint.x, checkpoint.z, 3.3, 0xf0d293, 1.4);
-      sound('checkpoint'); emit('checkpoint', { index: 1, name: chapter === 4 ? 'Son Ocak Yemini' : chapter === 3 ? KabirI18n.t('Tahtın Eşiği') : world.chapter === 2 ? KabirI18n.t('Son Fener') : KabirI18n.t('Celladın Eşiği') });
+      sound('checkpoint'); emit('checkpoint', { index: 1, name: chapter === 5 ? KabirI18n.t('Son Tanıklık') : chapter === 4 ? 'Son Ocak Yemini' : chapter === 3 ? KabirI18n.t('Tahtın Eşiği') : world.chapter === 2 ? KabirI18n.t('Son Fener') : KabirI18n.t('Celladın Eşiği') });
       return true;
     }
     function interact() {
       if (game.state !== 'playing') return;
       if (quests && quests.interact()) return;
       if (activateCheckpoint()) return;
-      if (distance(player, checkpoint) < 6.1) emit('toast', { text: game.checkpointIndex ? (chapter === 4 ? KabirI18n.t('Yemin mühürlü. Ocağın Kalbi ileride bekliyor.') : chapter === 3 ? KabirI18n.t('Yemin mühürlü. Oyukların Kralı ileride bekliyor.') : world.chapter === 2 ? KabirI18n.t('Yemin mühürlü. Çancı ileride bekliyor.') : KabirI18n.t('Mühür açık. Cellat salonda bekliyor.')) : KabirI18n.t('Yakındaki tehlikeden uzaklaş; sonra yemin taşına dön.') });
+      if (distance(player, checkpoint) < 6.1) emit('toast', { text: game.checkpointIndex ? (chapter === 5 ? KabirI18n.t('Yemin mühürlü. Kara Kadı ileride bekliyor.') : chapter === 4 ? KabirI18n.t('Yemin mühürlü. Ocağın Kalbi ileride bekliyor.') : chapter === 3 ? KabirI18n.t('Yemin mühürlü. Oyukların Kralı ileride bekliyor.') : world.chapter === 2 ? KabirI18n.t('Yemin mühürlü. Çancı ileride bekliyor.') : KabirI18n.t('Mühür açık. Cellat salonda bekliyor.')) : KabirI18n.t('Yakındaki tehlikeden uzaklaş; sonra yemin taşına dön.') });
     }
 
     function moveBody(body, dx, dz, radius) {
@@ -952,7 +1007,8 @@
       }
       if (enemy.boss) return simultaneous === 0;
       if (enemy.tutorialStage === 0) return simultaneous === 0;
-      return simultaneous < 3 && same < (mine ? 1 : 2);
+      const P = tuning();
+      return simultaneous < (P ? P.attackers : 3) && same < (mine ? 1 : P ? P.melee : 2);
     }
 
     // ------------------------------------------------------------------ moves
@@ -972,19 +1028,22 @@
       for (let s = 0; s <= .4501; s += .05) if (times.every(t => others.every(o => Math.abs(t + s - o) >= RHYTHM))) return s;
       return -1;
     }
-    function setDifficulty(level) {
+    function setDifficulty(level, force) {
       const next=['easy','normal','hard'].includes(level)?level:'normal';
-      if (next===game.difficulty) return;
+      if (next===game.difficulty && !force) return;
       game.difficulty=next;
+      const P=tuning();
       for(const enemy of enemies){
         const fraction=enemy.maxHp>0?enemy.hp/enemy.maxHp:1;
-        enemy.maxHp=Math.round(enemy.baseMaxHp*(next==='easy'?.72:1));
+        // Profile health (combat-tuning.js); elites carry the profile's elite bonus on top. Bosses use the plain multiplier.
+        enemy.maxHp=Math.round(enemy.baseMaxHp*(P?P.enemyHp*(enemy.elite&&!enemy.boss?P.eliteHp:1):next==='easy'?.72:1));
         enemy.hp=enemy.dead?0:enemy.maxHp*fraction;
       }
+      if (P) { player.maxFlasks=P.flasks; player.flasks=Math.min(player.flasks,P.flasks); }
     }
     function beginMove(enemy, move) {
-      const timingScale = game.difficulty === 'hard' ? 1 : game.difficulty === 'easy' ? 1.2 : 1.12;
-      if(game.difficulty !== 'hard') {
+      const timingScale = tuning() ? tuning().pace : game.difficulty === 'hard' ? 1 : game.difficulty === 'easy' ? 1.2 : 1.12;
+      if(timingScale !== 1) {
         const pace=timingScale;
         move=Object.assign({},move,{duration:move.duration*pace,hits:(move.hits||[]).map(h=>Object.assign({},h,{at:h.at*pace,warn:h.warn*pace}))});
         if(move.movement) move.movement=Object.assign({},move.movement,{start:move.movement.start*pace,duration:move.movement.duration*pace});
@@ -1277,7 +1336,7 @@
     }
     mech = BABA.BossMech ? BABA.BossMech.create({ root, player, game, hazards, addHazard, cancelHazards, walkable, anchorWalkable, propContacts, clearStrike, emit, sound, fx,
       groundY: (x, z) => world.effectHeightAt ? world.effectHeightAt(x, z, .6) : .06 }) : null;
-    const PACE = () => game.difficulty === 'hard' ? 1 : game.difficulty === 'easy' ? 1.2 : 1.12;   // beginMove stretches every move by this; timers that run outside a move follow it
+    const PACE = () => tuning() ? tuning().pace : game.difficulty === 'hard' ? 1 : game.difficulty === 'easy' ? 1.2 : 1.12;   // beginMove stretches every move by this; timers that run outside a move follow it
     // Zincir Çekişi (gravity pull, then the slam on the spot where you land): a gold ring drags everything inside it to the executioner, a crimson circle under him
     // appears .3 s later and bursts 1 s after that. Roll through the ring (no pull) or roll out of the circle.
     function pullMove(e) {
@@ -1341,12 +1400,20 @@
     const coast = BABA.CoastCombat ? BABA.CoastCombat.create({ player, pick, beginMove, clipLine, walkable, cancelHazards, emit, sound, fx, bonus: (x,z,n) => { if (globes) globes.bonus(x,z,n); } }) : null;
     const ruins = BABA.RuinsCombat ? BABA.RuinsCombat.create({ player, pick, beginMove, clipLine, walkable, cancelHazards, emit, sound, fx, bonus: (x,z,n) => { if (globes) globes.bonus(x,z,n); } }) : null;
     const forge = BABA.ForgeCombat ? BABA.ForgeCombat.create({ player, pick, beginMove, clipLine, walkable, cancelHazards, emit, sound, fx, bonus: (x,z,n) => { if (globes) globes.bonus(x,z,n); } }) : null;
+    const finale = BABA.FinaleCombat && chapter === FINAL ? BABA.FinaleCombat.create({ player, pick, beginMove, clipLine, walkable, cancelHazards, emit, sound, fx, game, enemies, slow: s => slowMotion(s), bonus: (x,z,n) => { if (globes) globes.bonus(x,z,n); } }) : null;
     // Round 7: chapter III / IV boss set pieces (orbs, cover pillars, adds, burning ground) live in boss2.js; the move tables get a handle on it.
     if (BABA.Boss2 && chapter >= 2) {
       boss2 = BABA.Boss2.create({ root, world, chapter, game, player, enemies, hazards, emit, sound, fx, walkable, hitPlayer, hazardFrom, addHazard, killEnemy, restoreEnemy: enemy => { if (limbs) limbs.restore(enemy); Object.assign(enemy, freshEnemyFields(enemy)); enemy.poiseRecovery = 0; } });
       if (ruins && ruins.attach) ruins.attach(boss2);
       if (forge && forge.attach) forge.attach(boss2);
+      if (finale && finale.attach) finale.attach(boss2);
     }
+    // ajan:bosses — shared boss director + champion modifiers (see the header notes of boss-framework.js / mob-mods.js).
+    const bfApi = { root, world, chapter, game, player, enemies, hazards, emit, sound, fx, walkable, clipLine, clearStrike, beginMove, hazardFrom, addHazard, hitPlayer, slowMotion,
+      groundY: (x, z) => world.effectHeightAt ? world.effectHeightAt(x, z, .6) : .06 };
+    if (BABA.BossFramework) director = BABA.BossFramework.create(bfApi);
+    if (BABA.MobMods) mobMods = BABA.MobMods.create(bfApi);
+    if (BABA.MobAbilities) mobAbil = BABA.MobAbilities.create(bfApi);   // innate role abilities of ordinary foes (mob-abilities.js)
     function bossAttack(e, d) {
       if (d > 14.5) return false;
       const m = mech, ph = e.phase === 2 ? (e.enraged ? 3 : 2) : 1, hpf = e.hp / e.maxHp, last = e.lastMove;
@@ -1419,6 +1486,7 @@
     }
     // Kanlı Yemin: the executioner roars (a gold shockwave that pushes the hero out), then chains his blows.
     function enemyPhaseChange(enemy) {
+      if (enemy.stats.finale && finale) { finale.phase(enemy); return; }
       if (enemy.stats.forge) { forge.phase(enemy); return; }
       if (enemy.stats.ruins) { ruins.phase(enemy); return; }
       if (enemy.stats.coast) { coast.phase(enemy); return; }
@@ -1466,7 +1534,7 @@
         if (enemy.boss) cd *= (enemy.enraged ? .65 : enemy.phase === 2 ? .75 : 1) * (distance(enemy, player) < 3.6 && action.cooldown == null ? .55 : 1);
         if (enemy.cdScale) cd *= enemy.cdScale;   // round 7: the chapter I / II bosses rest less (set per phase / frenzy in their attack tables)
         else if (enemy.type === 'prisoner' && enemy.hp < enemy.maxHp * .3) cd *= .7;
-        const scaled = cd * (enemy.campaignPace || 1) * (game.difficulty === 'easy' ? 1.25 : game.difficulty === 'normal' ? 1.15 : 1) * (enemy.tutorialStage === 0 ? 1.2 : enemy.tutorialStage === 1 ? 1.1 : 1);
+        const scaled = cd * (enemy.campaignPace || 1) * (tuning() ? tuning().rest : game.difficulty === 'easy' ? 1.25 : game.difficulty === 'normal' ? 1.15 : 1) * (enemy.tutorialStage === 0 ? 1.2 : enemy.tutorialStage === 1 ? 1.1 : 1);
         // A visible punish window survives late-phase and frenzy acceleration. Heavy commitments leave longer openings.
         enemy.recoveryFloor = enemy.boss ? (SPECIAL_IDS.includes(action.moveId) ? .58 : .36) : enemy.elite ? .28 : .14;
         enemy.cooldown = Math.max(enemy.recoveryFloor, scaled);
@@ -1509,7 +1577,9 @@
       if (!enemy.stats.coast && !enemy.stats.ruins && !enemy.stats.forge && enemy.boss) { enemy.wrath = Math.max(0, enemy.wrath - dt * 12); if (enemy.wrath >= 70 && d < 3.2) { enemy.wrath = 0; if (beginMove(enemy, kickMove())) { advanceEnemyAction(enemy, dt); return; } } }
       if (enemy.cooldown <= 0 && enemy.fear <= 0 && openAttackSlots(enemy)) {
         let attacked = false;
-        if (enemy.stats.forge) attacked = forge.attack(enemy, d);
+        if (enemy.boss && director && director.attack(enemy, d)) attacked = true;
+        else if (enemy.stats.finale && finale) attacked = finale.attack(enemy, d);
+        else if (enemy.stats.forge) attacked = forge.attack(enemy, d);
         else if (enemy.stats.ruins) attacked = ruins.attack(enemy, d);
         else if (enemy.stats.coast) attacked = coast.attack(enemy, d);
         else if (enemy.type === 'prisoner') attacked = prisonerAttack(enemy, d);
@@ -1548,16 +1618,21 @@
           const strafe = enemy.face + Math.PI / 2 * (enemy.index % 2 ? 1 : -1);
           moveBody(enemy, Math.sin(strafe) * .55 * dt, Math.cos(strafe) * .55 * dt, enemy.radius); enemy.move = .3;
         }
-      } else if (['stalker', 'crawler', 'cavefang', 'slagcrawler'].includes(enemy.type) && d > 3 && d < 6.5 && enemy.cooldown > .3) {
+      } else if (['stalker', 'crawler', 'cavefang', 'slagcrawler', 'voidcrawler'].includes(enemy.type) && d > 3 && d < 6.5 && enemy.cooldown > .3) {
         const strafe = enemy.face + Math.PI / 2 * (enemy.index % 2 ? 1 : -1);
         moveBody(enemy, Math.sin(strafe) * speed * .8 * dt, Math.cos(strafe) * speed * .8 * dt, enemy.radius); enemy.move = .8;
-      } else if (['guard', 'gravemason', 'forgesentinel'].includes(enemy.type)) {
+      } else if (['guard', 'gravemason', 'forgesentinel', 'chainjailer'].includes(enemy.type)) {
         const post = guardPost(enemy);
         if (post && distance(enemy, post) > .35) { walkTo(enemy, post, speed * .85, dt); enemy.shield = enemy.type === 'guard' && enemy.shieldBroken <= 0; }
         else if (!post && d > (enemy.type === 'guard' ? 2.65 : 3.4)) walkTo(enemy, player, speed, dt);
       } else if (enemy.boss && d < 3.2 && enemy.cooldown > .3) {
         // Between moves he steps back to the length of his axe rather than trading blows at the hero's range.
         const away = angleTo(player, enemy); moveBody(enemy, Math.sin(away) * speed * .75 * dt, Math.cos(away) * speed * .75 * dt, enemy.radius); enemy.move = .75;
+      } else if (TUNE && !enemy.boss && d < 3.3 && enemy.cooldown > .25 && enemy.stagger <= 0 && !enemy.stats.ranged) {
+        // Waiting for its turn (rest or no free attack slot): circle the hero at blade range instead of standing still.
+        // Odd and even foes go opposite ways; the radial term holds ~2.3 m so the ring keeps its pressure without crowding.
+        const a = angleTo(player, enemy), side = enemy.index % 2 ? 1 : -1, radial = clamp(2.3 - d, -.6, .6), k = TUNE.FEEL.circle;
+        moveBody(enemy, (Math.cos(a) * side * k + Math.sin(a) * radial) * speed * dt, (-Math.sin(a) * side * k + Math.cos(a) * radial) * speed * dt, enemy.radius); enemy.move = k;
       } else if (d > (enemy.boss ? 4 : 2.05)) walkTo(enemy, enemy.boss ? player : approachPoint(enemy), speed, dt);
       separateEnemies(enemy, dt);
     }
@@ -1575,6 +1650,9 @@
       enemy.dead = true; enemy.hp = 0; enemy.deadAge = 0; enemy.action = null; enemy.shield = false; enemy.active = false; enemy.stagger = 0;
       if (game.attackTarget === enemy) game.attackTarget = null;
       cancelHazards(enemy, false); if (!enemy.reserve) game.kills++;
+      if (mobMods) mobMods.kill(enemy);
+      if (director && enemy.boss) director.slain(enemy);
+      if (talents) talents.onKill(enemy);
       progression.grantEnemy(enemy.id, enemy.type, enemy.boss, chapter, game.difficulty, enemy.elite, enemy);
       syncProgression();
       if (gate) gate.kill(enemy);
@@ -1587,6 +1665,11 @@
         emit('toast', { text: enemy.boss ? KabirI18n.t('Arena açıldı. Boss yenildi.') : seal.encounter.clearText });
       }
       emit('kill', { name: enemy.name, boss: enemy.boss, x: enemy.x, z: enemy.z }); sound(enemy.boss ? 'bossDeath' : 'kill', { type: enemy.type, x: enemy.x, z: enemy.z });
+      // The weight of the last death: the boss, or the final foe of a hall, falls in a beat of slow motion (every clock together).
+      if (TUNE && !enemy.reserve) {
+        if (enemy.boss) slowMotion(TUNE.FEEL.bossKillSlowmo);
+        else if (enemy.encounter.enemies.every(e => e.dead || e.reserve)) slowMotion(TUNE.FEEL.lastKillSlowmo);
+      }
       fx('death', { x: enemy.x, y: .8, z: enemy.z, boss: enemy.boss });
       if (globes && !enemy.boss) globes.roll(enemy, enemy.deathKind === 'blown' ? 'heavy' : 'light', angleTo(player, enemy), () => rand(enemy));   // health globe (seeded by the foe's own RNG)
       if (enemy.type === 'carrier') {
@@ -1619,7 +1702,15 @@
       if (attack && attack.critical === undefined) attack.critical = Math.random() < game.criticalChance;
       const critical = !!(attack && attack.critical);
       damage = Math.max(1, Math.round(damage * (player.damageMultiplier || 1) * (critical ? game.criticalMultiplier : 1) * (enemy.boss ? 1 + questBenefit('bossDamage', .20) : 1)));
-      if (game.difficulty !== 'hard') damage = Math.round(damage * 1.18);
+      { const P = tuning(); if (P) damage = Math.round(damage * P.playerDmg); else if (game.difficulty !== 'hard') damage = Math.round(damage * 1.18); }
+      // Opening after a last-moment roll: harder blows that stagger like heavy ones (bosses only take the damage).
+      const opening = player.opening > 0 && !!ECON && !!attack;
+      // Blows that land refill the stamina orb a little (combat-tuning.js ECONOMY.HIT); shield-blocked blows do not.
+      if (ECON && attack && !(enemy.shield && Math.abs(angleDifference(angleTo(enemy, player), enemy.face)) < 1.4 && !heavy)) {
+        const H = ECON.HIT, gain = attack.whirl ? H.whirl : attack.skill || attack.line ? H.skill : heavy ? H.heavy : H.light, room = H.cap - (attack.gained || 0);
+        if (room > 0) { const g = Math.min(room, gain + (enemy.hp <= damage ? H.kill : 0)); attack.gained = (attack.gained || 0) + g; player.stamina = Math.min(player.maxStamina, player.stamina + g); staminaMark = player.stamina; }
+      }
+      if (opening) damage = Math.round(damage * ECON.PERFECT.damage);
       if (attack) trackAttackTarget(enemy);
       const toPlayer = angleTo(enemy, player), fromFront = Math.abs(angleDifference(toPlayer, enemy.face)) < 1.4;
       const finisher = !!(attack && !heavy && attack.combo === 2), away = angleTo(player, enemy);
@@ -1645,9 +1736,10 @@
           enemy.shieldBroken = 4; enemy.shield = false;
           emit('toast', { text: KabirI18n.t('Muhafızın savunması kırıldı.') }); sound('guardBreak');
         }
-        const canStagger = !enemy.boss && (breaksGuard || enemy.poiseRecovery <= 0 && (heavy || enemy.type === 'cultist' || (!enemy.action && enemy.type !== 'guard') || (attack && attack.rage && enemy.type !== 'guard')));
+        const canStagger = !enemy.boss && (breaksGuard || enemy.poiseRecovery <= 0 && (heavy || enemy.type === 'cultist' || (!enemy.action && enemy.type !== 'guard') || (attack && attack.rage && enemy.type !== 'guard') || (opening && enemy.type !== 'guard')));
         if (canStagger) {
-          enemy.stagger = enemy.staggerTotal = heavy ? .55 : .22; enemy.staggerKind = breaksGuard ? 'guardBreak' : heavy ? 'heavy' : 'light';
+          enemy.staggerVariant = (attackSerial + enemy.index) % 3;   // reel back / twist aside / buckle (authored-motion.js)
+          enemy.stagger = enemy.staggerTotal = heavy ? .55 : opening ? .42 : .22; enemy.staggerKind = breaksGuard ? 'guardBreak' : heavy || opening ? 'heavy' : 'light';
           enemy.action = null; enemy.faceLocked = false;
           enemy.poiseRecovery = heavy ? 3 : 1.1;
           enemy.cooldown = Math.max(enemy.cooldown, heavy ? .9 : .3); cancelHazards(enemy, true);
@@ -1655,14 +1747,19 @@
         push(enemy, away, enemy.boss ? (heavy ? FEEL.knock.bossHeavy : FEEL.knock.boss) : heavy ? FEEL.knock.heavy : finisher ? FEEL.knock.finisher : FEEL.knock.light);
         if (breaksGuard) enemy.guardBroke = true;
       }
+      if (mobMods && !blocked) damage = mobMods.hurt(enemy, damage, heavy || !!(attack && (attack.whirl || attack.rage)), blocked);
+      if (director && enemy.boss) damage = director.hurt(enemy, damage);
+      if (mobAbil && !blocked) damage = mobAbil.hurt(enemy, damage, attackFace);
+      if (talents && !blocked) damage = talents.outgoing(enemy, damage, attack);
       enemy.hp = Math.max(0, enemy.hp - damage); if (enemy.boss && !enemy.action) enemy.wrath += damage;
       if (player.rageTime > 0 && !blocked && player.hp > 0) player.hp = Math.min(player.maxHp, player.hp + damage * ROAR.steal * (1 + questBenefit('healingBonus', .20)) * 100 / player.effectiveMaxHp);   // blood fury: a little of every blow comes back
       const killed = enemy.hp <= 0;
+      if (talents && !blocked) talents.onHit(enemy, damage, attack, killed);
       if (killed) enemy.deathKind = !enemy.boss && (heavy || finisher) ? 'blown' : '';
       const spray = attack ? sweepAngle(attack) : attackFace;
-      emit('hit', { target: 'enemy', x: enemy.x, z: enemy.z, damage, blocked, braced, heavy, critical, face: attackFace, combo: attack ? attack.combo : 0, finisher, kill: killed,
+      emit('hit', { target: 'enemy', x: enemy.x, z: enemy.z, damage, blocked, braced, heavy, critical: critical || opening, opening, face: attackFace, combo: attack ? attack.combo : 0, finisher, kill: killed,
         hitstop: 0, impact: blocked ? .3 : heavy ? 1 : finisher ? .8 : .45 });
-      fx(blocked ? 'spark' : 'blood', { x: contact.x, y: contact.y, z: contact.z, damage, labelTarget: enemy, heavy: heavy || finisher, critical, face: attackFace, spray, kill: killed, boss: enemy.boss, shield: blocked, rage: !!(attack && attack.rage), braced });
+      fx(blocked ? 'spark' : 'blood', { x: contact.x, y: contact.y, z: contact.z, damage, labelTarget: enemy, heavy: heavy || finisher || opening, critical: critical || opening, face: attackFace, spray, kill: killed, boss: enemy.boss, shield: blocked, rage: !!(attack && attack.rage), braced });
       if (braced && !killed) fx('spark', { x: contact.x, y: contact.y + .2, z: contact.z, face: attackFace, glance: true });
       if (killed) killEnemy(enemy);
       else enemyPhaseChange(enemy);
@@ -1690,7 +1787,7 @@
       buffer = {}; pendingDodge = null; player.pendingAction = null; player.lack = null; game.attackTarget = null;
       progression.completedChapter(chapter); syncProgression();
       // The first boss writes the shore entrance atomically with every earned reward.
-      const complete = chapter === 4;
+      const complete = chapter === FINAL;
       const transition = { version: 3, chapter: complete ? chapter : chapter + 1, index: 0, transition: !complete, completed: complete, dead: [], kills: complete ? game.kills : 0, elapsed: complete ? game.elapsed : 0, progression: progression.snapshot() };
       if (complete && quests) transition.quests = quests.snapshot();
       try { window.localStorage.setItem(SAVE_KEY, JSON.stringify(transition)); } catch (_) { emit('toast', { text: KabirI18n.t('Bölüm geçişi bu cihazda kaydedilemedi.') }); }
@@ -1701,18 +1798,32 @@
     function hitPlayer(hazard) {
       if (game.state !== 'playing' || player.dead || playerHitImmunity > 0) return false;
       if (player.invulnerable) {
+        if (director) director.evaded(hazard);   // a late, well-timed roll through a boss blow exposes the boss (boss-framework.js)
         // A strike that passes through the roll's protection is shown, never silently swallowed.
-        if (!hazard.harmless && !hazard.periodic && evadeCooldown <= 0) { evadeCooldown = .35; fx('evade', { x: player.x, y: 1, z: player.z, face: player.face }); emit('evade', { x: player.x, z: player.z, attack: hazard.attack }); }
+        const P = tuning(), perfect = !!(P && ECON && player.dodge > 0 && dodgeAge <= P.perfectWindow && perfectCd <= 0 && !hazard.harmless && !hazard.periodic && hazard.damage > 0);
+        if (perfect) {
+          // Last-moment roll: the blow was already falling when the roll began. The roll is refunded, the chain forgiven and the
+          // hero's next blows land hard for a moment (OPENING). A thin slow-down on every clock sells the near miss (fair to both sides).
+          perfectCd = ECON.PERFECT.cooldown; player.opening = ECON.PERFECT.opening; dodgeChain = 0; lastRollAt = -99;
+          player.stamina = Math.min(player.maxStamina, player.stamina + lastRollCost * ECON.PERFECT.refund); staminaWait = 0; staminaMark = player.stamina;
+          slowMotion(ECON.PERFECT.slowmo); sound('parry', { x: player.x, z: player.z, volume: .55 });
+          flashRing(player.x, player.z, 1.6, 0xe8c27a, .45);
+          game.perfectDodges = (game.perfectDodges || 0) + 1;
+        }
+        if (!hazard.harmless && !hazard.periodic && (evadeCooldown <= 0 || perfect)) { evadeCooldown = .35; fx('evade', { x: player.x, y: 1, z: player.z, face: player.face, perfect }); emit('evade', { x: player.x, z: player.z, attack: hazard.attack, perfect }); }
         return false;
       }
       const attackSource = hazard.owner && !hazard.owner.dead ? hazard.owner : hazard;
       const incomingAngle = angleTo(player, attackSource);
       let damage = hazard.damage;
       if (hazard.owner) damage = Math.round(damage * (hazard.owner.boss ? EASE.bossDamage : EASE.damage) * BALANCE.damage * (hazard.owner.campaignDamage || 1));
-      if (game.difficulty !== 'hard') damage = Math.round(damage * (game.difficulty==='easy'?.5:.75));
+      { const P = tuning(), elite = !!(hazard.owner && hazard.owner.elite && !hazard.owner.boss);
+        if (P) damage = Math.round(damage * P.enemyDmg * (elite ? P.eliteDmg : 1));
+        else if (game.difficulty !== 'hard') damage = Math.round(damage * (game.difficulty==='easy'?.5:.75)); }
       damage = Math.max(1, Math.round(damage * (1 - (player.defense || 0)) * (1 - questBenefit('damageReduction', .12))));
       // The display event and the wound use the same final amount after the cry/fury's defence.
       if (player.roar) damage = Math.ceil(damage * .5); else if (player.rageTime > 0) damage = Math.ceil(damage * ROAR.guard);
+      if (talents) damage = talents.incoming(damage);
       damage *= 100 / player.effectiveMaxHp;
       player.hitAngle = angleDifference(incomingAngle, player.face);
       const heavyBlow = hazard.damage >= 26;
@@ -1831,7 +1942,7 @@
         if (!player.flasks) return rejectAction(key, 'empty', KabirI18n.t('Şifa mataraların boş.'));
         if (player.hp >= player.maxHp) return rejectAction(key, 'full', KabirI18n.t('Yaraların zaten kapalı.'));
       }
-      if (key === 'dodge' && player.stamina < DODGE.cost) return rejectAction(key, 'stamina', KabirI18n.t('Kaçınma için ') + Math.round(DODGE.cost) + KabirI18n.t(' dayanıklılık gerekiyor.'), { cost: DODGE.cost, have: player.stamina });
+      if (key === 'dodge' && player.stamina < dodgeCost()) return rejectAction(key, 'stamina', KabirI18n.t('Kaçınma için ') + Math.round(dodgeCost()) + KabirI18n.t(' dayanıklılık gerekiyor.'), { cost: dodgeCost(), have: player.stamina });
       return true;
     }
     function holdInput(input, frozen) {
@@ -1860,8 +1971,10 @@
       if (deniedCooldown <= 0 || id !== deniedId) { emit('toast', { text }); deniedCooldown = 1.5; deniedId = id; }
     }
     function beginDodge(input) {
-      if (player.stamina < DODGE.cost) return rejectAction('dodge', 'stamina',
-        KabirI18n.t('Kaçınma için ') + Math.round(DODGE.cost) + KabirI18n.t(' dayanıklılık gerekiyor (şu an ') + Math.floor(player.stamina) + ').', { cost: DODGE.cost, have: player.stamina });
+      if (talents && talents.dodgeBlocked()) return rejectAction('dodge', 'cooldown', KabirI18n.t('Zincirler henüz toplanmadı.'));
+      const rollCost = dodgeCost();
+      if (player.stamina < rollCost) return rejectAction('dodge', 'stamina',
+        KabirI18n.t('Kaçınma için ') + Math.round(rollCost) + KabirI18n.t(' dayanıklılık gerekiyor (şu an ') + Math.floor(player.stamina) + ').', { cost: rollCost, have: player.stamina });
       // Direction: the keys held (the real ones, not an auto-approach), else the pad's right stick, else the cursor / target of a click order, else the facing.
       const raw = pendingDodge || rawInput || input; pendingDodge = null;
       const rx = Number.isFinite(raw.x) ? raw.x : 0, rz = Number.isFinite(raw.z) ? raw.z : 0, len = Math.hypot(rx, rz);
@@ -1872,12 +1985,15 @@
       else if (dodgeAim !== null) dodgeVector = { x: Math.sin(dodgeAim), z: Math.cos(dodgeAim) };
       else dodgeVector = { x: Math.sin(player.face), z: Math.cos(player.face) };
       if (order && !order.held) order = null;   // a roll ends a one-shot order (a held button keeps going once the roll is over)
-      clearLack('dodge'); player.stamina -= DODGE.cost; player.dodge = .48; dodgeAge = 0; player.invulnerable = true;
+      // Chained rolls (one starting within ECON.DODGE_CHAIN s of the last one's end) climb in price; a pause resets the chain.
+      dodgeChain = simTime - lastRollAt < .48 + (ECON ? ECON.DODGE_CHAIN : 0) ? Math.min(ECON ? ECON.CHAIN_MAX : 0, dodgeChain + 1) : 0; lastRollAt = simTime; lastRollCost = rollCost;
+      if (ECON && rollCost > 0) staminaWait = Math.max(staminaWait, (tuning() ? tuning().regenDelay : 0) + ECON.DODGE_EXTRA_DELAY);   // Zincirli Kader rolls cost nothing and do not pause the refill
+      clearLack('dodge'); player.stamina -= rollCost; player.dodge = .48; dodgeAge = 0; player.invulnerable = true;
       // Two presses may share a frame. The roll starts after queuing, so retain accepted skills for this new commitment too.
       for (const key of skillKeys) if (buffer[key]) buffer[key] = Math.max(buffer[key], player.dodge + FEEL.buffer);
       player.attack = null; player.healing = 0; player.stagger = 0; healingAge = 0; forcedMotion = null; player.push = null;
       player.face = Math.atan2(dodgeVector.x, dodgeVector.z); comboStep = 0; comboWindow = 0;
-      delete buffer.dodge; emit('dodge', { x: player.x, z: player.z }); sound('dodge');
+      delete buffer.dodge; emit('dodge', { x: player.x, z: player.z }); sound('dodge'); if (talents) talents.onDodge();
       fx('dodge', { x: player.x, y: .1, z: player.z, face: player.face }); return true;
     }
     // The HUD pulses the requested slot; reason distinguishes resource shortages from cooldowns.
@@ -1930,6 +2046,7 @@
         if (r.killed) { kills++; continue; }
         e.push = null;
         if (!wasBoss) {
+          e.staggerVariant = last ? 2 : (n + e.index) % 2;
           e.stagger = e.staggerTotal = last ? SPECIAL.staggerLast : SPECIAL.stagger; e.staggerKind = last ? 'heavy' : 'light'; e.action = null; e.faceLocked = false; e.shield = false;
           e.poiseRecovery = 2.2; e.cooldown = Math.max(e.cooldown, 1.2); cancelHazards(e, true);
           if (last) push(e, away, SPECIAL.fling || .9); else if (d > 1.7) push(e, angleTo(e, player), Math.min(SPECIAL.pull, d - 1.6));   // loose foes are drawn in, the last tick throws them out
@@ -2040,7 +2157,7 @@
         const clean = hits - blocks;
         let stop = clean ? (attack.heavy ? H.heavy : finisher ? H.finisher : H.light) + (clean - 1) * H.extraTarget : H.shield;
         if (breaks && attack.heavy) stop = Math.max(stop, H.guardBreak);
-        if (kills && attack.heavy) stop += game.state === 'won' ? H.bossKill : H.kill;
+        if (kills) stop += game.state === 'won' || (attack.foe && attack.foe.boss && attack.foe.dead) ? H.bossKill : H.kill;
         shudder.push({ body: player, model: hero, amp: .012 });
         hitStop(stop * (attack.contactScale || 1), shudder);
         if (clean) sound(attack.heavy || finisher ? 'heavyHit' : 'hit', { hits, volume: finisher ? 1 : .9, weaponType: progression.stats().weaponType, material: metalContacts >= clean ? 'metal' : 'flesh', heavy: !!attack.heavy, finisher, critical: !!attack.critical, kill: kills > 0 });
@@ -2334,14 +2451,14 @@
         else if (!player.flasks) deny(KabirI18n.t('Şifa mataraların boş.'));
         else if (player.hp >= player.maxHp) deny(KabirI18n.t('Yaraların zaten kapalı.'));
         else {
-          clearLack('heal'); player.flasks--; player.hp = Math.min(player.maxHp, player.hp + 64 * (1 + questBenefit('healingBonus', .20)) * 100 / player.effectiveMaxHp); drinkLeft = DRINK;
+          clearLack('heal'); player.flasks--; player.hp = Math.min(player.maxHp, player.hp + 64 * (tuning() ? tuning().flaskHeal : 1) * (1 + questBenefit('healingBonus', .20)) * (talents ? talents.flaskHealMul() : 1) * 100 / player.effectiveMaxHp); drinkLeft = DRINK;
           emit('heal', { hp: player.hp, flasks: player.flasks }); sound('healStart'); sound('heal');
           flashRing(player.x, player.z, 1.3, 0xd7bf88, .6);
         }
       }
       if (player.dodge > 0) {
         dodgeAge += dt; player.dodge = Math.max(0, player.dodge - dt);
-        player.invulnerable = dodgeAge <= DODGE.iframe;
+        player.invulnerable = dodgeAge <= (tuning() ? tuning().iframe : DODGE.iframe);
         const speed = dodgeAge < .30 ? 12.5 : 6.2;
         moveBody(player, dodgeVector.x * speed * dt, dodgeVector.z * speed * dt, hero.radius || .5);
       } else {
@@ -2399,9 +2516,20 @@
         }
       }
       // Energy recovers during every live action, including a held attack.
-      if (player.stamina < player.maxStamina) {
-        player.stamina = Math.min(player.maxStamina, player.stamina + REGEN * (1 + questBenefit('staminaRecovery', .20)) * (player.rageTime > 0 ? 1.65 : 1) * dt);
+      if (talents) { DODGE.cost = talents.dodgeCost(RESOURCES.costs.dodge); talents.update(dt); }
+      // Energy recovers during every live action, including a held attack, but only after a short pause once some was spent
+      // (combat-tuning.js ECONOMY: a spend restarts the pause, so constant rolling starves the bar; a breath refills it quickly).
+      const P = tuning();
+      if (P && ECON) {
+        if (player.stamina < staminaMark - .01) staminaWait = Math.max(staminaWait, P.regenDelay);
+        if (staminaWait > 0) staminaWait = Math.max(0, staminaWait - dt);
+        else if (player.stamina < player.maxStamina) player.stamina = Math.min(player.maxStamina, player.stamina + ECON.REGEN * P.regen * (1 + questBenefit('staminaRecovery', .20)) * (player.rageTime > 0 ? 1.65 : 1) * (talents ? talents.regenMul() : 1) * dt);
+        staminaMark = player.stamina; player.staminaWait = staminaWait;
+      } else if (player.stamina < player.maxStamina) {
+        player.stamina = Math.min(player.maxStamina, player.stamina + REGEN * (1 + questBenefit('staminaRecovery', .20)) * (player.rageTime > 0 ? 1.65 : 1) * (talents ? talents.regenMul() : 1) * dt);
       }
+      player.opening = Math.max(0, (player.opening || 0) - dt); perfectCd = Math.max(0, perfectCd - dt);
+      player.dodgeCost = dodgeCost();
       player.status = player.healing ? KabirI18n.t('Şifa içiliyor') : player.roar ? KabirI18n.t('Savaş narası') : player.rageTime > 0 ? KabirI18n.t('Kan öfkesi') : '';
       pendingAction();
       player.move = player.dodge ? 1 : Math.min(1, moveLength) * (player.attack ? .5 : 1);
@@ -2486,10 +2614,12 @@
       hs.time = simTime; hs.attack = wh ? 0 : playerAttackPose(atk); hs.whirl = wh ? clamp(wh.age / wh.duration, 0, 1) : -1; hs.whirlTime = wh ? wh.age : -1;
       hs.attackTime = atk && !wh ? atk.age : -1; hs.attackStrike = atk ? (atk.line === 'charge' ? .2 : atk.strike) : 0; hs.attackDuration = atk ? atk.duration : 0; hs.attackSerial = atk ? atk.serial : 0;
       if (BABA.Charge && BABA.Charge.poseState) BABA.Charge.poseState(hs);   // chargeTime / impactTime ... for the Hücum pose (charge.js)
-      hs.hitAngle = player.hitAngle || 0; hs.hurtHeavy = !!player.hurtHeavy; hs.iframeEnd = DODGE.iframe / .48;
+      hs.hitAngle = player.hitAngle || 0; hs.hurtHeavy = !!player.hurtHeavy; hs.iframeEnd = (tuning() ? tuning().iframe : DODGE.iframe) / .48;
       hs.stagger = player.stagger > 0 ? 1 - player.stagger / (player.staggerTotal || .7) : 0; hs.staggerTime = player.staggerTotal || .7;
       hs.contactPhase = player.attack && player.attack.heavy ? .56 : .41;
       hs.heavy = !!(player.attack && player.attack.heavy && !wh); hs.block = false;
+      // Blade-trail tint (authored-models.js): opening after a last-moment roll > blood fury > the skill line of the swing > plain steel.
+      hs.trailTint = player.opening > 0 ? 'opening' : player.rageTime > 0 ? 'rage' : atk && atk.line ? atk.line : wh ? 'whirl' : '';
       hs.combo = player.attack ? player.attack.combo : 0; hs.parry = 0; hs.weaponType = atk && atk.weaponType || progression.stats().weaponType;
       hs.blockImpact = 0; hs.hitDirection = player.hitDirection || 0;
       hs.dodge = player.dodge ? clamp(dodgeAge / .48, .01, 1) : 0;
@@ -2565,7 +2695,7 @@
           es.attackSerial = action ? action.serial : 0; es.rushTime = action && action.movement ? action.movement.duration : 0;
           es.lookYaw = enemy.active && !enemy.dead && !player.dead ? angleDifference(angleTo(enemy, player), enemy.face) : undefined;
           es.hitAngle = enemy.hitAngle || 0; es.hurtHeavy = !!enemy.hurtHeavy; es.deathKind = enemy.deathKind || ''; es.blockImpact = enemy.blockImpact || 0;
-          es.stagger = enemy.stagger > 0 && !enemy.dead ? 1 - enemy.stagger / Math.max(enemy.stagger, enemy.staggerTotal || 0) : 0; es.staggerTime = enemy.staggerTotal || 0; es.fear = enemy.fear || 0;
+          es.stagger = enemy.stagger > 0 && !enemy.dead ? 1 - enemy.stagger / Math.max(enemy.stagger, enemy.staggerTotal || 0) : 0; es.staggerTime = enemy.staggerTotal || 0; es.staggerVariant = enemy.staggerVariant || 0; es.fear = enemy.fear || 0;
           es.attack = enemyAttackPose(enemy); es.contactPhase = enemy.boss || enemy.type === 'guard' ? .56 : .41; es.pose = beat ? beat.pose : '';
           es.launchTime=launchU>=0?launchAge:-1;es.launchDuration=.40;es.launchDirection=angleDifference(enemy.launchDirection||0,enemy.face);
           es.action = action ? action.attack : ''; es.actionProgress = action ? action.age / action.duration : 0; es.leap = leap;
@@ -2608,6 +2738,9 @@
       separateFromHero();
       updateHazards(dt);
       if (mech) mech.step(dt);
+      if (director) director.update(dt);
+      if (mobMods) mobMods.update(dt);
+      if (mobAbil) mobAbil.update(dt);
       if (game.state === 'playing') activateCheckpoint();
       updateSceneState(dt);
       if (boss2) boss2.tick(dt);
@@ -2666,6 +2799,7 @@
     }
     function dispose() {
       if (disposed) return; disposed = true;
+      if (talents) talents.dispose();
       cancelPlayerCharge();
       renderTraversal = false;
       for (const { node, guard, descriptor } of matrixGuards) {
@@ -2682,6 +2816,7 @@
       if (groundLoot) groundLoot.dispose();
       hero.dispose(); enemies.forEach(enemy => { enemy.model.dispose(); disposeObject(enemy.bar.root); });
       disposeObject(targetRing); disposeObject(moveMark); if (boss2) boss2.dispose();
+      if (director) director.dispose(); if (mobMods) mobMods.dispose(); if (mobAbil) mobAbil.dispose();
       seals.forEach(seal => disposeObject(seal.group));
       if (quests) quests.dispose();
       if (gate) gate.dispose();

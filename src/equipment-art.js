@@ -871,5 +871,5 @@
     B.GearTiming={armor:gearT1-gearT0,weapons:performance.now()-gearT1,total:performance.now()-buildT0};
     return weapons;
   }
-  B.EquipmentArt={material,finish,build,finishes,prepare,uniqueWeapons:new Set(['dull-sword', 'grave-sword', 'widow-sword', 'black-tide-sword', 'slag-edge-sword', 'hollow-crown-blade', 'ruin-lament-sword', 'cave-verdict-sword', 'black-forge-sword', 'rust-axe', 'executioner-axe', 'mourning-axe', 'furnace-oath-axe', 'sepulcher-axe', 'broken-throne-axe', 'ember-vow-axe', 'bone-spear', 'bell-spear', 'orphan-spear', 'starved-spear', 'furnace-mourning-spear', 'last-coal-spear'])};
+  B.EquipmentArt={material,finish,build,finishes,prepare,uniqueWeapons:new Set(['last-verdict-blade', 'void-oath-axe', 'chain-court-spear', 'dull-sword', 'grave-sword', 'widow-sword', 'black-tide-sword', 'slag-edge-sword', 'hollow-crown-blade', 'ruin-lament-sword', 'cave-verdict-sword', 'black-forge-sword', 'rust-axe', 'executioner-axe', 'mourning-axe', 'furnace-oath-axe', 'sepulcher-axe', 'broken-throne-axe', 'ember-vow-axe', 'bone-spear', 'bell-spear', 'orphan-spear', 'starved-spear', 'furnace-mourning-spear', 'last-coal-spear'])};
 })();

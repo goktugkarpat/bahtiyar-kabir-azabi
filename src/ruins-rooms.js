@@ -53,7 +53,9 @@
     function arcade(tint, o) {
       o = o || {};
       [-1, 1].forEach(function (s) {
-        K.wall(i, X(s * (r.w / 2 + .45)), Z(0), r.d + .2, .9, o.wallH || 6.6, false, -s, 0, { tint: tint, ruin: o.ruin == null ? .35 : o.ruin, niche: true, pil: 5.2 });
+        var nook = B.WorldARuins && B.WorldARuins.nook && B.WorldARuins.nook[i] === s;   // ajan:world-a: a doorway into a side nook
+        if (nook) { var nl = (r.d + .2 - 4) / 2; [-1, 1].forEach(function (k) { K.wall(i, X(s * (r.w / 2 + .45)), Z(k * (2 + nl / 2)), nl, .9, o.wallH || 6.6, false, -s, 0, { tint: tint, ruin: o.ruin == null ? .35 : o.ruin, niche: true, pil: 5.2 }); }); }
+        else K.wall(i, X(s * (r.w / 2 + .45)), Z(0), r.d + .2, .9, o.wallH || 6.6, false, -s, 0, { tint: tint, ruin: o.ruin == null ? .35 : o.ruin, niche: true, pil: 5.2 });
         for (var n = 0; n < 4; n++) {
           var z = (n - 1.5) * 5.2, h = [4.6, 3.5, 5.3, 2.7][(n + i + (s > 0 ? 1 : 0)) % 4], broken = ((n + i + (s > 0 ? 0 : 2)) % 3 === 2) || o.broken;
           K.column(i, X(s * (r.w / 2 - 2.2)), Z(z), h, 1.15, 'stone', { tint: tint, broken: broken, cut: R() * .25 });
@@ -64,7 +66,8 @@
     }
     function facade(tint, o) {
       o = o || {}; var zf = r.z - r.d / 2 - .75, h = o.h || 7.2;
-      var lx0 = r.x - r.w / 2 - .9, lx1 = -3.9, rx0 = 3.9, rx1 = r.x + r.w / 2 + .9;
+      var op = B.WorldARuins && B.WorldARuins.open && B.WorldARuins.open[i] || 3.9;   // ajan:world-a: open forecourt
+      var lx0 = r.x - r.w / 2 - .9, lx1 = -op, rx0 = op, rx1 = r.x + r.w / 2 + .9;
       K.wall(i, (lx0 + lx1) / 2, zf, lx1 - lx0, 1.3, h, true, 0, 1, { tint: tint, ruin: o.ruin == null ? .25 : o.ruin, niche: true, pil: 4.6 });
       K.wall(i, (rx0 + rx1) / 2, zf, rx1 - rx0, 1.3, h, true, 0, 1, { tint: tint, ruin: o.ruin == null ? .25 : o.ruin, niche: true, pil: 4.6 });
       if (!o.noGate) {
@@ -182,10 +185,10 @@
     /* cave helpers */
     function caveGap() {
       var zg = r.z - r.d / 2 - 2;
-      [-1, 1].forEach(function (s) { for (var q = 0; q < 4; q++) K.put(i, 'crag', 'rock', s * (5.6 + q * 3.3), 2.0, zg + (R() - .5) * 1.2, 4.4, 4.0 + R() * 2, 4.2, R() * 6, .1, 0, [.55, .62, .66], .5, 3); });
+      [-1, 1].forEach(function (s) { var x0 = B.WorldARuins && B.WorldARuins.wide && B.WorldARuins.wide[i] ? 8.2 : 5.6; /* ajan:world-a: broad cave passages */ for (var q = 0; q < 4; q++) K.put(i, 'crag', 'rock', s * (x0 + q * 3.3), 2.0, zg + (R() - .5) * 1.2, 4.4, 4.0 + R() * 2, 4.2, R() * 6, .1, 0, [.55, .62, .66], .5, 3); });
     }
     function caveRoom(o) { caveGap();
-      K.patches(i, r, { n: o.patches || 46, tint: o.tint, min: 1.2, max: 3.2 });
+      K.patches(i, r, { n: Math.round((o.patches || 46) * .6), tint: o.tint ? [o.tint[0] * .8, o.tint[1] * .8, o.tint[2] * .8] : [.8, .8, .8], min: 1.7, max: 3.8 });   /* ajan:world-a: plates blend into the cave floor */
       [-1, 1].forEach(function (s) {
         for (var q = 0; q < 4; q++) K.stalactite(i, X(s * (11.2 + R() * 1.6)), 6.1 + R() * .6, Z((q - 1.5) * 5.2 + (R() - .5) * 2), .5 + R() * .5, 1.6 + R() * 2, o.tint);
       });
