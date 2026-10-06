@@ -98,6 +98,10 @@
       // ---- ruined city: toppled masonry along the wall feet, pottery shards ----
       if (i <= 5) {
         [-1, 1].forEach(function (s) { for (var w = 0; w < 3; w++) K.rubble(i, X(s * (r.w / 2 - .9)), Z(-7 + w * 7 + (R() - .5) * 2), .9, 6, .45, 'stone', [.8, .8, .82], R); });
+        // heaved and broken paving: slabs lifted at an angle by roots and collapse, with the earth showing between them
+        for (var hv = 0; hv < 9; hv++) { var hx = X((R() > .5 ? 1 : -1) * (5 + R() * 6)), hz = Z((R() - .5) * (r.d - 4)), ha = R() * 6.28;
+          K.put(i, 'tile', 'floor', hx, .02 + R() * .12, hz, 1.1 + R() * .9, .16, .9 + R() * .8, ha, (R() - .5) * .5, (R() - .5) * .5, [.8, .8, .84], .4);
+          K.dec(i, 4, hx, hz, 2.2, 2.2, ha, [.3, .28, .26], .9); if (R() < .5) K.rubble(i, hx + .6, hz + .4, .5, 4, .2, 'stone', [.8, .8, .82], R); }
         for (var u = 0; u < 5; u++) { var ux = X((R() > .5 ? 1 : -1) * (9.5 + R() * 2)), uz = Z((R() - .5) * (r.d - 5)); K.put(i, 'urn', 'stone', ux, .02 + R() * .05, uz, .3 + R() * .2, .2, .25, R() * 6, PI / 2 * R(), 0, [.75, .58, .45], .3); }
       }
       // ---- the golden halls: scattered offerings ----
