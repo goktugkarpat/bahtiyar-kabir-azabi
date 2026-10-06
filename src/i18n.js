@@ -49,3 +49,13 @@ Object.assign(window.KabirI18n.dictionary,{
 "Ocak Dökümü":"Foundry Cast","Deniz Nöbetçisi":"Sea Sentinel","Kral Mezarı":"Barrow King","Cellat Yası":"Executioner's Mourning","Kemik Ayini":"Bone Rite","Lamel Muhafız":"Lamellar Guard","Derili Barbar":"Hide Barbarian","Demir Muhafız":"Iron Warden","Ayak bileklerinde kırık prangalar sallanır. Yas tutan biri bunlarla mezardan mezara yürümüş.":"Broken shackles swing at the ankles. Someone in mourning walked from grave to grave in these."
 });
 /* /ajan:gear */
+/* ajan:map */
+Object.assign(window.KabirI18n.dictionary,{
+"K":"N","Ana görev":"Main quest","Yan görev":"Side quest","Şampiyon":"Champion","Efendi":"Master","Efendinin kapısı":"The master's gate",
+"En yakın hedef":"Nearest goal","Takipte":"Tracking","Takip et":"Track","Takibi bırak":"Stop tracking","Bu yemini takip et":"Track this oath",
+"Sis, yalnız yürüdüğün yerlerden kalkar. Bir yemine dokun: yolunu çizeyim.":"The fog lifts only where you have walked. Touch an oath and its road is drawn.",
+"Küçük haritayı yakınlaştır":"Zoom the minimap in","Küçük haritayı uzaklaştır":"Zoom the minimap out",
+"Küçük harita Bahtiyar’la döner · sabitle":"Minimap turns with Bahtiyar · fix north",
+"Av":"Hunt","Kurtarma":"Rescue","Kayıp sayfa":"Lost page","Sunak":"Altar","Sandık":"Chest","Kuşatma":"Siege","Kaçış":"Escape","Mühür bulmacası":"Seal puzzle","Dokun: takip et":"Tap: track","Küçük harita sabit · Bahtiyar’la döndür":"Minimap fixed north · turn with Bahtiyar"
+});
+/* /ajan:map */
