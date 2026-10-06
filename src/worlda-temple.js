@@ -50,7 +50,7 @@
     var MERGE_MAT = { stone: 'stone~p', pale: 'pale~p', dark: 'dark~p' };
     function put(geo, mat, x, y, z, sx, sy, sz, rx, ry, rz, level, color) {
       if (!level && mat !== 'floor' && Math.max(Math.abs(sx), Math.abs(sy), Math.abs(sz)) < 1.6) level = 1;
-      if (mergeOn && level && mat !== 'floor' && K.mergeParts && G[geo] && G[geo].attributes.normal) {
+      if (mergeOn && level && !color && mat !== 'floor' && K.mergeParts && G[geo] && G[geo].attributes.normal) {
         var mk = MERGE_MAT[mat] || mat; if (!K.materials[mk]) mk = mat;
         mtmp.position.set(x, y, z); mtmp.rotation.set(rx || 0, ry || 0, rz || 0); mtmp.scale.set(sx, sy, sz); mtmp.updateMatrix();
         (mergeBuckets[mk] = mergeBuckets[mk] || []).push({ geo: G[geo], matrix: mtmp.matrix.clone() });
@@ -580,12 +580,18 @@
     var beamTex = null;
     function beam(x, z, rTop, rBot, h, color, opacity, y0) {
       if (!K.root) return;
-      if (!beamTex) { var c = document.createElement('canvas'); c.width = 4; c.height = 64; var g = c.getContext('2d'), gr = g.createLinearGradient(0, 0, 0, 64);
-        gr.addColorStop(0, 'rgba(255,255,255,0)'); gr.addColorStop(.25, 'rgba(255,255,255,.75)'); gr.addColorStop(.85, 'rgba(255,255,255,1)'); gr.addColorStop(1, 'rgba(255,255,255,.35)');
-        g.fillStyle = gr; g.fillRect(0, 0, 4, 64); beamTex = new T.CanvasTexture(c); beamTex.colorSpace = T.SRGBColorSpace; }
+      if (!beamTex) { var c = document.createElement('canvas'); c.width = 32; c.height = 64; var g = c.getContext('2d'), img = g.createImageData(32, 64);
+        for (var yy = 0; yy < 64; yy++) for (var xx = 0; xx < 32; xx++) { var u = (xx + .5) / 32 - .5, v = (yy + .5) / 64, across = Math.exp(-u * u * 22), along = Math.min(1, v / .3) * (1 - .55 * Math.max(0, (v - .8) / .2)), q = (yy * 32 + xx) * 4;
+          img.data[q] = img.data[q + 1] = img.data[q + 2] = 255; img.data[q + 3] = Math.round(255 * across * along * (.85 + .15 * Math.sin(xx * 1.7 + yy * .4))); }
+        g.putImageData(img, 0, 0); beamTex = new T.CanvasTexture(c); beamTex.colorSpace = T.SRGBColorSpace; }
       var key = 'wa-beam-' + color;
       if (!K.materials[key]) K.materials[key] = new T.MeshBasicMaterial({ color: color, map: beamTex, transparent: true, opacity: opacity, blending: T.AdditiveBlending, depthWrite: false, side: T.DoubleSide, fog: false, toneMapped: false });
-      var geo = new T.CylinderGeometry(rTop, rBot, h, 18, 1, true); if (K.uniqueGeometries) K.uniqueGeometries.push(geo);
+      var p1 = new T.PlaneGeometry(1, 1), parts = [];
+      [0, Math.PI / 2, Math.PI / 4, -Math.PI / 4].forEach(function (a) { var mm = new T.Matrix4().makeRotationY(a); parts.push({ geo: p1, matrix: mm }); });
+      var geo = K.mergeParts ? K.mergeParts(parts) : p1; var pp = geo.attributes.position;
+      for (var vi = 0; vi < pp.count; vi++) { var vy = pp.getY(vi), wdt = (vy > 0 ? rTop : rBot) * 2.2; pp.setXYZ(vi, pp.getX(vi) * wdt, vy * h, pp.getZ(vi) * wdt); }
+      geo.computeBoundingSphere();
+      if (K.emberSources) K.emberSources.push({ x: x, y: (y0 || 0) + 1.2, z: z, count: 8, spread: rBot * .8, rise: h * .6, sick: false });
       var m = new T.Mesh(geo, K.materials[key]); m.position.set(x, (y0 || 0) + h / 2, z); m.renderOrder = 6; m.castShadow = false; m.receiveShadow = false; m.name = 'wa-beam';
       m.updateMatrix(); m.matrixAutoUpdate = false; K.root.add(m);
     }
@@ -606,7 +612,7 @@
       Object.keys(BR).forEach(function (k) {
         var i = +k, a = K.rooms[i], b = K.rooms[i + 1], half = BR[i], zEnd = a.z - a.d / 2, zNext = b.z + b.d / 2, mid = (zEnd + zNext) / 2;
         // ceiling collapsed above the breach: dust-laden light pours in, fallen vault stones lie where it struck
-        beam(U(-2, 2), mid + U(-1, 1), 1.1, 2.6, 13, i % 2 ? '#8fa6d8' : '#c9b48a', .045);
+        beam(U(-2, 2), mid + U(-1, 1), .9, 2.2, 13, i % 2 ? '#8fa6d8' : '#c9b48a', .11);
         K.decal('glow', CELL.glow, 0, .02, mid, 6, 5, 0, K.linear(.07, .07, .08), 0);
         pile(-half + 1.6, mid + U(-1, 1), 1.2, 10); pile(half - 1.6, mid + U(-1, 1), 1.0, 8);
         for (var f = 0; f < 5; f++) put('slab' + f % 4, 'stone', U(-half + 2, half - 2), .18, mid + U(-1.5, 1.5), U(.5, 1.1), U(.25, .45), U(.4, .8), U(-.3, .3), R() * 6, U(-.3, .3), 1);
@@ -620,7 +626,10 @@
         [-1, 1].forEach(function (s) { var ax = s * (BR[5] - .9);
           for (var l = 0; l < 16; l++) put('link', 'iron', ax, 1 + l * .62, z5, .5, .8, .5, 0, l % 2 ? Math.PI / 2 : 0, 0, 1);
           put('link', 'rust', ax, .5, z5, .9, .9, .5, Math.PI / 2, 0, 0, 1); put('slab1', 'dark', ax, .2, z5, 1.3, .4, 1.3, 0, 0, 0, 1); solid(ax, z5, 1.3, 1.3); }); }
-      beam(-35.8, -22, 1.2, 1.6, 16, '#ff3010', .04, -5);
+      beam(-35.8, -22, 1.0, 1.5, 16, '#ff3010', .12, -5);
+      // incense and pit smoke, smouldering embers
+      if (K.smokeSources) { K.smokeSources.push({ x: -35.8, y: -2, z: -22, count: 8, rate: .06, rise: 7, spread: 1.2, size: 2, alpha: .12, color: [.09, .03, .02] });
+        K.smokeSources.push({ x: -30, y: 1.6, z: -132.6, count: 6, rate: .07, rise: 3.5, spread: .6, size: 1.5, alpha: .12, color: [.08, .04, .03] }); }
     }());
     function inHole(holes, x, z, m) { for (var i = 0; i < holes.length; i++) { var o = holes[i]; if (Math.abs(x - o.x) < o.w / 2 + m && Math.abs(z - o.z) < o.d / 2 + m) return true; } return false; }
     // Lived-in floor: grit, chips of fallen vault, stray bones, stains that run under the furniture.
@@ -663,5 +672,7 @@
     'c1.seal2': { x: -27.5, z: -14 },
     'c1.seal3': { x: -23, z: -19 }
   };
-  B.WorldATemple = { active: !/[?&]nowa\b/.test(location.search), rooms: ROOMS, dress: dress, sites: SITES };
+  // Dripping water / blood (world.js drops + floor ripples): side crypts and the broken nave.
+  var DRIPS = [[-36.6, 4.2, -26.5, 1], [29.5, 4.5, -70, 0], [26, 4.2, 8, 0], [-37.4, 4, -53.4, 1], [-24.6, 4, -40.8, 1], [36, 4.4, -96, 0], [-24, 4.2, -120, 0], [2.2, 5, -34.5, 0], [-3.2, 5, -88, 0]];
+  B.WorldATemple = { active: !/[?&]nowa\b/.test(location.search), rooms: ROOMS, dress: dress, sites: SITES, drips: DRIPS };
 }());
