@@ -646,7 +646,6 @@
       const rot = mk('⟲', '', () => { mini.rotate = !mini.rotate; label(); saveMini(); });
       const label = () => { const text = mini.rotate ? tr('Küçük harita Bahtiyar’la döner · sabitle') : tr('Küçük harita sabit · Bahtiyar’la döndür'); rot.setAttribute('aria-label', text); rot.title = text; rot.classList.toggle('on', mini.rotate); };
       label(); host.append(miniTools);
-      if (typeof options.onOpen === 'function') { const o = mk('◇', tr('Haritayı aç · M'), options.onOpen); o.classList.add('open-map'); }
     }
     explore();
     return { element, open, close, update, clear, dispose, prepareTerrain, drawTerrain, drawMinimap, warmMinimap, attachMinimap,
