@@ -1445,7 +1445,10 @@
   function blueprint(type) {
     if (blueprints[type]) return blueprints[type];
     var cfg = TYPES[type], A = Assembly(cfg.base); A.srcMaterial = srcMaterialFinder(A);
-    var recipe = R[type](A), built = A.build(recipe.materials || {});
+    var recipe = R[type](A);
+    if (type !== 'hero' && B.EnemyHorror) B.EnemyHorror.apply(type, A, recipe);
+    if (type === 'hero' && B.HeroDetail) B.HeroDetail.apply(A, recipe, { sleeve: sleeve, gearMaterial: gearMaterial });   // (ajan:visual-dark) hero-detail.js   // (ajan:visual-dark) silhouette growths, enemy-horror.js
+    var built = A.build(recipe.materials || {});
     // body height from body parts only (helmets, horns and crowns may rise above it)
     var box = new T.Box3(); built.meshes.forEach(function (m) { if (A.parts.some(function (p) { return p.body && p.key === m.name; })) { m.geometry.computeBoundingBox(); box.union(m.geometry.boundingBox); } });
     var h = box.max.y - box.min.y, scale = cfg.height / h;
