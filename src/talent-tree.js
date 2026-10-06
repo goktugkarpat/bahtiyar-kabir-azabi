@@ -58,26 +58,26 @@
   mod('knell-drain', 5, 1, 'Ruh Hasadı', 'Lanetli düşmanlar ölünce canının %5’i ve 10 dayanıklılık sana döner.', 'heart', { drain: true }, 5);
   mod('knell-toll', 5, 2, 'Ağır Çan', 'Çan %35 daha uzağa ulaşır, düşmanları 1,4 saniye sersemletir ve hasar verir.', 'bell', { radius: 1.35, stun: 1.4, damage: 30 }, 5);
   // ---- row 3 body passives (no parent: a build may skip actives for them) ------------------------------------
-  passive('p-crush', 0, 3, 'Ezici', 'Sersemlemiş düşmanlara %25 fazla hasar verirsin.', 'hammer', { vsStunned: 1.25 });
+  passive('p-crush', 0, 3, 'Ezici', 'Sersemlemiş düşmanlara %20 fazla hasar verirsin.', 'hammer', { vsStunned: 1.2 });
   passive('p-iron', 1, 3, 'Demir Beden', 'En yüksek canın 15 artar.', 'shield', { hp: 15 });
   passive('p-wind', 2, 3, 'Derin Nefes', 'Dayanıklılığın %25 daha hızlı dolar.', 'wind', { regen: 1.25 });
   passive('p-haste', 3, 3, 'Sabırsız Öfke', 'Bütün yeteneklerin bekleme süresi %15 kısalır.', 'hourglass', { cd: .85 });
   passive('p-flask', 4, 3, 'Fazla Matara', 'Bir şifa matarası daha taşırsın; mataralar %20 daha çok iyileştirir.', 'flask', { flasks: 1, flaskHeal: 1.2 });
   passive('p-crit', 5, 3, 'Kemik Gözü', 'Kritik vuruş ihtimalin 8 puan artar.', 'eye', { crit: .08 });
   // ---- row 3.5: one stranger, archetype-defining passive per column (round 2) ---------------------------------
-  passive('p-aftershock', 0, 3.5, 'Artçı Sarsıntı', 'Sersemlemiş bir düşman ölünce yer sarsılır: çevresindekilere hasar verir ve onları sersemletir.', 'burst', { aftershock: 34 });
+  passive('p-aftershock', 0, 3.5, 'Artçı Sarsıntı', 'Sersemlemiş bir düşman ölünce yer sarsılır: çevresindekilere hasar verir ve onları sersemletir.', 'burst', { aftershock: 24 });
   passive('p-frenzy', 1, 3.5, 'Kan Çılgınlığı', 'Canın %40’ın altındayken %25 fazla hasar verir, %15 daha hızlı dayanıklılık toplarsın.', 'heart', { frenzy: true });
   passive('p-lash', 2, 3.5, 'Zincir Kırbacı', 'Kasırga bitince ya da hücum vardığında zincir savrulur: 7 metredeki en yakın üç düşmana çarpar.', 'chain', { lash: 42 });
   passive('p-momentum', 3, 3.5, 'Hız Kazanımı', 'Kaçındıktan ya da hücum ettikten sonra 3 saniye vuruşların %20 daha ağır iner.', 'wing', { momentum: true });
   passive('p-kindle', 4, 3.5, 'Alev Saçağı', 'Yanan düşmanların alevi yanındakine sıçrar: her yanma vuruşunda yakındaki bir düşman tutuşabilir.', 'spread', { kindle: true });
-  passive('p-plague', 5, 3.5, 'Kara Veba', 'Lanetli düşmanların kanaması ve yanması %40 daha çok acıtır.', 'skull', { plague: true });
+  passive('p-plague', 5, 3.5, 'Kara Veba', 'Lanetli düşmanların kanaması ve yanması %50 daha çok acıtır.', 'skull', { plague: true });
   // ---- rows 4/5: the column passives of the two new actives (the four old lines hold their forms there) --------
   passive('p-ember', 4, 4, 'Kor Kalp', 'Yanma %50 daha çok hasar verir ve 2 saniye daha uzun sürer.', 'flame', { burnMul: 1.5, burnTime: 2 }, { requires: 'pyre' });
   passive('p-ashfall', 4, 5, 'Kül Yağmuru', 'Yanan bir düşman ölünce alev saçar: çevresindekiler tutuşur.', 'burst', { ashfall: true }, { requires: 'p-ember' });
   passive('p-rot', 5, 4, 'Çürük Kan', 'Kanama %50 daha çok hasar verir; kanayan düşmanlar %8 fazla hasar alır.', 'drop', { bleedMul: 1.5, bleedingTaken: 1.08 }, { requires: 'knell' });
   passive('p-harvest', 5, 5, 'Ruh Biçen', 'Her öldürme 8 dayanıklılık ve canının %1’ini geri verir.', 'scythe', { killStamina: 8, killHeal: .01 }, { requires: 'p-rot' });
   // ---- row 6 keystones: exactly one per run ---------------------------------------------------------------------
-  key('k-exec', 0, 'Cellat', 'Canı %40’ın altına düşen düşmanlara %35 fazla hasar verirsin. Canı %12’nin altına inen sıradan düşmanlar tek vuruşta ölür.', 'Bedeli: en yüksek canın %20 azalır.', 'axe', { exec: true, hpMul: .8 });
+  key('k-exec', 0, 'Cellat', 'Canı %40’ın altına düşen düşmanlara %25 fazla hasar verirsin. Canı %10’un altına inen sıradan düşmanlar tek vuruşta ölür.', 'Bedeli: en yüksek canın %20 azalır.', 'axe', { exec: true, hpMul: .8 });
   key('k-blood', 1, 'Kan Yemini', 'Verdiğin bütün hasarın %5’i can olarak sana döner.', 'Bedeli: şifa matarası taşıyamazsın.', 'drop', { leech: .05, noFlask: true });
   key('k-chains', 2, 'Zincirli Kader', 'Kaçınma dayanıklılık harcamaz; her kaçınmada zincirler 7 metredeki düşmanları yanına çeker ve sersemletir.', 'Bedeli: iki kaçınma arasında 2 saniye beklersin.', 'chain', { chainDodge: true });
   key('k-hunger', 3, 'Ölü Açlığı', 'Her vuruş 3, her öldürme 30 dayanıklılık verir.', 'Bedeli: dayanıklılığın 20’nin üstüne kendiliğinden çıkmaz.', 'skull', { hunger: true });
@@ -167,7 +167,7 @@
     e.cd = e.has.has('p-haste') ? .85 : 1;
     e.burnMul = (ember ? ember.burnMul : 1) * (pyreK ? pyreK.burnMul : 1); e.burnTime = ember ? ember.burnTime : 0;
     e.bleedMul = rot ? rot.bleedMul : 1; e.bleedingTaken = rot ? rot.bleedingTaken : 1;
-    e.vsStunned = e.has.has('p-crush') ? 1.25 : 1; e.exec = !!exec; e.leech = e.has.has('k-blood') ? .05 : 0;
+    e.vsStunned = e.has.has('p-crush') ? 1.2 : 1; e.exec = !!exec; e.leech = e.has.has('k-blood') ? .05 : 0;
     e.chainDodge = e.has.has('k-chains'); e.allBurn = !!pyreK; e.taken = pyreK ? pyreK.taken : 1; e.rotWorld = !!rotW;
     e.ashfall = e.has.has('p-ashfall'); e.harvest = e.has.has('p-harvest');
     e.aftershock = e.has.has('p-aftershock'); e.frenzy = e.has.has('p-frenzy'); e.lash = e.has.has('p-lash'); e.momentum = e.has.has('p-momentum'); e.kindle = e.has.has('p-kindle'); e.plague = e.has.has('p-plague');
