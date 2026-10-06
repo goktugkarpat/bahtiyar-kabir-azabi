@@ -52,7 +52,7 @@
     ' vec2 e=min(vUv,1.-vUv)*vE.xy*2.;float bank=1.-smoothstep(0.,.45,min(e.x,e.y));',
     ' crust=clamp(crust+bank*.85,0.,1.);',
     ' float pulse=.55+.45*sin(clock*1.2+p.y*.7+a.g*7.);',
-    ' vec3 molten=mix(vec3(.34,.04,.006),vec3(.66,.17,.025),pulse*.55+c.g*.45);',
+    ' vec3 molten=mix(vec3(.26,.025,.003),vec3(.52,.11,.012),pulse*.55+c.g*.45);',
     ' float seam=smoothstep(0.,.1,crust)*(1.-smoothstep(.1,.35,crust));',
     ' vec3 crustCol=vec3(.03,.017,.013)+vec3(.20,.045,.008)*smoothstep(.85,.4,crust);',
     ' vec3 col=mix(molten,crustCol,smoothstep(.2,.7,crust));',
@@ -628,8 +628,19 @@
       K.chain(i, x - s * .9, 4.7, z - DOOR_HW + .3, 1.6, [.55, .5, .48]); K.chain(i, x - s * .9, 4.7, z + DOOR_HW - .3, 2.1, [.55, .5, .48]);
     }
     function lavaRiver(x, z, w, d) { lavaPanel(x, z, w, d); for (var q = 0; q < Math.max(1, Math.round(d / 7)); q++) K.spr(i, S.pool, x, .2, z - d / 2 + (q + .5) * d / Math.max(1, Math.round(d / 7)), Math.min(7, w + 1.5), 6, [.8, .26, .05], .22, RW(), 1, 1); }
+    // Beyond the walls on the sides without a wing: a glowing abyss with crags, hanging chains and far furnace light (never walkable).
+    function abyss(s) {
+      var wx = r.x + s * (r.w / 2 + 1);
+      for (var k = 0; k < 5; k++) { var z = r.z - 11 + k * 5.5 + RR(-1, 1), h = RR(3, 7); K.put(i, 'crag', 'rock', wx + s * RR(7, 15), h * .3 - 4.2, z, RR(4, 7), h, RR(4, 6), RR(0, 6), 0, s * .1, [.2, .18, .17], .6); }
+      for (k = 0; k < 3; k++) { var cz = r.z + (k - 1) * 8 + RR(-1, 1); K.chain(i, wx + s * RR(3, 7), 12, cz, RR(10, 15), [.45, .4, .38]); }
+      for (k = 0; k < 4; k++) K.spr(i, S.glow, wx + s * RR(6, 12), -2.5, r.z + RR(-10, 10), 5, 4, [.6, .16, .03], .16, RW(), 1, 1);
+      for (k = 0; k < 10; k++) K.spr(i, S.ember, wx + s * RR(2, 10), -1, r.z + RR(-11, 11), .05, .05, [2, .75, .2], 1, RW(), .1 + RW() * .15, 10);
+      
+    }
     function wingDress() {
-      var W = null; WINGS.forEach(function (w) { if (w.hosts.indexOf(i) >= 0) W = w; }); if (!W) return;
+      var W = null; WINGS.forEach(function (w) { if (w.hosts.indexOf(i) >= 0) W = w; });
+      if (i < 13) [-1, 1].forEach(function (s) { if (!W || W.side !== s) abyss(s); });
+      if (!W) return;
       var s = W.side, zA = Math.max(W.z0, r.z - 13), zB = Math.min(W.z1, r.z + 13), zc = (zA + zB) / 2, L = zB - zA, mid = W.hosts[1] === i, xi = s * 21, xo = s * 39;
       function U(t) { return s * (21 + t); }
       K.floor(i, { x: W.x, z: zc, w: 18, d: L }, { key: W.kind === 'scrap' ? 'iron' : 'floor', tint: W.kind === 'scrap' ? [.46, .43, .42] : [.5, .44, .4], vary: .2, cols: 7, rows: 10, tilt: .05 });
