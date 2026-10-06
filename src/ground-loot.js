@@ -76,11 +76,27 @@
     const glowTexture = new T.CanvasTexture(glowCanvas);
     const glowMaterial = new T.MeshBasicMaterial({color:0xffffff,map:glowTexture,transparent:true,opacity:.32,depthWrite:false,blending:T.AdditiveBlending,toneMapped:false}); owned.push(glowMaterial);
     const groundGlow = mesh(new T.PlaneGeometry(.75,.75),glowMaterial,true); groundGlow.name = 'GroundLootQualityGlow';
+    // gear-*: Diablo-style light pillar over rare+ drops; taller and gold-hot for unique and signature loot. One additive draw.
+    const pillarGeometry = new T.CylinderGeometry(.11,.2,1,14,1,true); pillarGeometry.translate(0,.5,0);
+    const pillarMaterial = new T.ShaderMaterial({transparent:true,depthWrite:false,blending:T.AdditiveBlending,side:T.DoubleSide,toneMapped:false,uniforms:{time:{value:0}},
+      vertexShader:`varying float vY;varying vec3 vTint;void main(){vY=uv.y;
+        #ifdef USE_INSTANCING_COLOR
+        vTint=instanceColor;
+        #else
+        vTint=vec3(1.);
+        #endif
+        gl_Position=projectionMatrix*modelViewMatrix*instanceMatrix*vec4(position,1.);}`,
+      fragmentShader:`uniform float time;varying float vY;varying vec3 vTint;void main(){float a=pow(1.-vY,1.7)*(.75+.25*sin(time*2.6+vY*9.))*smoothstep(0.,.06,vY);gl_FragColor=vec4(vTint*a*.9,a);
+      #include <colorspace_fragment>
+      }`});
+    owned.push(pillarMaterial);
+    const pillar = mesh(pillarGeometry,pillarMaterial,true); pillar.name = 'GroundLootLightPillars'; pillar.renderOrder = 5;
+    const PILLAR = { rare: .9, epic: 1.9, boss: 3.6 };
     const object = new T.Object3D(), color = new T.Color(), motion = new Map();
     let clock = 0, disposed = false, picked = 0;
     function update(dt) {
       if (disposed) return;
-      clock += dt; let count=0;
+      clock += dt; let count=0, pillars=0; pillarMaterial.uniforms.time.value = clock;
       const drops=progression.groundLoot;
       // Iterate backwards because collecting removes one authoritative pending entry.
       for (let i=drops.length-1;i>=0;i--) {
@@ -112,10 +128,13 @@
         cells[count]=art.cells.get(drop.id)||0; symbol.setColorAt(count,color);
         object.position.set(x,base+.018,z); object.rotation.set(-Math.PI/2,0,0); object.scale.setScalar(m.flying?0:scale); object.updateMatrix();
         groundGlow.setMatrixAt(count,object.matrix); groundGlow.setColorAt(count,color);
+        const ph = drop.boss ? PILLAR.boss : PILLAR[def.rarity] || 0;
+        if (ph && !m.flying) { object.position.set(x,base,z); object.rotation.set(0,0,0); object.scale.set(1,ph*Math.min(1,m.age/.35),1); object.updateMatrix(); pillar.setMatrixAt(pillars,object.matrix); pillar.setColorAt(pillars,color); pillars++; }
         count++;
       }
       for (const [uid] of motion) if (!drops.some(drop=>drop.uid===uid)) motion.delete(uid);
       for (const mesh of meshes) { mesh.count=count; mesh.instanceMatrix.needsUpdate=true; if(mesh.instanceColor)mesh.instanceColor.needsUpdate=true; }
+      pillar.count=pillars;
       symbolGeometry.attributes.aCell.needsUpdate=true; group.visible=count>0;
     }
     function reset() { motion.clear(); clock=0; for(const m of meshes)m.count=0; group.visible=false; }
