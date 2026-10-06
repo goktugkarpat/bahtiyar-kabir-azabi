@@ -1028,7 +1028,7 @@
     ], ['skin']);
     var equipment = heroEquipment(A);
     var materials = {
-      skin: bodyMaterial(A.srcMaterial('LOW_body'), 'hero-skin', { cls: 'skin', skin: 1, skinMap: true, sat: .62, tint: [.94, .86, .74], contrast: 1.06, grime: .3, blood: .18, scars: scars, face: true }),
+      skin: bodyMaterial(A.srcMaterial('LOW_body'), 'hero-skin', { cls: 'skin', skin: 1, skinMap: true, sat: .44, tint: [.78, .68, .58], contrast: 1.2, grime: .52, blood: .18, scars: scars, face: true }),
       brow: library['hero-brow'] || (library['hero-brow'] = Object.assign(std({ map: browTexture(), alphaTest: .4, roughness: .8, side: T.DoubleSide }, { sat: 1 }), { name: 'kara-hero-brow' })),
       eye: library['hero-eye'] || (library['hero-eye'] = Object.assign(new T.MeshPhysicalMaterial({ map: eyeTexture(), roughness: .4, clearcoat: .6, clearcoatRoughness: .18 }), { name: 'kara-hero-eye' })),
       leather: bodyMaterial(A.srcMaterial('LOW_cloth'), 'hero-leather', { cls: 'leather', sat: .8, tint: [1.25, 1.12, 1.0], grime: .3, blood: .12 }),
