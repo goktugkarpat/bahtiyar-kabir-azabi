@@ -233,7 +233,9 @@
         for(var i=0;i<6;i++){var a=i/6*TAU;cage.push(G.box(.016,.36,.016,[fitted.cx+Math.sin(a)*.12,chest.y-.06,fb.min.z-.15+Math.cos(a)*.12]));}
         cage.push(G.cyl(.045,.06,.36,10,[fitted.cx+.14,chest.y+.20,fb.min.z-.11]),G.cyl(.035,.05,.30,10,[fitted.cx-.15,chest.y+.17,fb.min.z-.11]));
         A.rigid('iron',G.merge(cage),spine);
-        A.rigid('glow',G.merge([G.sphere(.075,[fitted.cx,chest.y-.13,fb.min.z-.15],[1,1.25,1],12,8),G.ring(.042,.007,[fitted.cx+.14,chest.y+.385,fb.min.z-.11],[0,0,0],5,16)]),spine);
+        var coals=[];for(var ci=0;ci<7;ci++){var ca=ci*2.399,cr=ci?.045:0;coals.push(G.sphere(.032+.012*((ci*5)%3),[fitted.cx+Math.cos(ca)*cr,chest.y-.2+ci*.022,fb.min.z-.15+Math.sin(ca)*cr],[1,.8+.15*(ci%3),1.1],7,5));}
+        // (visual-dark) heaped coals, not one smooth glowing ball
+        A.rigid('glow',G.merge(coals.concat([G.ring(.042,.007,[fitted.cx+.14,chest.y+.385,fb.min.z-.11],[0,0,0],5,16)])),spine);
       });
     }
     if(elite){

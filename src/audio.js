@@ -411,7 +411,7 @@
   }
 
   // ------------------------------------------------------------------ oyun bilgisi
-  const MATERIAL = { prisoner: 'flesh', cultist: 'flesh', stalker: 'bone', carrier: 'wet', guard: 'armor', boss: 'armor', drowned: 'wet', rootborn: 'bone', crawler: 'bone', urchin: 'wet', lantern: 'flesh', bell: 'armor', ashbound:'flesh', shardseer:'bone', cavefang:'bone', gravemason:'bone', ruinwarden:'armor', hollowking:'armor', emberbound:'flesh', chainseer:'flesh', slagcrawler:'bone', forgesentinel:'armor', ashwarden:'armor', furnaceheart:'armor', damned:'flesh', verdictseer:'flesh', voidcrawler:'bone', chainjailer:'armor', verdictwarden:'armor', lastjudge:'armor' };
+  const MATERIAL = { prisoner: 'flesh', cultist: 'flesh', stalker: 'bone', carrier: 'wet', guard: 'armor', boss: 'armor', drowned: 'wet', rootborn: 'bone', crawler: 'bone', urchin: 'wet', lantern: 'flesh', bell: 'armor', ashbound:'flesh', shardseer:'bone', cavefang:'bone', gravemason:'stone', ruinwarden:'armor', hollowking:'armor', emberbound:'flesh', chainseer:'flesh', slagcrawler:'stone', forgesentinel:'armor', ashwarden:'armor', furnaceheart:'armor', damned:'flesh', verdictseer:'flesh', voidcrawler:'bone', chainjailer:'armor', verdictwarden:'armor', lastjudge:'armor' };
   function player() { const g = game(); return g && g.player; }
   function struckEnemies() {
     const g = game(), p = player(); if (!g || !p || !g.enemies) return [];
@@ -480,6 +480,11 @@
       if (!tier) L('thump', .3, { rate: .9 });
       if (tier === 2) { L('metal', .4, { rate: .78, delay: .01 }); L('bone', .3, { delay: .015, lp: 6500 }); }
       if (boss) L('chain', .3, { delay: .03, rate: .85 });
+    } else if (m === 'stone') {   // combat feel round: carved / slag bodies crack like masonry (grit, a dull crack, a low thud)
+      L('hitCrack', .5 + .25 * w, { rate: rand(.62, .72) });
+      L('debris', .45 + .3 * w, { delay: .006, rate: rand(.85, 1.05) });
+      L('thump', .9 + .4 * w, { delay: .003, rate: rand(.7, .8) });
+      if (tier) L('bone', .3, { rate: .7, delay: .014, lp: 5000 });
     } else if (m === 'wet') {
       L('hitCut', .45 + .2 * w, { rate: rand(.8, .9) });
       L('hitSlap', .65 + .3 * w, { rate: rand(.7, .8), delay: .003 });
@@ -537,6 +542,7 @@
     if (weapon === 'spear' && throttle('spearBite', .08)) sample('hitCut', { vol: .20*k, rate: 1.2, lp: 4900, send: .03 });
     if (o.critical && throttle('criticalBite', .16)) { sample('hitCutSteel', { vol: .18*k, rate: 1.14, delay: .003 }); sample('hitRingA', { vol: .10*k, rate: .93, delay: .012, send: .13 }); }
     if (tier || kill) sample('hitSub', { vol: (tier === 2 ? .45 : tier === 1 ? .3 : .22) * k * (kill ? 1.3 : 1), send: .1, detune: .03, delay: .004 });
+    if (kill) thud(t + .008, { f0: 82, f1: 30, dur: .42, vol: .42 * k, send: .15 });   // the body's weight gives out (render: kills had the least sub of any blow)
     if (kill) {   // the finishing blow: bone and wet crunch, a spray, a heavier ring
       const dead = targets.find(e => e.dead), armor = dead && MATERIAL[dead.type] === 'armor', at = dead && Number.isFinite(dead.x) ? dead : null;
       if (armor) { sample('hitRingB', { vol: .55 * k, at, send: .2, rate: .9, delay: .01 }); sample('metal', { vol: .6 * k, at, rate: .72, delay: .02 }); sample('armor', { vol: .65 * k, at, rate: .6, delay: .02 }); }
@@ -615,6 +621,12 @@
   // Impact layers: I the old iron crack and floor thud; II + stone fissures cracking and a molten ring; III a deep, long boom with tumbling rubble.
   H.chargeImpact = (o, k) => {
     const tier = o.tier || 1, t = now(), at = { x: o.x, z: o.z }; H.specialHit(o, k * (tier === 3 ? 1.1 : .95));
+    // identity tails (offline render showed I and II nearly identical): I Kül = a dry ash crumble settling; II Kor = molten hiss with ember crackle
+    if (tier === 1) { sample('debris', { vol: .5 * k, at, rate: 1.15, delay: .06 }); burst(t + .04, .7, .09 * k, 900, { q: .5, f1: 260, attack: .08, send: .25 }); }
+    if (tier === 2) {
+      burst(t + .05, 1.3, .11 * k, 5200, { q: .7, f1: 2400, attack: .06, send: .2 }); ring(t + .02, { f: 523, partials: [1, 2.76, 5.4], decay: 1.2, vol: .03 * k, send: .5 });
+      for (let i = 0; i < 9; i++) burst(t + .12 + i * rand(.07, .13), .025, .045 * k, rand(3500, 8000), { q: 3 });
+    }
     if (tier >= 2) {
       sample('debris', { vol: .8 * k, at, rate: .7, delay: .03 }); sample('hitCrack', { vol: .6 * k, rate: .7, delay: .01 }); sample('bone', { vol: .4 * k, at, rate: .6, delay: .06 });
       burst(t + .02, .5, .13 * k, 2600, { q: 1, f1: 700, send: .2 }); ring(t + .04, { f: 262, partials: [1, 2.4, 3.9, 5.7], decay: 1.1, vol: .035 * k, send: .5 });
@@ -889,6 +901,8 @@
     ring(t + .004, { f: 330, partials: [1, 2.76, 5.4, 8.9], decay: 1.5, vol: .075 * k, send: .45 }); sample('hitClang', { vol: .6 * k, at, rate: .78, delay: .006, send: .3 });
     sample('bone', { vol: .7 * k, at, rate: .8, delay: .02 }); burst(t + .01, .35, .24 * k, 380, { q: .5, f1: 110, send: .3 }); sample('debris', { vol: .5 * k, at, delay: .06, rate: .9 });
     for (let i = 0; i < 2; i++) ring(t + .17 + i * .05, { f: 230, partials: [1, 2.4], decay: .5, vol: .02 * k, send: .4 });   // the aftershock ring
+    // fx-impact.js layers: the falling blade of light (a dark steel shing pitched down) and the torn air of the shock wall rushing outward
+    sample('shing', { vol: .32 * k, at, rate: .6, send: .35 }); whoosh(t + .01, { dur: .5, peak: .14, f0: 1100, f1: 320, f2: 120, q: .7, vol: .34 * k, low: 180, send: .25 });
   };
   H.strikeHit3 = (o, k) => {
     const t = now(), at = { x: o.x, z: o.z };
@@ -899,6 +913,8 @@
     for (const [f, d] of [[65.4, 0], [98, .05], [130.8, .1]]) tone(t + .08 + d, f, 2.2, .05 * k, { type: 'sawtooth', lp: 520, attack: .35, send: .5 });   // low open-fifth choir
     ring(t + .03, { f: 110, partials: [1, 2.4, 3.9], decay: 2.2, vol: .05 * k, send: .55 });
     burst(t + .35, 1.1, .1 * k, 160, { q: .6, attack: .2, bus: 'amb', send: .3, buf: N.brown });
+    whoosh(t + .02, { dur: .75, peak: .12, f0: 760, f1: 220, f2: 90, q: .6, vol: .42 * k, low: 150, send: .3 });   // the grave wall rushing outward
+    sample('chain', { vol: .28 * k, at, rate: .5, delay: .14 });
     duck(N.musicDuck, .5, .5, .5);
   };
   // Tier II shout "Ölüm Çığlığı": a high wail rises over the roar (sawtooth bending upward through a formant), bright bone-like ring, hiss of air.
@@ -911,6 +927,11 @@
     thud(t + r, { f0: 84, f1: 26, dur: .9, vol: 1 * k, send: .35 }); burst(t + r, .8, .2 * k, 2400, { q: .5, f1: 500, send: .4 });
     ring(t + r + .01, { f: 587, partials: [1, 2.4, 3.9, 5.4], decay: 1.7, vol: .06 * k, send: .55 });
     for (let i = 0; i < 3; i++) ring(t + r + .12 + i * .14, { f: 440 - i * 40, partials: [1, 2.76], decay: .7, vol: .025 * k, send: .5 });   // the spreading rings
+    whoosh(t + r + .01, { dur: .7, peak: .1, f0: 1500, f1: 480, f2: 180, q: .6, vol: .3 * k, low: 200, send: .3 });   // the pressure wall (fx-impact.js)
+    // the death cry must outlast the first cry (render: its tail was 1.25 s against 1.75 s): a low rolling echo of bone and stone
+    thud(t + r + .02, { f0: 58, f1: 19, dur: 1.5, vol: .7 * k, send: .35 });   // a deeper floor than Kan Nidası
+    burst(t + r + .25, 1.5, .1 * k, 200, { q: .6, attack: .25, bus: 'amb', send: .35, buf: N.brown }); thud(t + r + .5, { f0: 70, f1: 30, dur: .7, vol: .45 * k, send: .4 });
+    sample('bone', { vol: .3 * k, rate: .55, delay: r + .45, send: .4 });
     duck(N.musicDuck, .45, .7, .4); duck(N.ambDuck, .5, .7, .4); stinger('rage', .25);
   };
   // Tier III shout "Kıyamet Narası": stage 1 = very low roar + sub-boom + choir fifth + rumble; stage 2 (+.34 s) a second blast; the third ring (+.68 s) closes with a stone crack.
@@ -926,6 +947,7 @@
     thud(t + r + .34, { f0: 70, f1: 24, dur: .9, vol: 1.1 * k, send: .3 }); sample('roar', { vol: .7 * k, rate: .58, delay: r + .34, send: .5, prio: 1 }); burst(t + r + .34, .3, .2 * k, 1400, { q: .5, f1: 300, send: .3 });
     thud(t + r + .68, { f0: 76, f1: 28, dur: .8, vol: 1 * k, send: .3 }); sample('debris', { vol: .7 * k, rate: .6, delay: r + .68 }); sample('stomp', { vol: .6 * k, rate: .55, delay: r + .68 });
     burst(t + r + .1, 1.6, .12 * k, 150, { q: .6, attack: .25, bus: 'amb', send: .3, buf: N.brown });
+    whoosh(t + r + .01, { dur: .85, peak: .1, f0: 1100, f1: 300, f2: 110, q: .55, vol: .38 * k, low: 160, send: .35 });   // the bone-white wall (fx-impact.js)
     for (let i = 0; i < 4; i++) thud(t + r + 1.1 + i * .42, { f0: 60, f1: 38, dur: .2, vol: .4 * k });   // the heart
     duck(N.musicDuck, .4, .9, .5); duck(N.ambDuck, .45, .9, .5); stinger('rage', .25);
   };
@@ -1057,6 +1079,8 @@
     ring(t, { f: 82.4, partials: [1, 2.4, 3.9, 5.3, 6.9], decay: 3.2, vol: .1 * k * s.gain, pan: s.pan, send: .65 }); sample('bell', { vol: .5 * k, at, rate: .5, send: .5 });
     thud(t, { f0: 70, f1: 30, dur: .55, vol: .7 * k * s.gain, pan: s.pan, send: .3 }); sample('carrierGurgle', { vol: .25 * k, at, rate: .55, delay: .05 });
   };
+  // ajan:bosses — heavy boss layers (intro / phase / signature / fall), synthesised in src/boss-sound.js.
+  H.bossLayer = (o, k) => { const BS = B.BossSound; if (!BS) return; const [bus, wet] = busOf(); BS.play(ctx, bus, wet, now(), k, o, { white: N.noise, pink: N.pink }); };
   // Menü: taş üstünde kısa, kuru bir tık.
   H.ui = (o, k) => { const t = now(); burst(t, .02, .4 * k, 2300, { q: 1.1 }); thud(t, { f0: 190, f1: 90, dur: .07, vol: .4 * k }); };
 
@@ -1071,7 +1095,7 @@
     }
     const k = opts.volume == null ? 1 : opts.volume;
     try {
-      const h = H[name] || (/slam|explosion/.test(name) ? H.slam : null);
+      const h = H[name] || (B.TalentAudio && B.TalentAudio.has(name) ? (o, k2) => { const [bus, wet] = busOf(); B.TalentAudio.play(name, ctx, bus, wet, now(), k2, o, N); } : null) || (/slam|explosion/.test(name) ? H.slam : null);   // talent tree 3 sounds: src/talent-audio.js
       if (h) h(opts, k, name);
     } catch (e) { console.warn('Audio', name, e); }
   }
@@ -1807,7 +1831,7 @@
     if (extMusic && B.Music.prepare) await B.Music.prepare(v => { if (progress) progress(.4 + .25 * v); });
     // Only this chapter's two added quest voices need decoded buffers. Existing
     // narration keeps its established preparation; chapter transitions reload.
-    const lines = Object.entries(narrationLines()).filter(([key]) => !QUEST_CHAPTER[key] || QUEST_CHAPTER[key] === (B.ActiveChapter || 1));
+    const lines = Object.entries(narrationLines()).filter(([key, line]) => (!QUEST_CHAPTER[key] || QUEST_CHAPTER[key] === (B.ActiveChapter || 1)) && (!line.chapter || line.chapter === (B.ActiveChapter || 1)));   // ajan:quests: story lines carry their chapter
     for (let i = 0; i < lines.length; i++) {
       const [key, line] = lines[i];
       if (!voiceBuffers[voiceKey(key)] && line.audio) {
