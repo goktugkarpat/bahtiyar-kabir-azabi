@@ -69,7 +69,7 @@ async def main():
             '  Object.keys(TR).forEach(function (k) { if (!B.Narration[k]) B.Narration[k] = TR[k]; });\n'
             '  Object.keys(EN).forEach(function (k) { if (!B.NarrationEN[k]) B.NarrationEN[k] = EN[k]; });\n'
             '})(window.BABA);\n')
-    OUT.write_text(body, encoding='utf8')
+    OUT.write_text(body, encoding='utf8', newline='\n')
     print(f'WROTE {OUT.name}: {len(LINES)} lines x2, {OUT.stat().st_size} bytes', flush=True)
 
 if __name__ == '__main__':
