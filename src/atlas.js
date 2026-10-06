@@ -123,7 +123,7 @@
     bounds.x0 = Math.floor(bounds.x0); bounds.z0 = Math.floor(bounds.z0); bounds.x1 = Math.ceil(bounds.x1); bounds.z1 = Math.ceil(bounds.z1);
     const W = bounds.x1 - bounds.x0, H = bounds.z1 - bounds.z0;
     const step = .6, columns = Math.ceil(W / step), rows = Math.ceil(H / step), count = columns * rows;
-    const P = Math.max(3, Math.min(8, Math.sqrt(1.7e6 / (W * H)))), TW = Math.ceil(W * P), TH = Math.ceil(H * P);
+    const COARSE = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches, P = Math.max(3, Math.min(8, Math.sqrt((COARSE ? 1.1e6 : 1.7e6) / (W * H)))), TW = Math.ceil(W * P), TH = Math.ceil(H * P);
     const MW = W, MH = H; // mask: 1 px per world unit
     let footprint = null, sdf = null, terrain = null, composed = null, mistBase = null, maskC = null, maskX = null, frontC = null, frontX = null, mistTmp = null, revealGrid = null, footCells = 0, revealedCells = 0;
     let maskVersion = 0, composedVersion = -1;
