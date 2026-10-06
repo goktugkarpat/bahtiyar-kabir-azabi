@@ -207,7 +207,13 @@
     '         n2 = texture2D(tScene, uv + vec2(0., uTexel.y)).rgb, n3 = texture2D(tScene, uv - vec2(0., uTexel.y)).rgb;',
     '    vec3 mn = min(c, min(min(n0, n1), min(n2, n3))), mx = max(c, max(max(n0, n1), max(n2, n3)));',
     '    float lmn = luma(mn), lmx = luma(mx), sw = uSharp * (1. - smoothstep(.12, .7, (lmx - lmn) / (lmx + .03)));',
-    '    c = clamp(c + (c - (n0 + n1 + n2 + n3) * .25) * sw * 1.6, mn, mx); }',
+    // Very light depth of field: the far top of the frame and the nearest strip at the bottom soften (camera-lens depth, never the
+    // play area in the middle); the detail push fades out there instead of fighting the blur.
+    '    float dof = smoothstep(.66, 1., vUv.y) * .85 + (1. - smoothstep(0., .1, vUv.y)) * .45;',
+    '    if (dof > .02) { vec2 dr = uTexel * 2.2;',
+    '      vec3 bl = (texture2D(tScene, uv + dr).rgb + texture2D(tScene, uv - dr).rgb + texture2D(tScene, uv + vec2(dr.x, -dr.y)).rgb + texture2D(tScene, uv - vec2(dr.x, -dr.y)).rgb) * .17 + (n0 + n1 + n2 + n3) * .08;',
+    '      c = mix(c, bl, dof); }',
+    '    else c = clamp(c + (c - (n0 + n1 + n2 + n3) * .25) * sw * 1.6, mn, mx); }',
     '  #endif',
     '  if (pring > 0.) { c.r = texture2D(tScene, uv + pca).r; c.b = texture2D(tScene, uv - pca).b; }',
     '  #if ABILITY',
