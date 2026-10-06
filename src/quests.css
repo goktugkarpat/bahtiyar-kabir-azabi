@@ -78,6 +78,7 @@
 .kind-rescue .journal-kind, .quest-track-row.kind-rescue { color: #a9c3b0 }
 .kind-lore .journal-kind, .quest-track-row.kind-lore { color: #cdbb93 }
 .kind-altar .journal-kind, .quest-track-row.kind-altar { color: #c75a55 }
+.kind-siege .journal-kind, .quest-track-row.kind-siege { color: #e0894a }
 .kind-chest .journal-kind, .quest-track-row.kind-chest { color: #c9a35c }
 .journal-quest.side-quest { border-color: #6f5f4a47; background: #0d0f12e0 }
 .journal-quest.kind-altar { border-color: #7c2f2c66; background: linear-gradient(180deg, #1a0d0ee6, #0c0d10e6) }
@@ -108,5 +109,6 @@
 #quest-notice[data-kind="altar"] { border-left-color: #b13b38 }
 #quest-notice[data-kind="lore"] { border-left-color: #d6bf8c }
 #quest-notice[data-kind="lore"] p { font-family: Georgia, 'Times New Roman', serif; font-style: italic }
+#quest-notice[data-kind="siege"] { border-left-color: #d0743c }
 #quest-notice[data-kind="rescue"] { border-left-color: #8fb39c }
 @media (max-width: 800px) { .quest-track-row.side span { font-size: 10px } .quest-compass { font-size: 10px } }

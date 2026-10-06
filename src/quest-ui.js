@@ -11,6 +11,7 @@
     rescue: '<path d="M7 9a3 3 0 0 1 3-3h2v3h-2v6h2v3h-2a3 3 0 0 1-3-3z"/><path d="M17 9a3 3 0 0 0-3-3h-1v3h1v6h-1v3h1a3 3 0 0 0 3-3z" opacity=".55"/><path d="M11 4l2-2M11 20l2 2" stroke-width="1.6"/>',
     lore: '<path d="M6 3h9l3 3v15H6z"/><path d="M8.5 9h7M8.5 12h7M8.5 15h5" stroke-width="1.2" stroke="#0b0c0f"/>',
     altar: '<path d="M12 2c3 5 6 8 6 12a6 6 0 0 1-12 0c0-4 3-7 6-12z"/>',
+    siege: '<path d="M12 2c1 4 5 5 5 10a5 5 0 0 1-10 0c0-3 2-4 2-7 1 2 2 2.5 3 2.5 0-2-1-3 0-5.5z"/><path d="M4 21h16" stroke-width="2"/>',
     chest: '<path d="M3 10h18v10H3z"/><path d="M4 10a8 5 0 0 1 16 0" fill="none" stroke-width="2"/><rect x="10.5" y="12" width="3" height="4" fill="#0b0c0f"/>'
   };
   const icon = kind => '<svg class="quest-kind-icon" viewBox="0 0 24 24" aria-hidden="true" fill="currentColor" stroke="currentColor" stroke-width="0">' + (ICONS[kind] || ICONS.main) + '</svg>';
@@ -170,9 +171,12 @@
         m.line.textContent = marker.complete ? KabirI18n.t('Tamamlandı') : m.source.objective;
       }
       let hiddenLeft = 0, shown = 0;
+      // Threads already under way (a wave, a follower, half the pages) take the three tracker lines first.
+      const ranked = sideRows.slice().sort((a, b) => (b.entry.progress > 0) - (a.entry.progress > 0));
+      const showSet = new Set();
+      for (const r of ranked) { const e = r.entry; if (showSet.size < 3 && e.discovered && !e.complete && !(e.available === false && e.kind !== 'chest' && e.kind !== 'hunt')) showSet.add(r); }
       sideRows.forEach(r => {
-        const e = r.entry, visible = e.discovered && !e.complete && shown < 3 && !(e.available === false && e.kind !== 'chest' && e.kind !== 'hunt');
-        if (visible) shown++;
+        const e = r.entry, visible = showSet.has(r);
         r.row.hidden = !visible; r.row.classList.toggle('complete', e.complete);
         r.count.textContent = e.complete ? '✓' : e.progress + '/' + e.total; r.mini.fill.style.transform = 'scaleX(' + (e.total ? e.progress / e.total : 0) + ')';
       });
