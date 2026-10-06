@@ -78,7 +78,7 @@
   passive('p-harvest', 5, 5, 'Ruh Biçen', 'Her öldürme 8 dayanıklılık ve canının %1’ini geri verir.', 'scythe', { killStamina: 8, killHeal: .01 }, { requires: 'p-rot' });
   // ---- row 6 keystones: exactly one per run ---------------------------------------------------------------------
   key('k-exec', 0, 'Cellat', 'Canı %40’ın altına düşen düşmanlara %25 fazla hasar verirsin. Canı %10’un altına inen sıradan düşmanlar tek vuruşta ölür.', 'Bedeli: en yüksek canın %20 azalır.', 'axe', { exec: true, hpMul: .8 });
-  key('k-blood', 1, 'Kan Yemini', 'Verdiğin bütün hasarın %5’i can olarak sana döner.', 'Bedeli: şifa matarası taşıyamazsın.', 'drop', { leech: .05, noFlask: true });
+  key('k-blood', 1, 'Kan Yemini', 'Verdiğin bütün hasarın %7’si can olarak sana döner.', 'Bedeli: şifa matarası taşıyamazsın.', 'drop', { leech: .07, noFlask: true });
   key('k-chains', 2, 'Zincirli Kader', 'Kaçınma dayanıklılık harcamaz; her kaçınmada zincirler 7 metredeki düşmanları yanına çeker ve sersemletir.', 'Bedeli: iki kaçınma arasında 2 saniye beklersin.', 'chain', { chainDodge: true });
   key('k-hunger', 3, 'Ölü Açlığı', 'Her vuruş fazladan 2, her öldürme 25 dayanıklılık verir.', 'Bedeli: dayanıklılığın 20’nin üstüne kendiliğinden çıkmaz.', 'skull', { hunger: true });
   key('k-pyre', 4, 'Yanan Beden', 'Bütün vuruşların tutuşturur ve yanma %30 daha çok hasar verir.', 'Bedeli: aldığın hasar %15 artar.', 'flame', { allBurn: true, burnMul: 1.3, taken: 1.15 });
@@ -168,7 +168,7 @@
     e.cd = e.has.has('p-haste') ? .85 : 1;
     e.burnMul = (ember ? ember.burnMul : 1) * (pyreK ? pyreK.burnMul : 1); e.burnTime = ember ? ember.burnTime : 0;
     e.bleedMul = rot ? rot.bleedMul : 1; e.bleedingTaken = rot ? rot.bleedingTaken : 1;
-    e.vsStunned = e.has.has('p-crush') ? 1.2 : 1; e.exec = !!exec; e.leech = e.has.has('k-blood') ? .05 : 0;
+    e.vsStunned = e.has.has('p-crush') ? 1.2 : 1; e.exec = !!exec; e.leech = e.has.has('k-blood') ? .07 : 0;
     e.chainDodge = e.has.has('k-chains'); e.allBurn = !!pyreK; e.taken = pyreK ? pyreK.taken : 1; e.rotWorld = !!rotW;
     e.ashfall = e.has.has('p-ashfall'); e.harvest = e.has.has('p-harvest');
     e.aftershock = e.has.has('p-aftershock'); e.frenzy = e.has.has('p-frenzy'); e.lash = e.has.has('p-lash'); e.momentum = e.has.has('p-momentum'); e.kindle = e.has.has('p-kindle'); e.plague = e.has.has('p-plague');
@@ -204,8 +204,8 @@
   const PRESETS = Object.freeze([
     { id: 'pyre-priest', name: t('Kor Rahibi'), hint: t('Yere mühür kaz, her şeyi yak. Yanan Beden ile her vuruş tutuşturur.'), nodes: ['cleave', 'pyre', 'cleave-ember', 'pyre-wide', 'p-flask', 'whirl', 'whirl-ash', 'p-ember', 'p-kindle', 'charge', 'k-pyre', 'p-ashfall'] },
     { id: 'chain-reaper', name: t('Zincirli Cellat'), hint: t('Düşmanları çekip yığ, sersemlet, Cellat ile bitir.'), nodes: ['cleave', 'whirl', 'whirl-hook', 'cleave-sunder', 'p-crush', 'p-lash', 'charge', 'charge-chain', 'p-aftershock', 'brand', 'k-exec', 'reap'] },
-    { id: 'plague-bearer', name: t('Veba Taşıyıcı'), hint: t('Çanla lanetle, kanat; ölenler patlayıp yenilerini lanetler.'), nodes: ['knell', 'cleave', 'cleave-bleed', 'knell-chain', 'whirl', 'whirl-bleed', 'p-crit', 'p-rot', 'p-plague', 'roar', 'k-rot', 'p-harvest'] },
-    { id: 'blood-penitent', name: t('Kan Kefareti'), hint: t('Can ile öde, can ile al: matara yok, her vuruş seni iyileştirir.'), nodes: ['roar', 'roar-blood', 'cleave', 'cleave-bleed', 'p-iron', 'whirl', 'p-frenzy', 'whirl-bleed', 'quake', 'k-blood', 'brand', 'charge'] },
+    { id: 'plague-bearer', name: t('Veba Taşıyıcı'), hint: t('Çanla lanetle, kanat; ölenler patlayıp yenilerini lanetler.'), nodes: ['cleave', 'knell', 'cleave-bleed', 'knell-chain', 'whirl', 'whirl-bleed', 'p-crit', 'p-rot', 'p-plague', 'roar', 'k-rot', 'p-harvest'] },
+    { id: 'blood-penitent', name: t('Kan Kefareti'), hint: t('Can ile öde, can ile al: matara yok, her vuruş seni iyileştirir.'), nodes: ['cleave', 'roar', 'cleave-bleed', 'roar-blood', 'p-iron', 'whirl', 'p-frenzy', 'whirl-bleed', 'quake', 'k-blood', 'brand', 'charge'] },
     { id: 'storm-rider', name: t('Kara Fırtına'), hint: t('Hiç durma: hücum, kaçın, zincirle çek, yeniden hücum.'), nodes: ['cleave', 'charge', 'charge-echo', 'whirl', 'whirl-hook', 'p-haste', 'p-momentum', 'p-wind', 'grasp', 'k-chains', 'roar', 'reap'] }
   ]);
   // Identity title of the two strongest columns (order-free).
