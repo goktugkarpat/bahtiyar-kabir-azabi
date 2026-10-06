@@ -337,6 +337,22 @@
     ]
   };
 
+  // Verdict leanings change what the living say, what chests hold and how the story closes.
+  var LEAN = {
+    rescueMercy: L('Gözlerinde korku yok. Merhametinin adı ondan önce bu salonlara ulaşmış.', 'There is no fear in their eyes. Word of your mercy reached these halls before you did.'),
+    rescueWrath: L('Seni görünce titriyor. Verdiğin hükümlerin sesi senden önce gelmiş; yine de elini tutuyor.', 'They tremble at the sight of you. The sound of your verdicts arrived first; still, they take your hand.'),
+    chestMercy: L(' Sandığın dibinde, bıraktığın ölülerden birinin dua bezi var: kalıcı +3 can.', ' At the bottom lies a prayer cloth from one of the dead you spared: permanent +3 health.'),
+    chestWrath: L(' Sandığın dibinde bir cellat bileği var; yargının ağırlığını taşıyor: kalıcı +%2 hasar.', ' At the bottom lies an executioner’s whetstone, heavy with judgment: permanent +2% damage.'),
+    epi: {
+      name: [L('Mezarının başında Selvi her bahar bir ad okur: seninkini. Defter’de başka hiçbir ad kalmadı.', 'Each spring Selvi reads one name at your grave: yours. No other name remains in the Ledger.'),
+             L('Kimse mezarına gelmez. Ama özgür kalan binlerce ad, toprağın altında bile seni tanır.', 'No one visits your grave. But the thousands of names set free know you, even beneath the earth.')],
+      burn: [L('Kül rüzgârla dağılırken bir çocuk sana gülümsüyor. Kim olduğunu bilmiyor; yine de gülümsüyor.', 'As the ash drifts away a child smiles at you. She does not know who you are; she smiles all the same.'),
+             L('Kül soğuyor. Hatırlanmayan bir dünyada tek hatırlayan sensin; ve bu, kabrin en ağır azabı.', 'The ash grows cold. In a world without memory you alone remember, and that is the grave’s heaviest torment.')],
+      quill: [L('İlk sayfaya kendi kararlarını yazıyorsun: merhamet. Ama kalem bu kelimeyi tanımıyor; mürekkep kâğıtta tutmuyor.', 'On the first page you write your own verdict: mercy. But the pen does not know the word; the ink will not hold.'),
+              L('İlk sayfaya bir ad yazıyorsun. Kalem titremiyor. Yirmi yıl önce de titremiyordu.', 'On the first page you write a name. The pen does not tremble. Twenty years ago it did not tremble either.')]
+    }
+  };
+
   // ---------------------------------------------------------------- engine
   function create(o) {
     var api = o.api, world = o.world, chapter = o.chapter, info = o.info, kit = o.kit, player = api.player;
@@ -353,6 +369,14 @@
     }
     function boons() { var p = prog(); return p && p.boons ? p.boons() : { points: 0, flasks: 0, hp: 0, damage: 0, claimed: [] }; }
     function say(key) { if (key && B.Audio && B.Audio.say) B.Audio.say(key); }
+    function lineText(key) { var lines = KabirI18n.lang === 'en' ? B.NarrationEN : B.Narration; return lines && lines[key] ? lines[key].text : ''; }
+    // Campaign leaning from every main-quest verdict so far: mercy (rest, break, free…) against judgment.
+    function tally() {
+      var v = boons().claimed.filter(function (k) { return k.indexOf(':verdict:') > 0; });
+      var mercy = v.filter(function (k) { return /:(rest|break|silence|release|erase|open|free|starve|shelter)$/.test(k); }).length;
+      return { mercy: mercy, wrath: v.length - mercy, total: v.length, lean: v.length < 2 ? '' : mercy >= v.length - mercy ? 'mercy' : 'wrath' };
+    }
+    var cinema = function () { return B.QuestCinema; };
 
     // ---- props (merged per material, like quests.js; no lights, no per-frame allocation)
     function prop(kind, x, y, z) {
@@ -679,11 +703,16 @@
         s.bits |= 1 << n.page; refresh(); api.sound('sealOpen', { x: n.x, z: n.z });
         var count = 0; for (var i = 0; i < d.pages.length; i++) if (s.bits & (1 << i)) count++;
         var pg = d.pages[n.page];
-        if (count === d.pages.length) complete(q, pg.name + ' — ' + pg.text + ' ' + d.story);
-        else { if (api.onChange) api.onChange(); notify(q, pg.name + ' — ' + pg.text, false); }
+        if (cinema()) cinema().reader({ title: pg.name, text: pg.text, note: count === d.pages.length ? d.story : count + ' / ' + d.pages.length + L(' sayfa bulundu.', ' pages found.') });
+        if (count === d.pages.length) complete(q, d.story);
+        else { if (api.onChange) api.onChange(); notify(q, pg.name + ' · ' + count + ' / ' + d.pages.length, false); }
         return true;
       }
-      if (d.kind === 'chest') { complete(q, d.story); return true; }
+      if (d.kind === 'chest') {
+        var ln = tally().lean, extra = ln === 'mercy' ? { hp: 3 } : ln === 'wrath' ? { damage: .02 } : null;
+        if (extra) grant(d.id + ':lean', extra);
+        complete(q, d.story + (ln === 'mercy' ? LEAN.chestMercy : ln === 'wrath' ? LEAN.chestWrath : '')); return true;
+      }
       if (d.kind === 'escape') { s.stage = 1; q.left = q.limit; refresh(); notify(q, d.description + ' ' + W.run + q.limit + W.secs, false); api.sound('sealOpen', { x: n.x, z: n.z }); return true; }
       if (d.kind === 'puzzle') {
         if (n.role === 'vault') { complete(q, d.story); return true; }
@@ -697,7 +726,7 @@
       if (d.kind === 'siege') { s.stage = 1; q.wave = null; q.pause = .6; refresh(); notify(q, d.description, false); api.sound('sealOpen', { x: n.x, z: n.z }); return true; }
       if (d.kind === 'rescue') {
         s.stage = 1; q.actor.x = n.x + .9; q.actor.z = n.z + .6; refresh(); if (api.onChange) api.onChange();
-        notify(q, d.freeStory, false); api.sound('sealOpen', { x: n.x, z: n.z }); return true;
+        var lean = tally().lean; notify(q, d.freeStory + (lean ? ' ' + (lean === 'mercy' ? LEAN.rescueMercy : LEAN.rescueWrath) : ''), false); api.sound('sealOpen', { x: n.x, z: n.z }); return true;
       }
       if (d.kind === 'altar') {
         info.pendingChoice = { questId: d.id, nodeId: n.id, title: d.verdict.title, question: d.verdict.question, options: d.verdict.options, side: true };
@@ -733,7 +762,13 @@
       local.finale = optionId; info.pendingChoice = null; info.finale = { id: optionId, name: opt.name, story: opt.story };
       grant('finale:' + optionId, { xp: 1 }); bump(); if (api.onChange) api.onChange();
       api.emit('quest', { id: 'finale', name: FINALE.title, text: opt.story, side: true, kind: 'main', complete: true, completed: info.completed, total: 2, step: 1, steps: 1, choice: optionId });
-      say(opt.voice); return true;
+      say(opt.voice);
+      var t = tally(), extra = LEAN.epi[optionId] ? LEAN.epi[optionId][t.mercy >= t.wrath ? 0 : 1] : '';
+      var parts = opt.story.replace(/([.!?”])\s+/g, '$1\n').split('\n'), paras = [];
+      for (var pi = 0; pi < parts.length; pi += 2) paras.push(parts.slice(pi, pi + 2).join(' '));
+      if (extra) paras.push(extra);
+      if (cinema()) setTimeout(function () { cinema().epilogue({ id: optionId, title: opt.name, paragraphs: paras, tally: L('Merhamet ', 'Mercy ') + t.mercy + ' · ' + L('Yargı ', 'Judgment ') + t.wrath }); }, 1200);
+      return true;
     }
 
     // ---- per-frame
@@ -836,8 +871,23 @@
       beatClock += dt;
       var beats = STORY_BEATS[chapter];
       if (beats && !(local.beats & 1) && beatClock > 40) { local.beats |= 1; say(beats.start); }
+      var gm = B.app && B.app.game;
+      if (!(local.beats & 4) && beatClock > 4.5 && gm && gm.state === 'playing' && !gm.checkpointIndex && (gm.elapsed || 0) < 20) {
+        local.beats |= 4; if (cinema()) cinema().letterbox({ eyebrow: L('Bölüm ', 'Chapter ') + ['I', 'II', 'III', 'IV', 'V'][chapter - 1], title: info.title, text: info.introduction, seconds: 11 });
+      }
+      if (!(local.beats & 8) && beatClock > 95 && chapter >= 2) { var tl = tally().lean; if (tl) { local.beats |= 8; say(tl === 'mercy' ? 'leanMercy' : 'leanWrath'); } }
       var g = B.app && B.app.game, boss = g && (g.boss || (g.enemies || []).find(function (e) { return e.boss; }));
-      if (boss && boss.dead && !bossSeen) { bossSeen = true; if (beats && beats.boss && !(local.beats & 2)) { local.beats |= 2; say(beats.boss); } if (chapter === 5) openFinale(); }
+      if (boss && boss.dead && !bossSeen) {
+        bossSeen = true;
+        if (beats && beats.boss && !(local.beats & 2)) { local.beats |= 2; say(beats.boss); if (cinema()) cinema().letterbox({ eyebrow: boss.name || '', title: L('Son söz', 'Last words'), text: lineText(beats.boss), seconds: 10 });
+          // The chapter card that follows quotes the master's last words.
+          var lw = lineText(beats.boss), tries = 0;
+          if (lw && typeof document !== 'undefined') (function stamp() {
+            ['#victory .end-quote', '#chapter-fade .end-quote'].forEach(function (sel) { var el = document.querySelector(sel); if (el && el.textContent.indexOf(lw) < 0) { var q2 = document.createElement('span'); q2.className = 'qc-lastwords'; q2.textContent = '“' + lw + '”'; el.appendChild(q2); } });
+            if (++tries < 40) setTimeout(stamp, 400);
+          })(); }
+        if (chapter === 5) openFinale();
+      }
       updateBeacons(dt);
       timer -= dt; if (dirty || timer <= 0) { timer = .5; refresh();
         // Far props leave the render traversal (same 32 m window as the main quest props).
