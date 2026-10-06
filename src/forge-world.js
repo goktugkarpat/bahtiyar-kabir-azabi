@@ -72,8 +72,65 @@
       list = list.filter(function (s) { return isWalkable(s.x, s.z, .6); });
       if (list.length) w.encounters.push({ id: 'forge-wing-' + W.id, room: W.id, name: KabirI18n.t(W.name), clearText: KabirI18n.t('Dökümhanenin bu kanadı sustu. Ana yola dön.'), stage: 1.1 + W.hosts[1] * .016, spawns: list });
     });
-    var sites = {}; [['c4.page1', -30, -10], ['c4.page2', 31, -152], ['c4.page3', -26, -210], ['c4.altar', -35, -230], ['c4.chest', 33, -262], ['c4.hunt', 28, -100]].forEach(function (q) { for (var k = 0; k < 60; k++) { var a = k * 2.4, d = k ? .45 * Math.sqrt(k) : 0, x = q[1] + Math.cos(a) * d, z = q[2] + Math.sin(a) * d; if (isWalkable(x, z, 1.3) && pathTo({ x: 0, z: 12 }, { x: x, z: z }, .5).length) { sites[q[0]] = { x: x, z: z }; break; } } });
+    var sites = {}; [['c4.page1', -30, -10], ['c4.page2', 31, -152], ['c4.page3', -26, -210], ['c4.altar', -35, -230], ['c4.chest', 33, -262], ['c4.hunt', 28, -100], ['c4.siege', 27, -121], ['c4.hunt2', -27, -182], ['c4.escape', -31, -63], ['c4.escape-goal', 2, -116], ['c4.captive', -27, -72]].forEach(function (q) { for (var k = 0; k < 60; k++) { var a = k * 2.4, d = k ? .45 * Math.sqrt(k) : 0, x = q[1] + Math.cos(a) * d, z = q[2] + Math.sin(a) * d; if (isWalkable(x, z, 1.3) && pathTo({ x: 0, z: 12 }, { x: x, z: z }, .5).length) { sites[q[0]] = { x: x, z: z }; break; } } });
     w.questSites = Object.assign(w.questSites || {}, sites);
+    /* ---- living foundry set pieces (few meshes, animated here): a travelling casting ladle that stops and pours, spark showers,
+       and the great bellows' breathing furnace glow. Own resources only; disposed with the world. ---- */
+    var T = window.THREE, own = [], live = [], fxRoot = new T.Group(); fxRoot.name = 'forge-setpieces'; w.root.add(fxRoot);
+    var ironM = new T.MeshStandardMaterial({ color: 0x2b2624, roughness: .55, metalness: .8 }), hotM = new T.MeshBasicMaterial({ color: 0xc8380a, toneMapped: false, fog: false }), glowTex = (function () { var c = document.createElement('canvas'); c.width = c.height = 64; var x = c.getContext('2d'), gr = x.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(.4, 'rgba(255,255,255,.45)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = gr; x.fillRect(0, 0, 64, 64); return new T.CanvasTexture(c); })(),
+      glowM = new T.MeshBasicMaterial({ map: glowTex, color: 0xe04a10, transparent: true, opacity: .5, blending: T.AdditiveBlending, depthWrite: false, toneMapped: false, side: T.DoubleSide });
+    own.push(ironM, hotM, glowM, glowTex);
+    var cyl = new T.CylinderGeometry(1, .82, 1, 16, 1, true), disc = new T.CircleGeometry(1, 16), rodG = new T.CylinderGeometry(1, 1, 1, 6), plane = new T.PlaneGeometry(1, 1); disc.rotateX(-Math.PI / 2); plane.rotateX(-Math.PI / 2); own.push(cyl, disc, rodG, plane);
+    var SPN = 140, spPos = new Float32Array(SPN * 3), spSeed = new Float32Array(SPN);
+    for (var q = 0; q < SPN; q++) { spPos[q * 3] = (Math.random() - .5) * 1.4; spPos[q * 3 + 1] = 0; spPos[q * 3 + 2] = (Math.random() - .5) * 1.4; spSeed[q] = Math.random(); }
+    var spG = new T.BufferGeometry(); spG.setAttribute('position', new T.BufferAttribute(spPos, 3)); spG.setAttribute('seed', new T.BufferAttribute(spSeed, 1)); own.push(spG);
+    var spM = new T.ShaderMaterial({ uniforms: { t: { value: 0 }, gain: { value: 0 } }, transparent: true, depthWrite: false, blending: T.AdditiveBlending, toneMapped: false,
+      vertexShader: 'attribute float seed;uniform float t;uniform float gain;varying float vA;void main(){float k=fract(t*.9+seed);vec3 p=position*(1.+k*3.);p.y=k*(2.6+seed*1.5)-k*k*4.6;p.x+=sin(seed*40.)*k*1.8;p.z+=cos(seed*31.)*k*1.8;vA=(1.-k)*gain;vec4 mv=modelViewMatrix*vec4(p,1.);gl_PointSize=clamp(90./max(1.,-mv.z),1.5,6.);gl_Position=projectionMatrix*mv;}',
+      fragmentShader: 'varying float vA;void main(){vec2 c=gl_PointCoord-.5;float a=exp(-dot(c,c)*20.)*vA;gl_FragColor=vec4(vec3(1.,.55,.18)*a,a);}' }); own.push(spM);
+    WINGS.forEach(function (W) {
+      if (W.kind !== 'slag' && W.kind !== 'river') return;
+      var g = new T.Group(), ladle = new T.Group(), x = W.side * 30.5;
+      var shell = new T.Mesh(cyl, ironM); shell.scale.set(1.1, 1.2, 1.1); ladle.add(shell);
+      var bottom = new T.Mesh(disc, ironM); bottom.position.y = -.6; bottom.rotation.x = Math.PI; bottom.scale.setScalar(.9); ladle.add(bottom);
+      var melt = new T.Mesh(disc, hotM); melt.position.y = .45; melt.scale.setScalar(1.0); ladle.add(melt);
+      [-1, 1].forEach(function (s2) { var r = new T.Mesh(rodG, ironM); r.scale.set(.05, 2.6, .05); r.position.set(s2 * 1.05, 1.6, 0); r.rotation.z = -s2 * .38; ladle.add(r); });
+      var hook = new T.Mesh(rodG, ironM); hook.scale.set(.06, 6, .06); hook.position.y = 5.8; ladle.add(hook);
+      var streamM = new T.MeshBasicMaterial({ color: 0xd8480e, transparent: true, opacity: .85, blending: T.AdditiveBlending, depthWrite: false, toneMapped: false }); own.push(streamM); var stream = new T.Mesh(rodG, streamM); stream.scale.set(.16, 1, .16); g.add(stream);
+      var splash = new T.Mesh(plane, glowM); splash.scale.set(3, 1, 3); splash.position.y = .12; g.add(splash);
+      var sparks = new T.Points(spG, spM); sparks.frustumCulled = false; g.add(sparks);
+      var beam = new T.Mesh(rodG, ironM); beam.scale.set(.18, W.d - 8, .18); beam.rotation.x = Math.PI / 2; beam.position.set(x, 9.6, W.z); g.add(beam);
+      g.add(ladle); fxRoot.add(g);
+      live.push({ kind: 'ladle', W: W, g: g, ladle: ladle, stream: stream, splash: splash, sparks: sparks, x: x, z0: W.z0 + 6, z1: W.z1 - 6, phase: W.id * 1.7 });
+    });
+    WINGS.forEach(function (W) {
+      if (W.kind !== 'bellows') return;
+      W.hosts.forEach(function (h) { var r = rooms[h]; [-1, 1].forEach(function (q2) {
+        var k = (h === W.hosts[1] && q2 > 0) ? .95 : .75, gx = W.side * (21 + 14.2) + W.side * 1.4 * k, gz = r.z + q2 * 6.5;
+        var m = new T.Mesh(plane, glowM.clone()); own.push(m.material); m.position.set(gx, .14, gz); m.scale.set(4 * k, 1, 3.4 * k); fxRoot.add(m);
+        live.push({ kind: 'breath', m: m, x: gx, z: gz, phase: h + q2 * .8 });
+      }); });
+    });
+    var baseUpdate = w.update, baseDispose = w.dispose;
+    w.update = function (dt, time, p) {
+      baseUpdate.apply(w, arguments); var t = time || 0; p = p || { x: 0, z: 0 }; spM.uniforms.t.value = t;
+      for (var i = 0; i < live.length; i++) { var L = live[i];
+        if (L.kind === 'ladle') {
+          var near = Math.abs(p.z - (L.z0 + L.z1) / 2) < (L.z1 - L.z0) / 2 + 30; L.g.visible = near; if (!near) continue;
+          // travel 14 s, pour 6 s, repeat; the pour point moves along the wing
+          var cyc = (t + L.phase * 7) % 40, leg = Math.floor(cyc / 20), u = cyc % 20, span = L.z1 - L.z0, z;
+          var travel = Math.min(1, u / 14), ease = travel * travel * (3 - 2 * travel); z = leg === 0 ? L.z0 + span * ease : L.z1 - span * ease;
+          var pour = u > 14 ? Math.sin((u - 14) / 6 * Math.PI) : 0, sway = Math.sin(t * 1.3 + L.phase) * .04 * (1 - pour);
+          L.ladle.position.set(L.x, 3.8, z); L.ladle.rotation.set(0, 0, sway + pour * .55 * (L.W.side));
+          L.stream.visible = L.splash.visible = pour > .15; L.sparks.visible = pour > .05;
+          if (pour > .15) { var sx = L.x + L.W.side * 1.2 * pour, top = 3.6; L.stream.position.set(sx, top / 2, z); L.stream.scale.set(.12 + pour * .08, top, .12 + pour * .08); L.splash.position.set(sx, .12, z); L.splash.material.opacity = .45 * pour; L.sparks.position.set(sx, .1, z); }
+          spM.uniforms.gain.value = Math.max(spM.uniforms.gain.value * .98, pour);
+        } else {
+          var on = Math.abs(p.z - L.z) < 40; L.m.visible = on; if (!on) continue;
+          var br = .5 + .5 * Math.sin(t * 2.1 + L.phase); L.m.material.opacity = .18 + .5 * br * br; L.m.scale.x = L.m.scale.z * (1.05 + br * .2) / 1.05 * 4 / 3.4;
+        }
+      }
+    };
+    w.dispose = function () { own.forEach(function (o) { o.dispose(); }); fxRoot.removeFromParent(); return baseDispose.apply(w, arguments); };
     w.rooms = rooms.concat(wingRooms); w.colliders = colliders;
     w.isWalkable = isWalkable; w.move = move; w.hasClearPath = hasClearPath; w.pathTo = pathTo; w.roomAt = roomAt;
     return w;
