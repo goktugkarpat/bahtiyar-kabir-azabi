@@ -275,6 +275,36 @@
     }
 
     // Writes each enemy's hit flash into its bone textures (see RIM_VERT). Only changed values touch a texture.
+    // Battle blood (ajan:visual-dark): every kill close to the hero leaves more blood on his skin and gear (the graded materials'
+    // own blood layer); it dries off slowly once the fighting stops. Only hero/equipment materials are touched (enemy materials are shared).
+    var blood = { level: 0, quiet: 0, clock: 0, game: null, root: null, rev: -1, mats: [] };
+    function battleBlood(game, dt) {
+      var p = game && game.player; if (!p || !p.model || !p.model.root) return;
+      if (blood.game !== game) { blood.game = game; blood.level = 0; blood.quiet = 0; blood.root = null; }
+      var enemies = game.enemies || [];
+      for (var i = 0; i < enemies.length; i++) {
+        var e = enemies[i];
+        if (e && e.dead && !e.karaBloodSeen) { e.karaBloodSeen = true; if (Math.hypot(e.x - p.x, e.z - p.z) < 4.5) { blood.level = Math.min(1, blood.level + (e.boss ? .45 : e.elite ? .22 : .14)); blood.quiet = 0; } }
+        else if (e && !e.dead && e.karaBloodSeen) e.karaBloodSeen = false;   // restored / revived foes count again
+      }
+      blood.quiet += dt; if (blood.quiet > 25) blood.level = Math.max(0, blood.level - dt * .012);
+      blood.clock -= dt; if (blood.clock > 0) return; blood.clock = .25;
+      var root = p.model.root, rev = root.userData.equipmentRevision || 0;
+      if (root !== blood.root || rev !== blood.rev) {
+        blood.root = root; blood.rev = rev; blood.mats = [];
+        root.traverse(function (o) {
+          if (!o.isMesh || !o.material) return;
+          (Array.isArray(o.material) ? o.material : [o.material]).forEach(function (m) {
+            var g = m.userData && m.userData.grade;
+            if (g && g.kBlood && /^kara-(hero|equipment)-/.test(m.name || '') && blood.mats.indexOf(m) < 0) {
+              if (!Number.isFinite(m.userData.karaBloodBase)) m.userData.karaBloodBase = g.kBlood.value;
+              blood.mats.push(m);
+            }
+          });
+        });
+      }
+      for (var j = 0; j < blood.mats.length; j++) { var mm = blood.mats[j]; mm.userData.grade.kBlood.value = mm.userData.karaBloodBase + blood.level * .7; }
+    }
     function hitFlash(game) {
       var enemies = game && game.enemies; if (!enemies) return;
       for (var i = 0; i < enemies.length; i++) {
@@ -725,7 +755,7 @@
         && L && L.deferShadowRefresh) L.deferShadowRefresh();
       var p = game.player, a = world.atmosphereAt(p.x, p.z);
       patchClock -= dt; if (patchClock <= 0) { patchClock = 1; patchCharacters(game); splitCharacters(game); }
-      hitFlash(game);
+      hitFlash(game); battleBlood(game, dt);
       directorStep(dt, time, game, a);
       corpseClock -= dt; if (corpseClock <= 0 && L && L.setCorpses) { corpseClock = .5; flyCorpses(game); }
       var k = ready ? 1 - Math.exp(-dt * 2.2) : 1; ready = true;
