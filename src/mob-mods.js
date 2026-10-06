@@ -12,6 +12,9 @@
      venom    Zehir İzli  leaves bile pools behind it (capped).
      volatile Patlayan    its corpse bursts 1.6 s after death (crimson circle).
      mending  Şifacı      every 6.5 s a green pulse heals allies within 8 m — kill it first.
+     echoing  Yankılı     every blow it lands on the floor repeats once in the same place (.7 s tell after the first): the roll that
+                          dodged the first must not end inside the echo (anti dodge-spam, fully telegraphed).
+     blink    Gölge Adımlı an ambusher: every ~7 s, from 4-11 m, a shadow circle opens beside / behind the hero (.65 s) and it steps out of it.
    Hooks (combat.js): create(api) after the enemies exist; update(dt) every step; hurt(e,damage,heavy,blocked) before health is reduced;
    kill(e) when a foe dies. New modifiers: add an entry to MODS (name, color, optional apply/hurt/step/kill) and to POOL.
    Rendering: two InstancedMeshes (ring + shell) for all champions together = 2 draw calls; built once; no lights; no per-frame allocation. */
@@ -29,9 +32,11 @@
     fire:     { name: tr('Kor İzli'), color: [1.5, .45, .1] },
     venom:    { name: tr('Zehir İzli'), color: [.5, 1.15, .25] },
     volatile: { name: tr('Patlayan'), color: [1.5, .22, .1] },
-    mending:  { name: tr('Şifacı'), color: [.35, 1.3, .7] }
+    mending:  { name: tr('Şifacı'), color: [.35, 1.3, .7] },
+    echoing:  { name: tr('Yankılı'), color: [1.25, .9, .35] },
+    blink:    { name: tr('Gölge Adımlı'), color: [.55, .35, 1.0] }
   };
-  var POOL = ['hasted', 'armored', 'fire', 'venom', 'volatile', 'mending', 'reflect', 'warded'];
+  var POOL = ['hasted', 'armored', 'fire', 'venom', 'volatile', 'mending', 'reflect', 'warded', 'echoing', 'blink'];
   var CLASH = { fire: 'venom', venom: 'fire', reflect: 'warded', warded: 'reflect' };
   var CHANCE = [0, .2, .24, .28, .32, .34], COUNT = [0, 1, 1, 2, 2, 2];
 
@@ -89,7 +94,7 @@
         mods.forEach(function (id) { if (MODS[id].apply) MODS[id].apply(e); });
         try { if (e.bar && e.bar.fill) e.bar.fill.material.color.setHex(0xc99a3c); } catch (_) {}
         return { e: e, mods: mods, has: function (id) { return mods.indexOf(id) >= 0; }, primary: MODS[mods[0]], lx: e.x, lz: e.z, trailN: 0,
-          shellT: 2 + (hash(e.id) % 40) / 10, shellOn: 0, ward: 0, wardMax: 0, wardCd: 0, healT: 3 + (hash(e.id) % 30) / 10, ghostT: 0, reflectCd: 0, spin: hash(e.id) % 360 };
+          shellT: 2 + (hash(e.id) % 40) / 10, shellOn: 0, ward: 0, wardMax: 0, wardCd: 0, healT: 3 + (hash(e.id) % 30) / 10, ghostT: 0, reflectCd: 0, spin: hash(e.id) % 360, echoSerial: 0, blinkT: 4 + (hash(e.id) % 30) / 10, blinkTo: null };
       }
       champs.forEach(function (c) { if (c.has('warded')) { c.wardMax = c.ward = c.e.maxHp * .3; } });
 
@@ -157,8 +162,46 @@
             if (healed) api.sound('enemyWindup', { type: e.type, x: e.x, z: e.z, style: 'rune' });
           }
           c.reflectCd = Math.max(0, c.reflectCd - dt);
+          if (c.has('echoing')) echo(c);
+          if (c.has('blink')) blink(c, dt);
         }
         rings.instanceMatrix.needsUpdate = true; shells.instanceMatrix.needsUpdate = true;
+      }
+      // Echo: copy each new floor blow of this champion once, shown when the original lands (never persistent pools, pulls or projectiles).
+      function echo(c) {
+        var e = c.e, top = c.echoSerial;
+        for (var i = 0; i < hazards.length; i++) {
+          var h = hazards[i];
+          if (h.owner !== e || h.serial <= c.echoSerial || h.echo || h.persistent || h.harmless || h.modTrail) continue;
+          if (h.serial > top) top = h.serial;
+          if (h.pull || h.track || h.style === 'grab') continue;
+          api.addHazard({ owner: e, enemy: e.name, x: h.x, z: h.z, face: h.face, shape: h.shape, radius: h.radius, inner: h.inner, arc: h.arc, width: h.width, length: h.length,
+            warn: .7, delay: Math.max(0, h.warn - h.age), duration: h.duration, damage: Math.round(h.damage * .7), style: h.style, fill: h.fill, sweepDir: h.sweepDir,
+            unblockable: h.unblockable, echo: true, attack: (h.attack || '') + tr(' · yankı'), near: h.near, cancelOnStagger: false, beat: false });
+        }
+        c.echoSerial = top;
+      }
+      // Blink: a shadow circle opens beside/behind the hero; when it fills the champion steps out of it (harmless tell, the blow comes after).
+      function blink(c, dt) {
+        var e = c.e;
+        if (c.blinkTo) {
+          c.blinkTo.t -= dt;
+          if (c.blinkTo.t <= 0) { var b = c.blinkTo; c.blinkTo = null;
+            if (!e.dead && !e.action && e.stagger <= 0) { api.fx('glowBurst', { x: e.x, y: .05, z: e.z, radius: 1.4, color: 0x5a3aa0, duration: .5 }); e.x = b.x; e.z = b.z; e.face = Math.atan2(player.x - e.x, player.z - e.z); e.cooldown = Math.min(e.cooldown, .35); e.navigation = null;
+              if (e.model && e.model.root) e.model.root.position.set(e.x, e.model.root.position.y, e.z);
+              api.fx('glowBurst', { x: e.x, y: .05, z: e.z, radius: 1.8, color: 0x7a4ad0, duration: .6 }); api.fx('dodge', { x: e.x, y: .1, z: e.z, face: e.face }); } }
+          return;
+        }
+        if ((c.blinkT -= dt) > 0 || e.action || e.stagger > 0 || !e.active) return;
+        var d = hyp(player.x - e.x, player.z - e.z); if (d < 3.4 || d > 11) { c.blinkT = .6; return; }
+        for (var k = 0; k < 6; k++) {
+          var a = player.face + Math.PI + (k % 2 ? 1 : -1) * (.5 + k * .35), x = player.x + Math.sin(a) * 2.4, z = player.z + Math.cos(a) * 2.4;
+          if (!api.walkable(x, z, e.radius || .5) || (api.clearStrike && !api.clearStrike(player, { x: x, z: z }))) continue;
+          c.blinkTo = { x: x, z: z, t: .65 }; c.blinkT = 7;
+          api.addHazard({ owner: e, enemy: e.name, x: x, z: z, shape: 'circle', radius: 1.2, warn: .65, duration: .1, damage: 0, harmless: true, style: 'shadow', fill: 'inward', near: false, attack: tr('Gölge Adımı') });
+          return;
+        }
+        c.blinkT = 1.5;
       }
       function find(e) { if (!e || !e.champion) return null; for (var i = 0; i < champs.length; i++) if (champs[i].e === e) return champs[i]; return null; }
       function hurt(e, damage, heavy, blocked) {
