@@ -62,12 +62,21 @@
           put(i,'column','dark',x,1.7,z,.9,3.4,.9);put(i,'box','pale',x,3.45,z,1.4,.23,1.4);
           put(i,'box','pale',x,.12,z,1.45,.24,1.45);solid(x,z,1.2,1.2);
         });});
-        for(var n=0;n<6;n++){var x=r.x+(n%2?1:-1)*(r.w/2-2.8),z=r.z+(Math.floor(n/2)-1)*4.8;
+        for(var n=0;n<6;n++){var x=r.x-side*(r.w/2-2.7)+(n%2?side*2.4:0),z=r.z+(Math.floor(n/2)-1)*5.5;
           put(i,'box','dark',x,.48,z,1.7,.96,2.8);put(i,'box','pale',x,1.01,z,1.9,.14,3);solid(x,z,1.9,3);
           put(i,'box','iron',x,1.13,z,.12,.1,1.4);put(i,'box','iron',x,1.13,z,.8,.1,.12);
           put(i,'urn','stone',x+(n%2?-.95:.95),.55,z-1.7,.7,1.1,.7);
         }
         if(i){put(i,'box','dark',r.x,1,r.z-r.d/2+2,5,2,1.3);solid(r.x,r.z-r.d/2+2,5,1.3);}
+        // Furnish the chamber edges; the entry fan and central fighting lane stay open.
+        [-1,1].forEach(function(sign){
+          var bx=r.x-side*2,bz=r.z+sign*(r.d/2-2.3);
+          put(i,'box','wood',bx,.53,bz,4,.20,.9);
+          [-1,1].forEach(function(leg){put(i,'box','dark',bx+leg*1.45,.22,bz,.28,.44,.6);});
+          solid(bx,bz,4,.9);
+          for(var j=0;j<3;j++)put(i,'urn',j%2?'dark':'stone',bx-1.2+j*1.2,.9,bz,.42,.64,.42);
+          put(i,'box','iron',bx,.12,bz-sign*1.1,3.7,.08,.12);
+        });
       } else if(i===0||i===2||i===3||i===4){
         // Broken customs arcade, collapsed roof beams and stacked confiscated cargo.
         [-1,1].forEach(function(s){put(i,'box','wall',r.x,1.2,r.z+s*r.d/2,r.w,2.4,.65);solid(r.x,r.z+s*r.d/2,r.w,.65);});

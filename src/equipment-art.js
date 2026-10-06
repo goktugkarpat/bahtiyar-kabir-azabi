@@ -99,6 +99,12 @@
       const y=mix(hem,top,v),bodyTop=1.51-.135*Math.pow(side,3);
       const p=chest(u,(y-.89)/(bodyTop-.89),lift,true);
       const keel=.011*Math.pow(front,16)*Math.exp(-Math.pow((v-.32)/.31,2));
+      // A backplate is a broad forged surface, not a shrink-wrap of shoulder blades.
+      // The sampled body field has sparse rear vertices: its radial peaks look like folds.
+      const back=Math.max(0,-Math.cos(a)), blend=clamp((back-.12)/.55,0,1);
+      const arch=.18+.025*Math.sin(v*PI);
+      p[0]=mix(p[0],Math.sin(a)*(.205+.055*Math.sin(v*PI)+lift),blend);
+      p[2]=mix(p[2],cz+Math.cos(a)*(arch+lift),blend);
       p[0]+=Math.sin(a)*keel;p[2]+=Math.cos(a)*keel;
       return p;
     }

@@ -99,7 +99,7 @@
     heal: ['KeyQ', ''], rage: ['Digit2', ''], special: ['Digit1', ''], interact: ['KeyE', ''], fourth: ['Digit3', '']
   };
   const BIND_MOUSE_OK = ['light', 'heavy', 'dodge', 'heal', 'rage', 'special', 'fourth'];   // walking and interact stay on the keyboard
-  const BIND_RESERVED = ['Escape', 'KeyH', 'KeyI', 'KeyC', 'KeyT', 'KeyM', 'Tab', 'MetaLeft', 'MetaRight', 'ContextMenu'];
+  const BIND_RESERVED = ['Escape', 'KeyH', 'KeyI', 'KeyC', 'KeyT', 'KeyM', 'KeyL', 'KeyO', 'Tab', 'MetaLeft', 'MetaRight', 'ContextMenu'];
   const CAP_NAMES = { Space: 'SPACE', ShiftLeft: 'SHIFT', ControlLeft: 'CTRL', AltLeft: 'ALT', ArrowUp: '↑', ArrowDown: '↓', ArrowLeft: '←', ArrowRight: '→', Enter: 'ENTER', Backspace: 'SİL', CapsLock: 'CAPS',
     Mouse0: 'SOL TIK', Mouse1: 'ORTA TIK', Mouse2: 'SAĞ TIK', Mouse3: 'FARE 4', Mouse4: 'FARE 5' };
   const binds = {}; let bindMap = {}, keyLayout = null;
@@ -262,13 +262,14 @@
   let resumeAudioOnVisible = null;
   let graphicsLost = false, graphicsRecovering = false, graphicsEpoch = 0;
   const renderClock = B.Pacing.create();
-  const scaler = DISPLAY.createScaler(), AUTO_SCALE = !Q.has('nodrs');
+  const scaler = DISPLAY.createScaler(), AUTO_SCALE = !Q.has('nodrs') && DISPLAY.deviceProfile({}).name !== 'desktop';
   let shake = 0, flash = 0, ragePush = 0, announceTimer = 0, levelUpTimer = 0, hudTimer = 0, firstHint = 25, elapsed = 0;
   let fpsStart = 0, fpsFrames = 0;
   const performanceMeter = B.Performance.create();
   let graphicsAdapter = null, multiDraw = false, worldSubmission = null;
   let introBlend = 1, introStart = 0, deaths = 0, lastHp = null, lastFlasks = null;
   const buffUI = B.Buffs.create($('timed-effects'));
+  const chapterBuffUI = B.Buffs.createChapter($('chapter-buffs'));
   const targetUI = B.TargetHUD.create($('target-hud'));
   const cryEffect = { id: 'rage', name: 'Kan Öfkesi', icon: 'rage', remaining: 0, duration: B.Game.resources.durations.rage };
   const timedEffects = [cryEffect];
@@ -369,7 +370,7 @@
   }
   function clearNotices() {
     levelUpTimer = 0; $('level-up').classList.remove('show'); if (B.LevelUp) B.LevelUp.cancel(); if (B.Charge && B.Charge.cancel) B.Charge.cancel();
-    buffUI.clear(); if (questUI) questUI.clear();
+    buffUI.clear(); chapterBuffUI.clear(); if (questUI) questUI.clear();
     targetUI.clear();
     $('toasts').replaceChildren();
     for (const w of warnings) w.el.remove(); warnings.length = 0;
@@ -734,7 +735,7 @@
       (cfg.renderScale === 1 && cfg.dynScale < 1 ? ` Akıcılığı korumak için çizim boyutu geçici olarak %${Math.round(cfg.dynScale * 100)} düzeyinde.` : '');
     if (mode) {
       mode.textContent = cfg.displayMode === 'auto'
-        ? 'Otomatik: yüksek çözünürlüklü ekranlarda grafik kalitesine uygun boyut seçer. Düşük ayar bilgisayarı daha az çalıştırır. Yazılar net kalır.'
+        ? 'Otomatik başlangıç: PC’de %100, Mac’te %70, iPad’de %75, Android’de %80. 1× / 1,25× / 1,50× bu boyutu ölçekler. Yazılar net kalır.'
         : 'Ekranın bütün piksellerini kullanır. Retina ekranda Düşük kalite seçilse de çizim boyutu azalmaz.';
     }
     if (resolution) resolution.textContent = 'Seçilen görüntü boyutunu büyütür. 1.25× daha net, 1.50× en ayrıntılı görüntüdür; daha fazla ekran kartı gücü kullanır.';
@@ -876,6 +877,10 @@
       }
       if (['KeyI', 'KeyC', 'KeyT'].includes(e.code) && !browserChord && !e.repeat && ['playing', 'pause', 'character'].includes(view)) { e.preventDefault(); if (view === 'character') back(); else openCharacter(e.code === 'KeyT' ? 'skills' : 'inventory'); return; }
       if (e.code === 'KeyM' && !browserChord && !e.altKey && !e.repeat && ['playing','pause','character','journal','atlas'].includes(view)) { e.preventDefault(); openAtlas(); return; }
+      if (['KeyL','KeyO'].includes(e.code) && !browserChord && !e.altKey && !e.repeat && ['playing','pause','character','journal','settings','atlas'].includes(view)) {
+        e.preventDefault(); const target = e.code === 'KeyL' ? 'journal' : 'settings';
+        if (view === target) back(); else if (target === 'settings') openSettings(); else open('journal'); return;
+      }
       if (view !== 'playing' || browserChord) return;
       if (e.code === 'KeyH' && !e.repeat) { show('pause'); openControls(); return; }
       if (e.repeat) keys.add(normCode(e.code)); else pressBind(normCode(e.code));
@@ -1459,6 +1464,7 @@
     if (xpBar.title !== xpTitle) xpBar.title = xpTitle;
     cryEffect.remaining = !p.dead && game.state === 'playing' ? p.rageTime || 0 : 0; if (p.rageMax > 0) cryEffect.duration = p.rageMax;
     buffUI.update(timedEffects);
+    chapterBuffUI.update(game.quests);
     let buffCount = 0;
     for (const effect of timedEffects) if (Number.isFinite(effect.remaining) && effect.remaining > 0) buffCount++;
     const buffRows = Math.ceil(buffCount / 3);

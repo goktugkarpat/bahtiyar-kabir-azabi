@@ -55,7 +55,7 @@
   // The father's heavy blow (was 1.05 s with contact at .57 s and a held coil): contact at .35 s, the feet free again right after it.
   // beginAttack applies these on top of the light-chain numbers; the swing sound is scheduled from the press (audio.js H.heavy
   // builds up to contact), so it fires at once; the step into the blow starts .15 s before contact.
-  const HEAVY = { duration: .70, strike: .35, lungeLead: .15 };
+  const HEAVY = { duration: .45, strike: .14, lungeLead: .08 };
   // Flask: the heal lands on the press; the drink is only a short upper-body flourish (DRINK s) that never holds input.
   // A second press inside DRINK_GUARD s of a drink is ignored, so one press (or a double-fired tap) cannot burn two flasks.
   const DRINK = .34, DRINK_GUARD = .2;
@@ -70,7 +70,7 @@
   // Kan öfkesi: wider shockwave (near 6.5 m stagger / far 10 m cow), 11 s buff, -25 % damage taken (guard .75), 4 % of damage dealt returns as hp (steal);
   // while it burns, blows stagger lighter foes (see canStagger). The cry uses the same stamina as rolls/Girdap,
   // with its own cooldown; there is no separate fury meter to fill by fighting.
-  const ROAR = { cost: RESOURCES.costs.rage, cooldown: RESOURCES.cooldowns.rage, duration: .36, release: .2, move: .6,
+  const ROAR = { cost: RESOURCES.costs.rage, cooldown: RESOURCES.cooldowns.rage, duration: .36, release: .08, move: .6,
     near: 6.5, far: 10, time: RESOURCES.durations.rage, guard: .75, steal: .04 };
   // Special ability "Zincir Girdabı" (key 1, a whirlwind): the father spins with the chained cleaver for SPECIAL.duration s, walks on at SPECIAL.move of his speed
   // (steer with the movement keys) and hits every foe within SPECIAL.radius m SPECIAL.ticks times (first after SPECIAL.first s, then every SPECIAL.gap s) for SPECIAL.damage each
@@ -83,8 +83,8 @@
   const SPECIAL_BASE = Object.assign({}, SPECIAL), ROAR_BASE = Object.assign({}, ROAR, { stun: 1.35, fear: 2.2, damage: 0, waves: 1, waveDamage: 0, tier: 1 });
   Object.assign(ROAR, ROAR_BASE);
   // Per-tier shape of the cry (index = tier - 1): the roar releases at `release`, the hero is committed until `duration` and walks on at `move` of his speed meanwhile.
-  // Tier 3 is two-staged: the first scream at .62 s, the follow-up rings every .34 s after it (stepRoarWaves). LEAP_AIR = seconds the tier-3 heavy strike spends in the air.
-  const SHOUT_TIME = { release: [.2, .44, .62], duration: [.36, .84, 1.34], move: [.6, .4, .2] }, LEAP_AIR = .38, LEAP_HEIGHT = 1.15;
+  // Tier 3 is two-staged: the first scream at .12 s, the follow-up rings every .34 s after it (stepRoarWaves). LEAP_AIR = seconds the tier-3 heavy strike spends in the air.
+  const SHOUT_TIME = { release: [.08, .10, .12], duration: [.36, .84, 1.34], move: [.6, .4, .2] }, LEAP_AIR = .20, LEAP_HEIGHT = 1.15;
   // Test-build ease (29 Sep 2026; DESIGN.md "Enemy difficulty" has the measurements). Before -> after:
   //   executioner hp (STATS) 2280 -> 2100 and rest between two of his moves 1.25 -> 1.3 s; the five common foes keep their hp and pace
   //   (a few percent of hp changes no hit count, the special gate below is what lightens the halls).
@@ -311,7 +311,12 @@
       if (swingPlan && swingPlan.order && swingPlan.order.held && !swingPlan.order.owed &&
         (!skill || (skillCooldowns[skill.line] || 0) > FEEL.buffer || player.stamina < skill.cost)) return false;
       if (!canQueueAbility(key)) { if (swingPlan && swingPlan.order) swingPlan.order.owed = false; return false; }
-      if (!skill || (skillCooldowns[skill.line] || 0) > 0 || player.attack || player.dodge || player.roar || player.stagger > 0) return false;
+      if (!skill || (skillCooldowns[skill.line] || 0) > 0 || player.dodge || player.stagger > 0) return false;
+      // A ready ability takes priority over a basic swing or a cry's recovery.
+      // Validate first so an unavailable skill cannot cancel the current action.
+      if (player.attack && !player.attack.skill && !player.attack.whirl) player.attack = null;
+      if (player.roar && player.roar.released) player.roar = null;
+      if (player.attack || player.roar) return false;
       skillAim(hasAim);
       let started = false;
       const P = skill.params;
@@ -2290,8 +2295,10 @@
       if (buffer.dodge && player.dodge <= .03 && (!player.roar || player.roar.released)) {
         if (beginDodge(input)) player.roar = null;
       }
-      if (buffer.rage && !player.attack && !player.roar && !player.dodge && player.stagger <= 0) useSkill(2, hasAim);
-      if (buffer.fourth && !player.attack && !player.roar && !player.dodge && player.stagger <= 0) useSkill(3, hasAim);
+      if (buffer.heavy) useSkill(0, hasAim);
+      else if (buffer.special) useSkill(1, hasAim);
+      else if (buffer.rage) useSkill(2, hasAim);
+      else if (buffer.fourth) useSkill(3, hasAim);
       // Flask: instant. The heal lands on the press and nothing is locked (player.healing, the old .82 s drink, is no longer set), so it
       // works mid-swing, mid-roll or during the roar.
       drinkLeft = Math.max(0, drinkLeft - dt);

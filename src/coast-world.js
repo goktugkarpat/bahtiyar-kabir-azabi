@@ -177,11 +177,19 @@
     rooms.forEach(function (r) { var g = new T.Group(); g.name = r.name; root.add(g); roomGroups.push(g); });
     var sideMouths=[{lo:-19,hi:-9,z:-63},{lo:-21,hi:-10,z:-112},{lo:-17,hi:-9,z:4},{lo:-20,hi:-9,z:-27},{lo:-19,hi:-9,z:-81},{lo:-19,hi:-8,z:-140}];
     function add(room, g, mat, x, y, z, sx, sy, sz, rx, ry, rz) {
-      // These rocks are scenery, not colliders; keep their visible silhouette
-      // out of the actual old side entrance, rather than letting players walk through stone.
+      // Check the rotated silhouette, not just the rock's centre. This runs once
+      // during construction; decorative rubble never conceals a walkable doorway.
       if(g===rock&&mat==='rock'&&sy>.25){
-        var rr=Math.max(Math.abs(sx),Math.abs(sz))*1.2;
-        sideMouths.forEach(function(m){if(x+rr>m.lo&&x-rr<m.hi&&Math.abs(z-m.z)<3+rr+.65)z=m.z+(z>=m.z?1:-1)*(3+rr+.65);});
+        if(!g.boundingBox)g.computeBoundingBox();
+        position.set(x,y,z);scale.set(sx,sy,sz);rotation.setFromEuler(euler.set(rx||0,ry||0,rz||0));
+        matrix.compose(position,rotation,scale);
+        var bounds=g.boundingBox.clone().applyMatrix4(matrix);
+        sideMouths.forEach(function(m){
+          if(bounds.max.x>m.lo-.7&&bounds.min.x<m.hi+.7&&bounds.max.z>m.z-3.8&&bounds.min.z<m.z+3.8){
+            var shift=z>=m.z?m.z+3.8-bounds.min.z:m.z-3.8-bounds.max.z;
+            z+=shift;bounds.min.z+=shift;bounds.max.z+=shift;
+          }
+        });
       }
       var key = room + ':' + g.id + ':' + mat;
       if (!batches[key]) batches[key] = { room: room, geo: g, mat: materials[mat], matrices: [] };
@@ -389,7 +397,7 @@
     add(0, box, 'wood', -6.7, 2.1, 13, 3, .23, .3, 0, 0, -.25);
     for (var i = 0; i < 5; i++) add(0, cone, 'rust', -7.8 + i * .6, 2.5, 13, .06, .5, .06);
     // The graveyard is a ruined burial precinct, with niches and uneven walls around the outer route.
-    for(var side=-1;side<=1;side+=2){var xx=side<0?-12.8:10.8;for(var j=0;j<10;j++){var zz=12-j*2.0,hh=.45+(j%3)*.23;add(0,masonry,'stone',xx,hh*.5,zz,.65,hh,1.80,0,side*.06);if(j%3===0){add(0,masonry,'stone',xx,1.12,zz,.86,1.45,.82);add(0,masonry,'stone',xx,1.94,zz,1.04,.16,1.02);}}}
+    for(var side=-1;side<=1;side+=2){var xx=side<0?-12.8:10.8;for(var j=0;j<10;j++){var zz=12-j*2.0,hh=.45+(j%3)*.23;if(side<0&&Math.abs(zz-4)<4.9)continue;add(0,masonry,'stone',xx,hh*.5,zz,.65,hh,1.80,0,side*.06);if(j%3===0){add(0,masonry,'stone',xx,1.12,zz,.86,1.45,.82);add(0,masonry,'stone',xx,1.94,zz,1.04,.16,1.02);}}}
     for(var j=0;j<6;j++){var xx=-9.6+j*.39;add(0,cylinder,'rust',xx,.66,10.5,.022,1.18,.022,0,0,(j%2-.5)*.08);add(0,cone,'rust',xx,1.3,10.5,.055,.16,.055);}beam(0,'rust',[-9.8,.85,10.5],[-7.4,.8,10.5],.025);
     corpse(0,-8,6,.6);corpse(0,6,-2,2.4);skull(0,-7,.12,1,.4);
     // 1: a collapsed root arch and a charred shelter. The route beneath stays wide and flat.

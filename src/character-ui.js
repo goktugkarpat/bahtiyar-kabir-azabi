@@ -451,8 +451,8 @@
       const samePage = overlay.querySelector('.character-panel').dataset.page === tab;
       const scroll = { content: content.scrollTop, bag: content.querySelector('.char-bag-grid')?.scrollTop || 0, tree: content.querySelector('.skt-tree')?.scrollTop || 0 };
       const focused = rememberFocus(); hideTooltip(); if (inspectScroll) clearTimeout(inspectScroll); inspectScroll = 0;
-      const min = B.Progression.thresholds[state.level - 1], max = state.nextLevelXp(), fraction = max ? Math.min(1, (state.xp - min) / (max - min)) : 1;
-      progress.innerHTML = '<div><strong>Seviye ' + state.level + '</strong><span>' + (max ? 'Tecrübe ' + (state.xp - min) + ' / ' + (max - min) : 'En yüksek seviye') + '</span><b class="char-points' + (state.points ? ' on' : '') + '">' + state.points + ' yetenek puanı</b></div><div class="char-xp-track" role="progressbar" aria-label="Seviye ilerlemesi" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + Math.round(fraction * 100) + '"><i style="width:' + (fraction * 100).toFixed(1) + '%"></i></div>';
+      const min = B.Progression.thresholds[state.level - 1], max = state.nextLevelXp();
+      progress.innerHTML = '<div><strong>Seviye ' + state.level + '</strong><span>' + (max ? 'Tecrübe ' + (state.xp - min) + ' / ' + (max - min) : 'En yüksek seviye') + '</span><b class="char-points' + (state.points ? ' on' : '') + '">' + state.points + ' yetenek puanı</b></div>';
       overlay.querySelectorAll('[data-char="tab"]').forEach(el => { const active = el.dataset.tab === tab; el.classList.toggle('active', active); el.setAttribute('aria-pressed', String(active)); });
       overlay.querySelector('.character-panel').dataset.page = tab;
       overlay.querySelector('#character-title').textContent = tab === 'skills' ? 'Yetenek ağacı' : 'Karakter ve çanta';

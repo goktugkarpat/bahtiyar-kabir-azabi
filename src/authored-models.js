@@ -925,7 +925,6 @@
     piece.materials = mats; piece.id = id; piece.type = type; return piece;
   }
   function heroEquipment(A) {
-    var plateSpines = ['spine01','spine02','spine03'].map(function (name) { return [A.index[name], A.P(name).y]; });
     var data = { armor: {}, weapons: {}, materials: {} }, BODY = ['skin', 'leather'], TORSO = ['pelvis', 'spine01', 'spine02', 'spine03', 'shoulderL', 'shoulderR'];
     function part(slot, id, material, geometry, bone, opts) {
       var key = 'equipment:' + slot + ':' + id + ':' + material;
@@ -937,11 +936,9 @@
         var uniformWeights = opts.rigidWeights.filter(function (b) { return b[1] > 0; }).map(function (b) { return [A.index[b[0]], b[1]]; });
         A.weighted(key, geometry, function () { return uniformWeights; });
       } else if (opts && opts.spineWeights) {
-        A.weighted(key, geometry, function (v) {
-          var low = v.y < plateSpines[1][1] ? 0 : 1, a = plateSpines[low], b = plateSpines[low + 1];
-          var w = Math.max(0, Math.min(1, (v.y - a[1]) / Math.max(.001, b[1] - a[1])));
-          return [[a[0], 1-w], [b[0], w]];
-        });
+        // Forged cuirasses and their ornamentation are one rigid plate assembly.
+        // Per-vertex spine blends compress the back when the torso bends.
+        A.rigid(key, geometry, 'spine02');
       } else A.transfer(key, geometry, BODY, opts || { bones: TORSO });
       A.parts[A.parts.length - 1].equipment = true;
     }

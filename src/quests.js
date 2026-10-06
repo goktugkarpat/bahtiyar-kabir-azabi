@@ -310,6 +310,12 @@
       }
       benefits.damageReduction = Math.min(.12, benefits.damageReduction); benefits.bossDamage = Math.min(.2, benefits.bossDamage);
       benefits.staminaRecovery = Math.min(.2, benefits.staminaRecovery); benefits.healingBonus = Math.min(.2, benefits.healingBonus);
+      // Keep the earned source with each chapter benefit; pending trials grant no icon.
+      info.activeBenefits = [];
+      for (var qi = 0; qi < 2; qi++) {
+        var q = definition.quests[qi], chosen = choices[qi] && q.verdict.options.find(function (option) { return option.id === choices[qi]; });
+        if (chosen && info.entries[qi].complete) info.activeBenefits.push({ id: q.id, name: chosen.label || chosen.name || chosen.title, quest: q.name, effect: info.entries[qi].consequence, benefit: chosen.benefit, amount: chosen.amount });
+      }
       info.completed = completed; info.ready = completed === 2;
       info.objective = info.ready ? 'İki bağ çözüldü. Açılan kapıdan geç ve bölümün efendisini yen.' : info.entries[0].complete ? info.entries[1].objective : info.entries[0].objective;
       info.revision++; nextScan = 0; scan();

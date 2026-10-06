@@ -1228,7 +1228,7 @@
       box('iron', 0, 2.5, 13.45, 5.0, 0.16, 0.16);
 
       // II. Chain yard: an empty well and machinery at the combat area's edges.
-      var wellX = -9.2, wellZ = -22;
+      var wellX = -6.5, wellZ = -28.5;
       solid(wellX, wellZ, 3.15, 3.15);
       put('round', 'foundation', wellX, 0.13, wellZ, 1.55, 0.25, 1.55, 0, 0, 0);
       for (var wi = 0; wi < 12; wi++) {
@@ -1255,7 +1255,7 @@
 
       // III. Infirmary: mortuary tables and wet stone; no collision on stains.
       [-7.5, 9.3].forEach(function (x) {
-        [-41.5, -50.5].forEach(function (z) { slab(x, z, 0, z < -45); });
+        [-40, -54].forEach(function (z) { slab(x, z, 0, z < -45); });
       });
       for (var gr = 0; gr < 7; gr++) box('iron', 9.3 + (gr - 3) * 0.34, 0.024, -55.4, 0.07, 0.046, 2.2, 0, 0);
       box('foundation', 9.3, 0.003, -55.4, 2.6, 0.02, 2.5);
@@ -1311,7 +1311,7 @@
 
       // V. Ossuary: layered niches, scattered remains and collapsed masonry.
       [-9.7, 7.7].forEach(function (x) {
-        [-95, -101.5, -108].forEach(function (z) {
+        (x > 0 ? [-94, -108] : [-95, -101.5, -108]).forEach(function (z) {
           solid(x, z, 1.65, 3.3);
           box('dark', x, 0.95, z, 1.6, 1.9, 3.25);
           [0.36, 1.04, 1.73].forEach(function (y) {
@@ -1343,8 +1343,8 @@
       torch(-3.5, -128.3, 2.35, false, true);
       [-5.6, 5.6].forEach(function (x) {
         pillar(x, -119.7, 3.9, false);
-        box('stone', x, 0.42, -124.1, 2.15, 0.84, 0.8);
-        solid(x, -124.1, 2.15, 0.8);
+        box('stone', x*.85, 0.42, -124.1, 2.15, 0.84, 0.8);
+        solid(x*.85, -124.1, 2.15, 0.8);
         candleCluster(x, -130.7, 11);
       });
       banner(-5.4, -133.4, 0.85);
@@ -1517,7 +1517,7 @@
 
       // The ossuary grows from funerary shelves into arched wall crypts.
       [-9.7, 7.7].forEach(function (x) {
-        [-95, -101.5, -108].forEach(function (z) {
+        (x > 0 ? [-94, -108] : [-95, -101.5, -108]).forEach(function (z) {
           var side = x < 0 ? -1 : 1;
           alcove(x - side * .83, z, 2.93, 2.4, -side * Math.PI / 2, true);
           for (var pile = 0; pile < 7; pile++) {

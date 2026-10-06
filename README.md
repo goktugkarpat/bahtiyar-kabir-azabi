@@ -28,6 +28,9 @@ Ana ekranda **Yolculuğa başla** (kayıt varsa **Yolculuğa devam**) düğmesin
 | E | Yemin taşına ve görev nesnelerine dokunma |
 | I veya C | Karakter ve çanta |
 | T | Yetenek ağacı |
+| M | Harita |
+| L | Görev günlüğü |
+| O | Ayarlar |
 | H | Yardım (kontroller ekranı) |
 | Esc | Mola |
 | . (nokta) | Kare hızı göstergesini açıp kapatır |
@@ -154,3 +157,5 @@ Esc ile **Mola** açılır: devam, ayarlar, karakter, yetenekler, görev günlü
 - Kenar yumuşatma kodu SMAA (MIT) kaynaklıdır.
 
 Ayrıntılar ve bağlantılar için [credits.html](credits.html) ve [ASSET-LICENSES.md](ASSET-LICENSES.md) dosyalarına bak.
+
+Otomatik görüntü boyutu PC’de pencerenin doğal piksel çözünürlüğünü kullanır. Mac’te %70, iPad’de %75, Android’de %80 başlangıç ölçeği uygulanır; 1×, 1,25× ve 1,5× bu başlangıç çözünürlüğünü çarpar. Tam boyut seçeneği doğal çözünürlüğü kullanır.

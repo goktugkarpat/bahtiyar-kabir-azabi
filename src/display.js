@@ -3,13 +3,13 @@
 (() => {
   'use strict';
   const B = window.BABA = window.BABA || {};
-  const defaults = Object.freeze({ displayVersion: 3, displayMode: 'auto', renderScale: 1, msaa: 2 });
+  const defaults = Object.freeze({ displayVersion: 4, displayMode: 'auto', renderScale: 1, msaa: 2 });
   const MODES = ['auto', 'native'];
   const MIN_DYNAMIC = .75;
 
   function settings(raw) {
     // Old saves used CSS-pixel multipliers. Edge smoothing is now the SMAA post pass (no hardware MSAA), independent of any saved value.
-    if (!raw || ![1, 2, defaults.displayVersion].includes(raw.displayVersion)) return { ...defaults };
+    if (!raw || ![1, 2, 3, defaults.displayVersion].includes(raw.displayVersion)) return { ...defaults };
     const displayMode = MODES.includes(raw.displayMode) ? raw.displayMode : defaults.displayMode;
     return {
       displayVersion: defaults.displayVersion,
@@ -22,22 +22,27 @@
   const positive = (value, fallback) => Number.isFinite(value) && value > 0 ? value : fallback;
   const pixels = value => Math.max(1, Math.floor(value));
 
+  function deviceProfile(view) {
+    const nav = typeof navigator === 'object' ? navigator : {};
+    const ua = view.userAgent === undefined ? nav.userAgent || '' : view.userAgent;
+    const touch = view.maxTouchPoints === undefined ? nav.maxTouchPoints || 0 : view.maxTouchPoints;
+    if (/iPad|iPhone|iPod/i.test(ua) || /Macintosh|MacIntel/i.test(ua) && touch > 1) return { name: 'ios', scale: .75 };
+    if (/Android/i.test(ua)) return { name: 'android', scale: .8 };
+    if (/Macintosh|Mac OS X|MacIntel/i.test(ua)) return { name: 'mac', scale: .7 };
+    return { name: 'desktop', scale: 1 };
+  }
+
   function plan(view, raw) {
     const v = view || {}, cfg = settings(raw);
     const cssWidth = pixels(positive(v.width, 1)), cssHeight = pixels(positive(v.height, 1));
     const nativeRatio = positive(v.pixelRatio, 1);
     const nativeWidth = pixels(cssWidth * nativeRatio), nativeHeight = pixels(cssHeight * nativeRatio);
-    let requestedRatio = nativeRatio;
-    if (cfg.displayMode !== 'native' && nativeRatio > 1.25) {
-      // Retina's four pixels per screen point remain expensive even with shadows
-      // off. The automatic mode follows quality; explicit Native stays native.
-      const qualityRatio = raw?.quality === 'low' ? 1 : 1.25;
-      const budget = raw?.quality === 'low' ? 2000000 : 2500000;
-      requestedRatio = Math.min(nativeRatio, qualityRatio, Math.sqrt(budget / (cssWidth * cssHeight)));
-    }
-    // Automatic resolution steps (createScaler) only ever remove a little: never below 0.8 of the chosen size per axis.
+    const device = deviceProfile(v);
+    let requestedRatio = nativeRatio * (cfg.displayMode === 'native' ? 1 : device.scale);
+    // Desktop PCs retain native pixels; Retina and tablets begin at a device budget.
+    // User supersampling always multiplies this baseline, without a quality-dependent cap.
     const dyn = raw && Number.isFinite(raw.dynScale) ? Math.min(1, Math.max(MIN_DYNAMIC, raw.dynScale)) : 1;
-    requestedRatio *= cfg.renderScale * (cfg.renderScale > 1 ? 1 : dyn);
+    requestedRatio *= cfg.renderScale * (cfg.displayMode === 'auto' && device.name !== 'desktop' && cfg.renderScale === 1 ? dyn : 1);
     const scale = requestedRatio / nativeRatio;
     const maxSize = Number.isFinite(v.maxSize) && v.maxSize > 0 ? pixels(v.maxSize) : Infinity;
     const pixelRatio = Math.min(requestedRatio, maxSize / cssWidth, maxSize / cssHeight);
@@ -158,5 +163,5 @@
       ? Object.freeze({ willReadFrequently: true }) : undefined;
   }
 
-  B.Display = { defaults, settings, plan, createScaler, worldSubmission, uiBitmapOptions };
+  B.Display = { defaults, settings, plan, deviceProfile, createScaler, worldSubmission, uiBitmapOptions };
 })();

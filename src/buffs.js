@@ -48,5 +48,26 @@
     function clear() { for (const slot of slots.values()) slot.node.remove(); slots.clear(); }
     return { update, clear };
   }
-  B.Buffs = { create };
+  function createChapter(container) {
+    let source = null, revision = -1;
+    const art = { damageReduction: 'temper', bossDamage: 'brand', staminaRecovery: 'charge', healingBonus: 'heal' };
+    function clear() { container.replaceChildren(); source = null; revision = -1; }
+    function update(info) {
+      if (!info) { if (source) clear(); return; }
+      if (source === info && revision === info.revision) return;
+      source = info; revision = info.revision;
+      const nodes = [];
+      for (const effect of info.activeBenefits || []) {
+        const node = document.createElement('button'), icon = document.createElement('img'), tip = document.createElement('span');
+        node.type = 'button'; node.className = 'chapter-buff'; node.dataset.benefit = effect.benefit;
+        icon.src = 'assets/ui/abilities/' + (art[effect.benefit] || 'temper') + '.png'; icon.alt = '';
+        const label = (effect.name || effect.quest) + '\n' + effect.effect + '\nGörev: ' + effect.quest + '\nBu bölüm boyunca geçerli.';
+        node.setAttribute('aria-label', label); tip.className = 'chapter-buff-tip'; tip.textContent = label;
+        node.append(icon, tip); nodes.push(node);
+      }
+      container.replaceChildren(...nodes);
+    }
+    return { update, clear };
+  }
+  B.Buffs = { create, createChapter };
 })();
