@@ -514,6 +514,38 @@
       materials:materials,textures:textures,rnd:rnd,root:root,clock:clock,lightSources:lightSources,mainRooms:rooms,allRooms:function(){return allRooms;},
       G:{box:box,sphere:sphere,cylinder:cylinder,cone:cone,ring:ring,headstone:headstone,plank:plank,branch:branch,rock:rock,masonry:masonry,archStone:archStone,paving:paving,pebble:pebble}},open,ground);
     // Static instances are assembled once. Detail lives in texture maps and silhouettes, not frame-time allocations.
+    // Draw-call budget: small/medium static props are baked into ONE mesh per room and material (instancing is kept only
+    // for big repeated shapes and for scaled bark, whose texture scale comes from the instance matrix).
+    var merged = {}, nmat = new T.Matrix3();
+    Object.keys(batches).forEach(function (key) {
+      var b = batches[key], nv = b.geo.attributes.position.count, bark = b.mat === materials.char || b.mat === materials.root;
+      var scaled = bark && b.matrices.some(function (m) { var e = m.elements; return Math.abs(e[0] * e[0] + e[1] * e[1] + e[2] * e[2] - 1) > .01 || Math.abs(e[4] * e[4] + e[5] * e[5] + e[6] * e[6] - 1) > .01; });
+      if (scaled || nv > 5000 || nv * b.matrices.length > 90000 || !b.geo.attributes.normal) return;
+      var mk = b.room + '|' + b.mat.uuid; (merged[mk] = merged[mk] || { room: b.room, mat: b.mat, items: [], verts: 0, idx: 0 });
+      merged[mk].items.push(b); merged[mk].verts += nv * b.matrices.length; merged[mk].idx += (b.geo.index ? b.geo.index.count : nv) * b.matrices.length;
+      delete batches[key];
+    });
+    Object.keys(merged).forEach(function (mk) {
+      var g = merged[mk], P = new Float32Array(g.verts * 3), N = new Float32Array(g.verts * 3), U = new Float32Array(g.verts * 2), I = g.verts > 65535 ? new Uint32Array(g.idx) : new Uint16Array(g.idx), v = 0, k = 0;
+      g.items.forEach(function (b) {
+        var pa = b.geo.attributes.position, na = b.geo.attributes.normal, ua = b.geo.attributes.uv, ix = b.geo.index, c = pa.count;
+        b.matrices.forEach(function (m) {
+          var e = m.elements; nmat.getNormalMatrix(m); var n = nmat.elements;
+          for (var q = 0; q < c; q++) {
+            var x = pa.getX(q), y = pa.getY(q), z = pa.getZ(q), o = (v + q) * 3;
+            P[o] = e[0] * x + e[4] * y + e[8] * z + e[12]; P[o + 1] = e[1] * x + e[5] * y + e[9] * z + e[13]; P[o + 2] = e[2] * x + e[6] * y + e[10] * z + e[14];
+            var a = na.getX(q), bb = na.getY(q), cc = na.getZ(q), nx = n[0] * a + n[3] * bb + n[6] * cc, ny = n[1] * a + n[4] * bb + n[7] * cc, nz = n[2] * a + n[5] * bb + n[8] * cc, l = 1 / (Math.hypot(nx, ny, nz) || 1);
+            N[o] = nx * l; N[o + 1] = ny * l; N[o + 2] = nz * l;
+            if (ua) { U[(v + q) * 2] = ua.getX(q); U[(v + q) * 2 + 1] = ua.getY(q); }
+          }
+          if (ix) for (q = 0; q < ix.count; q++) I[k++] = ix.getX(q) + v; else for (q = 0; q < c; q++) I[k++] = v + q;
+          v += c;
+        });
+      });
+      var mg = geo(new T.BufferGeometry()); mg.setAttribute('position', new T.BufferAttribute(P, 3)); mg.setAttribute('normal', new T.BufferAttribute(N, 3)); mg.setAttribute('uv', new T.BufferAttribute(U, 2)); mg.setIndex(new T.BufferAttribute(I, 1)); mg.computeBoundingSphere();
+      var mesh = new T.Mesh(mg, g.mat); mesh.castShadow = [materials.lamp, materials.oath, materials.puddle, materials.funeralPaving, materials.floor, materials.sand, materials.grave, materials.bone, materials.rope, materials.flesh, materials.ember, materials.dark].indexOf(g.mat) < 0; mesh.receiveShadow = true;
+      mesh.name = 'coast-merged-' + g.room + ':' + (g.mat.name || ''); mesh.matrixAutoUpdate = false; roomGroups[g.room].add(mesh);
+    });
     Object.keys(batches).forEach(function (key) {
       var b = batches[key], mesh = new T.InstancedMesh(b.geo, b.mat, b.matrices.length);
       b.matrices.forEach(function (m, i) { mesh.setMatrixAt(i, m); }); mesh.instanceMatrix.needsUpdate = true;
@@ -522,7 +554,7 @@
     });
     // Three pooled lamps follow nearby sources, avoiding a new light for every street lantern.
     for (var i = 0; i < 3; i++) { var l = new T.PointLight(0x83b9ae, 0, 11, 2); root.add(l); lights.push(l); }
-    var px = new T.PointLight(0xe4b57c, .25, 7, 2); root.add(px);
+    var px = new T.PointLight(0xe4c08c, 1.1, 9.5, 2); root.add(px);
     var particlesGeo = geo(new T.BufferGeometry()), points = new Float32Array(180 * 3);
     for (var i = 0; i < 180; i++) { points[i * 3] = (rnd() - .5) * 38; points[i * 3 + 1] = .35 + rnd() * 7; points[i * 3 + 2] = -rnd() * 202 + 16; }
     particlesGeo.setAttribute('position', new T.BufferAttribute(points, 3)); materials.ash = new T.PointsMaterial({ color: 0x9ca898, size: .055, transparent: true, opacity: .36, depthWrite: false, sizeAttenuation: true });
@@ -592,7 +624,7 @@
     function update(dt, time, player) {
       expansion.update(player);
       clock.value = calm ? 0 : time;if(B.CoastClothClock)B.CoastClothClock.value=clock.value; var p = player || { x: 0, z: 8 }; heroCut.value.set(p.x,1.2,p.z);
-      roomGroups.forEach(function (g, i) { var r = i < 7 ? rooms[i] : allRooms[i]; g.visible = Math.abs(r.z - p.z) < 42 + r.d * .5 && Math.abs((r.x || 0) - p.x) < 52 + r.w * .5; });if(openFx)openFx.update(time,p);
+      roomGroups.forEach(function (g, i) { var r = i < 7 ? rooms[i] : allRooms[i]; g.visible = r.z - r.d * .5 < p.z + 22 && r.z + r.d * .5 > p.z - 40 && Math.abs((r.x || 0) - p.x) < 40 + r.w * .5; });if(openFx)openFx.update(time,p);
       animated.forEach(function (a) { if (calm) return; if (a.boat) {var wave=seaStateAt(a.object.position.x,a.object.position.z,time);a.object.position.y=a.y+wave.x*.45;a.object.rotation.z=a.roll+wave.y*.18;a.object.rotation.x=-wave.z*.18;} else if (a.foam){var wash=.5+.5*Math.sin(time*.85+a.phase);a.object.position.x=a.x+wash*.38;a.object.position.y=-.38+wash*.035;} });
       ash.position.x = calm ? 0 : Math.sin(time * .09) * .3;
       // slow tide: the black sea breathes up and down the eroded bank (~2 min period)
@@ -609,7 +641,7 @@
       for (k = 0; k < lights.length; k++) { var l = lights[k]; sl = lampSlots[k]; s = sl.src; l.visible = quality !== 'low'; l.intensity = 0; if (s) { l.position.set(s.x, s.y, s.z); l.color.copy(s.color); l.intensity = s.intensity * s.live * sl.w * sl.w * (3 - 2 * sl.w); } }
       // the hero's own light eases into / out of the borrowed skill light instead of stepping by +.5
       pxGain += ((fxLight ? fxLight.gain || .5 : 0) - pxGain) * Math.min(1, dt * 14);
-      px.position.set(p.x, 1.8, p.z); px.intensity = .24 + pxGain;
+      px.position.set(p.x, 2.1, p.z); px.intensity = (quality === 'low' ? .7 : 1.1) + pxGain;
     }
     function setQuality(cfg) { quality = typeof cfg === 'string' ? cfg : cfg.quality || cfg.preset || 'high'; ash.visible = quality !== 'low'; }
     function dispose() { if (disposed) return; disposed = true; expansion.dispose(); scene.remove(root); root.traverse(function (n) { if (n.isInstancedMesh) n.dispose(); }); geometries.forEach(function (g) { g.dispose(); }); Object.keys(materials).forEach(function (k) { materials[k].dispose(); }); textures.forEach(function (t) { t.dispose(); }); root.clear(); }
