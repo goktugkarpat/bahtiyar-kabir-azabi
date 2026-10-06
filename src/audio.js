@@ -1807,7 +1807,7 @@
     if (extMusic && B.Music.prepare) await B.Music.prepare(v => { if (progress) progress(.4 + .25 * v); });
     // Only this chapter's two added quest voices need decoded buffers. Existing
     // narration keeps its established preparation; chapter transitions reload.
-    const lines = Object.entries(narrationLines()).filter(([key]) => !QUEST_CHAPTER[key] || QUEST_CHAPTER[key] === (B.ActiveChapter || 1));
+    const lines = Object.entries(narrationLines()).filter(([key, line]) => (!QUEST_CHAPTER[key] || QUEST_CHAPTER[key] === (B.ActiveChapter || 1)) && (!line.chapter || line.chapter === (B.ActiveChapter || 1)));   // ajan:quests: story lines carry their chapter
     for (let i = 0; i < lines.length; i++) {
       const [key, line] = lines[i];
       if (!voiceBuffers[voiceKey(key)] && line.audio) {
