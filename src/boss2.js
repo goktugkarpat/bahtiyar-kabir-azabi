@@ -16,8 +16,8 @@
   var reduced = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : { matches: false };
   var Boss2 = B.Boss2 = { out: null, moves: {}, baseSpeed: {}, current: null,
     // balance knobs: extra rest-time shaved per phase (boss), per mini-boss, in frenzy; speed multipliers per phase; adds' health / damage vs. the room's foes
-    tune: { acc: [.03, .11, .18], accMini: .1, accFrenzy: .1, spd: [1, 1.03, 1.05], spdFrenzy: 1.06, addHp: .3, addDmg: .55 },
-    tune4: { acc: [.02, .07, .12], accMini: .1, accFrenzy: .1, spd: [1, 1.02, 1.05], spdFrenzy: 1.06, addHp: .4, addDmg: .65 } };
+    tune: { acc: [.14, .28, .42], accMini: .1, accFrenzy: .1, spd: [1, 1.03, 1.05], spdFrenzy: 1.06, addHp: .3, addDmg: .55 },
+    tune4: { acc: [.16, .30, .46], accMini: .1, accFrenzy: .1, spd: [1, 1.02, 1.05], spdFrenzy: 1.06, addHp: .4, addDmg: .65 } };
 
   /* ---------------------------------------------------------------- hooks into the existing renderers (no edits to their files) */
   // The telegraph renderer receives the shared particle emitter from effects.js: keep a handle on it.

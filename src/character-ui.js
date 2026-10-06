@@ -357,18 +357,18 @@
       const P = B.Progression, all = P.skills, chosen = all.find(s => s.id === selectedSkill) || all[0], byId = new Map(all.map(s => [s.id, s])), keys = keyLabels();
       const lineOf = id => P.lines.find(l => l.id === id) || P.lines[0];
       const learned = state.learned.includes(chosen.id), parent = byId.get(chosen.requires), prevFacts = parent ? new Map(P.skillFacts(parent)) : null;
-      const missing = parent && !state.learned.includes(parent.id), low = state.level < chosen.level, slotOf = id => state.loadout.indexOf(id);
+      const access = P.skillAccess(state, chosen.id), slotOf = id => state.loadout.indexOf(id);
       const replaced = parent && slotOf(parent.id) >= 0 ? slotOf(parent.id) : -1;
-      const reason = learned ? 'Öğrenildi' : low ? chosen.level + '. seviyede açılır' : missing ? 'Önce ' + parent.name : state.points ? '1 puanla öğren' + (replaced >= 0 ? ' · ' + parent.name + ' yerine geçer' : '') : 'Yetenek puanı gerekli';
+      const reason = access.canLearn ? '1 puanla öğren' + (replaced >= 0 ? ' · ' + parent.name + ' yerine geçer' : '') : access.reason;
       const columns = P.lines.map((line, c) => {
         const list = P.skillsByLine(line.id);
         const nodes = list.map((s, i) => {
-          const known = state.learned.includes(s.id), prior = byId.get(s.requires), blocked = state.level < s.level || (prior && !state.learned.includes(prior.id)), slot = slotOf(s.id);
-          const canLearn = !known && !blocked && state.points > 0, superseded = known && slot < 0 && list.some(next => next.tier > s.tier && state.learned.includes(next.id));
-          const stateText = slot >= 0 ? 'Etkin aşama' : superseded ? 'Önceki aşama' : known ? 'Öğrenildi' : state.level < s.level ? 'Seviye ' + s.level : prior && !state.learned.includes(prior.id) ? 'Önce ' + escape(prior.name) : canLearn ? '1 puanla öğren' : '1 puan gerekli';
+          const gate = P.skillAccess(state, s.id), known = gate.known, blocked = gate.blocked, slot = slotOf(s.id);
+          const canLearn = gate.canLearn, superseded = known && slot < 0 && list.some(next => next.tier > s.tier && state.learned.includes(next.id));
+          const stateText = slot >= 0 ? 'Etkin aşama' : superseded ? 'Önceki aşama' : known ? 'Öğrenildi' : gate.low ? 'Seviye ' + s.level : gate.missingTier ? 'Önce dört ' + ROMAN[s.tier - 1] + '. aşama' : escape(gate.reason);
           const link = i ? '<i class="skt-link ' + (known ? 'lit' : canLearn ? 'ready' : '') + '" aria-hidden="true"></i>' : '';
           return link + '<button data-char="skill" data-skill="' + s.id + '" data-line="' + line.id + '" data-tier="' + s.tier + '" class="skt-node ' + (known ? 'learned' : blocked ? 'locked' : canLearn ? 'available' : 'pending') + (superseded ? ' superseded' : '') + (slot >= 0 ? ' slotted' : '') + (s.id === chosen.id ? ' selected' : '') +
-            '" aria-pressed="' + (s.id === chosen.id) + '" title="' + escape(s.name) + ' · ' + ROMAN[s.tier] + '. aşama · seviye ' + s.level + '">' +
+            '" aria-pressed="' + (s.id === chosen.id) + '" title="' + escape(s.name) + ' · ' + ROMAN[s.tier] + '. aşama · seviye ' + s.level + (s.tier > 1 ? ' · Önce ' + ROMAN[s.tier - 1] + '. aşamadaki dört yetenek' : '') + '">' +
             '<i class="skt-emblem">' + icon(s.id) + '<b class="skt-tier">' + ROMAN[s.tier] + '</b></i><strong>' + escape(s.name) + '</strong><small class="skt-state">' + stateText + '</small>' +
             (slot >= 0 ? '<span class="skt-slotcap">' + capHtml(keys[slot]) + '</span>' : '') + '</button>';
         }).join('');
@@ -390,12 +390,12 @@
       const line = lineOf(chosen.line);
       return '<div class="skt-wrap"><div class="skt-top"><div class="skt-loadout"><h4>Donanılan yetenekler <small>' + capHtml(keys[0]) + ' · ' + escape(keys[1]) + ' · ' + escape(keys[2]) + ' · ' + escape(keys[3]) + '</small></h4><div class="skt-slots">' + loadout + '</div></div>' +
         '<span class="skt-points"><b>' + state.points + '</b> yetenek puanı</span></div>' +
-        '<div class="skt-workspace"><div class="skt-tree"><div class="skt-cols">' + columns + '</div><p class="skt-note">Çift tıkla veya iki kez dokun: öğren. Yeni aşama aynı tuştaki yeteneğin yerini alır. Dört yuva birlikte kullanılabilir.</p></div>' +
+        '<div class="skt-workspace"><div class="skt-tree"><div class="skt-cols">' + columns + '</div><p class="skt-note">Çift tıkla veya iki kez dokun: öğren. Sonraki aşama için önceki dört yeteneği tamamla; ardından istediğin sırayla yükselt.</p></div>' +
         '<aside class="skt-inspect" data-line="' + chosen.line + '" style="--line:' + line.color + '"><small class="skt-kicker"><span class="skt-tiernum" data-tier="' + chosen.tier + '">' + ROMAN[chosen.tier] + '. AŞAMA</span> ' + escape(line.name) + ' · seviye ' + chosen.level + '</small>' +
         '<header>' + icon(chosen.id) + '<h3>' + escape(chosen.name) + '</h3></header><p>' + escape(chosen.description) + '</p>' +
         (chosen.delta ? '<p class="skt-delta" title="' + escape(chosen.delta) + '"><b>▲ ' + ROMAN[chosen.tier] + '. aşama:</b> Önceki aşamaya göre güçlendi.</p>' : '') +
         '<div class="skt-facts">' + facts + '</div>' +
-        '<button class="skt-learn" data-char="unlock" data-skill="' + chosen.id + '" ' + (learned || low || missing || !state.points ? 'disabled' : '') + '>' + escape(reason) + '</button>' + assignment + '</aside></div></div>';
+        '<button class="skt-learn" data-char="unlock" data-skill="' + chosen.id + '" ' + (!access.canLearn ? 'disabled' : '') + '>' + escape(reason) + '</button>' + assignment + '</aside></div></div>';
     }
     const tooltip = document.createElement('div'); tooltip.className = 'char-hover-tooltip hidden'; tooltip.id = 'character-item-tooltip'; tooltip.setAttribute('role', 'tooltip'); overlay.appendChild(tooltip);
     let hoverButton = null, touchActionAt = -1000;

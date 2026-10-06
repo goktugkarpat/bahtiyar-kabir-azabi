@@ -589,7 +589,7 @@
     // Per-enemy move memory (also restored on every checkpoint reset so a respawn replays identically).
     function freshEnemyFields(e) {
       return { seed: 9173 + e.index * 131, lastMove: '', moveHistory: [], recoveryFloor: 0, forceMove: null, grabCd: 0, riposteCd: 0, blockCount: 0, hooksCd: 6, enraged: false,
-        picks: 0, sidestep: 0, retreat: 0, fear: 0, pairWith: null, wrath: 0, spWait: e.tutorialStage >= 0 ? 2 : e.type === 'prisoner' ? 0 : 2, spHold: 0 };
+        picks: 0, sidestep: 0, retreat: 0, fear: 0, pairWith: null, wrath: 0, spWait: e.boss && chapter >= 2 ? 0 : e.tutorialStage >= 0 ? 2 : e.type === 'prisoner' ? 0 : 2, spHold: 0 };
     }
     function healthBar(enemy) {
       const bar = new THREE.Group();
@@ -603,7 +603,14 @@
       enc.spawns.forEach((s, si) => {
         const stats = STATS[s.type], model = BABA.Models.create(s.type);
         const stage = enc.stage == null ? (chapter >= 2 ? (chapter === 4 ? 1.3 + ei * .012 : chapter === 3 ? 1.22 + ei * .014 : 1.08 + ei * .025) : ei === 0 ? .48 : ei === 1 ? .62 : .62 + .38 * ei / 5) : enc.stage;
-        const maxHp = Math.round(stats.hp * ((stats.boss || s.type === 'boss') ? BALANCE.bossHealth : BALANCE.health) * stage * (s.elite && !stats.elite ? 1.45 : 1));
+        // Authored room stage remains intact; campaign pressure is additional, so an explicit stage cannot erase chapter progression.
+        // Chapter II ramps after its midpoint. Later chapters assume a learned toolkit and retained equipment, never inspect gear to scale enemies.
+        const progress = chapter === 2 && world.spawn && world.bossSpawn ? clamp((world.spawn.z - s.z) / Math.max(1, world.spawn.z - world.bossSpawn.z), 0, 1) : clamp(ei / Math.max(1, encounterDefs.length - 1), 0, 1), isBoss = !!stats.boss || s.type === 'boss';
+        const pressure = chapter === 2 ? clamp((progress - .45) / .55, 0, 1) : progress;
+        const campaignHealth = chapter === 1 ? 1 : isBoss ? [1, 1, 1.22, 1.38, 1.50][chapter] : chapter === 2 ? 1 + .22 * pressure : chapter === 3 ? 1.24 + .16 * pressure : 1.40 + .16 * pressure;
+        const campaignPace = chapter === 1 || isBoss ? 1 : chapter === 2 ? 1 - .08 * pressure : chapter === 3 ? .92 - .04 * pressure : .88 - .03 * pressure;
+        const campaignDamage = chapter === 1 ? (ei === 0 ? .65 : ei === 1 ? .72 : .72 + .28 * Math.min(ei,5) / 5) : chapter === 2 ? 1.05 + .12 * pressure : chapter === 3 ? 1.22 + .12 * pressure : 1.36 + .12 * pressure;
+        const maxHp = Math.round(stats.hp * (isBoss ? BALANCE.bossHealth : BALANCE.health) * stage * campaignHealth * (s.elite && !stats.elite ? 1.45 : 1));
         const holder = new THREE.Group(); holder.name = 'enemy-holder'; holder.add(model.root); root.add(holder);
         guardRenderMatrices(holder); guardRenderMatrices(model.root); model.root.userData.skipFresh = true;
         const enemy = {
@@ -611,7 +618,7 @@
           x: s.x, z: s.z, spawnX: s.x, spawnZ: s.z, face: Math.PI, holder, inView: true,
           hp: maxHp, maxHp, baseMaxHp:maxHp, dead: false, model, elite: !!s.elite || !!stats.elite, boss: !!stats.boss || s.type === 'boss', phase: 1,
           active: false, activated: false, cooldown: .4 + si * .33, action: null,
-          radius: model.radius || stats.radius, stats, tutorialStage: chapter === 1 && ei < 2 && !stats.boss && s.type !== 'boss' ? ei : -1, campaignDamage: (s.elite ? 1.1 : 1) * (chapter >= 2 ? (chapter === 4 ? 1.18 : chapter === 3 ? 1.12 : 1.05) : ei === 0 ? .65 : ei === 1 ? .72 : .72 + .28 * Math.min(ei,5) / 5), hurt: 0, stagger: 0,
+          radius: model.radius || stats.radius, stats, tutorialStage: chapter === 1 && ei < 2 && !stats.boss && s.type !== 'boss' ? ei : -1, campaignPace, campaignDamage: (s.elite ? 1.1 : 1) * campaignDamage, hurt: 0, stagger: 0,
           deadAge: 0, move: 0, buff: 0, buffCooldown: 7 + si, cycle: 0,
           retreat: 0, shieldBroken: 0, poiseRecovery: 0, shield: s.type === 'guard', faceLocked: false, reserve: !!s.reserve
         };
@@ -1007,7 +1014,7 @@
       const history = enemy.moveHistory || [], weight = o => (o.w || 1) * (o.sp ? SPECIAL_W : 1) /
         (1 + history.reduce((n, id, i) => n + (id === o.id ? .45 + i * .18 : 0), 0));
       // Only specials legal (hero out of plain range): chase first instead of throwing one at once.
-      if (ok.length && ok.every(o => o.sp)) { enemy.spHold += decisionStep; if (enemy.spHold + 1e-7 < SPECIAL_HOLD) return false; } else enemy.spHold = 0;
+      if (ok.length && ok.every(o => o.sp)) { enemy.spHold += decisionStep; if (enemy.spHold + 1e-7 < (enemy.boss && chapter >= 2 ? .55 : SPECIAL_HOLD)) return false; } else enemy.spHold = 0;
       let pool = ok.filter(o => o.id !== enemy.lastMove);
       if (!pool.length || (ok.some(o => !o.sp) && pool.every(o => o.sp))) pool = ok;   // repeating the one plain blow beats being forced into a special
       while (pool.length) {
@@ -1440,7 +1447,7 @@
         if (enemy.boss) cd *= (enemy.enraged ? .65 : enemy.phase === 2 ? .75 : 1) * (distance(enemy, player) < 3.6 && action.cooldown == null ? .55 : 1);
         if (enemy.cdScale) cd *= enemy.cdScale;   // round 7: the chapter I / II bosses rest less (set per phase / frenzy in their attack tables)
         else if (enemy.type === 'prisoner' && enemy.hp < enemy.maxHp * .3) cd *= .7;
-        const scaled = cd * (game.difficulty === 'easy' ? 1.25 : game.difficulty === 'normal' ? 1.15 : 1) * (enemy.tutorialStage === 0 ? 1.2 : enemy.tutorialStage === 1 ? 1.1 : 1);
+        const scaled = cd * (enemy.campaignPace || 1) * (game.difficulty === 'easy' ? 1.25 : game.difficulty === 'normal' ? 1.15 : 1) * (enemy.tutorialStage === 0 ? 1.2 : enemy.tutorialStage === 1 ? 1.1 : 1);
         // A visible punish window survives late-phase and frenzy acceleration. Heavy commitments leave longer openings.
         enemy.recoveryFloor = enemy.boss ? (SPECIAL_IDS.includes(action.moveId) ? .58 : .36) : enemy.elite ? .28 : .14;
         enemy.cooldown = Math.max(enemy.recoveryFloor, scaled);

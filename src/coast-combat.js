@@ -149,8 +149,11 @@
             { id: 'falseLights', sp: 1, ok: d < 12, w: 2, move: function () { var m = circle(e, 'falseLights', 'Bataklık Fenerleri', 1.8, 15, 1.1, { style: 'shadow', unblockable: true }); var p = point(); m.hits.push(hit(1.7, 1.1, 'circle', 1.8, 15, 'castHigh', { origin: { x: p.x + Math.cos(e.face) * 3.6, z: p.z - Math.sin(e.face) * 3.6 }, style: 'shadow', fill: 'radial', unblockable: true })); m.hits.push(hit(2.1,1.1,'circle',1.8,15,'castHigh',{origin:{x:p.x-Math.cos(e.face)*3.6,z:p.z+Math.sin(e.face)*3.6},style:'shadow',fill:'radial',unblockable:true}));m.duration = 2.9; return m; } }
           ];
           else if (e.type === 'bell') {
-            var m = mech(), ph = e.phase, rest = [1.2, 1.05, .9, .75][ph - 1], fr = m && m.frenzied(e) ? .82 : 1, f = function (id, cd) { return !!m && m.ready(e, id, cd); };
-            e.cdScale = [.92, .88, .82, .76][ph - 1] * fr;
+            var m = mech();
+            // Announced phase signature waits for any previous major field/orbs to clear; no stacked arena mechanics.
+            if (e.forceMove === 'coastPhase' && (!m || !m.majorActive(e) && m.floorCount(e) === 0 && m.liveOrbs() === 0)) { e.forceMove = null; e.spWait = 1; return api.beginMove(e, e.phase === 2 ? tide(e, 2) : e.phase === 3 ? rootRows(e, 'Derin Kökler', 3) : toll(e, 4)); }
+            var ph = e.phase, rest = [1.0, .88, .78, .68][ph - 1], fr = m && m.frenzied(e) ? .82 : 1, f = function (id, cd) { return !!m && m.ready(e, id, cd); };
+            e.cdScale = [.88, .84, .78, .74][ph - 1] * fr;
             list = [
               { id: 'anchor', ok: d < 6.5, w: 4, move: function () { var mv = cone(e, 'anchor', 'Batık Çapa', 5.7, 3.4, 25, 'sweep', .95); if (e.phase >= 2) { mv.hits.push(hit(1.7, .75, 'cone', 5.9, 22, 'sweepBack', { arc: 3.3, face: e.face + .35, sweepDir: -1 })); mv.duration = 2.5; } mv.cooldown = rest; return mv; } },
               { id: 'bellRush', ok: d > 6 && d < 15, w: ph >= 2 ? 4 : 3, move: function () { var mv = dash(e, 'bellRush', 'Kıyıyı Yaran', 24, .4); mv.hits[0].radius = 2.8; mv.hits[0].at = 1.35; mv.duration = 2.2; mv.cooldown = rest + .05; return mv; } },
@@ -174,7 +177,7 @@
           if (!e.boss || e.dead) return;
           var f = e.hp / e.maxHp, next = f <= .24 ? 4 : f <= .48 ? 3 : f <= .72 ? 2 : 1;
           if (next <= e.phase) return;
-          e.phase = next; e.enraged = next === 4; e.action = null; e.stagger = 0; e.faceLocked = false;
+          e.phase = next; e.enraged = next === 4; e.forceMove = 'coastPhase'; e.action = null; e.stagger = 0; e.faceLocked = false;
           api.cancelHazards(e, false); api.bonus(e.x, e.z, next === 2 ? 2 : 1);
           var names = ['', '', 'DENİZİN YEMİNİ', 'MEZAR KÖKLERİ', 'SON ÇAN'];
           api.emit('warning', { x: e.x, z: e.z, text: 'DERİNLİKLERİN ÇANCISI · ' + names[next] });

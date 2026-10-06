@@ -110,8 +110,8 @@ void main(){
   float a=(core*.66+soft*.22+wake*.29)*fl+speck*1.3*soft;a*=life*uA*.5;
   if(a<.004)discard;gl_FragColor=vec4(col*a*.22,1.);
 }`;
-  // Impact quad (one mesh, premultiplied alpha so fissures can be DARK): wind-up gather ring, slam shock ring + soft heat, stone fissures (tier II six, tier III eight + branches,
-  // dark cores with ember-lit edges that cool and stay as scars), the tier-III second slam with twelve long fissures.
+  // Impact quad (one mesh, premultiplied alpha so fissures can be DARK): wind-up gather ring, slam shock ring + soft heat.
+  // Narrow, unequal stone fractures branch off the impact, with brief ember edges and dark, fading cores.
   const IMP_FS = `varying vec2 vUv;uniform float uT1,uT2,uR,uR2,uSize,uTier,uG,uGR,uSeed,uFace;uniform vec3 uCa,uCb,uCc;
 const float PI=3.14159265;
 float hs(float n){return fract(sin(n*127.1+uSeed*31.7)*43758.5453);}
@@ -130,16 +130,28 @@ vec3 blade(vec2 p,float t,float R){
 }
 void fissure(float r,float a,float N,float R,float Lm,float t,float so,float thick){
   float ang=(a/(2.*PI)+.5)*N;float id=mod(floor(ang+.5),N);float da=ang-floor(ang+.5);
-  float j=.11*tri(r*.8+id*1.7+so)+.05*tri(r*2.1+id*.9+so*2.);
+  float seed=id*7.13+so,variation=hs(seed+3.);
+  // Uneven stone breaks, not a regular star: each ray wanders and some finish close to the impact.
+  float j=.16*(fract(variation*31.7)-.5)+.065*tri(r*1.4+seed)+.028*tri(r*3.9+seed*2.3);
   float dist=abs(da+j)*(2.*PI/N)*r;
-  float L=R*(.55+.5*hs(id+so))*Lm;
-  float run=(1.-smoothstep(L*.82,L,r))*step(r,L*clamp(t/.14,0.,1.1));
-  float wid=(.16*(1.-.72*r/max(L,.1))+.035)*thick*clamp(r*.8,.12,1.);
-  float halo=(1.-smoothstep(wid, wid*2.6, dist))*run;   // broken stone: a wide dark rim round a narrow lit core
-  float core=(1.-smoothstep(wid*.3,wid*.8,dist))*run;
-  float heat=pow(max(0.,1.-t/1.1),1.4);float fade=1.-smoothstep(2.3,3.3,t);
-  CC+=mix(uCc*vec3(.3,.08,.08),uCc,heat)*core*(.035+.09*heat)*fade;
-  CA=max(CA,halo*.8*fade);
+  float L=R*(.29+.58*variation)*Lm;
+  float run=(1.-smoothstep(L*.78,L,r))*smoothstep(r-.08,r+.08,L*clamp(t/.17,0.,1.));
+  float taper=1.-smoothstep(.1,L,r),wid=(.024+.030*fract(variation*17.3))*thick*(.25+.75*taper);
+  float edge=1.-smoothstep(wid*.9,wid*2.1,dist);
+  float core=1.-smoothstep(wid*.18,wid*.75,dist);
+  // A short, off-centre fork joins the parent break; it ends before the next angular sector.
+  float start=L*(.26+.22*fract(variation*43.2)),br=max(0.,r-start);
+  float forkJ=j+(fract(variation*57.1)>.5?1.:-1.)*min(.23,br*.12);
+  float forkDist=abs(da+forkJ)*(2.*PI/N)*r;
+  float forkRun=smoothstep(start,start+.09,r)*(1.-smoothstep(start+L*.23,start+L*.42,r))*run;
+  float forkEdge=(1.-smoothstep(wid*.5,wid*1.4,forkDist))*forkRun;
+  float forkCore=(1.-smoothstep(wid*.12,wid*.45,forkDist))*forkRun;
+  edge=max(edge*run,forkEdge);core=max(core*run,forkCore);
+  float heat=pow(max(0.,1.-t/.75),1.6),fade=1.-smoothstep(1.6,2.8,t);
+  float chipped=.35+.65*smoothstep(-.5,.65,tri(r*5.2+seed*1.3));
+  float ember=max(0.,edge-core*.8)*chipped*heat;
+  CC+=uCc*ember*.045*fade;
+  CA=max(CA,(core*.66+edge*.12)*fade);
 }
 void main(){
   vec2 p=(vUv-.5)*uSize;float r=length(p);float a=atan(p.x,p.y);vec3 col=vec3(0.);CC=vec3(0.);CA=0.;
@@ -284,12 +296,12 @@ void main(){
       } else { IU.uR2.value = r2 || radius; quadAge2 = 0; IU.uT2.value = 0; shownUntil = clock + 9; if (scarFx) scarFx(x, z, 0, { shape: 'circle', radius: (r2 || radius) * .75, heat: .3 }); }
       const floor = floorY, n = sc(second ? 24 : 16 + 7 * t);
       if (o.fragments) o.fragments(x, floor + .12, z, { count: second ? 24 : 10 + 6*t, spread: .65*big, speed: 3.4*big, lift: second ? 6 : 3.8*big, face, arc: second ? TAU : 3.4, size: .075 });
-      for (let i = 0; i < n; i++) { const a = i / n * TAU + R() * .25; emit(x + Math.sin(a) * .5, floor + .1, z + Math.cos(a) * .5, 2, pal.dust, Math.sin(a) * rr(2.6, 4.4) * big, .45, Math.cos(a) * rr(2.6, 4.4) * big, .75 + R() * .4, .34 + R() * .3 + .1 * t); }
+      for (let i = 0; i < n; i++) { const a = i / n * TAU + R() * .7; emit(x + Math.sin(a) * .5, floor + .1, z + Math.cos(a) * .5, 2, pal.dust, Math.sin(a) * rr(2.6, 4.4) * big, .28, Math.cos(a) * rr(2.6, 4.4) * big, .60 + R() * .3, .22 + R() * .20 + .04 * t); }
       for (let i = 0, m = sc(second ? 20 : 14 * big); i < m; i++) particle(x, floor + .15, z, 0, pal.debris, 1.5 * big, R() * TAU, 1.3);
       for (let i = 0, m = sc(second ? 16 : 14 * big); i < m; i++) { const a = (second ? R() * TAU : face + rr(-1.5, 1.5)); particle(x, floor + .25, z, 1, i % 3 ? pal.spark : pal.emberHot, 1.3 * big, a, .8); }
-      for (let i = 0, m = sc(second ? 14 : 8 + 4 * t); i < m; i++) { const a = R() * TAU, r0 = R() * radius * .6; emit(x + Math.sin(a) * r0, floor + .1, z + Math.cos(a) * r0, 4, i % 2 ? pal.ember : pal.red, Math.sin(a) * rr(.2, 1.6), rr(1.2, 3.4), Math.cos(a) * rr(.2, 1.6), rr(.6, 1.1), .055); }
+      for (let i = 0, m = sc(second ? 14 : 8 + 4 * t); i < m; i++) { const a = R() * TAU, r0 = R() * radius * .6; emit(x + Math.sin(a) * r0, floor + .1, z + Math.cos(a) * r0, 4, i % 2 ? pal.ember : pal.red, Math.sin(a) * rr(.2, 1.6), rr(.35, 1.4), Math.cos(a) * rr(.2, 1.6), rr(.4, .8), .035); }
       if (t >= 2) {   // directional weapon impact: low, forward chips rather than a tall fountain
-        for (let i = 0, m = sc(second ? 18 : 12 * (t - 1)); i < m; i++) { const a = second ? R()*TAU : face+rr(-1.0,1.0), r0 = R() * radius * .45; emit(x + Math.sin(a) * r0, floor + .1, z + Math.cos(a) * r0, 1, pal.spark, Math.sin(a) * rr(0, 2.2), rr(1.7, 4.2), Math.cos(a) * rr(1, 3.4), rr(.4, .8), .06); }
+        for (let i = 0, m = sc(second ? 18 : 12 * (t - 1)); i < m; i++) { const a = second ? R()*TAU : face+rr(-1.0,1.0), r0 = R() * radius * .45; emit(x + Math.sin(a) * r0, floor + .1, z + Math.cos(a) * r0, 1, pal.spark, Math.sin(a) * rr(0, 2.2), rr(.55, 2.0), Math.cos(a) * rr(1, 3.4), rr(.3, .65), .045); }
       }
       if (ringFx) { if (t === 2) ringFx(x, z, radius * 1.15, .45, [pal.ring2[0] * .2, pal.ring2[1] * .2, pal.ring2[2] * .25]); if (t === 3) ringFx(x, z, (second ? r2 : radius) * 1.1, second ? .6 : .5, [pal.ring2[0] * .2, pal.ring2[1] * .2, pal.ring2[2] * .25]); }
       flashFx(x, floor + .5, z, FLASH_SIZE[t] * (second ? 1.15 : 1), color.setRGB(pal.flash[0], pal.flash[1], pal.flash[2]), .06, 0);

@@ -54,6 +54,8 @@ Her bölümde **iki hikâye görevi** vardır; görev günlüğüne (alt çubukt
 
 **Boss kapısı:** Boss odasının önündeki kapı, o bölümün **iki görevi de bitince** açılır. Kapıya yaklaşınca kaç görevin tamamlandığı ekranda yazar. Düşman öldürmek kapıyı açmaz; ama seviye ve eşya için yine de savaşman gerekir.
 
+İkinci bölümün ikinci yarısından itibaren düşmanların sağlığı, hasarı ve saldırı temposu kademeli artar; üçüncü ve dördüncü bölüm bu baskıyı sürdürür. Son üç boss özel saldırılarını daha sık kullanır; saldırı uyarıları ve kaçınma fırsatları korunur.
+
 Boss'u yenince bölüm biter. İlk üç bölümün sonunda oyun kendiliğinden sonraki bölümü yükler; karakterin, çantan ve yeteneklerin sonraki bölüme taşınır. Dördüncü bölümden sonra yolculuk sona erer ve **Yeni yolculuk** başlatabilirsin.
 
 ### Yemin taşı, ölüm ve kayıt
@@ -64,19 +66,19 @@ Boss'u yenince bölüm biter. İlk üç bölümün sonunda oyun kendiliğinden s
 
 ## Karakter gelişimi
 
-- Düşman öldürerek tecrübe kazanırsın; en yüksek seviye **12**dir. Beklemekle tecrübe kazanılmaz.
+- Düşman öldürerek tecrübe kazanırsın; en yüksek seviye **13**tür. Beklemekle tecrübe kazanılmaz.
 - **I** ile **Karakter ve çanta**, **T** ile **Yetenek ağacı** ekranı açılır (aynı pencerede iki sekme).
 
 ### Yetenek ağacı
 
-**4 yol × 3 aşama** yatay yollar halinde gösterilir. Bir yeteneğe çift tıklayarak veya iki kez dokunarak öğrenebilirsin; seviye ve önceki aşama şartları geçerlidir. Üst aşamayı öğrenince, alttaki yetenek yuvadaki yerinden çıkıp onun yerine geçer. Aynı anda dört yolun dördünden birer yetenek takabilirsin: **sağ tık, 1, 2 ve 3** yuvaları. Yetenek puanları seviye atladıkça kazanılır.
+**4 yol × 3 aşama** yatay yollar halinde gösterilir. Bir yeteneğe çift tıklayarak veya iki kez dokunarak öğrenebilirsin; seviye ve önceki aşama şartları geçerlidir. İlk aşamanın mevcut açılma sırası korunur. Dört ilk aşama öğrenildikten sonra, 6. seviyeden itibaren ikinci aşamanın dört yeteneği istediğin sırada seçilebilir. Dört ikinci aşama tamamlanınca, 10. seviyeden itibaren üçüncü aşama da serbest sırayla seçilebilir. Her seviyede bir puan kazanılır; 13. seviyede toplam 12 yeteneği öğrenmeye yetecek puanın olur. Üst aşamayı öğrenince, alttaki yetenek yuvadaki yerinden çıkıp onun yerine geçer. Aynı anda dört yolun dördünden birer yetenek takabilirsin: **sağ tık, 1, 2 ve 3** yuvaları. Yetenek puanları seviye atladıkça kazanılır.
 
 | Yol | 1. aşama | 2. aşama | 3. aşama |
 |---|---|---|---|
-| **Külün Çeliği** (sert vuruş) | Mezar Yaran (seviye 2) | Kemik Kıran (7) | Kabir Balyozu (11) |
-| **Kanın Yemini** (nida) | Kan Nidası (2) | Ölüm Çığlığı (6) | Kıyamet Narası (12) |
-| **Mezarın Zinciri** (kasırga) | Zincir Kasırgası (3) | Ölüm Biçeni (7) | Son Hüküm (10) |
-| **Kara Adım** (hücum) | Kül Hücumu (5) | Kor Hücumu (9) | Mahşer Hücumu (12) |
+| **Külün Çeliği** (sert vuruş) | Mezar Yaran (seviye 2) | Kemik Kıran (6) | Kabir Balyozu (10) |
+| **Kanın Yemini** (nida) | Kan Nidası (2) | Ölüm Çığlığı (6) | Kıyamet Narası (10) |
+| **Mezarın Zinciri** (kasırga) | Zincir Kasırgası (3) | Ölüm Biçeni (6) | Son Hüküm (10) |
+| **Kara Adım** (hücum) | Kül Hücumu (5) | Kor Hücumu (6) | Mahşer Hücumu (10) |
 
 Her yeteneğin hasar, alan, sersemletme, dayanıklılık bedeli ve bekleme süresi ağaç ekranında yazar.
 

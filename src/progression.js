@@ -2,16 +2,16 @@
 (function () {
   'use strict';
   const B = window.BABA = window.BABA || {};
-  const MAX_LEVEL = 12, VERSION = 2, SKILL_TREE = 2;   // SKILL_TREE 2: four lines x three tiers; older saves carry no skillTree field and are migrated in restore()
-  const POINTS = Object.freeze([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
+  const MAX_LEVEL = 13, VERSION = 2, SKILL_TREE = 2;   // SKILL_TREE 2: four lines x three tiers; older saves carry no skillTree field and are migrated in restore()
+  const POINTS = Object.freeze([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
   const LEGACY_THRESHOLDS = Object.freeze([0, 40, 100, 350, 850, 1450, 2000]);
   // Expanded route: ~60 temple foes, ~59 coastal foes, then ~60 ruin/cave and ~60 forge foes.
   // Three opening prisoners award 60 XP: the first seal clear grants level 2 and its first active skill point.
   // Final chapter skills arrive before the forge boss on a mostly-cleared route.
   // Active skill slots: right mouse, key 1, key 2, key 3 (round 7; saves with a 3-entry loadout load with the 4th slot empty / auto-filled).
   const SLOT_COUNT = 4;
-  const THRESHOLDS = Object.freeze([0, 60, 160, 550, 1200, 2100, 3200, 4600, 6000, 7600, 11000, 13000]);
-  const MILESTONES = Object.freeze([5, 8, 10, 12]);
+  const THRESHOLDS = Object.freeze([0, 60, 160, 550, 1200, 2100, 3200, 4600, 6000, 7600, 11000, 13000, 15000]);
+  const MILESTONES = Object.freeze([5, 8, 10, 13]);
   const chapterId = n => Number.isInteger(n) && n >= 1 && n <= 4 ? n : 1;
   // Skill tree: 4 lines (columns), 3 tiers each (rows). A lower tier REPLACES its predecessor in the slot it is learned into.
   // line: 'cleave' heavy strike | 'roar' war cry | 'whirl' chain whirlwind | 'charge' dash. params feed combat.js, so numbers in
@@ -26,10 +26,10 @@
     { id: 'cleave', name: 'Mezar Yaran', line: 'cleave', tier: 1, level: 2, requires: null, branch: 0, cost: 22, cooldown: 4,
       params: { damage: 78, radius: 3.7, arc: 3.65, stun: .55 },
       description: 'Kızıl bir yarım ayla önündeki düşmanları yar. Ağır darbe gardı kırar.', delta: '' },
-    { id: 'brand', name: 'Kemik Kıran', line: 'cleave', tier: 2, level: 7, requires: 'cleave', branch: 0, cost: 33, cooldown: 6,
+    { id: 'brand', name: 'Kemik Kıran', line: 'cleave', tier: 2, level: 6, requires: 'cleave', branch: 0, cost: 33, cooldown: 6,
       params: { damage: 106, radius: 4.5, reach: 4.2, duration: .68, strike: .22, stun: 1.1 },
       description: 'Silahı başının üstüne kaldırıp önündeki zemine var gücüyle indir. Kehribar rengi bir şok halkası ve zemin yarıkları düşmanları ezer, sersemletir.', delta: 'Tepeden ezme: daha çok hasar, geniş şok halkası, uzun sersemletme.' },
-    { id: 'temper', name: 'Kabir Balyozu', line: 'cleave', tier: 3, level: 11, requires: 'brand', branch: 0, cost: 44, cooldown: 8,
+    { id: 'temper', name: 'Kabir Balyozu', line: 'cleave', tier: 3, level: 10, requires: 'brand', branch: 0, cost: 44, cooldown: 8,
       params: { damage: 140, radius: 7, arc: 2.5, duration: .74, strike: .26, stun: 1.7 },
       description: 'Havaya sıçra ve balyoz gibi yere in. Zemin kara-mor yarıklarla çatlar; önündeki geniş koninin içindeki düşmanlar ezilir ve yere devrilir.', delta: 'Sıçrayışlı yer darbesi: çok geniş koni, en yüksek hasar, en uzun sersemletme.' },
     { id: 'roar', name: 'Kan Nidası', line: 'roar', tier: 1, level: 2, requires: null, branch: 1, cost: 34, cooldown: 22,
@@ -38,13 +38,13 @@
     { id: 'quake', name: 'Ölüm Çığlığı', line: 'roar', tier: 2, level: 6, requires: 'roar', branch: 1, cost: 45, cooldown: 27,
       params: { near: 8.4, far: 13, time: 14.5, guard: .68, steal: .06, stun: 1.9, fear: 3, damage: 44, waves: 1 },
       description: 'Başını geriye atıp çığlık at: kemik beyazı ve kehribar şok halkaları yayılır, zemin yarılır, sarsılan düşmanlar hasar görür ve titrer. Öfke daha uzun sürer.', delta: 'Çığlık: daha geniş halkalar, hasar, daha uzun öfke ve can çalma.' },
-    { id: 'chainstorm', name: 'Kıyamet Narası', line: 'roar', tier: 3, level: 12, requires: 'quake', branch: 1, cost: 56, cooldown: 34,
+    { id: 'chainstorm', name: 'Kıyamet Narası', line: 'roar', tier: 3, level: 10, requires: 'quake', branch: 1, cost: 56, cooldown: 34,
       params: { near: 11, far: 16, time: 18, guard: .6, steal: .09, stun: 2.5, fear: 3.8, damage: 52, waves: 3, waveDamage: 38 },
       description: 'İki aşamalı kıyamet narası: yer yarılır, kızıl bir köz sütunu yükselir ve üç halka art arda yayılır. Her halka düşmanları yeniden sarsıp yaralar; öfken çok uzun ve güçlü sürer.', delta: 'İki aşamalı nara, üç halka, en geniş alan, en uzun ve güçlü öfke.' },
     { id: 'whirl', name: 'Zincir Kasırgası', line: 'whirl', tier: 1, level: 3, requires: null, branch: 2, cost: 36, cooldown: 8,
       params: { ticks: 4, damage: 33, radius: 3.6, first: .06, gap: .28, duration: 1.3, stun: .6, stunLast: 1.15, pull: .45, fling: .9, grow: 1, turns: 2, move: .6 },
       description: 'Kızıl zincirlerden bir kasırga içinde dönerek çevrendeki düşmanlara dört kez vur.', delta: '' },
-    { id: 'reap', name: 'Ölüm Biçeni', line: 'whirl', tier: 2, level: 7, requires: 'whirl', branch: 2, cost: 54, cooldown: 11,
+    { id: 'reap', name: 'Ölüm Biçeni', line: 'whirl', tier: 2, level: 6, requires: 'whirl', branch: 2, cost: 54, cooldown: 11,
       params: { ticks: 5, damage: 36, radius: 4.8, first: .06, gap: .27, duration: 1.6, stun: .7, stunLast: 1.5, pull: 1.1, fling: 1.8, grow: 1, turns: 4, move: .65 },
       description: 'Zincirler uzun, parlak orak yaylarına dönüşür: yerde altın bir biçme izi bırakır, beş vuruş vurur, düşmanları içeri çeker. Son vuruş onları uzağa savurur.', delta: 'Beş vuruş, daha geniş çember, daha sert çekiş ve savurma.' },
     { id: 'rend', name: 'Son Hüküm', line: 'whirl', tier: 3, level: 10, requires: 'reap', branch: 2, cost: 74, cooldown: 15,
@@ -53,15 +53,30 @@
     { id: 'charge', name: 'Kül Hücumu', line: 'charge', tier: 1, level: 5, requires: null, branch: 3, cost: 30, cooldown: 7,
       params: { range: 8, speed: 20, damage: 86, ringMul: .55, radius: 2.6, stun: 1.4, width: 1.5, pathDamage: 0, shove: 0, knock: 2.6, hitStop: .07, pull: 0, impacts: 1 },
       description: 'Fare imlecine doğru kül ve kıvılcımlar içinde atıl. Yoldakileri it, varınca yere çarpıp çevrendekileri sersemlet.', delta: '' },
-    { id: 'grasp', name: 'Kor Hücumu', line: 'charge', tier: 2, level: 9, requires: 'charge', branch: 3, cost: 46, cooldown: 10,
+    { id: 'grasp', name: 'Kor Hücumu', line: 'charge', tier: 2, level: 6, requires: 'charge', branch: 3, cost: 46, cooldown: 10,
       params: { range: 11, speed: 27, damage: 116, ringMul: .55, radius: 3.8, stun: 1.9, width: 2.4, pathDamage: 26, shove: 3.6, knock: 3.6, hitStop: .09, pull: 2.4, impacts: 1 },
       description: 'Omzunu öne verip kor gibi parlayan bir iz bırakarak koş: yoldaki düşmanları kıvılcımlarla yana devirir, varışta yer çatlaklarla yarılır ve düşmanlar çarpma noktasına çekilir.', delta: 'Daha uzun ve hızlı atılış, yoldakileri devirir, çatlak açan daha büyük çarpma.' },
-    { id: 'havoc', name: 'Mahşer Hücumu', line: 'charge', tier: 3, level: 12, requires: 'grasp', branch: 3, cost: 66, cooldown: 14,
+    { id: 'havoc', name: 'Mahşer Hücumu', line: 'charge', tier: 3, level: 10, requires: 'grasp', branch: 3, cost: 66, cooldown: 14,
       params: { range: 14, speed: 32, damage: 160, ringMul: .55, radius: 5, stun: 2.6, width: 3.4, pathDamage: 44, shove: 6.5, knock: 4.8, hitStop: .12, pull: 3.6, impacts: 2, damage2: 110, radius2: 6.6 },
       description: 'Kükreyip koç gibi atıl: geniş, karanlık bir iz bırakır, yoldakileri havaya fırlatır. Varışta yer iki kez çatlar; ikinci çarpma daha ağırdır ve sersemletir.', delta: 'Çifte çarpma, yoldakileri fırlatır, en geniş alan ve en uzun sersemletme.' }
   ].map(s => Object.freeze(Object.assign({}, s, { params: Object.freeze(s.params), cost: s.cost }))));
   const skillIndex = Object.fromEntries(skills.map(s => [s.id, s]));
   const skillsByLine = line => skills.filter(s => s.line === line).sort((a, b) => a.tier - b.tier);
+  // A new tier opens as a whole after all four lines of the previous tier.
+  // Restore deliberately keeps the old per-line validation: already-earned
+  // upgrades remain usable even when a legacy profile has uneven tiers.
+  function skillAccess(state, id) {
+    const skill = skillIndex[id], learned = new Set(state.learned || []);
+    if (!skill) return { known:false, blocked:true, canLearn:false, reason:'Böyle bir yetenek yok.' };
+    const known = learned.has(id), low = state.level < skill.level;
+    const missingParent = skill.requires && !learned.has(skill.requires);
+    const previous = skill.tier > 1 ? skills.filter(s => s.tier === skill.tier - 1) : [];
+    const missingTier = previous.filter(s => !learned.has(s.id)).length;
+    const blocked = !known && (low || !!missingParent || missingTier > 0);
+    const reason = known ? 'Öğrenildi' : low ? skill.level + '. seviye gerekli.' : missingParent ? 'Önce ' + skillIndex[skill.requires].name + ' öğrenilmeli.' : missingTier ? 'Önce ' + (skill.tier - 1) + '. aşamadaki dört yeteneği öğren.' : state.points < 1 ? 'Yetenek puanın yok.' : '1 puanla öğren';
+    return { known, blocked, canLearn:!known && !blocked && state.points > 0, reason, missingTier, low, missingParent };
+  }
+
   // Numbers shown on the tree page and in tooltips: [label, text]. Same params the fight uses.
   const num = n => String(Number(n.toFixed(2))).replace('.', ',');
   function skillFacts(s) {
@@ -318,11 +333,8 @@
     }
     function unlock(id) {
       const skill = skillIndex[id];
-      if (!skill) return result(false, 'Böyle bir yetenek yok.');
-      if (state.learned.includes(id)) return result(false, 'Bu yetenek zaten öğrenildi.');
-      if (state.level < skill.level) return result(false, skill.level + '. seviye gerekli.');
-      if (skill.requires && !state.learned.includes(skill.requires)) return result(false, 'Önce ' + skillIndex[skill.requires].name + ' öğrenilmeli.');
-      if (state.points < 1) return result(false, 'Yetenek puanın yok.');
+      const access = skillAccess(state, id);
+      if (!access.canLearn) return result(false, access.known ? 'Bu yetenek zaten öğrenildi.' : access.reason);
       state.learned.push(id); state.points--;
       // An upgrade takes the place of its predecessor (same slot, same key); a first skill of a line takes a free slot.
       const upgraded = skill.requires ? state.loadout.indexOf(skill.requires) : -1, free = state.loadout.indexOf(null);
@@ -502,5 +514,5 @@
     reset(); state.chapter = chapterId(options.chapter); if (options.profile) restore(options.profile);
     return state;
   }
-  B.Progression = Object.freeze({ create, skills, lines: LINES, skillsByLine, skillFacts, SKILL_TREE, items, catalog, bossSignatures, qualities, resolveItem, slots, MAX_LEVEL, VERSION, thresholds: THRESHOLDS, earnedPoints: POINTS, milestones: MILESTONES });
+  B.Progression = Object.freeze({ create, skills, lines: LINES, skillsByLine, skillFacts, skillAccess, SKILL_TREE, items, catalog, bossSignatures, qualities, resolveItem, slots, MAX_LEVEL, VERSION, thresholds: THRESHOLDS, earnedPoints: POINTS, milestones: MILESTONES });
 }());
