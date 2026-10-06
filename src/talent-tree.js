@@ -80,7 +80,7 @@
   key('k-exec', 0, 'Cellat', 'Canı %40’ın altına düşen düşmanlara %25 fazla hasar verirsin. Canı %10’un altına inen sıradan düşmanlar tek vuruşta ölür.', 'Bedeli: en yüksek canın %20 azalır.', 'axe', { exec: true, hpMul: .8 });
   key('k-blood', 1, 'Kan Yemini', 'Verdiğin bütün hasarın %5’i can olarak sana döner.', 'Bedeli: şifa matarası taşıyamazsın.', 'drop', { leech: .05, noFlask: true });
   key('k-chains', 2, 'Zincirli Kader', 'Kaçınma dayanıklılık harcamaz; her kaçınmada zincirler 7 metredeki düşmanları yanına çeker ve sersemletir.', 'Bedeli: iki kaçınma arasında 2 saniye beklersin.', 'chain', { chainDodge: true });
-  key('k-hunger', 3, 'Ölü Açlığı', 'Her vuruş 3, her öldürme 30 dayanıklılık verir.', 'Bedeli: dayanıklılığın 20’nin üstüne kendiliğinden çıkmaz.', 'skull', { hunger: true });
+  key('k-hunger', 3, 'Ölü Açlığı', 'Her vuruş fazladan 2, her öldürme 25 dayanıklılık verir.', 'Bedeli: dayanıklılığın 20’nin üstüne kendiliğinden çıkmaz.', 'skull', { hunger: true });
   key('k-pyre', 4, 'Yanan Beden', 'Bütün vuruşların tutuşturur ve yanma %30 daha çok hasar verir.', 'Bedeli: aldığın hasar %15 artar.', 'flame', { allBurn: true, burnMul: 1.3, taken: 1.15 });
   key('k-rot', 5, 'Çürüyen Dünya', 'Öldürdüğün her düşman çürüyerek patlar: çevresine hasar verir ve onları lanetler.', 'Bedeli: şifa mataraları %40 daha az iyileştirir.', 'skull', { rotWorld: true, flaskHeal: .6 });
 
@@ -126,10 +126,11 @@
     return { known, blocked, canLearn: !known && !blocked && state.points > 0, reason, low, gateNeed, missingParent, exclusive, missingTier: 0 };
   }
   // Rebuilds a legal learned list from any (possibly hand-edited / older) list for this level. Order of the result = learning order.
-  function validate(ids, level) {
+  // extra: skill points earned outside levels (quest boons, progression.js boons.points).
+  function validate(ids, level, extra) {
     build();
     const want = (Array.isArray(ids) ? ids : []).filter((id, n, all) => typeof id === 'string' && index[id] && all.indexOf(id) === n);
-    const budget = Math.max(0, Math.min(B.Progression ? B.Progression.MAX_LEVEL - 1 : 12, level - 1)), out = [];
+    const budget = Math.max(0, Math.min(B.Progression ? B.Progression.MAX_LEVEL - 1 : 12, level - 1)) + Math.max(0, extra | 0), out = [];
     let grew = true;
     while (grew && out.length < budget) {
       grew = false;
@@ -142,10 +143,10 @@
     return out;
   }
   // A single node may be refunded when the rest of the tree stays legal without it.
-  function canRefund(learned, id, level) {
+  function canRefund(learned, id, level, extra) {
     if (!learned.includes(id)) return false;
     const rest = learned.filter(x => x !== id);
-    return validate(rest, level).length === rest.length;
+    return validate(rest, level, extra).length === rest.length;
   }
   // Flat effect bag of everything learned (passives, keystones, seals). Cached per learned list.
   const fxCache = new Map();
