@@ -1641,13 +1641,13 @@
         parts.ember.push(part('octagon', 0, -1.53, 0, .36, .05, .36));
         for (var coal = 0; coal < 7; coal++) { var ca2 = coal / 7 * 6.28; parts.charred.push(part('knob', Math.cos(ca2) * .3, -1.48, Math.sin(ca2) * .3, .13, .09, .12, 0, ca2, 0)); }
         var g = hangerGroup(x, y, z, parts, false);
-        var f = flame(x, y - .95, z, 1.25, 1.75, 'court', true, true, { group: 'brazier' + index });
-        var s = lightSource(x, y - .9, z, '#ff6424', 48, 20, 1.2, { kind: 'brazier', group: 'brazier' + index, tintGroup: 'court' });
+        var f = flame(x, y - .95, z, .82, 1.22, 'court', true, true, { group: 'brazier' + index });
+        var s = lightSource(x, y - .9, z, '#ff6424', 22, 15, 1.2, { kind: 'brazier', group: 'brazier' + index, tintGroup: 'court', scatter: .7, glowRadius: 1.05 });
         swinging(g, s, f, .018, 1.2);
         emberSources.push({ x: x, y: y - 1.2, z: z, count: 18, spread: .45, rise: 3.2, group: 'brazier' + index });
         smokeSources.push({ x: x, y: y - .7, z: z, count: 7, rate: .09, rise: 3.2, spread: .45, size: 1.6, alpha: .15, color: [.05, .04, .035], group: 'brazier' + index });
         floorDecal('matte', CELL.soot, x, z, 2.6, 2.6, null, COL.soot, 0);
-        floorDecal('glow', CELL.glow, x, z, 6, 6, 0, linear(.09, .03, .008), 0);
+        floorDecal('glow', CELL.glow, x, z, 4.4, 4.4, 0, linear(.05, .0165, .0044), 0);
       }
       [[-10.6, -150.5], [10.6, -150.5], [-10.6, -159.5], [10.6, -159.5]].forEach(function (p, i) { hangingBrazier(p[0], p[1], 5.3, i); });
 

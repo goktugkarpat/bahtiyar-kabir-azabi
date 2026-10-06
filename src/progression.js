@@ -67,14 +67,14 @@
   function skillFacts(s) {
     const p = s.params, out = [];
     if (s.line === 'cleave') {
-      out.push(['Hasar', String(p.damage)], ['Alan', num(p.radius) + ' m'], ['Sersemletme', num(p.stun) + ' sn']);
+      out.push(['Temel hasar', String(p.damage)], ['Alan', num(p.radius) + ' m'], ['Sersemletme', num(p.stun) + ' sn']);
     } else if (s.line === 'roar') {
-      out.push(['Sarsma alanı', num(p.near) + ' m'], ['Korkutma alanı', num(p.far) + ' m'], ['Hasar', p.damage ? (p.waves > 1 ? p.damage + ' + ' + (p.waves - 1) + '×' + p.waveDamage : String(p.damage)) : '—'],
+      out.push(['Sarsma alanı', num(p.near) + ' m'], ['Korkutma alanı', num(p.far) + ' m'], ['Temel hasar', p.damage ? (p.waves > 1 ? p.damage + ' + ' + (p.waves - 1) + '×' + p.waveDamage : String(p.damage)) : '—'],
         ['Öfke süresi', num(p.time) + ' sn'], ['Hasar azaltma', '%' + Math.round((1 - p.guard) * 100)], ['Can çalma', '%' + Math.round(p.steal * 100)], ['Dalga', String(p.waves)]);
     } else if (s.line === 'whirl') {
-      out.push(['Vuruş', p.ticks + '×' + p.damage + ' = ' + p.ticks * p.damage], ['Çember', p.grow < 1 ? num(p.radius * p.grow) + ' → ' + num(p.radius) + ' m' : num(p.radius) + ' m'], ['Çekiş', num(p.pull) + ' m'], ['Son vuruşta savurma', num(p.fling) + ' m'], ['Son vuruş sersemletmesi', num(p.stunLast) + ' sn']);
+      out.push(['Temel vuruş', p.ticks + '×' + p.damage + ' = ' + p.ticks * p.damage], ['Çember', p.grow < 1 ? num(p.radius * p.grow) + ' → ' + num(p.radius) + ' m' : num(p.radius) + ' m'], ['Çekiş', num(p.pull) + ' m'], ['Son vuruşta savurma', num(p.fling) + ' m'], ['Son vuruş sersemletmesi', num(p.stunLast) + ' sn']);
     } else {
-      out.push(['Mesafe', num(p.range) + ' m'], ['Hedefe çarpma', p.impacts > 1 ? p.damage + ' + ' + p.damage2 : String(p.damage)], ['Yol hasarı', p.pathDamage ? String(p.pathDamage) : '—'], ['Yol genişliği', num(p.width) + ' m'], ['Yoldakini savurma', p.shove ? num(p.shove) + ' m' : '—'],
+      out.push(['Mesafe', num(p.range) + ' m'], ['Temel çarpma', p.impacts > 1 ? p.damage + ' + ' + p.damage2 : String(p.damage)], ['Temel yol hasarı', p.pathDamage ? String(p.pathDamage) : '—'], ['Yol genişliği', num(p.width) + ' m'], ['Yoldakini savurma', p.shove ? num(p.shove) + ' m' : '—'],
         ['Çarpma alanı', p.impacts > 1 ? num(p.radius) + ' / ' + num(p.radius2) + ' m' : num(p.radius) + ' m'], ['Sersemletme', num(p.stun) + ' sn'], ['Çekiş', p.pull ? num(p.pull) + ' m' : '—']);
     }
     out.push(['Maliyet', Math.round(s.cost) + ''], ['Bekleme', num(s.cooldown) + ' sn']);

@@ -128,7 +128,7 @@
       hurt: 0, stagger: 0, status: '', invulnerable: false, target: null
     };
     const enemies = [], hazards = [], seals = [];
-    const propContacts = [];   // Authored contact footprints, consumed once by the boss machinery in this frame.
+    const propContacts = [], noPropTargets = [];   // Authored contact footprints, consumed once by the boss machinery in this frame.
     function propContact(x, z, radius, units, face = 0, arc = Math.PI * 2, ox = x, oz = z) {
       if (mech && game.state === 'playing' && !player.dead) propContacts.push({ x, z, radius, units, face, arc, ox, oz });
     }
@@ -146,7 +146,7 @@
       player, enemies, hazards, state: 'ready', checkpointIndex: 0,
       elapsed: 0, kills: 0, totalKills: 0, lastDeath: null, hasSave: false,
       currentRoom: null, activeEncounter: '', boss: null, attackTarget: null,
-      start, update, restart, newCampaign: restart, respawn, interact, dispose, setQuality, setDifficulty, difficulty: 'normal', toTitle, beginRenderTraversal, endRenderTraversal, prepareGraphics
+      start, update, restart, newCampaign: restart, respawn, interact, dispose, setQuality, setDifficulty, difficulty: 'normal', toTitle, beginRenderTraversal, endRenderTraversal, prepareGraphics, propTargets: () => mech && mech.pickTargets ? mech.pickTargets() : noPropTargets
     };
     const skillKeys = ['heavy', 'special', 'rage', 'fourth'];   // right mouse, key 1, key 2, key 3 (slot index = loadout index)
     const SKILLS = Object.freeze(Object.fromEntries(BABA.Progression.skills.map(skill => [skill.id, skill])));
@@ -497,7 +497,7 @@
     // D4 click-target controls (steerOrders): order = the standing mouse / touch order { kind: 'attack' | 'move' | 'stand', enemy, heavy, x, z, owed, held };
     // swingPlan = the swing the order wants this frame (foe in reach / stand); dodgeAim = the cursor / target direction a roll takes when no key is held;
     // pendingClick = a click that arrived during hit-stop; targetRing = the slim ember ring under the foe that is targeted / under the cursor.
-    let order = null, swingPlan = null, dodgeAim = null, pendingClick = null, pendingDodge = null, targetRing = null, rawInput = null, moveMark = null, markX = 0, markZ = 0, markA = 0;
+    let blockedPropHold = null, order = null, swingPlan = null, dodgeAim = null, pendingClick = null, pendingDodge = null, targetRing = null, rawInput = null, moveMark = null, markX = 0, markZ = 0, markA = 0;
     let forcedMotion = null, healingAge = 0, comboStep = 0, comboWindow = 0, spinCur = 0;
     let playerHitImmunity = 0, checkpointSnapshot = null, endAnnounced = false;
     let hintCooldown = 0, deniedCooldown = 0, deniedId = '', lackSerial = 0, openingGrace = 8, corpseLifetime = 90, shadowReach = 0;
@@ -707,7 +707,7 @@
       if (limbs) limbs.reset(enemies);
       if (globes) globes.reset();
       if (groundLoot) groundLoot.reset();
-      simTime = 0; buffer = {}; drinkLeft = 0; order = null; swingPlan = null; dodgeAim = null; pendingClick = pendingDodge = null; showTargetRing(null); clearMoveMark();
+      simTime = 0; buffer = {}; drinkLeft = 0; blockedPropHold = null; order = null; swingPlan = null; dodgeAim = null; pendingClick = pendingDodge = null; showTargetRing(null); clearMoveMark();
       dodgeAge = 0; forcedMotion = null; healingAge = 0; comboStep = 0; comboWindow = 0; spinCur = 0;
       playerHitImmunity = 0; endAnnounced = false; hintCooldown = 0; deniedCooldown = 0; deniedId = ''; lackSerial = 0; openingGrace = snapshot.index ? 0 : 8;
       freeze = 0; slowmo = 0; victims.length = 0; evadeCooldown = 0; game.hitStop = 0; game.timeScale = 1; pairCd = 0;
@@ -764,6 +764,7 @@
       if (disposed || game.state === 'playing') return;
       resetToSnapshot(checkpointSnapshot);
       if (checkpointSnapshot.completed) {
+        blockedPropHold = null;
         endAnnounced = true; game.state = 'won';
         emit('win', { time: game.elapsed, kills: game.kills, chapter, nextChapter: null, completed: true });
         return;
@@ -1636,6 +1637,7 @@
       player.dead = true; player.hp = 0; player.attack = null; player.dodge = 0; player.healing = 0; order = null; showTargetRing(null); clearMoveMark();
       buffer = {}; pendingDodge = null; player.pendingAction = null; player.lack = null; game.attackTarget = null;
       propContacts.length = 0;
+      blockedPropHold = null;
       game.state = 'dead'; game.lastDeath = { enemy: enemyName, attack: attackName };
       sound('death'); emit('death', game.lastDeath);
     }
@@ -2087,28 +2089,40 @@
       out.x = Number.isFinite(input.x) ? clamp(input.x, -1, 1) : 0;
       out.z = Number.isFinite(input.z) ? clamp(input.z, -1, 1) : 0;
       rawInput = input; swingPlan = null; dodgeAim = null;
-      const click = pendingClick || (input.clickLight || input.clickHeavy ? { heavy: !!input.clickHeavy, target: input.target, x: input.pointX, z: input.pointZ, stand: !!input.stand } : null);
+      let click = pendingClick || (input.clickLight || input.clickHeavy ? { heavy: !!input.clickHeavy, target: input.target, prop: input.prop, propEpoch: input.prop ? input.prop.epoch : null, x: input.pointX, z: input.pointZ, stand: !!input.stand } : null);
       pendingClick = null;
       if (player.dead || game.state !== 'playing') { order = null; showTargetRing(null); return out; }
       const valid = e => !!e && !e.dead && e.model.root.visible;
-      const hover = valid(input.target) ? input.target : null;
+      const validProp = p => !!p && (p.kind === 'anchor' || p.kind === 'orb') && typeof p.isTargetable === 'function' && p.isTargetable();
+      const hover = valid(input.target) ? input.target : null, hoverProp = !hover && validProp(input.prop) ? input.prop : null;
       const hasPt = Number.isFinite(input.pointX) && Number.isFinite(input.pointZ);
       const mv = Math.hypot(input.x || 0, input.z || 0), holdL = !!input.holdLight, holdH = !!input.holdHeavy && !!selectedSkill(0), stand = !!input.stand;
+      if (!holdL && !holdH || click || hover || hoverProp && hoverProp !== blockedPropHold) blockedPropHold = null;
+      // A buffered click belongs to the visible spawn at press time, never its recycled pool slot.
+      if (click && click.prop && !valid(click.target) && (!validProp(click.prop) || click.prop.epoch !== click.propEpoch)) {
+        if (holdL || holdH) blockedPropHold = click.prop;
+        order = null; click = null;
+      }
+      if (order && order.kind === 'prop' && (!validProp(order.prop) || order.prop.epoch !== order.epoch)) {
+        if (holdL || holdH) blockedPropHold = order.prop;
+        order = null;
+      }
       if (click && click.heavy && !selectedSkill(0)) {
         rejectAction('heavy', 'locked', 'Bu yetenek yuvası boş. Yetenek ekranından bir yetenek seç.');
         order = null; return out;
       }
       if (click) {
-        const t = valid(click.target) ? click.target : null, cx = Number.isFinite(click.x) ? click.x : player.x + Math.sin(player.face) * 3, cz = Number.isFinite(click.z) ? click.z : player.z + Math.cos(player.face) * 3;
-        if (click.stand || click.heavy && !t) order = { kind: 'stand', heavy: click.heavy, x: cx, z: cz, owed: true };
+        const t = valid(click.target) ? click.target : null, prop = !t && validProp(click.prop) ? click.prop : null, cx = prop ? prop.x : Number.isFinite(click.x) ? click.x : player.x + Math.sin(player.face) * 3, cz = prop ? prop.z : Number.isFinite(click.z) ? click.z : player.z + Math.cos(player.face) * 3;
+        if (click.stand || click.heavy && !t && !prop) order = { kind: 'stand', heavy: click.heavy, x: cx, z: cz, owed: true };
         else if (t) order = { kind: 'attack', enemy: t, heavy: click.heavy, owed: true };
+        else if (prop) order = { kind: 'prop', prop, epoch: prop.epoch, heavy: click.heavy, owed: true };
         else if (!click.heavy && Number.isFinite(click.x)) order = { kind: 'move', x: click.x, z: click.z };
         if (t) trackAttackTarget(t);
         if (order) order.stuck = 0;
       }
       const btn = holdL ? 'L' : holdH ? 'H' : '';
       if (order) order.held = order.kind === 'move' ? holdL : order.heavy ? holdH : holdL;
-      if (btn && !click) {
+      if (btn && !click && !blockedPropHold) {
         if (stand) {
           if (!order || order.kind !== 'stand' || order.heavy !== (btn === 'H')) order = { kind: 'stand', heavy: btn === 'H', owed: true, stuck: 0 };
           if (hover) trackAttackTarget(hover);
@@ -2118,6 +2132,10 @@
           if (!order || order.kind !== 'attack' || order.heavy !== heavy || order.enemy !== hover) {
             order = { kind: 'attack', enemy: hover, heavy, owed: true, stuck: 0 }; trackAttackTarget(hover);
           }
+          order.held = true;
+        } else if (hoverProp) {
+          const heavy = btn === 'H';
+          if (!order || order.kind !== 'prop' || order.heavy !== heavy || order.prop !== hoverProp || order.epoch !== hoverProp.epoch) order = { kind: 'prop', prop: hoverProp, epoch: hoverProp.epoch, heavy, owed: true, stuck: 0 };
           order.held = true;
         } else if (btn === 'L' && hasPt) {
           if (!order || order.kind !== 'move') order = { kind: 'move', stuck: 0 };
@@ -2131,7 +2149,7 @@
       if (order) {
         if (order.kind === 'stand') {
           if (hasPt) { order.x = input.pointX; order.z = input.pointZ; }
-          const dx = order.x - player.x, dz = order.z - player.z;
+          const dx = (hoverProp ? hoverProp.x : order.x) - player.x, dz = (hoverProp ? hoverProp.z : order.z) - player.z;
           const face = hover ? angleTo(player, hover) : Math.hypot(dx, dz) > .3 ? Math.atan2(dx, dz) : player.face;
           swingPlan = { stand: true, face, heavy: order.heavy, order }; dodgeAim = face;
           if (order.held) out.x = out.z = 0;
@@ -2142,6 +2160,17 @@
           if (distance(player, e) - e.radius <= reach && clearStrike(player, e)) { swingPlan = { enemy: e, heavy: order.heavy, order }; if (mv <= .08) out.x = out.z = 0; }
           else if (mv <= .08) {
             const nav = order.navigation || (order.navigation = {}); routeDirection(player, e, nav, dt, hero.radius || .5, true);
+            out.x = nav.dx; out.z = nav.dz; walking = true;
+          }
+        } else if (order.kind === 'prop') {
+          const prop = order.prop, face = angleTo(player, prop), selected = order.heavy ? selectedSkill(0) : null;
+          const reach = order.heavy ? (selected ? skillReach[selected.id] || ORDER.reachHeavy : ORDER.reachHeavy) : ORDER.reach + weaponHandling().reach;
+          dodgeAim = face;
+          if (distance(player, prop) - prop.radius <= reach && clearStrike(player, prop)) {
+            swingPlan = { stand: true, face, heavy: order.heavy, order };
+            if (mv <= .08) out.x = out.z = 0;
+          } else if (mv <= .08) {
+            const nav = order.navigation || (order.navigation = {}); routeDirection(player, prop, nav, dt, hero.radius || .5, true);
             out.x = nav.dx; out.z = nav.dz; walking = true;
           }
         } else {
@@ -2551,7 +2580,7 @@
       if (freeze > 0) {
         // Hit-stop: every combat clock holds together; presses made now are buffered for the next frame.
         const held = Math.min(freeze, dt); freeze -= held; dt -= held;
-        if (game.state === 'playing') { holdInput(input, true); if (input.clickLight || input.clickHeavy) pendingClick = { heavy: !!input.clickHeavy, target: input.target, x: input.pointX, z: input.pointZ, stand: !!input.stand }; }
+        if (game.state === 'playing') { holdInput(input, true); if (input.clickLight || input.clickHeavy) pendingClick = { heavy: !!input.clickHeavy, target: input.target, prop: input.prop, propEpoch: input.prop ? input.prop.epoch : null, x: input.pointX, z: input.pointZ, stand: !!input.stand }; }
         input = Object.assign({}, input, { light: false, heavy: false, near: false, clickLight: false, clickHeavy: false, dodge: false, heal: false, rage: false, special: false, fourth: false });
         pendingAction();
         shudder(freeze > 0); game.hitStop = freeze;

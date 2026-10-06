@@ -277,7 +277,7 @@
   const keys = new Set(), actions = {}, cameraPos = new THREE.Vector3(), look = new THREE.Vector3(), target = new THREE.Vector3(), projected = new THREE.Vector3();
   // D4 controls: light / heavy = the attack KEY (J, K, pad, on-screen button: only swings at a foe in the front cone); clickLight / clickHeavy = a mouse press or tap this frame,
   // holdLight / holdHeavy = the mouse button (or the finger) is still down, stand = the "stand still" modifier, target = the foe under the cursor, pointX / pointZ = the floor under it.
-  const input = { x: 0, z: 0, aimX: null, aimZ: null, aimFoe: null, light: false, heavy: false, near: false, clickLight: false, clickHeavy: false, holdLight: false, holdHeavy: false, stand: false, target: null, pointX: null, pointZ: null, dodge: false, heal: false, rage: false, special: false, fourth: false, interact: false };
+  const input = { x: 0, z: 0, aimX: null, aimZ: null, aimFoe: null, light: false, heavy: false, near: false, clickLight: false, clickHeavy: false, holdLight: false, holdHeavy: false, stand: false, target: null, prop: null, pointX: null, pointZ: null, dodge: false, heal: false, rage: false, special: false, fourth: false, interact: false };
   let lightPointer = null, hitPause = 0;
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
   const cameraKick = { x: 0, z: 0, vx: 0, vz: 0 }, cameraLead = new THREE.Vector3(), introFrom = new THREE.Vector3(), introLook = new THREE.Vector3(), lookTarget = new THREE.Vector3();
@@ -285,7 +285,7 @@
   let heldLight = false, lightRepeat = 0, controller = null, controllerState = null, roomId = -1, deathShown = false, wonShown = false;
   const joy = { x: 0, z: 0, id: null, ox: 0, oy: 0 };
   // Pointer for the click-target controls: last position (client px), the foe under it, whether it counts (over the game, or a button held), clicks waiting for the next frame.
-  const cursor = { x: 0, y: 0, has: false, touch: false, target: null }, clicks = { light: false, heavy: false }, ndc = new THREE.Vector2(), pickRay = new THREE.Raycaster(), pickA = new THREE.Vector3(), pickB = new THREE.Vector3();
+  const cursor = { x: 0, y: 0, has: false, touch: false, target: null, prop: null }, clicks = { light: false, heavy: false }, ndc = new THREE.Vector2(), pickRay = new THREE.Raycaster(), pickA = new THREE.Vector3(), pickB = new THREE.Vector3();
   let zoneTap = null, touchHold = null;   // pointerId of the finger that is down on the game (a held left click)
   // Touch controls appear on touch screens, and on any device as soon as a finger is used.
   let touchSeen = coarsePointer;
@@ -349,10 +349,10 @@
   function openAtlas() { if (advancing || !game || !atlasUI || !['playing','pause','character','journal','atlas'].includes(view)) return; if (view === 'atlas') back(); else open('atlas'); }
   function clearInput() {
     keys.clear(); for (const k in actions) delete actions[k];
-    heldLight = false; lightPointer = null; touchHold = null; zoneTap = null; clicks.light = clicks.heavy = false; cursor.target = null;
+    heldLight = false; lightPointer = null; touchHold = null; zoneTap = null; clicks.light = clicks.heavy = false; cursor.target = cursor.prop = null;
     joy.x = joy.z = 0; joy.id = null; resetStick();
     input.aimX = input.aimZ = input.aimFoe = null;
-    input.x = input.z = 0; input.target = input.pointX = input.pointZ = null;
+    input.x = input.z = 0; input.target = input.prop = input.pointX = input.pointZ = null;
     for (const a of ['light', 'heavy', 'near', 'clickLight', 'clickHeavy', 'holdLight', 'holdHeavy', 'stand', 'dodge', 'heal', 'rage', 'special', 'fourth', 'interact']) input[a] = false;
   }
 
@@ -1091,7 +1091,7 @@
   // The floor point under the cursor and the foe under / near it (a capsule from the feet to the head, plus a soft margin of ~3 % of the screen height so that
   // a foe does not have to be hit exactly; the foe that was targeted a moment ago keeps the target a little longer so the ring does not flicker between neighbours).
   function updatePointer() {
-    const prev = cursor.target; cursor.target = null; input.pointX = input.pointZ = null;
+    const prev = cursor.target, prevProp = cursor.prop; cursor.target = cursor.prop = null; input.pointX = input.pointZ = null;
     if (!cursor.has || !camera || !game) return;
     ndc.set(cursor.x / innerWidth * 2 - 1, -(cursor.y / innerHeight) * 2 + 1);
     pickRay.setFromCamera(ndc, camera);
@@ -1113,6 +1113,25 @@
     }
     cursor.target = best && bestScore <= soft ? best : null;
     if (prev && !prev.dead && prevScore <= soft * 1.8 && (!cursor.target || bestScore > 0)) cursor.target = prev;
+    if (cursor.target || !game.propTargets) return;   // Enemy priority and its existing sticky margin stay unchanged.
+    const propSoft = Math.max(10, H * .014);
+    let propBest = null, propScore = Infinity, propPrevScore = Infinity;
+    for (const prop of game.propTargets()) {
+      if (!prop.isTargetable()) continue;
+      pickA.set(prop.x, prop.bottom, prop.z).project(camera); pickB.set(prop.x, prop.top, prop.z).project(camera);
+      if (pickA.z < -1 || pickA.z > 1 || pickB.z < -1 || pickB.z > 1) continue;
+      const ax = (pickA.x * .5 + .5) * W, ay = (-pickA.y * .5 + .5) * H, bx = (pickB.x * .5 + .5) * W, by = (-pickB.y * .5 + .5) * H;
+      pickB.set(prop.x + prop.radius, (prop.bottom + prop.top) * .5, prop.z).project(camera);
+      const rpx = Math.max(7, Math.abs((pickB.x * .5 + .5) * W - (ax + bx) * .5));
+      if (Math.max(ax, bx) < -rpx || Math.min(ax, bx) > W + rpx || Math.max(ay, by) < -rpx || Math.min(ay, by) > H + rpx) continue;
+      const sx = bx - ax, sy = by - ay, len2 = sx * sx + sy * sy, k = len2 > 1e-6 ? Math.max(0, Math.min(1, ((cursor.x - ax) * sx + (cursor.y - ay) * sy) / len2)) : 0;
+      const score = Math.hypot(cursor.x - (ax + sx * k), cursor.y - (ay + sy * k)) - rpx;
+      if (prop === prevProp) propPrevScore = score;
+      if (score < propScore) { propScore = score; propBest = prop; }
+    }
+    cursor.prop = propBest && propScore <= propSoft ? propBest : null;
+    if (prevProp && prevProp.isTargetable() && propPrevScore <= propSoft * 1.3 && (!cursor.prop || propScore > 0)) cursor.prop = prevProp;
+    if (cursor.prop) { input.pointX = cursor.prop.x; input.pointZ = cursor.prop.z; }
   }
   function pollInput() {
     input.aimX = input.aimZ = input.aimFoe = null; input.padActive = false;   // controller aim never inherits a stale mouse cursor
@@ -1122,7 +1141,7 @@
     input.stand = isDown('stand');
     input.holdLight = holdBtn('light'); input.holdHeavy = holdBtn('heavy');
     input.clickLight = clicks.light; input.clickHeavy = clicks.heavy; clicks.light = clicks.heavy = false;
-    input.target = cursor.target;
+    input.target = cursor.target; input.prop = cursor.prop;
     if (cursor.touch && touchHold === null) cursor.has = false;   // a finger that has lifted no longer points at anything
     if (controllerState && controllerState.connected && !controllerState.binding) {
       input.padActive = Math.hypot(controllerState.x, controllerState.z, controllerState.aimX, controllerState.aimZ) > .08 || controllerState.lightHeld || Object.values(controllerState.actions).some(Boolean);
@@ -1426,7 +1445,8 @@
     const buffRows = Math.ceil(buffCount / 3);
     if (buffRows !== lastBuffRows) { lastBuffRows = buffRows; $('hud').style.setProperty('--buff-rows', buffRows); }
     const hp = clamp(p.hp / p.maxHp, 0, 1);
-    hudText('health-number', Math.ceil(Math.max(0, p.hp))); hudText('health-max', '/ ' + Math.round(p.maxHp));
+    const actualMaxHp = Number.isFinite(p.effectiveMaxHp) && p.effectiveMaxHp > 0 ? p.effectiveMaxHp : p.maxHp;
+    hudText('health-number', Math.min(Math.round(actualMaxHp), hp > 0 ? Math.max(1, Math.ceil(hp * actualMaxHp - Number.EPSILON * actualMaxHp * 4)) : 0)); hudText('health-max', '/ ' + Math.round(actualMaxHp));
     if (B.HUD) B.HUD.vitals(p, dt);   // liquid health and stamina orbs (src/hud.js)
     const orb = hq('.health-orb');
     orb.classList.toggle('low', hp < .3); document.body.classList.toggle('low-hp', hp < .3 && !p.dead);
@@ -2036,7 +2056,7 @@
     game = B.Game.create(world, { scene, emit: event, sound: (n, o) => B.Audio.play(n, o), fx });
     characterUI = B.CharacterUI.create({ game, keyLabels: () => ['heavy', 'special', 'rage', 'fourth'].map(a => { const c = binds[a][0] || binds[a][1]; return c ? capName(c) : '—'; }), onPreview: (canvas,nowMs,preparing) => characterPreview.draw(canvas,nowMs,preparing), onPreviewTurn: direction => characterPreview.turn(direction), onClose: back, onChange: () => { game.syncProgression(); if (game.saveProfileChoices) game.saveProfileChoices(); hud(0); } });
     questUI = B.QuestUI.create({ game });
-    atlasUI = B.Atlas.create({ world, game, onClose: back, onJournal: () => show('journal') }); document.body.append(atlasUI.element);
+    atlasUI = B.Atlas.create({ world, game, onClose: back, onJournal: () => { if (stack[stack.length - 1] === 'journal') stack.pop(); show('journal'); } }); document.body.append(atlasUI.element);
     makeFX(); postProcess(); characterPreview = B.CharacterPreview.create({ renderer, camera, game, post, worldScene: scene }); setupUI();
     titleCamera();
     const placeNotices = () => {

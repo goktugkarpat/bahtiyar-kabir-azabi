@@ -1243,8 +1243,37 @@
       if (r === 3 && !st.combat) sample('chain', { bus: 'amb', vol: .11, rate: .6, lp: 1200, delay: .6, send: .65, pan: -.5 });
     }
   }
+  // Critical-health feedback belongs to the hero, before any biome can return.
+  function heartbeatStep(dt, st, t) {
+    const p = player();
+    if (!st.playing || st.dead || st.won || !p || !p.maxHp || p.hp <= 0 || p.hp / p.maxHp >= .3) { A.heart = 0; return; }
+    A.heart -= dt;
+    if (A.heart <= 0) { const bpm = 70 + (1 - p.hp / p.maxHp / .3) * 35; A.heart = 60 / bpm; thud(t, { f0: 58, f1: 38, dur: .16, vol: .32 }); thud(t + .2, { f0: 54, f1: 36, dur: .14, vol: .22 }); }
+  }
+  // Later chapters have their own physical space: settling mineral, old machinery and furnace heat.
+  function campaignAmbience(t, r, st, forge) {
+    targetParam(A.wind.gain, forge ? .035 : r === 4 ? .045 : .032, t, 2);
+    if (!st.playing && !st.title) return;
+    if (!forge && t > A.dripNext) { A.dripNext = t + rand(3, 7); drip(t, rand(-.7, .7), rand(.009, .018)); }
+    if (forge && t > A.crackleNext) { A.crackleNext = t + rand(.18, .5); burst(t, rand(.012, .03), rand(.005, .011), rand(1600, 2800), { q: 1.2, bus: 'amb', pan: rand(-.65, .65) }); }
+    // Leave room for attack tells and narration; ambience does not add another voice.
+    if (t <= A.next || st.combat || st.boss || st.dead || st.won || current || queue.length || nclock - lastTellN < 4 || A.calm < 4) return;
+    A.next = t + rand(18, 32);
+    const far = (name, o) => sample(name, Object.assign({ bus: 'amb', send: .65, lp: forge ? 1100 : 1400, pan: rand(-.75, .75) }, o));
+    if (forge) {
+      if (r === 1 || r === 4 || chance(.5)) far('winch', { vol: .12, rate: rand(.55, .7) });
+      else far('metal', { vol: .1, rate: rand(.55, .75) });
+      if (r === 3) far('chain', { vol: .07, rate: .65, delay: .7 });
+    } else {
+      far(r === 1 || r === 4 ? 'debris' : chance(.6) ? 'bone' : 'chain', { vol: .1, rate: rand(.55, .8) });
+      if (r === 4) burst(t, 1.6, .035, 75, { q: .8, attack: .5, bus: 'amb', send: .5, buf: N.brown });
+    }
+  }
   function ambienceStep(dt, st) {
     const t = ctx.currentTime, r = room();
+    heartbeatStep(dt, st, t);
+    const chapter = B.app && B.app.world.chapter;
+    if (chapter === 3 || chapter === 4) { campaignAmbience(t, r, st, chapter === 4); return; }
     if (B.app && B.app.world.chapter === 2) { coastAmbience(t, r, st); return; }
     targetParam(A.wind.gain, r === 4 ? .075 : r === 6 ? .065 : .05, t, 2);
     if (!st.playing && !st.title) return;
@@ -1265,12 +1294,6 @@
       else if (roll < .65 && quiet) far(chance(.5) ? 'prisonerMoan' : 'prisonerYell', { vol: .16, rate: rand(.6, .75), lp: 1000 });
       else if (roll < .8) far('winch', { vol: .2, rate: rand(.55, .75) });
       else { burst(t, 2.2, .07, 70, { q: .8, attack: .7, bus: 'amb', send: .6, buf: N.brown }); far('debris', { vol: .12, rate: .6, delay: 1 }); }
-    }
-    // düşük can: kalp atışı
-    const p = player();
-    if (st.playing && p && p.maxHp && p.hp > 0 && p.hp / p.maxHp < .3) {
-      A.heart -= dt;
-      if (A.heart <= 0) { const bpm = 70 + (1 - p.hp / p.maxHp / .3) * 35; A.heart = 60 / bpm; thud(t, { f0: 58, f1: 38, dur: .16, vol: .32 }); thud(t + .2, { f0: 54, f1: 36, dur: .14, vol: .22 }); }
     }
   }
   // ------------------------------------------------------------------ zindan işkence ortamı
@@ -1474,13 +1497,14 @@
       T.player = p; T.resetSerial = g.resetSerial; T.clock = 0; T.next = 30 + rand(3, 14); T.until = 0; T.recent = [];
     }
     // narrator: the dry layer fades out when a line starts and returns after it (a queued or urgent line also postpones new events)
-    const want = !st.playing || st.title || !TORT_NEAR[r] || T.clock < 30 || current || st.combat || st.boss || st.dead || st.won || nclock - lastTellN < 1.5 ? 0 : 1;
+    const laterChapter = B.app && B.app.world.chapter >= 3;
+    const want = laterChapter || !st.playing || st.title || !TORT_NEAR[r] || T.clock < 30 || current || st.combat || st.boss || st.dead || st.won || nclock - lastTellN < 1.5 ? 0 : 1;
     if (want !== T.gate && T.busV) {
       T.gate = want;
       for (const bus of [T.busV, T.busF]) if (bus) targetParam(bus.gain, want, t, want ? .25 : .055);
       if (T.verbOut) targetParam(T.verbOut.gain, .55 * want, t, want ? .25 : .055);
     }
-    if (!p || !st.playing || st.title || st.dead || st.won) return;
+    if (laterChapter || !p || !st.playing || st.title || st.dead || st.won) return;
     T.clock += dt;
     if (T.clock < T.next) return;
     const near = TORT_NEAR[r], mix = B.app && B.app.world.chapter === 2 ? COAST_MIX[r] : TORT_MIX[r];

@@ -174,12 +174,13 @@
       function showOrb(o, on) { o.core.visible = o.halo.visible = o.mark.visible = on; }
       function liveOrbs() { var n = 0; for (var k = 0; k < MAX_ORB; k++) if (orbs[k].live) n++; return n; }
       // Launch n orbs from the owner. cfg: { kind, speed, life, spread }. Returns how many were launched.
+      var propPickSerial = 0;
       function launchOrbs(owner, n, cfg) {
         cfg = cfg || {}; var made = 0, base = Math.atan2(player.x - owner.x, player.z - owner.z), kind = cfg.kind || 'ember';
         for (var k = 0; k < MAX_ORB && made < n; k++) {
           var o = orbs[k]; if (o.live) continue;
           var a = base + (made - (n - 1) / 2) * 1.15 + (made % 2 ? .25 : -.25);
-          o.live = true; o.state = 0; o.age = 0; o.owner = owner; o.hazard = null; o.burst = false; o.speed = cfg.speed || 3.05; o.life = cfg.life || 8.5; o.fuse = 0;
+          o.pickSerial = ++propPickSerial; o.live = true; o.state = 0; o.age = 0; o.owner = owner; o.hazard = null; o.burst = false; o.speed = cfg.speed || 3.05; o.life = cfg.life || 8.5; o.fuse = 0;
           o.x = owner.x + Math.sin(a) * 1.5; o.z = owner.z + Math.cos(a) * 1.5; o.y = 2.3; o.vx = Math.sin(a) * 4.2; o.vz = Math.cos(a) * 4.2; o.trail = 0;
           setOrbKind(o, kind); showOrb(o, true); made++;
           api.fx('boss1Orb', { x: o.x, y: o.y, z: o.z, kind: kind, phase: 'spawn' });
@@ -287,7 +288,7 @@
             }
           }
           if (!ok) continue;
-          var an = anchors[placed++]; an.live = true; an.lit = true; an.x = x; an.z = z; an.hp = 3; an.prog = 0; an.flash = 0; an.fade = 0;
+          var an = anchors[placed++]; an.pickSerial = ++propPickSerial; an.live = true; an.lit = true; an.x = x; an.z = z; an.hp = 3; an.prog = 0; an.flash = 0; an.fade = 0;
           an.g.position.set(x, api.groundY(x, z), z); an.g.visible = true; an.g.scale.setScalar(.01); an.flame.scale.set(1, 1, 1); an.chain.visible = true;
         }
         if (placed < 2) { for (var q = 0; q < MAX_ANCHOR; q++) { anchors[q].live = false; anchors[q].g.visible = false; anchors[q].chain.visible = false; } return 0; }
@@ -355,6 +356,27 @@
         }
       }
 
+      // Stable picking descriptors refer to a spawn epoch, not a recyclable pool slot's old click.
+      var pickTargets = [];
+      function pickDescriptor(kind, body) {
+        var anchor = kind === 'anchor', model = anchor ? body.g : body.core;
+        var target = { kind: kind, radius: anchor ? .6 : .4,
+          isTargetable: function () {
+            var owner = anchor ? rite && rite.owner : body.owner;
+            return !!owner && !owner.dead && body.live && (anchor ? body.lit : body.state < 2) && model.visible && root.visible && (!anchor || model.scale.x > .05);
+          }
+        };
+        Object.defineProperties(target, {
+          x: { get: function () { return body.x; } }, z: { get: function () { return body.z; } },
+          epoch: { get: function () { return body.pickSerial || 0; } },
+          bottom: { get: function () { return anchor ? model.position.y + .1 * model.scale.y : model.position.y - .38 * model.scale.y; } },
+          top: { get: function () { return anchor ? model.position.y + 2.05 * model.scale.y : model.position.y + .38 * model.scale.y; } }
+        });
+        return target;
+      }
+      for (i = 0; i < anchors.length; i++) pickTargets.push(pickDescriptor('anchor', anchors[i]));
+      for (i = 0; i < orbs.length; i++) pickTargets.push(pickDescriptor('orb', orbs[i]));
+
       // ---------------------------------------------------------------- hero blows (an attack that reaches an anchor or an orb)
       function blow(x, z, reach, units, footprint) {
         var f = footprint || { x: x, z: z, face: 0, arc: TAU, ox: x, oz: z };
@@ -388,7 +410,7 @@
       function count(e, id) { return counts[e.id + id] || 0; }
       function bump(e, id) { counts[e.id + id] = (counts[e.id + id] || 0) + 1; }
       var mech = {
-        launchOrbs: launchOrbs, liveOrbs: liveOrbs, startRite: startRite, ready: ready, mark: mark, count: count, bump: bump, frenzied: frenzied, blow: blow,
+        pickTargets: function () { return pickTargets; }, launchOrbs: launchOrbs, liveOrbs: liveOrbs, startRite: startRite, ready: ready, mark: mark, count: count, bump: bump, frenzied: frenzied, blow: blow,
         floorCount:floorCount, sheltered:sheltered, majorActive:function(owner){return floorCount(owner,'dark')>0;},
         state: function () { return { anchors: anchors.filter(function (a) { return a.live && a.lit; }).map(function (a) { return { x: a.x, z: a.z }; }), orbs: orbs.filter(function (o) { return o.live; }).map(function (o) { return { x: o.x, z: o.z, state: o.state }; }), fight: fightT }; },   // QA only
         riteLit: litCount, riteActive: function () { return !!rite; }, time: function () { return time; }, fightTime: function () { return fightT; },

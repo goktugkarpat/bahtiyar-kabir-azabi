@@ -347,7 +347,7 @@
     const ROMAN = ['', 'I', 'II', 'III'];
     const keyLabels = () => { try { const k = typeof options.keyLabels === 'function' ? options.keyLabels() : null; if (Array.isArray(k) && k.length >= 4) return k; } catch (_) { /* fall back */ } return ['SAĞ TIK', '1', '2', '3']; };
     const capHtml = label => (label === 'SAĞ TIK' ? '<svg class="skt-mouse" aria-hidden="true"><use href="#i-mouse-r"/></svg>' : '') + escape(label);
-    const slotWord = (label, slot) => slot === 0 ? 'Sağ tık' : label + ' tuşu';
+    const slotWord = label => ({ 'SAĞ TIK': 'Sağ tık', 'SOL TIK': 'Sol tık', 'ORTA TIK': 'Orta tık', 'FARE 4': 'Fare 4', 'FARE 5': 'Fare 5' }[label] || label + ' tuşu');
     function talents(state) {
       const P = B.Progression, all = P.skills, chosen = all.find(s => s.id === selectedSkill) || all[0], byId = new Map(all.map(s => [s.id, s])), keys = keyLabels();
       const lineOf = id => P.lines.find(l => l.id === id) || P.lines[0];
@@ -365,24 +365,25 @@
           return link + '<button data-char="skill" data-skill="' + s.id + '" data-line="' + line.id + '" data-tier="' + s.tier + '" class="skt-node ' + (known ? 'learned' : blocked ? 'locked' : canLearn ? 'available' : 'pending') + (superseded ? ' superseded' : '') + (slot >= 0 ? ' slotted' : '') + (s.id === chosen.id ? ' selected' : '') +
             '" aria-pressed="' + (s.id === chosen.id) + '" title="' + escape(s.name) + ' · ' + ROMAN[s.tier] + '. aşama · seviye ' + s.level + '">' +
             '<i class="skt-emblem">' + icon(s.id) + '<b class="skt-tier">' + ROMAN[s.tier] + '</b></i><strong>' + escape(s.name) + '</strong><small class="skt-state">' + stateText + '</small>' +
-            (slot >= 0 ? '<span class="skt-slotcap">' + capHtml(slot === 0 ? 'SAĞ TIK' : keys[slot]) + '</span>' : '') + '</button>';
+            (slot >= 0 ? '<span class="skt-slotcap">' + capHtml(keys[slot]) + '</span>' : '') + '</button>';
         }).join('');
         return '<section class="skt-col" data-line="' + line.id + '" style="--line:' + line.color + '"><header><b>' + escape(line.name) + '</b><small>' + escape(line.short) + '</small></header>' + nodes + '</section>';
       }).join('');
       const facts = P.skillFacts(chosen).map(([label, value]) => {
         const before = prevFacts ? prevFacts.get(label) : undefined, changed = before !== undefined && before !== value;
-        return '<div class="skt-fact' + (changed ? ' changed' : '') + '"><span' + (changed ? ' title="Önceki aşama: ' + escape(before) + '"' : '') + '>' + escape(label) + '</span><b>' + escape(value) + '</b></div>';
+        const hint = (label.startsWith('Temel ') ? 'Silah, zorluk ve geçici etkiler gerçek hasarı değiştirir.' : '') + (changed ? ' Önceki aşama: ' + before : '');
+        return '<div class="skt-fact' + (changed ? ' changed' : '') + '"><span' + (hint ? ' title="' + escape(hint.trim()) + '"' : '') + '>' + escape(label) + '</span><b>' + escape(value) + '</b></div>';
       }).join('');
       const assignment = learned ? '<div class="skt-assign"><small>Hangi yuvaya konsun?</small><div>' + [0, 1, 2, 3].map(slot => {
         const here = state.loadout[slot] === chosen.id, other = byId.get(state.loadout[slot]);
-        return '<button aria-label="' + escape(slotWord(keys[slot], slot) + ' yuvasına ' + chosen.name + ' ata') + '" title="' + escape(here ? 'Bu yuvada' : other ? other.name + ' yerine ata' : 'Boş yuvaya ata') + '" data-char="assign" data-skill="' + chosen.id + '" data-slot="' + slot + '" ' + (here ? 'disabled' : '') + '><span class="skt-cap">' + capHtml(slot === 0 ? 'SAĞ TIK' : keys[slot]) + '</span><span>' + (here ? 'Burada' : other ? escape(other.name) + ' yerine' : 'Boş yuva') + '</span></button>';
+        return '<button aria-label="' + escape(slotWord(keys[slot], slot) + ' yuvasına ' + chosen.name + ' ata') + '" title="' + escape(here ? 'Bu yuvada' : other ? other.name + ' yerine ata' : 'Boş yuvaya ata') + '" data-char="assign" data-skill="' + chosen.id + '" data-slot="' + slot + '" ' + (here ? 'disabled' : '') + '><span class="skt-cap">' + capHtml(keys[slot]) + '</span><span>' + (here ? 'Burada' : other ? escape(other.name) + ' yerine' : 'Boş yuva') + '</span></button>';
       }).join('') + '</div></div>' : '';
       const loadout = state.loadout.map((id, slot) => {
-        const s = byId.get(id), label = slot === 0 ? 'SAĞ TIK' : keys[slot];
+        const s = byId.get(id), label = keys[slot];
         return '<div class="skt-slot' + (s ? '' : ' empty') + '"' + (s ? ' data-line="' + s.line + '" style="--line:' + lineOf(s.line).color + '"' : '') + '><span class="skt-cap">' + capHtml(label) + '</span><button aria-label="' + escape((s ? s.name : 'Boş yetenek yuvası') + ' · ' + label) + '" title="' + escape(s ? s.name : 'Yetenek öğren ve ata') + '" data-char="skill" data-skill="' + (id || chosen.id) + '">' + (s ? icon(s.id) + '<span><strong>' + escape(s.name) + '</strong><small>' + ROMAN[s.tier] + '. aşama</small></span>' : '<span><strong>Boş yuva</strong><small>Yetenek öğren ve ata</small></span>') + '</button>' + (s ? '<button class="skt-remove" data-char="assign" data-slot="' + slot + '" data-skill="" aria-label="' + escape(s.name) + ' yuvasını boşalt">×</button>' : '') + '</div>';
       }).join('');
       const line = lineOf(chosen.line);
-      return '<div class="skt-wrap"><div class="skt-top"><div class="skt-loadout"><h4>Donanılan yetenekler <small>' + capHtml('SAĞ TIK') + ' · ' + escape(keys[1]) + ' · ' + escape(keys[2]) + ' · ' + escape(keys[3]) + '</small></h4><div class="skt-slots">' + loadout + '</div></div>' +
+      return '<div class="skt-wrap"><div class="skt-top"><div class="skt-loadout"><h4>Donanılan yetenekler <small>' + capHtml(keys[0]) + ' · ' + escape(keys[1]) + ' · ' + escape(keys[2]) + ' · ' + escape(keys[3]) + '</small></h4><div class="skt-slots">' + loadout + '</div></div>' +
         '<span class="skt-points"><b>' + state.points + '</b> yetenek puanı</span></div>' +
         '<div class="skt-workspace"><div class="skt-tree"><div class="skt-cols">' + columns + '</div><p class="skt-note">Çift tıkla veya iki kez dokun: yeteneği öğren. Yeni aşama aynı tuşta öncekinin yerini alır. Dört yolu birden kullanabilirsin; normal vuruş her zaman açıktır.</p></div>' +
         '<aside class="skt-inspect" data-line="' + chosen.line + '" style="--line:' + line.color + '"><small class="skt-kicker"><span class="skt-tiernum" data-tier="' + chosen.tier + '">' + ROMAN[chosen.tier] + '. AŞAMA</span> ' + escape(line.name) + ' · seviye ' + chosen.level + '</small>' +

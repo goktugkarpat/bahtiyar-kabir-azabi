@@ -125,10 +125,16 @@
     function ledger() {
       const r = world.roomAt && world.roomAt(game.player.x, game.player.z); const key = String(r && r.id) + ':' + version + ':' + (game.quests ? game.quests.revision : -1); if (key === lastLedger) return;lastLedger=key; here.textContent = r ? r.name : TITLES[chapter - 1]; knowledge.textContent = visited.size + ' keşfedilen durak';
       goals.replaceChildren();
-      for (const entry of game.quests && game.quests.entries || []) {
-        const block = node(typeof options.onJournal === 'function' ? 'button' : 'div', 'atlas-goal'), name = node('strong', '', entry.name), description = node('p', '', entry.complete ? 'Bağ çözüldü' : entry.objective);
-        if (entry.complete) block.classList.add('complete'); if (typeof options.onJournal === 'function') {block.type='button';block.onclick=()=>{close(false);options.onJournal();};block.setAttribute('aria-label',entry.name+' · Görev günlüğünü aç');} block.append(name, description); goals.append(block);
+      const quests = game.quests;
+      goalHeading.textContent = quests && quests.ready ? 'Sonraki hedef' : 'İzlenen yeminler';
+      function goal(name, objective, complete) {
+        const block = node(typeof options.onJournal === 'function' ? 'button' : 'div', 'atlas-goal');
+        if (complete) block.classList.add('complete');
+        if (typeof options.onJournal === 'function') { block.type = 'button'; block.onclick = () => { close(false); options.onJournal(); }; block.setAttribute('aria-label', name + ' · Görev günlüğünü aç'); }
+        block.append(node('strong', '', name), node('p', '', objective)); goals.append(block);
       }
+      if (quests && quests.ready) goal('Efendinin kapısı açık', quests.objective, false);
+      else for (const entry of quests && quests.entries || []) goal(entry.name, entry.complete ? 'Bağ çözüldü' : entry.objective, entry.complete);
       const nearby = rooms.filter(room => visited.has(String(room.id))).sort((a, b) => Math.hypot(a.x-game.player.x,a.z-game.player.z)-Math.hypot(b.x-game.player.x,b.z-game.player.z)).slice(0, 6); landmarks.replaceChildren();
       for (const room of nearby) { const b = node('button', '', room.name); b.type = 'button'; if (r === room) b.classList.add('here'); b.onclick = () => { camera.x = room.x; camera.z = room.z; camera.scale = Math.max(camera.scale, 4); fitted = false; draw(); }; landmarks.append(b); }
     }
