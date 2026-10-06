@@ -114,7 +114,7 @@
     materials.gold = new T.MeshStandardMaterial({ color: 0x755d2f, roughness: .48, metalness: .7 });
     materials.lamp = new T.MeshStandardMaterial({ color: 0x547b74, emissive: 0x87c5b7, emissiveIntensity: .7, roughness: .3 });
     materials.oath = new T.MeshStandardMaterial({ color: 0x88816d, emissive: 0xe8aa56, emissiveIntensity: .3, roughness: .7 });
-    materials.ember = new T.MeshStandardMaterial({ color: 0x2a140c, emissive: 0xff6a24, emissiveIntensity: 2.2, roughness: .9 });
+    materials.ember = new T.MeshStandardMaterial({ color: 0x1a0c08, emissive: 0xd8400c, emissiveIntensity: 1.15, roughness: .9 });
     var box = geo(new T.BoxGeometry(1, 1, 1)), sphere = geo(new T.IcosahedronGeometry(1, 2));
     var cylinder = geo(new T.CylinderGeometry(1, 1, 1, 12)), cone = geo(new T.ConeGeometry(1, 1, 12));
     var ring = geo(new T.TorusGeometry(1, .065, 6, 20));
@@ -525,8 +525,8 @@
     Object.keys(batches).forEach(function (key) {
       var b = batches[key], nv = b.geo.attributes.position.count, bark = b.mat === materials.char || b.mat === materials.root;
       var scaled = bark && b.matrices.some(function (m) { var e = m.elements; return Math.abs(e[0] * e[0] + e[1] * e[1] + e[2] * e[2] - 1) > .01 || Math.abs(e[4] * e[4] + e[5] * e[5] + e[6] * e[6] - 1) > .01; });
-      if (scaled || nv > 5000 || nv * b.matrices.length > 90000 || !b.geo.attributes.normal) return;
-      var mk = b.room + '|' + b.mat.uuid; (merged[mk] = merged[mk] || { room: b.room, mat: b.mat, items: [], verts: 0, idx: 0 });
+      if (nv > 5000 || nv * b.matrices.length > 90000 || !b.geo.attributes.normal) return;
+      var mk = b.room + '|' + b.mat.uuid; (merged[mk] = merged[mk] || { room: b.room, mat: b.mat, items: [], verts: 0, idx: 0, bark: bark });
       merged[mk].items.push(b); merged[mk].verts += nv * b.matrices.length; merged[mk].idx += (b.geo.index ? b.geo.index.count : nv) * b.matrices.length;
       delete batches[key];
     });
@@ -535,13 +535,13 @@
       g.items.forEach(function (b) {
         var pa = b.geo.attributes.position, na = b.geo.attributes.normal, ua = b.geo.attributes.uv, ix = b.geo.index, c = pa.count;
         b.matrices.forEach(function (m) {
-          var e = m.elements; nmat.getNormalMatrix(m); var n = nmat.elements;
+          var e = m.elements; nmat.getNormalMatrix(m); var n = nmat.elements, vs = g.bark ? Math.max(Math.hypot(e[0], e[1], e[2]), Math.hypot(e[4], e[5], e[6]), Math.hypot(e[8], e[9], e[10])) : 1;
           for (var q = 0; q < c; q++) {
             var x = pa.getX(q), y = pa.getY(q), z = pa.getZ(q), o = (v + q) * 3;
             P[o] = e[0] * x + e[4] * y + e[8] * z + e[12]; P[o + 1] = e[1] * x + e[5] * y + e[9] * z + e[13]; P[o + 2] = e[2] * x + e[6] * y + e[10] * z + e[14];
             var a = na.getX(q), bb = na.getY(q), cc = na.getZ(q), nx = n[0] * a + n[3] * bb + n[6] * cc, ny = n[1] * a + n[4] * bb + n[7] * cc, nz = n[2] * a + n[5] * bb + n[8] * cc, l = 1 / (Math.hypot(nx, ny, nz) || 1);
             N[o] = nx * l; N[o + 1] = ny * l; N[o + 2] = nz * l;
-            if (ua) { U[(v + q) * 2] = ua.getX(q); U[(v + q) * 2 + 1] = ua.getY(q); }
+            if (ua) { U[(v + q) * 2] = ua.getX(q); U[(v + q) * 2 + 1] = ua.getY(q) * vs; }   // bark: the instance scale its shader read from instanceMatrix is baked into v
           }
           if (ix) for (q = 0; q < ix.count; q++) I[k++] = ix.getX(q) + v; else for (q = 0; q < c; q++) I[k++] = v + q;
           v += c;

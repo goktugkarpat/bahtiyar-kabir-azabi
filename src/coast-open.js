@@ -278,6 +278,32 @@
     for (var ch2 = 0; ch2 < 70; ch2++) { var chx = -32 + R(-12, 12), chz = -81 + R(-9, 9); if (!L.floorTest(chx, chz, .3)) continue; add(11, G.plank, 'wood', chx, .02, chz, R(.15, .5), .03, R(.05, .12), 0, R(0, 6), 0); }
     patches(10, -33, -23, 12, 9, 9, 'puddle', .045);
 
+    /* ---- set pieces: the opening graveyard gets a sea anchor torn ashore and a burning boat-pyre; the shipyard keel burns ---- */
+    function anchor(room, x, z, s, yaw) {
+      var lean = .32, c = Math.cos(yaw), sn = Math.sin(yaw), L2 = 5.2 * s;
+      var top = [x + sn * Math.sin(lean) * L2, Math.cos(lean) * L2, z + c * Math.sin(lean) * L2];
+      beam(room, 'rust', [x, .2, z], top, .24 * s);
+      add(room, G.ring, 'rust', top[0], top[1] + .45 * s, top[2], .55 * s, .55 * s, .55 * s, 0, yaw, 0);
+      beam(room, 'rust', [x - c * 1.5 * s, top[1] * .78, z + sn * 1.5 * s], [x + c * 1.5 * s, top[1] * .78, z - sn * 1.5 * s], .12 * s);   // stock
+      var arc = new T.TorusGeometry(1.7 * s, .2 * s, 8, 18, PI); arc.rotateZ(PI); arc.rotateY(yaw); arc.translate(x, .55 * s, z); add(room, geo(arc), 'rust', 0, 0, 0, 1, 1, 1);
+      for (var sd = -1; sd <= 1; sd += 2) add(room, G.cone, 'rust', x + c * sd * 1.75 * s, .9 * s, z - sn * sd * 1.75 * s, .45 * s, 1.0 * s, .2 * s, 0, yaw, sd * .5);
+      for (var k = 0; k < 14; k++) { var t = k / 13, cx = top[0] + (x + 2.6 - top[0]) * t, cy = top[1] * (1 - t) * (1 - t) + .06, cz = top[2] + (z - 1.2 - top[2]) * t; add(room, G.ring, 'rust', cx, cy, cz, .16, .16, .16, k % 2 ? PI / 2 : 0, yaw + 1, 0); }
+      solid(x, z, 1.4 * s, 1.4 * s);
+    }
+    function pyre(room, x, z, yaw) {
+      var ribs = []; for (var k = 0; k < 6; k++) { var w = 1.25 - Math.abs(k - 2.5) * .14, rb = new T.TorusGeometry(w, .13, 5, 12, PI * .85); rb.rotateZ(PI + .23); rb.rotateY(yaw + PI / 2); rb.translate(x + Math.sin(yaw) * (k - 2.5) * .62, w * .9, z + Math.cos(yaw) * (k - 2.5) * .62); ribs.push(rb); }
+      add(room, geo(B.Gear.merge(ribs)), 'char', 0, 0, 0, 1, 1, 1);
+      beam(room, 'char', [x - Math.sin(yaw) * 2, .25, z - Math.cos(yaw) * 2], [x + Math.sin(yaw) * 2, .25, z + Math.cos(yaw) * 2], .14);
+      add(room, G.sphere, 'ember', x, .04, z, 1.05, .07, 1.6); for (k = 0; k < 8; k++) add(room, G.sphere, 'ember', x + R(-.9, .9), R(.05, .3), z + R(-1.4, 1.4), R(.08, .22), R(.05, .14), R(.08, .22));
+      for (k = 0; k < 6; k++) beam(room, 'char', [x + R(-1, 1), .05, z + R(-1.5, 1.5)], [x + R(-.4, .4), R(.6, 1.1), z + R(-.6, .6)], .07);
+      K.lightSources.push({ x: x, y: 1.4, z: z, color: new T.Color(0xff7a30), intensity: 4.4, scatter: 1, glowRadius: 2.4, live: 1, group: 'coast', room: room });
+      solid(x, z, 2.4, 3.4);
+    }
+    anchor(0, 5.4, 5.6, 1, -.5); pyre(0, -5.3, 6.4, .3);
+    anchor(3, -9.4, -91.8, 1.25, .9);   // harbour plaza: a giant anchor dragged onto the pier
+    for (q = 0; q < 6; q++) add(11, G.sphere, 'ember', -33 + (q - 2.5) * 2.1, R(.4, 1.6), -88.3 + R(-.6, .6), R(.25, .5), R(.2, .4), R(.25, .5));
+    K.lightSources.push({ x: -33, y: 2.2, z: -88.3, color: new T.Color(0xff8040), intensity: 4, scatter: 1, glowRadius: 3, live: 1, group: 'coast', room: 11 });
+
     /* ---- the strand: driftwood, kelp, bones and sea-lanterns on posts along the shoreline walk ---- */
     for (z = 12; z > -149; z -= R(5, 8)) {
       if (z < -66 && z > -96) continue; var sr = nearestMain(z);
@@ -396,9 +422,9 @@
     var RN = 1100, rb = new Float32Array(RN * 2 * 3), rt = new Float32Array(RN * 2);
     for (var ri = 0; ri < RN; ri++) { var bx = R(-22, 22), bz = R(-20, 14), by = R(0, 15); for (var tp = 0; tp < 2; tp++) { var o3 = (ri * 2 + tp) * 3; rb[o3] = bx; rb[o3 + 1] = by; rb[o3 + 2] = bz; rt[ri * 2 + tp] = tp; } }
     var rg2 = geo(new T.BufferGeometry()); rg2.setAttribute('position', new T.BufferAttribute(rb, 3)); rg2.setAttribute('tip', new T.BufferAttribute(rt, 1));
-    M.rain = new T.ShaderMaterial({ uniforms: { time: K.clock, flash: { value: 0 } }, transparent: true, depthWrite: false, blending: T.AdditiveBlending, toneMapped: false,
+    M.rain = new T.ShaderMaterial({ uniforms: { time: K.clock, flash: { value: 0 }, amt: { value: 1 } }, transparent: true, depthWrite: false, blending: T.AdditiveBlending, toneMapped: false,
       vertexShader: 'attribute float tip;uniform float time;varying float vT;void main(){vec3 p=position;p.y=mod(p.y-time*13.,15.);p.y+=tip*.6;p.x+=tip*.16+p.y*.06;vT=tip;gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.);}',
-      fragmentShader: 'uniform float flash;varying float vT;void main(){gl_FragColor=vec4(vec3(.42,.5,.52)*(.10+.12*vT)*(1.+flash*3.),1.);}' });
+      fragmentShader: 'uniform float flash;uniform float amt;varying float vT;void main(){gl_FragColor=vec4(vec3(.42,.5,.52)*(.10+.12*vT)*(1.+flash*3.)*amt,1.);}' });
     var rain = new T.LineSegments(rg2, M.rain); rain.frustumCulled = false; rain.name = 'coast-rain'; rain.renderOrder = 4; K.root.add(rain);
     // crows: three loose flocks wheeling over the graves, the shipyard and the bell court
     var crowG = new T.BufferGeometry(); crowG.setAttribute('position', new T.Float32BufferAttribute([0, 0, .25, -.05, 0, -.2, .05, 0, -.2, 0, 0, .05, -.55, .08, -.05, 0, 0, -.12, 0, 0, .05, 0, 0, -.12, .55, .08, -.05], 3)); crowG.computeVertexNormals(); geo(crowG);
@@ -418,14 +444,17 @@
     var flash = 0, nextBolt = 9, lastT = 0, api = { flash: 0 }, calmFx = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     function update(time, p) {
       // lightning: a rare double flash; the world reads `flash` to lift the key light and exposure for a moment
-      if (!calmFx) { if (time > nextBolt) { nextBolt = time + 14 + rnd() * 22; flash = 1; } flash = Math.max(0, flash - Math.min(.1, Math.max(0, time - lastT)) * 2.6); } lastT = time;
+      // weather drifts: squalls come and go over ~3 minutes; lightning only inside a squall
+      var amt = .25 + .75 * Math.pow(.5 + .5 * Math.sin(time * .035 + 1.2), 1.5); M.rain.uniforms.amt.value = amt; rain.visible = amt > .08; api.rain = amt;
+      if (!calmFx && amt > .6 && time > nextBolt) { nextBolt = time + 14 + rnd() * 22; flash = 1; } flash = Math.max(0, flash - Math.min(.1, Math.max(0, time - lastT)) * 2.6); lastT = time;
       var f2 = flash > .55 ? 1 : flash > .35 ? .25 : flash > .15 ? .8 : flash; api.flash = f2 * f2;
       M.rain.uniforms.flash.value = api.flash; rain.position.set(p.x, 0, p.z);
-      for (var c = 0; c < CN; c++) { var ph = crowPh[c], fl = flocks[c % 3], a = time * ph[3] + ph[0], r2 = ph[1];
+      var crowsOn = false; for (var fi = 0; fi < 3; fi++) if (Math.abs(flocks[fi][1] - p.z) < 40 && Math.abs(flocks[fi][0] - p.x) < 40) crowsOn = true; crows.visible = crowsOn;
+      if (crowsOn) for (var c = 0; c < CN; c++) { var ph = crowPh[c], fl = flocks[c % 3], a = time * ph[3] + ph[0], r2 = ph[1];
         cp.set(fl[0] + Math.cos(a) * r2, fl[2] + ph[2] + Math.sin(time * .7 + c) * .4, fl[1] + Math.sin(a) * r2 * .8);
         cq.setFromEuler(ce.set(0, -a + (ph[3] > 0 ? 0 : PI), Math.sin(a) * .25)); var flap = .55 + .45 * Math.abs(Math.sin(time * 7 + c * 1.3)); cs.set(1.3 * flap, 1.3 + (1 - flap) * 2, 1.3);
         crows.setMatrixAt(c, cm.compose(cp, cq, cs)); }
-      crows.instanceMatrix.needsUpdate = true;
+      if (crowsOn) crows.instanceMatrix.needsUpdate = true;
       for (var u = 0; u < surfs.length; u++) { var o2 = surfs[u], w2 = .5 + .5 * Math.sin(time * .9 + o2.p); o2.m.scale.set(o2.s * (1 + w2 * .12), 1, o2.s * (1 + w2 * .12)); o2.m.visible = Math.abs(o2.m.position.z - p.z) < 50; }
       M.surf.opacity = .38 + .14 * Math.sin(time * .9);
       for (var i = 0; i < mists.length; i++) { var o = mists[i]; o.m.position.x = o.x + Math.sin(time * .05 + o.p) * 2.2; o.m.position.z = o.z + Math.cos(time * .04 + o.p) * 1.6; o.m.rotation.y += .0004; o.m.visible = o.z < p.z + 18 && o.z > p.z - 34 && Math.abs(o.x - p.x) < 36; }

@@ -94,11 +94,11 @@
       var bottom = new T.Mesh(disc, ironM); bottom.position.y = -.6; bottom.rotation.x = Math.PI; bottom.scale.setScalar(.9); ladle.add(bottom);
       var melt = new T.Mesh(disc, hotM); melt.position.y = .45; melt.scale.setScalar(1.0); ladle.add(melt);
       [-1, 1].forEach(function (s2) { var r = new T.Mesh(rodG, ironM); r.scale.set(.05, 2.6, .05); r.position.set(s2 * 1.05, 1.6, 0); r.rotation.z = -s2 * .38; ladle.add(r); });
-      var hook = new T.Mesh(rodG, ironM); hook.scale.set(.06, 6, .06); hook.position.y = 5.8; ladle.add(hook);
+      var hook = new T.Mesh(rodG, ironM); hook.scale.set(.06, 7, .06); hook.position.y = 4.1; ladle.add(hook);
       var streamM = new T.MeshBasicMaterial({ color: 0xd8480e, transparent: true, opacity: .85, blending: T.AdditiveBlending, depthWrite: false, toneMapped: false }); own.push(streamM); var stream = new T.Mesh(rodG, streamM); stream.scale.set(.16, 1, .16); g.add(stream);
       var splash = new T.Mesh(plane, glowM); splash.scale.set(3, 1, 3); splash.position.y = .12; g.add(splash);
       var sparks = new T.Points(spG, spM); sparks.frustumCulled = false; g.add(sparks);
-      var beam = new T.Mesh(rodG, ironM); beam.scale.set(.18, W.d - 8, .18); beam.rotation.x = Math.PI / 2; beam.position.set(x, 9.6, W.z); g.add(beam);
+      var beam = new T.Mesh(rodG, ironM); beam.scale.set(.18, W.d - 8, .18); beam.rotation.x = Math.PI / 2; beam.position.set(x + W.side * 2.5, 13.7, W.z); g.add(beam);
       g.add(ladle); fxRoot.add(g);
       live.push({ kind: 'ladle', W: W, g: g, ladle: ladle, stream: stream, splash: splash, sparks: sparks, x: x, z0: W.z0 + 6, z1: W.z1 - 6, phase: W.id * 1.7 });
     });
@@ -120,9 +120,9 @@
           var cyc = (t + L.phase * 7) % 40, leg = Math.floor(cyc / 20), u = cyc % 20, span = L.z1 - L.z0, z;
           var travel = Math.min(1, u / 14), ease = travel * travel * (3 - 2 * travel); z = leg === 0 ? L.z0 + span * ease : L.z1 - span * ease;
           var pour = u > 14 ? Math.sin((u - 14) / 6 * Math.PI) : 0, sway = Math.sin(t * 1.3 + L.phase) * .04 * (1 - pour);
-          L.ladle.position.set(L.x, 3.8, z); L.ladle.rotation.set(0, 0, sway + pour * .55 * (L.W.side));
+          L.ladle.position.set(L.x + L.W.side * 2.5, 6.4, z); L.ladle.rotation.set(0, 0, sway + pour * .55 * (L.W.side));
           L.stream.visible = L.splash.visible = pour > .15; L.sparks.visible = pour > .05;
-          if (pour > .15) { var sx = L.x + L.W.side * 1.2 * pour, top = 3.6; L.stream.position.set(sx, top / 2, z); L.stream.scale.set(.12 + pour * .08, top, .12 + pour * .08); L.splash.position.set(sx, .12, z); L.splash.material.opacity = .45 * pour; L.sparks.position.set(sx, .1, z); }
+          if (pour > .15) { var sx = L.x + L.W.side * (2.5 + 1.2 * pour), top = 6.1; L.stream.position.set(sx, top / 2, z); L.stream.scale.set(.12 + pour * .08, top, .12 + pour * .08); L.splash.position.set(sx, .12, z); L.splash.material.opacity = .45 * pour; L.sparks.position.set(sx, .1, z); }
           spM.uniforms.gain.value = Math.max(spM.uniforms.gain.value * .98, pour);
         } else {
           var on = Math.abs(p.z - L.z) < 40; L.m.visible = on; if (!on) continue;
