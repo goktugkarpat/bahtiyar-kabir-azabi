@@ -169,9 +169,10 @@
     var crackMat = new T.ShaderMaterial({ uniforms: { clock: clock, norm: { value: flowNormal }, wrath: wrath }, transparent: true, depthWrite: false, toneMapped: false, blending: T.AdditiveBlending,
       vertexShader: 'varying vec3 vP;varying vec2 vU;void main(){vU=uv;vP=(modelMatrix*vec4(position,1.)).xyz;gl_Position=projectionMatrix*viewMatrix*vec4(vP,1.);}',
       fragmentShader: ['varying vec3 vP;varying vec2 vU;uniform float clock;uniform sampler2D norm;uniform float wrath;',
-        'void main(){vec2 p=vP.xz;vec3 a=texture2D(norm,p*.011).rgb;vec3 b=texture2D(norm,p*.027+(a.rg-.5)*.3).rgb;float v=(a.r-.5)*1.6+(b.g-.5)*.9;',
-        ' float crack=smoothstep(.022,.0,abs(v))*(.6+.4*smoothstep(.3,.7,b.b));float r=length(vU-.5)*2.;float reach=smoothstep(wrath*1.15,wrath*1.15-.25,r);',
-        ' float pulse=.7+.3*sin(clock*3.+v*20.);vec3 col=mix(vec3(1.4,.12,.05),vec3(1.6,.9,.4),crack*crack*.5)*crack*reach*pulse*wrath*.75;',
+        'vec2 h2(vec2 c){return fract(sin(vec2(dot(c,vec2(127.1,311.7)),dot(c,vec2(269.5,183.3))))*43758.5453);}',
+        'void main(){vec2 p=vP.xz*.22;vec2 c=floor(p),f=fract(p);float d1=8.,d2=8.;for(int j=-1;j<=1;j++)for(int i=-1;i<=1;i++){vec2 g=vec2(i,j),o=h2(c+g);float d=length(g+o-f);if(d<d1){d2=d1;d1=d;}else if(d<d2)d2=d;}',
+        ' float edge=d2-d1;float crack=smoothstep(.07,.0,edge);float r=length(vU-.5)*2.;float reach=smoothstep(wrath*1.15,wrath*1.15-.25,r);',
+        ' vec3 n=texture2D(norm,vP.xz*.2).rgb;float pulse=.65+.35*sin(clock*3.+n.r*12.);vec3 col=mix(vec3(1.3,.1,.04),vec3(1.7,.95,.45),smoothstep(.03,0.,edge))*crack*reach*pulse*wrath*.8;',
         ' gl_FragColor=vec4(col*smoothstep(1.,.85,r),1.);}'].join('\n') });
     var crack = new T.Mesh(geo(new T.PlaneGeometry(court.w - 2, court.d - 2)), crackMat); crack.rotation.x = -PI / 2; crack.position.set(court.x, .09, court.z); crack.renderOrder = 3; arena.add(crack);
     var shardGeo = geo(new T.IcosahedronGeometry(.5, 0)), shards = new T.InstancedMesh(shardGeo, materials.rock, 36), shardData = [], dummy = new T.Object3D();
