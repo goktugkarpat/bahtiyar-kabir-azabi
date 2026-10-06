@@ -887,6 +887,16 @@
           sample('shieldBreak', st, wanted, false);
           spineLayer(wanted, -Math.sin(lastHitAngle) * .35 * (1 - stagger), -.3 * (1 - smooth(stagger / .8)), 0);
         }
+        // Combat feel round: three reactions so a crowd does not reel in unison (state.staggerVariant from combat.js):
+        // 0 the reel above, 1 twisted aside away from the blow, 2 buckled at the knees, doubled over. Peaks mid-stagger, gone at recovery.
+        var sv = finite(state.staggerVariant, 0) | 0, sw = Math.sin(clamp(stagger, 0, 1) * PI) * (boss ? .4 : 1), sc = Math.max(.4, characterScale);
+        if (sv === 1) {
+          euler.set(0, (Math.sin(lastHitAngle) >= 0 ? -1 : 1) * .6 * sw, .14 * sw, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(wanted, 4, qa);
+          wanted.p.x += Math.sin(lastHitAngle) * .12 * sw / sc;
+        } else if (sv === 2) {
+          wanted.p.y -= .17 * sw / sc;
+          euler.set(.42 * sw, 0, 0, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(wanted, 4, qa);
+        }
       }
       if(!hero&&!boss&&!state.dead&&Number.isFinite(state.launchTime)&&state.launchTime>=0){
         // Short directional toss: feet tuck clear of the floor, arms lose balance,

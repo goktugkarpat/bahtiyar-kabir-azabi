@@ -411,7 +411,7 @@
   }
 
   // ------------------------------------------------------------------ oyun bilgisi
-  const MATERIAL = { prisoner: 'flesh', cultist: 'flesh', stalker: 'bone', carrier: 'wet', guard: 'armor', boss: 'armor', drowned: 'wet', rootborn: 'bone', crawler: 'bone', urchin: 'wet', lantern: 'flesh', bell: 'armor', ashbound:'flesh', shardseer:'bone', cavefang:'bone', gravemason:'bone', ruinwarden:'armor', hollowking:'armor', emberbound:'flesh', chainseer:'flesh', slagcrawler:'bone', forgesentinel:'armor', ashwarden:'armor', furnaceheart:'armor' };
+  const MATERIAL = { prisoner: 'flesh', cultist: 'flesh', stalker: 'bone', carrier: 'wet', guard: 'armor', boss: 'armor', drowned: 'wet', rootborn: 'bone', crawler: 'bone', urchin: 'wet', lantern: 'flesh', bell: 'armor', ashbound:'flesh', shardseer:'bone', cavefang:'bone', gravemason:'stone', ruinwarden:'armor', hollowking:'armor', emberbound:'flesh', chainseer:'flesh', slagcrawler:'stone', forgesentinel:'armor', ashwarden:'armor', furnaceheart:'armor' };
   function player() { const g = game(); return g && g.player; }
   function struckEnemies() {
     const g = game(), p = player(); if (!g || !p || !g.enemies) return [];
@@ -480,6 +480,11 @@
       if (!tier) L('thump', .3, { rate: .9 });
       if (tier === 2) { L('metal', .4, { rate: .78, delay: .01 }); L('bone', .3, { delay: .015, lp: 6500 }); }
       if (boss) L('chain', .3, { delay: .03, rate: .85 });
+    } else if (m === 'stone') {   // combat feel round: carved / slag bodies crack like masonry (grit, a dull crack, a low thud)
+      L('hitCrack', .5 + .25 * w, { rate: rand(.62, .72) });
+      L('debris', .45 + .3 * w, { delay: .006, rate: rand(.85, 1.05) });
+      L('thump', .9 + .4 * w, { delay: .003, rate: rand(.7, .8) });
+      if (tier) L('bone', .3, { rate: .7, delay: .014, lp: 5000 });
     } else if (m === 'wet') {
       L('hitCut', .45 + .2 * w, { rate: rand(.8, .9) });
       L('hitSlap', .65 + .3 * w, { rate: rand(.7, .8), delay: .003 });

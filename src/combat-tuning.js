@@ -24,7 +24,10 @@
   //   DODGE_EXTRA_DELAY: rolls pause the refill a little longer than swings or skills.
   //   PERFECT: a roll whose i-frames swallow a blow within `window` s of its start is a "last-moment" roll: refund of the roll's cost,
   //   the chain resets, the hero gets an OPENING (seconds) in which his blows hit harder (damage x) and stagger like heavy ones.
-  const ECONOMY = Object.freeze({ REGEN: 15, DODGE_CHAIN: 1.1, DODGE_EXTRA_DELAY: .15, CHAIN_MAX: 3,
+  //   HIT: stamina won back by landing blows (per foe struck; light / heavy blow / skill swing / whirl tick, +kill), at most `cap` per swing.
+  //   Fighting refills the orb, standing back refills it slowly: REGEN was 15 before hits paid, 13 now (same total for an average fight).
+  const ECONOMY = Object.freeze({ REGEN: 13, DODGE_CHAIN: 1.1, DODGE_EXTRA_DELAY: .15, CHAIN_MAX: 3,
+    HIT: Object.freeze({ light: 3, heavy: 2, skill: 1.2, whirl: .8, kill: 4, cap: 9 }),
     PERFECT: Object.freeze({ refund: .75, opening: 1.6, damage: 1.25, slowmo: .16, cooldown: .5 }) });
   // Hit feel ("heavy but fluid"): the shared hit-stop (s) per blow class, knock-back (m) and the moments of death.
   const FEEL = Object.freeze({

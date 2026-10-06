@@ -242,7 +242,7 @@
     }
     function stunEnemy(e, seconds, kind) {
       if (e.dead || e.boss || !(seconds > 0)) return;
-      if (seconds > (e.stagger || 0)) { e.stagger = e.staggerTotal = seconds; }
+      if (seconds > (e.stagger || 0)) { e.stagger = e.staggerTotal = seconds; e.staggerVariant = (attackSerial + e.index) % 3; }
       e.staggerKind = kind || 'heavy'; e.action = null; e.faceLocked = false; e.shield = false;
       e.poiseRecovery = Math.max(e.poiseRecovery || 0, 2.2); e.cooldown = Math.max(e.cooldown, 1.2); cancelHazards(e, true);
     }
@@ -1654,6 +1654,11 @@
       { const P = tuning(); if (P) damage = Math.round(damage * P.playerDmg); else if (game.difficulty !== 'hard') damage = Math.round(damage * 1.18); }
       // Opening after a last-moment roll: harder blows that stagger like heavy ones (bosses only take the damage).
       const opening = player.opening > 0 && !!ECON && !!attack;
+      // Blows that land refill the stamina orb a little (combat-tuning.js ECONOMY.HIT); shield-blocked blows do not.
+      if (ECON && attack && !(enemy.shield && Math.abs(angleDifference(angleTo(enemy, player), enemy.face)) < 1.4 && !heavy)) {
+        const H = ECON.HIT, gain = attack.whirl ? H.whirl : attack.skill || attack.line ? H.skill : heavy ? H.heavy : H.light, room = H.cap - (attack.gained || 0);
+        if (room > 0) { const g = Math.min(room, gain + (enemy.hp <= damage ? H.kill : 0)); attack.gained = (attack.gained || 0) + g; player.stamina = Math.min(player.maxStamina, player.stamina + g); staminaMark = player.stamina; }
+      }
       if (opening) damage = Math.round(damage * ECON.PERFECT.damage);
       if (attack) trackAttackTarget(enemy);
       const toPlayer = angleTo(enemy, player), fromFront = Math.abs(angleDifference(toPlayer, enemy.face)) < 1.4;
@@ -1682,6 +1687,7 @@
         }
         const canStagger = !enemy.boss && (breaksGuard || enemy.poiseRecovery <= 0 && (heavy || enemy.type === 'cultist' || (!enemy.action && enemy.type !== 'guard') || (attack && attack.rage && enemy.type !== 'guard') || (opening && enemy.type !== 'guard')));
         if (canStagger) {
+          enemy.staggerVariant = (attackSerial + enemy.index) % 3;   // reel back / twist aside / buckle (authored-motion.js)
           enemy.stagger = enemy.staggerTotal = heavy ? .55 : opening ? .42 : .22; enemy.staggerKind = breaksGuard ? 'guardBreak' : heavy || opening ? 'heavy' : 'light';
           enemy.action = null; enemy.faceLocked = false;
           enemy.poiseRecovery = heavy ? 3 : 1.1;
@@ -1981,6 +1987,7 @@
         if (r.killed) { kills++; continue; }
         e.push = null;
         if (!wasBoss) {
+          e.staggerVariant = last ? 2 : (n + e.index) % 2;
           e.stagger = e.staggerTotal = last ? SPECIAL.staggerLast : SPECIAL.stagger; e.staggerKind = last ? 'heavy' : 'light'; e.action = null; e.faceLocked = false; e.shield = false;
           e.poiseRecovery = 2.2; e.cooldown = Math.max(e.cooldown, 1.2); cancelHazards(e, true);
           if (last) push(e, away, SPECIAL.fling || .9); else if (d > 1.7) push(e, angleTo(e, player), Math.min(SPECIAL.pull, d - 1.6));   // loose foes are drawn in, the last tick throws them out
@@ -2550,6 +2557,8 @@
       hs.stagger = player.stagger > 0 ? 1 - player.stagger / (player.staggerTotal || .7) : 0; hs.staggerTime = player.staggerTotal || .7;
       hs.contactPhase = player.attack && player.attack.heavy ? .56 : .41;
       hs.heavy = !!(player.attack && player.attack.heavy && !wh); hs.block = false;
+      // Blade-trail tint (authored-models.js): opening after a last-moment roll > blood fury > the skill line of the swing > plain steel.
+      hs.trailTint = player.opening > 0 ? 'opening' : player.rageTime > 0 ? 'rage' : atk && atk.line ? atk.line : wh ? 'whirl' : '';
       hs.combo = player.attack ? player.attack.combo : 0; hs.parry = 0; hs.weaponType = atk && atk.weaponType || progression.stats().weaponType;
       hs.blockImpact = 0; hs.hitDirection = player.hitDirection || 0;
       hs.dodge = player.dodge ? clamp(dodgeAge / .48, .01, 1) : 0;
@@ -2625,7 +2634,7 @@
           es.attackSerial = action ? action.serial : 0; es.rushTime = action && action.movement ? action.movement.duration : 0;
           es.lookYaw = enemy.active && !enemy.dead && !player.dead ? angleDifference(angleTo(enemy, player), enemy.face) : undefined;
           es.hitAngle = enemy.hitAngle || 0; es.hurtHeavy = !!enemy.hurtHeavy; es.deathKind = enemy.deathKind || ''; es.blockImpact = enemy.blockImpact || 0;
-          es.stagger = enemy.stagger > 0 && !enemy.dead ? 1 - enemy.stagger / Math.max(enemy.stagger, enemy.staggerTotal || 0) : 0; es.staggerTime = enemy.staggerTotal || 0; es.fear = enemy.fear || 0;
+          es.stagger = enemy.stagger > 0 && !enemy.dead ? 1 - enemy.stagger / Math.max(enemy.stagger, enemy.staggerTotal || 0) : 0; es.staggerTime = enemy.staggerTotal || 0; es.staggerVariant = enemy.staggerVariant || 0; es.fear = enemy.fear || 0;
           es.attack = enemyAttackPose(enemy); es.contactPhase = enemy.boss || enemy.type === 'guard' ? .56 : .41; es.pose = beat ? beat.pose : '';
           es.launchTime=launchU>=0?launchAge:-1;es.launchDuration=.40;es.launchDirection=angleDifference(enemy.launchDirection||0,enemy.face);
           es.action = action ? action.attack : ''; es.actionProgress = action ? action.age / action.duration : 0; es.leap = leap;
