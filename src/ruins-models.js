@@ -85,11 +85,11 @@
     var fitted=torsoFit(A,exec,chest),fb=fitted.box,bw=Math.max(.34,fb.max.x-fb.min.x);
     // Ash-grey, dirty palettes: no clean cloth, no bare-steel patches. The linen scan is indigo, so it is desaturated first.
     var tint=type==='ashbound'?[1.02,.76,.60]:type==='shardseer'?[.82,.80,.94]:type==='cavefang'?[.52,.63,.67]:[1.12,.95,.78];
-    var clothTint=type==='shardseer'?[.13,.10,.22]:type==='hollowking'?[.13,.025,.028]:type==='ruinwarden'?[.09,.026,.026]:type==='gravemason'?[.19,.15,.12]:type==='cavefang'?[.2,.18,.15]:[.22,.15,.10];
+    var clothTint=type==='shardseer'?[.08,.066,.115]:type==='hollowking'?[.13,.025,.028]:type==='ruinwarden'?[.09,.026,.026]:type==='gravemason'?[.19,.15,.12]:type==='cavefang'?[.2,.18,.15]:[.22,.15,.10];
     var materials={skin:C.bodyMaterial(A.srcMaterial(exec?'Exec_mesh':'SuperHero_Male',C.bases[cfg.base]),'ruins-'+type+'-skin',{cls:'skin',skin:1,skinMap:exec,sat:type==='cavefang'?.30:.5,tint:tint,grime:type==='cavefang'?.56:.42,blood:type==='cavefang'?.26:.2,scale:8,fresh:true},{roughness:.7}),
       iron:C.bodyMaterial(C.gearMaterial('iron'),'ruins-'+type+'-iron',{cls:'metal',tint:[1.02,.9,.78],rust:.34,grime:.4,wear:.5,scale:8},{roughness:.66}),
       leather:C.bodyMaterial(C.gearMaterial('leather'),'ruins-'+type+'-leather',{cls:'leather',tint:stone?[.74,.52,.36]:type==='shardseer'?[.30,.25,.34]:[.62,.31,.16],grime:.32,blood:.12,scale:7},{roughness:.86}),
-      rag:C.bodyMaterial(C.gearMaterial('rag'),'ruins-'+type+'-linen',{cls:'cloth',tear:true,sat:.3,tint:clothTint,grime:.32,blood:.2,scale:7},{roughness:.92,side:T.DoubleSide}),
+      rag:C.bodyMaterial(C.gearMaterial('rag'),'ruins-'+type+'-linen',{cls:'cloth',tear:true,sat:.3,tint:clothTint,grime:.5,blood:.28,scale:7},{roughness:.92,side:T.DoubleSide}),
       bone:C.bodyMaterial(C.gearMaterial('bone'),'ruins-'+type+'-bone',{cls:'bone',tint:type==='cavefang'?[.43,.42,.37]:type==='hollowking'?[.74,.66,.54]:[1.1,1.0,.78],grime:type==='cavefang'?.56:type==='hollowking'?.5:.34,blood:.15,scale:9},{roughness:.76}),
       glow:new T.MeshStandardMaterial({color:0x302a48,emissive:0x7552b4,emissiveIntensity:type==='hollowking'?1.1:.78,roughness:.48,metalness:.15}),
       ash:C.bodyMaterial(C.gearMaterial('ash'),'ruins-'+type+'-ash',{cls:'bone',tint:[.5,.48,.46],grime:.75,scale:6},{roughness:.92})};
