@@ -143,13 +143,13 @@
       1: [['damned', -6, 2], ['voidcrawler', 5, -3], ['damned', 2, 4], ['verdictseer', -3, -6], ['chainjailer', 7, 3]],
       2: [['voidcrawler', -3, 4], ['voidcrawler', 3, 4], ['chainjailer', 0, -5], ['verdictseer', -8, 0], ['verdictseer', 8, 0]],
       3: [['damned', -10, -3], ['damned', 10, 3], ['voidcrawler', -9, 6], ['chainjailer', 9, -6], ['verdictseer', 0, -8], ['damned', 0, 8]],
-      4: [['damned', -4, 3], ['damned', 4, 3], ['chainjailer', -7, -3], ['verdictseer', 7, -3], ['voidcrawler', 0, 0], ['verdictwarden', 0, -7, true]],
+      4: [['damned', -4, 3], ['damned', 4, 3], ['chainjailer', -7, -3], ['verdictseer', 7, -3], ['voidcrawler', 0, 2], ['verdictwarden', 0, -3.8, true]],
       5: [['voidcrawler', -9, 0], ['voidcrawler', 9, 0], ['damned', 0, 6], ['verdictseer', -3, -5], ['chainjailer', 3, -5]],
-      6: [['chainjailer', -5, -4], ['chainjailer', 5, -4], ['verdictseer', 0, -7], ['damned', -7, 3], ['damned', 7, 3], ['voidcrawler', 0, 3]],
-      7: [['voidcrawler', -6, 2], ['damned', 6, 2], ['verdictseer', -9, -5], ['verdictseer', 9, -5], ['chainjailer', 0, -4]],
+      6: [['chainjailer', -5, -4], ['chainjailer', 5, -4], ['verdictseer', 0, -5.2], ['damned', -7, 3], ['damned', 7, 3], ['voidcrawler', 0, 3]],
+      7: [['voidcrawler', -6, 2], ['damned', 6, 2], ['verdictseer', -4.5, -8.5], ['verdictseer', 9, -5], ['chainjailer', 0, -4]],
       8: [['voidcrawler', -11, -4], ['voidcrawler', 11, 4], ['damned', 0, 3], ['damned', 0, -4], ['verdictseer', -6, 6], ['chainjailer', 6, -6]],
       9: [['chainjailer', -5, 3], ['chainjailer', 5, 3], ['verdictseer', -9, -2], ['damned', 9, -2], ['voidcrawler', 0, 0], ['verdictwarden', 0, -7, true]],
-      10: [['damned', -6, 4], ['damned', 6, 4], ['voidcrawler', -11, 0], ['voidcrawler', 11, 0], ['verdictseer', 0, -6], ['chainjailer', 0, 0]],
+      10: [['damned', -6, 4], ['damned', 6, 4], ['voidcrawler', -11, 0], ['voidcrawler', 11, 0], ['verdictseer', 0, -8.5], ['chainjailer', 0, 0]],
       12: [['chainjailer', -4, -4], ['chainjailer', 4, -4], ['verdictseer', -9, 2], ['verdictseer', 9, -2], ['damned', 0, 2]]
     };
     rooms.forEach(function (r, i) {
@@ -220,9 +220,13 @@
       if (materials.crystal) materials.crystal.emissiveIntensity = 1.15 + .2 * Math.sin((time || 0) * .8);
       if (materials.slag) materials.slag.emissiveIntensity = 1.25 + .2 * Math.sin((time || 0) * 1.3 + 1);
     }
+    // Quest sites for quests.js (STORY.md contract): every point walkable, clear of colliders and of the fixed formations.
+    var questSites = {};
+    [['ledger-seal-1', 5, -5, 3], ['ledger-seal-2', 6, -3, 6], ['ledger-seal-3', 7, -4, 7], ['selvi-cell', 10, 11, -4.5], ['selvi-goal', 11, 3, 3.5], ['c5.hunt', 8, -10, -3],
+      ['c5.page1', 2, -8.5, -3.5], ['c5.page2', 9, 12, -1], ['c5.page3', 12, -9, 5], ['c5.altar', 1, 14, -5]].forEach(function (q) { var r = rooms[q[1]]; questSites[q[0]] = { x: r.x + q[2], z: r.z + q[3], room: q[1] }; });
     root.updateMatrixWorld(true);
     B.FinaleWorld.lastBuildMs = Math.round(performance.now() - buildT0);
-    return { chapter: chapter, name: KabirI18n.t('Son Mahkeme'), root: root, rooms: rooms, paths: paths, encounters: encounters, colliders: colliders, occluders: [], materials: materials, spawn: { x: 0, z: 14 }, checkpoint: { x: 0, z: rooms[11].z }, bossSpawn: { x: 0, z: rooms[13].z - 2 },
+    return { chapter: chapter, name: KabirI18n.t('Son Mahkeme'), root: root, rooms: rooms, paths: paths, encounters: encounters, colliders: colliders, occluders: [], materials: materials, questSites: questSites, spawn: { x: 0, z: 14 }, checkpoint: { x: 0, z: rooms[11].z }, bossSpawn: { x: 0, z: rooms[13].z - 2 },
       isWalkable: isWalkable, move: move, hasClearPath: hasClearPath, pathTo: pathTo, roomAt: roomAt, update: update, atmosphereAt: atmosphereAt, effectHeightAt: function () { return .065; },
       setQuality: function (cfg) { quality = typeof cfg === 'string' ? cfg : cfg.quality || cfg.preset || 'high'; },
       lighting: { sources: sources, flames: flames, shafts: [], moods: [live], groupGain: groupGain, prepareTextures: function () { return textures; }, setGroup: function (k, v) { groupGain[k] = v; }, setGroupTint: function () {}, setCorpses: function () {}, setOathGlow: function (v, lit) { oath = !!lit; }, setPlayerLightFx: function () {}, wantsShadows: function () { return false; } },
@@ -234,7 +238,7 @@
     if (game.state === 'won') return KabirI18n.t('Hüküm kırıldı. Kabir sustu.');
     if (!room) return KabirI18n.t('Boşluğun üstündeki köprülerden kuzeye ilerle.');
     if (room.id === 11) return game.checkpointIndex ? KabirI18n.t('Son Tanıklık mühürlendi. Kürsü Merdiveni’ni çık.') : KabirI18n.t('Son Tanıklık taşına yaklaş ve ') + key + KabirI18n.t(' ile dokun.');
-    if (room.id === 13) return KabirI18n.t('Son Yargıç’ı yen. Hüküm halkalarının boşluklarını ve terazinin dengesini izle.');
+    if (room.id === 13) return KabirI18n.t('Kara Kadı’yı yen. Hüküm halkalarının boşluklarını ve terazinin dengesini izle.');
     var n = game.enemies.filter(function (e) { return !e.dead && !e.reserve && e.encounter.room === room.id; }).length;
     return n ? KabirI18n.t('Bu platformda ') + n + KabirI18n.t(' düşman var.') : KabirI18n.t('Kuzeydeki köprüye ilerle.');
   }

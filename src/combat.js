@@ -802,7 +802,7 @@
         return;
       }
       game.state = 'playing';
-      emit('toast', { text: chapter === 5 ? (checkpointSnapshot.index ? KabirI18n.t('Son yemin taşından devam ediyorsun. Son Yargıç ileride.') : KabirI18n.t('Son Mahkeme. Boşluğun üstündeki yolu geç; hükmü veren eli kır.')) : chapter === 4 ? (checkpointSnapshot.index ? KabirI18n.t('Son ocak yemininden devam ediyorsun. Ocağın Kalbi ileride.') : KabirI18n.t('Kızıl Ocak. Zincir tezgâhlarını geç; ocağın kalbini söndür.')) : chapter === 3 ? (checkpointSnapshot.index ? KabirI18n.t('Son yemin taşından devam ediyorsun. Oyukların Kralı ileride.') : KabirI18n.t('Sessiz Taht. Harabelerden mağaraya in; oyukların kaynağını sustur.')) : world.chapter === 2 ? (checkpointSnapshot.index ? KabirI18n.t('Son Fener’den devam ediyorsun. Çancı ileride.') : KabirI18n.t('Kara Kıyı. Kökleri yar. Boğulmuş çanı sustur.')) : checkpointSnapshot.index ? KabirI18n.t('Son mühürden devam ediyorsun. Cellat ileride.') : KabirI18n.t('Kurban Tapınağı. Mührü bul. Celladı sustur.') });
+      emit('toast', { text: chapter === 5 ? (checkpointSnapshot.index ? KabirI18n.t('Son yemin taşından devam ediyorsun. Kara Kadı ileride.') : KabirI18n.t('Son Mahkeme. Boşluğun üstündeki yolu geç; hükmü veren eli kır.')) : chapter === 4 ? (checkpointSnapshot.index ? KabirI18n.t('Son ocak yemininden devam ediyorsun. Ocağın Kalbi ileride.') : KabirI18n.t('Kızıl Ocak. Zincir tezgâhlarını geç; ocağın kalbini söndür.')) : chapter === 3 ? (checkpointSnapshot.index ? KabirI18n.t('Son yemin taşından devam ediyorsun. Oyukların Kralı ileride.') : KabirI18n.t('Sessiz Taht. Harabelerden mağaraya in; oyukların kaynağını sustur.')) : world.chapter === 2 ? (checkpointSnapshot.index ? KabirI18n.t('Son Fener’den devam ediyorsun. Çancı ileride.') : KabirI18n.t('Kara Kıyı. Kökleri yar. Boğulmuş çanı sustur.')) : checkpointSnapshot.index ? KabirI18n.t('Son mühürden devam ediyorsun. Cellat ileride.') : KabirI18n.t('Kurban Tapınağı. Mührü bul. Celladı sustur.') });
     }
     function restart() {
       if (disposed) return;
@@ -845,7 +845,7 @@
       if (game.state !== 'playing') return;
       if (quests && quests.interact()) return;
       if (activateCheckpoint()) return;
-      if (distance(player, checkpoint) < 6.1) emit('toast', { text: game.checkpointIndex ? (chapter === 5 ? KabirI18n.t('Yemin mühürlü. Son Yargıç ileride bekliyor.') : chapter === 4 ? KabirI18n.t('Yemin mühürlü. Ocağın Kalbi ileride bekliyor.') : chapter === 3 ? KabirI18n.t('Yemin mühürlü. Oyukların Kralı ileride bekliyor.') : world.chapter === 2 ? KabirI18n.t('Yemin mühürlü. Çancı ileride bekliyor.') : KabirI18n.t('Mühür açık. Cellat salonda bekliyor.')) : KabirI18n.t('Yakındaki tehlikeden uzaklaş; sonra yemin taşına dön.') });
+      if (distance(player, checkpoint) < 6.1) emit('toast', { text: game.checkpointIndex ? (chapter === 5 ? KabirI18n.t('Yemin mühürlü. Kara Kadı ileride bekliyor.') : chapter === 4 ? KabirI18n.t('Yemin mühürlü. Ocağın Kalbi ileride bekliyor.') : chapter === 3 ? KabirI18n.t('Yemin mühürlü. Oyukların Kralı ileride bekliyor.') : world.chapter === 2 ? KabirI18n.t('Yemin mühürlü. Çancı ileride bekliyor.') : KabirI18n.t('Mühür açık. Cellat salonda bekliyor.')) : KabirI18n.t('Yakındaki tehlikeden uzaklaş; sonra yemin taşına dön.') });
     }
 
     function moveBody(body, dx, dz, radius) {

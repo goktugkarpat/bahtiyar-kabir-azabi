@@ -451,7 +451,7 @@
     else { introBlend = 1; cameraPos.set(game.player.x, 16, game.player.z + 13); look.set(game.player.x, .7, game.player.z); }
     announce(chapterNames[chapter-1],KabirI18n.t('BÖLÜM ')+chapterNumbers[chapter-1],'chapter');
     // A carried profile enters a fresh chapter at zero; a resumed journey has already lived this opening.
-    if (B.Audio.say && !game.checkpointIndex && game.elapsed === 0 && game.kills === 0) B.Audio.say(finaleChapter ? 'finaleIntro' : forgeChapter ? 'forgeIntro' : ruinsChapter ? 'ruinsIntro' : coastChapter ? 'coastIntro' : 'intro');
+    if (B.Audio.say && !game.checkpointIndex && game.elapsed === 0 && game.kills === 0) B.Audio.say(finaleChapter ? 'ch5Intro' : forgeChapter ? 'forgeIntro' : ruinsChapter ? 'ruinsIntro' : coastChapter ? 'coastIntro' : 'intro');
   }
   const questVoices = { 'lost-names': 'questNames', 'blood-verdict': 'questVerdict', 'last-voice': 'questBell', 'root-memory': 'questMemory', 'kings-name': 'questKing', 'cave-breath': 'questEcho', 'last-prisoner': 'questPrisoner', 'heart-feeds': 'questHeart' };
   function event(name, d = {}) {
@@ -482,11 +482,11 @@
     }
     else if (name === 'rage') { shake = Math.max(shake, .45); if (!reducedMotion.matches) ragePush = 1; notify(KabirI18n.t('ÖFKE UYANDI'), 'rage'); }   // war cry: camera pushes in on the father
     else if (name === 'rageEnd') notify(KabirI18n.t('Öfke söndü'));
-    else if (name === 'checkpoint') { $('objective').textContent = formatObjective(finaleChapter ? KabirI18n.t('Hüküm Tahtı’na ilerle. Son Yargıç’ı yen.') : forgeChapter ? KabirI18n.t('Son Döküm’e ilerle. Ocağın Kalbi’ni söndür.') : ruinsChapter ? KabirI18n.t('Sessiz Taht’a ilerle. Oyukların Kralı’nı yen.') : coastChapter ? KabirI18n.t('Çanlığa ilerle. Çancıyı sustur.') : KabirI18n.t('Celladı bul. Geçidi aç.')); announce(KabirI18n.t('Yemin mühürlendi'), KabirI18n.t('KONTROL NOKTASI'), 'checkpoint'); notify(KabirI18n.t('Canın ve iksirlerin yenilendi. Buradan geri döneceksin.'), 'seal'); if (B.Audio.saySequence) B.Audio.saySequence([finaleChapter ? 'finaleCheckpoint' : forgeChapter ? 'forgeCheckpoint' : ruinsChapter ? 'ruinsCheckpoint' : coastChapter ? 'coastCheckpoint' : 'checkpoint', 'heroOath']); else if (B.Audio.say) B.Audio.say(finaleChapter ? 'finaleCheckpoint' : forgeChapter ? 'forgeCheckpoint' : ruinsChapter ? 'ruinsCheckpoint' : coastChapter ? 'coastCheckpoint' : 'checkpoint'); }
+    else if (name === 'checkpoint') { $('objective').textContent = formatObjective(finaleChapter ? KabirI18n.t('Hüküm Tahtı’na ilerle. Kara Kadı’yı yen.') : forgeChapter ? KabirI18n.t('Son Döküm’e ilerle. Ocağın Kalbi’ni söndür.') : ruinsChapter ? KabirI18n.t('Sessiz Taht’a ilerle. Oyukların Kralı’nı yen.') : coastChapter ? KabirI18n.t('Çanlığa ilerle. Çancıyı sustur.') : KabirI18n.t('Celladı bul. Geçidi aç.')); announce(KabirI18n.t('Yemin mühürlendi'), KabirI18n.t('KONTROL NOKTASI'), 'checkpoint'); notify(KabirI18n.t('Canın ve iksirlerin yenilendi. Buradan geri döneceksin.'), 'seal'); if (B.Audio.saySequence) B.Audio.saySequence([finaleChapter ? 'ch5Checkpoint' : forgeChapter ? 'forgeCheckpoint' : ruinsChapter ? 'ruinsCheckpoint' : coastChapter ? 'coastCheckpoint' : 'checkpoint', 'heroOath']); else if (B.Audio.say) B.Audio.say(finaleChapter ? 'ch5Checkpoint' : forgeChapter ? 'forgeCheckpoint' : ruinsChapter ? 'ruinsCheckpoint' : coastChapter ? 'coastCheckpoint' : 'checkpoint'); }
     else if (name === 'encounter') { if (d.name) announce(d.name, KabirI18n.t('KARŞILAŞMA')); }
     else if (name === 'gateOpen') { announce(KabirI18n.t('Kapı açıldı'), 'BOSS KAPISI', 'seal'); }
     else if (name === 'encounterCleared') { announce(KabirI18n.t('Mühür açıldı'), d.roomName || d.name || KabirI18n.t('SALON TEMİZLENDİ'), 'seal'); }
-    else if (name === 'boss') { if (d.active !== false) { announce(d.name || KabirI18n.t('Zincir Celladı'), finaleChapter ? KabirI18n.t('SON MAHKEME') : forgeChapter ? KabirI18n.t('SON DÖKÜM') : ruinsChapter ? KabirI18n.t('SESSİZ TAHT') : coastChapter ? KabirI18n.t('BOĞULMUŞ ÇANLIK') : 'KURBAN SALONU', 'boss'); if (B.Audio.saySequence) B.Audio.saySequence(finaleChapter ? ['finaleBoss'] : forgeChapter ? ['forgeBoss'] : ruinsChapter ? ['ruinsBoss'] : coastChapter ? ['coastBoss'] : ['boss', 'cellat']); else if (B.Audio.say) B.Audio.say(finaleChapter ? 'finaleBoss' : forgeChapter ? 'forgeBoss' : ruinsChapter ? 'ruinsBoss' : coastChapter ? 'coastBoss' : 'boss'); } }
+    else if (name === 'boss') { if (d.active !== false) { announce(d.name || KabirI18n.t('Zincir Celladı'), finaleChapter ? KabirI18n.t('SON MAHKEME') : forgeChapter ? KabirI18n.t('SON DÖKÜM') : ruinsChapter ? KabirI18n.t('SESSİZ TAHT') : coastChapter ? KabirI18n.t('BOĞULMUŞ ÇANLIK') : 'KURBAN SALONU', 'boss'); if (B.Audio.saySequence) B.Audio.saySequence(finaleChapter ? ['ch5Boss'] : forgeChapter ? ['forgeBoss'] : ruinsChapter ? ['ruinsBoss'] : coastChapter ? ['coastBoss'] : ['boss', 'cellat']); else if (B.Audio.say) B.Audio.say(finaleChapter ? 'ch5Boss' : forgeChapter ? 'forgeBoss' : ruinsChapter ? 'ruinsBoss' : coastChapter ? 'coastBoss' : 'boss'); } }
     else if (name === 'death') death(d);
     else if (name === 'win') victory(d);
     else if (name === 'toast') notify(d.text);
@@ -572,7 +572,7 @@
   function death(d = {}) {
     if (deathShown) return; deathShown = true; deaths++;
     hud(0); hudTimer = 0;
-    if (B.Audio.say) B.Audio.say(finaleChapter && B.Narration && B.Narration.finaleDeath ? 'finaleDeath' : coastChapter ? 'coastDeath' : 'death', true);
+    if (B.Audio.say) B.Audio.say(finaleChapter && B.Narration && B.Narration.ch5Death ? 'ch5Death' : coastChapter ? 'coastDeath' : 'death', true);
     const enemy = d.enemy || game.lastDeath?.enemy, attack = d.attack || game.lastDeath?.attack;
     $('death-cause').textContent = enemy || KabirI18n.t('Son darbeyi karanlık vurdu.');
     $('death-attack').textContent = attack || '';
@@ -585,7 +585,7 @@
   function victory(d = {}) {
     if (wonShown) return; wonShown = true;
     hud(0); hudTimer = 0;
-    const winKey = finaleChapter ? 'finaleWin' : forgeChapter ? 'forgeWin' : ruinsChapter ? 'ruinsWin' : coastChapter ? 'coastWin' : 'win';
+    const winKey = finaleChapter ? 'ch5Win' : forgeChapter ? 'forgeWin' : ruinsChapter ? 'ruinsWin' : coastChapter ? 'coastWin' : 'win';
     if (B.Audio.say) B.Audio.say(winKey, true);
     if (!lastChapter) { advanceChapter(winKey); return; }
     const t = d.time ?? game.elapsed ?? elapsed, k = d.kills ?? game.kills ?? 0;

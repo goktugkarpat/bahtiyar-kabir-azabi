@@ -21,7 +21,8 @@
   const bossPhases = {
     bell: ['', KabirI18n.t('BOĞULMUŞ ÇANLIK'), KabirI18n.t('DENİZİN YEMİNİ'), KabirI18n.t('MEZAR KÖKLERİ'), KabirI18n.t('SON ÇAN')],
     hollowking: ['', KabirI18n.t('SESSİZ TAHT'), KabirI18n.t('TAŞ TAHT ÇÖKÜYOR'), KabirI18n.t('OYUKLAR AÇILDI')],
-    furnaceheart: ['', 'KIZIL OCAK', KabirI18n.t('OCAK BASINCI YÜKSELİYOR'), KabirI18n.t('SON DÖKÜM')]
+    furnaceheart: ['', 'KIZIL OCAK', KabirI18n.t('OCAK BASINCI YÜKSELİYOR'), KabirI18n.t('SON DÖKÜM')],
+    lastjudge: ['', KabirI18n.t('SON MAHKEME'), KabirI18n.t('EFENDİLERİN YANKISI'), KabirI18n.t('SON HÜKÜM')]
   };
   // Keep the small portrait images ready before the loading cover is removed.
   // Failed artwork does not prevent the player or health bar from appearing.

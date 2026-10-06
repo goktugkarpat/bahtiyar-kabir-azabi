@@ -158,7 +158,7 @@
     ROOM[2] = function () {
       island({ tint: [.66, .62, .6] });
       [-1, 1].forEach(function (s) { for (var k = 0; k < 4; k++) { var z = -8 + k * 5.4; statueL(s * 5.2, z, s > 0 ? -PI / 2 : PI / 2, k % 2 ? 1 : 0, 1.05, [.7, .66, .62]); if (k % 2) candleCluster(s * 3.9, z + 2.6, 4); } });
-      [-1, 1].forEach(function (s) { pyre(s * 8, 0, 1.0, 28); });
+      [-1, 1].forEach(function (s) { pyre(s * 8, -3.6, 1.0, 28); });
       decals({ cracks: 4, chips: 4, soot: 2, bones: 2 }); debris(10, 3, 14); embers(10, -8, 8, -10, 10, 5, 1);
       voidChain(-7.5, -10, [-1, -.5], 12); voidChain(7.5, 10, [1, .5], 12);
     };
@@ -194,11 +194,11 @@
     /* 5 Çancının Gölgesi — the bell-ringer's shadow: a colossal cracked bell sunk into the platform, brine and dead lanterns */
     ROOM[5] = function () {
       island({ tint: [.5, .52, .54] });
-      BX('bell', 'iron', -.5, 2.1, -6.6, 7.2, 7.2, 7.2, .3, [.42, .46, .44], .4, .22, .1); solidL(-.5, -6.4, 6.2, 4.4);
-      BX('crag', 'rock', 2.4, .3, -4.5, 3, 1.1, 2.4, .5, BASALT, .5); BX('block', 'iron', -3.6, .4, -4.2, 1.4, .3, 1.0, .9, [.4, .44, .42], .2, .4, .2);
-      SP(S.glow, -.5, 1.5, -5.5, 3.4, 2.5, [.12, .3, .34], .4, 1, 1);
+      BX('bell', 'iron', -8.2, 2.1, -6.0, 7.2, 7.2, 7.2, .3, [.42, .46, .44], .4, .22, .1); solidL(-8.2, -5.8, 6.2, 4.4);
+      BX('crag', 'rock', -5.6, .3, -3.6, 3, 1.1, 2.4, .5, BASALT, .5); BX('block', 'iron', -11.4, .4, -3.4, 1.4, .3, 1.0, .9, [.4, .44, .42], .2, .4, .2);
+      SP(S.glow, -8.2, 1.5, -5, 3.4, 2.5, [.12, .3, .34], .4, 1, 1);
       for (var k = 0; k < 6; k++) { var a = k / 6 * PI * 2 + .3, x = Math.cos(a) * 11.5, z = Math.sin(a) * 6.5; if (!inRoom(x, z, 1)) continue; BX('box', 'iron', x, 1.4, z, .18, 2.8, .18, 0, RUST, .3); BX('box', 'iron', x, 2.9, z, .5, .55, .5, 0, [.35, .4, .4], .2); SP(S.glow, x, 2.9, z, .8, .8, [.1, .26, .3], .5, 1, 1); solidL(x, z, .4, .4); }
-      K.light(i, X(-.5), 3, Z(-3), 0x6ab0c0, 16, 13, { flicker: .06 });
+      K.light(i, X(-7.5), 3, Z(-2.5), 0x6ab0c0, 16, 13, { flicker: .06 });
       decals({ cracks: 5, soot: 2, chips: 4, blood: 2 }); for (var k = 0; k < 4; k++) K.dec(i, 2, X((R() - .5) * 18), Z((R() - .5) * 12), 3.5, 3.5, R() * 6, [.5, .8, .8], .6, 'wet');
       pyre(-10, 5, 1, 24); pyre(10, 5, 1, 24); debris(8, 4, 16); smoke(6, [.2, .26, .3], .2, .4, 4, 3);
     };
@@ -210,7 +210,7 @@
       BX('box', 'stone', 0, 1.6, -8.2, 2.6, 1.4, 1.8, 0, [.6, .56, .6], .4); BX('box', 'stone', 0, 3.6, -9.0, 2.6, 4.2, .5, 0, [.6, .56, .6], .4, -.08, .12);
       BX('box', 'stone', -1.3, 2.6, -8.2, .4, 1.2, 1.8, 0, PALE, .3); BX('crag', 'stone', 1.6, .8, -6.6, 1.4, .8, 1.2, .4, PALE, .4);
       K.crystals(i, X(-9), Z(-5), 6, 1.4, 1.2, 3.6, 'crystalV', R, { glowCol: [.7, .3, 1.2], light: true, lightColor: 0x9a60e0, intensity: 20 });
-      K.crystals(i, X(9), Z(4), 5, 1.2, 1.0, 3.0, 'crystalV', R, { glowCol: [.7, .3, 1.2] });
+      K.crystals(i, X(11.5), Z(5.5), 5, 1.2, 1.0, 3.0, 'crystalV', R, { glowCol: [.7, .3, 1.2] });
       K.crystals(i, X(12), Z(-6), 4, 1.0, .8, 2.4, 'crystalV', R, { glowCol: [.7, .3, 1.2] });
       // the broken crown lying on the steps
       for (var q = 0; q < 7; q++) { var a = q / 7 * PI * 2; BX('cone4', 'iron', 2.8 + Math.cos(a) * .55, .62, -5.4 + Math.sin(a) * .55, .18, .5, .18, a, [.8, .66, .4], .1, .3, 0); }
@@ -229,7 +229,7 @@
       // anvil altar
       BX('box', 'iron', 3, .3, -6, 2.2, .6, 1.5, .2, IRONT, .5); BX('box', 'iron', 3, .85, -6, 1.2, .6, .8, .2, IRONT, .4); BX('box', 'iron', 3, 1.4, -6, 2.6, .5, 1.1, .2, IRONT, .3); solidL(3, -6, 2.6, 1.8);
       HOT(3, 1.66, -6, 1.6, .03, .5, [1.3, .3, .08], .2);
-      for (var k = 0; k < 3; k++) { var x = 6 + k * 3.2, z = 2 + (k % 2) * 3; BX('crag', 'rock', x, .3, z, 2.2, 1.2, 2, R() * 6, [.3, .27, .26], .5); BX('rock', 'slag', x + .3, .7, z, .7, .4, .6, R() * 6, [.6, .45, .4], .2); SP(S.pool, x, .14, z, 3.5, 3.5, [.8, .14, .05], .45, 1, 1); solidL(x, z, 1.8, 1.6); }
+      for (var k = 0; k < 3; k++) { var x = [4, 8, 11][k], z = [8.5, 8, 5.6][k]; BX('crag', 'rock', x, .3, z, 2.2, 1.2, 2, R() * 6, [.3, .27, .26], .5); BX('rock', 'slag', x + .3, .7, z, .7, .4, .6, R() * 6, [.6, .45, .4], .2); SP(S.pool, x, .14, z, 3.5, 3.5, [.8, .14, .05], .45, 1, 1); solidL(x, z, 1.8, 1.6); }
       pyre(10, -6, 1, 26);
       decals({ cracks: 5, soot: 6, chips: 4, heat: 3 }); debris(8, 4, 16); embers(30, -14, 14, -9, 9, 6.5, 1.2); smoke(6, [.36, .24, .2], .24, .6, 3.6, 5);
     };
@@ -246,10 +246,11 @@
     /* 9 Hüküm Defteri — the ledger of verdicts: standing stone pages carved with burning names, lecterns, ink-black blood */
     ROOM[9] = function () {
       island({ tint: [.6, .56, .54] });
-      for (var k = 0; k < 5; k++) { var x = -10 + k * 5, z = -7.8 - Math.abs(k - 2) * -.6, rot = (k - 2) * .12;
-        BX('box', 'stone', x, 2.6, z, 3.4, 5.2, .5, rot, [.72, .68, .64], .5); BX('box', 'stone', x, 5.35, z, 3.6, .3, .7, rot, PALE, .2); solidL(x, z, 3.2, .8);
+      var PAGES = [[-12.5, -5.4, .95], [-8, -8.6, .45], [8, -8.6, -.45], [12.5, -5.4, -.95], [-13.4, 3, 1.35]];
+      for (var k = 0; k < 5; k++) { var x = PAGES[k][0], z = PAGES[k][1], rot = PAGES[k][2];
+        BX('box', 'stone', x, 2.6, z, 3.4, 5.2, .5, rot, [.72, .68, .64], .5); BX('box', 'stone', x, 5.35, z, 3.6, .3, .7, rot, PALE, .2); solidL(x, z, 2.6, 1.8);
         for (var l = 0; l < 6; l++) HOT(x, 1.2 + l * .62, z + .27, 2.2 - (l % 3) * .4, .05, .02, [1.4, .16, .08], rot); }
-      SP(S.glow, 0, 3, -7, 12, 3.4, [.4, .04, .02], .5, 1, 1);
+      SP(S.glow, -10, 3, -7, 6, 3.4, [.4, .04, .02], .5, 1, 1); SP(S.glow, 10, 3, -7, 6, 3.4, [.4, .04, .02], .5, 1, 1);
       [[-6, 0], [6, 0], [0, 5]].forEach(function (p) { BX('box', 'wood', p[0], .55, p[1], .3, 1.1, .3, 0, [.45, .38, .36], .4); BX('box', 'stone', p[0], 1.15, p[1], 1.0, .12, .7, .3, BONE, .2, -.3, 0); candleCluster(p[0] + .7, p[1] + .5, 3); solidL(p[0], p[1], .6, .6); });
       pyre(-12, 4, 1, 26); pyre(12, 4, 1, 26);
       decals({ cracks: 5, soot: 4, chips: 4, blood: 3 }); debris(8, 4, 16); embers(10, -12, 12, -9, 9, 5, 1); smoke(4, [.3, .22, .2], .18, .5, 3.5, 4);
@@ -275,7 +276,7 @@
       island({ tint: [.66, .62, .6] });
       for (var k = 0; k < 3; k++) K.put(i, 'cyl', 'stone', X(0), .09 + k * .17, Z(0), 12.2 - k * 1.6, .18, 12.2 - k * 1.6, 0, 0, 0, [PALE[0] * (1 - k * .05), PALE[1] * (1 - k * .05), PALE[2]], .1);
       K.dec(i, 5, X(0), Z(0), 9, 9, .2, [.6, .12, .06], .26, 'glow', .56); K.dec(i, 6, X(0), Z(0), 5.6, 5.6, 0, [.6, .14, .06], .22, 'glow', .57);
-      for (var q = 0; q < 6; q++) { var a = q / 6 * PI * 2 + PI / 6, x = Math.cos(a) * 9, z = Math.sin(a) * 6.6; BX('box', 'stone', x, 1.6, z, .7, 3.2, .7, a, PALE, .5); BX('box', 'stone', x, 3.3, z, 1.0, .25, 1.0, a, BONE, .2); HOT(x, 2.4, z, .74, .08, .74, EMBER, a); candleCluster(x * .82, z * .82, 3); solidL(x, z, .9, .9); }
+      for (var q = 0; q < 6; q++) { var a = q / 6 * PI * 2, x = Math.cos(a) * 9, z = Math.sin(a) * 6.6; BX('box', 'stone', x, 1.6, z, .7, 3.2, .7, a, PALE, .5); BX('box', 'stone', x, 3.3, z, 1.0, .25, 1.0, a, BONE, .2); HOT(x, 2.4, z, .74, .08, .74, EMBER, a); candleCluster(x * .82, z * .82, 3); solidL(x, z, .9, .9); }
       for (var q = 0; q < 4; q++) { var a = q * PI / 2 + PI / 4; pyre(Math.cos(a) * 12.2, Math.sin(a) * 7.4, .9, 22); }
       for (var q = 0; q < 26; q++) K.spr(i, S.ember, X((R() - .5) * 9), .7, Z((R() - .5) * 9), .05, .05, [2, .9, .4], 1, R(), .15 + R() * .15, 6);
       decals({ cracks: 3, chips: 3 }); debris(8, 4, 16); smoke(4, [.3, .24, .22], .16, .6, 3.4, 5);
