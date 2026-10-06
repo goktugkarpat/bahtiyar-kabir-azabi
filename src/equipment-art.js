@@ -109,7 +109,11 @@
     if(palette[key])return palette[key];
     if(GLOW[key]){
       const g=GLOW[key],m=new T.MeshStandardMaterial({color:g[1],emissive:g[0],emissiveIntensity:g[2],roughness:.35,metalness:0,toneMapped:true});
-      m.name='kara-equipment-'+key;m.userData.equipmentGlow=key;return palette[key]=m;
+      m.name='kara-equipment-'+key;m.userData.equipmentGlow=key;
+      // Living inlays: embers flicker, frost and void breathe slowly, holy light swells. Shared material, one scalar per frame.
+      const base=g[2],rate={ember:7.3,gore:3.1,frost:1.3,void:.9,venom:2.2,holy:1.1}[key]||1.5,ember=key==='ember'||key==='gore';
+      m.onBeforeRender=function(){const t=performance.now()*.001*rate;this.emissiveIntensity=base*(ember?.78+.16*Math.sin(t)+.1*Math.sin(t*2.7+1.3)+.06*Math.sin(t*6.1):.8+.22*Math.sin(t));};
+      return palette[key]=m;
     }
     const s=spec[key]||spec.steel;
     const m=new T.MeshStandardMaterial({...(key==='edge'||key==='gold'||key==='silver'||key==='gem'?surface(s[0]):scanned[s[0]]||surface(s[0])),color:s[1],roughness:s[2],metalness:s[3],normalScale:new T.Vector2(s[0]==='metal'?.16:s[0]==='leather'?.42:s[0]==='cloth'?.25:.60,s[0]==='metal'?.16:s[0]==='leather'?.42:s[0]==='cloth'?.25:.60)});
