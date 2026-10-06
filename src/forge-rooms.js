@@ -666,7 +666,7 @@
       // kind-specific furniture (absolute coordinates); every heavy prop gets a footprint
       if (W.kind === 'slag') {
         slagHeap(U(RR(8, 12)), zc + RR(-8, -5), 1.5, true); slagHeap(U(RR(11, 15)), zc + RR(5, 8), 1.2, i % 2 === 0);
-        cart(U(5), zc + 2.5, .3 * s, i % 2 === 1); anvil(U(13), zc - 1, .8, 1);
+        cart(U(5), zc + 2.5, .3 * s, false); anvil(U(13), zc - 1, .8, 1);
         if (mid) { // crane gantry with a chain-slung skip
           K.put(i, 'box', 'iron', U(4), 3.5, zc - 9, .6, 7, .6, 0, 0, 0, IRONT, .4); K.put(i, 'box', 'iron', U(16), 3.5, zc - 9, .6, 7, .6, 0, 0, 0, IRONT, .4); K.solid(U(4), zc - 9, .7, .7); K.solid(U(16), zc - 9, .7, .7);
           K.put(i, 'box', 'iron', U(10), 7.1, zc - 9, 12.6, .6, .7, 0, 0, 0, IRONT, .2); K.chain(i, U(9), 6.8, zc - 9, 2.6, [.55, .5, .48]); K.put(i, 'vat', 'iron', U(9), 3.4, zc - 9, 1.6, 1.2, 1.6, 0, 0, 0, [.5, .46, .44], .3); K.put(i, 'disc', 'hot', U(9), 3.95, zc - 9, 1.2, 1, 1.2, 0, 0, 0, [1.8, .7, .2], 0);
@@ -682,7 +682,7 @@
         if (mid) chainWell(U(10), zc - (i % 2 ? 5 : -5)); else { cage(U(12), zc + (i % 2 ? -5 : 5), 1.6); slagHeap(U(5), zc + (i % 2 ? -7 : 7), 1.1, true); }
       } else {
         for (var p2 = 0; p2 < 3; p2++) scrapPile(U(RR(5, 14)), zA + (p2 + .5) * L / 3 + RR(-2, 2), RR(1.2, 1.9));
-        cart(U(8), zc + 3.5, -.4 * s, true); K.chain(i, U(12), 6.5, zc - 3, 4.4, [.55, .5, .48]); K.chain(i, U(13), 6.5, zc - 3.6, 3.8, [.55, .5, .48]);
+        cart(U(8), zc + 3.5, -.4 * s, false); K.chain(i, U(12), 6.5, zc - 3, 4.4, [.55, .5, .48]); K.chain(i, U(13), 6.5, zc - 3.6, 3.8, [.55, .5, .48]);
         K.put(i, 'box', 'iron', U(12.5), 6.6, zc - 3.3, 4, .5, .5, 0, 0, 0, IRONT, .2); K.put(i, 'box', 'iron', U(14.4), 3.3, zc - 3.3, .5, 6.6, .5, 0, 0, 0, IRONT, .3); K.solid(U(14.4), zc - 3.3, .6, .6);
       }
       // overhead iron trusses on tall pillars give the open hall a rhythm (pillars sit on the outer bank, never in the lanes)
