@@ -70,7 +70,7 @@
       var lx0 = r.x - r.w / 2 - .9, lx1 = -op, rx0 = op, rx1 = r.x + r.w / 2 + .9;
       K.wall(i, (lx0 + lx1) / 2, zf, lx1 - lx0, 1.3, h, true, 0, 1, { tint: tint, ruin: o.ruin == null ? .25 : o.ruin, niche: true, pil: 4.6 });
       K.wall(i, (rx0 + rx1) / 2, zf, rx1 - rx0, 1.3, h, true, 0, 1, { tint: tint, ruin: o.ruin == null ? .25 : o.ruin, niche: true, pil: 4.6 });
-      if (!o.noGate) {
+      if (!o.noGate && op <= 3.9) {   // ajan:world-a: an opened forecourt has no gate left
         [-1, 1].forEach(function (s) {
           var ph = Math.min(h + .6, 7.4);
           K.put(i, 'box', 'wall', s * 4.75, ph / 2, zf + .4, 1.7, ph, 1.9, 0, 0, 0, mulT(tint, [1.05, 1.05, 1.05]), .5, 3.5);
@@ -128,8 +128,8 @@
       var t = ASH; K.floor(i, r, { tint: [.86, .86, .9], vary: .15, cols: 10, rows: 8, zone: function (x, z) { return Math.abs(x) < 3.5 && z < -3 ? [.8, .78, .78] : null; } });
       arcade(t, { ruin: .25 }); facade(t, { h: 7, spring: 3.2 });
       [-1, 1].forEach(function (s) { K.put(i, 'box', 'wall', X(s * 9.6), 3.7, Z(-12.4), 5.0, 7.4, 3.6, 0, 0, 0, t, .5, 4); K.put(i, 'box', 'stone', X(s * 9.6), 7.6, Z(-12.4), 5.6, .6, 4.2, 0, 0, 0, t, .2); for (var q = 0; q < 5; q++) K.put(i, 'box', 'stone', X(s * 9.6 + (q - 2) * 1.1), 8.1, Z(-12.4), .6, .6, 4.2, 0, 0, 0, t, 0); });
-      for (var q = -3; q <= 3; q++) { K.put(i, 'cyl', 'iron', q * .95, 5.2, Z(-12.2), .16, 2.2, .16, 0, 0, 0, [.7, .68, .66], .1); K.put(i, 'cone4', 'iron', q * .95, 3.95, Z(-12.2), .24, .5, .24, PI / 4, PI, 0, [.7, .68, .66], .1); }
-      K.put(i, 'box', 'iron', 0, 6.4, Z(-12.2), 7, .2, .24, 0, 0, 0, [.7, .68, .66], .1); K.put(i, 'box', 'iron', 0, 4.6, Z(-12.2), 7, .14, .2, 0, 0, 0, [.7, .68, .66], .1);
+      if (!(B.WorldARuins && B.WorldARuins.open && B.WorldARuins.open[i])) for (var q = -3; q <= 3; q++) { K.put(i, 'cyl', 'iron', q * .95, 5.2, Z(-12.2), .16, 2.2, .16, 0, 0, 0, [.7, .68, .66], .1); K.put(i, 'cone4', 'iron', q * .95, 3.95, Z(-12.2), .24, .5, .24, PI / 4, PI, 0, [.7, .68, .66], .1); }
+      if (!(B.WorldARuins && B.WorldARuins.open && B.WorldARuins.open[i])) K.put(i, 'box', 'iron', 0, 6.4, Z(-12.2), 7, .2, .24, 0, 0, 0, [.7, .68, .66], .1); if (!(B.WorldARuins && B.WorldARuins.open && B.WorldARuins.open[i])) K.put(i, 'box', 'iron', 0, 4.6, Z(-12.2), 7, .14, .2, 0, 0, 0, [.7, .68, .66], .1);
       slot(1, -1, 'statue', t, { pose: 3 }); slot(-1, -1, 'statue', t, { pose: 3 }); slot(1, 1, 'rubble', t); slot(-1, 1, 'rubble', t);
       K.brazier(i, X(-4.6), Z(-9.6), { s: 1.05, col: [1.5, .66, .24], intensity: 36 }); K.brazier(i, X(4.6), Z(-9.6), { s: 1.05, col: [1.5, .66, .24], intensity: 36 });
       decals({ cracks: 8, fissures: 2, soot: 12, rubble: 6, blood: 2, wear: [.7, .7, .72] });

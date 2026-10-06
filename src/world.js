@@ -1799,6 +1799,7 @@
       // Gold motes rise around the oath stone once it is sworn; blood and water drip into the pools below.
       var oathCount = 70, oathSys = particles(oathCount, softSprite, true, 'oath-motes'), oathLevel = 0, oathLit = false;
       var DRIPS = [[-9.2, 2.35, -28.6, 1], [-7.4, 1.0, -81.5, 1], [wellX + .3, 3.7, wellZ + .2, 0], [6.5, 4.4, -48.2, 0], [-4.8, 4.2, .9, 0], [-4.9, 4.1, -102, 1], [5.8, 4.3, 8.8, 0], [-6.4, 4.4, -22.9, 0]];
+      if (BABA.WorldATemple && BABA.WorldATemple.active && BABA.WorldATemple.drips) DRIPS = DRIPS.concat(BABA.WorldATemple.drips.map(function (d) { return d.slice(0, 4); }));   // ajan:world-a
       DRIPS.forEach(function (d) { d.push(rand2() * 3, 1.2 + rand2() * 1.6); });
       var dripSys = particles(DRIPS.length * 2, softSprite, false, 'drips');
       // Ripple rings where the drops land (instanced, shader-animated).
@@ -1935,7 +1936,7 @@
       function syncProxies() {
         for (var i = 0; i < proxies.length; i++) {
           var u = proxies[i].userData;
-          u.want = proxyOn && u.zc + u.zr > focus.z - 48 && u.zc - u.zr < focus.z + 26;
+          u.want = proxyOn && u.zc + u.zr > focus.z - RANGE_N && u.zc - u.zr < focus.z + RANGE_S;
         }
       }
       Object.keys(batches).forEach(function (key) {
@@ -2590,6 +2591,8 @@
       // Rooms far behind or far ahead of the player are skipped entirely (the camera would only see them
       // through heavy fog, e.g. from the low title angle). Detail level and distance are combined here.
       var rangeTargets = [], rangeClock = 0, rangeZ = null;
+      // ajan:world-a: the camera never sees more than ~28 m ahead or ~12 m behind the hero (also through the broken walls)
+      var RANGE_N = 30, RANGE_S = 14;
       allBatches.concat(decorationBatches, flameMeshes, occluders).forEach(function (m) {
         if (rangeTargets.indexOf(m) >= 0) return;
         if (m.userData.batchRanges) { m.userData.detailOK = true; rangeTargets.push(m); return; }
@@ -2633,13 +2636,13 @@
           if (m.userData.batchRanges) {
             var any = false;
             m.userData.batchRanges.forEach(function (r) {
-              var visible = ok && (r.zc == null || r.zc + r.zr > focus.z - 48 && r.zc - r.zr < focus.z + 26);
+              var visible = ok && (r.zc == null || r.zc + r.zr > focus.z - RANGE_N && r.zc - r.zr < focus.z + RANGE_S);
               if (r.visible !== visible) { for (var i = r.start, end = i + r.count; i < end; i++) m.setVisibleAt(i, visible); r.visible = visible; }
               any = any || visible;
             });
             m.visible = any; m.userData.rangeVisible = any; cullDirty = true; return;
           }
-          if (ok && m.userData.zc != null) ok = m.userData.zc + m.userData.zr > focus.z - 48 && m.userData.zc - m.userData.zr < focus.z + 26;
+          if (ok && m.userData.zc != null) ok = m.userData.zc + m.userData.zr > focus.z - RANGE_N && m.userData.zc - m.userData.zr < focus.z + RANGE_S;
           m.visible = ok;
         });
         syncProxies();
