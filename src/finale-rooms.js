@@ -154,6 +154,23 @@
       SP(S.glow, x, .5, z, 1.8, 1.8, [.4, .05, .03], .4, 1, 1);
     }
     function voidChain(x, z, dir, len) { bigChain(K, i, X(x), .2, Z(z), X(x + dir[0] * 2), -len, Z(z + dir[1] * 2), 1.6, [.42, .36, .34]); }
+    // The void is not only red: cold violet light falls through the broken sky at the platform's edge, dust hangs in it, and far below
+    // a second layer of ruins (arches, pillars, chained slabs) drifts in the dark, so the drop reads as deep instead of flat.
+    var VOID = [.32, .36, 1.0], GOLD = [1.5, 1.05, .45];
+    function voidLight() {
+      var RB = K.rng(i, 41);
+      for (var k = 0; k < 2; k++) { var s = k ? 1 : -1, x = s * (r.w / 2 - 1.5 - RB() * 3), z = (RB() - .5) * (r.d - 6); if (!inRoom(x, z, .5)) continue;
+        K.spr(i, S.beam, X(x), 0, Z(z), 1.6 + RB() * .8, 13, [VOID[0] * .45, VOID[1] * .45, VOID[2] * .45], .5, RB(), 1, 1);
+        K.spr(i, S.pool, X(x), .12, Z(z), 3.6, 3.6, [VOID[0] * .3, VOID[1] * .3, VOID[2] * .3], .45, RB(), 1, 1);
+        for (var m = 0; m < 10; m++) K.spr(i, S.mote, X(x + (RB() - .5) * 3), .5 + RB() * 5, Z(z + (RB() - .5) * 3), .04, .04, [.6, .65, 1.4], .8, RB(), .3 + RB() * .4, 1.6); }
+      // deep ruins
+      for (var k = 0; k < 4; k++) { var s = k % 2 ? 1 : -1, x = s * (r.w / 2 + 5 + RB() * 12), z = (RB() - .5) * r.d * 1.4, y = -12 - RB() * 14, sc = 1.4 + RB() * 1.6;
+        if (k < 2) { for (var q = 0; q < 7; q++) { var a = q / 7 * PI; K.put(i, 'block', 'stone', X(x + Math.cos(a) * 3.2 * sc), y + Math.sin(a) * 3.2 * sc, Z(z), 1.1 * sc, .9 * sc, 1.3 * sc, 0, 0, a - PI / 2, [.42, .4, .44], .3); }
+          K.put(i, 'column', 'stone', X(x - 3.2 * sc), y - 2.2 * sc, Z(z), .9 * sc, 4.4 * sc, .9 * sc, 0, 0, 0, [.4, .38, .42], .4); K.put(i, 'column', 'stone', X(x + 3.2 * sc), y - 1.4 * sc, Z(z), .9 * sc, 2.8 * sc, .9 * sc, 0, .2, 0, [.4, .38, .42], .4); }
+        else { K.put(i, 'tile', 'floor', X(x), y, Z(z), 5 * sc, .5, 4 * sc, RB() * 6, (RB() - .5) * .3, (RB() - .5) * .3, [.36, .34, .36], 0); K.put(i, 'crag', 'rock', X(x), y - 2 * sc, Z(z), 4.4 * sc, 3.6 * sc, 3.6 * sc, RB() * 6, 0, 0, [.24, .22, .25], .4);
+          bigChain(K, i, X(x), y + .2, Z(z), X(x + s * 2), y + 30, Z(z + 3), 1.6, [.34, .3, .34]); }
+        K.spr(i, S.glow, X(x), y - 1, Z(z), 6, 6, k % 2 ? [.08, .09, .3] : [.3, .03, .02], .45, RB(), .4, 1); }
+    }
     var ROOM = [];
     /* 0 Kırık Gök Eşiği — broken stair rising from the void, two shattered pillars, a fallen ring of the sky */
     ROOM[0] = function () {
@@ -303,6 +320,8 @@
       for (var q = 0; q < 6; q++) { var a = q / 6 * PI * 2, x = Math.cos(a) * 9, z = Math.sin(a) * 6.6; BX('box', 'stone', x, 1.6, z, .7, 3.2, .7, a, PALE, .5); BX('box', 'stone', x, 3.3, z, 1.0, .25, 1.0, a, BONE, .2); HOT(x, 2.4, z, .74, .08, .74, EMBER, a); candleCluster(x * .82, z * .82, 3); solidL(x, z, .9, .9); }
       for (var q = 0; q < 4; q++) { var a = q * PI / 2 + PI / 4; pyre(Math.cos(a) * 12.2, Math.sin(a) * 7.4, .9, 22); }
       for (var q = 0; q < 26; q++) K.spr(i, S.ember, X((R() - .5) * 9), .7, Z((R() - .5) * 9), .05, .05, [2, .9, .4], 1, R(), .15 + R() * .15, 6);
+      K.spr(i, S.beam, X(0), 0, Z(0), 2.6, 16, [GOLD[0] * .35, GOLD[1] * .35, GOLD[2] * .35], .55, .3, 1, 1); K.spr(i, S.pool, X(0), .7, Z(0), 6, 6, [GOLD[0] * .35, GOLD[1] * .3, GOLD[2] * .2], .5, .1, 1, 1);
+      for (var q = 0; q < 24; q++) K.spr(i, S.mote, X((R() - .5) * 5), 1 + R() * 6, Z((R() - .5) * 5), .04, .04, [1.6, 1.2, .6], .9, R(), .3 + R() * .3, 2);
       decals({ cracks: 3, chips: 3 }); debris(8, 4, 16); smoke(4, [.3, .24, .22], .16, .6, 3.4, 5);
     };
     /* 12 Kürsü Merdiveni — the stair of the dais: colossal judges line the climb, banners of the four lords */
@@ -353,6 +372,7 @@
       skyChain(-17, -2, [-5, -3], 2.6); skyChain(17, 2, [5, 3], 2.6);
     };
     ROOM[i]();
+    voidLight();
   }
   // Causeways across every gap: cut slabs, low kerbs, a hanging underside and chains dropping into the void.
   function bridges(K, info) {

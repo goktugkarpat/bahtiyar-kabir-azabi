@@ -110,13 +110,13 @@
         ' float f=.5+(a.r-.5)*2.4+(b.g-.5)*1.5;float crust=smoothstep(.5,.64,f);vec2 e=min(vUv,1.-vUv)*vE.xy*2.;float bank=1.-smoothstep(0.,.45,min(e.x,e.y));crust=clamp(crust+bank*.85,0.,1.);',
         ' float pulse=.55+.45*sin(clock*1.1+p.y*.7+a.g*7.);vec3 molten=mix(vec3(.2,.012,.008),vec3(.48,.06,.02),pulse*.6+b.g*.4);vec3 crustCol=vec3(.025,.012,.012);',
         ' gl_FragColor=vec4(mix(molten,crustCol,smoothstep(.2,.7,crust)),1.);}'].join('\n') });
-    var wrath = { value: 0 };   // 0..1: the court answers the Black Qadi's later phases (abyss veins flare, verdict glow pulses)
+    var wrath = { value: 0 }, intro = 0;   // 0..1: the court answers the Black Qadi's later phases (abyss veins flare, verdict glow pulses)
     var abyssMat = new T.ShaderMaterial({ uniforms: { clock: clock, norm: { value: flowNormal }, wrath: wrath }, depthWrite: false, toneMapped: false, transparent: false, fog: false,
       vertexShader: 'varying vec3 vP;void main(){vP=(modelMatrix*vec4(position,1.)).xyz;gl_Position=projectionMatrix*viewMatrix*vec4(vP,1.);}',
       fragmentShader: ['varying vec3 vP;uniform float clock;uniform sampler2D norm;uniform float wrath;',
         'void main(){vec2 p=vP.xz;vec3 a=texture2D(norm,p*.006+vec2(clock*.002,-clock*.003)).rgb;vec3 b=texture2D(norm,p*.019-vec2(clock*.009,clock*.003)+(a.rg-.5)*.6).rgb;vec3 c=texture2D(norm,p*.045+(b.rg-.5)*.5+vec2(0.,clock*.006)).rgb;',
         ' float v=(a.r-.5)*1.8+(b.g-.5)*1.4+(c.r-.5)*.6;float vein=smoothstep(.18,.0,abs(v-.05));float pool=smoothstep(.25,.75,a.g*.6+b.r*.5);',
-        ' float pulse=.75+.25*sin(clock*.6+a.b*9.);vec3 col=vec3(.004,.002,.003)+vec3(.11,.008,.005)*vein*vein*pulse*(1.+wrath*2.2)+vec3(.018,.002,.002)*pool*(1.+wrath);',
+        ' float pulse=.75+.25*sin(clock*.6+a.b*9.);float neb=smoothstep(.55,.85,b.b*.7+c.g*.5);vec3 col=vec3(.004,.002,.006)+vec3(.012,.014,.05)*neb*(1.-vein)+vec3(.11,.008,.005)*vein*vein*pulse*(1.+wrath*2.2)+vec3(.018,.002,.002)*pool*(1.+wrath);',
         ' float d=distance(cameraPosition,vP);col*=1.-smoothstep(60.,130.,d)*.9;gl_FragColor=vec4(col,1.);}'].join('\n') });
     materials.abyss = abyssMat;
     var rooms = LAYOUT.map(function (L, i) { return { id: i, name: NAMES[i], x: L.x, z: 8 - i * 26, w: L.w, d: L.d, shape: L.shape }; });
@@ -163,6 +163,25 @@
     rooms.forEach(function (r, i) { B.FinaleRooms.dress(K, r, i, info); });
     B.FinaleRooms.bridges(K, info);
     var meshes = K.finish().concat(K.finishFx());
+    // ---- The court transforms with the Black Qadi (phase 2 / 3): bleeding cracks open across the floor, shards of the broken sky
+    // rise and orbit the arena, four columns of cold light fall on the lords' pillars. One instanced mesh + three simple meshes, hidden at rest.
+    var court = rooms[13], arena = new T.Group(); arena.name = 'finale-court-wrath'; arena.visible = false; groups[13].add(arena);
+    var crackMat = new T.ShaderMaterial({ uniforms: { clock: clock, norm: { value: flowNormal }, wrath: wrath }, transparent: true, depthWrite: false, toneMapped: false, blending: T.AdditiveBlending,
+      vertexShader: 'varying vec3 vP;varying vec2 vU;void main(){vU=uv;vP=(modelMatrix*vec4(position,1.)).xyz;gl_Position=projectionMatrix*viewMatrix*vec4(vP,1.);}',
+      fragmentShader: ['varying vec3 vP;varying vec2 vU;uniform float clock;uniform sampler2D norm;uniform float wrath;',
+        'void main(){vec2 p=vP.xz;vec3 a=texture2D(norm,p*.011).rgb;vec3 b=texture2D(norm,p*.027+(a.rg-.5)*.3).rgb;float v=(a.r-.5)*1.6+(b.g-.5)*.9;',
+        ' float crack=smoothstep(.022,.0,abs(v))*(.6+.4*smoothstep(.3,.7,b.b));float r=length(vU-.5)*2.;float reach=smoothstep(wrath*1.15,wrath*1.15-.25,r);',
+        ' float pulse=.7+.3*sin(clock*3.+v*20.);vec3 col=mix(vec3(1.4,.12,.05),vec3(1.6,.9,.4),crack*crack*.5)*crack*reach*pulse*wrath*.75;',
+        ' gl_FragColor=vec4(col*smoothstep(1.,.85,r),1.);}'].join('\n') });
+    var crack = new T.Mesh(geo(new T.PlaneGeometry(court.w - 2, court.d - 2)), crackMat); crack.rotation.x = -PI / 2; crack.position.set(court.x, .09, court.z); crack.renderOrder = 3; arena.add(crack);
+    var shardGeo = geo(new T.IcosahedronGeometry(.5, 0)), shards = new T.InstancedMesh(shardGeo, materials.rock, 36), shardData = [], dummy = new T.Object3D();
+    for (var s = 0; s < 36; s++) { var ang = s / 36 * PI * 2 + Math.sin(s * 7.3) * .2; shardData.push({ a: ang, r: 19 + (s % 4) * 2.4 + Math.sin(s * 3.1) * 1.5, y: 2 + (s % 5) * 1.6, sz: .8 + (s % 3) * .9 + Math.abs(Math.sin(s * 1.7)) * 1.4, spin: .3 + (s % 4) * .15 }); }
+    shards.frustumCulled = false; arena.add(shards);
+    var beamMat = new T.ShaderMaterial({ uniforms: { wrath: wrath, clock: clock }, transparent: true, depthWrite: false, toneMapped: false, blending: T.AdditiveBlending, side: T.DoubleSide,
+      vertexShader: 'varying vec2 vU;void main(){vU=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+      fragmentShader: 'varying vec2 vU;uniform float wrath;uniform float clock;void main(){float e=pow(1.-abs(vU.x-.5)*2.,2.);float f=smoothstep(0.,.15,vU.y)*smoothstep(1.,.3,vU.y);gl_FragColor=vec4(vec3(.35,.4,1.2)*.3*e*e*f*wrath*(.8+.2*sin(clock*2.+vU.y*9.)),1.);}' });
+    var beamGeo = geo(new T.CylinderGeometry(1.0, 1.9, 34, 16, 1, true)); beamGeo.translate(0, 17, 0);
+    [[-14, -9], [14, -9], [-14, 9], [14, 9]].forEach(function (q) { var b = new T.Mesh(beamGeo, beamMat); b.position.set(court.x + q[0], 0, court.z + q[1]); b.renderOrder = 4; arena.add(b); });
     var gearSpin = K.spinners;
     // Broad phase (identical predicate to III/IV: a point is walkable inside any floor rectangle and outside every collider by its radius).
     var grid = new Map(), cell = 8, lastF = 0, nf = floors.length;
@@ -221,7 +240,13 @@
       if (materials.crystal) materials.crystal.emissiveIntensity = 1.15 + .2 * Math.sin((time || 0) * .8);
       if (materials.slag) materials.slag.emissiveIntensity = 1.25 + .2 * Math.sin((time || 0) * 1.3 + 1);
       var g = B.app && B.app.game, boss = g && g.boss, want = boss && boss.active && !boss.dead && p.z < rooms[13].z + 16 ? (boss.phase >= 3 ? 1 : boss.phase >= 2 ? .45 : .1) : 0;
+      if (boss && boss.active && !boss.dead && !intro) intro = 3.2;   // the Qadi rises: a short surge of the whole court
+      if (intro > 0) { intro = Math.max(.0001, intro - (dt || 0)); if (intro > .001) want = Math.max(want, Math.sin(Math.min(1, intro / 3.2) * PI) * .9); }
       wrath.value += (want - wrath.value) * Math.min(1, (dt || 0) * 1.5);
+      var wv = wrath.value; arena.visible = wv > .02 && groups[13].visible;
+      if (arena.visible) { var t = time || 0, rise = Math.min(1, wv * 1.3), e = rise * rise * (3 - 2 * rise);
+        for (var s = 0; s < shardData.length; s++) { var d = shardData[s], a = d.a + t * .05 * (1 + wv); dummy.position.set(court.x + Math.cos(a) * d.r, -24 * (1 - e) + d.y + Math.sin(t * .7 + s) * .5, court.z + Math.sin(a) * d.r * .8); dummy.rotation.set(t * d.spin, t * d.spin * .7, s); dummy.scale.setScalar(d.sz * (.3 + .7 * e)); dummy.updateMatrix(); shards.setMatrixAt(s, dummy.matrix); }
+        shards.instanceMatrix.needsUpdate = true; }
       var beat = wrath.value > .02 ? 1 + wrath.value * (.25 + .25 * Math.sin((time || 0) * (2.2 + wrath.value * 2))) : 1;
       materials.hot.color.setRGB(beat, beat, beat); materials.lamp.color.setHex(0xff7a5a).multiplyScalar(beat);
     }

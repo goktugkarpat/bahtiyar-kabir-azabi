@@ -100,6 +100,9 @@
               for (; shown < 2; shown++) core.fans[shown].visible = false; on = true; }
           }
           if (!on && core.fans[0] && core.fans[0].visible) core.fanHide();
+          for (var bi = 0; bi < list.length; bi++) { var bb = list[bi]; if (!bb.boss || bb.dead || !bb.active || bb.finIntro) continue; bb.finIntro = true;
+            api.fx('bossPhase', { x: bb.x, y: 2, z: bb.z, phase: 1 }); api.emit('impact', { x: bb.x, z: bb.z, strength: 1, radius: 12 });
+            if (B.Boss2.out && B.Boss2.out.emit) for (var q = 0; q < 70; q++) { var qa = q / 70 * TAU, qr = 2 + (q % 5) * 1.6; B.Boss2.out.emit(bb.x + Math.sin(qa) * qr, .2, bb.z + Math.cos(qa) * qr, 4, q % 3 ? [2.6, .3, .15] : [.6, .7, 2.4], Math.sin(qa) * 1.5, 2 + (q % 4), Math.cos(qa) * 1.5, 1.2, .12); } }
           for (var i = 0; i < list.length; i++) { var e = list[i]; if (e.dead || !e.active || !e.boss || e.phase < 3) continue;
             if (core.time - (e.b2fx || 0) > .12 && B.Boss2.out && B.Boss2.out.emit) { e.b2fx = core.time; var a = Math.random() * TAU; B.Boss2.out.emit(e.x + Math.sin(a) * 1.0, .3 + Math.random() * 3, e.z + Math.cos(a) * 1.0, 4, [3.0, .35, .2], 0, .9, 0, .7, .1); } }
         },
@@ -154,6 +157,8 @@
           e.phase = next; e.enraged = next === 3; e.action = null; e.stagger = 0; e.faceLocked = false; api.cancelHazards(e, false);
           if (core) { var hz = core.ext.hazards; for (var i = hz.length - 1; i >= 0; i--) if (hz[i].b2ground && hz[i].owner === e && !hz[i].active) hz.splice(i, 1); }
           e.forceMove = 'kadiCall'; if (next === 3) { e.overheat = true; api.fx('boss2Overheat', { x: e.x, z: e.z }); }
+          if (B.Boss2.out && B.Boss2.out.emit) for (var q = 0; q < 90; q++) { var qa = q / 90 * TAU; B.Boss2.out.emit(e.x + Math.sin(qa) * 1.2, .5 + (q % 6) * .5, e.z + Math.cos(qa) * 1.2, 4, next === 3 ? (q % 2 ? [.6, .7, 2.6] : [2.8, .3, .15]) : [2.6, .5, .2], Math.sin(qa) * (3 + q % 3), 1 + (q % 5), Math.cos(qa) * (3 + q % 3), 1.0, .14); }
+          if (B.Telegraphs && core && core.ext) api.emit('impact', { x: e.x, z: e.z, strength: 1, radius: 16 });
           api.bonus(e.x, e.z, 2); api.emit('warning', { x: e.x, z: e.z, text: next === 2 ? KabirI18n.t('EFENDİLERİN YANKISI') : KabirI18n.t('SON HÜKÜM') });
           api.sound('bossPhase'); api.fx('bossPhase', { x: e.x, y: 1.8, z: e.z, phase: next }); if (B.Audio && B.Audio.say) B.Audio.say(next === 2 ? 'ch5Echo' : 'ch5LastVerdict'); api.emit('impact', { x: e.x, z: e.z, strength: 1, radius: 10 });
           api.beginMove(e, { id: 'roar', name: KabirI18n.t('Kadı’nın Hükmü'), duration: 2.3, pose: 'roar', hits: [hit(1.3, 1.3, 'ring', 5, 0, 'roar', { inner: 0, arc: TAU, harmless: true })] });
