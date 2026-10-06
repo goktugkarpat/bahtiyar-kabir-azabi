@@ -172,6 +172,7 @@
       yank: (e, x, z, keep) => { const d = Math.hypot(x - e.x, z - e.z); if (d > keep) { e.push = null; moveBody(e, (x - e.x) / d * (d - keep), (z - e.z) / d * (d - keep), e.radius); } },
       canHit: e => !!e && !e.dead && !enemyUnderground(e) && e.model.root.visible && clearStrike(player, e) }) : null;
     game.talents = talents;
+    /* ajan:gear */ if (talents && BABA.GearPowers) BABA.GearPowers.attach(talents, { game, player, enemies, progression, root, sound, emit, groundY: (x, z) => world.effectHeightAt ? world.effectHeightAt(x, z, .6) : .06, hurtEnemy: (...a) => hurtEnemy(...a), stunEnemy: (...a) => stunEnemy(...a), talentTick: (...a) => talentTick(...a) });
     // A damage-over-time tick: no knock-back, no stagger, no on-hit procs; numbers and kills as usual.
     function talentTick(enemy, amount, kind) {
       if (!enemy || enemy.dead || enemyUnderground(enemy) || game.state !== 'playing') return null;

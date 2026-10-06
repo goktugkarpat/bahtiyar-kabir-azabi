@@ -371,4 +371,8 @@
 .cd-head { position: relative; }
 .cd-head::before { content: ''; position: absolute; left: 0; right: 0; top: -10px; height: 3px; background: linear-gradient(90deg, transparent, var(--rarity, #9c8765), transparent); opacity: .85; }
 @media (prefers-reduced-motion: reduce) { .char-item.rarity-boss, .char-equipment.rarity-boss { animation: none; } }
+.cd-unique-power { margin: 8px 0 10px; padding: 8px 10px 9px; border: 1px solid rgba(214,180,117,.55); background: linear-gradient(180deg, rgba(214,180,117,.16), rgba(214,180,117,.04)); box-shadow: inset 0 0 14px rgba(214,180,117,.12); }
+.cd-unique-power .cd-up-label { display: block; font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: #e7c27a; }
+.cd-unique-power strong { display: block; color: #f3d79b; font-size: 14px; margin: 2px 0 3px; text-shadow: 0 0 8px rgba(231,194,122,.45); }
+.cd-unique-power p { margin: 0; font-size: 12px; line-height: 1.35; color: #d9cdb6; }
 /* /ajan:gear */
