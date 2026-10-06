@@ -16,6 +16,13 @@
                orbs / rites / shelters / novas: a chain tether (Zincir Celladı), converging toll rings (Çancı), a crystal checkerboard
                (Oyukların Kralı), a sweeping furnace beam (Ocağın Kalbi).
 
+     arena     the room itself fights (profile.arena): Çöken Zemin pits (Cellat), Yükselen Gelgit flood (Çancı), Billur Damar vents in a
+               fixed turning order (Kral), Döküm Olukları molten channels (Ocak). Owner-less hazards, never on top of the boss's set pieces.
+     body      the silhouette swells a little each phase, motes of the boss's element pour off it, a phase change bursts shards outward;
+               synthesised heavy sound layers (boss-sound.js via audio.js 'bossLayer') at intro / phase / signature / fall.
+     text      cards use "text lanes": they wait for / move around the narrator subtitle, the level-up banner, the announcement and the
+               boss instruction panel instead of covering them.
+
    HOW A NEW BOSS (e.g. chapter V) PLUGS IN — three steps:
      1. Give it a STATS entry with boss:true (see coast-combat.js 'bell'), its own attack(e,d) table (api.pick list) and phase(e) as usual.
      2. BABA.BossFramework.register('<type>', {
@@ -26,6 +33,8 @@
           pursuit: { name: KabirI18n.t('… Takibi'), pose: 'charge', dmg: 16, after: 12 },
           signature: { id: 'mySig', first: 14, cd: [22, 17, 13], phase: 1, range: 15, hint: KabirI18n.t('HUD talimatı'),
                        build: function (e, d, k) { return move; } }   // k = BossFramework kit (hit(), rings(), grid(), beam(), lungeEnd()).
+          arena: { phase: 1, first: 12, every: [16, 13], build: function (e, ar, n, k, api) { BF.env(e, hazard); return true; } },
+          sound: 'chain' | 'tide' | 'crystal' | 'forge',
           signature2: { … same shape, usually phase: 2 … }   // optional second signature, own clock, never directly after the first
         });
         Moves are ordinary combat.js moves: { id, name, duration, pose, cooldown, hits:[{ at, warn, shape, … }] } (see combat.js 'moves').
