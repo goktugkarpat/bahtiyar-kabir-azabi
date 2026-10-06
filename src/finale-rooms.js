@@ -1,0 +1,344 @@
+/* KABİR AZABI — V: Son Mahkeme. Fourteen floating platforms over a bleeding void: the broken-sky threshold, hanging chains, the witnesses'
+   bridge, the well of the condemned, the four lords' shadows (executioner, bell-ringer, king, furnace), floating stones, the ledger of verdicts,
+   the bloody scales, the last testimony, the stair of the dais and the last court. Everything is baked into the room's merged meshes by
+   ruins-kit.js; glow is emissive geometry and shader sprites (bloom does the rest), light comes from the three pooled point lights. */
+(function () {
+  'use strict';
+  var B = window.BABA, PI = Math.PI;
+  var BASALT = [.42, .39, .38], BONE = [.92, .86, .78], PALE = [.78, .73, .68], SOOT = [.3, .28, .28], IRONT = [.6, .55, .53], RUST = [.55, .42, .36],
+    BLOOD = [1.7, .22, .12], EMBER = [1.6, .42, .14], DEEP = [.9, .08, .05];
+
+  var moodBase = { fog: '#0b0607', fogDensity: .0105, mist: '#250b0b', mistA: .14, mistH: .9, mistGlow: .55, scatter: .7, wind: [.03, -.02], sky: '#9c8c90', ground: '#2a1c1c', hemi: .8, env: .26, key: '#dcc4bc', keyI: 1.55, keyDir: [-12, 24, -8],
+    rim: '#c0402c', rimI: 1.25, charRim: '#e8c8bc', charRimI: 1.35, rimDir: [.4, .6, -1], rimWrap: 1, charFill: .24, lift: [.005, .002, .002], gain: [1.06, .98, .95], sat: .8, contrast: .23, shadowTint: [1.0, .94, .96], highTint: [1.1, 1.0, .92],
+    vignette: .54, vigColor: [.012, .002, .002], bloom: .5, bloomTint: [1.06, .96, .94], exposure: 1.24 };
+  var moodSpecs = [
+    { key: '#c8c0cc', keyI: 1.5, sky: '#a09aa8', fog: '#0a0709', mist: '#1c0c10', mistA: .12, gain: [1.0, .98, 1.0], sat: .74, rim: '#a04838' },
+    { key: '#d4beb4', keyI: 1.5, fog: '#0c0607', mist: '#2a0c0c', mistA: .15, sat: .78 },
+    { key: '#dcc8bc', keyI: 1.55, fog: '#0b0708', mist: '#241010', mistA: .13, sat: .76, bloom: .48 },
+    { key: '#c8a8a0', keyI: 1.45, fog: '#100506', mist: '#360c0a', mistA: .2, mistGlow: .7, bloom: .56, gain: [1.1, .96, .92], sat: .86, rim: '#d03a24' },
+    { key: '#e0b0a0', keyI: 1.55, fog: '#110505', mist: '#3a0c0a', mistA: .18, gain: [1.12, .95, .9], sat: .9, rim: '#d83020', bloom: .54 },
+    { key: '#a8b8c0', keyI: 1.45, sky: '#8898a0', fog: '#07090a', mist: '#121a1e', mistA: .2, gain: [.98, 1.0, 1.04], sat: .7, rim: '#6a8a96', bloom: .44 },
+    { key: '#c4b0d8', keyI: 1.45, sky: '#9a8cb0', fog: '#09070c', mist: '#1c1028', mistA: .17, gain: [1.02, .97, 1.06], sat: .8, rim: '#8a50c0', bloom: .5 },
+    { key: '#f0b080', keyI: 1.6, fog: '#140806', mist: '#3a160a', mistA: .17, gain: [1.12, .99, .86], sat: .94, rim: '#e06030', bloom: .56 },
+    { key: '#d0c0c0', keyI: 1.5, fog: '#0a0607', mist: '#260c0e', mistA: .14, sat: .78, bloom: .5 },
+    { key: '#e4d0c0', keyI: 1.55, fog: '#0d0807', mist: '#2c1410', mistA: .15, sat: .8, gain: [1.08, 1.0, .92], bloom: .5 },
+    { key: '#e4a898', keyI: 1.6, fog: '#120506', mist: '#3e0c0c', mistA: .2, mistGlow: .7, gain: [1.14, .94, .9], sat: .95, rim: '#e03424', bloom: .58, vignette: .58 },
+    { key: '#f0d0b8', keyI: 1.65, hemi: .95, sky: '#b8a090', fog: '#0f0807', mist: '#2c140e', mistA: .14, mistGlow: .6, bloom: .52, exposure: 1.3, vignette: .46, sat: .9, gain: [1.1, 1.0, .9], rim: '#e07a50' },
+    { key: '#e8b0a0', keyI: 1.6, fog: '#120506', mist: '#3a0c0c', mistA: .18, bloom: .56, gain: [1.14, .95, .9], sat: .92, rim: '#e03a28' },
+    { key: '#ffd0c0', keyI: 1.75, sky: '#c0a0a0', fog: '#140405', mist: '#460c0c', mistA: .2, mistGlow: .75, bloom: .62, gain: [1.16, .95, .9], contrast: .28, vignette: .6, exposure: 1.3, shadowTint: [1.0, .9, .92], highTint: [1.2, 1.0, .9], rim: '#ff4030', charRim: '#ffd8c8', sat: 1.0 }
+  ];
+
+  function setupOnce(K) {
+    if (K.finaleSetup) return; K.finaleSetup = true;
+    var T = window.THREE;
+    K.addShape('pebble', new T.IcosahedronGeometry(.5, 0));
+    K.addShape('hemi', new T.SphereGeometry(.5, 12, 5, 0, PI * 2, 0, PI / 2));
+    K.addShape('bell', new T.LatheGeometry([new T.Vector2(.0, .5), new T.Vector2(.18, .5), new T.Vector2(.24, .42), new T.Vector2(.27, .2), new T.Vector2(.31, -.1), new T.Vector2(.42, -.38), new T.Vector2(.5, -.5), new T.Vector2(.46, -.5), new T.Vector2(.38, -.38), new T.Vector2(.27, -.1), new T.Vector2(.23, .2), new T.Vector2(.0, .44)], 18));
+    K.addShape('halo', new T.TorusGeometry(.5, .04, 6, 48));
+    K.addShape('blade', (function () { var s = new T.Shape(); s.moveTo(-.5, -.5); s.lineTo(.5, -.5); s.quadraticCurveTo(.62, .1, .3, .5); s.lineTo(-.5, .38); s.closePath(); var g = new T.ExtrudeGeometry(s, { depth: 1, bevelEnabled: false }); g.translate(0, 0, -.5); return g; }()));
+    // A giant forged chain link with rounded ends (baked; one per link, the same buffer for every chain).
+    var path = new T.CurvePath(), lr = .22, ly = .3, lc = lr * .55228475;
+    function lp(x, y) { return new T.Vector3(x, y, 0); }
+    path.add(new T.LineCurve3(lp(lr, -ly), lp(lr, ly))); path.add(new T.CubicBezierCurve3(lp(lr, ly), lp(lr, ly + lc), lp(lc, ly + lr), lp(0, ly + lr))); path.add(new T.CubicBezierCurve3(lp(0, ly + lr), lp(-lc, ly + lr), lp(-lr, ly + lc), lp(-lr, ly)));
+    path.add(new T.LineCurve3(lp(-lr, ly), lp(-lr, -ly))); path.add(new T.CubicBezierCurve3(lp(-lr, -ly), lp(-lr, -ly - lc), lp(-lc, -ly - lr), lp(0, -ly - lr))); path.add(new T.CubicBezierCurve3(lp(0, -ly - lr), lp(lc, -ly - lr), lp(lr, -ly - lc), lp(lr, -ly)));
+    K.addShape('biglink', new T.TubeGeometry(path, 20, .075, 6, true));
+  }
+
+  // A colossal chain between two points (link size s): alternating planes, each link along the line.
+  function bigChain(K, id, x1, y1, z1, x2, y2, z2, s, tint) {
+    var dx = x2 - x1, dy = y2 - y1, dz = z2 - z1, L = Math.hypot(dx, dy, dz), step = .62 * s, n = Math.max(1, Math.floor(L / step));
+    var yaw = Math.atan2(dx, dz), pitch = Math.acos(Math.max(-1, Math.min(1, dy / L)));
+    for (var k = 0; k <= n; k++) { var t = k / n; K.put(id, 'biglink', 'iron', x1 + dx * t, y1 + dy * t, z1 + dz * t, s, s, s, yaw + (k % 2 ? PI / 2 : 0), pitch, 0, tint || [.5, .44, .42], .15); }
+  }
+
+  function dress(K, r, i, info) {
+    setupOnce(K);
+    var S = K.SPR, R = K.rng(i, 5), R2 = K.rng(i, 9);
+    function X(x) { return r.x + x; } function Z(z) { return r.z + z; }
+    function inRoom(lx, lz, m) { m = m || 0; for (var k = 0; k < r.rects.length; k++) { var q = r.rects[k]; if (Math.abs(r.x + lx - q.x) <= q.w / 2 - m && Math.abs(r.z + lz - q.z) <= q.d / 2 - m) return true; } return false; }
+    function BX(kind, key, x, y, z, w, h, d, a, tint, ao, rx, rz) { K.put(i, kind, key, X(x), y, Z(z), w, h, d, a || 0, rx || 0, rz || 0, tint, ao); }
+    function HOT(x, y, z, w, h, d, col, a) { K.put(i, 'box', 'hot', X(x), y, Z(z), w, h, d, a || 0, 0, 0, col || BLOOD, 0); }
+    function SP(kind, x, y, z, w, h, col, al, spd, ex) { K.spr(i, kind, X(x), y, Z(z), w, h, col, al, R2(), spd, ex); }
+    function solidL(x, z, w, d) { K.solid(X(x), Z(z), w, d); }
+    function embers(n, x0, x1, z0, z1, rise, bright) { for (var k = 0; k < n; k++) K.spr(i, S.ember, X(x0 + R() * (x1 - x0)), .3, Z(z0 + R() * (z1 - z0)), .05, .05, [2 * (bright || 1), .5 * (bright || 1), .2], 1, R(), .12 + R() * .18, rise || 5); }
+    function smoke(n, col, a, h, size, rise) { for (var k = 0; k < n; k++) K.spr(i, S.smoke, X((R() - .5) * (r.w - 4)), h || .5, Z((R() - .5) * (r.d - 4)), (size || 3) * .92, (size || 3) * .92, col, a, R(), .05 + R() * .05, rise || 4); }
+    function decals(o) {
+      var k, tries;
+      function spot(m) { for (tries = 0; tries < 8; tries++) { var lx = (R() - .5) * (r.w - m), lz = (R() - .5) * (r.d - m); if (inRoom(lx, lz, 1)) return [lx, lz]; } return null; }
+      for (k = 0; k < (o.cracks || 0); k++) { var p = spot(4); if (p) K.dec(i, 0, X(p[0]), Z(p[1]), 3.5 + R() * 2.5, 3.5 + R() * 2.5, R() * 6.28, [1, 1, 1], .9); }
+      for (k = 0; k < (o.soot || 0); k++) { p = spot(2); if (p && k % 3 !== 2) K.dec(i, 3, X(p[0]), Z(p[1]), 4 + R() * 4, 4 + R() * 4, R() * 6.28, [1, .9, .9], .8); }
+      for (k = 0; k < (o.chips || 0); k++) { p = spot(4); if (p) K.dec(i, 13, X(p[0]), Z(p[1]), 3 + R() * 2.5, 3 + R() * 2.5, R() * 6.28, [1, 1, 1], .95); }
+      for (k = 0; k < (o.blood || 0); k++) { p = spot(6); if (p) K.dec(i, 2, X(p[0]), Z(p[1]), 2.5 + R() * 2.5, 2.5 + R() * 2.5, R() * 6.28, [1, 1, 1], .9, 'wet'); }
+      for (k = 0; k < (o.bones || 0); k++) { p = spot(6); if (p) K.dec(i, 11, X(p[0]), Z(p[1]), 2 + R() * 1.5, 2 + R() * 1.5, R() * 6.28, [.6, .55, .5], .85); }
+      for (k = 0; k < (o.heat || 0); k++) { p = spot(4); if (p) K.dec(i, 15, X(p[0]), Z(p[1]), 5 + R() * 3, 5 + R() * 3, R() * 6.28, [.4, .05, .03], .3, 'glow'); }
+    }
+    // Blood-fire brazier (the kit's brazier with a crimson flame and light).
+    function pyre(x, z, s, inten, opt) { K.brazier(i, X(x), Z(z), Object.assign({ s: s || 1, col: [1.7, .32, .14], lightColor: 0xff5a3a, intensity: inten == null ? 30 : inten, tint: PALE }, opt || {})); }
+    function candleCluster(x, z, n) { for (var k = 0; k < n; k++) { var a = R() * 6.28, d = R() * .55, h = .2 + R() * .45, cx = X(x) + Math.cos(a) * d, cz = Z(z) + Math.sin(a) * d; K.put(i, 'cyl', 'stone', cx, h / 2, cz, .09, h, .09, 0, 0, 0, BONE, .2); K.spr(i, S.flame, cx, h + .09, cz, .05, .1, [1.6, .55, .2], 1, R(), 1.4, 1); } K.spr(i, S.pool, X(x), .1, Z(z), 1.8, 1.8, [.6, .2, .06], .5, R(), 1, 1); }
+    function statueL(x, z, rot, pose, s, tint) { K.put(i, 'box', 'stone', X(x), .25, Z(z), 1.6 * (s || 1), .5, 1.6 * (s || 1), rot, 0, 0, PALE, .5); K.statue(i, X(x), Z(z), rot, { key: 'stone', tint: tint || PALE, pose: pose || 0, s: s || 1 }); solidL(x, z, 1.4 * (s || 1), 1.4 * (s || 1)); }
+    function obelisk(x, z, h, rot) {
+      BX('box', 'stone', x, .3, z, 1.9, .6, 1.9, rot, PALE, .5); BX('box', 'rock', x, h / 2 + .5, z, 1.0, h, 1.0, rot, BASALT, .6); BX('cone4', 'rock', x, h + .5 + .6, z, 1.4, 1.2, 1.4, rot + PI / 4, BASALT, .2);
+      for (var q = 0; q < 4; q++) HOT(x + Math.sin(rot) * .51, 1.2 + q * h * .2, z + Math.cos(rot) * .51, .5, .06, .04, BLOOD, rot);
+      SP(S.glow, x, h * .5, z, 1.2, h * .5, [.5, .05, .03], .5, 1, 1); solidL(x, z, 1.5, 1.5);
+    }
+    function cage(x, z, y0, chainTop) {
+      K.chain(i, X(x), chainTop, Z(z), chainTop - y0 - 1.5, IRONT); BX('box', 'iron', x, y0 + 1.5, z, 1.4, .12, 1.4, 0, IRONT, .1); BX('box', 'iron', x, y0, z, 1.4, .12, 1.4, 0, IRONT, .1);
+      for (var b = 0; b < 8; b++) { var a = b / 8 * 6.28; BX('cyl6', 'iron', x + Math.cos(a) * .64, y0 + .75, z + Math.sin(a) * .64, .06, 1.5, .06, 0, RUST, 0); }
+      BX('rock', 'stone', x, y0 + .2, z, .5, .25, .4, R() * 6, BONE, .2);
+    }
+    /* ---- the floating island: floor tiles, exposed rim, hanging underside, void glow ---- */
+    var rimR = K.rng(i, 31);
+    function island(o) {
+      o = o || {};
+      K.floor(i, r, { key: o.key || 'floor', tint: o.tint || [.62, .58, .56], vary: .16, tilt: .035, skip: function (lx, lz) { return !inRoom(lx, lz, -.15); }, zone: o.zone });
+      // Rim: walk every rectangle edge; where the void is just outside, break the edge with blocks and hang basalt below it.
+      r.rects.forEach(function (q) {
+        var edges = [[q.x - q.w / 2, q.z - q.d / 2, q.x + q.w / 2, q.z - q.d / 2, 0, -1], [q.x - q.w / 2, q.z + q.d / 2, q.x + q.w / 2, q.z + q.d / 2, 0, 1], [q.x - q.w / 2, q.z - q.d / 2, q.x - q.w / 2, q.z + q.d / 2, -1, 0], [q.x + q.w / 2, q.z - q.d / 2, q.x + q.w / 2, q.z + q.d / 2, 1, 0]];
+        edges.forEach(function (e) {
+          var len = Math.hypot(e[2] - e[0], e[3] - e[1]), n = Math.max(1, Math.round(len / 1.7));
+          for (var k = 0; k <= n; k++) {
+            var t = k / n, px = e[0] + (e[2] - e[0]) * t, pz = e[1] + (e[3] - e[1]) * t;
+            if (info.onFloor(px + e[4] * .7, pz + e[5] * .7)) continue;    // interior seam / bridge mouth: no rim
+            var s = .8 + rimR() * .9, ox = e[4] * (.15 + rimR() * .3), oz = e[5] * (.15 + rimR() * .3);
+            K.put(i, 'block', 'rock', px + ox, -.35 - rimR() * .25, pz + oz, 1.5 + rimR() * .6, .9 + rimR() * .4, 1.3 + rimR() * .5, rimR() * .4 + (e[4] ? PI / 2 : 0), (rimR() - .5) * .2, (rimR() - .5) * .2, BASALT, .3);
+            if (k % 2 === 0) K.put(i, 'crag', 'rock', px + e[4] * .6, -1.6 - rimR() * 1.4, pz + e[5] * .6, 2.6 * s, 2.4 * s, 2.6 * s, rimR() * 6, 0, 0, [.34, .31, .31], .5);
+            if (k % 3 === 1) K.put(i, 'spike', 'rock', px + e[4] * .4, -3.6 - rimR() * 2, pz + e[5] * .4, 1.2 * s, 3.6 * s, 1.2 * s, rimR() * 6, PI + (rimR() - .5) * .3, (rimR() - .5) * .3, [.3, .28, .28], .2);
+            if (k % 4 === 2 && !o.noKerb) K.put(i, 'block', 'stone', px - e[4] * .35, .18, pz - e[5] * .35, e[4] ? .45 : 1.2, .36 + rimR() * .2, e[4] ? 1.2 : .45, (rimR() - .5) * .2, 0, 0, PALE, .3);
+            if (k % 5 === 0) K.spr(i, S.glow, px + e[4] * 2.5, -6, pz + e[5] * 2.5, 4.5, 4.5, [.45, .04, .02], .5, rimR(), .5, 1);
+            if (k % 3 === 0) K.spr(i, S.ember, px + e[4] * 1.5, -3, pz + e[5] * 1.5, .05, .05, [2.2, .4, .15], 1, rimR(), .1 + rimR() * .12, 9);
+          }
+        });
+        // underside: stacked basalt masses and one long hanging fang per rectangle
+        K.put(i, 'crag', 'rock', q.x, -3.4, q.z, q.w * .86, 5.2, q.d * .86, rimR() * 6, 0, 0, [.28, .26, .26], .4);
+        K.put(i, 'spike', 'rock', q.x + (rimR() - .5) * q.w * .3, -9.5, q.z + (rimR() - .5) * q.d * .3, q.w * .5, 11, q.d * .5, rimR() * 6, PI, 0, [.24, .22, .22], .2);
+      });
+    }
+    // Floating debris around the platform (out in the void, never walkable).
+    function debris(n, minD, maxD) {
+      for (var k = 0; k < n; k++) {
+        var side = k % 2 ? 1 : -1, x = side * (r.w / 2 + minD + R() * (maxD - minD)), z = (R() - .5) * r.d * 1.3, y = -2.5 + R() * 5.5, s = 1.2 + R() * 2.6;
+        K.put(i, 'crag', 'rock', X(x), y, Z(z), s * 1.6, s * .8, s * 1.4, R() * 6, (R() - .5) * .6, (R() - .5) * .6, BASALT, .4);
+        K.put(i, 'spike', 'rock', X(x), y - s * 1.1, Z(z), s * 1.1, s * 1.9, s * 1.0, R() * 6, PI, 0, [.3, .28, .28], .2);
+        if (R() < .5) K.put(i, 'tile', 'floor', X(x), y + s * .42, Z(z), s * 1.3, .3, s * 1.1, R() * 6, 0, 0, [.5, .47, .45], 0);
+        if (R() < .35) K.put(i, 'block', 'stone', X(x + (R() - .5)), y + s * .5 + .5, Z(z), .7, 1.2 + R() * 1.4, .7, R() * 6, 0, (R() - .5) * .3, PALE, .3);
+      }
+    }
+    // A colossal chain rising from a floor anchor into the dark above (local coordinates).
+    function skyChain(x, z, lean, s) {
+      s = s || 2.4; BX('cyl', 'iron', x, .35, z, 2.2, .7, 2.2, 0, IRONT, .5); BX('rim', 'iron', x, .8, z, 1.4 * s / 2.4, 1.4 * s / 2.4, 1.4 * s / 2.4, 0, RUST, .2, PI / 2); solidL(x, z, 2.0, 2.0);
+      bigChain(K, i, X(x), .9, Z(z), X(x + lean[0]), 28, Z(z + lean[1]), s, [.46, .4, .38]);
+      SP(S.glow, x, .5, z, 1.8, 1.8, [.4, .05, .03], .4, 1, 1);
+    }
+    function voidChain(x, z, dir, len) { bigChain(K, i, X(x), .2, Z(z), X(x + dir[0] * 2), -len, Z(z + dir[1] * 2), 1.6, [.42, .36, .34]); }
+    var ROOM = [];
+    /* 0 Kırık Gök Eşiği — broken stair rising from the void, two shattered pillars, a fallen ring of the sky */
+    ROOM[0] = function () {
+      island({ tint: [.6, .57, .56] });
+      for (var k = 0; k < 7; k++) { var z = r.d / 2 + 1 + k * 1.3; BX('block', 'stone', 0, -.4 - k * .75, z, 7 - k * .3, .7, 1.4, (R() - .5) * .06, [PALE[0] * (1 - k * .06), PALE[1] * (1 - k * .06), PALE[2] * (1 - k * .06)], .4); }
+      [-1, 1].forEach(function (s) { K.column(i, X(s * 9), Z(-5), 7.5, 1.4, 'stone', { tint: PALE, broken: s > 0, cut: .1 }); solidL(s * 9, -5, 1.6, 1.6); K.column(i, X(s * 9), Z(5), 6, 1.2, 'stone', { tint: PALE, broken: true, cut: -.15 }); solidL(s * 9, 5, 1.4, 1.4); });
+      // fallen ring of the sky: arc blocks leaning out into the void
+      for (var q = 0; q < 9; q++) { var a = q / 9 * PI * .9 + .2, rr = 7; BX('block', 'stone', -13 + Math.cos(a) * 1.2, .5 + Math.sin(a) * rr * .55, -2 + Math.cos(a) * rr, 1.2, 1.0, 1.6, .1, PALE, .3, 0, a - PI / 2); }
+      statueL(-5, -8, .3, 1, .9); statueL(5, -8, -.3, 1, .9);
+      pyre(-4, 2, 1, 26); pyre(4, 2, 1, 26);
+      candleCluster(-6.5, -2, 6); candleCluster(6.5, -2, 6);
+      decals({ cracks: 5, soot: 3, chips: 4, bones: 2 }); debris(8, 4, 16); embers(12, -12, 12, -9, 9, 5, 1); smoke(4, [.3, .22, .22], .18, .5, 3.5, 4);
+      voidChain(-14, 6, [-1, .2], 14); voidChain(14, -6, [1, -.2], 14);
+    };
+    /* 1 Asılı Zincirler — colossal chains from the dark sky, a hanging cage over the edge */
+    ROOM[1] = function () {
+      island({ tint: [.56, .53, .52] });
+      skyChain(-9, -5, [-3, -4]); skyChain(9, 5, [3, 3]); skyChain(-8, 6, [-4, 2], 2.0); skyChain(10, -6, [4, -3], 2.0);
+      cage(-15.5, 0, -2.5, 14); cage(15.5, 2, -1.2, 14);
+      // fallen links lying across the stone
+      for (var k = 0; k < 6; k++) BX('biglink', 'iron', -2 + k * 1.2, .25, 7 - k * .3, 2.2, 2.2, 2.2, .3, [.45, .4, .38], .3, PI / 2 * (k % 2 ? 1 : .15));
+      pyre(0, -7, 1.1, 30); obelisk(-12, -7, 4.5, .4);
+      decals({ cracks: 6, soot: 4, chips: 4, blood: 1 }); debris(8, 4, 18); embers(14, -14, 14, -9, 9, 6, 1); smoke(5, [.3, .2, .2], .18, .5, 3.5, 4);
+    };
+    /* 2 Tanıkların Köprüsü — a broad causeway lined with hooded witnesses who watch the accused pass */
+    ROOM[2] = function () {
+      island({ tint: [.66, .62, .6] });
+      [-1, 1].forEach(function (s) { for (var k = 0; k < 4; k++) { var z = -8 + k * 5.4; statueL(s * 5.2, z, s > 0 ? -PI / 2 : PI / 2, k % 2 ? 1 : 0, 1.05, [.7, .66, .62]); if (k % 2) candleCluster(s * 3.9, z + 2.6, 4); } });
+      [-1, 1].forEach(function (s) { pyre(s * 8, 0, 1.0, 28); });
+      decals({ cracks: 4, chips: 4, soot: 2, bones: 2 }); debris(10, 3, 14); embers(10, -8, 8, -10, 10, 5, 1);
+      voidChain(-7.5, -10, [-1, -.5], 12); voidChain(7.5, 10, [1, .5], 12);
+    };
+    /* 3 Mahkûmlar Kuyusu — a ring around a bleeding well; bound figures kneel at the rim, chains plunge into the pit */
+    ROOM[3] = function () {
+      island({ tint: [.52, .48, .48] });
+      // the well's inner rim
+      [[0, -4.3, 10.4, .8], [0, 4.3, 10.4, .8], [-5.3, 0, .8, 8.6], [5.3, 0, .8, 8.6]].forEach(function (q) { BX('box', 'stone', q[0], .12, q[1], q[2], .5, q[3], 0, PALE, .3); });
+      for (var k = 0; k < 8; k++) { var a = k / 8 * PI * 2; BX('spike', 'rock', Math.cos(a) * 3.2, -3 - R() * 3, Math.sin(a) * 2.6, 1.6, 6, 1.6, R() * 6, [.3, .26, .26], .2, PI, 0); }
+      SP(S.pool, 0, -4, 0, 9, 9, [1.2, .1, .05], .8, .4, 1); SP(S.glow, 0, -2, 0, 6, 4, [.8, .06, .03], .6, .5, 1); SP(S.glow, 0, -9, 0, 9, 9, [.9, .1, .04], .7, .3, 1);
+      for (var k = 0; k < 18; k++) K.spr(i, S.ember, X((R() - .5) * 8), -6, Z((R() - .5) * 6), .06, .06, [2.4, .4, .15], 1, R(), .15 + R() * .2, 11);
+      K.light(i, X(0), -1.5, Z(0), 0xff2a18, 26, 14, { scatter: .9, glow: 1.6, flicker: .2 });
+      [[-4.6, -3.6], [4.6, -3.6], [-4.6, 3.6], [4.6, 3.6]].forEach(function (p) { bigChain(K, i, X(p[0] * 2.2), 9, Z(p[1] * 2.2), X(p[0] * .4), -8, Z(p[1] * .4), 1.4, [.44, .38, .36]); });
+      [[-7.2, -7.8, .2], [7.2, -7.8, -.2], [-12.5, 0, PI / 2], [12.5, 0, -PI / 2], [-7, 7.8, PI], [7, 7.8, PI]].forEach(function (p) { statueL(p[0], p[1], p[2] + PI, 1, .85, [.6, .55, .52]); });
+      pyre(-12, -8, 1, 26); pyre(12, 8, 1, 26);
+      decals({ cracks: 6, blood: 4, soot: 3, bones: 3 }); debris(8, 4, 14); smoke(4, [.34, .16, .14], .2, .3, 3.5, 4);
+    };
+    /* 4 Celladın Gölgesi — the executioner's shadow: an enormous axe driven into a block, gallows, blood channels */
+    ROOM[4] = function () {
+      island({ tint: [.55, .5, .5] });
+      BX('box', 'stone', 0, .55, -7.6, 5, 1.1, 2.6, 0, [.5, .44, .42], .5); solidL(0, -7.6, 5, 2.6);
+      BX('box', 'iron', 0, 4.2, -8.0, .5, 6.6, .5, .08, [.4, .34, .32], .3, 0, .1);
+      BX('blade', 'iron', .35, 1.95, -8.0, 3.6, 3.2, .26, .08, [.62, .54, .52], .3, 0, -.25);
+      HOT(.3, 1.4, -7.85, 2.8, .05, .05, BLOOD, .08); SP(S.glow, 0, 2, -7.4, 3.2, 3.2, [.6, .05, .03], .5, 1, 1);
+      // gallows frames
+      [-1, 1].forEach(function (s) { BX('box', 'wood', s * 10, 3, 5, .45, 6, .45, 0, [.5, .4, .38], .5); BX('box', 'wood', s * 10 - s * 1.6, 5.9, 5, 3.6, .4, .4, 0, [.5, .4, .38], .3); K.chain(i, X(s * 10 - s * 3), 5.7, Z(5), 2.4, RUST); solidL(s * 10, 5, .7, .7); });
+      // blood channels cut into the floor leading to the block
+      for (var k = 0; k < 3; k++) { var x0 = (k - 1) * 4.5; HOT(x0 * .5, .02, -2.4 + Math.abs(k - 1) * .6, .22, .03, 9, [.75, .05, .03], (k - 1) * .35); }
+      K.dec(i, 5, X(0), Z(-2), 11, 11, .4, [.5, .05, .04], .25, 'glow');
+      pyre(-7, -6, 1.1, 30); pyre(7, -6, 1.1, 30); obelisk(-14, 2, 5, .3); obelisk(14, -2, 5, -.3);
+      decals({ cracks: 6, blood: 7, soot: 4, bones: 3 }); debris(8, 4, 16); embers(14, -12, 12, -10, 9, 5, 1);
+    };
+    /* 5 Çancının Gölgesi — the bell-ringer's shadow: a colossal cracked bell sunk into the platform, brine and dead lanterns */
+    ROOM[5] = function () {
+      island({ tint: [.5, .52, .54] });
+      BX('bell', 'iron', -.5, 2.1, -6.6, 7.2, 7.2, 7.2, .3, [.42, .46, .44], .4, .22, .1); solidL(-.5, -6.4, 6.2, 4.4);
+      BX('crag', 'rock', 2.4, .3, -4.5, 3, 1.1, 2.4, .5, BASALT, .5); BX('block', 'iron', -3.6, .4, -4.2, 1.4, .3, 1.0, .9, [.4, .44, .42], .2, .4, .2);
+      SP(S.glow, -.5, 1.5, -5.5, 3.4, 2.5, [.12, .3, .34], .4, 1, 1);
+      for (var k = 0; k < 6; k++) { var a = k / 6 * PI * 2 + .3, x = Math.cos(a) * 11.5, z = Math.sin(a) * 6.5; if (!inRoom(x, z, 1)) continue; BX('box', 'iron', x, 1.4, z, .18, 2.8, .18, 0, RUST, .3); BX('box', 'iron', x, 2.9, z, .5, .55, .5, 0, [.35, .4, .4], .2); SP(S.glow, x, 2.9, z, .8, .8, [.1, .26, .3], .5, 1, 1); solidL(x, z, .4, .4); }
+      K.light(i, X(-.5), 3, Z(-3), 0x6ab0c0, 16, 13, { flicker: .06 });
+      decals({ cracks: 5, soot: 2, chips: 4, blood: 2 }); for (var k = 0; k < 4; k++) K.dec(i, 2, X((R() - .5) * 18), Z((R() - .5) * 12), 3.5, 3.5, R() * 6, [.5, .8, .8], .6, 'wet');
+      pyre(-10, 5, 1, 24); pyre(10, 5, 1, 24); debris(8, 4, 16); smoke(6, [.2, .26, .3], .2, .4, 4, 3);
+    };
+    /* 6 Kralın Gölgesi — the king's shadow: a shattered throne on a dais, violet grave crystals growing through the stone */
+    ROOM[6] = function () {
+      island({ tint: [.54, .52, .56] });
+      for (var k = 0; k < 3; k++) BX('box', 'stone', 0, .15 + k * .3, -7.4 + k * .4, 9 - k * 2, .3, 4.2 - k * .8, 0, PALE, .3);
+      solidL(0, -8.2, 5, 2.4);
+      BX('box', 'stone', 0, 1.6, -8.2, 2.6, 1.4, 1.8, 0, [.6, .56, .6], .4); BX('box', 'stone', 0, 3.6, -9.0, 2.6, 4.2, .5, 0, [.6, .56, .6], .4, -.08, .12);
+      BX('box', 'stone', -1.3, 2.6, -8.2, .4, 1.2, 1.8, 0, PALE, .3); BX('crag', 'stone', 1.6, .8, -6.6, 1.4, .8, 1.2, .4, PALE, .4);
+      K.crystals(i, X(-9), Z(-5), 6, 1.4, 1.2, 3.6, 'crystalV', R, { glowCol: [.7, .3, 1.2], light: true, lightColor: 0x9a60e0, intensity: 20 });
+      K.crystals(i, X(9), Z(4), 5, 1.2, 1.0, 3.0, 'crystalV', R, { glowCol: [.7, .3, 1.2] });
+      K.crystals(i, X(12), Z(-6), 4, 1.0, .8, 2.4, 'crystalV', R, { glowCol: [.7, .3, 1.2] });
+      // the broken crown lying on the steps
+      for (var q = 0; q < 7; q++) { var a = q / 7 * PI * 2; BX('cone4', 'iron', 2.8 + Math.cos(a) * .55, .62, -5.4 + Math.sin(a) * .55, .18, .5, .18, a, [.8, .66, .4], .1, .3, 0); }
+      BX('rim', 'iron', 2.8, .45, -5.4, 1.2, 1.2, 1.2, 0, [.8, .66, .4], .1, PI / 2 + .3);
+      [-1, 1].forEach(function (s) { K.column(i, X(s * 6.5), Z(-6.5), 6.5, 1.1, 'stone', { tint: PALE, broken: s < 0 }); solidL(s * 6.5, -6.5, 1.3, 1.3); });
+      pyre(-6, 5, 1, 24); pyre(6, 5, 1, 24);
+      decals({ cracks: 6, soot: 3, chips: 5, bones: 2 }); debris(8, 4, 16); smoke(4, [.24, .2, .3], .18, .5, 3.5, 4);
+    };
+    /* 7 Ocağın Gölgesi — the furnace's shadow: a cold anvil, a molten blood-iron channel crossing the platform, slag mounds */
+    ROOM[7] = function () {
+      island({ tint: [.5, .46, .44] });
+      K.put(i, 'panel', 'lava', X(-9), .085, Z(0), 3, 1, 13, 0, 0, 0, [1.5, 6.5, 0], 0); solidL(-9, 0, 2.6, 13);
+      [-1, 1].forEach(function (sd) { BX('box', 'iron', -9 + sd * 1.7, .2, 0, .3, .4, 13.2, 0, IRONT, .3); });
+      SP(S.pool, -9, .2, -3, 8, 8, [1.1, .2, .06], .55, 1, 1); SP(S.pool, -9, .2, 4, 8, 8, [1.1, .2, .06], .55, 1, 1);
+      K.heat(X(-9), .6, Z(0), 2.5, 10, 1);
+      // anvil altar
+      BX('box', 'iron', 3, .3, -6, 2.2, .6, 1.5, .2, IRONT, .5); BX('box', 'iron', 3, .85, -6, 1.2, .6, .8, .2, IRONT, .4); BX('box', 'iron', 3, 1.4, -6, 2.6, .5, 1.1, .2, IRONT, .3); solidL(3, -6, 2.6, 1.8);
+      HOT(3, 1.66, -6, 1.6, .03, .5, [1.3, .3, .08], .2);
+      for (var k = 0; k < 3; k++) { var x = 6 + k * 3.2, z = 2 + (k % 2) * 3; BX('crag', 'rock', x, .3, z, 2.2, 1.2, 2, R() * 6, [.3, .27, .26], .5); BX('rock', 'slag', x + .3, .7, z, .7, .4, .6, R() * 6, [.6, .45, .4], .2); SP(S.pool, x, .14, z, 3.5, 3.5, [.8, .14, .05], .45, 1, 1); solidL(x, z, 1.8, 1.6); }
+      pyre(10, -6, 1, 26);
+      decals({ cracks: 5, soot: 6, chips: 4, heat: 3 }); debris(8, 4, 16); embers(30, -14, 14, -9, 9, 6.5, 1.2); smoke(6, [.36, .24, .2], .24, .6, 3.6, 5);
+    };
+    /* 8 Yüzen Taşlar — the court breaks apart: islands linked by narrow stone, rune obelisks, many shards adrift */
+    ROOM[8] = function () {
+      island({ tint: [.56, .52, .52] });
+      obelisk(-13, -6, 5.5, .2); obelisk(13, 6, 5.5, -.2); obelisk(0, -9.4, 4.4, 0);
+      for (var k = 0; k < 6; k++) { var s = k % 2 ? 1 : -1, x = s * (14 + R() * 10), z = (R() - .5) * 20, y = -1 - R() * 3, sz = 3 + R() * 3;
+        K.put(i, 'tile', 'floor', X(x), y, Z(z), sz, .5, sz * .8, R() * 6, 0, 0, [.5, .47, .46], 0); K.put(i, 'crag', 'rock', X(x), y - 1.8, Z(z), sz, 3.2, sz * .8, R() * 6, 0, 0, BASALT, .4); K.put(i, 'spike', 'rock', X(x), y - 5, Z(z), sz * .6, 5, sz * .5, R() * 6, PI, 0, [.28, .26, .26], .2);
+        if (k % 2) K.statue(i, X(x), Z(z), R() * 6, { key: 'stone', tint: PALE, pose: 1, s: .8 }); }
+      pyre(-4, 6, 1, 24); pyre(4, -6, 1, 24);
+      decals({ cracks: 6, chips: 6, soot: 2 }); debris(10, 8, 22); embers(16, -14, 14, -10, 10, 7, 1);
+    };
+    /* 9 Hüküm Defteri — the ledger of verdicts: standing stone pages carved with burning names, lecterns, ink-black blood */
+    ROOM[9] = function () {
+      island({ tint: [.6, .56, .54] });
+      for (var k = 0; k < 5; k++) { var x = -10 + k * 5, z = -7.8 - Math.abs(k - 2) * -.6, rot = (k - 2) * .12;
+        BX('box', 'stone', x, 2.6, z, 3.4, 5.2, .5, rot, [.72, .68, .64], .5); BX('box', 'stone', x, 5.35, z, 3.6, .3, .7, rot, PALE, .2); solidL(x, z, 3.2, .8);
+        for (var l = 0; l < 6; l++) HOT(x, 1.2 + l * .62, z + .27, 2.2 - (l % 3) * .4, .05, .02, [1.4, .16, .08], rot); }
+      SP(S.glow, 0, 3, -7, 12, 3.4, [.4, .04, .02], .5, 1, 1);
+      [[-6, 0], [6, 0], [0, 5]].forEach(function (p) { BX('box', 'wood', p[0], .55, p[1], .3, 1.1, .3, 0, [.45, .38, .36], .4); BX('box', 'stone', p[0], 1.15, p[1], 1.0, .12, .7, .3, BONE, .2, -.3, 0); candleCluster(p[0] + .7, p[1] + .5, 3); solidL(p[0], p[1], .6, .6); });
+      pyre(-12, 4, 1, 26); pyre(12, 4, 1, 26);
+      decals({ cracks: 5, soot: 4, chips: 4, blood: 3 }); debris(8, 4, 16); embers(10, -12, 12, -9, 9, 5, 1); smoke(4, [.3, .22, .2], .18, .5, 3.5, 4);
+    };
+    /* 10 Kanlı Terazi — the bloody scales: a colossal balance, one pan heavy with blood */
+    ROOM[10] = function () {
+      island({ tint: [.52, .48, .48] });
+      BX('box', 'stone', 0, .4, -4, 3.2, .8, 3.2, 0, PALE, .5); BX('column', 'stone', 0, 4.8, -4, 1.3, 8, 1.3, 0, PALE, .5); solidL(0, -4, 3.2, 3.2);
+      BX('box', 'iron', 0, 8.6, -4, 16, .45, .6, 0, [.6, .5, .42], .2, 0, .09); BX('cone4', 'iron', 0, 9.4, -4, .9, 1.2, .9, PI / 4, [.6, .5, .42], .2);
+      [[-7.8, 9.3, 4.2], [7.8, 7.9, 5.4]].forEach(function (p, k) {
+        for (var c = 0; c < 3; c++) { var a = c / 3 * PI * 2; K.bar(i, 'cyl', 'iron', X(p[0]), p[1], Z(-4), X(p[0] + Math.cos(a) * 1.5), p[1] - p[2], Z(-4 + Math.sin(a) * 1.5), .045, RUST, .1); }
+        BX('vat', 'iron', p[0], p[1] - p[2] - .35, -4, 3.4, .7, 3.4, 0, [.55, .46, .4], .2);
+        if (k === 1) { BX('disc', 'hot', p[0], p[1] - p[2] - .05, -4, 2.9, 1, 2.9, 0, [1.0, .05, .03], 0); SP(S.glow, p[0], p[1] - p[2] + .4, -4, 3, 2, [.8, .05, .03], .6, 1, 1); for (var d = 0; d < 6; d++) K.spr(i, S.ember, X(p[0] + (R() - .5)), p[1] - p[2] - .5, Z(-4 + (R() - .5)), .05, .05, [2, .2, .1], 1, R(), .4, -3); }
+        else BX('rock', 'stone', p[0], p[1] - p[2] + .1, -4, 1.4, .5, 1.2, .3, BONE, .2);
+      });
+      K.dec(i, 2, X(7.8), Z(-4), 5, 5, 0, [1, 1, 1], .95, 'wet'); K.dec(i, 2, X(6.5), Z(-1.5), 3, 3, 1, [1, 1, 1], .85, 'wet');
+      K.light(i, X(5), 3, Z(-3), 0xff3020, 18, 14, { flicker: .1 });
+      pyre(-10, 5, 1, 26); pyre(10, 5, 1, 26); obelisk(-14, -5, 4.5, .4);
+      decals({ cracks: 6, blood: 5, soot: 3, bones: 2 }); debris(8, 4, 16); embers(12, -12, 12, -9, 9, 5, 1);
+    };
+    /* 11 Son Tanıklık — the last testimony: a round dais, a ring of testimonies and the oath crystal (checkpoint) */
+    ROOM[11] = function () {
+      island({ tint: [.66, .62, .6] });
+      for (var k = 0; k < 3; k++) K.put(i, 'cyl', 'stone', X(0), .09 + k * .17, Z(0), 12.2 - k * 1.6, .18, 12.2 - k * 1.6, 0, 0, 0, [PALE[0] * (1 - k * .05), PALE[1] * (1 - k * .05), PALE[2]], .1);
+      K.dec(i, 5, X(0), Z(0), 9, 9, .2, [.6, .12, .06], .26, 'glow', .56); K.dec(i, 6, X(0), Z(0), 5.6, 5.6, 0, [.6, .14, .06], .22, 'glow', .57);
+      for (var q = 0; q < 6; q++) { var a = q / 6 * PI * 2 + PI / 6, x = Math.cos(a) * 9, z = Math.sin(a) * 6.6; BX('box', 'stone', x, 1.6, z, .7, 3.2, .7, a, PALE, .5); BX('box', 'stone', x, 3.3, z, 1.0, .25, 1.0, a, BONE, .2); HOT(x, 2.4, z, .74, .08, .74, EMBER, a); candleCluster(x * .82, z * .82, 3); solidL(x, z, .9, .9); }
+      for (var q = 0; q < 4; q++) { var a = q * PI / 2 + PI / 4; pyre(Math.cos(a) * 12.2, Math.sin(a) * 7.4, .9, 22); }
+      for (var q = 0; q < 26; q++) K.spr(i, S.ember, X((R() - .5) * 9), .7, Z((R() - .5) * 9), .05, .05, [2, .9, .4], 1, R(), .15 + R() * .15, 6);
+      decals({ cracks: 3, chips: 3 }); debris(8, 4, 16); smoke(4, [.3, .24, .22], .16, .6, 3.4, 5);
+    };
+    /* 12 Kürsü Merdiveni — the stair of the dais: colossal judges line the climb, banners of the four lords */
+    ROOM[12] = function () {
+      island({ tint: [.6, .56, .54] });
+      for (var k = 0; k < 4; k++) BX('box', 'stone', 0, .02 + k * .015, 8 - k * 5.4, 15.5, .1, .6, 0, [.75, .7, .66], .2);
+      [-1, 1].forEach(function (s) { for (var k = 0; k < 3; k++) { var z = 7 - k * 7; statueL(s * 6.8, z, s > 0 ? -PI / 2 : PI / 2, 0, 1.45, [.62, .58, .56]); } });
+      var cols = [[.42, .05, .04], [.12, .2, .24], [.24, .1, .3], [.42, .16, .04]];
+      [-1, 1].forEach(function (s) { for (var k = 0; k < 2; k++) K.banner(i, X(s * 8.3), 3.6, Z(-3.5 + k * 7), 1.4, 3.6, PI / 2, cols[(s > 0 ? 2 : 0) + k]); });
+      pyre(-4.5, -8, 1, 26); pyre(4.5, -8, 1, 26);
+      decals({ cracks: 5, chips: 5, blood: 2, soot: 2 }); debris(8, 4, 16); embers(14, -10, 10, -10, 10, 6, 1.1);
+      skyChain(-10, -7, [-3, -3], 2.0); skyChain(10, 7, [3, 3], 2.0);
+    };
+    /* 13 Son Mahkeme — the last court: concentric judgement rings, the judge's pulpit, a broken halo of the sky, the four lords' chained sigils */
+    ROOM[13] = function () {
+      island({ tint: [.54, .5, .5], noKerb: true });
+      K.dec(i, 5, X(0), Z(0), 20, 20, .2, [.55, .08, .05], .16, 'glow'); K.dec(i, 6, X(0), Z(0), 13, 13, 0, [.5, .08, .05], .14, 'glow'); K.dec(i, 6, X(0), Z(0), 26, 26, .4, [.4, .06, .04], .1, 'glow');
+      // the pulpit (kürsü) at the north edge
+      var pz = -13.2;
+      for (var k = 0; k < 3; k++) BX('box', 'stone', 0, .3 + k * .6, pz + .6 - k * .4, 10 - k * 1.8, .6, 3.0 - k * .5, 0, [.6 - k * .04, .55 - k * .04, .52], .4);
+      BX('box', 'rock', 0, 3.6, pz - .6, 3.4, 3.6, 1.2, 0, BASALT, .5); BX('box', 'stone', 0, 5.6, pz - .6, 4.2, .4, 1.6, 0, PALE, .2);
+      HOT(0, 3.6, pz - .0, 2.4, .06, .04, BLOOD); HOT(0, 2.6, pz - .0, 1.6, .06, .04, BLOOD);
+      // the broken halo standing in the void behind the pulpit
+      BX('halo', 'stone', 0, 9, pz - 4.5, 22, 22, 22, 0, PALE, .2);
+      for (var q = 0; q < 14; q++) { var a = q / 14 * PI * 2; if (q === 3 || q === 4 || q === 10) continue; BX('block', 'stone', Math.cos(a) * 10.6, 9 + Math.sin(a) * 10.6, pz - 4.5, 1.4, 1.0, 1.4, 0, PALE, .2, 0, a - PI / 2); }
+      for (var q = 0; q < 24; q++) { var a = q / 24 * PI * 2; HOT(Math.cos(a) * 11.4, 9 + Math.sin(a) * 11.4, pz - 4.3, .5, .12, .1, BLOOD, 0); }
+      SP(S.glow, 0, 9, pz - 4.8, 12, 12, [.45, .04, .03], .45, .5, 1);
+      K.light(i, X(0), 4.5, Z(pz + 3), 0xff3424, 24, 18, { scatter: .6, glow: 1.2, flicker: .12 });
+      // four sigil pillars of the fallen lords, chained to the centre
+      var lords = [[-14, -9, [.9, .1, .05]], [14, -9, [.15, .5, .6]], [-14, 9, [.6, .25, 1.0]], [14, 9, [1.2, .45, .1]]];
+      lords.forEach(function (L) {
+        BX('box', 'stone', L[0], .4, L[1], 2.4, .8, 2.4, 0, PALE, .5); BX('box', 'rock', L[0], 3.4, L[1], 1.3, 5.6, 1.3, 0, BASALT, .5); BX('box', 'stone', L[0], 6.3, L[1], 1.9, .4, 1.9, 0, PALE, .2); solidL(L[0], L[1], 2.2, 2.2);
+        HOT(L[0], 4.6, L[1] + (L[1] < 0 ? .66 : -.66), .7, .7, .04, L[2]); SP(S.glow, L[0], 6.9, L[1], 1.6, 1.6, [L[2][0] * .5, L[2][1] * .5, L[2][2] * .5], .7, 1, 1); K.spr(i, S.flame, X(L[0]), 7.3, Z(L[1]), .5, .9, L[2], .9, R(), 1, 1);
+        bigChain(K, i, X(L[0] * .92), 5.8, Z(L[1] * .92), X(L[0] * .25), .35, Z(L[1] * .25), 1.25, [.42, .36, .34]);
+        K.light(i, X(L[0]), 5, Z(L[1]), new window.THREE.Color(L[2][0] / 1.3, L[2][1] / 1.3, L[2][2] / 1.3).getHex(), 18, 12, { flicker: .1 });
+      });
+      for (var k = 0; k < 8; k++) { var a = k / 8 * PI * 2, x = Math.cos(a) * 3.5, z = Math.sin(a) * 3.5; BX('rim', 'iron', x, .12, z, .9, .9, .9, 0, RUST, .2, PI / 2); }
+      decals({ cracks: 8, blood: 6, soot: 6, chips: 6, bones: 3 }); debris(12, 5, 22); embers(50, -16, 16, -13, 13, 8, 1.3); smoke(8, [.34, .14, .12], .24, .6, 4, 5.5);
+      skyChain(-17, -2, [-5, -3], 2.6); skyChain(17, 2, [5, 3], 2.6);
+    };
+    ROOM[i]();
+  }
+  // Causeways across every gap: cut slabs, low kerbs, a hanging underside and chains dropping into the void.
+  function bridges(K, info) {
+    setupOnce(K);
+    var S = K.SPR;
+    info.bridges.forEach(function (b) {
+      var i = b.room, R = K.rng(i, 77), n = Math.max(2, Math.round(b.d / 1.6));
+      for (var k = 0; k < n; k++) { var z = b.z - b.d / 2 + (k + .5) * b.d / n; for (var c = 0; c < 3; c++) { var x = b.x + (c - 1) * b.w / 3; K.put(i, 'tile', 'stone', x + (R() - .5) * .08, -.07 + (R() - .5) * .02, z, b.w / 3 - .06, .2, b.d / n - .06, (R() - .5) * .03, 0, 0, [.62 * (.9 + R() * .2), .58 * (.9 + R() * .2), .55], 0); } }
+      [-1, 1].forEach(function (s) {
+        K.put(i, 'box', 'stone', b.x + s * (b.w / 2 + .2), .12, b.z, .55, .55, b.d + .4, 0, 0, 0, [.66, .6, .56], .3);
+        K.put(i, 'box', 'rock', b.x + s * (b.w / 2 + .1), -.9, b.z, 1.2, 1.6, b.d + .6, 0, 0, 0, [.34, .31, .31], .4);
+        for (var k = 0; k < 2; k++) { var z = b.z + (k ? 1 : -1) * b.d * .3; K.put(i, 'box', 'stone', b.x + s * (b.w / 2 + .25), .9, z, .7, 1.8, .7, 0, 0, 0, [.7, .64, .6], .4); K.put(i, 'cone4', 'stone', b.x + s * (b.w / 2 + .25), 2.1, z, .9, .6, .9, PI / 4, 0, 0, [.7, .64, .6], .2); }
+        if (R() < .7) bigChain(K, i, b.x + s * (b.w / 2 + .3), -.2, b.z + (R() - .5) * b.d * .5, b.x + s * (b.w / 2 + 2.5), -14, b.z + (R() - .5) * 4, 1.3, [.4, .34, .32]);
+        K.spr(i, S.glow, b.x + s * (b.w / 2 + 3), -6, b.z, 5, 5, [.45, .04, .02], .45, R(), .5, 1);
+      });
+      K.put(i, 'crag', 'rock', b.x, -2.6, b.z, b.w * .9, 3.4, b.d * .9, R() * 6, 0, 0, [.28, .26, .26], .4);
+      K.put(i, 'spike', 'rock', b.x, -7, b.z, b.w * .5, 7, b.d * .6, R() * 6, PI, 0, [.24, .22, .22], .2);
+      // runes along the causeway's spine (faint)
+      K.dec(i, 6, b.x, b.z, Math.min(5, b.w * .6), Math.min(5, b.w * .6), R() * 6, [.5, .06, .04], .12, 'glow');
+    });
+  }
+  B.FinaleRooms = { dress: dress, bridges: bridges, moodBase: moodBase, moodSpecs: moodSpecs };
+}());
