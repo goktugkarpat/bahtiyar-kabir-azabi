@@ -241,6 +241,7 @@
     // Scripted moments.
     var director = { bossSeen: false, bossActiveAt: -1, phase2At: -1, bossDeadAt: -1, checkpointAt: -1, lastCheckpoint: null, ritualLive: 1, wasBoss: false };
     var contact = B.ContactShadows ? B.ContactShadows.create(scene) : null;   // (ajan:visual-dark) soft occlusion under every body
+    var motes = B.AmbientMotes ? B.AmbientMotes.create(scene) : null;   // (ajan:visual-dark) per-chapter air around the hero
     var grade = { lift: new T.Vector3(), gain: new T.Vector3(1, 1, 1), saturation: 1, contrast: .12, shadowTint: new T.Vector3(1, 1, 1), highTint: new T.Vector3(1, 1, 1),
       vignette: .5, vignetteColor: new T.Vector3(), bloom: .6, bloomTint: new T.Vector3(1, 1, 1), exposure: 1.15 };
     var target = { fog: new T.Color(), mist: new T.Color(), sky: new T.Color(), ground: new T.Color(), key: new T.Color(), rim: new T.Color(), charRim: new T.Color() };
@@ -775,6 +776,7 @@
       var p = game.player, a = world.atmosphereAt(p.x, p.z);
       patchClock -= dt; if (patchClock <= 0) { patchClock = 1; patchCharacters(game); splitCharacters(game); }
       hitFlash(game, dt); battleBlood(game, dt); if (contact) contact.update(game);
+      if (motes) motes.update(dt, game && game.player, camera, opts.post ? opts.post.height : 720, reducedMotion);
       directorStep(dt, time, game, a);
       corpseClock -= dt; if (corpseClock <= 0 && L && L.setCorpses) { corpseClock = .5; flyCorpses(game); }
       var k = ready ? 1 - Math.exp(-dt * 2.2) : 1; ready = true;
@@ -814,6 +816,7 @@
     function dispose() {
       [hemi, moon, rim, moonTarget, rim.target].forEach(function (o) { scene.remove(o); });
       if (contact) contact.dispose();
+      if (motes) motes.dispose();
       if (moon.shadow.map) moon.shadow.map.dispose();
       if (scene.environment) { scene.environment.dispose(); scene.environment = null; }
     }
