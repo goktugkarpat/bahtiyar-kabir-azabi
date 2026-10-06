@@ -384,8 +384,10 @@
         if (def.kind === 'hunt') {
           var at = spot(def.site, def.fallback), best = null, bestD = Infinity;
           (api.enemies || []).forEach(function (e) {
-            if (e.boss || e.reserve || e.huntQuest || e.dead && false) return;
-            var d = Math.hypot(e.x - at.x, e.z - at.z) * (def.target.types.length && def.target.types.indexOf(e.type) < 0 ? 1.8 : 1) * (e.elite ? .8 : 1);
+            if (e.boss || e.reserve || e.huntQuest || e.type === 'ruinwarden' || e.type === 'ashwarden') return;
+            // The named prey keeps its kind when one lives within ~45 m of its den; otherwise the nearest foe takes the name.
+            var raw = Math.hypot(e.x - at.x, e.z - at.z), match = !def.target.types.length || def.target.types.indexOf(e.type) >= 0;
+            var d = (match && raw < 45 ? raw : raw + 1000) * (e.elite ? .85 : 1);
             if (d < bestD) { bestD = d; best = e; }
           });
           if (!best) { q.disabled = true; return; }
@@ -620,6 +622,7 @@
         var q = quests[i], s = state[q.def.id];
         if (q.def.kind === 'hunt' && q.enemy) {
           if (q.marker && !q.enemy.dead) { q.marker.x = q.enemy.x; q.marker.z = q.enemy.z; }
+          if (!s.done && !q.sighted && !q.enemy.dead && Math.hypot(q.enemy.x - player.x, q.enemy.z - player.z) < 16) { q.sighted = true; api.emit('toast', { text: W.hunt + ': ' + q.def.target.name + L(' yakında. Ondan kaçma.', ' is near. Do not run from it.') }); }
           if (!s.done && q.enemy.dead) complete(q, q.def.story);
         }
         if (q.def.kind === 'rescue') updateFollower(q, dt);
@@ -639,7 +642,11 @@
       if (beats && !(local.beats & 1) && beatClock > 40) { local.beats |= 1; say(beats.start); }
       var g = B.app && B.app.game, boss = g && (g.boss || (g.enemies || []).find(function (e) { return e.boss; }));
       if (boss && boss.dead && !bossSeen) { bossSeen = true; if (beats && beats.boss && !(local.beats & 2)) { local.beats |= 2; say(beats.boss); } if (chapter === 5) openFinale(); }
-      timer -= dt; if (dirty || timer <= 0) { timer = .5; refresh(); }
+      timer -= dt; if (dirty || timer <= 0) { timer = .5; refresh();
+        // Far props leave the render traversal (same 32 m window as the main quest props).
+        for (var c = 0; c < nodes.length; c++) { var pr = nodes[c].parts; if (!pr) continue; var near = Math.abs(player.x - nodes[c].x) < 32 && Math.abs(player.z - nodes[c].z) < 30;
+          var keep = near && !(nodes[c].quest.def.kind === 'lore' && nodes[c].done); if (pr.group.visible !== keep) pr.group.visible = keep; }
+      }
     }
     function snapshot() {
       var out = { v: 1, flaskDebt: local.flaskDebt, finale: local.finale, beats: local.beats, q: {} };
