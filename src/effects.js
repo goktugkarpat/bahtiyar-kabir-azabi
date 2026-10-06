@@ -518,7 +518,7 @@
       labelPool.push(l); freeLabels.push(l); return l;
     }
     function releaseLabel(l) { l.m.visible = false; l.target = null; freeLabels.push(l); }
-    function number(value, x, y, z, player, heavy, kill, boss, target = null) {
+    function number(value, x, y, z, player, heavy, kill, boss, target = null, tint = null) {
       if (!Number.isFinite(value) || value <= 0) return;
       // Very fast hits on the same actor show their real sum once; separate actors are never guessed from proximity.
       const merged = target ? labels.find(o => o.target === target && o.player === !!player && o.time < .12 && !o.kill) : null;
@@ -536,6 +536,7 @@
       // Bigger numbers for bigger blows, a hot tint on the killing blow, and a nudge so numbers from a flurry do not stack on each other.
       const k = player ? 1 : clamp(.82 + value / 130, .82, 1.3) * (kill ? 1.18 : 1) * (boss ? 1.08 : 1), bw = (heavy ? 1.45 : 1.2) * k, bh = (heavy ? .82 : .68) * k;
       if (kill && !player) m.material.color.setRGB(1.5, 1.12, .75); else if (heavy && !player) m.material.color.setRGB(1.2, 1.08, .9);
+      if (tint) m.material.color.setRGB(tint[0], tint[1], tint[2]);   // talent damage over time: burn / bleed / rot
       if (!merged) {
         for (const o of labels) if (o.time < .5 && Math.abs(o.x0 - x) < 1.1 && Math.abs(o.z0 - z) < 1.1) {
           lift = Math.max(lift, o.m.position.y - y + (o.bh + bh) * .6); side += o.side > 0 ? -.16 : .16;
@@ -1181,7 +1182,7 @@
     function burst(name, d = {}) {
       const game = getGame(); if (!game) return; const x = d.x ?? game.player.x, y = d.y ?? 1, z = d.z ?? game.player.z;
       if (name.indexOf('boss1') === 0) { boss1Fx(name, d, x, y, z); return; }
-      if (name === 'talentTick') { number(Math.round(d.damage || 0), x, 2.5, z, false, false, !!d.kill, false, d.labelTarget || null); return; }   // bleed / burn ticks (talent-runtime.js); their look is talent-fx.js
+      if (name === 'talentTick') { number(Math.round(d.damage || 0), x, 2.5, z, false, false, !!d.kill, false, null, d.kind === 'burn' ? [1.75, .78, .28] : d.kind === 'bleed' ? [1.55, .32, .26] : d.kind === 'rot' ? [.72, 1.45, .45] : null); return; }   // bleed / burn ticks (talent-runtime.js); their look is talent-fx.js
       if (name === 'heroSkill') {
         const face = d.face || 0, sx = Math.sin(face), sz = Math.cos(face), r = d.radius || 3.2;
         const count = scaleCount(d.phase === 'gather' ? 20 : d.skill === 'reap' ? 65 : 40);
