@@ -66,7 +66,8 @@
     }
     function facade(tint, o) {
       o = o || {}; var zf = r.z - r.d / 2 - .75, h = o.h || 7.2;
-      var lx0 = r.x - r.w / 2 - .9, lx1 = -3.9, rx0 = 3.9, rx1 = r.x + r.w / 2 + .9;
+      var op = B.WorldARuins && B.WorldARuins.open && B.WorldARuins.open[i] || 3.9;   // ajan:world-a: open forecourt
+      var lx0 = r.x - r.w / 2 - .9, lx1 = -op, rx0 = op, rx1 = r.x + r.w / 2 + .9;
       K.wall(i, (lx0 + lx1) / 2, zf, lx1 - lx0, 1.3, h, true, 0, 1, { tint: tint, ruin: o.ruin == null ? .25 : o.ruin, niche: true, pil: 4.6 });
       K.wall(i, (rx0 + rx1) / 2, zf, rx1 - rx0, 1.3, h, true, 0, 1, { tint: tint, ruin: o.ruin == null ? .25 : o.ruin, niche: true, pil: 4.6 });
       if (!o.noGate) {

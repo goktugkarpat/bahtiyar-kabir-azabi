@@ -548,6 +548,13 @@
     function inHole(holes, x, z, m) { for (var i = 0; i < holes.length; i++) { var o = holes[i]; if (Math.abs(x - o.x) < o.w / 2 + m && Math.abs(z - o.z) < o.d / 2 + m) return true; } return false; }
     // Lived-in floor: grit, chips of fallen vault, stray bones, stains that run under the furniture.
     function floorLife(r, holes) {
+      // macro variation: broad damp, soot and grime fields so the slab rhythm never repeats across a hall,
+      // and a dirt band along every wall foot where nobody walks
+      for (var mv = 0; mv < 9; mv++) { var mx = r.x + U(-r.w / 2 + 2, r.w / 2 - 2), mz = r.z + U(-r.d / 2 + 2, r.d / 2 - 2), t2 = mv % 3;
+        K.floorDecal('matte', t2 === 0 ? CELL.mould : t2 === 1 ? CELL.specks : CELL.water, mx, mz, U(3, 6), U(3, 6), null, t2 === 0 ? COL.grime : t2 === 1 ? COL.dust : COL.water, 1); }
+      for (var eb = 0; eb < Math.ceil(r.w / 2.2); eb++) { K.floorDecal('matte', CELL.mould, r.x - r.w / 2 + 1.1 + eb * 2.2, r.z - r.d / 2 + .8, 2.6, 1.6, U(-.3, .3), COL.grime, 1);
+        K.floorDecal('matte', CELL.ashPile, r.x - r.w / 2 + 1.1 + eb * 2.2, r.z + r.d / 2 - .8, 2.4, 1.4, U(-.3, .3), COL.dust, 1); }
+      for (var es = 0; es < Math.ceil(r.d / 2.2); es++) [-1, 1].forEach(function (k) { K.floorDecal('matte', es % 2 ? CELL.mould : CELL.specks, r.x + k * (r.w / 2 - .8), r.z - r.d / 2 + 1.1 + es * 2.2, 1.6, 2.6, U(-.3, .3), es % 2 ? COL.grime : COL.dust, 1); });
       for (var i = 0; i < 34; i++) { var x = r.x + U(-r.w / 2 + .8, r.w / 2 - .8), z = r.z + U(-r.d / 2 + .8, r.d / 2 - .8); if (inHole(holes, x, z, .5)) continue;
         put('wa-pebble', i % 3 ? 'stone' : 'dark', x, .03, z, U(.08, .22), U(.05, .12), U(.08, .2), U(-.3, .3), R() * 6, U(-.3, .3), 2); }
       for (var j = 0; j < 9; j++) { var bx = r.x + U(-r.w / 2 + 1, r.w / 2 - 1), bz = r.z + U(-r.d / 2 + 1, r.d / 2 - 1), a = R() * 6.28, l = U(.25, .5); if (inHole(holes, bx, bz, .5)) continue;
