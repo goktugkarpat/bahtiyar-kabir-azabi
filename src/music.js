@@ -608,8 +608,25 @@
       {every:[30,47],first:[12,19],fn:(p,t)=>stringNote(p,'cello',D2,t,{vel:.13,att:2,dur:4.5,rel:3,n:2,bright:.3})}
     ]
   }));
+  // Chapter V — Son Mahkeme: the void court. Choir instead of strings, a far judgement bell, the D–Ab tritone held open; the final court sings.
+  const FINALE_SCENES = SCENES.map((sc, i) => ({
+    name:[KabirI18n.t('Kırık Gök'),KabirI18n.t('Asılı Zincirler'),KabirI18n.t('Tanıkların Köprüsü'),KabirI18n.t('Dört Efendinin Gölgesi'),KabirI18n.t('Boşluk Kürsüsü'),KabirI18n.t('Son Tanıklık'),KabirI18n.t('Son Mahkeme')][i],
+    drone:{d1:.9,d2:.22,fifth:i===5?.2:.04,rub:i>=3?.24:.14,trit:i===6?.32:.16,cut:i===5?95:125},
+    pads:{bus:'choirA',vowel:i===6?'a':'o',inst:'choir',
+      chords:[[D2,Ab2],[Eb2,A2],[D2,A2],[Bb1,Eb2]],len:[14,24],rest:.42,att:4.5,rel:6,vel:i===5?.08:.06,bright:.22},
+    steps(p,st,t){
+      if(i===5)return;
+      const beat=st%64,far=dest(p,'far');
+      if(beat===0)playBuf('doum',t,far,{gain:.2,rate:.7});
+      if(beat===32&&chance(.6))playBuf('chain',t,far,{gain:.09,rate:.6,pan:rr(-.6,.6)});
+    },
+    gens:[
+      {every:[24,38],first:[5,9],fn:(p,t)=>toll(p,t,{buf:'bellD3',vel:i===6?.24:.13,rate:.74,pan:rr(-.5,.5)})},
+      {every:[28,44],first:[11,17],fn:(p,t)=>stringNote(p,'cello',i>=4?D1+12:D2,t,{vel:.12,att:3,dur:5.5,rel:3.5,n:2,gliss:-60,glissAt:2.5,glissTime:3})}
+    ]
+  }));
   // app.js restores the campaign chapter after this script loads.
-  const roomScore = i => (B.ActiveChapter===4?FORGE_SCENES:B.ActiveChapter===3?RUINS_SCENES:B.ActiveChapter===2?COAST_SCENES:SCENES)[i];
+  const roomScore = i => (B.ActiveChapter===5?FINALE_SCENES:B.ActiveChapter===4?FORGE_SCENES:B.ActiveChapter===3?RUINS_SCENES:B.ActiveChapter===2?COAST_SCENES:SCENES)[i];
   const DRONE_OFF = { d1: 0, d2: 0, fifth: 0, rub: 0, trit: 0, cut: 90, lvl: 0 }, DRONE_QUIET = { d1: .3, d2: .2, fifth: 0, rub: 0, trit: 0, cut: 95, lvl: .6 };
   const DRONE_BOSS = { 1: { d1: 1, d2: .4, fifth: .2, rub: .2, trit: .25, cut: 190 }, 2: { d1: 1, d2: .45, fifth: 0, rub: .35, trit: .45, cut: 240 } };
 

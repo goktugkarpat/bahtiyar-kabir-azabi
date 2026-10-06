@@ -50,7 +50,23 @@ Ana ekranda **Yolculuğa başla** (kayıt varsa **Yolculuğa devam**) düğmesin
 
 ### Bölüm akışı ve görevler
 
-Her bölümde **iki hikâye görevi** vardır; görev günlüğüne (alt çubuktaki **Görev günlüğü** düğmesi veya mola menüsü) sıradaki adım yazılır. Görev nesnelerine yaklaşıp **E** ile dokunursun.
+Her bölümde **iki ana hikâye görevi** ve bunların yanında **yan görevler** vardır; görev günlüğüne (alt çubuktaki **Görev günlüğü** düğmesi veya mola menüsü) sıradaki adım yazılır. Görev nesnelerine yaklaşıp **E** ile dokunursun. Sağdaki görev listesinin altındaki ok, en yakın hedefin yönünü ve uzaklığını gösterir.
+
+Yan görevler (isteğe bağlı, kapıyı açmaz ama ödül verir):
+- **Ad avı:** Bölümde adı olan, güçlendirilmiş bir düşman dolaşır. Onu öldürünce eşsiz bir eşya ve bir sandık anahtarı düşer.
+- **Zincirli sandık:** Avdan düşen anahtarla açılır; içinde eşsiz bir eşya ve hikâyeden bir ipucu vardır.
+- **Kurtarma:** Zincirli, yaşayan bir mahkûmun zincirini çöz (yakında düşman varsa önce onları yen). Seni takip eder; onu yemin taşına götür. Ödül: kalıcı iksir hakkı, kalıcı can veya kalıcı hasar.
+- **Kâtibin Yırtık Sayfaları:** Her bölümde üç sayfa. Hepsi toplanınca +1 yetenek puanı. Sayfalar günlükte okunabilir ve Bahtiyar'ın geçmişini anlatır.
+- **Kan Bedeli (gizli):** Haritada saklı bir sunak; yaklaşınca günlükte belirir. Bedeli ödersen (bu bölümde bir iksir eksik ya da kalıcı can kaybı) eşsiz bir silah alırsın; reddedebilirsin.
+
+- **Hayatta Kal:** Bir mangala, çana ya da taşa dokununca üç dalga düşman gelir; hepsini yenersen kalıcı ödül alırsın. Ölürsen ayin baştan başlar.
+- **Av zinciri:** İlk ad avı bitince ikinci, daha güçlü bir av açılır.
+- **Kaçış:** Bir emaneti alınca süre başlar; ekranın üstündeki sayaç bitmeden işaretli yere koş. Geç kalırsan can kaybedersin ve yeniden deneyebilirsin.
+- **Gizli oda:** Üç mühür taşını doğru sırayla uyandır (taşlardaki çentikleri say, ipucu günlükte). Yanlış taş biraz can alır.
+
+Görev hedeflerinin üstünde ışık sütunu ve yerde dönen bir rün çemberi görünür. Kurtardığın mahkûmların elinde fener vardır. Bölüm başında ve efendi öldüğünde kısa sinema bantları çıkar; okuduğun sayfalar parşömen ekranında açılır. Ana görevlerdeki merhamet/yargı kararların, kurtardıklarının tepkisini, sandık ödüllerini, anlatıcının sözlerini ve son bölümün kapanışını değiştirir.
+
+Kalıcı ödüller (yetenek puanı, iksir hakkı, can, hasar) sonraki bölümlere taşınır. Hikâye beş bölüme yayılır; son bölümün sonunda verilecek son karar, yol boyunca okunan sayfalara göre değişir.
 
 **Boss kapısı:** Boss odasının önündeki kapı, o bölümün **iki görevi de bitince** açılır. Kapıya yaklaşınca kaç görevin tamamlandığı ekranda yazar. Düşman öldürmek kapıyı açmaz; ama seviye ve eşya için yine de savaşman gerekir.
 

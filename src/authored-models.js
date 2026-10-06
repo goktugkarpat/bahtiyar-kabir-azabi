@@ -211,7 +211,7 @@
           ' if(bm>0.){float g=kGrey(w,vKara,.05,600.,.8);vec3 hc=mix(vec3(.05,.036,.03),vec3(.58,.56,.52),g)*(.65+.7*kN(vKara*900.));diffuseColor.rgb=mix(diffuseColor.rgb,hc,bm*.88);kSkinMask*=1.-bm*.95;}}}\n#endif\n')
         .replace('#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\n' +
           '#if KARA_CLASS == 1\nroughnessFactor*=.72+.56*kN(vKara*kScale*4.+vec3(5.));roughnessFactor=mix(roughnessFactor,.26,kEdgeMask);\n' +
-          '#elif KARA_CLASS == 4\nroughnessFactor=mix(roughnessFactor,.46+.2*kN(vKara*90.),kSkinMask);\n#endif\n' +
+          '#elif KARA_CLASS == 4\nroughnessFactor=mix(roughnessFactor,.36+.26*kN(vKara*90.)*kN(vKara*23.+vec3(4.)),kSkinMask);\n#endif\n' +
           'roughnessFactor=mix(roughnessFactor,1.,kCav*.35+kCut*.3+kRustMask*.6);roughnessFactor=mix(roughnessFactor,mix(.48,.2,kWet),kBloodMask);roughnessFactor=mix(roughnessFactor,.07,kGloss);')
         .replace('#include <metalnessmap_fragment>', '#include <metalnessmap_fragment>\n' +
           '#if KARA_CLASS == 1\nmetalnessFactor=mix(metalnessFactor,1.,kEdgeMask*.8);\n#endif\nmetalnessFactor=mix(metalnessFactor,0.,max(max(kBloodMask,kGloss),kRustMask));')
@@ -911,7 +911,7 @@
       'warden-chainmail':'chainmail-chest','ash-warden-chest':'warden-chest','hollow-heart-chest':'rib-chest','hollow-ember-chest':'rib-chest','slag-burial-chest':'warden-chest','sunless-vow-chest':'rib-chest',
       'black-stone-gauntlets':'claw-gauntlets','black-anvil-grasp':'claw-gauntlets','ash-warden-grasp':'warden-grasp','nameless-gauntlets':'claw-gauntlets',
       'gallows-boots':'shackle-boots','buried-road-boots':'shackle-boots','throneless-steps':'crown-boots','dead-forge-steps':'crown-boots',
-      'hollow-crown-blade':'crown-blade','furnace-oath-axe':'furnace-axe','widow-sword':'vow-sword','black-tide-sword':'tide-blade','ruin-lament-sword':'vow-sword','cave-verdict-sword':'tide-blade','slag-edge-sword':'slag-blade','black-forge-sword':'slag-blade','mourning-axe':'hook-axe','sepulcher-axe':'hook-axe','broken-throne-axe':'furnace-axe','ember-vow-axe':'hook-axe','orphan-spear':'fork-spear','starved-spear':'fork-spear','last-coal-spear':'fork-spear'
+      'hollow-crown-blade':'crown-blade','furnace-oath-axe':'furnace-axe','last-verdict-blade':'crown-blade','void-oath-axe':'furnace-axe','verdict-warden-helm':'iron-helm','sentence-wraps':'rag-wraps','widow-sword':'vow-sword','black-tide-sword':'tide-blade','ruin-lament-sword':'vow-sword','cave-verdict-sword':'tide-blade','slag-edge-sword':'slag-blade','black-forge-sword':'slag-blade','mourning-axe':'hook-axe','sepulcher-axe':'hook-axe','broken-throne-axe':'furnace-axe','ember-vow-axe':'hook-axe','orphan-spear':'fork-spear','starved-spear':'fork-spear','last-coal-spear':'fork-spear'
     };
     return special[id] || item && item.modelId || id;
   }
@@ -1028,7 +1028,7 @@
     ], ['skin']);
     var equipment = heroEquipment(A);
     var materials = {
-      skin: bodyMaterial(A.srcMaterial('LOW_body'), 'hero-skin', { cls: 'skin', skin: 1, skinMap: true, sat: .62, tint: [.94, .86, .74], contrast: 1.06, grime: .3, blood: .18, scars: scars, face: true }),
+      skin: bodyMaterial(A.srcMaterial('LOW_body'), 'hero-skin', { cls: 'skin', skin: 1, skinMap: true, sat: .44, tint: [.78, .68, .58], contrast: 1.2, grime: .52, blood: .18, scars: scars, face: true }),
       brow: library['hero-brow'] || (library['hero-brow'] = Object.assign(std({ map: browTexture(), alphaTest: .4, roughness: .8, side: T.DoubleSide }, { sat: 1 }), { name: 'kara-hero-brow' })),
       eye: library['hero-eye'] || (library['hero-eye'] = Object.assign(new T.MeshPhysicalMaterial({ map: eyeTexture(), roughness: .4, clearcoat: .6, clearcoatRoughness: .18 }), { name: 'kara-hero-eye' })),
       leather: bodyMaterial(A.srcMaterial('LOW_cloth'), 'hero-leather', { cls: 'leather', sat: .8, tint: [1.25, 1.12, 1.0], grime: .3, blood: .12 }),
@@ -1637,6 +1637,9 @@
   }
   // Which swing (if any) the hero's blade draws right now: the whirlwind for its whole length, otherwise a short window around the damage frame of a blow.
   var trailCfg = { on: false, life: .3, gain: 1, detail: 1 };
+  // [core rgb, hot rgb, gain] per blow source (see the trail extra below).
+  var TRAIL_TINT = { cleave: [1.0, .22, .03, 1.0, .62, .22, 1], whirl: [.16, .3, .62, .62, .82, 1.0, 1.05], charge: [.75, .42, .08, 1.0, .82, .42, 1],
+    roar: [.85, .06, .03, 1.0, .35, .2, 1], rage: [.85, .04, .02, 1.0, .3, .16, .95], opening: [1.0, .72, .2, 1.0, .96, .78, 1.15] };
   function trailWindow(state) {
     var c = trailCfg, s = B.app && B.app.settings, pc = s && s.particles, whirl = state.whirl;
     c.detail = pc ? clamp((pc - 120) / 420, .2, 1) : 1; c.on = false;
@@ -1791,7 +1794,11 @@
       if(c.on){
         var empowered=state.heavy||Number.isFinite(state.whirl)&&state.whirl>=0;
         var uniforms=trail.mesh.material.uniforms;
-        if(empowered){uniforms.core.value.setRGB(1.0,.2,.03);uniforms.hot.value.setRGB(1.0,.62,.22);}
+        // Combat feel round: the ribbon is coloured by what drives the blow (state.trailTint from combat.js): the four skill lines keep their
+        // tree colours (cleave ember, whirl cold steel-blue, charge ash-gold), blood fury burns crimson, the opening after a last-moment roll flashes white-gold.
+        var tint=TRAIL_TINT[state.trailTint];
+        if(tint){uniforms.core.value.setRGB(tint[0],tint[1],tint[2]);uniforms.hot.value.setRGB(tint[3],tint[4],tint[5]);c.gain*=tint[6];}
+        else if(empowered){uniforms.core.value.setRGB(1.0,.2,.03);uniforms.hot.value.setRGB(1.0,.62,.22);}
         else{uniforms.core.value.setRGB(.40,.36,.29);uniforms.hot.value.setRGB(.90,.83,.68);c.gain*=.58;}
       }
       trail.update(dt, trailA, trailB, c.on && !state.dead, c);
@@ -1855,4 +1862,5 @@
     };
   }
   B.Models = { register: function (type, cfg, recipe) { if (prepared) throw Error(KabirI18n.t('Karakter kaydı hazırlıktan önce yapılmalı.')); TYPES[type] = cfg; R[type] = function (A) { return recipe(A, { bases: bases, bodyMaterial: bodyMaterial, gearMaterial: gearMaterial, clothWeights: clothWeights, sleeve: sleeve, whiteMap: function () { return NO_WHITE ? null : whiteMap(); }, forgedBlock: forgedBlock, forgedBlade: forgedBlade, forgedGrip: forgedGrip }); }; }, create: create, prepare: prepare, templates: bases, blueprints: blueprints, types: TYPES };
+  B.Models.grade = grade;   // gear-*: equipment surfaces share the character grade (edge wear, cavities, rust, blood)
 })();
