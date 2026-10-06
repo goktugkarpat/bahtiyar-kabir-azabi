@@ -1,4 +1,4 @@
-/* KABİR AZABI — four-chapter, kill-earned progression. No idle XP or passive talents. */
+/* KABİR AZABI — five-chapter, kill-earned progression. No idle XP or passive talents. */
 (function () {
   'use strict';
   const B = window.BABA = window.BABA || {};
@@ -11,8 +11,9 @@
   // Active skill slots: right mouse, key 1, key 2, key 3 (round 7; saves with a 3-entry loadout load with the 4th slot empty / auto-filled).
   const SLOT_COUNT = 4;
   const THRESHOLDS = Object.freeze([0, 60, 160, 550, 1200, 2100, 3200, 4600, 6000, 7600, 11000, 13000, 15000]);
-  const MILESTONES = Object.freeze([5, 8, 10, 13]);
-  const chapterId = n => Number.isInteger(n) && n >= 1 && n <= 4 ? n : 1;
+  const FINAL_CHAPTER = B.FINAL_CHAPTER = 5;   // chapter V (Son Mahkeme) ends the journey
+  const MILESTONES = Object.freeze([5, 8, 10, 13, MAX_LEVEL]);
+  const chapterId = n => Number.isInteger(n) && n >= 1 && n <= FINAL_CHAPTER ? n : 1;
   // Skill tree: 4 lines (columns), 3 tiers each (rows). A lower tier REPLACES its predecessor in the slot it is learned into.
   // line: 'cleave' heavy strike | 'roar' war cry | 'whirl' chain whirlwind | 'charge' dash. params feed combat.js, so numbers in
   // the UI and in the fight are one source. cost is stamina out of 100, cooldown in seconds. `new` lists the highlighted changes.
@@ -232,9 +233,17 @@
     ,item('warden-verdict-helm', KabirI18n.t('Harabe Yargıcının Son Yüzü'), 'head', 8, 'boss', 0, .065, 3, null, KabirI18n.t('Harabelerin ikinci muhafızının kemik perçinli hüküm miğferi. Bir daha aynı hüküm verilmeyecek.'), 'iron-helm', 'bone')
     /* ajan:quests */ ,...(Array.isArray(B.QuestItemSpecs) ? B.QuestItemSpecs.map(spec => item.apply(null, spec)) : []) /* /ajan:quests */
     ,item('ash-warden-grasp', KabirI18n.t('Kül Muhafızının Son Pençesi'), 'hands', 11, 'boss', 0, .085, 3, null, KabirI18n.t('İkinci ocak muhafızının kan çizgili döküm eldiveni. Tutsakları ocağa sürükleyen parmaklar artık sessiz.'), 'salt-gauntlets', 'blood')
+    /* chapter V — Son Mahkeme (finale) */
+    ,item('last-verdict-blade', KabirI18n.t('Son Hükmün Kırığı'), 'weapon', 13, 'boss', .34, 0, 4, 'sword', KabirI18n.t('Kara Kadı’nın kırılan hüküm kılıcı. Ağzında dört efendinin mührü yan yana kararmış; artık kimseyi mahkûm etmez.'), 'grave-sword', 'blood')
+    ,item('verdict-warden-helm', KabirI18n.t('Hüküm Bekçisinin Kör Yüzü'), 'head', 13, 'boss', 0, .1, 5, null, KabirI18n.t('Göz yarıkları zincirle dikilmiş bir yargı miğferi. Bekçi hiçbir sanığın yüzüne bakmazdı.'), 'iron-helm', 'blood')
+    ,item('verdict-warden-chest', KabirI18n.t('Hüküm Bekçisinin Zincir Cübbesi'), 'chest', 13, 'boss', 0, .14, 6, null, KabirI18n.t('Zincir halkaların arasına mahkûmların adları işlenmiş ağır cübbe. Adlar artık serbest; demir kaldı.'), 'coast-chest', 'rust')
+    ,item('void-oath-axe', KabirI18n.t('Boşluğa Düşen Yemin'), 'weapon', 13, 'epic', .29, 0, 3, 'axe', KabirI18n.t('Mahkemenin kenarından boşluğa düşmüş bir gardiyan baltası. Ağzı hâlâ zincir kırar.'), 'executioner-axe', 'ash')
+    ,item('chain-court-spear', KabirI18n.t('Zincir Mahkemesinin Mızrağı'), 'weapon', 13, 'epic', .285, .015, 3, 'spear', KabirI18n.t('Sanıkları kürsüye çeken zincir mızrak. Ucunda kurumuş kan ve kırık bir mühür var.'), 'bell-spear', 'blood')
+    ,item('sentence-wraps', KabirI18n.t('Okunmamış Hükmün Sargıları'), 'hands', 13, 'epic', 0, .08, 6, null, KabirI18n.t('Hükmü okunmadan ölenlerin sargıları. Parmaklarda mürekkep değil, kül var.'), 'rag-wraps', 'ash')
+    ,item('last-road-boots', KabirI18n.t('Son Kürsüye Giden Adımlar'), 'boots', 13, 'epic', 0, .105, 3, null, KabirI18n.t('Boşluğun üstündeki taş köprülerde aşınmış demir çizmeler. Geri dönüş için yapılmamışlar.'), 'tide-boots', 'rust')
   ]);
   const catalog = Object.freeze(Object.fromEntries(items.map(i => [i.id, i])));
-  const bossSignatures = Object.freeze({ 1:Object.freeze(['executioner-axe']),2:Object.freeze(['bell-spear']),3:Object.freeze(['hollow-crown-blade']),4:Object.freeze(['furnace-oath-axe']),ruinwarden:Object.freeze(['warden-chainmail','warden-verdict-helm']),ashwarden:Object.freeze(['ash-warden-chest','ash-warden-grasp']) });
+  const bossSignatures = Object.freeze({ 1:Object.freeze(['executioner-axe']),2:Object.freeze(['bell-spear']),3:Object.freeze(['hollow-crown-blade']),4:Object.freeze(['furnace-oath-axe']),5:Object.freeze(['last-verdict-blade']),verdictwarden:Object.freeze(['verdict-warden-helm','verdict-warden-chest']),ruinwarden:Object.freeze(['warden-chainmail','warden-verdict-helm']),ashwarden:Object.freeze(['ash-warden-chest','ash-warden-grasp']) });
   const signatureIds = new Set(Object.values(bossSignatures).flat());
   const qualities = Object.freeze({ common: { name: KabirI18n.t('Sıradan'), rank: 0, color:'#c7bdae' }, uncommon: { name: KabirI18n.t('Sıradışı'), rank: 1, color:'#92ad7d' }, rare: { name: KabirI18n.t('Nadir'), rank: 2, color:'#82aac5' }, epic: { name: KabirI18n.t('Epik'), rank: 3, color:'#b394ce' }, boss: { name: KabirI18n.t('Eşsiz'), rank: 4, color:'#d6b475' } });
   // Every identity has a fixed quality. Individual drops vary slightly in craftsmanship.
@@ -328,7 +337,7 @@
       lootIdentities = new Set((Array.isArray(profile.lootIdentities)?profile.lootIdentities:[]).filter(id=>catalog[id]).slice(0,items.length));
       for(const k of lootSeen){const id=k.slice(k.indexOf(':')+1);if(catalog[id])lootIdentities.add(id);}
       lootSlots=(Array.isArray(profile.lootSlots)?profile.lootSlots:[]).filter(slot=>slots.includes(slot)).slice(-6);
-      signatureClaims=Object.create(null);if(profile.signatureClaims&&typeof profile.signatureClaims==='object')for(const key of Object.keys(profile.signatureClaims)){const id=profile.signatureClaims[key];if(/^[1234]:/.test(key)&&key.length<240&&signatureIds.has(id))signatureClaims[key]=id;}
+      signatureClaims=Object.create(null);if(profile.signatureClaims&&typeof profile.signatureClaims==='object')for(const key of Object.keys(profile.signatureClaims)){const id=profile.signatureClaims[key];if(/^[1-5]:/.test(key)&&key.length<240&&signatureIds.has(id))signatureClaims[key]=id;}
       let restoredXp = int(profile.xp, 0);
       if (profile.version === 1) {
         // Preserve earned levels in older two-chapter saves, using XP rather than a claimed level/point count.
@@ -347,9 +356,9 @@
       state.inventory = profile.inventory.filter(i => i && typeof i.uid === 'string' && i.uid.length < 160 && catalog[i.id] && !seen.has(i.uid) && seen.add(i.uid))
         .map(i => ({ uid: i.uid, id: i.id, roll: catalog[i.id].rarity === 'boss' ? 0 : Math.max(-2, Math.min(2, Number.isInteger(i.roll) ? i.roll : 0)) }));
       state.groundLoot = (Array.isArray(profile.groundLoot) ? profile.groundLoot : []).filter(i =>
-        i && typeof i.uid === 'string' && /^drop-[1234]:/.test(i.uid) && i.uid.length < 160 && catalog[i.id] &&
+        i && typeof i.uid === 'string' && /^drop-[1-5]:/.test(i.uid) && i.uid.length < 160 && catalog[i.id] &&
         Number.isFinite(i.x) && Number.isFinite(i.z) && Math.abs(i.x)<2048 && Math.abs(i.z)<2048 &&
-        [1,2,3,4].includes(i.chapter) && !seen.has(i.uid) && seen.add(i.uid)).slice(0,96)
+        Number.isInteger(i.chapter) && i.chapter >= 1 && i.chapter <= FINAL_CHAPTER && !seen.has(i.uid) && seen.add(i.uid)).slice(0,96)
         .map(i => ({ uid:i.uid, id:i.id, roll:catalog[i.id].rarity==='boss'?0:Math.max(-2,Math.min(2,Number.isInteger(i.roll)?i.roll:0)), x:i.x, z:i.z, chapter:i.chapter, boss:!!i.boss }));
       for(const e of state.inventory.concat(state.groundLoot))lootIdentities.add(e.id);
       serial = Math.max(int(profile.serial, 0), state.inventory.reduce((n, i) => Math.max(n, /^gear-\d+$/.test(i.uid) ? Number(i.uid.slice(5)) : 0), 0));
@@ -368,9 +377,9 @@
         if (open) state.loadout[3] = open.id;
       }
       rewards = Object.create(null);
-      if (Array.isArray(profile.rewards)) for (const key of profile.rewards) if (typeof key === 'string' && /^[1234]:/.test(key) && key.length < 240) rewards[key] = true;
+      if (Array.isArray(profile.rewards)) for (const key of profile.rewards) if (typeof key === 'string' && /^[1-5]:/.test(key) && key.length < 240) rewards[key] = true;
       state.chapter = chapterId(profile.chapter);
-      state.completed = [1, 2, 3, 4].filter(n => Array.isArray(profile.completed) && profile.completed.includes(n));
+      state.completed = [1, 2, 3, 4, 5].filter(n => Array.isArray(profile.completed) && profile.completed.includes(n));
       changed(); return true;
     }
     function unlock(id) {
@@ -473,7 +482,7 @@
     // Picks the item base of an ordinary drop: favours real upgrades over everything the hero owns, the weakest slots first,
     // never repeats a base already dropped this chapter / owned / lying on the ground, and keeps junk to a small share.
     function lootPick(chapter, elite, seed, roll) {
-      const lootLevel = Math.min(state.level, chapter === 4 ? MAX_LEVEL : chapter === 3 ? 10 : chapter === 2 ? 8 : 5);
+      const lootLevel = Math.min(state.level, chapter >= 4 ? MAX_LEVEL : chapter === 3 ? 10 : chapter === 2 ? 8 : 5);
       const pool = items.filter(i => i.rarity !== 'boss' && !signatureIds.has(i.id) && i.id !== 'dull-sword' && i.id !== 'torn-chest' &&
         i.level <= lootLevel && i.level >= Math.max(1, lootLevel - 2));
       if (!pool.length) return null;
@@ -539,12 +548,12 @@
       rewards[key] = true;
       const before = state.xp, oldLevel = state.level;
       // Difficulty changes combat, never asks the player to farm longer for the same active skills.
-      let gain = boss ? (chapter === 4 ? 550 : chapter === 3 ? 400 : chapter === 2 ? 360 : 110) : chapter === 4 ? (type === 'ashwarden' ? 160 : 80 + hash(key + type) % 13) : chapter === 3 ? (type === 'ruinwarden' ? 120 : 60 + hash(key + type) % 13) : chapter === 2 ? 45 + hash(key + type) % 13 : XP[type] || 22;
-      if (elite && !boss && type !== 'ruinwarden' && type !== 'ashwarden') gain = Math.round(gain * 1.6);
+      let gain = boss ? (chapter >= 5 ? 700 : chapter === 4 ? 550 : chapter === 3 ? 400 : chapter === 2 ? 360 : 110) : chapter >= 5 ? (type === 'verdictwarden' ? 200 : 100 + hash(key + type) % 15) : chapter === 4 ? (type === 'ashwarden' ? 160 : 80 + hash(key + type) % 13) : chapter === 3 ? (type === 'ruinwarden' ? 120 : 60 + hash(key + type) % 13) : chapter === 2 ? 45 + hash(key + type) % 13 : XP[type] || 22;
+      if (elite && !boss && type !== 'ruinwarden' && type !== 'ashwarden' && type !== 'verdictwarden') gain = Math.round(gain * 1.6);
       state.xp = Math.min(THRESHOLDS[MAX_LEVEL - 1], state.xp + gain);
       if (boss) state.xp = Math.max(state.xp, THRESHOLDS[MILESTONES[chapter - 1] - 1]);
       recalculate();
-      const dropped = loot(enemyId, type, boss, chapter, elite || type === 'ruinwarden' || type === 'ashwarden', position);
+      const dropped = loot(enemyId, type, boss, chapter, elite || type === 'ruinwarden' || type === 'ashwarden' || type === 'verdictwarden', position);
       const reward = { xp: state.xp - before, levels: state.level - oldLevel, items: dropped, duplicate: false,
         level: state.level, points: state.points, enemyId: String(enemyId), chapter };
       changed('progression', reward); return reward;
@@ -556,7 +565,7 @@
       changed('loot', {items:[entry],boss:drop.boss,chapter:drop.chapter}); return entry;
     }
     function completedChapter(chapter) {
-      if (chapter !== 1 && chapter !== 2 && chapter !== 3 && chapter !== 4) return false;
+      if (!(Number.isInteger(chapter) && chapter >= 1 && chapter <= FINAL_CHAPTER)) return false;
       if (!state.completed.includes(chapter)) state.completed.push(chapter);
       state.xp = Math.max(state.xp, THRESHOLDS[MILESTONES[chapter - 1] - 1]); recalculate();
       // A hurried chapter transition must not destroy the promised signature reward.
@@ -564,7 +573,7 @@
       for(const drop of carried)if(!state.inventory.some(i=>i.uid===drop.uid))addItem(drop.id,drop.uid,0);
       state.groundLoot = state.groundLoot.filter(i => i.chapter !== chapter);
       if(carried.length)changed('loot',{items:carried,boss:true,chapter,transition:true});
-      state.chapter = Math.min(4, chapter + 1); changed(); return true;
+      state.chapter = Math.min(FINAL_CHAPTER, chapter + 1); changed(); return true;
     }
     Object.assign(state, { grantQuest, boons: () => boons, snapshot, restore, grantEnemy, unlock, assign, equip, stats, loot, completedChapter, reset, refund, respec,
       skillForSlot: slot => { const s = skillIndex[state.loadout[slot]] || null; return s && B.TalentTree ? B.TalentTree.effective(s, state.learned) : s; },
@@ -574,5 +583,5 @@
     reset(); state.chapter = chapterId(options.chapter); if (options.profile) restore(options.profile);
     return state;
   }
-  B.Progression = Object.freeze({ create, skills, lines: LINES, skillsByLine, skillFacts, skillAccess, SKILL_TREE, items, catalog, bossSignatures, qualities, resolveItem, slots, MAX_LEVEL, VERSION, thresholds: THRESHOLDS, earnedPoints: POINTS, milestones: MILESTONES });
+  B.Progression = Object.freeze({ create, skills, lines: LINES, skillsByLine, skillFacts, skillAccess, SKILL_TREE, items, catalog, bossSignatures, qualities, resolveItem, slots, MAX_LEVEL, VERSION, thresholds: THRESHOLDS, earnedPoints: POINTS, milestones: MILESTONES, FINAL_CHAPTER });
 }());

@@ -411,7 +411,7 @@
   }
 
   // ------------------------------------------------------------------ oyun bilgisi
-  const MATERIAL = { prisoner: 'flesh', cultist: 'flesh', stalker: 'bone', carrier: 'wet', guard: 'armor', boss: 'armor', drowned: 'wet', rootborn: 'bone', crawler: 'bone', urchin: 'wet', lantern: 'flesh', bell: 'armor', ashbound:'flesh', shardseer:'bone', cavefang:'bone', gravemason:'stone', ruinwarden:'armor', hollowking:'armor', emberbound:'flesh', chainseer:'flesh', slagcrawler:'stone', forgesentinel:'armor', ashwarden:'armor', furnaceheart:'armor' };
+  const MATERIAL = { prisoner: 'flesh', cultist: 'flesh', stalker: 'bone', carrier: 'wet', guard: 'armor', boss: 'armor', drowned: 'wet', rootborn: 'bone', crawler: 'bone', urchin: 'wet', lantern: 'flesh', bell: 'armor', ashbound:'flesh', shardseer:'bone', cavefang:'bone', gravemason:'stone', ruinwarden:'armor', hollowking:'armor', emberbound:'flesh', chainseer:'flesh', slagcrawler:'stone', forgesentinel:'armor', ashwarden:'armor', furnaceheart:'armor', damned:'flesh', verdictseer:'flesh', voidcrawler:'bone', chainjailer:'armor', verdictwarden:'armor', lastjudge:'armor' };
   function player() { const g = game(); return g && g.player; }
   function struckEnemies() {
     const g = game(), p = player(); if (!g || !p || !g.enemies) return [];
@@ -471,7 +471,7 @@
   // A blade lands on a foe (layers: steel/flesh bite, wet slap, material body, bone crack, metal ring; the body punch is added once per blow in H.hit).
   // tier: 0 light, 1 finisher, 2 heavy attack.
   function impact(type, heavy, k, at, tier = heavy ? 2 : 0) {
-    const m = MATERIAL[type] || 'flesh', boss = type === 'boss' || type === 'bell' || type === 'hollowking' || type === 'furnaceheart', w = tier === 2 ? 1 : tier === 1 ? .8 : .55, o = { at, send: tier ? .16 : .1, detune: .02 };
+    const m = MATERIAL[type] || 'flesh', boss = type === 'boss' || type === 'bell' || type === 'hollowking' || type === 'furnaceheart' || type === 'lastjudge', w = tier === 2 ? 1 : tier === 1 ? .8 : .55, o = { at, send: tier ? .16 : .1, detune: .02 };
     const L = (name, vol, x) => sample(name, Object.assign({ vol: vol * k }, o, x)), fi = 1 + Math.floor(Math.random() * 3);   // flesh variant 0 is a hissy squelch: skipped
     if (m === 'armor') {
       L('hitCutSteel', .5 + .25 * w, { rate: rand(.95, 1.08) });
@@ -501,8 +501,8 @@
       if (type === 'cultist') L('cloth', .25, { rate: 1.2 });
     }
   }
-  const PAIN = { prisoner: 'prisonerYell', guard: 'guardGrunt', cultist: 'hurt', stalker: 'stalkerShriek', carrier: 'carrierGurgle', boss: 'bossRoar', ashbound:'prisonerYell', shardseer:'hurt', cavefang:'stalkerShriek', gravemason:'guardGrunt', ruinwarden:'guardGrunt', hollowking:'bossRoar', emberbound:'prisonerYell', chainseer:'hurt', slagcrawler:'carrierGurgle', forgesentinel:'guardGrunt', ashwarden:'guardGrunt', furnaceheart:'bossRoar' };
-  const PAIN_RATE = {ashbound:.84,shardseer:.92,cavefang:1.08,gravemason:.76,ruinwarden:.8,hollowking:.72,emberbound:.8,chainseer:.8,slagcrawler:.72,forgesentinel:.72,ashwarden:.8,furnaceheart:.65};
+  const PAIN = { prisoner: 'prisonerYell', guard: 'guardGrunt', cultist: 'hurt', stalker: 'stalkerShriek', carrier: 'carrierGurgle', boss: 'bossRoar', ashbound:'prisonerYell', shardseer:'hurt', cavefang:'stalkerShriek', gravemason:'guardGrunt', ruinwarden:'guardGrunt', hollowking:'bossRoar', emberbound:'prisonerYell', chainseer:'hurt', slagcrawler:'carrierGurgle', forgesentinel:'guardGrunt', ashwarden:'guardGrunt', furnaceheart:'bossRoar', damned:'prisonerYell', verdictseer:'hurt', voidcrawler:'stalkerShriek', chainjailer:'guardGrunt', verdictwarden:'guardGrunt', lastjudge:'bossRoar' };
+  const PAIN_RATE = {ashbound:.84,shardseer:.92,cavefang:1.08,gravemason:.76,ruinwarden:.8,hollowking:.72,emberbound:.8,chainseer:.8,slagcrawler:.72,forgesentinel:.72,ashwarden:.8,furnaceheart:.65,damned:.86,verdictseer:.82,voidcrawler:1.02,chainjailer:.72,verdictwarden:.76,lastjudge:.6};
   function painVocal(e, heavy) {
     if (!e || e.dead || !throttle('pain_' + e.type, e.boss ? 2.4 : .75) || !chance(heavy ? .8 : .45)) return;
     const n = PAIN[e.type] || 'prisonerYell';
@@ -1297,7 +1297,7 @@
     const t = ctx.currentTime, r = room();
     heartbeatStep(dt, st, t);
     const chapter = B.app && B.app.world.chapter;
-    if (chapter === 3 || chapter === 4) { campaignAmbience(t, r, st, chapter === 4); return; }
+    if (chapter >= 3) { campaignAmbience(t, r, st, chapter >= 4); return; }
     if (B.app && B.app.world.chapter === 2) { coastAmbience(t, r, st); return; }
     targetParam(A.wind.gain, r === 4 ? .075 : r === 6 ? .065 : .05, t, 2);
     if (!st.playing && !st.title) return;
