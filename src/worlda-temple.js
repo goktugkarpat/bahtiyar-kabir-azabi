@@ -178,7 +178,10 @@
       box('dark', x, .19, z, w + (axis === 'z' ? .25 : 0), .38, d + (axis === 'x' ? .25 : 0));
       var caps = Math.ceil(length / 1.42), span = length / caps;
       for (var q = 0; q < caps; q++) { var o = -length / 2 + (q + .5) * span;
-        put('box', 'stone', x + (axis === 'x' ? o : 0), height + .045, z + (axis === 'z' ? o : 0), axis === 'x' ? span - .04 : .94, .19, axis === 'z' ? span - .04 : .94, 0, 0, 0, 0, new T.Color().setScalar(.7 + q % 3 * .06)); }
+        var broken = height > 2 && R() < .22, ch = broken ? U(.25, .6) : 0;
+        if (broken) { put('wa-rock', 'stone', x + (axis === 'x' ? o : 0), height - ch * .5, z + (axis === 'z' ? o : 0), axis === 'x' ? span * .9 : .9, ch + .3, axis === 'z' ? span * .9 : .9, 0, R() * 6, 0, 1); continue; }
+        put('box', 'stone', x + (axis === 'x' ? o : 0), height + .045, z + (axis === 'z' ? o : 0), axis === 'x' ? span - .04 : .94, .19, axis === 'z' ? span - .04 : .94, 0, 0, 0, 0, new T.Color().setScalar(.7 + q % 3 * .06));
+        if (height > 2 && R() < .3) put('wa-rock', R() < .5 ? 'stone' : 'dark', x + (axis === 'x' ? o + U(-.4, .4) : U(-.2, .2)), height + .22, z + (axis === 'z' ? o + U(-.4, .4) : U(-.2, .2)), U(.3, .55), U(.2, .35), U(.3, .5), U(-.3, .3), R() * 6, U(-.3, .3), 1); }
     }
     // Shell: masonry walls (collider), the doorway towards the main hall, a low front parapet, buttresses and corner collapse.
     function shell(r) {
