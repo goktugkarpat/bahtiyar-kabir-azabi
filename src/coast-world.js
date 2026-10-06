@@ -417,7 +417,7 @@
     // 3: broad main pier, snapped piles, cargo and a wreck in the black water.
     for (var row = 0; row < 24; row++) for (var col = 0; col < 5; col++) add(3, plank, 'wood', (col - 2) * 4 - 2, .025, -69 - row * 1.04, 3.93, .065, .95, 0, 0, (rnd() - .5) * .013);
     for (var side = -1; side <= 1; side += 2) for (var n = 0; n < 7; n++) { var pierZ=-70-n*3.7; if(side<0&&n===3)pierZ=-85.4; add(3, cylinder, 'wood', side > 0 ? 7.7 : -11.7, .3, pierZ, .18, 2.2, .18, .05, 0, side * .05); if (n % 3 !== 1 && !(side<0&&(n===2||n===3))) beam(3, 'wood', [side > 0 ? 7.7 : -11.7, 1.1, pierZ], [side > 0 ? 7.7 : -11.7, 1.05, -73.5 - n * 3.7], .055); }
-    for (var i = 0; i < 8; i++) { var x = (i % 2 ? -1 : 1) * (10 + rnd()), z = -72 - Math.floor(i / 2) * 5; if(x<0&&Math.abs(z+81)<6)z=-69-i*.35; add(3, box, 'wood', x, .45, z, 1.2, .9, 1.1, 0, rnd(), 0); add(3, box, 'rust', x, .47, z, 1.25, .055, 1.15, 0, rnd(), .4); collision(x, z, 1.25, 1.15); }
+    for (var i = 0; i < 8; i++) { var x = (i % 2 ? -1 : 1) * (10 + rnd()), z = -72 - Math.floor(i / 2) * 5; if(x<0&&Math.abs(z+81)<6)z=-69-i*.35;if(x>0&&Math.abs(z+86.4)<3)z=-91.6; add(3, box, 'wood', x, .45, z, 1.2, .9, 1.1, 0, rnd(), 0); add(3, box, 'rust', x, .47, z, 1.25, .055, 1.15, 0, rnd(), .4); collision(x, z, 1.25, 1.15); }
     for(var row=0;row<24;row++)for(var col=0;col<5;col++)for(var side=-1;side<=1;side+=2)add(3,cylinder,'rust',(col-2)*4-2+side*1.74,.061,-69-row*1.04,.022,.009,.022);
     for(var side=-1;side<=1;side+=2)for(var n=0;n<7;n++){
       var px=side>0?7.7:-11.7,zz=-70-n*3.7;if(side<0&&n===3)zz=-85.4;add(3,ring,'rust',px,.88,zz,.19,.19,.19,PI/2);
