@@ -12,7 +12,7 @@
   const BOTS = {
     novice: { reaction: .42, miss: .35, lead: .22, flaskAt: .35, skills: false, spam: false },
     average: { reaction: .30, miss: .18, lead: .26, flaskAt: .42, skills: true, spam: false },
-    skilled: { reaction: .20, miss: .06, lead: .24, flaskAt: .38, skills: true, spam: false },
+    skilled: { reaction: .20, miss: .06, lead: .16, flaskAt: .38, skills: true, spam: false },
     spam: { reaction: .15, miss: .05, lead: .9, flaskAt: .42, skills: true, spam: true }
   };
   // Expected kit per chapter (what a player who equips the drops wears on arrival): weapon + four armour pieces.

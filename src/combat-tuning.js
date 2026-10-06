@@ -14,9 +14,9 @@
     easy: Object.freeze({ enemyHp: .70, enemyDmg: .48, eliteHp: 1, eliteDmg: 1, playerDmg: 1.18, pace: 1.22, rest: 1.30, attackers: 2, melee: 1,
       iframe: .44, dodgeStep: .15, regenDelay: .25, regen: 1.15, flasks: 5, flaskHeal: 1.15, perfectWindow: .26 }),
     normal: Object.freeze({ enemyHp: .95, enemyDmg: .86, eliteHp: 1.12, eliteDmg: 1.08, playerDmg: 1.12, pace: 1.10, rest: 1.08, attackers: 3, melee: 2,
-      iframe: .38, dodgeStep: .35, regenDelay: .50, regen: 1, flasks: 4, flaskHeal: 1, perfectWindow: .22 }),
-    hard: Object.freeze({ enemyHp: 1.22, enemyDmg: 1.32, eliteHp: 1.40, eliteDmg: 1.25, playerDmg: 1, pace: 1, rest: .82, attackers: 3, melee: 2,
-      iframe: .32, dodgeStep: .55, regenDelay: .70, regen: .92, flasks: 3, flaskHeal: .85, perfectWindow: .18 })
+      iframe: .38, dodgeStep: .30, regenDelay: .40, regen: 1, flasks: 4, flaskHeal: 1, perfectWindow: .22 }),
+    hard: Object.freeze({ enemyHp: 1.15, enemyDmg: 1.32, eliteHp: 1.40, eliteDmg: 1.25, playerDmg: 1, pace: 1, rest: .82, attackers: 3, melee: 2,
+      iframe: .32, dodgeStep: .40, regenDelay: .50, regen: 1, flasks: 3, flaskHeal: .85, perfectWindow: .18 })
   });
   // Stamina economy shared by all difficulties.
   //   REGEN per second once the delay has passed (was a flat 12/s that never paused, so rolls were effectively free between blows).
@@ -36,6 +36,12 @@
     // While waiting for a free attack slot, close melee foes circle the hero instead of standing still (fraction of walk speed).
     circle: .42
   });
+  // Per-chapter correction for common foes (not bosses), on top of the campaign ramp in combat.js. Measured with the average bot on Normal
+  // (hero at the expected level/gear of the chapter: L3 / L6 / L9 / L11), health lost per hall before -> after this table:
+  // ch I 23.6 % -> see notes, ch II 12.3 % (the hero's level-6 jump outran the shore foes) -> raised, ch III 33 %, ch IV 42 %.
+  const CHAPTER = Object.freeze({ 1: { hp: 1, dmg: .85 }, 2: { hp: 1.12, dmg: 2.0 }, 3: { hp: 1, dmg: .88 }, 4: { hp: 1, dmg: .8 } });
+  // Chapter bosses (their own blows only; adds follow CHAPTER): the forge heart hit softer than the hollow king it follows.
+  const BOSS = Object.freeze({ 1: { dmg: 1 }, 2: { dmg: 1 }, 3: { dmg: 1 }, 4: { dmg: 1.3 } });
   function profile(level) { return DIFFICULTY[level] || DIFFICULTY.normal; }
   // Text for the settings screen (Turkish source, translated through KabirI18n; English in i18n.js block "ajan:combat").
   function describe(level) {
@@ -44,7 +50,7 @@
     if (level === 'hard') return t('Zor: hata payı çok az. Düşmanlar daha dayanıklı, daha sert ve dinlenmeden saldırır; seçkin düşmanlar gerçek bir sınavdır. Arka arkaya yuvarlanmak hızla dayanıklılığını tüketir, 3 şifa matarası taşırsın. Son anda yuvarlanmayı öğren.');
     return t('Normal: önerilen deneyim. Düşmanların darbelerini oku, son anda yuvarlan, dayanıklılığını yönet. Seviye atladıkça güçlenirsin ama her bölüm biraz daha sertleşir.');
   }
-  B.CombatTuning = Object.freeze({ DIFFICULTY, ECONOMY, FEEL, profile, describe });
+  B.CombatTuning = Object.freeze({ DIFFICULTY, CHAPTER, BOSS, ECONOMY, FEEL, profile, describe });
 })();
 /* Measurements (BABA.Balance.run, expected gear and level per chapter; see the report in the branch notes):
    filled in after tuning below. */

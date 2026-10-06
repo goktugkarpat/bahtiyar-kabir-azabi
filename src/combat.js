@@ -633,7 +633,9 @@
         const campaignHealth = chapter === 1 ? 1 : isBoss ? [1, 1, 1.22, 1.38, 1.50][chapter] : chapter === 2 ? 1 + .22 * pressure : chapter === 3 ? 1.24 + .16 * pressure : 1.40 + .16 * pressure;
         const campaignPace = chapter === 1 || isBoss ? 1 : chapter === 2 ? 1 - .08 * pressure : chapter === 3 ? .92 - .04 * pressure : .88 - .03 * pressure;
         const campaignDamage = chapter === 1 ? (ei === 0 ? .65 : ei === 1 ? .72 : .72 + .28 * Math.min(ei,5) / 5) : chapter === 2 ? 1.05 + .12 * pressure : chapter === 3 ? 1.22 + .12 * pressure : 1.36 + .12 * pressure;
-        const maxHp = Math.round(stats.hp * (isBoss ? BALANCE.bossHealth : BALANCE.health) * stage * campaignHealth * (s.elite && !stats.elite ? 1.45 : 1));
+        // Chapter smoothing (combat-tuning.js CHAPTER, measured): common foes of each chapter against the hero's expected level and gear there.
+        const chapterTune = TUNE ? (isBoss ? { hp: 1, dmg: (TUNE.BOSS[chapter] || { dmg: 1 }).dmg } : TUNE.CHAPTER[chapter] || { hp: 1, dmg: 1 }) : { hp: 1, dmg: 1 };
+        const maxHp = Math.round(stats.hp * (isBoss ? BALANCE.bossHealth : BALANCE.health) * stage * campaignHealth * chapterTune.hp * (s.elite && !stats.elite ? 1.45 : 1));
         const holder = new THREE.Group(); holder.name = 'enemy-holder'; holder.add(model.root); root.add(holder);
         guardRenderMatrices(holder); guardRenderMatrices(model.root); model.root.userData.skipFresh = true;
         const enemy = {
@@ -641,7 +643,7 @@
           x: s.x, z: s.z, spawnX: s.x, spawnZ: s.z, face: Math.PI, holder, inView: true,
           hp: maxHp, maxHp, baseMaxHp:maxHp, dead: false, model, elite: !!s.elite || !!stats.elite, boss: !!stats.boss || s.type === 'boss', phase: 1,
           active: false, activated: false, cooldown: .4 + si * .33, action: null,
-          radius: model.radius || stats.radius, stats, tutorialStage: chapter === 1 && ei < 2 && !stats.boss && s.type !== 'boss' ? ei : -1, campaignPace, campaignDamage: (s.elite ? 1.1 : 1) * campaignDamage, hurt: 0, stagger: 0,
+          radius: model.radius || stats.radius, stats, tutorialStage: chapter === 1 && ei < 2 && !stats.boss && s.type !== 'boss' ? ei : -1, campaignPace, campaignDamage: (s.elite ? 1.1 : 1) * campaignDamage * chapterTune.dmg, hurt: 0, stagger: 0,
           deadAge: 0, move: 0, buff: 0, buffCooldown: 7 + si, cycle: 0,
           retreat: 0, shieldBroken: 0, poiseRecovery: 0, shield: s.type === 'guard', faceLocked: false, reserve: !!s.reserve
         };
