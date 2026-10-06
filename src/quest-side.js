@@ -443,7 +443,16 @@
       }
       actor.root.name = def.npc; kit.root.add(actor.root);
       // A pale oath ring under the living captive keeps them apart from the hostile dead that share their silhouette.
-      var halo = [], hg = new T.Group(); kit.ring(halo, kit.glow, .55, .018, 0, .04, 0, PI / 2); kit.merge(halo, hg); actor.halo = hg; kit.root.add(hg);
+      var halo = [], hg = new T.Group(); kit.ring(halo, kit.glow, .55, .018, 0, .04, 0, PI / 2); kit.ring(halo, kit.glow, .7, .01, 0, .04, 0, PI / 2); kit.merge(halo, hg); actor.halo = hg; kit.root.add(hg);
+      try {
+        var mt2 = kit.materials || {}, lamp = [], shroud = [], lg2 = new T.Group(), sg = new T.Group(), EMB = mt2.ember || mt2.fire || mt2.lamp || mt2.hot || kit.glow;
+        // A small hand lantern hangs from a pole over the shoulder; a pale shroud covers the head and back.
+        kit.box(lamp, kit.wood, .035, 1.5, .035, .32, 1.0, -.12, .35, 0, -.2); kit.box(lamp, kit.metal, .16, .2, .16, .58, 1.55, .12); kit.put(lamp, EMB, new T.OctahedronGeometry(.08, 0), .58, 1.55, .12); kit.box(lamp, kit.metal, .2, .03, .2, .58, 1.67, .12);
+        kit.merge(lamp, lg2); actor.root.add(lg2);
+        var PALE = mt2.shroud || mt2.cloth || mt2.pale || kit.stone;
+        kit.put(shroud, PALE, new T.ConeGeometry(.34, 1.1, 10, 1, true), 0, 1.25, -.08, -.12, 0, 0); kit.put(shroud, PALE, new T.SphereGeometry(.2, 10, 8, 0, PI * 2, 0, PI * .55), 0, 1.78, -.04);
+        kit.merge(shroud, sg); sg.scale.set(1, 1, .8); actor.root.add(sg);
+      } catch (err) { /* decorative only */ }
       return actor;
     }
     var pose = { time: 0, move: 0, attack: 0, dead: false, face: 0, phase: 'idle', action: '', actionProgress: 0, hurt: 0, block: false, dodge: 0, stagger: 0, beat: 0, beatTime: -1, leap: 0, lookYaw: undefined, fear: 0, deathKind: '', hitAngle: 0 };
@@ -482,6 +491,54 @@
       }
       q.enemy = best; return true;
     }
+    // ---- beacons: a faint pillar of light and a slowly turning rune circle over the nearest live objectives,
+    // readable from across a hall. Six pooled sets, two canvas textures and one shader program, built once at load.
+    var beacons = [], beaconTex = null;
+    function canvasTex(w, h, draw) { var c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h); var t = new T.CanvasTexture(c); if (T.SRGBColorSpace) t.colorSpace = T.SRGBColorSpace; return t; }
+    function buildBeacons() {
+      if (typeof document === 'undefined') return;
+      var colTex = canvasTex(16, 128, function (x, w, h) { var g = x.createLinearGradient(0, 0, 0, h); g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(.55, 'rgba(255,255,255,.35)'); g.addColorStop(1, 'rgba(255,255,255,1)'); x.fillStyle = g; x.fillRect(0, 0, w, h); var s2 = x.createLinearGradient(0, 0, w, 0); s2.addColorStop(0, 'rgba(0,0,0,1)'); s2.addColorStop(.5, 'rgba(0,0,0,0)'); s2.addColorStop(1, 'rgba(0,0,0,1)'); x.globalCompositeOperation = 'destination-out'; x.fillStyle = s2; x.fillRect(0, 0, w, h); });
+      var runeTex = canvasTex(256, 256, function (x, w) {
+        x.translate(w / 2, w / 2); x.strokeStyle = '#fff'; x.fillStyle = '#fff';
+        x.lineWidth = 5; x.beginPath(); x.arc(0, 0, 118, 0, PI * 2); x.stroke(); x.lineWidth = 2; x.beginPath(); x.arc(0, 0, 100, 0, PI * 2); x.stroke();
+        x.lineWidth = 2; x.beginPath(); x.arc(0, 0, 62, 0, PI * 2); x.stroke();
+        for (var i = 0; i < 24; i++) { x.save(); x.rotate(i * PI / 12); x.fillRect(-1.5, -116, 3, i % 3 ? 10 : 18); x.restore(); }
+        for (var j = 0; j < 8; j++) { x.save(); x.rotate(j * PI / 4 + .2); x.beginPath(); x.moveTo(0, -96); x.lineTo(7, -78); x.lineTo(-7, -78); x.closePath(); x.fill(); x.restore(); }
+        for (var k = 0; k < 3; k++) { x.save(); x.rotate(k * PI * 2 / 3); x.beginPath(); x.moveTo(0, -62); x.lineTo(54, 31); x.stroke(); x.restore(); }
+      });
+      beaconTex = [colTex, runeTex];
+      var colGeo = new T.CylinderGeometry(.42, .42, 9, 16, 1, true); colGeo.translate(0, 4.5, 0);
+      var runeGeo = new T.PlaneGeometry(3, 3); runeGeo.rotateX(-PI / 2);
+      for (var b = 0; b < 6; b++) {
+        var cm = new T.MeshBasicMaterial({ map: colTex, transparent: true, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide, color: 0xffb060, opacity: .55, fog: false });
+        var rm = new T.MeshBasicMaterial({ map: runeTex, transparent: true, depthWrite: false, blending: T.AdditiveBlending, color: 0xffb060, opacity: .7, fog: false });
+        var grp = new T.Group(), col = new T.Mesh(colGeo, cm), rune = new T.Mesh(runeGeo, rm); col.renderOrder = rune.renderOrder = 6; col.castShadow = rune.castShadow = false;
+        rune.position.y = .06; grp.add(col, rune); grp.visible = false; grp.name = 'quest-beacon'; kit.root.add(grp);
+        beacons.push({ group: grp, col: cm, rune: rm, runeMesh: rune, target: null });
+      }
+    }
+    try { buildBeacons(); } catch (e) { console.warn('[quests] beacons', e && e.message); beacons = []; }
+    var KIND_COLOR = { main: 0xf0c070, hunt: 0xff5a3a, rescue: 0x9fe0c0, lore: 0xf3dfaa, altar: 0xff2a20, chest: 0xffc060, siege: 0xff8040, escape: 0xffe070, puzzle: 0x90b8ff };
+    var beaconClock = 0;
+    function updateBeacons(dt) {
+      if (!beacons.length) return;
+      beaconClock += dt;
+      var list = [];
+      (info.markers || []).forEach(function (m) { if (m.active && !m.complete) list.push({ x: m.x, z: m.z, kind: 'main', key: 'm' + m.id }); });
+      (info.side || []).forEach(function (e) { if (e.available && e.target && Number.isFinite(e.target.x) && !(e.kind === 'hunt')) list.push({ x: e.target.x, z: e.target.z, kind: e.kind, key: 's' + e.id + e.target.id }); });
+      list.forEach(function (t) { t.d = Math.hypot(t.x - player.x, t.z - player.z); });
+      list = list.filter(function (t) { return t.d > 2.2 && t.d < 70; }).sort(function (a, b) { return a.d - b.d; }).slice(0, beacons.length);
+      for (var i = 0; i < beacons.length; i++) {
+        var bc = beacons[i], t = list[i];
+        if (!t) { if (bc.group.visible) bc.group.visible = false; continue; }
+        var y = world.effectHeightAt ? world.effectHeightAt(t.x, t.z, .65) : 0;
+        bc.group.position.set(t.x, y, t.z); bc.group.visible = true;
+        if (bc.kind !== t.kind) { bc.kind = t.kind; bc.col.color.setHex(KIND_COLOR[t.kind] || 0xffb060); bc.rune.color.setHex(KIND_COLOR[t.kind] || 0xffb060); }
+        var near = Math.min(1, Math.max(0, (t.d - 3) / 10)), pulse = .82 + Math.sin(beaconClock * 2.2 + i) * .18;
+        bc.col.opacity = .42 * near * pulse; bc.rune.opacity = .75 * pulse; bc.runeMesh.rotation.y = beaconClock * .35 * (i % 2 ? 1 : -1);
+      }
+    }
+
     // ---- build quests
     defs.forEach(function (def, qi) {
       var q = { def: def, index: qi, nodes: [], entry: null };
@@ -781,6 +838,7 @@
       if (beats && !(local.beats & 1) && beatClock > 40) { local.beats |= 1; say(beats.start); }
       var g = B.app && B.app.game, boss = g && (g.boss || (g.enemies || []).find(function (e) { return e.boss; }));
       if (boss && boss.dead && !bossSeen) { bossSeen = true; if (beats && beats.boss && !(local.beats & 2)) { local.beats |= 2; say(beats.boss); } if (chapter === 5) openFinale(); }
+      updateBeacons(dt);
       timer -= dt; if (dirty || timer <= 0) { timer = .5; refresh();
         // Far props leave the render traversal (same 32 m window as the main quest props).
         for (var c = 0; c < nodes.length; c++) { var pr = nodes[c].parts; if (!pr) continue; var near = Math.abs(player.x - nodes[c].x) < 32 && Math.abs(player.z - nodes[c].z) < 30;
@@ -809,7 +867,7 @@
       quests.forEach(function (q) { if (q.actor) { q.actor.root.position.set(q.actor.x, 0, q.actor.z); } });
       refresh();
     }
-    function dispose() { disposed = true; quests.forEach(function (q) { if (q.actor && q.actor.root) q.actor.root.removeFromParent(); }); }
+    function dispose() { disposed = true; if (beaconTex) beaconTex.forEach(function (t) { t.dispose(); }); beacons.forEach(function (b) { b.col.dispose(); b.rune.dispose(); }); quests.forEach(function (q) { if (q.actor && q.actor.root) q.actor.root.removeFromParent(); }); }
     quests.forEach(function (q) { if (q.actor) animateActor(q.actor, 0); });
     refresh();
     // QA hook: BABA.QuestSide.debug() lists live quest actors and states (no gameplay effect).
