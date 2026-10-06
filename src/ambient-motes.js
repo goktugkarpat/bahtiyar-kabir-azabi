@@ -9,11 +9,11 @@
   var T = window.THREE;
   // count, size (m), box half-size [x, height, z], drift m/s [x, y, z], swirl, colour, intensity, twinkle
   var LOOKS = {
-    1: { n: 170, size: .045, box: [9, 4.2, 7], vel: [.05, .03, -.02], swirl: .35, color: [1, .72, .42], k: .55, tw: .6 },
-    2: { n: 220, size: .05, box: [10, 4, 8], vel: [.55, -.06, -.25], swirl: .5, color: [.62, .74, .7], k: .38, tw: .3 },
-    3: { n: 190, size: .04, box: [9, 4.5, 7], vel: [-.04, .05, .03], swirl: .3, color: [.85, .88, 1], k: .5, tw: .9 },
-    4: { n: 210, size: .05, box: [9, 5, 7], vel: [.06, .55, .02], swirl: .7, color: [1, .45, .14], k: 1.25, tw: .8 },
-    5: { n: 180, size: .05, box: [9, 4.5, 7], vel: [0, .08, 0], swirl: .45, color: [.85, .12, .14], k: .7, tw: .6 }
+    1: { n: 170, size: .065, box: [9, 4.2, 7], vel: [.05, .03, -.02], swirl: .35, color: [1, .72, .42], k: .55, tw: .6 },
+    2: { n: 220, size: .07, box: [10, 4, 8], vel: [.55, -.06, -.25], swirl: .5, color: [.62, .74, .7], k: .38, tw: .3 },
+    3: { n: 190, size: .06, box: [9, 4.5, 7], vel: [-.04, .05, .03], swirl: .3, color: [.85, .88, 1], k: .7, tw: .9 },
+    4: { n: 210, size: .075, box: [9, 5, 7], vel: [.06, .55, .02], swirl: .7, color: [1, .45, .14], k: 1.6, tw: .8 },
+    5: { n: 180, size: .07, box: [9, 4.5, 7], vel: [0, .08, 0], swirl: .45, color: [.85, .12, .14], k: .7, tw: .6 }
   };
   var MAXN = 240;
   var VS = [
