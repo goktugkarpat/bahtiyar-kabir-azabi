@@ -187,6 +187,8 @@
         if(g===rock&&sy>.2&&open.floorTest(x,z,-Math.max(sx,sz)*.5)&&!mainTest(x,z))return;
         y+=ground.y(x,z);
       }
+      // nothing solid-looking stands on the walkable strand: shore rocks are pushed seaward
+      if(room<6&&room!==3&&g===rock&&mat==='rock'&&x>8&&sy>.2)x=Math.max(x,11.7+Math.max(sx,sz)*.8);
       var key = room + ':' + g.id + ':' + mat;
       if (!batches[key]) batches[key] = { room: room, geo: g, mat: materials[mat], matrices: [] };
       position.set(x, y, z); scale.set(sx, sy, sz); rotation.setFromEuler(euler.set(rx || 0, ry || 0, rz || 0));
@@ -352,7 +354,7 @@
       }
       // Shattered retaining wall, tide-washed pebbles and small barnacle clusters outside the route.
       if(id!==3)for(var j=0;j<9;j++){
-        var shore=r.w*.5-3.55,zz=r.z-r.d*.45+j*r.d*.11;
+        var shore=r.w*.5-3.55+(id<6?3.6:0),zz=r.z-r.d*.45+j*r.d*.11;
         add(id,box,'stone',shore,.12,zz,.42,.35,.95,0,(rnd()-.5)*.09,(rnd()-.5)*.07);
         if(j%3===0){add(id,rock,'rock',shore+.75,-.16,zz,.9,.45,.72,0,rnd()*3,0);for(var k=0;k<5;k++)add(id,rock,'rock',shore+.65+(rnd()-.5)*.55,.13+rnd()*.13,zz+(rnd()-.5)*.5,.055,.065,.055,0,rnd()*6,0);}
       }
@@ -371,7 +373,9 @@
       lantern(id, r.w * .5 - 1.5, 2.3, r.z - r.d * .3, id === 6 ? 'brazier1' : 'coast');
     });
     // A continuous eroded bank hides rectangular land edges. The flat walking footprint is unchanged.
-    rooms.forEach(function(r,id){if(id===3)return;var edge=r.w*.5-4,rows=6,N=Math.ceil(r.d/1.2),pos=[],uv=[],ix=[];
+    rooms.forEach(function(r,id){if(id===3)return;var beach=id<6?3.6:0,edge=r.w*.5-4+beach,rows=6,N=Math.ceil(r.d/1.2),pos=[],uv=[],ix=[];
+      // the strand: a flat, walkable band of wet sand that follows the whole shoreline (the old bank starts beyond it)
+      if(beach){add(id,box,'sand',edge-beach*.5,-.13,r.z,beach+.1,.26,r.d+(id<5?6.2:0));}
       for(var j=0;j<=N;j++){var zz=r.z-r.d*.5+j*r.d/N,bulge=1.35+.65*Math.sin(zz*.41)+.38*Math.sin(zz*.97);
         for(var k=0;k<rows;k++){var t=k/(rows-1),xx=edge+t*(3.1+bulge),yy=-.018-.80*Math.pow(t,1.3)+Math.sin(zz*.6+k*.9)*.045*t;pos.push(xx,yy,zz);uv.push(xx*.31,zz*.31);}}
       for(var j=0;j<N;j++)for(var k=0;k<rows-1;k++){var a=j*rows+k;ix.push(a,a+rows,a+1,a+1,a+rows,a+rows+1);}
@@ -506,14 +510,47 @@
     var foamCanvas=document.createElement('canvas');foamCanvas.width=128;foamCanvas.height=512;var fc=foamCanvas.getContext('2d');
     for(var j=0;j<34;j++){var x=50+rnd()*28,y=rnd()*512,r=5+rnd()*11,g=fc.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,'rgba(139,171,171,.20)');g.addColorStop(1,'rgba(139,171,171,0)');fc.fillStyle=g;fc.save();fc.translate(x,y);fc.scale(.65,1.6);fc.translate(-x,-y);fc.fillRect(x-r,y-r,r*2,r*2);fc.restore();}
     var foamTex=new T.CanvasTexture(foamCanvas);textures.push(foamTex);materials.foam=new T.MeshBasicMaterial({map:foamTex,transparent:true,opacity:.34,depthWrite:false,side:T.DoubleSide});
-    rooms.forEach(function(r,id){var fg=geo(new T.PlaneGeometry(.9,r.d+5));fg.rotateX(-PI/2);var f=new T.Mesh(fg,materials.foam);f.position.set(r.w*.5-3.65,-.36,r.z);roomGroups[id].add(f);animated.push({object:f,x:f.position.x,foam:true,phase:id});});
+    var wetBands=[];rooms.forEach(function(r,id){if(id===3)return;var wg=geo(new T.PlaneGeometry(3.4,r.d+3));wg.rotateX(-PI/2);var wb=new T.Mesh(wg,materials.puddle);wb.position.set(r.w*.5-1.6+(id<6?3.6:0),-.4,r.z);wb.name='coast-wet-band';wb.receiveShadow=true;roomGroups[id].add(wb);wetBands.push(wb);});
+    rooms.forEach(function(r,id){var fg=geo(new T.PlaneGeometry(.9,r.d+5));fg.rotateX(-PI/2);var f=new T.Mesh(fg,materials.foam);f.position.set(r.w*.5-3.65+(id!==3&&id<6?3.6:0),-.36,r.z);roomGroups[id].add(f);animated.push({object:f,x:f.position.x,foam:true,phase:id});});
     var encounterList=ENCOUNTERS.map(function(e){return Object.assign({},e);});
     B.CoastOpen.encounters(open,encounterList);
     var allRooms=rooms.concat(open.rooms);
     var openFx=B.CoastOpen.dress({add:add,beam:beam,tree:tree,grave:grave,lantern:lantern,building:building,boat:boat,corpse:corpse,skull:skull,cargo:cargo,collision:collision,geo:geo,rootTube:rootTube,
-      materials:materials,textures:textures,rnd:rnd,root:root,clock:clock,lightSources:lightSources,mainRooms:rooms,allRooms:function(){return allRooms;},
+      materials:materials,textures:textures,rnd:rnd,root:root,groups:roomGroups,clock:clock,lightSources:lightSources,mainRooms:rooms,allRooms:function(){return allRooms;},
       G:{box:box,sphere:sphere,cylinder:cylinder,cone:cone,ring:ring,headstone:headstone,plank:plank,branch:branch,rock:rock,masonry:masonry,archStone:archStone,paving:paving,pebble:pebble}},open,ground);
     // Static instances are assembled once. Detail lives in texture maps and silhouettes, not frame-time allocations.
+    // Draw-call budget: small/medium static props are baked into ONE mesh per room and material (instancing is kept only
+    // for big repeated shapes and for scaled bark, whose texture scale comes from the instance matrix).
+    var merged = {}, nmat = new T.Matrix3();
+    Object.keys(batches).forEach(function (key) {
+      var b = batches[key], nv = b.geo.attributes.position.count, bark = b.mat === materials.char || b.mat === materials.root;
+      var scaled = bark && b.matrices.some(function (m) { var e = m.elements; return Math.abs(e[0] * e[0] + e[1] * e[1] + e[2] * e[2] - 1) > .01 || Math.abs(e[4] * e[4] + e[5] * e[5] + e[6] * e[6] - 1) > .01; });
+      if (scaled || nv > 5000 || nv * b.matrices.length > 90000 || !b.geo.attributes.normal) return;
+      var mk = b.room + '|' + b.mat.uuid; (merged[mk] = merged[mk] || { room: b.room, mat: b.mat, items: [], verts: 0, idx: 0 });
+      merged[mk].items.push(b); merged[mk].verts += nv * b.matrices.length; merged[mk].idx += (b.geo.index ? b.geo.index.count : nv) * b.matrices.length;
+      delete batches[key];
+    });
+    Object.keys(merged).forEach(function (mk) {
+      var g = merged[mk], P = new Float32Array(g.verts * 3), N = new Float32Array(g.verts * 3), U = new Float32Array(g.verts * 2), I = g.verts > 65535 ? new Uint32Array(g.idx) : new Uint16Array(g.idx), v = 0, k = 0;
+      g.items.forEach(function (b) {
+        var pa = b.geo.attributes.position, na = b.geo.attributes.normal, ua = b.geo.attributes.uv, ix = b.geo.index, c = pa.count;
+        b.matrices.forEach(function (m) {
+          var e = m.elements; nmat.getNormalMatrix(m); var n = nmat.elements;
+          for (var q = 0; q < c; q++) {
+            var x = pa.getX(q), y = pa.getY(q), z = pa.getZ(q), o = (v + q) * 3;
+            P[o] = e[0] * x + e[4] * y + e[8] * z + e[12]; P[o + 1] = e[1] * x + e[5] * y + e[9] * z + e[13]; P[o + 2] = e[2] * x + e[6] * y + e[10] * z + e[14];
+            var a = na.getX(q), bb = na.getY(q), cc = na.getZ(q), nx = n[0] * a + n[3] * bb + n[6] * cc, ny = n[1] * a + n[4] * bb + n[7] * cc, nz = n[2] * a + n[5] * bb + n[8] * cc, l = 1 / (Math.hypot(nx, ny, nz) || 1);
+            N[o] = nx * l; N[o + 1] = ny * l; N[o + 2] = nz * l;
+            if (ua) { U[(v + q) * 2] = ua.getX(q); U[(v + q) * 2 + 1] = ua.getY(q); }
+          }
+          if (ix) for (q = 0; q < ix.count; q++) I[k++] = ix.getX(q) + v; else for (q = 0; q < c; q++) I[k++] = v + q;
+          v += c;
+        });
+      });
+      var mg = geo(new T.BufferGeometry()); mg.setAttribute('position', new T.BufferAttribute(P, 3)); mg.setAttribute('normal', new T.BufferAttribute(N, 3)); mg.setAttribute('uv', new T.BufferAttribute(U, 2)); mg.setIndex(new T.BufferAttribute(I, 1)); mg.computeBoundingSphere();
+      var mesh = new T.Mesh(mg, g.mat); mesh.castShadow = [materials.lamp, materials.oath, materials.puddle, materials.funeralPaving, materials.floor, materials.sand, materials.grave, materials.bone, materials.rope, materials.flesh, materials.ember, materials.dark, materials.rock, materials.rust, materials.gold, materials.cloth].indexOf(g.mat) < 0; mesh.receiveShadow = true;
+      mesh.name = 'coast-merged-' + g.room + ':' + (g.mat.name || ''); mesh.matrixAutoUpdate = false; roomGroups[g.room].add(mesh);
+    });
     Object.keys(batches).forEach(function (key) {
       var b = batches[key], mesh = new T.InstancedMesh(b.geo, b.mat, b.matrices.length);
       b.matrices.forEach(function (m, i) { mesh.setMatrixAt(i, m); }); mesh.instanceMatrix.needsUpdate = true;
@@ -522,7 +559,7 @@
     });
     // Three pooled lamps follow nearby sources, avoiding a new light for every street lantern.
     for (var i = 0; i < 3; i++) { var l = new T.PointLight(0x83b9ae, 0, 11, 2); root.add(l); lights.push(l); }
-    var px = new T.PointLight(0xe4b57c, .25, 7, 2); root.add(px);
+    var px = new T.PointLight(0xe4c08c, 1.1, 9.5, 2); root.add(px);
     var particlesGeo = geo(new T.BufferGeometry()), points = new Float32Array(180 * 3);
     for (var i = 0; i < 180; i++) { points[i * 3] = (rnd() - .5) * 38; points[i * 3 + 1] = .35 + rnd() * 7; points[i * 3 + 2] = -rnd() * 202 + 16; }
     particlesGeo.setAttribute('position', new T.BufferAttribute(points, 3)); materials.ash = new T.PointsMaterial({ color: 0x9ca898, size: .055, transparent: true, opacity: .36, depthWrite: false, sizeAttenuation: true });
@@ -583,7 +620,7 @@
     var atmo = { room: 0 }; Object.keys(cooked[0]).forEach(function (k) { var v = cooked[0][k]; atmo[k] = v && v.clone ? v.clone() : Array.isArray(v) ? v.slice() : v; });
     function atmosphereAt(x, z) {
       var a = 0, b = 0, mix = 0; for (var i = 1; i < rooms.length; i++) { if (z <= rooms[i - 1].z && z >= rooms[i].z) { a = i - 1; b = i; mix = (rooms[i - 1].z - z) / (rooms[i - 1].z - rooms[i].z); break; } if (z < rooms[i].z) a = b = i; }
-      mix = mix * mix * (3 - 2 * mix); Object.keys(cooked[a]).forEach(function (k) { var va = cooked[a][k], vb = cooked[b][k]; if (va && va.isColor || va && va.isVector3) atmo[k].copy(va).lerp(vb, mix); else if (Array.isArray(va)) for (var j = 0; j < va.length; j++) atmo[k][j] = va[j] + (vb[j] - va[j]) * mix; else atmo[k] = va + (vb - va) * mix; }); atmo.room = mix < .5 ? a : b; atmo.saturation = atmo.sat; return atmo;
+      mix = mix * mix * (3 - 2 * mix); Object.keys(cooked[a]).forEach(function (k) { var va = cooked[a][k], vb = cooked[b][k]; if (va && va.isColor || va && va.isVector3) atmo[k].copy(va).lerp(vb, mix); else if (Array.isArray(va)) for (var j = 0; j < va.length; j++) atmo[k][j] = va[j] + (vb[j] - va[j]) * mix; else atmo[k] = va + (vb - va) * mix; }); atmo.room = mix < .5 ? a : b; atmo.saturation = atmo.sat; if (openFx && openFx.flash > .01) { atmo.keyI *= 1 + openFx.flash * 2.2; atmo.exposure *= 1 + openFx.flash * .35; atmo.hemi *= 1 + openFx.flash * .8; } return atmo;
     }
     var groupGain = {}, fxLight = null, nearby = [];
     var lampSlots = [{ src: null, w: 0 }, { src: null, w: 0 }, { src: null, w: 0 }], pxGain = 0;
@@ -592,11 +629,12 @@
     function update(dt, time, player) {
       expansion.update(player);
       clock.value = calm ? 0 : time;if(B.CoastClothClock)B.CoastClothClock.value=clock.value; var p = player || { x: 0, z: 8 }; heroCut.value.set(p.x,1.2,p.z);
-      roomGroups.forEach(function (g, i) { var r = i < 7 ? rooms[i] : allRooms[i]; g.visible = Math.abs(r.z - p.z) < 42 + r.d * .5 && Math.abs((r.x || 0) - p.x) < 52 + r.w * .5; });if(openFx)openFx.update(time,p);
+      roomGroups.forEach(function (g, i) { var r = i < 7 ? rooms[i] : allRooms[i]; g.visible = r.z - r.d * .5 < p.z + 22 && r.z + r.d * .5 > p.z - 40 && Math.abs((r.x || 0) - p.x) < 40 + r.w * .5; });if(openFx)openFx.update(time,p);
       animated.forEach(function (a) { if (calm) return; if (a.boat) {var wave=seaStateAt(a.object.position.x,a.object.position.z,time);a.object.position.y=a.y+wave.x*.45;a.object.rotation.z=a.roll+wave.y*.18;a.object.rotation.x=-wave.z*.18;} else if (a.foam){var wash=.5+.5*Math.sin(time*.85+a.phase);a.object.position.x=a.x+wash*.38;a.object.position.y=-.38+wash*.035;} });
       ash.position.x = calm ? 0 : Math.sin(time * .09) * .3;
       // slow tide: the black sea breathes up and down the eroded bank (~2 min period)
       sea.position.y = -.52 + (calm ? 0 : Math.sin(time * .05) * .09);
+      for (var wbI = 0; wbI < wetBands.length; wbI++) wetBands[wbI].position.y = sea.position.y + .13;
       nearby.length = 0;
       for (var i = 0; i < lightSources.length; i++) { var s = lightSources[i]; s.live = Math.max(.1, groupGain[s.group] == null ? 1 : groupGain[s.group]); s.distance = Math.hypot(s.x - p.x, s.z - p.z); if (s.distance < 18) { s.cHeld = false; s.cEff = s.intensity * s.live / (1 + s.distance * s.distance / 30); nearby.push(s); } }
       // Three pooled lamps with eased hand-offs (they used to jump to the new source in one frame) and a x1.35 lead needed to take a slot over its holder.
@@ -609,12 +647,12 @@
       for (k = 0; k < lights.length; k++) { var l = lights[k]; sl = lampSlots[k]; s = sl.src; l.visible = quality !== 'low'; l.intensity = 0; if (s) { l.position.set(s.x, s.y, s.z); l.color.copy(s.color); l.intensity = s.intensity * s.live * sl.w * sl.w * (3 - 2 * sl.w); } }
       // the hero's own light eases into / out of the borrowed skill light instead of stepping by +.5
       pxGain += ((fxLight ? fxLight.gain || .5 : 0) - pxGain) * Math.min(1, dt * 14);
-      px.position.set(p.x, 1.8, p.z); px.intensity = .24 + pxGain;
+      px.position.set(p.x, 2.1, p.z); px.intensity = (quality === 'low' ? .7 : 1.1) + pxGain;
     }
     function setQuality(cfg) { quality = typeof cfg === 'string' ? cfg : cfg.quality || cfg.preset || 'high'; ash.visible = quality !== 'low'; }
     function dispose() { if (disposed) return; disposed = true; expansion.dispose(); scene.remove(root); root.traverse(function (n) { if (n.isInstancedMesh) n.dispose(); }); geometries.forEach(function (g) { g.dispose(); }); Object.keys(materials).forEach(function (k) { materials[k].dispose(); }); textures.forEach(function (t) { t.dispose(); }); root.clear(); }
     // Quest object sites in the open coast (read by src/quests.js); a site is kept only if it is clear ground.
-    var questSites={};[['clapper',-35.5,-55.2],['grave-west',-37,-108.6],['grave-east',-26.8,-109.2],['bell-testimony',-25,-136.5],['c2.hunt',-28,-84.4],['c2.captive',-36.5,5.5],['c2.page1',-39.5,-19.5],['c2.page2',-60.5,-92.5],['c2.page3',-40,-145.5],['c2.altar',25.5,-89.6],['c2.chest',-25.5,-55.6]].forEach(function(q){for(var k=0;k<60;k++){var a=k*2.4,d=k?.45*Math.sqrt(k):0,x=q[1]+Math.cos(a)*d,z=q[2]+Math.sin(a)*d;if(isWalkable(x,z,1.3)&&pathTo({x:0,z:10},{x:x,z:z},.5).length){questSites[q[0]]={x:x,z:z};break;}}});
+    var questSites={};[['clapper',-35.5,-55.2],['grave-west',-37,-108.6],['grave-east',-26.8,-109.2],['bell-testimony',-25,-136.5],['c2.hunt',-28,-84.4],['c2.captive',-36.5,5.5],['c2.page1',-39.5,-19.5],['c2.page2',-60.5,-92.5],['c2.page3',-40,-145.5],['c2.altar',25.5,-89.6],['c2.chest',-25.5,-55.6],['c2.siege',-37,-28.5],['c2.hunt2',-68.5,-95],['c2.escape',27,-84],['c2.escape-goal',-4,-131],['c2.rescue-goal',3.5,-137]].forEach(function(q){for(var k=0;k<60;k++){var a=k*2.4,d=k?.45*Math.sqrt(k):0,x=q[1]+Math.cos(a)*d,z=q[2]+Math.sin(a)*d;if(isWalkable(x,z,1.3)&&pathTo({x:0,z:10},{x:x,z:z},.5).length){questSites[q[0]]={x:x,z:z};break;}}});
     root.updateMatrixWorld(true);
     return { chapter: 2, questSites: questSites, name: KabirI18n.t('Kara Kıyı'), root: root, rooms: allRooms, paths: expansion.paths, encounters: encounterList, spawn: { x: 0, z: 10 }, checkpoint: { x: 0, z: -141 }, bossSpawn: { x: 0, z: -178 },
       effectHeightAt: function(x,z,r){r=r||0;if(z-r<-68&&z+r>-94)return .14;if(z-r<-154)return .065;for(var i=0;i<rooms.length-1;i++){var lo=rooms[i].z-rooms[i].d*.5,hi=rooms[i+1].z+rooms[i+1].d*.5;if(z-r<lo&&z+r>hi)return .14;}return .055;},

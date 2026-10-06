@@ -126,7 +126,7 @@
       if (!near.length) return;
       if (look) look.chains(player, near, true);
       sound('talentChain', { volume: .8 });
-      for (const e of near) ctx.strike(e, 42, Math.atan2(e.x - player.x, e.z - player.z));
+      for (const e of near) ctx.strike(e, 32, Math.atan2(e.x - player.x, e.z - player.z));
     }
     function onCast(skill) {
       const seal = sealOf(skill.line), P = skill.params, face = player.face, F0 = fx();
@@ -188,7 +188,7 @@
       if (!attack || attack.talent) return;
       const F = fx(), line = attack.line, seal = line ? sealOf(line) : null;
       if (F.leech && !player.dead) { heal(damage * F.leech / (player.effectiveMaxHp || 100)); if (look && clock - leechAt > .18) { leechAt = clock; look.leech(e, player); } }
-      if (F.has.has('k-hunger')) player.stamina = Math.min(player.maxStamina, player.stamina + 3);
+      if (F.has.has('k-hunger')) player.stamina = Math.min(player.maxStamina, player.stamina + 2);   // on top of the orb refill per blow (combat-tuning ECONOMY.HIT)
       if (killed) return;
       if (seal && seal.fx.bleed) bleed(e, damage * seal.fx.bleed, 4);
       if (seal && seal.fx.burn) burn(e, damage * seal.fx.burn, 3);
@@ -201,7 +201,7 @@
         for (const o of enemies) if (alive(o) && dist(o, x, z) < 2.8 + o.radius && ctx.canHit(o)) { const r = ctx.strike(o, 24, Math.atan2(o.x - x, o.z - z)); if (r && !r.killed) ctx.stun(o, .35); }
       } });
       if (F.has.has('k-hunger') && look) look.souls(e, player);
-      if (F.has.has('k-hunger')) player.stamina = Math.min(player.maxStamina, player.stamina + 30);
+      if (F.has.has('k-hunger')) player.stamina = Math.min(player.maxStamina, player.stamina + 25);
       if (F.harvest) { player.stamina = Math.min(player.maxStamina, player.stamina + 8); heal(.01); }
       if (s && s.rot > 0) {
         const base = B.Progression.skills.find(k => k.id === 'knell'), P = base ? tree.effective(base, progression.learned).params : { burst: 38, burstRadius: 3.2 };

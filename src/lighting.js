@@ -10,6 +10,7 @@
   // Hero focus pool in the post composite (ajan:visual-dark): [strength, radius m]; rooms may override with atmosphere.focus / focusRadius. QA: ?focus=s,r
   var FOCUS = ((/[?&]focus=([\d.]+),([\d.]+)/.exec(location.search) || []).slice(1).map(Number));
   if (FOCUS.length !== 2) FOCUS = [.4, 6];
+  var FOCUS_CH = { 2: 1.4, 4: 1.25 };   // the darkest chapters carry a stronger pool so the hero never sinks into the floor
 
   // ---------------------------------------------------------------- fog chunks (all built-in materials)
   // Distance fog stays three's FogExp2; on top of it every lit surface integrates a low mist layer (thick at the
@@ -155,11 +156,11 @@
     karaRimDir: { value: new T.Vector3(0, .6, -.8) }, karaRimColor: { value: new T.Vector3(.4, .45, .6) },
     karaRimParams: { value: new T.Vector4(2.4, 1, .9, 0) }, karaFill: { value: new T.Vector3(.02, .02, .025) }
   };
-  var RIM_HEAD = 'uniform vec3 karaRimDir; uniform vec3 karaRimColor; uniform vec4 karaRimParams; uniform vec3 karaFill;\n#ifdef KARA_NO_HIT\nconst vec2 vKaraHit = vec2( 0.0 );\n#else\nvarying vec2 vKaraHit;\n#endif\n';
+  var RIM_HEAD = 'uniform vec3 karaRimDir; uniform vec3 karaRimColor; uniform vec4 karaRimParams; uniform vec3 karaFill;\n#ifdef KARA_NO_HIT\nconst vec3 vKaraHit = vec3( 0.0 );\n#else\nvarying vec3 vKaraHit;\n#endif\n';
   // Hit flash (ajan:visual-dark): a struck enemy flares for a heartbeat. Materials are shared between enemies, so the per-enemy value
   // rides in the spare last texel of that enemy's own bone texture (x = flash, y = HIT_MAGIC marks it as ours; no bone matrix holds it there; z = corpse fade).
-  var HIT_MAGIC = 4093;
-  var RIM_VERT = '#ifdef USE_SKINNING\n{ int kbs = textureSize( boneTexture, 0 ).x; vec4 kbt = texelFetch( boneTexture, ivec2( kbs - 1, kbs - 1 ), 0 ); vKaraHit = abs( kbt.y - ' + HIT_MAGIC + '.0 ) < 0.5 ? clamp( kbt.xz, 0.0, 1.0 ) : vec2( 0.0 ); }\n#else\nvKaraHit = vec2( 0.0 );\n#endif';
+  var HIT_MAGIC = 4093, EMBER_TYPES = /ember|ash|slag|furnace|forge|chain/;
+  var RIM_VERT = '#ifdef USE_SKINNING\n{ int kbs = textureSize( boneTexture, 0 ).x; vec4 kbt = texelFetch( boneTexture, ivec2( kbs - 1, kbs - 1 ), 0 ); vKaraHit = abs( kbt.y - ' + HIT_MAGIC + '.0 ) < 0.5 ? clamp( kbt.xzw, 0.0, 1.0 ) : vec3( 0.0 ); }\n#else\nvKaraHit = vec3( 0.0 );\n#endif';
   var RIM_BODY = [
     '{',
     '  float kNV = saturate( dot( normal, geometryViewDir ) );',
@@ -179,6 +180,8 @@
     // corpse fade: the dead lose their colour and sink toward the floor's value, so the living stay the brightest shapes on screen
     '  if ( vKaraHit.y > 0.001 ) { float kd = vKaraHit.y; vec3 kq = reflectedLight.directDiffuse; reflectedLight.directDiffuse = mix( kq, vec3( dot( kq, vec3( 0.2126, 0.7152, 0.0722 ) ) ) * vec3( 0.9, 0.86, 0.84 ), kd * 0.7 ) * ( 1.0 - 0.45 * kd );',
     '    reflectedLight.indirectDiffuse *= 1.0 - 0.45 * kd; reflectedLight.directSpecular *= 1.0 - 0.6 * kd; }',
+    // ember death (forge / ash foes): the corpse glows like a cooling coal, hottest at the silhouette, then goes out
+    '  if ( vKaraHit.z > 0.001 ) { float ke = vKaraHit.z * pow( 1.0 - kNV, 2.5 ); reflectedLight.directDiffuse = reflectedLight.directDiffuse * ( 1.0 - 0.5 * vKaraHit.z ) + vec3( 1.0, 0.26, 0.04 ) * ke * 1.4; }',
     '}'].join('\n');
   function patchRim(m) {
     if (!m || m.userData.karaRim || !(m.isMeshStandardMaterial || m.isMeshPhysicalMaterial)) return;
@@ -189,7 +192,7 @@
       Object.keys(RIM).forEach(function (k) { sh.uniforms[k] = RIM[k]; });
       if (sh.fragmentShader.indexOf('#include <lights_fragment_end>') < 0) return;
       var hit = sh.vertexShader.indexOf('#include <skinning_vertex>') >= 0 && sh.vertexShader.indexOf('#include <common>') >= 0;
-      if (hit) sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec2 vKaraHit;').replace('#include <skinning_vertex>', '#include <skinning_vertex>\n' + RIM_VERT);
+      if (hit) sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vKaraHit;').replace('#include <skinning_vertex>', '#include <skinning_vertex>\n' + RIM_VERT);
       sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\n' + (hit ? '' : '#define KARA_NO_HIT\n') + RIM_HEAD)
         .replace('#include <lights_fragment_end>', '#include <lights_fragment_end>\n' + RIM_BODY);
     };
@@ -240,6 +243,8 @@
 
     // Scripted moments.
     var director = { bossSeen: false, bossActiveAt: -1, phase2At: -1, bossDeadAt: -1, checkpointAt: -1, lastCheckpoint: null, ritualLive: 1, wasBoss: false };
+    var contact = B.ContactShadows ? B.ContactShadows.create(scene) : null;   // (ajan:visual-dark) soft occlusion under every body
+    var motes = B.AmbientMotes ? B.AmbientMotes.create(scene) : null;   // (ajan:visual-dark) per-chapter air around the hero
     var grade = { lift: new T.Vector3(), gain: new T.Vector3(1, 1, 1), saturation: 1, contrast: .12, shadowTint: new T.Vector3(1, 1, 1), highTint: new T.Vector3(1, 1, 1),
       vignette: .5, vignetteColor: new T.Vector3(), bloom: .6, bloomTint: new T.Vector3(1, 1, 1), exposure: 1.15 };
     var target = { fog: new T.Color(), mist: new T.Color(), sky: new T.Color(), ground: new T.Color(), key: new T.Color(), rim: new T.Color(), charRim: new T.Color() };
@@ -308,6 +313,16 @@
       }
       for (var j = 0; j < blood.mats.length; j++) { var mm = blood.mats[j]; mm.userData.grade.kBlood.value = mm.userData.karaBloodBase + blood.level * .7; }
     }
+    // Chapter colour identity (ajan:visual-dark), applied by the post cinematic layer on top of every room grade:
+    // [shadow hue, highlight hue]. Temple amber-violet, Coast cold green-grey, Throne gold-blue, Forge red-black, Finale blood-violet.
+    var LOOK = { 1: [[.96, .9, 1.12], [1.07, 1.0, .88]], 2: [[.88, 1.04, 1.0], [.99, 1.02, .97]], 3: [[.86, .95, 1.16], [1.08, 1.01, .84]],
+      4: [[1.06, .9, .88], [1.09, .96, .84]], 5: [[1.06, .84, 1.1], [1.07, .9, .94]] };
+    grade.cineTint = new T.Vector3(.9, 1, 1.08); grade.cineHigh = new T.Vector3(1.05, 1, .93);
+    var lookTint = new T.Vector3(), lookHigh = new T.Vector3();
+    function chapterLook(dt) {
+      var L5 = LOOK[B.ActiveChapter] || LOOK[1], k = 1 - Math.exp(-(dt || 0) * 1.5);
+      grade.cineTint.lerp(lookTint.fromArray(L5[0]), k); grade.cineHigh.lerp(lookHigh.fromArray(L5[1]), k);
+    }
     function hitFlash(game, dt) {
       var enemies = game && game.enemies; if (!enemies) return;
       for (var i = 0; i < enemies.length; i++) {
@@ -318,16 +333,17 @@
         e.karaHurtPrev = h; e.karaWasDead = !!e.dead;   // the killing blow flashes too
         var ht = Number.isFinite(e.karaHitT) ? e.karaHitT : 9, v = reducedMotion || ht > .16 ? 0 : Math.round(Math.pow(1 - ht / .16, 1.6) * 40) / 40;
         var dead = e.dead ? Math.round(smooth(((e.deadAge || 0) - 1.2) / 4) * 20) / 20 : 0;   // starts after the fall, 4 s, 5 % steps
-        if (v === e.karaHitShown && dead === e.karaDeadShown) continue;
+        var ember = e.dead && EMBER_TYPES.test(e.type || '') ? Math.round(Math.min(1, (e.deadAge || 0) / .35) * (1 - smooth(((e.deadAge || 0) - .4) / 4.5)) * 20) / 20 : 0;
+        if (v === e.karaHitShown && dead === e.karaDeadShown && ember === e.karaEmberShown) continue;
         var sk = m.root.userData.karaSkeletons;
         if (!sk) { sk = []; m.root.traverse(function (o) { if (o.isSkinnedMesh && o.skeleton && sk.indexOf(o.skeleton) < 0) sk.push(o.skeleton); }); m.root.userData.karaSkeletons = sk; }
         var wrote = false;
         for (var j = 0; j < sk.length; j++) {
           var s = sk[j], a = s.boneMatrices, n = a ? a.length : 0;
           if (!s.boneTexture || s.bones.length * 16 > n - 4) continue;   // texture not built yet, or no spare texel: this one never flashes
-          a[n - 4] = v; a[n - 3] = HIT_MAGIC; a[n - 2] = dead; s.boneTexture.needsUpdate = true; wrote = true;
+          a[n - 4] = v; a[n - 3] = HIT_MAGIC; a[n - 2] = dead; a[n - 1] = ember; s.boneTexture.needsUpdate = true; wrote = true;
         }
-        if (wrote) { e.karaHitShown = v; e.karaDeadShown = dead; }
+        if (wrote) { e.karaHitShown = v; e.karaDeadShown = dead; e.karaEmberShown = ember; }
       }
     }
     function patchCharacters(game) {
@@ -763,7 +779,8 @@
         && L && L.deferShadowRefresh) L.deferShadowRefresh();
       var p = game.player, a = world.atmosphereAt(p.x, p.z);
       patchClock -= dt; if (patchClock <= 0) { patchClock = 1; patchCharacters(game); splitCharacters(game); }
-      hitFlash(game, dt); battleBlood(game, dt);
+      hitFlash(game, dt); battleBlood(game, dt); if (contact) contact.update(game);
+      if (motes) motes.update(dt, game && game.player, camera, opts.post ? opts.post.height : 720, reducedMotion);
       directorStep(dt, time, game, a);
       corpseClock -= dt; if (corpseClock <= 0 && L && L.setCorpses) { corpseClock = .5; flyCorpses(game); }
       var k = ready ? 1 - Math.exp(-dt * 2.2) : 1; ready = true;
@@ -796,12 +813,14 @@
       grade.exposure = (cfgRef.exposure || 1.15) * a.exposure;
       var fx = p.x, fz = p.z - 2;
       updateScatter(fx, fz, dt);
-      if (opts.post) { updateHeat(opts.post.heat(), fx, fz); if (opts.post.pulse) warCryPost(opts.post.heat(), opts.post.pulse(), p); opts.post.setGrade(grade); if (opts.post.setFocus) opts.post.setFocus(p.x, .9, p.z, Number.isFinite(a.focusRadius) ? a.focusRadius : FOCUS[1], Number.isFinite(a.focus) ? a.focus : FOCUS[0]); }
+      if (opts.post) { updateHeat(opts.post.heat(), fx, fz); if (opts.post.pulse) warCryPost(opts.post.heat(), opts.post.pulse(), p); chapterLook(dt); opts.post.setGrade(grade); if (opts.post.setFocus) opts.post.setFocus(p.x, .9, p.z, Number.isFinite(a.focusRadius) ? a.focusRadius : FOCUS[1], Number.isFinite(a.focus) ? a.focus : FOCUS[0] * (FOCUS_CH[B.ActiveChapter] || 1)); }
       if (!ab.stepped) abilityStep(dt, game, time);
       ab.stepped = false;
     }
     function dispose() {
       [hemi, moon, rim, moonTarget, rim.target].forEach(function (o) { scene.remove(o); });
+      if (contact) contact.dispose();
+      if (motes) motes.dispose();
       if (moon.shadow.map) moon.shadow.map.dispose();
       if (scene.environment) { scene.environment.dispose(); scene.environment = null; }
     }

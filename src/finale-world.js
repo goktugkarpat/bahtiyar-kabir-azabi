@@ -115,8 +115,8 @@
       vertexShader: 'varying vec3 vP;void main(){vP=(modelMatrix*vec4(position,1.)).xyz;gl_Position=projectionMatrix*viewMatrix*vec4(vP,1.);}',
       fragmentShader: ['varying vec3 vP;uniform float clock;uniform sampler2D norm;uniform float wrath;',
         'void main(){vec2 p=vP.xz;vec3 a=texture2D(norm,p*.006+vec2(clock*.002,-clock*.003)).rgb;vec3 b=texture2D(norm,p*.019-vec2(clock*.009,clock*.003)+(a.rg-.5)*.6).rgb;vec3 c=texture2D(norm,p*.045+(b.rg-.5)*.5+vec2(0.,clock*.006)).rgb;',
-        ' float v=(a.r-.5)*1.8+(b.g-.5)*1.4+(c.r-.5)*.6;float vein=smoothstep(.18,.0,abs(v-.05));float pool=smoothstep(.25,.75,a.g*.6+b.r*.5);',
-        ' float pulse=.75+.25*sin(clock*.6+a.b*9.);float neb=smoothstep(.55,.85,b.b*.7+c.g*.5);vec3 col=vec3(.004,.002,.006)+vec3(.012,.014,.05)*neb*(1.-vein)+vec3(.11,.008,.005)*vein*vein*pulse*(1.+wrath*2.2)+vec3(.018,.002,.002)*pool*(1.+wrath);',
+        ' float v=(a.r-.5)*2.2+(b.g-.5)*.7;float vein=smoothstep(.12,.0,abs(v-.05));float pool=smoothstep(.3,.8,a.g*.8+b.r*.25);',
+        ' float pulse=.75+.25*sin(clock*.6+a.b*9.);float neb=smoothstep(.5,.9,a.b*.85+b.b*.15);vec3 col=vec3(.003,.002,.005)+vec3(.006,.007,.028)*neb*(1.-vein)+vec3(.11,.008,.005)*vein*vein*pulse*(1.+wrath*2.2)+vec3(.018,.002,.002)*pool*(1.+wrath);',
         ' float d=distance(cameraPosition,vP);col*=1.-smoothstep(60.,130.,d)*.9;gl_FragColor=vec4(col,1.);}'].join('\n') });
     materials.abyss = abyssMat;
     var rooms = LAYOUT.map(function (L, i) { return { id: i, name: NAMES[i], x: L.x, z: 8 - i * 26, w: L.w, d: L.d, shape: L.shape }; });

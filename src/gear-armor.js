@@ -17,10 +17,45 @@
     return item.finish === 'blood' ? 'gore' : item.finish === 'brine' ? 'frost' : item.finish === 'ash' ? 'ember' : 'void';
   }
   const SIG = () => new Set(Object.values(B.Progression.bossSignatures || {}).flat());
-  const trimOf = (item, unique) => unique ? 'gold' : item.finish === 'bone' ? 'bone' : item.finish === 'blood' ? 'black' : item.finish === 'brine' ? 'bronze' : 'brass';
+  // Visual families: every theme speaks one metal/cloth language across head, chest, hands and boots.
+  //   ember = foundry (black iron, ember), frost = sea sentinel (green bronze), holy = barrow king (gold), gore = executioner/mourning (black, crimson),
+  //   void = bone rite (bone, violet light). Unique pieces always carry gold.
+  const FAMILY = { ember: ['black', 'sable'], frost: ['bronze', 'sable'], holy: ['gold', 'crimson'], gore: ['black', 'crimson'], void: ['bone', 'sable'],
+    lamellar: ['brass', 'crimson'], barbarian: ['horn', 'hide'], iron: ['dark', 'sable'] };
+  // Themed names win; the rest fall into the lamellar, barbarian-hide or iron-guard families by their fitted core.
+  function family(item) {
+    const id = item.id, m = item.modelId || '';
+    if (/lamel|empty-vow/.test(id) || m === 'lamellar-chest') return 'lamellar';
+    if (/furnace|coal|ember|slag|forge|fire|shift|dawn|anvil|burnt|hearth/.test(id)) return 'ember';
+    if (/salt|sunken|tide|drowned|silent|watch/.test(id)) return 'frost';
+    if (/warden|crown|throne|verdict|witness|barrow|king/.test(id)) return 'holy';
+    if (/blood|widow|oath|mourn|gallows|grave-digger|orphan/.test(id)) return 'gore';
+    if (/bone|gaze|breath|hollow|sealed|nameless|forgotten|black-stone|silence|rite/.test(id)) return 'void';
+    if (/torn|rag|worn|cloth|ash-|pilgrim|funeral|burial-wraps|footwraps/.test(id) || /torn-chest|rag-wraps|worn-boots|cloth-hood/.test(m)) return 'barbarian';
+    return 'iron';
+  }
+  const trimOf = (item, unique) => unique ? 'gold' : (FAMILY[family(item)] || ['brass'])[0];
+  const clothOf = item => (FAMILY[family(item)] || [0, 'sable'])[1];
   const MASKS = new Set(['sealed-mask', 'furnace-mask']);
+  // gear-*: lighter tessellation for hidden-until-equipped parts (iPad memory); silhouettes keep their shape.
+  const lodGear = (S, k) => Object.assign({}, S, {
+    tube: (p, r, rad, tub, caps) => S.tube(p, r, Math.max(3, Math.round((rad || 8) * .75)), Math.max(2, Math.ceil((tub || Math.max(4, p.length * 5)) * k)), caps),
+    shell: (nu, nv, fn, t, c, f, o) => S.shell(Math.max(2, Math.round(nu * k)), Math.max(1, Math.round(nv * k)), fn, t, c, f, o),
+    sphere: (r, p, s, ws, hs) => S.sphere(r, p, s, Math.max(6, Math.round((ws || 14) * .7)), Math.max(4, Math.round((hs || 10) * .7))),
+    lathe: (pr, seg, a, b) => S.lathe(pr, Math.max(8, Math.round((seg || 24) * .7)), a, b) });
   function build(ctx) {
-    const { A, part, sleeve, chest, hc, rx, ry, rz, facingAngle, modelOf } = ctx, G = B.Gear;
+    const { A, sleeve, chest, hc, rx, ry, rz, facingAngle, modelOf } = ctx, G = lodGear(B.Gear, .7);
+    // Pieces with identical fittings share one look: calls are recorded per item, fingerprinted, and only new looks are submitted.
+    let rec = null; const part = (slot, id, mat, geometry, bone, opts) => rec.push([slot, mat, geometry, bone, opts]);
+    const looks = new Map(), lookOf = {};
+    function commit(itemId) {
+      if (!rec.length) return;
+      const key = rec.map(([slot, mat, g, bone, opts]) => { const p = g.attributes.position; return [slot, mat, bone || '', opts ? JSON.stringify(opts) : '', p.count, p.getX(0).toFixed(4), p.getY(0).toFixed(4), p.getZ(p.count - 1).toFixed(4)].join(':'); }).join('|');
+      let look = looks.get(key);
+      if (look) rec.forEach(r => r[2].dispose());
+      else { look = 'look@' + looks.size; looks.set(key, look); rec.forEach(([slot, mat, g, bone, opts]) => ctx.part(slot, look, mat, g, bone, opts)); }
+      lookOf[itemId] = look;
+    }
     const line = (fn, n) => Array.from({ length: n + 1 }, (_, i) => fn(i / n));
     const emit = (slot, id, mat, list, bone, opts) => { list = list.filter(Boolean); if (list.length) part(slot, id, mat, G.merge(list), bone, opts); };
     // ------------------------------------------------------------- head pieces
@@ -38,8 +73,8 @@
     }
     function aventail(id, depth, mat) {
       const sheet = (u, v) => { const a = mix(-2.35, 2.35, u) + PI, y = mix(hc.y - ry * .18, hc.y - ry * (.62 + depth), v), r = mix(1.0, 1.32 + depth * .5, v), fold = .006 * Math.sin(u * 40) * v; return [hc.x + Math.sin(a) * (rx * r + fold), y, hc.z + Math.cos(a) * (rz * r + fold) - .01 * v]; };
-      part('head', id, mat || 'mail', G.shell(40, 10, sheet, .004, false), 'head');
-      const rim = []; for (let n = 0; n < 40; n++) { const q = sheet((n + .5) / 40, 1); rim.push(G.ring(.006, .0014, q, [0, 0, 0], 3, 8)); } emit('head', id, 'steel', rim, 'head');
+      part('head', id, mat || 'mail', G.shell(40, 10, sheet, .004, false), null, { bones: ['head', 'neck', 'spine03'] });
+      const rim = []; for (let n = 0; n < 40; n++) { const q = sheet((n + .5) / 40, 1); rim.push(G.ring(.006, .0014, q, [0, 0, 0], 3, 8)); } emit('head', id, 'steel', rim, null, { bones: ['head', 'neck', 'spine03'] });
       part('head', id, 'strap', G.tube(line(u => sheet(u, 0), 30), .0035, 5, 40, true), 'head');
     }
     function crest(id, mat, count, h) {
@@ -155,6 +190,7 @@
     // ------------------------------------------------------------- catalogue pass
     const sig = SIG();
     for (const item of B.Progression.items) {
+      rec = [];
       if (item.slot === 'weapon') continue;
       const unique = item.rarity === 'boss' || sig.has(item.id), id = 'variant@' + item.id, glowKey = theme(item), trim = trimOf(item, unique), rank = { common: 0, uncommon: 1, rare: 2, epic: 3, boss: 4 }[item.rarity] || 0, core = modelOf(item);
       const glow = rank >= 3 ? glowKey : null;
@@ -169,9 +205,9 @@
             if (/barrow|king/.test(item.id)) { const sp = []; for (let i = 0; i < 11; i++) { const a = i / 11 * TAU, h = i % 2 ? .07 : .12, b = [hc.x + Math.sin(a) * (rx + .012), hc.y + ry * .44, hc.z + Math.cos(a) * (rz + .012)]; sp.push(G.spike(.013, b, [b[0] + Math.sin(a) * .02, b[1] + h, b[2] + Math.cos(a) * .02], 5)); if (!(i % 2)) sp.push(G.sphere(.008, [b[0] + Math.sin(a) * .022, b[1] + h + .004, b[2] + Math.cos(a) * .022], null, 8, 6)); } emit('head', id, 'gold', sp, 'head'); part('head', id, 'gold', G.shell(44, 3, (u, v) => { const a = u * TAU; return [hc.x + Math.sin(a) * (rx + .016), hc.y + ry * (.36 + v * .1), hc.z + Math.cos(a) * (rz + .016)]; }, .004, true), 'head'); }
             else if (/breath|gaze/.test(item.id)) horns(id, 'bone', trim, .15, 'fwd');
             else if (k === 0) { crest(id, 'black', 7, .08); aventail(id, .25); }
-            else if (k === 1) { aventail(id, .35); plume(id, 'crimson'); }
+            else if (k === 1) { aventail(id, .35); plume(id, clothOf(item)); }
             else if (k === 2) { horns(id, 'horn', trim, .16, 'down'); aventail(id, .2, 'mail'); }
-            else { crest(id, 'black', 5, .11); plume(id, 'sable'); }
+            else { crest(id, 'black', 5, .11); plume(id, clothOf(item)); }
           } else if (rank === 2) aventail(id, .15);
         } else if (item.slot === 'chest') {
           if (rank >= 1) riveted(id, rank >= 2 ? trim : 'dark');
@@ -180,7 +216,7 @@
             const k = item.id.length % 3;
             if (/hollow|sunless/.test(item.id)) { sigil(id, 'bone', glow, 'skull'); trophySkulls(id); }
             else if (k === 0) { spikedPauldron(id, 'dark', trim, 3, .085, false); sigil(id, trim, glow, 'diamond'); }
-            else if (k === 1) { sigil(id, trim, glow, 'sun'); halfCape(id, 'sable', .42); }
+            else if (k === 1) { sigil(id, trim, glow, 'sun'); halfCape(id, clothOf(item), .42); }
             else { spikedPauldron(id, 'black', trim, 2, .1, false); sigil(id, trim, glow, 'diamond'); }
           }
         } else if (item.slot === 'hands') {
@@ -191,7 +227,12 @@
           else if (rank === 2) kneeSpikes(id, 'dark', trim, null, false);
         }
       } catch (error) { console.warn('gear-armor', item.id, error); }
+      commit(item.id);
     }
+    B.GearArmor.looks = lookOf;
   }
-  B.GearArmor = { build };
+  // Family name shown in the character screen (identity only; no set bonus).
+  const FAMILY_NAME = { ember: 'Ocak Dökümü', frost: 'Deniz Nöbetçisi', holy: 'Kral Mezarı', gore: 'Cellat Yası', void: 'Kemik Ayini', lamellar: 'Lamel Muhafız', barbarian: 'Derili Barbar', iron: 'Demir Muhafız' };
+  function familyName(item) { if (!item || item.rarity === 'common') return ''; const n = FAMILY_NAME[family(item)]; return n ? KabirI18n.t(n) : ''; }
+  B.GearArmor = { build, looks: {}, familyName };
 })();

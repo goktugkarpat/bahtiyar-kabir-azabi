@@ -593,7 +593,16 @@
     $('victory-stats').innerHTML = stat('i-hourglass', timeText(t), KabirI18n.t('SÜRE')) + stat('i-cross', Math.round(k), KabirI18n.t('ALT EDİLEN')) + stat('i-skull', deaths, KabirI18n.t('ÖLÜM'));
     // Chapter V: when the quest module offers the last decision (game.quests.finale), the ending waits until it is made and shows its outcome.
     const finale = () => game.quests && game.quests.finale && typeof game.quests.finale === 'object' ? game.quests.finale : null;
-    const pending = () => { const f = finale(); return !!f && !(f.done || f.complete || f.chosen || f.choice); };
+    let epiSeen = false;
+    const pending = () => {
+      const q = game.quests;
+      if (q && q.pendingChoice && q.pendingChoice.finale) return true;                                  // the last decision is open
+      if (finaleChapter && B.QuestSide && B.QuestSide.finale && q && !q.finale && (Date.now() - wonAt) < 20000) return true;   // it is about to open
+      const epi = document.querySelector('.qc-epilogue'); if (epi && !epi.hidden) { epiSeen = true; return true; }        // the epilogue is being read
+      if (q && q.finale && !epiSeen && B.QuestCinema && (Date.now() - finaleAt()) < 3000) return true;   // epilogue starts 1.2 s after the choice
+      const f = finale(); return !!f && f.done === false;
+    };
+    const wonAt = Date.now(); let chosenAt = 0; const finaleAt = () => { if (!chosenAt && game.quests && game.quests.finale) chosenAt = Date.now(); return chosenAt || Date.now(); };
     const reveal = () => { if (game.state !== 'won') return; if (pending()) { setTimeout(reveal, 400); return; }
       const f = finale(), text = f && (f.outcome || f.story || f.text); if (text) document.querySelector('#victory .end-quote').textContent = text;
       show('victory'); };
