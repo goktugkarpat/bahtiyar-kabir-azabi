@@ -373,7 +373,7 @@
       camera.x = (b.x0 + b.x1) / 2; camera.z = (b.z0 + b.z1) / 2; camera.scale = Math.max(1, Math.min(9, (width - 110) / (b.x1 - b.x0 + 8), (height - 100) / (b.z1 - b.z0 + 8))); fitOnce = true; fitted = nearby ? 'nearby' : 'all'; draw();
     }
     function zoom(factor, x, y) {
-      const old = camera.scale, next = Math.max(1, Math.min(14, old * factor));
+      const old = camera.scale, next = Math.max(1, Math.min(11, old * factor));
       if (x !== undefined && y !== undefined) { camera.x += (x - width / 2) * (1 / old - 1 / next); camera.z += (y - height / 2) * (1 / old - 1 / next); }
       camera.scale = next; fitted = false; draw();
     }
