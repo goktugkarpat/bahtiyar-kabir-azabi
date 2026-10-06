@@ -107,7 +107,7 @@
     mesh.castShadow = s0.castShadow; mesh.receiveShadow = s0.receiveShadow; mesh.renderOrder = s0.renderOrder; mesh.layers.mask = s0.layers.mask;
     mesh.customDepthMaterial = s0.customDepthMaterial; mesh.matrixAutoUpdate = false; mesh.updateMatrix();
     mesh.raycast = function () { };   // picking keeps using the original parts
-    mesh.userData.perfMerged = true; mesh.visible = false;
+    mesh.userData.perfMerged = true; mesh.visible = false; mesh.__perfEager = true;
     mesh.boundingSphere = new T.Sphere();
     mesh.name = 'perf-' + G.kind + ':' + (s0.material.name || s0.material.type) + ':' + G.sources.length;
     G.mesh = mesh; G.included = new Uint8Array(G.sources.length); G.sig = ''; G.versions = G.sources.map(versionOf);
@@ -291,4 +291,24 @@
     return Perf.stats;
   };
   Perf.setEnabled = function (on) { Perf.enabled = !!on && !OFF; return Perf.enabled; };
+
+  /* Hidden subtrees skip their per-frame matrix work. Three recomposes and multiplies the local/world matrix of EVERY object in
+   * the scene each frame, visible or not: ~40 parked enemies (≈90 bones each), pooled effects and warm-up groups made that
+   * ~12 000 objects and ~1.5 ms of a frame. A hidden object (and so its subtree) now waits; the first frame it is visible again
+   * it recomposes, and a parent change that happened meanwhile is replayed (forced) then. Nothing hidden is drawn, and
+   * getWorldPosition()/updateWorldMatrix() still compute fresh values on demand. Hidden shadow casters are exempt: shadow-only
+   * stand-ins (character shadow proxies) are shown inside the shadow pass, after this update. */
+  (function lazyHiddenMatrices() {
+    if (OFF || /[?&]nolazy\b/.test(Q)) return;
+    var proto = T.Object3D.prototype, original = proto.updateMatrixWorld;
+    proto.updateMatrixWorld = function (force) {
+      // Shadow-only stand-ins (hidden in the main pass, shown inside shadowMap.render) cast shadows: they keep updating.
+      if (this.visible === false && this.castShadow === false && Perf.enabled && !this.__perfEager && !this.isScene && !this.isCamera && !this.isLight) {
+        if (force) this.__perfForce = true;
+        return;
+      }
+      if (this.__perfForce) { this.__perfForce = false; force = true; }
+      return original.call(this, force);
+    };
+  })();
 })();
