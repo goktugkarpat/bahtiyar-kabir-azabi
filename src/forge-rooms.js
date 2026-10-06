@@ -26,6 +26,19 @@
     { key: '#ffc890', keyI: 1.75, sky: '#c8a888', fog: '#180a06', mist: '#3c1c0c', mistA: .2, mistGlow: .6, bloom: .56, gain: [1.14, 1, .84], contrast: .26, vignette: .56, exposure: 1.3, shadowTint: [1.0, .9, .9], highTint: [1.18, 1.04, .82], rim: '#f08040', charRim: '#f4d4b0', sat: 1.0 }
   ];
 
+  /* Open foundry wings (ajan world-b): four great open halls beside the chain of rooms, each reached through real side doors
+     from two or three rooms, so the route loops instead of running box-to-box. Edges are lava rivers and cavern cliffs, not walls.
+     Room i's door side: -1 west, +1 east. Wing z ranges are absolute (room z = 8 - 26 i). */
+  var DOOR_HW = 2.2, GATE_HW = 6;
+  var DOORS = { 1: -1, 2: -1, 3: -1, 4: 1, 5: 1, 6: 1, 7: -1, 8: -1, 9: -1, 11: 1, 12: 1 };
+  var WINGS = [
+    { id: 14, kind: 'slag', side: -1, hosts: [1, 2, 3], name: 'Cüruf Tarlası' },
+    { id: 15, kind: 'bellows', side: 1, hosts: [4, 5, 6], name: 'Dev Körükler Galerisi' },
+    { id: 16, kind: 'river', side: -1, hosts: [7, 8, 9], name: 'Erimiş Nehir Yatağı' },
+    { id: 17, kind: 'scrap', side: 1, hosts: [10, 11, 12], name: 'Hurda ve Zincir Mezarlığı' }
+  ];
+  WINGS.forEach(function (w) { var a = w.hosts[0], b = w.hosts[w.hosts.length - 1]; w.z1 = 8 - a * 26 + 13; w.z0 = 8 - b * 26 - 13; w.x0 = w.side < 0 ? -39 : 21; w.x1 = w.side < 0 ? -21 : 39; w.x = (w.x0 + w.x1) / 2; w.z = (w.z0 + w.z1) / 2; w.w = 18; w.d = w.z1 - w.z0; });
+
   /* Round 6: one-off setup per world (shapes + a calmer, plate-and-seam lava shader). Everything is built at load; nothing at run time. */
   var LAVA_FRAG = [
     'varying vec3 vP;varying vec3 vE;varying vec2 vUv;uniform float clock;uniform sampler2D norm;uniform sampler2D grain;',
@@ -39,11 +52,11 @@
     ' vec2 e=min(vUv,1.-vUv)*vE.xy*2.;float bank=1.-smoothstep(0.,.45,min(e.x,e.y));',
     ' crust=clamp(crust+bank*.85,0.,1.);',
     ' float pulse=.55+.45*sin(clock*1.2+p.y*.7+a.g*7.);',
-    ' vec3 molten=mix(vec3(.46,.065,.01),vec3(.86,.28,.05),pulse*.55+c.g*.45);',
+    ' vec3 molten=mix(vec3(.26,.025,.003),vec3(.52,.11,.012),pulse*.55+c.g*.45);',
     ' float seam=smoothstep(0.,.1,crust)*(1.-smoothstep(.1,.35,crust));',
     ' vec3 crustCol=vec3(.03,.017,.013)+vec3(.20,.045,.008)*smoothstep(.85,.4,crust);',
     ' vec3 col=mix(molten,crustCol,smoothstep(.2,.7,crust));',
-    ' col+=vec3(.7,.2,.03)*seam*.4;',
+    ' col+=vec3(.8,.22,.03)*seam*.3;',
     ' gl_FragColor=vec4(col,1.);}'].join('\n');
   function setupOnce(K) {
     if (K.forgeSetup) return; K.forgeSetup = true;
@@ -100,7 +113,10 @@
       o = o || {}; var wt = o.wallTint || SOOT, gl = o.glow == null ? 1 : o.glow;
       if (o.arenaLights !== false) { K.light(i, X(-6.4), 2.8, Z(2.5), 0xff8038, 18 + 14 * gl, 13, { glow: 1, scatter: .2, flicker: .18 }); K.light(i, X(6.4), 2.8, Z(-3.5), 0xff8038, 18 + 14 * gl, 13, { glow: 1, scatter: .2, flicker: .18 }); }
       [-1, 1].forEach(function (s) {
-        K.wall(i, X(s * (r.w / 2 + .45)), Z(0), r.d + .2, .9, 6.8, false, -s, 0, { tint: wt, ruin: o.ruin || 0, niche: false, pil: 5.4, plinthKey: 'iron' });
+        var door = DOORS[i] === s, seg = (r.d + .2) / 2 - DOOR_HW;
+        // A side door out to the open foundry wing (see WINGS): the wall is built in two runs around a real opening.
+        if (door) { [-1, 1].forEach(function (q) { K.wall(i, X(s * (r.w / 2 + .45)), Z(q * (DOOR_HW + seg / 2)), seg, .9, 6.8, false, -s, 0, { tint: wt, ruin: o.ruin || 0, niche: false, pil: 5.4, plinthKey: 'iron' }); }); sideDoor(s); }
+        else K.wall(i, X(s * (r.w / 2 + .45)), Z(0), r.d + .2, .9, 6.8, false, -s, 0, { tint: wt, ruin: o.ruin || 0, niche: false, pil: 5.4, plinthKey: 'iron' });
         for (var n = 0; n < 4; n++) {
           var z = (n - 1.5) * 5.2, h = o.colH || 5.4;
           K.put(i, 'box', 'iron', X(s * 8.3), .25, Z(z), 1.5, .5, 1.5, 0, 0, 0, IRONT, .5); K.put(i, 'box', 'iron', X(s * 8.3), 2.8, Z(z), .8, 5.1, .8, 0, 0, 0, IRONT, .55, 3);
@@ -112,12 +128,17 @@
         K.bar(i, 'box', 'iron', X(s * 8.3), 5.5, Z(-7.6), X(s * 8.3), 4.2, Z(-5.3), .16, IRONT, .1); K.bar(i, 'box', 'iron', X(s * 8.3), 5.5, Z(7.6), X(s * 8.3), 4.2, Z(5.3), .16, IRONT, .1);
         if (o.gutter !== 'none') {
           var gx = s * 11;
-          if (o.gutter === 'slag') { K.dec(i, 15, X(gx), Z(0), 2.6, r.d - 2, 0, [1.1, .34, .06], .75, 'glow'); }
-          else lavaPanel(X(gx), Z(0), 2.3, r.d - 3);
-          [-1, 1].forEach(function (sd) { K.put(i, 'box', 'iron', X(gx + sd * 1.25), .22, Z(0), .22, .44, r.d - 3, 0, 0, 0, [.7, .66, .64], .3); });
+          // With a side door the channel is split and bridged by an iron grate.
+          var runs = door ? [[-(DOOR_HW + ((r.d - 3) / 2 - DOOR_HW) / 2), (r.d - 3) / 2 - DOOR_HW], [DOOR_HW + ((r.d - 3) / 2 - DOOR_HW) / 2, (r.d - 3) / 2 - DOOR_HW]] : [[0, r.d - 3]];
+          runs.forEach(function (run) {
+            if (o.gutter === 'slag') { K.dec(i, 15, X(gx), Z(run[0]), 2.6, run[1] + 1, 0, [1.1, .34, .06], .75, 'glow'); }
+            else lavaPanel(X(gx), Z(run[0]), 2.3, run[1]);
+            [-1, 1].forEach(function (sd) { K.put(i, 'box', 'iron', X(gx + sd * 1.25), .22, Z(run[0]), .22, .44, run[1], 0, 0, 0, [.7, .66, .64], .3); });
+            if (o.gutter !== 'slag') K.solid(X(gx), Z(run[0]), 1.6, run[1]);   // you can no longer wade through the molten channel (the hero stops at the curb; the aisles beside it stay open)
+          });
+          if (door) { K.put(i, 'box', 'iron', X(gx), .1, Z(0), 3.1, .14, DOOR_HW * 2 + .3, 0, 0, 0, [.55, .5, .48], .3); for (var gb = -3; gb <= 3; gb++) K.put(i, 'box', 'iron', X(gx), .19, Z(gb * .6), 3.0, .05, .08, 0, 0, 0, [.4, .37, .35], 0); }
           if (o.gutter !== 'slag') for (var q = 0; q < 3; q++) K.spr(i, S.pool, X(gx), .2, Z((q - 1) * 6.5), 5.2, 5.2, [.9 * gl, .3 * gl, .06 * gl], .5, R(), 1, 1);
           for (var q = 0; q < 8; q++) K.spr(i, S.ember, X(gx + (R() - .5) * 1.6), .2, Z((R() - .5) * (r.d - 4)), .05, .05, [2, .8, .22], 1, R(), .15 + R() * .15, 4.5);
-          if (o.gutter !== 'slag') K.solid(X(gx), Z(0), 1.6, r.d - 3);   // you can no longer wade through the molten channel (the hero stops at the curb; the aisles beside it stay open)
         }
         if (o.arches !== false) archX(s, -8.3, 1.5, o);
       });
@@ -132,17 +153,17 @@
     }
     function north(o) {
       o = o || {}; var zf = r.z - r.d / 2 - .75, h = o.h || 6.6, tint = o.tint || SOOT;
-      var lx0 = r.x - r.w / 2 - .9, lx1 = -3.9, rx0 = 3.9, rx1 = r.x + r.w / 2 + .9;
+      var lx0 = r.x - r.w / 2 - .9, lx1 = -GATE_HW, rx0 = GATE_HW, rx1 = r.x + r.w / 2 + .9;
       K.wall(i, (lx0 + lx1) / 2, zf, lx1 - lx0, 1.3, h, true, 0, 1, { tint: tint, pil: 4.6, plinthKey: 'iron' }); K.wall(i, (rx0 + rx1) / 2, zf, rx1 - rx0, 1.3, h, true, 0, 1, { tint: tint, pil: 4.6, plinthKey: 'iron' });
       if (o.noGate) return;
       [-1, 1].forEach(function (s) {
-        K.put(i, 'box', 'iron', s * 4.55, 3.2, zf + .35, 1.4, 6.4, 1.7, 0, 0, 0, IRONT, .55, 3.5); for (var b = 0; b < 4; b++) K.put(i, 'box', 'iron', s * 4.55, 1.0 + b * 1.6, zf + .35, 1.65, .2, 1.95, 0, 0, 0, [.8, .74, .7], .2);
+        K.put(i, 'box', 'iron', s * (GATE_HW + .65), 3.2, zf + .35, 1.4, 6.4, 1.7, 0, 0, 0, IRONT, .55, 3.5); for (var b = 0; b < 4; b++) K.put(i, 'box', 'iron', s * (GATE_HW + .65), 1.0 + b * 1.6, zf + .35, 1.65, .2, 1.95, 0, 0, 0, [.8, .74, .7], .2);
       });
-      K.put(i, 'box', 'iron', 0, 6.5, zf + .35, 10, .8, 1.9, 0, 0, 0, IRONT, .2); K.put(i, 'box', 'iron', 0, 5.85, zf + .35, 7.4, .5, 1.6, 0, 0, 0, SOOT, .1);   // (was 7 cm below the lintel)
-      for (var q = -3; q <= 3; q++) { K.put(i, 'cyl6', 'iron', q * 1.0, 5.1, zf + .35, .16, 1.1, .16, 0, 0, 0, [.5, .46, .44], 0); K.put(i, 'cone4', 'iron', q * 1.0, 4.32, zf + .35, .24, .5, .24, 0, 0, PI, [.56, .52, .5], 0); }   // raised portcullis
-      K.put(i, 'box', 'iron', 0, 5.3, zf + .35, 7.2, .1, .14, 0, 0, 0, [.5, .46, .44], 0); K.put(i, 'box', 'iron', 0, 4.7, zf + .35, 7.2, .08, .12, 0, 0, 0, [.5, .46, .44], 0);
+      K.put(i, 'box', 'iron', 0, 6.5, zf + .35, GATE_HW * 2 + 2.2, .8, 1.9, 0, 0, 0, IRONT, .2); K.put(i, 'box', 'iron', 0, 5.85, zf + .35, GATE_HW * 2 - .4, .5, 1.6, 0, 0, 0, SOOT, .1);   // (was 7 cm below the lintel)
+      for (var q = -5; q <= 5; q++) { K.put(i, 'cyl6', 'iron', q * 1.1, 5.1, zf + .35, .16, 1.1, .16, 0, 0, 0, [.5, .46, .44], 0); K.put(i, 'cone4', 'iron', q * 1.1, 4.32, zf + .35, .24, .5, .24, 0, 0, PI, [.56, .52, .5], 0); }   // raised portcullis
+      K.put(i, 'box', 'iron', 0, 5.3, zf + .35, GATE_HW * 2 - .6, .1, .14, 0, 0, 0, [.5, .46, .44], 0); K.put(i, 'box', 'iron', 0, 4.7, zf + .35, GATE_HW * 2 - .6, .08, .12, 0, 0, 0, [.5, .46, .44], 0);
       K.put(i, 'box', 'wall', 0, 7.05, zf + .35, 1.1, .7, 1.4, 0, 0, 0, [.5, .46, .44], .2);
-      if (o.vent) { K.put(i, 'box', 'hot', 0, 6.25, zf + 1.25, 5.8, .2, .06, 0, 0, 0, [2.0, .7, .18], 0); K.spr(i, S.glow, 0, 6.1, zf + 1.4, 4.2, .8, [.9, .3, .06], .8, 0, 1, 1); }
+      if (o.vent) { K.put(i, 'box', 'hot', 0, 6.25, zf + 1.25, GATE_HW * 2 - 2, .2, .06, 0, 0, 0, [2.0, .7, .18], 0); K.spr(i, S.glow, 0, 6.1, zf + 1.4, 4.2, .8, [.9, .3, .06], .8, 0, 1, 1); }
     }
     // props
     function anvil(x, z, rot, sc) {
@@ -309,9 +330,9 @@
     function corridor() {
       if (i >= 13) return;
       // the 4 m connecting corridor used to be the bare, untinted floor slab (a bright patch between the dark rooms): slab it like the room
-      if (floorOpt) K.floor(i, { x: 0, z: r.z - 13, w: 7, d: 4.08 }, Object.assign({}, floorOpt, { cols: 3, rows: 2, zone: null, skip: null }));
-      [-1, 1].forEach(function (s) { K.wall(i, s * 3.95, r.z - 13.7, 2.7, .8, 5.6, false, -s, 0, { tint: [.4, .37, .36], noPil: true, plinthKey: 'iron' });
-        K.sconce(i, s * 3.5, 2.5, r.z - 13.5, -s, 0, { col: FIRE, light: true, lightColor: 0xff8a3c, intensity: 30 }); });   // light candidates between the rooms
+      if (floorOpt) K.floor(i, { x: 0, z: r.z - 13, w: GATE_HW * 2, d: 4.08 }, Object.assign({}, floorOpt, { cols: 3, rows: 2, zone: null, skip: null }));
+      [-1, 1].forEach(function (s) { K.wall(i, s * (GATE_HW + .05), r.z - 13.7, 2.7, .8, 5.6, false, -s, 0, { tint: [.4, .37, .36], noPil: true, plinthKey: 'iron' });
+        K.sconce(i, s * (GATE_HW - .45), 2.5, r.z - 13.5, -s, 0, { col: FIRE, light: true, lightColor: 0xff8a3c, intensity: 30 }); });   // light candidates between the rooms
     }
     // The five rock blocks standing at (+-6.8, -7) in rooms 1,4,7,10,13 are given different jobs by the room scripts.
     var ROOM = [];
@@ -596,11 +617,140 @@
       // glowing bands on the furnace's iron buttresses; pipes feeding the colossal furnace
       [-1, 1].forEach(function (s) { for (var b = 0; b < 4; b++) HOT(s * 5.6, 1.4 + b * 1.4, fz + .6, 1.64, .1, 1.04, [1.3, .45, .1]); BAR(s * 3.4, 6.6, fz + 1.3, s * 3.4, 3.7, fz + .85, .22, IRONT); BAR(s * 3.4, 3.7, fz + .85, s * 2.9, 3.2, fz + .6, .22, IRONT); valve(s * 3.4, 5.0, fz + 1.55, 0, .45); });
     };
+    /* ───────────── open foundry wings and side doors (world-b) ───────────── */
+    var RW = K.rng(i, 77);
+    function RR(a, b) { return a + RW() * (b - a); }
+    function sideDoor(s) {
+      var x = X(s * (r.w / 2 + .45)), z = Z(0);
+      [-1, 1].forEach(function (q) { K.put(i, 'box', 'iron', x, 3.3, z + q * (DOOR_HW + .35), 1.5, 6.6, .7, 0, 0, 0, IRONT, .5, 3); for (var b = 0; b < 4; b++) K.put(i, 'box', 'iron', x, .9 + b * 1.6, z + q * (DOOR_HW + .35), 1.7, .18, .9, 0, 0, 0, [.8, .74, .7], .2); });
+      K.put(i, 'box', 'iron', x, 5.2, z, 1.6, .8, DOOR_HW * 2 + 1.6, 0, 0, 0, IRONT, .2); K.put(i, 'box', 'hot', x - s * .82, 4.95, z, .05, .12, DOOR_HW * 2, 0, 0, 0, [1.6, .55, .14], 0);
+      for (var q2 = -3; q2 <= 3; q2++) K.put(i, 'cyl6', 'iron', x, 4.4, z + q2 * .6, .14, .9, .14, 0, 0, 0, [.5, .46, .44], 0);   // raised grille
+      K.chain(i, x - s * .9, 4.7, z - DOOR_HW + .3, 1.6, [.55, .5, .48]); K.chain(i, x - s * .9, 4.7, z + DOOR_HW - .3, 2.1, [.55, .5, .48]);
+    }
+    function lavaRiver(x, z, w, d) { lavaPanel(x, z, w, d); for (var q = 0; q < Math.max(1, Math.round(d / 7)); q++) K.spr(i, S.pool, x, .2, z - d / 2 + (q + .5) * d / Math.max(1, Math.round(d / 7)), Math.min(7, w + 1.5), 6, [.8, .26, .05], .22, RW(), 1, 1); }
+    // Beyond the walls on the sides without a wing: a glowing abyss with crags, hanging chains and far furnace light (never walkable).
+    function abyss(s) {
+      var wx = r.x + s * (r.w / 2 + 1);
+      for (var k = 0; k < 5; k++) { var z = r.z - 11 + k * 5.5 + RR(-1, 1), h = RR(3, 7); K.put(i, 'crag', 'rock', wx + s * RR(7, 15), h * .3 - 4.2, z, RR(4, 7), h, RR(4, 6), RR(0, 6), 0, s * .1, [.2, .18, .17], .6); }
+      for (k = 0; k < 3; k++) { var cz = r.z + (k - 1) * 8 + RR(-1, 1); K.chain(i, wx + s * RR(3, 7), 12, cz, RR(10, 15), [.45, .4, .38]); }
+      for (k = 0; k < 4; k++) K.spr(i, S.glow, wx + s * RR(6, 12), -2.5, r.z + RR(-10, 10), 5, 4, [.6, .16, .03], .16, RW(), 1, 1);
+      for (k = 0; k < 10; k++) K.spr(i, S.ember, wx + s * RR(2, 10), -1, r.z + RR(-11, 11), .05, .05, [2, .75, .2], 1, RW(), .1 + RW() * .15, 10);
+      
+    }
+    function wingDress() {
+      var W = null; WINGS.forEach(function (w) { if (w.hosts.indexOf(i) >= 0) W = w; });
+      if (i < 13) [-1, 1].forEach(function (s) { if (!W || W.side !== s) abyss(s); });
+      if (!W) return;
+      var s = W.side, zA = Math.max(W.z0, r.z - 13), zB = Math.min(W.z1, r.z + 13), zc = (zA + zB) / 2, L = zB - zA, mid = W.hosts[1] === i, xi = s * 21, xo = s * 39;
+      function U(t) { return s * (21 + t); }
+      K.floor(i, { x: W.x, z: zc, w: 18, d: L }, { key: W.kind === 'scrap' ? 'iron' : 'floor', tint: W.kind === 'scrap' ? [.46, .43, .42] : [.5, .44, .4], vary: .2, cols: 7, rows: 10, tilt: .05 });
+      // door corridor: a grate causeway between two molten trenches
+      var wallX = r.x + s * r.w / 2;
+      if (DOORS[i] === s) {
+        var len = Math.abs(xi - wallX) + 1.2, cx = (xi + wallX) / 2;
+        K.floor(i, { x: cx, z: r.z, w: len, d: DOOR_HW * 2 + .4 }, { key: 'iron', tint: [.44, .41, .4], vary: .1, cols: Math.max(1, Math.round(len / 2)), rows: 2 });
+        if (len > 3) [-1, 1].forEach(function (q) { lavaRiver(cx, r.z + q * (DOOR_HW + 1.7), len, 2.6); K.bar(i, 'cyl', 'iron', wallX, 1.05, r.z + q * (DOOR_HW + .1), xi, 1.05, r.z + q * (DOOR_HW + .1), .05, [.6, .56, .54], .2); for (var p = 0; p <= len; p += 2.2) K.put(i, 'box', 'iron', wallX + s * p, .55, r.z + q * (DOOR_HW + .1), .1, 1.1, .1, 0, 0, 0, IRONT, .2); });
+      }
+      // void between the room wall and the wing: broken masonry, scaffolds and crags (reads as solid ground falling away)
+      for (var zz = zA + 1.5; zz < zB - 1; zz += 3.2) {
+        if (DOORS[i] === s && Math.abs(zz - r.z) < DOOR_HW + 3.2) continue;
+        var gap = Math.abs(xi - wallX); if (gap < 1.5) continue;
+        var xx = (xi + wallX) / 2 + RR(-1, 1), h = RR(1.2, 3.8); K.put(i, 'crag', 'rock', xx, h * .3, zz, gap * .8, h, 3.6, RR(0, 6), 0, 0, [.26, .24, .23], .5);
+      }
+      // the outer molten river, its iron curb and the cavern cliffs beyond (no walls: the wing opens onto a glowing chasm)
+      lavaRiver(s * 43.5, zc, 8.4, L + .2);
+      for (zz = zA; zz < zB; zz += 2.6) { if (RW() < .25) continue; K.put(i, 'rock', 'rock', s * RR(39.2, 39.8), RR(.1, .3), zz + RR(-.5, .5), RR(.8, 1.6), RR(.4, .8), RR(1, 2), RR(0, 6), 0, 0, [.24, .22, .21], .5); }
+      for (zz = zA + 1; zz < zB; zz += RR(3.5, 5.5)) { var ch = RR(5, 15); K.put(i, 'crag', 'rock', s * RR(50, 56), ch * .42, zz, RR(6, 9), ch, RR(5, 8), RR(0, 6), 0, s * .08, [.22, .2, .19], .6); K.spr(i, S.glow, s * 48.2, .6, zz, 4, 2, [.8, .26, .05], .45, RW(), 1, 1); }
+      for (var e = 0; e < 26; e++) K.spr(i, S.ember, s * RR(40, 47), .3, RR(zA, zB), .05, .05, [2.2, .85, .22], 1, RW(), .12 + RW() * .2, 7);
+      for (e = 0; e < 5; e++) K.spr(i, S.smoke, s * RR(41, 47), 1.2, RR(zA, zB), 4.5, 4.5, [.42, .3, .24], .2, RW(), .06, 6);
+      // steam main along the inner side with leaking valves
+      pipe(U(.6), 3.4, zA + .8, U(.6), 3.4, zB - .8, .26); pipe(U(1.2), 2.6, zA + .8, U(1.2), 2.6, zB - .8, .16);
+      for (var b = 0; b < 3; b++) { var vz = zA + (b + .5) * L / 3; if (DOORS[i] === s && Math.abs(vz - r.z) < DOOR_HW + 1) vz += 5; K.put(i, 'box', 'iron', U(.6), 1.7, vz, .5, 3.4, .5, 0, 0, 0, IRONT, .4); K.spr(i, S.smoke, U(1.3), 3.4, vz, 1.6, 1.6, [.72, .7, .68], .28, RW(), .2, 3.5); K.solid(U(.6), vz, .6, .6); }
+      if (mid) {
+        // landmark: a colossal smoke stack on the far bank, seen from the neighbouring rooms
+        var cx2 = s * 51, cz2 = zc - 2;
+        K.put(i, 'cyl', 'wall', cx2, 13, cz2, 6, 26, 6, 0, 0, 0, [.34, .3, .29], .6, 8); for (b = 0; b < 5; b++) K.put(i, 'cyl', 'iron', cx2, 3 + b * 5.4, cz2, 6.5, .45, 6.5, 0, 0, 0, IRONT, .2);
+        K.put(i, 'cyl', 'hot', cx2, 26.1, cz2, 5.4, .2, 5.4, 0, 0, 0, [1.8, .6, .14], 0); K.spr(i, S.glow, cx2, 26.5, cz2, 9, 5, [1.0, .36, .08], .7, 0, 1, 1);
+        for (b = 0; b < 6; b++) K.spr(i, S.smoke, cx2 + RR(-1, 1), 27 + b * 1.5, cz2, 7, 7, [.32, .24, .2], .3, RW(), .05, 9);
+        K.light(i, s * 37, 3.2, zc, 0xff7a34, 24, 16, { glow: 1, scatter: .3, flicker: .15 });
+      }
+      // kind-specific furniture (absolute coordinates); every heavy prop gets a footprint
+      if (W.kind === 'slag') {
+        slagHeap(U(RR(8, 12)), zc + RR(-8, -5), 1.5, true); slagHeap(U(RR(11, 15)), zc + RR(5, 8), 1.2, i % 2 === 0);
+        cart(U(5), zc + 2.5, .3 * s, false); anvil(U(13), zc - 1, .8, 1);
+        if (mid) { // crane gantry with a chain-slung skip
+          K.put(i, 'box', 'iron', U(4), 3.5, zc - 9, .6, 7, .6, 0, 0, 0, IRONT, .4); K.put(i, 'box', 'iron', U(16), 3.5, zc - 9, .6, 7, .6, 0, 0, 0, IRONT, .4); K.solid(U(4), zc - 9, .7, .7); K.solid(U(16), zc - 9, .7, .7);
+          K.put(i, 'box', 'iron', U(10), 7.1, zc - 9, 12.6, .6, .7, 0, 0, 0, IRONT, .2); K.chain(i, U(9), 6.8, zc - 9, 2.6, [.55, .5, .48]); K.put(i, 'vat', 'iron', U(9), 3.4, zc - 9, 1.6, 1.2, 1.6, 0, 0, 0, [.5, .46, .44], .3); K.put(i, 'disc', 'hot', U(9), 3.95, zc - 9, 1.2, 1, 1.2, 0, 0, 0, [1.8, .7, .2], 0);
+        }
+      } else if (W.kind === 'bellows') {
+        [-1, 1].forEach(function (q) { bellows(U(9), zc + q * 6.5, s, mid && q > 0); });
+        brazierF(U(15.5), zc, 1, 18); anvil(U(5), zc - 1.5, .2, 1.1);
+      } else if (W.kind === 'river') {
+        var rz = zc + (i % 2 ? 4 : -4), bx = U(i % 2 ? 6 : 12);
+        lavaRiver(W.x, rz, 18, 2.6);
+        K.solid((U(0) + bx - s * 2.6) / 2, rz, Math.abs(bx - s * 2.6 - U(0)), 2.2); K.solid((bx + s * 2.6 + U(18)) / 2, rz, Math.abs(U(18) - bx - s * 2.6), 2.2);
+        K.put(i, 'box', 'iron', bx, .16, rz, 5.2, .2, 3.6, 0, 0, 0, [.5, .46, .44], .3); [-1, 1].forEach(function (q) { for (var pp = -1; pp <= 1; pp++) K.put(i, 'cyl6', 'iron', bx + q * 2.5, .6, rz + pp * 1.6, .08, 1.0, .08, 0, 0, 0, IRONT, .2); K.bar(i, 'cyl', 'iron', bx + q * 2.5, 1.1, rz - 1.7, bx + q * 2.5, 1.1, rz + 1.7, .05, [.6, .56, .54], .2); });
+        if (mid) chainWell(U(10), zc - (i % 2 ? 5 : -5)); else { cage(U(12), zc + (i % 2 ? -5 : 5), 1.6); slagHeap(U(5), zc + (i % 2 ? -7 : 7), 1.1, true); }
+      } else {
+        for (var p2 = 0; p2 < 3; p2++) scrapPile(U(RR(5, 14)), zA + (p2 + .5) * L / 3 + RR(-2, 2), RR(1.2, 1.9));
+        cart(U(8), zc + 3.5, -.4 * s, false); K.chain(i, U(12), 6.5, zc - 3, 4.4, [.55, .5, .48]); K.chain(i, U(13), 6.5, zc - 3.6, 3.8, [.55, .5, .48]);
+        K.put(i, 'box', 'iron', U(12.5), 6.6, zc - 3.3, 4, .5, .5, 0, 0, 0, IRONT, .2); K.put(i, 'box', 'iron', U(14.4), 3.3, zc - 3.3, .5, 6.6, .5, 0, 0, 0, IRONT, .3); K.solid(U(14.4), zc - 3.3, .6, .6);
+      }
+      // overhead iron trusses on tall pillars give the open hall a rhythm (pillars sit on the outer bank, never in the lanes)
+      for (zz = zA + 4; zz < zB - 2; zz += 8.5) {
+        if (DOORS[i] === s && Math.abs(zz - r.z) < DOOR_HW + 1.5) zz += 3;
+        K.put(i, 'box', 'iron', U(17.4), 4.2, zz, .7, 8.4, .7, 0, 0, 0, IRONT, .5, 3); K.solid(U(17.4), zz, .8, .8);
+        for (b = 0; b < 3; b++) K.put(i, 'box', 'iron', U(17.4), 1.4 + b * 2.4, zz, .9, .18, .9, 0, 0, 0, [.8, .74, .7], .2);
+        K.bar(i, 'box', 'iron', U(17.4), 8.2, zz, U(.3), 7.2, zz, .22, IRONT, .1); K.bar(i, 'box', 'iron', U(17.4), 6.6, zz, U(13), 8.1, zz, .1, IRONT, .1);
+        K.chain(i, U(RR(5, 12)), 7.6, zz, RR(2, 4.5), [.55, .5, .48]);
+        K.spr(i, S.glow, U(17.4), 6.8, zz, 1.4, 1.4, [.8, .3, .06], .4, RW(), 1, 1);
+      }
+      // coal heaps and ingot stacks along the inner side
+      for (e = 0; e < 3; e++) { var hx = U(RR(2.5, 4.5)), hz = RR(zA + 2, zB - 2); if (DOORS[i] === s && Math.abs(hz - r.z) < DOOR_HW + 2) continue;
+        for (b = 0; b < 9; b++) K.put(i, 'pebble', 'rock', hx + RR(-1, 1), RR(.1, .5), hz + RR(-1, 1), RR(.5, .9), RR(.4, .7), RR(.5, .9), RR(0, 6), 0, 0, [.12, .11, .11], .5);
+        K.solid(hx, hz, 2, 2); }
+      for (e = 0; e < 2; e++) { var ix = U(RR(13, 16)), iz = RR(zA + 3, zB - 3); for (b = 0; b < 6; b++) K.put(i, 'ingot', 'iron', ix + (b % 3) * .5, .13 + Math.floor(b / 3) * .26, iz + (Math.floor(b / 3) % 2) * .2, .45, .25, 1.1, 0, 0, 0, [.62, .5, .42], .3); K.solid(ix + .5, iz, 1.8, 1.4); }
+      // floor life: soot, cracks, hot seams, embers, low smoke
+      for (e = 0; e < 7; e++) K.dec(i, e % 2 ? 0 : 3, U(RR(2, 16)), RR(zA + 2, zB - 2), RR(3, 6), RR(3, 6), RR(0, 6), [1, 1, 1], .85);
+      for (e = 0; e < 3; e++) K.dec(i, 15, U(RR(3, 15)), RR(zA + 3, zB - 3), RR(4, 7), RR(4, 7), RR(0, 6), [.3, .085, .017], .3, 'glow');
+      for (e = 0; e < 18; e++) K.spr(i, S.ember, U(RR(1, 17)), .3, RR(zA, zB), .05, .05, [2, .8, .22], 1, RW(), .12 + RW() * .15, 5);
+      for (e = 0; e < 4; e++) K.spr(i, S.smoke, U(RR(2, 16)), .6, RR(zA, zB), 3.2, 3.2, [.36, .3, .27], .2, RW(), .05, 4);
+      K.light(i, U(9), 2.6, zc + (mid ? 7 : 0), 0xff8038, 20, 13, { glow: 1, scatter: .2, flicker: .18 });
+    }
+    function bellows(x, z, s, big) {
+      var k = big ? 1.35 : 1;
+      K.put(i, 'box', 'wall', x + s * 3.2 * k, 1.1 * k, z, 2.6 * k, 2.2 * k, 3.4 * k, 0, 0, 0, [.3, .27, .26], .5);   // furnace block it feeds
+      K.put(i, 'box', 'hot', x + s * 1.88 * k, .9 * k, z, .06, .9 * k, 1.6 * k, 0, 0, 0, [1.7, .62, .16], 0); K.spr(i, S.glow, x + s * 1.4 * k, .9 * k, z, 2.2, 2.2, [.9, .3, .06], .7, RW(), 1, 1);
+      // the bellows: two hinged iron-shod boards and the creased leather between them
+      K.put(i, 'box', 'wood', x - s * 1.4 * k, 1.9 * k, z, 4.2 * k, .16, 2.6 * k, 0, 0, s * .12, [.42, .34, .28], .4);
+      K.put(i, 'box', 'wood', x - s * 1.4 * k, .5 * k, z, 4.2 * k, .16, 2.6 * k, 0, 0, -s * .04, [.42, .34, .28], .4);
+      for (var f = 0; f < 5; f++) { var t = f / 4, hh = (1.25 - t * .6) * k; K.put(i, 'box', 'earth', x - s * (3.2 - f * .9) * k, (.6 + hh / 2) * k, z, .55 * k, hh, 2.5 * k * (f % 2 ? .92 : 1), 0, 0, 0, [.22, .16, .13], .3); }
+      K.bar(i, 'cyl', 'iron', x + s * .7 * k, 1.1 * k, z, x + s * 1.9 * k, 1.0 * k, z, .2 * k, IRONT, .3);
+      K.put(i, 'box', 'iron', x - s * 3.4 * k, 4.2 * k, z, .3, 4.4 * k, .3, 0, 0, 0, IRONT, .3); K.bar(i, 'cyl', 'iron', x - s * 3.4 * k, 4.3 * k, z, x - s * 1.2 * k, 2.1 * k, z, .08, IRONT, .3);
+      K.chain(i, x - s * 3.4 * k, 4.2 * k, z + .3, 2.2 * k, [.55, .5, .48]);
+      K.solid(x, z, 8.6 * k, 3.6 * k);
+    }
+    function chainWell(x, z) {
+      K.put(i, 'rim', 'iron', x, .3, z, 4.6, 4.6, 4.6, 0, PI / 2, 0, IRONT, .3); K.put(i, 'rim', 'iron', x, .12, z, 5.2, 5.2, 5.2, 0, PI / 2, 0, [.5, .46, .44], .3); K.put(i, 'disc', 'hot', x, .06, z, 3.9, 1, 3.9, 0, 0, 0, [.75, .24, .05], 0);
+      K.spr(i, S.glow, x, 1.0, z, 4, 4, [.7, .24, .05], .35, RW(), 1, 1); K.spr(i, S.smoke, x, 1.2, z, 3, 3, [.4, .3, .24], .26, RW(), .08, 6);
+      [-1, 1].forEach(function (q) { K.put(i, 'box', 'iron', x + q * 2.9, 3.6, z, .5, 7.2, .5, 0, 0, 0, IRONT, .4); K.solid(x + q * 2.9, z, .6, .6); });
+      K.put(i, 'box', 'iron', x, 7.3, z, 6.4, .5, .6, 0, 0, 0, IRONT, .2);
+      for (var c = -2; c <= 2; c++) K.chain(i, x + c * .55, 7.0, z + (c % 2) * .3, 6.2 + (c % 2) * .6, [.58, .53, .5]);
+      K.solid(x, z, 4.2, 4.2);
+    }
+    function scrapPile(x, z, rad) {
+      for (var k = 0; k < 14; k++) { var a = RW() * 6.28, d = Math.sqrt(RW()) * rad, sz = .4 + RW() * .9;
+        if (k % 3 === 0) K.put(i, 'cyl', 'iron', x + Math.cos(a) * d, .3 + RW() * .6, z + Math.sin(a) * d, .25, sz * 2, .25, RW() * 6, RW() * 1.5, RW(), [.42, .38, .36], .4);
+        else K.put(i, 'box', 'iron', x + Math.cos(a) * d, sz * .3 + RW() * .4, z + Math.sin(a) * d, sz * 1.4, sz * .3, sz, RW() * 6, RW() - .5, RW() - .5, [.38 + RW() * .1, .34, .32], .5); }
+      K.put(i, 'crag', 'rock', x, rad * .25, z, rad * 1.5, rad * .7, rad * 1.5, RW() * 6, 0, 0, [.22, .2, .19], .5); K.chain(i, x + .4, 1.4, z, 1.2, [.55, .5, .48]);
+      K.solid(x, z, rad * 1.5, rad * 1.5);
+    }
     var kFloor = K.floor, floorOpt = null;
     K.floor = function (id, rr, o) { floorOpt = o; return kFloor.apply(K, arguments); };
     ROOM[i]();
     K.floor = kFloor;
     corridor(); clutter(12);
+    wingDress();
   }
-  B.ForgeRooms = { dress: dress, moodBase: moodBase, moodSpecs: moodSpecs };
+  B.ForgeRooms = { dress: dress, moodBase: moodBase, moodSpecs: moodSpecs, wings: WINGS, doors: DOORS, doorHalf: DOOR_HW, gateHalf: GATE_HW };
 }());
