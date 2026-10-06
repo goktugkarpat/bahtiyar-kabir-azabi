@@ -18,11 +18,11 @@
   });
   const STATS = {
     prisoner: { name: 'Zincirli Mahkûm', hp: 118, speed: 2.4, radius: .58, reach: 2.5, cooldown: 1.25, color: 0xb77c63 },
-    guard: { name: 'Mezar Muhafızı', hp: 205, speed: 1.8, radius: .72, reach: 3.4, cooldown: 1.75, color: 0xb49a5f },
-    cultist: { name: 'Kül Rahibi', hp: 116, speed: 1.85, radius: .54, reach: 12, cooldown: 2.8, color: 0xac5550 },
-    stalker: { name: 'Karanlık Pusucusu', hp: 130, speed: 3.15, radius: .53, reach: 8.5, cooldown: 1.8, color: 0x978790 },
-    carrier: { name: 'Veba Taşıyıcısı', hp: 172, speed: 1.5, radius: .74, reach: 10, cooldown: 3.2, color: 0x829665 },
-    boss: { name: 'Zincir Celladı', hp: 2310, speed: 2.2, radius: 1.03, reach: 13, cooldown: .75, color: 0xc69160 }
+    guard: { name: KabirI18n.t('Mezar Muhafızı'), hp: 205, speed: 1.8, radius: .72, reach: 3.4, cooldown: 1.75, color: 0xb49a5f },
+    cultist: { name: KabirI18n.t('Kül Rahibi'), hp: 116, speed: 1.85, radius: .54, reach: 12, cooldown: 2.8, color: 0xac5550 },
+    stalker: { name: KabirI18n.t('Karanlık Pusucusu'), hp: 130, speed: 3.15, radius: .53, reach: 8.5, cooldown: 1.8, color: 0x978790 },
+    carrier: { name: KabirI18n.t('Veba Taşıyıcısı'), hp: 172, speed: 1.5, radius: .74, reach: 10, cooldown: 3.2, color: 0x829665 },
+    boss: { name: KabirI18n.t('Zincir Celladı'), hp: 2310, speed: 2.2, radius: 1.03, reach: 13, cooldown: .75, color: 0xc69160 }
   };
   if (BABA.CoastCombat) Object.assign(STATS, BABA.CoastCombat.stats);
   if (BABA.RuinsCombat) Object.assign(STATS, BABA.RuinsCombat.stats);
@@ -136,8 +136,8 @@
     const globes = BABA.Globes ? BABA.Globes.create(root, world, { player, fx, sound, emit }) : null;   // health globes dropped by dead foes (globes.js)
     const encounterDefs = (world.encounters || []).map((encounter, index) => ({
       id: String(encounter.id == null ? index : encounter.id), room: encounter.room, stage: encounter.stage,
-      name: encounter.name || 'Karanlık Geçit', clearText: encounter.clearText || 'Salon sustu. Yol mührü açıldı.', activated: false, announced: false,
-      roomName: ((world.rooms || []).find(room => String(room.id) === String(encounter.room)) || {}).name || encounter.name || 'Karanlık Geçit',
+      name: encounter.name || KabirI18n.t('Karanlık Geçit'), clearText: encounter.clearText || KabirI18n.t('Salon sustu. Yol mührü açıldı.'), activated: false, announced: false,
+      roomName: ((world.rooms || []).find(room => String(room.id) === String(encounter.room)) || {}).name || encounter.name || KabirI18n.t('Karanlık Geçit'),
       nextName: ((world.rooms || [])[(world.rooms || []).findIndex(room => String(room.id) === String(encounter.room)) + 1] || {}).name || '',
       spawns: (encounter.spawns || []).filter(s => STATS[s.type]), enemies: []
     }));
@@ -169,7 +169,7 @@
     game.saveProfileChoices = saveProfileChoices;
     game.skills = () => skillKeys.map((key, slot) => {
       const skill = selectedSkill(slot);
-      return { slot, key, skill, id: skill ? skill.id : null, line: skill ? skill.line : null, tier: skill ? skill.tier : 0, name: skill ? skill.name : 'Boş yuva', cooldown: skill ? skillCooldowns[skill.line] || 0 : 0, maxCooldown: skill ? skill.cooldown : 0, cost: skill ? skill.cost : 0 };
+      return { slot, key, skill, id: skill ? skill.id : null, line: skill ? skill.line : null, tier: skill ? skill.tier : 0, name: skill ? skill.name : KabirI18n.t('Boş yuva'), cooldown: skill ? skillCooldowns[skill.line] || 0 : 0, maxCooldown: skill ? skill.cooldown : 0, cost: skill ? skill.cost : 0 };
     });
     function saveProfileChoices() {
       // Victory has no living checkpoint foes to duplicate. Ordinary runs retain the authoritative oath snapshot.
@@ -356,7 +356,7 @@
           attack.duration = Math.max(.2, handle.duration || .5); attack.chainAt = attack.duration; attack.face = player.face; player.attack = attack; player.chargeHandle = handle;
           player.stamina -= skill.cost; started = true;
           if (!BABA.Charge) sound('dodge', { x: player.x, z: player.z });
-        } else if (BABA.Charge) emit('toast', { text: 'Hücum için yeterli yol yok.' });
+        } else if (BABA.Charge) emit('toast', { text: KabirI18n.t('Hücum için yeterli yol yok.') });
       } else {
         // Strike-type heavy skills (tier 2 / 3 of the cleave line): a wind-up, then a delayed ground blast (brand) or a wide flame fan (temper).
         player.attack = { skill: skill.id, line: 'cleave', tier: skill.tier, params: P, heavy: true, combo: 0, age: 0, duration: P.duration, strike: P.strike, hit: false, face: player.face, damage: P.damage, radius: 0,
@@ -571,7 +571,7 @@
       const h = Object.assign({
         x: 0, z: 0, face: 0, shape: 'circle', radius: 2, arc: Math.PI, inner: 0,
         width: 1.5, length: 7, warn: .8, duration: .17, delay: 0, damage: 16,
-        owner: null, enemy: 'Tehlike', attack: 'Darbe', unblockable: false,
+        owner: null, enemy: KabirI18n.t('Tehlike'), attack: KabirI18n.t('Darbe'), unblockable: false,
         periodic: false, interval: .8, persistent: false, hit: false, active: false,
         nextHit: 0, knockback: 0, pull: false, cancelOnStagger: true,
         style: 'blade', fill: '', sweepDir: 1, committed: false, serial: 0
@@ -714,13 +714,13 @@
     function saveCheckpoint() {
       game.hasSave = true;
       try { window.localStorage.setItem(SAVE_KEY, JSON.stringify(Object.assign({ version: 3, chapter, signature }, checkpointSnapshot))); }
-      catch (_) { emit('toast', { text: 'Mühür bu oturum için kaydedildi.' }); }
+      catch (_) { emit('toast', { text: KabirI18n.t('Mühür bu oturum için kaydedildi.') }); }
     }
     function removeSave() {
       try { window.localStorage.removeItem(SAVE_KEY); }
       catch (_) {
         try { window.localStorage.setItem(SAVE_KEY, 'null'); }
-        catch (_) { emit('toast', { text: 'Bu cihazdaki eski mühür kaydı silinemedi.' }); }
+        catch (_) { emit('toast', { text: KabirI18n.t('Bu cihazdaki eski mühür kaydı silinemedi.') }); }
       }
       game.hasSave = false;
     }
@@ -801,17 +801,17 @@
         return;
       }
       game.state = 'playing';
-      emit('toast', { text: chapter === 4 ? (checkpointSnapshot.index ? 'Son ocak yemininden devam ediyorsun. Ocağın Kalbi ileride.' : 'Kızıl Ocak. Zincir tezgâhlarını geç; ocağın kalbini söndür.') : chapter === 3 ? (checkpointSnapshot.index ? 'Son yemin taşından devam ediyorsun. Oyukların Kralı ileride.' : 'Sessiz Taht. Harabelerden mağaraya in; oyukların kaynağını sustur.') : world.chapter === 2 ? (checkpointSnapshot.index ? 'Son Fener’den devam ediyorsun. Çancı ileride.' : 'Kara Kıyı. Kökleri yar. Boğulmuş çanı sustur.') : checkpointSnapshot.index ? 'Son mühürden devam ediyorsun. Cellat ileride.' : 'Kurban Tapınağı. Mührü bul. Celladı sustur.' });
+      emit('toast', { text: chapter === 4 ? (checkpointSnapshot.index ? KabirI18n.t('Son ocak yemininden devam ediyorsun. Ocağın Kalbi ileride.') : KabirI18n.t('Kızıl Ocak. Zincir tezgâhlarını geç; ocağın kalbini söndür.')) : chapter === 3 ? (checkpointSnapshot.index ? KabirI18n.t('Son yemin taşından devam ediyorsun. Oyukların Kralı ileride.') : KabirI18n.t('Sessiz Taht. Harabelerden mağaraya in; oyukların kaynağını sustur.')) : world.chapter === 2 ? (checkpointSnapshot.index ? KabirI18n.t('Son Fener’den devam ediyorsun. Çancı ileride.') : KabirI18n.t('Kara Kıyı. Kökleri yar. Boğulmuş çanı sustur.')) : checkpointSnapshot.index ? KabirI18n.t('Son mühürden devam ediyorsun. Cellat ileride.') : KabirI18n.t('Kurban Tapınağı. Mührü bul. Celladı sustur.') });
     }
     function restart() {
       if (disposed) return;
       removeSave(); progression.reset(); checkpointSnapshot = freshSnapshot(progression.snapshot()); resetToSnapshot(checkpointSnapshot); game.state = 'playing';
-      emit('toast', { text: 'Yeni yürüyüş. Geçit seni bekliyor.' });
+      emit('toast', { text: KabirI18n.t('Yeni yürüyüş. Geçit seni bekliyor.') });
     }
     function respawn() {
       if (disposed) return;
       saveProfileChoices(); resetToSnapshot(checkpointSnapshot); game.state = 'playing';
-      emit('toast', { text: 'Yaraların kapandı. Eşyaların, seviyen ve yeteneklerin korundu.' });
+      emit('toast', { text: KabirI18n.t('Yaraların kapandı. Eşyaların, seviyen ve yeteneklerin korundu.') });
     }
     // Behind the title the temple is shown from its entrance (the world, fog and lights follow the hero), even with a
     // saved oath stone; the save itself is only placed on the map by start().
@@ -837,14 +837,14 @@
       game.attackTarget = null;
       if (globes) globes.reset();
       saveCheckpoint(); flashRing(checkpoint.x, checkpoint.z, 3.3, 0xf0d293, 1.4);
-      sound('checkpoint'); emit('checkpoint', { index: 1, name: chapter === 4 ? 'Son Ocak Yemini' : chapter === 3 ? 'Tahtın Eşiği' : world.chapter === 2 ? 'Son Fener' : 'Celladın Eşiği' });
+      sound('checkpoint'); emit('checkpoint', { index: 1, name: chapter === 4 ? 'Son Ocak Yemini' : chapter === 3 ? KabirI18n.t('Tahtın Eşiği') : world.chapter === 2 ? KabirI18n.t('Son Fener') : KabirI18n.t('Celladın Eşiği') });
       return true;
     }
     function interact() {
       if (game.state !== 'playing') return;
       if (quests && quests.interact()) return;
       if (activateCheckpoint()) return;
-      if (distance(player, checkpoint) < 6.1) emit('toast', { text: game.checkpointIndex ? (chapter === 4 ? 'Yemin mühürlü. Ocağın Kalbi ileride bekliyor.' : chapter === 3 ? 'Yemin mühürlü. Oyukların Kralı ileride bekliyor.' : world.chapter === 2 ? 'Yemin mühürlü. Çancı ileride bekliyor.' : 'Mühür açık. Cellat salonda bekliyor.') : 'Yakındaki tehlikeden uzaklaş; sonra yemin taşına dön.' });
+      if (distance(player, checkpoint) < 6.1) emit('toast', { text: game.checkpointIndex ? (chapter === 4 ? KabirI18n.t('Yemin mühürlü. Ocağın Kalbi ileride bekliyor.') : chapter === 3 ? KabirI18n.t('Yemin mühürlü. Oyukların Kralı ileride bekliyor.') : world.chapter === 2 ? KabirI18n.t('Yemin mühürlü. Çancı ileride bekliyor.') : KabirI18n.t('Mühür açık. Cellat salonda bekliyor.')) : KabirI18n.t('Yakındaki tehlikeden uzaklaş; sonra yemin taşına dön.') });
     }
 
     function moveBody(body, dx, dz, radius) {
@@ -1087,24 +1087,24 @@
       const allow = allowFor(e), fx0 = Math.sin(e.face), fz0 = Math.cos(e.face);
       return pick(e, [
         // The second claw steps in after the first, so backing straight off is not enough: roll through it.
-        { id: 'claw', ok: d < 2.6 && allow('claw'), w: 3, move: () => ({ id: 'claw', name: 'İkili Pençe', duration: 1.62, pose: 'clawR',
+        { id: 'claw', ok: d < 2.6 && allow('claw'), w: 3, move: () => ({ id: 'claw', name: KabirI18n.t('İkili Pençe'), duration: 1.62, pose: 'clawR',
           movement: { start: .62, duration: .28, fromX: e.x, fromZ: e.z, x: e.x + fx0 * .7, z: e.z + fz0 * .7, ease: true }, hits: [
-          { at: .56, warn: .56, shape: 'cone', radius: 2.7, arc: 2.2, dmg: 12, style: 'blade', fill: 'sweep', sweepDir: 1, pose: 'clawR', attack: 'İkili Pençe · ilk darbe' },
-          { at: 1.04, warn: .48, shape: 'cone', radius: 2.9, arc: 2.4, track: true, dmg: 15, style: 'blade', fill: 'sweep', sweepDir: -1, pose: 'clawL', attack: 'İkili Pençe · ikinci darbe' }] }) },
-        { id: 'lash', ok: d >= 2.3 && d < 3.9 && allow('lash'), w: 2, move: () => ({ id: 'lash', name: 'Zincir Kırbacı', duration: 1.4, pose: 'chainWhip', hits: [
+          { at: .56, warn: .56, shape: 'cone', radius: 2.7, arc: 2.2, dmg: 12, style: 'blade', fill: 'sweep', sweepDir: 1, pose: 'clawR', attack: KabirI18n.t('İkili Pençe · ilk darbe') },
+          { at: 1.04, warn: .48, shape: 'cone', radius: 2.9, arc: 2.4, track: true, dmg: 15, style: 'blade', fill: 'sweep', sweepDir: -1, pose: 'clawL', attack: KabirI18n.t('İkili Pençe · ikinci darbe') }] }) },
+        { id: 'lash', ok: d >= 2.3 && d < 3.9 && allow('lash'), w: 2, move: () => ({ id: 'lash', name: KabirI18n.t('Zincir Kırbacı'), duration: 1.4, pose: 'chainWhip', hits: [
           { at: .62, warn: .62, shape: 'cone', radius: 3.9, arc: 1.4, dmg: 14, knockback: 1.2, style: 'chain', fill: 'sweep', sweepDir: 1, pose: 'chainWhip' }] }) },
         { id: 'rush', sp: 1, ok: d >= 3.9 && d < 8.3 && allow('rush'), w: 2, move: () => {
           const L = clipLine(e, e.face, Math.min(7.8, d + .6));
-          return { id: 'rush', name: 'Zincir Hücumu', duration: 1.9, pose: 'lunge', feint: { at: .28, chance: .25 },
+          return { id: 'rush', name: KabirI18n.t('Zincir Hücumu'), duration: 1.9, pose: 'lunge', feint: { at: .28, chance: .25 },
             movement: { start: 1.15, duration: .3, fromX: e.x, fromZ: e.z, x: e.x + fx0 * (L - .6), z: e.z + fz0 * (L - .6) },
             hits: [{ at: 1.15, warn: .8, shape: 'line', width: 1.5, length: L, dmg: 15, knockback: 3, style: 'thrust', fill: 'forward', pose: 'lunge', duration: .3 }] }; } },
-        { id: 'grab', sp: 1, ok: d < 2.4 && e.grabCd <= 0 && allow('grab'), w: 1, move: () => ({ id: 'grab', name: 'Boğucu Kavrayış', duration: 1.75, pose: 'grab',
+        { id: 'grab', sp: 1, ok: d < 2.4 && e.grabCd <= 0 && allow('grab'), w: 1, move: () => ({ id: 'grab', name: KabirI18n.t('Boğucu Kavrayış'), duration: 1.75, pose: 'grab',
           onBegin() { e.grabCd = 18; },
           hits: [{ at: 1.0, warn: 1.0, shape: 'cone', radius: 2.5, arc: 1.5, dmg: 20, unblockable: true, style: 'grab', fill: 'inward', pose: 'grab' }] }) }
       ]);
     }
     function guardRiposte(e) {
-      return beginMove(e, { id: 'riposte', name: 'Pala Dürtüşü', duration: 1.15, pose: 'thrust', hits: [
+      return beginMove(e, { id: 'riposte', name: KabirI18n.t('Pala Dürtüşü'), duration: 1.15, pose: 'thrust', hits: [
         { at: .58, warn: .58, shape: 'line', width: 1.1, length: 3.5, dmg: 14, style: 'thrust', fill: 'forward', pose: 'thrust' }] });
     }
     function guardAttack(e, d) {
@@ -1116,11 +1116,11 @@
         { id: 'bash', ok: d < 2.9, w: 2, move: () => ({ id: 'bash', name: 'Kalkan Darbesi', duration: 1.3, pose: 'bash', hits: [
           { at: .62, warn: .62, shape: 'cone', radius: 2.8, arc: 1.7, dmg: 11, knockback: 4.4, guardPressure: 2.3, style: 'blunt', fill: 'forward', pose: 'bash' }] }) },
         // Cut and backhand: the second stroke steps in, so backing straight off is not enough; a roll is.
-        { id: 'cut', ok: d < 3.3, w: 3, move: () => ({ id: 'cut', name: 'Pala Kesişi', duration: 1.85, pose: 'slashR',
+        { id: 'cut', ok: d < 3.3, w: 3, move: () => ({ id: 'cut', name: KabirI18n.t('Pala Kesişi'), duration: 1.85, pose: 'slashR',
           movement: { start: .72, duration: .3, fromX: e.x, fromZ: e.z, x: e.x + Math.sin(e.face) * .9, z: e.z + Math.cos(e.face) * .9, ease: true }, hits: [
           { at: .58, warn: .58, shape: 'cone', radius: 3.3, arc: 2.5, dmg: 18, style: 'blade', fill: 'sweep', sweepDir: 1, pose: 'slashR' },
-          { at: 1.22, warn: .5, shape: 'cone', radius: 3.1, arc: 2.2, track: true, dmg: 12, style: 'blade', fill: 'sweep', sweepDir: -1, pose: 'sweepBack', attack: 'Pala Kesişi · dönüş' }] }) },
-        { id: 'over', sp: 1, ok: d > 1.2 && d < 3.8, w: 2, move: () => ({ id: 'over', name: 'Gecikmiş Pala', duration: 2.1, pose: 'overheadHold', hits: [
+          { at: 1.22, warn: .5, shape: 'cone', radius: 3.1, arc: 2.2, track: true, dmg: 12, style: 'blade', fill: 'sweep', sweepDir: -1, pose: 'sweepBack', attack: KabirI18n.t('Pala Kesişi · dönüş') }] }) },
+        { id: 'over', sp: 1, ok: d > 1.2 && d < 3.8, w: 2, move: () => ({ id: 'over', name: KabirI18n.t('Gecikmiş Pala'), duration: 2.1, pose: 'overheadHold', hits: [
           { at: 1.2, warn: 1.2, shape: 'line', width: 1.3, length: 4.0, dmg: 26, knockback: 2.2, style: 'blade', fill: 'forward', pose: 'overheadHold', scar: true }] }) },
         { id: 'shove', sp: 1, ok: d < 2.4 && (behind || e.picks % 4 === 3), w: behind ? 6 : 2, move: () => ({ id: 'shove', name: 'Kalkan Hamlesi', duration: 1.35, pose: 'shove', hits: [
           { at: .75, warn: .75, shape: 'line', width: 2.2, length: 2.7, dmg: 8, knockback: 6, guardPressure: 3, style: 'blunt', fill: 'forward', pose: 'shove' }] }) }
@@ -1129,7 +1129,7 @@
     // The second priest of İkili Ayin: channels (no tell of its own) while the first one's line fills between them.
     function pairMirror(b, a) {
       b.face = angleTo(b, a);
-      setEnemyAction(b, 1.9, 'İkili Ayin', null, { moveId: 'pairMirror', pose: 'cast', style: 'rune', unblockable: true });
+      setEnemyAction(b, 1.9, KabirI18n.t('İkili Ayin'), null, { moveId: 'pairMirror', pose: 'cast', style: 'rune', unblockable: true });
       b.action.pairWith = a; b.action.beats.push({ start: 0, strike: 1.4, duration: .17, pose: 'cast' }); b.lastMove = 'pair';
     }
     function cultistAttack(e, d) {
@@ -1139,25 +1139,25 @@
         && distance(o, e) > 4 && distance(o, e) < 12);
       const pairOk = !!partner && pairCd <= 0 && segmentDistance(player, e, partner) < 1.8;
       return pick(e, [
-        { id: 'rite', sp: 1, ok: e.buffCooldown <= 0 && !!ally, w: 6, move: () => ({ id: 'rite', name: 'Kan Ayini', duration: 1.65, pose: 'kneel', onBegin() { e.buffCooldown = 22; },
+        { id: 'rite', sp: 1, ok: e.buffCooldown <= 0 && !!ally, w: 6, move: () => ({ id: 'rite', name: KabirI18n.t('Kan Ayini'), duration: 1.65, pose: 'kneel', onBegin() { e.buffCooldown = 22; },
           hits: [{ at: 1.05, warn: 1.05, shape: 'circle', radius: 1.35, dmg: 0, harmless: true, duration: .26, style: 'rune', pose: 'kneel',
             onActive() {
               if (e.dead) return;
               enemies.forEach(o => { if (!o.dead && !o.boss && distance(o, e) < 11) { o.buff = 9; flashRing(o.x, o.z, o.radius + .35, 0xdb675e, .8); } });
-              emit('toast', { text: 'Kül Rahibi yakındakileri güçlendirdi.' }); sound('rage', { enemy: true });
+              emit('toast', { text: KabirI18n.t('Kül Rahibi yakındakileri güçlendirdi.') }); sound('rage', { enemy: true });
             } }] }) },
-        { id: 'pair', sp: 1, ok: pairOk, w: 5, move: () => ({ id: 'pair', name: 'İkili Ayin', duration: 1.9, pose: 'cast', onBegin() { pairCd = 20; pairMirror(partner, e); },
+        { id: 'pair', sp: 1, ok: pairOk, w: 5, move: () => ({ id: 'pair', name: KabirI18n.t('İkili Ayin'), duration: 1.9, pose: 'cast', onBegin() { pairCd = 20; pairMirror(partner, e); },
           hits: [{ at: 1.4, warn: 1.4, shape: 'line', width: 1.4, length: distance(e, partner), face: angleTo(e, partner), dmg: 20, unblockable: true,
             style: 'rune', fill: 'converge', pose: 'cast', partner,
             onActive() { const b = this.partner; if (!b || b.dead || b.stagger > 0 || !b.action || b.action.moveId !== 'pairMirror') this.harmless = true; } }] }) },
-        { id: 'rune', sp: 1, ok: d > 4 && d < 12, w: 3, move: () => ({ id: 'rune', name: 'Kurban Rünü', duration: 1.9, pose: 'cast', hits: [
+        { id: 'rune', sp: 1, ok: d > 4 && d < 12, w: 3, move: () => ({ id: 'rune', name: KabirI18n.t('Kurban Rünü'), duration: 1.9, pose: 'cast', hits: [
           { at: 1.35, warn: 1.35, shape: 'circle', radius: 2.3, origin: { x: player.x, z: player.z }, dmg: 22, unblockable: true, style: 'rune', fill: 'inward', pose: 'cast' }] }) },
         { id: 'embers', ok: d > 3 && d < 12, w: 2, move: () => {
           const th = rand(e) * TAU, p0 = { x: player.x, z: player.z };
           const c = [p0, { x: p0.x + Math.sin(th) * 1.9, z: p0.z + Math.cos(th) * 1.9 }, { x: p0.x + Math.sin(th + 2.3) * 1.9, z: p0.z + Math.cos(th + 2.3) * 1.9 }];
-          return { id: 'embers', name: 'Kor Yağmuru', duration: 1.95, pose: 'castHigh', cooldown: 3.6, hits: c.map((o, i) => ({
+          return { id: 'embers', name: KabirI18n.t('Kor Yağmuru'), duration: 1.95, pose: 'castHigh', cooldown: 3.6, hits: c.map((o, i) => ({
             at: 1 + i * .2, warn: .9, shape: 'circle', radius: 1.3, origin: o, dmg: 8, style: 'ember', fill: 'radial', pose: 'castHigh', beat: i === 0 })) }; } },
-        { id: 'brazier', ok: d < 3.4, w: 4, move: () => ({ id: 'brazier', name: 'Mangal Savuruşu', duration: 1.35, pose: 'staffSwing', retreat: 1.2, hits: [
+        { id: 'brazier', ok: d < 3.4, w: 4, move: () => ({ id: 'brazier', name: KabirI18n.t('Mangal Savuruşu'), duration: 1.35, pose: 'staffSwing', retreat: 1.2, hits: [
           { at: .58, warn: .58, shape: 'cone', radius: 3.2, arc: 1.6, dmg: 13, knockback: 4.5, style: 'blade', fill: 'sweep', sweepDir: -1, pose: 'staffSwing', embers: true }] }) }
       ]);
     }
@@ -1175,17 +1175,17 @@
         { id: 'leap', sp: 1, ok: d > 3.1 && d < 8.5, w: hunt ? 6 : 2, move: () => {
           // The shadow is centred on the hero; the stalker itself lands just short of it, claws first.
           const t = { x: player.x, z: player.z }, back = Math.min(1.1, d - .5), a = angleTo(e, t);
-          return { id: 'leap', name: 'Karanlık Sıçrayışı', duration: 1.85, pose: 'crouch', retreat: 1.3, feint: { at: .3, chance: .2, kind: 'sidestep' },
+          return { id: 'leap', name: KabirI18n.t('Karanlık Sıçrayışı'), duration: 1.85, pose: 'crouch', retreat: 1.3, feint: { at: .3, chance: .2, kind: 'sidestep' },
             movement: { start: .95, duration: .3, fromX: e.x, fromZ: e.z, x: t.x - Math.sin(a) * back, z: t.z - Math.cos(a) * back, leap: true },
             hits: [{ at: 1.25, warn: .9, shape: 'circle', radius: 2.0, origin: t, dmg: 18, style: 'shadow', fill: 'radial', pose: 'leap' }] }; } },
-        { id: 'flurry', ok: d < 3.2, w: 3, move: () => ({ id: 'flurry', name: 'Kemik Pençe Seli', duration: 1.95, pose: 'clawR', retreat: 1.0,
+        { id: 'flurry', ok: d < 3.2, w: 3, move: () => ({ id: 'flurry', name: KabirI18n.t('Kemik Pençe Seli'), duration: 1.95, pose: 'clawR', retreat: 1.0,
           movement: { start: .6, duration: .85, fromX: e.x, fromZ: e.z, x: e.x + Math.sin(e.face) * 1.0, z: e.z + Math.cos(e.face) * 1.0 }, hits: [
           { at: .55, warn: .55, shape: 'cone', radius: 2.6, arc: 2.0, dmg: 8, style: 'blade', fill: 'sweep', sweepDir: 1, pose: 'clawR' },
           { at: 1.0, warn: .45, shape: 'cone', radius: 2.6, arc: 2.0, track: true, dmg: 8, style: 'blade', fill: 'sweep', sweepDir: -1, pose: 'clawL' },
-          { at: 1.5, warn: .5, shape: 'cone', radius: 2.9, arc: 2.3, track: true, dmg: 13, knockback: 2, style: 'blade', fill: 'sweep', sweepDir: 1, pose: 'clawR', attack: 'Kemik Pençe Seli · son' }] }) },
+          { at: 1.5, warn: .5, shape: 'cone', radius: 2.9, arc: 2.3, track: true, dmg: 13, knockback: 2, style: 'blade', fill: 'sweep', sweepDir: 1, pose: 'clawR', attack: KabirI18n.t('Kemik Pençe Seli · son') }] }) },
         { id: 'flank', sp: 1, ok: !!dest, w: 4, move: () => {
           const f = angleTo(dest, player);
-          return { id: 'flank', name: 'Gölge Adımı', duration: 1.6, pose: 'strafe', retreat: 1.0, faceAt: { t: .42, face: f },
+          return { id: 'flank', name: KabirI18n.t('Gölge Adımı'), duration: 1.6, pose: 'strafe', retreat: 1.0, faceAt: { t: .42, face: f },
             movement: { start: 0, duration: .42, fromX: e.x, fromZ: e.z, x: dest.x, z: dest.z, curve: 1.3 * dest.side, ease: true, shadow: true },
             hits: [{ at: 1.12, warn: .7, shape: 'cone', radius: 2.5, arc: 1.7, origin: dest, face: f, dmg: 15, style: 'blade', fill: 'sweep', sweepDir: 1, pose: 'clawR' }] }; } },
         { id: 'spurs', ok: d > 5 && d < 9.5, w: 2, move: () => ({ id: 'spurs', name: 'Diken Savurma', duration: 1.35, pose: 'throw', hits: [-.2, .2].map((o, i) => ({
@@ -1201,16 +1201,16 @@
       if (d > 10.5) return false;
       const pools = hazards.filter(h => h.owner === e && h.poison && h.persistent).length;
       return pick(e, [
-        { id: 'spray', ok: d < 5.5, w: 3, move: () => ({ id: 'spray', name: 'Veba Tükürüğü', duration: 1.5, pose: 'spit', hits: [
+        { id: 'spray', ok: d < 5.5, w: 3, move: () => ({ id: 'spray', name: KabirI18n.t('Veba Tükürüğü'), duration: 1.5, pose: 'spit', hits: [
           { at: .85, warn: .85, shape: 'cone', radius: 5.2, arc: .75, dmg: 12, style: 'bile', fill: 'forward', pose: 'spit' }] }) },
-        { id: 'bodySwipe', ok: d < 2.9, w: 2, move: () => ({ id: 'bodySwipe', name: 'Çürük Kol', duration: 1.38, pose: 'clawL', hits: [
+        { id: 'bodySwipe', ok: d < 2.9, w: 2, move: () => ({ id: 'bodySwipe', name: KabirI18n.t('Çürük Kol'), duration: 1.38, pose: 'clawL', hits: [
           { at: .72, warn: .72, shape: 'cone', radius: 2.8, arc: 2.1, dmg: 10, knockback: .8, style: 'blunt', fill: 'sweep', sweepDir: -1, pose: 'clawL' }] }) },
         { id: 'vial', sp: 1, ok: d > 5 && d < 10.5 && pools < 2, w: pools ? 1 : 3, move: () => {
           const t = { x: player.x, z: player.z };
-          return { id: 'vial', name: 'Şişe Fırlatma', duration: 1.65, pose: 'throw', hits: [
+          return { id: 'vial', name: KabirI18n.t('Şişe Fırlatma'), duration: 1.65, pose: 'throw', hits: [
             { at: 1.1, warn: 1.1, shape: 'circle', radius: 1.9, origin: t, dmg: 12, style: 'bile', fill: 'radial', pose: 'throw',
               projectile: { kind: 'vial', fromY: 1.6, flight: .6, height: 2.6 }, onActive() { poisonPool(e, t.x, t.z); } }] }; } },
-        { id: 'exhale', sp: 1, ok: d < 3, w: 2, move: () => ({ id: 'exhale', name: 'Çürük Nefes', duration: 1.8, pose: 'roar', hits: [
+        { id: 'exhale', sp: 1, ok: d < 3, w: 2, move: () => ({ id: 'exhale', name: KabirI18n.t('Çürük Nefes'), duration: 1.8, pose: 'roar', hits: [
           { at: 1.0, warn: 1.0, shape: 'circle', radius: 3.0, dmg: 12, unblockable: true, style: 'bile', fill: 'radial', pose: 'roar' }] }) }
       ]);
     }
@@ -1221,29 +1221,29 @@
         { at: 1.0, warn: 1.0, shape: 'circle', radius: 5.5, dmg: 5, knockback: 5, style: 'roar', fill: 'radial', pose: 'roar', cancelOnStagger: false, parry: 'deflect' }] };
     }
     function kickMove() {
-      return { id: 'kick', name: 'Cellat Tekmesi', duration: 1.05, pose: 'kick', hits: [
+      return { id: 'kick', name: KabirI18n.t('Cellat Tekmesi'), duration: 1.05, pose: 'kick', hits: [
         { at: .5, warn: .5, shape: 'cone', radius: 2.6, arc: 1.9, dmg: 12, knockback: 5.5, parryStagger: 1.0, style: 'blunt', fill: 'forward', pose: 'kick' }] };
     }
     function slamMove(e, d, after) {
       const f = e.face, k = clamp(d, 3, 6), t = { x: e.x + Math.sin(f) * k, z: e.z + Math.cos(f) * k };
       const hits = [
-        { at: after ? 1.35 : 1.4, warn: after ? 1.35 : 1.4, shape: 'circle', radius: 2.3, origin: t, dmg: 34, unblockable: true, style: 'quake', fill: 'inward', pose: 'overhead', scar: true, attack: 'Mezar Kıran' },
-        { at: after ? 1.5 : 1.55, warn: after ? 1.5 : 1.55, shape: 'line', width: 1.4, length: 5.5, origin: t, face: f, dmg: 18, unblockable: true, style: 'quake', fill: 'forward', beat: false, scar: true, attack: 'Mezar Kıran · yarık' }];
+        { at: after ? 1.35 : 1.4, warn: after ? 1.35 : 1.4, shape: 'circle', radius: 2.3, origin: t, dmg: 34, unblockable: true, style: 'quake', fill: 'inward', pose: 'overhead', scar: true, attack: KabirI18n.t('Mezar Kıran') },
+        { at: after ? 1.5 : 1.55, warn: after ? 1.5 : 1.55, shape: 'line', width: 1.4, length: 5.5, origin: t, face: f, dmg: 18, unblockable: true, style: 'quake', fill: 'forward', beat: false, scar: true, attack: KabirI18n.t('Mezar Kıran · yarık') }];
       // The aftershock appears only after the first impact, centred between the executioner and the crater.
       if (after) hits.push({ at: 2.95, warn: 1.2, shape: 'circle', radius: 3.6, origin: { x: t.x - Math.sin(f) * 2, z: t.z - Math.cos(f) * 2 }, dmg: 30, unblockable: true,
-        style: 'quake', fill: 'inward', pose: 'overhead', scar: true, attack: 'Mezar Kıran · artçı darbe' });
-      return { id: 'slam', name: after ? 'Mezar Kıran · artçı' : 'Mezar Kıran', duration: after ? 3.9 : 2.9, pose: 'overhead', hits };
+        style: 'quake', fill: 'inward', pose: 'overhead', scar: true, attack: KabirI18n.t('Mezar Kıran · artçı darbe') });
+      return { id: 'slam', name: after ? KabirI18n.t('Mezar Kıran · artçı') : KabirI18n.t('Mezar Kıran'), duration: after ? 3.9 : 2.9, pose: 'overhead', hits };
     }
     function chargeMove(e, d, at, p2) {
       const f = e.face, L = clipLine(e, e.face, Math.min(11, d + 1));
       let run = L - 1.2; while (run > 1.5 && !walkable(e.x + Math.sin(f) * run, e.z + Math.cos(f) * run, e.radius)) run -= .5;
       const end = { x: e.x + Math.sin(f) * run, z: e.z + Math.cos(f) * run };
       const hits = [{ at, warn: at, shape: 'line', width: 2.3, length: L, dmg: 20, knockback: 5, guardPressure: 2, style: 'blunt', fill: 'forward', pose: 'charge', duration: .45,
-        attack: p2 ? 'Hamle ve Biçiş · hamle' : 'Omuz Hamlesi' }];
-      if (p2) hits.push({ at: 2.0, warn: .9, shape: 'cone', radius: 4.6, arc: 3.0, origin: end, dmg: 24, style: 'blade', fill: 'sweep', sweepDir: 1, parry: 'deflect', pose: 'sweep', attack: 'Hamle ve Biçiş · biçiş' });
+        attack: p2 ? KabirI18n.t('Hamle ve Biçiş · hamle') : 'Omuz Hamlesi' }];
+      if (p2) hits.push({ at: 2.0, warn: .9, shape: 'cone', radius: 4.6, arc: 3.0, origin: end, dmg: 24, style: 'blade', fill: 'sweep', sweepDir: 1, parry: 'deflect', pose: 'sweep', attack: KabirI18n.t('Hamle ve Biçiş · biçiş') });
       // Round 7 (flame-crash lane): the rush leaves a strip of burning chain-iron behind it for five seconds (low damage, shown .8 s before it ignites).
-      if (p2 && mech) hits.push({ at: 1.5, warn: .8, shape: 'line', width: 1.8, length: run + 1, origin: { x: e.x, z: e.z }, face: f, dmg: 5, persistent: true, periodic: true, interval: .7, duration: 5, pool: 'lava', style: 'ember', beat: false, attack: 'Kor İzi' });
-      return { id: 'charge', name: p2 ? 'Hamle ve Biçiş' : 'Omuz Hamlesi', duration: p2 ? 2.9 : 2.2, pose: 'charge',
+      if (p2 && mech) hits.push({ at: 1.5, warn: .8, shape: 'line', width: 1.8, length: run + 1, origin: { x: e.x, z: e.z }, face: f, dmg: 5, persistent: true, periodic: true, interval: .7, duration: 5, pool: 'lava', style: 'ember', beat: false, attack: KabirI18n.t('Kor İzi') });
+      return { id: 'charge', name: p2 ? KabirI18n.t('Hamle ve Biçiş') : 'Omuz Hamlesi', duration: p2 ? 2.9 : 2.2, pose: 'charge',
         movement: { start: at, duration: .45, fromX: e.x, fromZ: e.z, x: end.x, z: end.z }, hits };
     }
     function hookLine(e, d, at, warn, attack, extra) {
@@ -1253,7 +1253,7 @@
     // After a clean hook pull the executioner answers with a neck blow along the chain.
     function neckStrike(e, face) {
       if (e.dead || !e.action || e.stagger > 0) return;
-      hazardFrom(e, { x: e.x, z: e.z, face, shape: 'line', width: 1.6, length: 3.8, delay: 0, warn: .85, damage: 20, style: 'blade', fill: 'forward', pose: 'overhead', attack: 'Boyun Vuruşu', near: true });
+      hazardFrom(e, { x: e.x, z: e.z, face, shape: 'line', width: 1.6, length: 3.8, delay: 0, warn: .85, damage: 20, style: 'blade', fill: 'forward', pose: 'overhead', attack: KabirI18n.t('Boyun Vuruşu'), near: true });
       e.action.duration = Math.max(e.action.duration, e.action.age + 1.45);
     }
     function hooksMove(e) {
@@ -1262,7 +1262,7 @@
         const a = th0 + k * 1.26 + tries * .37, r = 2.6 + rand(e) * 1.2, c = { x: p0.x + Math.sin(a) * r, z: p0.z + Math.cos(a) * r };
         if (walkable(c.x, c.z, .4)) { pts.push(c); break; }
       }
-      return { id: 'hooks', name: 'Yargı Kancaları', duration: 2.9, pose: 'roar', onBegin() { e.hooksCd = e.enraged ? 13 : 18; },
+      return { id: 'hooks', name: KabirI18n.t('Yargı Kancaları'), duration: 2.9, pose: 'roar', onBegin() { e.hooksCd = e.enraged ? 13 : 18; },
         hits: pts.map((o, i) => ({ at: 1.3 + i * .25, warn: 1.3, shape: 'circle', radius: 1.5, origin: o, dmg: 17, unblockable: true, style: 'fall', fill: 'inward', pose: 'roar', beat: i === 0, scar: true })) };
     }
 
@@ -1281,27 +1281,27 @@
     // Zincir Çekişi (gravity pull, then the slam on the spot where you land): a gold ring drags everything inside it to the executioner, a crimson circle under him
     // appears .3 s later and bursts 1 s after that. Roll through the ring (no pull) or roll out of the circle.
     function pullMove(e) {
-      return { id: 'pull', name: 'Zincir Çekişi', duration: 3.7, pose: 'hookSwing', onBegin() { mech.mark(e, 'pull'); }, hits: [
-        { at: 1.15, warn: 1.15, shape: 'ring', inner: 3.0, radius: 11.5, arc: TAU, dmg: 6, pull: true, pullTo: 2.0, style: 'chain', fill: 'inward', pose: 'hookSwing', attack: 'Zincir Çekişi' },
-        { at: 2.5, warn: 1.0, shape: 'circle', radius: 3.8, dmg: 30, unblockable: true, style: 'quake', fill: 'inward', pose: 'overhead', scar: true, attack: 'Zincir Çekişi · ezme' }] };
+      return { id: 'pull', name: KabirI18n.t('Zincir Çekişi'), duration: 3.7, pose: 'hookSwing', onBegin() { mech.mark(e, 'pull'); }, hits: [
+        { at: 1.15, warn: 1.15, shape: 'ring', inner: 3.0, radius: 11.5, arc: TAU, dmg: 6, pull: true, pullTo: 2.0, style: 'chain', fill: 'inward', pose: 'hookSwing', attack: KabirI18n.t('Zincir Çekişi') },
+        { at: 2.5, warn: 1.0, shape: 'circle', radius: 3.8, dmg: 30, unblockable: true, style: 'quake', fill: 'inward', pose: 'overhead', scar: true, attack: KabirI18n.t('Zincir Çekişi · ezme') }] };
     }
     // Cellat Sıçrayışı: closes a gap. He crouches, leaps and lands beside the hero's spot; the crimson circle is on the floor from the start.
     function leapMove(e, d) {
       const a = angleTo(e, player), want = Math.max(1.5, d - Math.min(1.7, d * .45)), L = Math.max(1.5, Math.min(want, clipLine(e, a, want + .3) - .3));
       const end = { x: e.x + Math.sin(a) * L, z: e.z + Math.cos(a) * L };
-      return { id: 'leap', name: 'Cellat Sıçrayışı', duration: 2.4, pose: 'crouch', onBegin() { mech.mark(e, 'leap'); },
+      return { id: 'leap', name: KabirI18n.t('Cellat Sıçrayışı'), duration: 2.4, pose: 'crouch', onBegin() { mech.mark(e, 'leap'); },
         movement: { start: .95, duration: .42, fromX: e.x, fromZ: e.z, x: end.x, z: end.z, leap: true },
-        hits: [{ at: 1.4, warn: 1.4, shape: 'circle', radius: 3.4, origin: end, dmg: 26, unblockable: true, style: 'quake', fill: 'inward', pose: 'leap', scar: true, attack: 'Cellat Sıçrayışı' }] };
+        hits: [{ at: 1.4, warn: 1.4, shape: 'circle', radius: 3.4, origin: end, dmg: 26, unblockable: true, style: 'quake', fill: 'inward', pose: 'leap', scar: true, attack: KabirI18n.t('Cellat Sıçrayışı') }] };
     }
     // Yarılan Zemin (Gruul-style shatter): a crater, then cracks roll out of it in rays, three segments each, every segment shown .8 s ahead.
     function cracksMove(e, d, rays) {
       const f = e.face, k = clamp(d, 3.2, 5.5), t = { x: e.x + Math.sin(f) * k, z: e.z + Math.cos(f) * k }, a0 = f + rand(e) * TAU / rays;
-      const hits = [{ at: 1.3, warn: 1.3, shape: 'circle', radius: 2.5, origin: t, dmg: 24, knockback: 4, unblockable: true, style: 'quake', fill: 'inward', pose: 'overhead', scar: true, attack: 'Yarılan Zemin' }];
+      const hits = [{ at: 1.3, warn: 1.3, shape: 'circle', radius: 2.5, origin: t, dmg: 24, knockback: 4, unblockable: true, style: 'quake', fill: 'inward', pose: 'overhead', scar: true, attack: KabirI18n.t('Yarılan Zemin') }];
       for (let r = 0; r < rays; r++) for (let s = 0; s < 3; s++) {
         const a = a0 + r * TAU / rays, c = 1.9 + s * 3.15;
-        hits.push({ at: 1.8 + s * .4 + r * .06, warn: .8, shape: 'line', width: 1.7, length: 3.3, origin: { x: t.x + Math.sin(a) * c, z: t.z + Math.cos(a) * c }, face: a, dmg: 11, style: 'quake', fill: 'forward', beat: false, scar: s === 2, attack: 'Yarılan Zemin · çatlak' });
+        hits.push({ at: 1.8 + s * .4 + r * .06, warn: .8, shape: 'line', width: 1.7, length: 3.3, origin: { x: t.x + Math.sin(a) * c, z: t.z + Math.cos(a) * c }, face: a, dmg: 11, style: 'quake', fill: 'forward', beat: false, scar: s === 2, attack: KabirI18n.t('Yarılan Zemin · çatlak') });
       }
-      return { id: 'fissures', name: 'Yarılan Zemin', duration: 3.9, pose: 'overhead', onBegin() { mech.mark(e, 'fissures'); }, hits };
+      return { id: 'fissures', name: KabirI18n.t('Yarılan Zemin'), duration: 3.9, pose: 'overhead', onBegin() { mech.mark(e, 'fissures'); }, hits };
     }
     // Çöken Tavan: stones come down in a drumroll, the first ones around the hero, the rest across the floor (gold circles, 1.05 s each).
     function caveInMove(e, n) {
@@ -1312,9 +1312,9 @@
           const a = rand(e) * TAU, r = i < 3 ? 1.2 + rand(e) * 2.4 : 3 + rand(e) * 5.5, c = { x: player.x + Math.sin(a) * r, z: player.z + Math.cos(a) * r };
           if (walkable(c.x, c.z, .5)) o = c;
         }
-        if (o) hits.push({ at: 1.35 + i * .3, warn: 1.05, shape: 'circle', radius: 1.65, origin: o, dmg: 14, style: 'fall', fill: 'inward', pose: 'roar', beat: i === 0, scar: i % 2 === 0, attack: 'Çöken Tavan' });
+        if (o) hits.push({ at: 1.35 + i * .3, warn: 1.05, shape: 'circle', radius: 1.65, origin: o, dmg: 14, style: 'fall', fill: 'inward', pose: 'roar', beat: i === 0, scar: i % 2 === 0, attack: KabirI18n.t('Çöken Tavan') });
       }
-      return { id: 'fall', name: 'Çöken Tavan', duration: 1.5 + n * .3 + 1, pose: 'roar', onBegin() { mech.mark(e, 'fall'); }, hits };
+      return { id: 'fall', name: KabirI18n.t('Çöken Tavan'), duration: 1.5 + n * .3 + 1, pose: 'roar', onBegin() { mech.mark(e, 'fall'); }, hits };
     }
     // Asılı Zincirler: chain lanes drop from the ceiling across the hero's side of the floor, one by one; the gaps between lanes are safe.
     function whipLanesMove(e, n) {
@@ -1322,21 +1322,21 @@
       const order = n > 5 ? [3, 0, 6, 1, 5, 2, 4] : [2, 0, 4, 1, 3];
       for (let i = 0; i < n; i++) {
         const lat = (i - (n - 1) / 2) * gap, at = 1.3 + order.indexOf(i) * .36;
-        hits.push({ at, warn: .95, shape: 'line', width: 1.5, length: 15, origin: { x: player.x + us * lat - fs * 7.5, z: player.z + uc * lat - fc * 7.5 }, face: f, dmg: 14, style: 'chain', fill: 'forward', pose: 'chainLash', beat: i === 0, attack: 'Asılı Zincirler' });
+        hits.push({ at, warn: .95, shape: 'line', width: 1.5, length: 15, origin: { x: player.x + us * lat - fs * 7.5, z: player.z + uc * lat - fc * 7.5 }, face: f, dmg: 14, style: 'chain', fill: 'forward', pose: 'chainLash', beat: i === 0, attack: KabirI18n.t('Asılı Zincirler') });
       }
-      return { id: 'chainLanes', name: 'Asılı Zincirler', duration: 1.3 + n * .36 + .8, pose: 'chainLash', onBegin() { mech.mark(e, 'chainLanes'); }, hits };
+      return { id: 'chainLanes', name: KabirI18n.t('Asılı Zincirler'), duration: 1.3 + n * .36 + .8, pose: 'chainLash', onBegin() { mech.mark(e, 'chainLanes'); }, hits };
     }
     // Kor Mühürleri (Void-Reaver-style seeking orbs): see boss-mech.js. The harmless hit only times the release of the orbs with the cast pose.
     function orbsMove(e, n, kind) {
-      return { id: 'orbs', name: kind === 'brine' ? 'Boğulmuş Fenerler' : 'Kor Mühürleri', duration: 2.5, pose: 'castHigh', onBegin() { mech.mark(e, 'orbs'); }, hits: [
+      return { id: 'orbs', name: kind === 'brine' ? KabirI18n.t('Boğulmuş Fenerler') : KabirI18n.t('Kor Mühürleri'), duration: 2.5, pose: 'castHigh', onBegin() { mech.mark(e, 'orbs'); }, hits: [
         { at: 1.0, warn: 1.0, shape: 'circle', radius: .1, harmless: true, dmg: 0, style: 'ember', pose: 'castHigh', onActive() { if (mech && !e.dead) mech.launchOrbs(e, n, { kind, speed: e.enraged ? 3.35 : 3.05 }); } }] };
     }
     // Kanlı Yemin Çemberi (Magtheridon-style channel + cubes): he roots himself and channels a nova over the whole hall in three pulses; four chain anchors burn around him.
     // Each pulse hurts for 6 + 7 per anchor still lit; stand beside an anchor ~2.4 s (or strike it) to snuff it; all dark = the channel breaks and he reels for 3 s.
     function riteMove(e, seconds) {
       const T = seconds, pulse = function () { const k = mech ? mech.riteLit() : 0; this.damage = k ? 6 + 7 * k : 0; if (!k) this.harmless = true; };
-      return { id: 'rite', name: 'Kanlı Yemin Çemberi', duration: T + 2.9, pose: 'castHigh', cooldown: 1.2, hits: [0, 0.9, 1.8].map((dt, i) => (
-        { at: T + dt, warn: i ? .8 : T, shape: 'circle', radius: 15.5, dmg: 40, unblockable: true, style: 'rune', fill: 'inward', pose: 'castHigh', beat: i === 0, onActive: pulse, attack: 'Kanlı Yemin Çemberi' })) };
+      return { id: 'rite', name: KabirI18n.t('Kanlı Yemin Çemberi'), duration: T + 2.9, pose: 'castHigh', cooldown: 1.2, hits: [0, 0.9, 1.8].map((dt, i) => (
+        { at: T + dt, warn: i ? .8 : T, shape: 'circle', radius: 15.5, dmg: 40, unblockable: true, style: 'rune', fill: 'inward', pose: 'castHigh', beat: i === 0, onActive: pulse, attack: KabirI18n.t('Kanlı Yemin Çemberi') })) };
     }
     const coast = BABA.CoastCombat ? BABA.CoastCombat.create({ player, pick, beginMove, clipLine, walkable, cancelHazards, emit, sound, fx, bonus: (x,z,n) => { if (globes) globes.bonus(x,z,n); } }) : null;
     const ruins = BABA.RuinsCombat ? BABA.RuinsCombat.create({ player, pick, beginMove, clipLine, walkable, cancelHazards, emit, sound, fx, bonus: (x,z,n) => { if (globes) globes.bonus(x,z,n); } }) : null;
@@ -1358,12 +1358,12 @@
       const majorBusy = m && (m.liveOrbs() > 0 || m.riteActive());
       const fresh = (id, cd) => m && !majorBusy && m.ready(e, id, cd), pullOk = d > 4.5 && d < 11 && fresh('pull', 15), leapOk = d > 7.5 && fresh('leap', 10), crackOk = d < 9 && fresh('fissures', 14);
       if (e.phase !== 2) return pick(e, [
-        { id: 'hook', sp: 1, ok: d > 6, w: 3, move: () => ({ id: 'hook', name: 'Kanca Atışı', duration: 2.1, pose: 'hookSwing', hits: [
-          hookLine(e, d, 1.25, 1.0, 'Kanca Atışı', { onHitPlayer(h) { neckStrike(e, h.face); } })] }) },
-        { id: 'sweep', ok: d < 6, w: 3, move: () => ({ id: 'sweep', name: 'Celladın Biçişi', duration: 1.62, pose: 'sweep', hits: [
+        { id: 'hook', sp: 1, ok: d > 6, w: 3, move: () => ({ id: 'hook', name: KabirI18n.t('Kanca Atışı'), duration: 2.1, pose: 'hookSwing', hits: [
+          hookLine(e, d, 1.25, 1.0, KabirI18n.t('Kanca Atışı'), { onHitPlayer(h) { neckStrike(e, h.face); } })] }) },
+        { id: 'sweep', ok: d < 6, w: 3, move: () => ({ id: 'sweep', name: KabirI18n.t('Celladın Biçişi'), duration: 1.62, pose: 'sweep', hits: [
           { at: .82, warn: .82, shape: 'cone', radius: 5.4, arc: 3.6, dmg: 26, knockback: 3, style: 'blade', fill: 'sweep', sweepDir: 1, parry: 'deflect', pose: 'sweep' }] }) },
         { id: 'slam', sp: 1, ok: d > 2.5 && d < 8, w: 2, move: () => slamMove(e, d, false) },
-        { id: 'lash', ok: d > 2.6 && d < 7.5, w: 2, move: () => ({ id: 'lash', name: 'Zincir Savuruşu', duration: 1.4, pose: 'chainLash', hits: [
+        { id: 'lash', ok: d > 2.6 && d < 7.5, w: 2, move: () => ({ id: 'lash', name: KabirI18n.t('Zincir Savuruşu'), duration: 1.4, pose: 'chainLash', hits: [
           { at: .8, warn: .8, shape: 'ring', inner: 2.8, radius: 7.2, arc: 2.6, dmg: 17, guardPressure: 1.6, style: 'chain', fill: 'sweep', sweepDir: -1, pose: 'chainLash' }] }) },
         { id: 'charge', ok: d > 7.5, w: 2, move: () => chargeMove(e, d, .95, false) },
         { id: 'kick', ok: d < 2.4, w: 2, move: kickMove },
@@ -1373,14 +1373,14 @@
       ]);
       const orbOk = fresh('orbs', 19) && m.liveOrbs() === 0;
       return pick(e, [
-        { id: 'hook', sp: 1, ok: d > 6, w: 3, move: () => ({ id: 'hook', name: 'Kanca ve Biçme', duration: 3.1, pose: 'hookSwing', hits: [
-          hookLine(e, d, 1.2, .95, 'Kanca ve Biçme · kanca'),
-          { at: 2.3, warn: 1.0, shape: 'cone', radius: 5.2, arc: 3.6, dmg: 26, style: 'blade', fill: 'sweep', sweepDir: 1, parry: 'deflect', pose: 'sweep', attack: 'Kanca ve Biçme · savuruş' }] }) },
-        { id: 'sweep', ok: d < 6, w: 3, move: () => ({ id: 'sweep', name: 'Çifte Biçiş', duration: 2.15, pose: 'sweep', cooldown: .5, hits: [
-          { at: .82, warn: .82, shape: 'cone', radius: 5.4, arc: 3.6, dmg: 24, style: 'blade', fill: 'sweep', sweepDir: 1, parry: 'deflect', pose: 'sweep', attack: 'Çifte Biçiş · ilk' },
-          { at: 1.5, warn: .62, shape: 'cone', radius: 5.8, arc: 3.6, face: e.face + .5, dmg: 26, style: 'blade', fill: 'sweep', sweepDir: -1, parry: 'deflect', pose: 'sweepBack', attack: 'Çifte Biçiş · dönüş' }] }) },
+        { id: 'hook', sp: 1, ok: d > 6, w: 3, move: () => ({ id: 'hook', name: KabirI18n.t('Kanca ve Biçme'), duration: 3.1, pose: 'hookSwing', hits: [
+          hookLine(e, d, 1.2, .95, KabirI18n.t('Kanca ve Biçme · kanca')),
+          { at: 2.3, warn: 1.0, shape: 'cone', radius: 5.2, arc: 3.6, dmg: 26, style: 'blade', fill: 'sweep', sweepDir: 1, parry: 'deflect', pose: 'sweep', attack: KabirI18n.t('Kanca ve Biçme · savuruş') }] }) },
+        { id: 'sweep', ok: d < 6, w: 3, move: () => ({ id: 'sweep', name: KabirI18n.t('Çifte Biçiş'), duration: 2.15, pose: 'sweep', cooldown: .5, hits: [
+          { at: .82, warn: .82, shape: 'cone', radius: 5.4, arc: 3.6, dmg: 24, style: 'blade', fill: 'sweep', sweepDir: 1, parry: 'deflect', pose: 'sweep', attack: KabirI18n.t('Çifte Biçiş · ilk') },
+          { at: 1.5, warn: .62, shape: 'cone', radius: 5.8, arc: 3.6, face: e.face + .5, dmg: 26, style: 'blade', fill: 'sweep', sweepDir: -1, parry: 'deflect', pose: 'sweepBack', attack: KabirI18n.t('Çifte Biçiş · dönüş') }] }) },
         { id: 'slam', sp: 1, ok: d > 2.5 && d < 8 && e.lastMove !== 'hooks', w: 2, move: () => slamMove(e, d, true) },
-        { id: 'cyclone', sp: 1, ok: d < 7, w: 2, move: () => ({ id: 'cyclone', name: 'Zincir Kasırgası', duration: 3.2, pose: 'spin', cooldown: 1.9, hits: [1.2, 1.8, 2.4].map((at, i) => ({
+        { id: 'cyclone', sp: 1, ok: d < 7, w: 2, move: () => ({ id: 'cyclone', name: KabirI18n.t('Zincir Kasırgası'), duration: 3.2, pose: 'spin', cooldown: 1.9, hits: [1.2, 1.8, 2.4].map((at, i) => ({
           at, warn: i ? .6 : 1.2, shape: 'ring', inner: 2.4, radius: 6.2, arc: TAU, dmg: 11, guardPressure: 1.2, style: 'chain', fill: 'sweep', sweepDir: 1, pose: 'spin' })) }) },
         { id: 'hooks', sp: 1, ok: !majorBusy && e.hooksCd <= 0 && e.lastMove !== 'slam', w: 4, move: () => hooksMove(e) },
         { id: 'charge', ok: d > 6, w: 2, move: () => chargeMove(e, d, .9, true) },   // was d > 7.5: with the specials held back this is his plain blow at mid range
@@ -1426,10 +1426,10 @@
       enemy.phase = 2; enemy.action = null; enemy.stagger = 0; enemy.faceLocked = false;
       if (globes) globes.bonus(enemy.x, enemy.z, 2);   // the only globes of the executioner fight
       cancelHazards(enemy, false); flashRing(enemy.x, enemy.z, 4.5, 0xd25949, 1.2);
-      emit('warning', { x: enemy.x, z: enemy.z, text: 'ZİNCİR CELLADI · KANLI YEMİN' });
-      emit('toast', { text: 'Cellat zincirini kopardı. Darbeler artık birbirini izliyor.' }); sound('bossPhase');
+      emit('warning', { x: enemy.x, z: enemy.z, text: KabirI18n.t('ZİNCİR CELLADI · KANLI YEMİN') });
+      emit('toast', { text: KabirI18n.t('Cellat zincirini kopardı. Darbeler artık birbirini izliyor.') }); sound('bossPhase');
       fx('bossPhase', { x: enemy.x, y: 1.4, z: enemy.z });
-      enemy.face = angleTo(enemy, player); beginMove(enemy, roarMove('Kanlı Yemin', 1.7, 1.0));
+      enemy.face = angleTo(enemy, player); beginMove(enemy, roarMove(KabirI18n.t('Kanlı Yemin'), 1.7, 1.0));
     }
     function advanceMovement(enemy, action, dt) {
       const m = action.movement, p0 = clamp((action.age - dt - m.start) / m.duration, 0, 1), p1 = clamp((action.age - m.start) / m.duration, 0, 1);
@@ -1501,8 +1501,8 @@
         // Son Yemin: once, the executioner swears again: faster between blows and more judgement hooks (damage unchanged).
         enemy.enraged = true; enemy.hooksCd = Math.min(enemy.hooksCd, 2);
         if (globes) globes.bonus(enemy.x, enemy.z, 1);
-        emit('toast', { text: 'Cellat son yeminini etti. Kancalar daha sık düşecek.' }); sound('bossPhase');
-        beginMove(enemy, roarMove('Son Yemin', 1.4, .8)); advanceEnemyAction(enemy, dt); return;
+        emit('toast', { text: KabirI18n.t('Cellat son yeminini etti. Kancalar daha sık düşecek.') }); sound('bossPhase');
+        beginMove(enemy, roarMove(KabirI18n.t('Son Yemin'), 1.4, .8)); advanceEnemyAction(enemy, dt); return;
       }
       // Wrath: the executioner does not stand still under a flurry. Enough blows between his moves and he answers at once
       // with the kick (a normal .55 s tell), which throws the hero back out to his swing room.
@@ -1584,21 +1584,21 @@
         flashRing(seal.x, seal.z, 2.4, 0xc99f69, .9);
         if (game.activeEncounter === seal.encounter.name) game.activeEncounter = '';
         emit('encounterCleared', { name: seal.encounter.name, roomName: seal.encounter.roomName, nextName: seal.encounter.nextName, room: seal.encounter.room, x: seal.x, z: seal.z, text: seal.encounter.clearText });
-        emit('toast', { text: enemy.boss ? 'Arena açıldı. Boss yenildi.' : seal.encounter.clearText });
+        emit('toast', { text: enemy.boss ? KabirI18n.t('Arena açıldı. Boss yenildi.') : seal.encounter.clearText });
       }
       emit('kill', { name: enemy.name, boss: enemy.boss, x: enemy.x, z: enemy.z }); sound(enemy.boss ? 'bossDeath' : 'kill', { type: enemy.type, x: enemy.x, z: enemy.z });
       fx('death', { x: enemy.x, y: .8, z: enemy.z, boss: enemy.boss });
       if (globes && !enemy.boss) globes.roll(enemy, enemy.deathKind === 'blown' ? 'heavy' : 'light', angleTo(player, enemy), () => rand(enemy));   // health globe (seeded by the foe's own RNG)
       if (enemy.type === 'carrier') {
         addHazard({ owner: enemy, enemy: enemy.name, x: enemy.x, z: enemy.z, radius: 3.35, warn: 2.35, duration: .24,
-          damage: 32, unblockable: true, attack: 'Çürüyen Bedenin Patlaması', persistent: true, style: 'bile', fill: 'inward', burst: true });
+          damage: 32, unblockable: true, attack: KabirI18n.t('Çürüyen Bedenin Patlaması'), persistent: true, style: 'bile', fill: 'inward', burst: true });
       }
       if (enemy.boss) {
         const drop = pendingFinalBossReward(enemy);
         if (groundLoot && drop) {
           clearHazards();
           emit('boss', {name:enemy.name,active:false});
-          emit('toast', {text:'Efendi yenildi. Emanetine yaklaş; kendiliğinden toplanır.'});
+          emit('toast', {text:KabirI18n.t('Efendi yenildi. Emanetine yaklaş; kendiliğinden toplanır.')});
         } else win();
       }
       saveProfileChoices();
@@ -1643,7 +1643,7 @@
         const breaksGuard = heavy && enemy.type === 'guard' && fromFront && enemy.shield;
         if (breaksGuard) {
           enemy.shieldBroken = 4; enemy.shield = false;
-          emit('toast', { text: 'Muhafızın savunması kırıldı.' }); sound('guardBreak');
+          emit('toast', { text: KabirI18n.t('Muhafızın savunması kırıldı.') }); sound('guardBreak');
         }
         const canStagger = !enemy.boss && (breaksGuard || enemy.poiseRecovery <= 0 && (heavy || enemy.type === 'cultist' || (!enemy.action && enemy.type !== 'guard') || (attack && attack.rage && enemy.type !== 'guard')));
         if (canStagger) {
@@ -1693,7 +1693,7 @@
       const complete = chapter === 4;
       const transition = { version: 3, chapter: complete ? chapter : chapter + 1, index: 0, transition: !complete, completed: complete, dead: [], kills: complete ? game.kills : 0, elapsed: complete ? game.elapsed : 0, progression: progression.snapshot() };
       if (complete && quests) transition.quests = quests.snapshot();
-      try { window.localStorage.setItem(SAVE_KEY, JSON.stringify(transition)); } catch (_) { emit('toast', { text: 'Bölüm geçişi bu cihazda kaydedilemedi.' }); }
+      try { window.localStorage.setItem(SAVE_KEY, JSON.stringify(transition)); } catch (_) { emit('toast', { text: KabirI18n.t('Bölüm geçişi bu cihazda kaydedilemedi.') }); }
       game.hasSave = !complete; game.campaignCompleted = complete;
       emit('boss', { name: game.boss ? game.boss.name : STATS.boss.name, active: false });
       emit('win', { time: game.elapsed, kills: game.kills, chapter, nextChapter: complete ? null : chapter + 1 }); sound('win');
@@ -1813,7 +1813,7 @@
         player.attack ? player.attack.duration - player.attack.age : 0, player.roar ? ROAR.duration - player.roar.age : 0);
       return 0;
     }
-    const actionNames = { dodge: 'Kaçınma', special: 'Girdap', rage: 'Kan Öfkesi', heal: 'İksir' };
+    const actionNames = { dodge: KabirI18n.t('Kaçınma'), special: 'Girdap', rage: KabirI18n.t('Kan Öfkesi'), heal: KabirI18n.t('İksir') };
     const secondsText = seconds => (Math.ceil(seconds * 10) / 10).toFixed(1).replace('.', ',');
     function rejectAction(key, reason, text, details) {
       delete buffer[key]; lack(key, reason, text, details); deny(text, key + ':' + reason); return false;
@@ -1822,16 +1822,16 @@
       const slot = skillKeys.indexOf(key);
       if (slot !== -1) {
         const skill = selectedSkill(slot);
-        if (!skill) return rejectAction(key, 'locked', 'Bu yetenek yuvası boş. Yetenek ekranından bir yetenek seç.');
-        if ((skillCooldowns[skill.line] || 0) > FEEL.buffer) return rejectAction(key, 'cooldown', skill.name + ' hazırlanıyor: ' + secondsText(skillCooldowns[skill.line]) + ' sn.', { remaining: skillCooldowns[skill.line] });
-        if (skill.line === 'roar' && (player.rageTime > 0 || player.roar)) return rejectAction(key, 'active', 'Kan Öfkesi zaten etkin.');
-        if (player.stamina < skill.cost) return rejectAction(key, 'stamina', skill.name + ' için ' + Math.round(skill.cost) + ' dayanıklılık gerekiyor.', { cost: skill.cost, have: player.stamina });
+        if (!skill) return rejectAction(key, 'locked', KabirI18n.t('Bu yetenek yuvası boş. Yetenek ekranından bir yetenek seç.'));
+        if ((skillCooldowns[skill.line] || 0) > FEEL.buffer) return rejectAction(key, 'cooldown', skill.name + KabirI18n.t(' hazırlanıyor: ') + secondsText(skillCooldowns[skill.line]) + ' sn.', { remaining: skillCooldowns[skill.line] });
+        if (skill.line === 'roar' && (player.rageTime > 0 || player.roar)) return rejectAction(key, 'active', KabirI18n.t('Kan Öfkesi zaten etkin.'));
+        if (player.stamina < skill.cost) return rejectAction(key, 'stamina', skill.name + KabirI18n.t(' için ') + Math.round(skill.cost) + KabirI18n.t(' dayanıklılık gerekiyor.'), { cost: skill.cost, have: player.stamina });
       }
       if (key === 'heal') {
-        if (!player.flasks) return rejectAction(key, 'empty', 'Şifa mataraların boş.');
-        if (player.hp >= player.maxHp) return rejectAction(key, 'full', 'Yaraların zaten kapalı.');
+        if (!player.flasks) return rejectAction(key, 'empty', KabirI18n.t('Şifa mataraların boş.'));
+        if (player.hp >= player.maxHp) return rejectAction(key, 'full', KabirI18n.t('Yaraların zaten kapalı.'));
       }
-      if (key === 'dodge' && player.stamina < DODGE.cost) return rejectAction(key, 'stamina', 'Kaçınma için ' + Math.round(DODGE.cost) + ' dayanıklılık gerekiyor.', { cost: DODGE.cost, have: player.stamina });
+      if (key === 'dodge' && player.stamina < DODGE.cost) return rejectAction(key, 'stamina', KabirI18n.t('Kaçınma için ') + Math.round(DODGE.cost) + KabirI18n.t(' dayanıklılık gerekiyor.'), { cost: DODGE.cost, have: player.stamina });
       return true;
     }
     function holdInput(input, frozen) {
@@ -1861,7 +1861,7 @@
     }
     function beginDodge(input) {
       if (player.stamina < DODGE.cost) return rejectAction('dodge', 'stamina',
-        'Kaçınma için ' + Math.round(DODGE.cost) + ' dayanıklılık gerekiyor (şu an ' + Math.floor(player.stamina) + ').', { cost: DODGE.cost, have: player.stamina });
+        KabirI18n.t('Kaçınma için ') + Math.round(DODGE.cost) + KabirI18n.t(' dayanıklılık gerekiyor (şu an ') + Math.floor(player.stamina) + ').', { cost: DODGE.cost, have: player.stamina });
       // Direction: the keys held (the real ones, not an auto-approach), else the pad's right stick, else the cursor / target of a click order, else the facing.
       const raw = pendingDodge || rawInput || input; pendingDodge = null;
       const rx = Number.isFinite(raw.x) ? raw.x : 0, rz = Number.isFinite(raw.z) ? raw.z : 0, len = Math.hypot(rx, rz);
@@ -1890,7 +1890,7 @@
     function beginSpecial(hasAim) {
       if (player.specialCd > 0) return false;   // a press in the final .22 s waits for readiness
       if (player.stamina < SPECIAL.cost) return rejectAction('special', 'stamina',
-        'Girdap için ' + Math.round(SPECIAL.cost) + ' dayanıklılık gerekiyor (şu an ' + Math.floor(player.stamina) + ').', { cost: SPECIAL.cost, have: player.stamina });
+        KabirI18n.t('Girdap için ') + Math.round(SPECIAL.cost) + KabirI18n.t(' dayanıklılık gerekiyor (şu an ') + Math.floor(player.stamina) + ').', { cost: SPECIAL.cost, have: player.stamina });
       player.attack = {
         heavy: true, special: true, whirl: true, combo: 0, age: 0, duration: SPECIAL.duration, strike: 99, hit: false, face: player.face, damage: SPECIAL.damage,
         radius: SPECIAL.radius, arc: Math.PI * 2, moveUntil: 0, serial: ++attackSerial, queued: null, lunge: 0, lungeLead: .1, lunged: 1,
@@ -1972,7 +1972,7 @@
       if (heavy && !fromSkill) return useSkill(0, hasAim);
       const cost = RESOURCES.costs[heavy ? 'heavy' : 'light'];
       if (player.stamina < cost) return rejectAction(heavy ? 'heavy' : 'light', 'stamina',
-        (heavy ? 'Ağır' : 'Hafif') + ' darbe için ' + Math.round(cost) + ' dayanıklılık gerekiyor (şu an ' + Math.floor(player.stamina) + ').', { cost, have: player.stamina });
+        (heavy ? KabirI18n.t('Ağır') : KabirI18n.t('Hafif')) + KabirI18n.t(' darbe için ') + Math.round(cost) + KabirI18n.t(' dayanıklılık gerekiyor (şu an ') + Math.floor(player.stamina) + ').', { cost, have: player.stamina });
       const combo = heavy ? 0 : comboWindow > 0 ? comboStep % 3 : 0;
       const handling = weaponHandling(), weaponType = progression.stats().weaponType;
       const durations = handling.durations, timings = handling.strikes, damages = handling.damage;
@@ -2058,7 +2058,7 @@
     function startWarCry() {
       if (player.rageCd > 0) return false;   // a press in the final .22 s waits for readiness
       if (player.stamina < ROAR.cost) return rejectAction('rage', 'stamina',
-        'Kan Öfkesi için ' + Math.round(ROAR.cost) + ' dayanıklılık gerekiyor (şu an ' + Math.floor(player.stamina) + ').', { cost: ROAR.cost, have: player.stamina });
+        KabirI18n.t('Kan Öfkesi için ') + Math.round(ROAR.cost) + KabirI18n.t(' dayanıklılık gerekiyor (şu an ') + Math.floor(player.stamina) + ').', { cost: ROAR.cost, have: player.stamina });
       clearLack('rage'); player.stamina -= ROAR.cost; player.rageCd = ROAR.cooldown;
       player.attack = null; player.healing = 0; healingAge = 0; comboStep = 0; comboWindow = 0;
       player.roar = { age: 0, released: false, serial: ++attackSerial, gather: ROAR.release };
@@ -2151,7 +2151,7 @@
         order = null;
       }
       if (click && click.heavy && !selectedSkill(0)) {
-        rejectAction('heavy', 'locked', 'Bu yetenek yuvası boş. Yetenek ekranından bir yetenek seç.');
+        rejectAction('heavy', 'locked', KabirI18n.t('Bu yetenek yuvası boş. Yetenek ekranından bir yetenek seç.'));
         order = null; return out;
       }
       if (click) {
@@ -2331,8 +2331,8 @@
       if (buffer.heal && !player.dead && player.stagger <= 0) {
         delete buffer.heal;
         if (drinkLeft > DRINK - DRINK_GUARD) { /* the same press arriving twice: ignore it */ }
-        else if (!player.flasks) deny('Şifa mataraların boş.');
-        else if (player.hp >= player.maxHp) deny('Yaraların zaten kapalı.');
+        else if (!player.flasks) deny(KabirI18n.t('Şifa mataraların boş.'));
+        else if (player.hp >= player.maxHp) deny(KabirI18n.t('Yaraların zaten kapalı.'));
         else {
           clearLack('heal'); player.flasks--; player.hp = Math.min(player.maxHp, player.hp + 64 * (1 + questBenefit('healingBonus', .20)) * 100 / player.effectiveMaxHp); drinkLeft = DRINK;
           emit('heal', { hp: player.hp, flasks: player.flasks }); sound('healStart'); sound('heal');
@@ -2402,7 +2402,7 @@
       if (player.stamina < player.maxStamina) {
         player.stamina = Math.min(player.maxStamina, player.stamina + REGEN * (1 + questBenefit('staminaRecovery', .20)) * (player.rageTime > 0 ? 1.65 : 1) * dt);
       }
-      player.status = player.healing ? 'Şifa içiliyor' : player.roar ? 'Savaş narası' : player.rageTime > 0 ? 'Kan öfkesi' : '';
+      player.status = player.healing ? KabirI18n.t('Şifa içiliyor') : player.roar ? KabirI18n.t('Savaş narası') : player.rageTime > 0 ? KabirI18n.t('Kan öfkesi') : '';
       pendingAction();
       player.move = player.dodge ? 1 : Math.min(1, moveLength) * (player.attack ? .5 : 1);
       if (input.interact) interact();

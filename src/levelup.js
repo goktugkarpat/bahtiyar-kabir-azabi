@@ -118,7 +118,7 @@
   // =================================================================== 2. EKRAN KATMANI
   // prefers-reduced-motion (or ?lvcalm for QA): simple fade, no time dilation, camera push, fringe, ring refraction or moving sparks
   const mq = typeof matchMedia === 'function' ? matchMedia('(prefers-reduced-motion: reduce)') : { matches: false }, qaCalm = typeof location !== 'undefined' && /[?&]lvcalm(&|$)/.test(location.search), reduced = { get matches() { return qaCalm || mq.matches; } };
-  const TITLE = 'SEVİYE ATLADIN', TOTAL = 2.7;
+  const TITLE = KabirI18n.t('SEVİYE ATLADIN'), TOTAL = 2.7;
   const CSS = `
 body:has(#lu-banner.lu-on) #announcement{opacity:0!important}   /* the arena / room announcement waits while the level-up banner owns the middle of the screen */
 #lu-banner{position:absolute;left:50%;top:14%;width:min(980px,94vw);transform:translateX(-50%);text-align:center;pointer-events:none;opacity:0;z-index:6;contain:layout style}
@@ -168,8 +168,8 @@ body:has(#lu-banner.lu-on) #announcement{opacity:0!important}   /* the arena / r
     if (el || typeof document === 'undefined' || !document.body) return el;
     const st = document.createElement('style'); st.id = 'lu-style'; st.textContent = CSS; document.head.appendChild(st);
     el = document.createElement('div'); el.id = 'lu-banner'; el.setAttribute('role', 'status'); el.setAttribute('aria-live', 'off'); el.setAttribute('aria-hidden', 'true'); el.setAttribute('aria-atomic', 'true');
-    el.innerHTML = '<i class="lu-flare" aria-hidden="true"></i><h2 class="lu-title" aria-label="Seviye atladın"></h2><i class="lu-rule" aria-hidden="true"></i>' +
-      '<div class="lu-lv"><em>SEVİYE</em><b class="lu-num"><s aria-hidden="true"></s><u></u></b></div><p class="lu-note"></p><p class="lu-skill"></p>';
+    el.innerHTML = KabirI18n.t('<i class="lu-flare" aria-hidden="true"></i><h2 class="lu-title" aria-label="Seviye atladın"></h2><i class="lu-rule" aria-hidden="true"></i>') +
+      KabirI18n.t('<div class="lu-lv"><em>SEVİYE</em><b class="lu-num"><s aria-hidden="true"></s><u></u></b></div><p class="lu-note"></p><p class="lu-skill"></p>');
     elTitle = el.querySelector('.lu-title'); elOld = el.querySelector('.lu-num s'); elNew = el.querySelector('.lu-num u'); elNote = el.querySelector('.lu-note'); elSkill = el.querySelector('.lu-skill');
     fillTitle(elTitle);
     const host = document.getElementById('hud') || document.body; host.appendChild(el);
@@ -195,9 +195,9 @@ body:has(#lu-banner.lu-on) #announcement{opacity:0!important}   /* the arena / r
     S.on = true; S.t = 0; S.calm = !!reduced.matches; S.level = level; S.old = old; S.hx = hero ? hero.x : 0; S.hz = hero ? hero.z : 0;
     elOld.textContent = String(old); elNew.textContent = String(level); 
     const pts = d.points | 0;
-    elNote.innerHTML = '+' + levels + ' YETENEK PUANI' + (pts > levels ? ' (<b>' + pts + '</b>)' : '') + ' · <b>T</b>';
+    elNote.innerHTML = '+' + levels + KabirI18n.t(' YETENEK PUANI') + (pts > levels ? ' (<b>' + pts + '</b>)' : '') + ' · <b>T</b>';
     const sk = skillsGained(old, level);
-    elSkill.textContent = sk.length ? (sk.length > 1 ? 'YENİ YETENEKLER: ' : 'YENİ YETENEK: ') + sk.join(' · ') : '';
+    elSkill.textContent = sk.length ? (sk.length > 1 ? KabirI18n.t('YENİ YETENEKLER: ') : KabirI18n.t('YENİ YETENEK: ')) + sk.join(' · ') : '';
     el.setAttribute('aria-live', 'polite'); el.setAttribute('aria-hidden', 'false');
     el.classList.toggle('lu-calm', S.calm);
     el.classList.remove('lu-on', 'lu-paint'); void el.offsetWidth; el.classList.add('lu-on');
@@ -232,7 +232,7 @@ body:has(#lu-banner.lu-on) #announcement{opacity:0!important}   /* the arena / r
     const q = s => root.querySelector(s);
     const title = q('.lu-title'); if (title && !title.children.length) fillTitle(title);
     const o = q('.lu-num s'), n = q('.lu-num u'), no = q('.lu-note'), sk = q('.lu-skill');
-    if (o) o.textContent = '11'; if (n) n.textContent = '12'; if (no) no.innerHTML = '+1 YETENEK PUANI · <b>T</b>'; if (sk) sk.textContent = 'YENİ YETENEK: Kıyamet Narası';
+    if (o) o.textContent = '11'; if (n) n.textContent = '12'; if (no) no.innerHTML = KabirI18n.t('+1 YETENEK PUANI · <b>T</b>'); if (sk) sk.textContent = KabirI18n.t('YENİ YETENEK: Kıyamet Narası');
     root.classList.add('lu-paint');
   }
 

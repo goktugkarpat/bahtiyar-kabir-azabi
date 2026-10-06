@@ -4,11 +4,11 @@
 (function () {
   'use strict';
   var B=window.BABA,T=window.THREE,PI=Math.PI;
-  var NAMES=['Kıyının Ardındaki Yol','Yitik Sütunlar','Kül Kapısı','Kralların Mezarları','Yemin Bozan Avlu','Çöken Anıt','Mağaranın Ağzı','Kör Kristaller','Fısıltı Geçidi','Taşın İçindeki Ölüler','Yutulan Saray','Son Yemin','Tahtın Nöbeti','Sessiz Taht'];
-  var FORGE_NAMES=['Kralın Altındaki Geçit','Kör Körükler','Kömür Mahkûmları','Kızgın Nakliye','Kül Vezirinin Avlusu','Sönen Dökümhane','Demirin Duası','Zincir Kuyuları','Yutulan Çarklar','Cüruf Meydanı','Kızıl Fırınlar','Köz Yemini','Son Döküm','Kızıl Ocak'];
+  var NAMES=[KabirI18n.t('Kıyının Ardındaki Yol'),KabirI18n.t('Yitik Sütunlar'),KabirI18n.t('Kül Kapısı'),KabirI18n.t('Kralların Mezarları'),KabirI18n.t('Yemin Bozan Avlu'),KabirI18n.t('Çöken Anıt'),KabirI18n.t('Mağaranın Ağzı'),KabirI18n.t('Kör Kristaller'),KabirI18n.t('Fısıltı Geçidi'),KabirI18n.t('Taşın İçindeki Ölüler'),KabirI18n.t('Yutulan Saray'),KabirI18n.t('Son Yemin'),KabirI18n.t('Tahtın Nöbeti'),KabirI18n.t('Sessiz Taht')];
+  var FORGE_NAMES=[KabirI18n.t('Kralın Altındaki Geçit'),KabirI18n.t('Kör Körükler'),KabirI18n.t('Kömür Mahkûmları'),KabirI18n.t('Kızgın Nakliye'),KabirI18n.t('Kül Vezirinin Avlusu'),KabirI18n.t('Sönen Dökümhane'),KabirI18n.t('Demirin Duası'),KabirI18n.t('Zincir Kuyuları'),KabirI18n.t('Yutulan Çarklar'),KabirI18n.t('Cüruf Meydanı'),KabirI18n.t('Kızıl Fırınlar'),KabirI18n.t('Köz Yemini'),KabirI18n.t('Son Döküm'),KabirI18n.t('Kızıl Ocak')];
   function build(scene,options){
     var buildT0=performance.now(),forge=!!options&&options.chapter===4,chapter=forge?4:3;
-    var root=new T.Group();root.name=forge?'Kızıl Ocak':'Sessiz Taht';scene.add(root);
+    var root=new T.Group();root.name=forge?KabirI18n.t('Kızıl Ocak'):KabirI18n.t('Sessiz Taht');scene.add(root);
     var textures=[],materials={},geometries=[],colliders=[],groups=[],lights=[],sources=[],flames=[],disposed=false;
     var seed=935713,hero={value:new T.Vector3(0,1,10)},clock={value:0};
     function rnd(){seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;}
@@ -153,12 +153,12 @@
       if(i===11)return;
       if(i===13){
         solid(0,r.z-9,4.8,1.6);
-        encounters.push({id:forge?'furnace-heart':'hollow-court',room:i,name:forge?'Ocağın Son Dökümü':'Tahtın İçindeki Boşluk',spawns:[{type:forge?'furnaceheart':'hollowking',x:0,z:r.z-1,boss:true}],stage:1.2});return;
+        encounters.push({id:forge?'furnace-heart':'hollow-court',room:i,name:forge?KabirI18n.t('Ocağın Son Dökümü'):KabirI18n.t('Tahtın İçindeki Boşluk'),spawns:[{type:forge?'furnaceheart':'hollowking',x:0,z:r.z-1,boss:true}],stage:1.2});return;
       }
       var types=forge?(i<6?['emberbound','chainseer','forgesentinel','emberbound','slagcrawler']:['slagcrawler','forgesentinel','chainseer','slagcrawler','emberbound']):i<6?['ashbound','shardseer','gravemason','ashbound','cavefang']:['cavefang','gravemason','shardseer','cavefang','ashbound'];
       var spawns=types.map(function(type,n){return {type:type,x:r.x+(n===4?0:n%2?3.4:-3.4),z:r.z+(n===4?0:n<2?-4:4)};});
       if(i===4||i===9)spawns.push({type:forge?'ashwarden':'ruinwarden',x:r.x,z:r.z-7,elite:true});
-      encounters.push({id:(forge?'forge-':'ruin-')+i,room:i,name:r.name,clearText:'Buradaki sesler sustu. Kuzeydeki yol açık.',stage:forge?1.08+i*.016:1.02+i*.018,spawns:spawns});
+      encounters.push({id:(forge?'forge-':'ruin-')+i,room:i,name:r.name,clearText:KabirI18n.t('Buradaki sesler sustu. Kuzeydeki yol açık.'),stage:forge?1.08+i*.016:1.02+i*.018,spawns:spawns});
     });
     // Each room's own composition.
     var info={rooms:rooms,forge:forge,names:forge?FORGE_NAMES:NAMES};
@@ -227,7 +227,7 @@
     }
     root.updateMatrixWorld(true);
     B.RuinsWorld.lastBuildMs=Math.round(performance.now()-buildT0);
-    return {chapter:chapter,name:forge?'Kızıl Ocak':'Sessiz Taht',root:root,rooms:rooms,paths:paths,encounters:encounters,colliders:colliders,occluders:[],materials:materials,spawn:{x:0,z:14},checkpoint:{x:0,z:rooms[11].z},bossSpawn:{x:0,z:rooms[13].z-1},
+    return {chapter:chapter,name:forge?KabirI18n.t('Kızıl Ocak'):KabirI18n.t('Sessiz Taht'),root:root,rooms:rooms,paths:paths,encounters:encounters,colliders:colliders,occluders:[],materials:materials,spawn:{x:0,z:14},checkpoint:{x:0,z:rooms[11].z},bossSpawn:{x:0,z:rooms[13].z-1},
       isWalkable:isWalkable,move:move,hasClearPath:hasClearPath,pathTo:pathTo,roomAt:roomAt,update:update,atmosphereAt:atmosphereAt,effectHeightAt:function(){return .065;},
       setQuality:function(cfg){quality=typeof cfg==='string'?cfg:cfg.quality||cfg.preset||'high';},
       lighting:{sources:sources,flames:flames,shafts:[],moods:[live],groupGain:groupGain,prepareTextures:function(){return textures;},setGroup:function(k,v){groupGain[k]=v;},setGroupTint:function(){},setCorpses:function(){},setOathGlow:function(v,lit){oath=!!lit;},setPlayerLightFx:function(){},wantsShadows:function(){return false;}},

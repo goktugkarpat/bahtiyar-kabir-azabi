@@ -305,7 +305,7 @@
     // Adds a SkinnedMesh's geometry, re-expressed on the master skeleton at its bind pose.
     A.add = function (mesh, key) {
       var g = floatGeometry(mesh.geometry), sk = mesh.skeleton, p = g.attributes.position, n = g.attributes.normal, si = g.attributes.skinIndex, sw = g.attributes.skinWeight;
-      var remap = sk.bones.map(function (b) { var j = index[b.name]; if (j === undefined) throw Error('Kemik eşleşmedi: ' + b.name); return j; });
+      var remap = sk.bones.map(function (b) { var j = index[b.name]; if (j === undefined) throw Error(KabirI18n.t('Kemik eşleşmedi: ') + b.name); return j; });
       var same = sk.bones.every(function (b, i) { return b === bones[i]; }) || sk.bones.every(function (b, i) { return b.name === bones[i].name && sk.boneInverses[i].equals(inverses[i]); });
       var mats = sk.bones.map(function (b, i) { return world(remap[i]).multiply(sk.boneInverses[i]); });
       var outIndex = new Uint16Array(si.count * 4), outWeight = new Float32Array(si.count * 4), v = new T.Vector3(), acc = new T.Vector3(), tmp = new T.Vector3(), nn = new T.Vector3(), nacc = new T.Vector3(), m3 = new T.Matrix3();
@@ -1438,7 +1438,7 @@
     return function (meshName, baseScene, primitive) {
       var found = null, scene = baseScene || bases[A.base], count = 0;
       scene.traverse(function (n) { if (found || !n.isMesh) return; if (n.name === meshName || (n.parent && n.parent.name === meshName) || n.name.indexOf(meshName) === 0) { if ((primitive || 0) === count) found = n.material; count++; } });
-      if (!found) throw Error('Malzeme bulunamadı: ' + meshName);
+      if (!found) throw Error(KabirI18n.t('Malzeme bulunamadı: ') + meshName);
       return found;
     };
   }
@@ -1670,7 +1670,7 @@
   function create(type) {
     type = TYPES[type] ? type : 'prisoner';
     var cfg = TYPES[type], bp = blueprints[type] || (bases[TYPES[type].base] ? blueprint(type) : null);
-    if (!bp) throw Error('Karakter kaplamaları henüz yüklenmedi.');
+    if (!bp) throw Error(KabirI18n.t('Karakter kaplamaları henüz yüklenmedi.'));
     var root = new T.Group(); root.name = type;
     var scene = cloneSkin(bp.scene); root.add(scene); scene.scale.setScalar(bp.scale); scene.position.y = bp.yOffset;
     var native = {}; scene.traverse(function (n) { if (n.isBone) native[n.name] = n; });
@@ -1678,7 +1678,7 @@
     if (type === 'hero') scene.traverse(function (n) { if (n.isSkinnedMesh) { var fm = flareMesh(n, flareU); if (fm) flareMats.push(fm); } });
     root.updateMatrixWorld(true);
     function find(names) { for (var i = 0; i < names.length; i++) { var n = native[names[i]] || native[names[i].replace(/\./g, '')]; if (n) return n; } return null; }
-    var rightHand = find(['hand_r', 'hand.R', 'handR']); if (!rightHand) throw Error('Karakterin sağ el kemiği eksik.');
+    var rightHand = find(['hand_r', 'hand.R', 'handR']); if (!rightHand) throw Error(KabirI18n.t('Karakterin sağ el kemiği eksik.'));
     var weapon = new T.Group(); weapon.name = 'weapon'; rightHand.add(weapon);
     var marker = new T.Object3D(); marker.name = 'weapon_tip';
     var equipment = null, equipmentMeshes = [], equipmentArms = {}, armorMeshes = [], baseMantle = [], baseIron = null, equipmentMaterials = new Map();
@@ -1854,5 +1854,5 @@
       }
     };
   }
-  B.Models = { register: function (type, cfg, recipe) { if (prepared) throw Error('Karakter kaydı hazırlıktan önce yapılmalı.'); TYPES[type] = cfg; R[type] = function (A) { return recipe(A, { bases: bases, bodyMaterial: bodyMaterial, gearMaterial: gearMaterial, clothWeights: clothWeights, sleeve: sleeve, whiteMap: function () { return NO_WHITE ? null : whiteMap(); }, forgedBlock: forgedBlock, forgedBlade: forgedBlade, forgedGrip: forgedGrip }); }; }, create: create, prepare: prepare, templates: bases, blueprints: blueprints, types: TYPES };
+  B.Models = { register: function (type, cfg, recipe) { if (prepared) throw Error(KabirI18n.t('Karakter kaydı hazırlıktan önce yapılmalı.')); TYPES[type] = cfg; R[type] = function (A) { return recipe(A, { bases: bases, bodyMaterial: bodyMaterial, gearMaterial: gearMaterial, clothWeights: clothWeights, sleeve: sleeve, whiteMap: function () { return NO_WHITE ? null : whiteMap(); }, forgedBlock: forgedBlock, forgedBlade: forgedBlade, forgedGrip: forgedGrip }); }; }, create: create, prepare: prepare, templates: bases, blueprints: blueprints, types: TYPES };
 })();

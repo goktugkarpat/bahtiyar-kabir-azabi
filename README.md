@@ -163,3 +163,9 @@ Esc ile **Mola** açılır: devam, ayarlar, karakter, yetenekler, görev günlü
 Ayrıntılar ve bağlantılar için [credits.html](credits.html) ve [ASSET-LICENSES.md](ASSET-LICENSES.md) dosyalarına bak.
 
 Otomatik görüntü boyutu PC’de pencerenin doğal piksel çözünürlüğünü kullanır. Mac’te %70, iPad’de %75, Android’de %80 başlangıç ölçeği uygulanır; 1×, 1,25× ve 1,5× bu başlangıç çözünürlüğünü çarpar. Tam boyut seçeneği doğal çözünürlüğü kullanır.
+
+## Türkçe ve İngilizce
+
+Başlangıç menüsündeki **Türkçe / English** düğmelerinden veya **Ayarlar → Oynanış → Dil** bölümünden dil seçilir. Seçim bu cihazda hatırlanır. Dil değişikliği oyunu yeniden açar; aynı yolculuk kaydı, eşya kimlikleri ve yetenek ağacı korunur. İngilizce sürümün adı **Grave Torment**; dört bölümün görevleri, kararları, eşya ve yetenek adları, menüler, harita ve savaş uyarıları yerelleştirilmiştir. İngilizce konuşmalar oyuna gömülüdür ve çevrimdışı da çalar; karanlık İngiliz anlatıcı, kahraman ve cellat için ayrı doğal erkek sesleri kullanılır. Türkçe kayıtlar aynen korunur.
+
+Metin sözlüğü `src/i18n.js`, İngilizce sesler `src/narration-en.js` içinde bulunur. Sunum metinleri açık çağrı noktalarında çevrilir; kare başına DOM taraması yapılmaz. Sessiz deneme için `?sessiz&lang=en` veya `?sessiz&lang=tr` kullanılabilir. Geliştirici konsolunda `KabirI18n.missing()` eksik çeviri denetimini verir.

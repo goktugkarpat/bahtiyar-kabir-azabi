@@ -24,7 +24,7 @@
       }
       image.onerror = () => {
         if (!fallback) { fallback = true; image.src = svgFallback(); }
-        else reject(Error('Ganimet simgesi hazırlanamadı: '+def.name));
+        else reject(Error(KabirI18n.t('Ganimet simgesi hazırlanamadı: ')+def.name));
       };
       image.src = hasRender ? rendered : svgFallback();
     }))).then(() => {

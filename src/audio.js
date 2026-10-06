@@ -1599,6 +1599,9 @@
   const TELLS = new Set(['enemyWindup', 'enemyAttack', 'slam', 'explosion', 'poison', 'warning', 'hurt', 'guardBreak', 'tellCommit']);
   let caption = null, voiceNode = null, voiceGain = null, current = null, queue = [], nclock = 0, lastTellN = -9;
   const heard = new Set(), recent = {}, voiceBuffers = {};
+  const voiceLanguage = () => window.KabirI18n && window.KabirI18n.lang === 'en' ? 'en' : 'tr';
+  const narrationLines = () => voiceLanguage() === 'en' ? (B.NarrationEN || {}) : (B.Narration || {});
+  const voiceKey = key => voiceLanguage() + ':' + key;
   let deathTurn = 0, narrationMode = 'essential', lastNarrationEnd = -60;
   const INCIDENTAL_LINES = new Set(['chains','ritual','crypt','rot','coastRoots','coastStreet','coastPier','coastSquare','seal','coastSeal']);
   function updateNarrationDuck() {
@@ -1619,7 +1622,7 @@
   }
   function say(key, force = false) {
     if (narrationMode === 'off' || (narrationMode === 'essential' && INCIDENTAL_LINES.has(key))) return;
-    const lines = B.Narration || {};
+    const lines = narrationLines();
     if ((key === 'death' || key === 'coastDeath') && force) { const v = (key === 'coastDeath' ? ['coastDeath', 'coastDeath2', 'coastDeath3'] : ['death', 'death2', 'death3']).filter(k => lines[k]); key = v[deathTurn++ % v.length] || key; }
     const line = lines[key]; if (!line) return;
     if (!force && (heard.has(key) || queue.some(q => q.key === key) || current && current.key === key)) return;
@@ -1630,7 +1633,7 @@
     if (ROOM_LINES.has(key) || key === 'boss' || key === 'coastBoss' || key === 'ruinsBoss' || key === 'forgeBoss') queue = queue.filter(q => !ROOM_LINES.has(q.key)); // yalnızca son odanın cümlesi bekler
     // III/IV yemin noktasının henüz başlamamış yanıtı savaşta boss'u bekletmesin; current cümlesi korunur.
     if (key === 'ruinsBoss' || key === 'forgeBoss') queue = queue.filter(q => q.key !== 'heroOath');
-    const entry = { key, line, force, age: 0, ready: false, buffer: null };
+    const entry = { key, cacheKey: voiceKey(key), line, force, age: 0, ready: false, buffer: null };
     // Each chapter has two one-shot completions. Keep them through room changes,
     // but never put a calm-only quest line in front of a boss/death announcement.
     const at = QUEST_CHAPTER[key] ? queue.findIndex(q => !q.force && !URGENT.has(q.key) && !QUEST_CHAPTER[q.key]) : URGENT.has(key) ? queue.findIndex(q => QUEST_CHAPTER[q.key]) : -1;
@@ -1647,14 +1650,14 @@
     if (!ctx || (silent && !offline)) { entry.ready = true; return; }
     try {
       const my = ctx;
-      let buf = voiceBuffers[entry.key];
-      if (!buf) { buf = await decode(b64(entry.line.audio)); if (ctx !== my) return; voiceBuffers[entry.key] = buf; }
+      let buf = voiceBuffers[entry.cacheKey];
+      if (!buf) { buf = await decode(b64(entry.line.audio)); if (ctx !== my) return; voiceBuffers[entry.cacheKey] = buf; }
       entry.buffer = buf; entry.ready = true;
     } catch (e) { entry.ready = true; console.warn('Narration', e); }
   }
   function startVoice(entry) {
     heard.add(entry.key); recent[entry.key] = Date.now();
-    if (!entry.buffer && ctx && voiceBuffers[entry.key]) entry.buffer = voiceBuffers[entry.key];
+    if (!entry.buffer && ctx && voiceBuffers[entry.cacheKey]) entry.buffer = voiceBuffers[entry.cacheKey];
     const total = (entry.buffer ? entry.buffer.duration : entry.line.duration || 4) + .15;
     current = { key: entry.key, force: entry.force, left: total };
     if (caption) caption(entry.line.text, entry.line.speaker || 'Anlatıcı');
@@ -1804,12 +1807,12 @@
     if (extMusic && B.Music.prepare) await B.Music.prepare(v => { if (progress) progress(.4 + .25 * v); });
     // Only this chapter's two added quest voices need decoded buffers. Existing
     // narration keeps its established preparation; chapter transitions reload.
-    const lines = Object.entries(B.Narration || {}).filter(([key]) => !QUEST_CHAPTER[key] || QUEST_CHAPTER[key] === (B.ActiveChapter || 1));
+    const lines = Object.entries(narrationLines()).filter(([key]) => !QUEST_CHAPTER[key] || QUEST_CHAPTER[key] === (B.ActiveChapter || 1));
     for (let i = 0; i < lines.length; i++) {
       const [key, line] = lines[i];
-      if (!voiceBuffers[key] && line.audio) {
+      if (!voiceBuffers[voiceKey(key)] && line.audio) {
         try {
-          const buf = await decode(b64(line.audio)); if (ctx !== my) return false; voiceBuffers[key] = buf;
+          const buf = await decode(b64(line.audio)); if (ctx !== my) return false; voiceBuffers[voiceKey(key)] = buf;
         } catch (e) {
           if (ctx !== my) return false;
           console.warn('Narration preparation', key, e);   // keep other records warm; say() can retry or show captions
@@ -1852,8 +1855,8 @@
     build(octx, true); unlocked = true; suspended = false;
     await loadBank();
     // Anlatıcı kayıtlarını önceden çöz: çevrimdışı işleme gerçek zamandan hızlı ilerler, geç çözülen cümle kayardı.
-    const lines = B.Narration || {};
-    for (const k of Object.keys(lines)) if (!voiceBuffers[k] && lines[k].audio) { try { voiceBuffers[k] = await decode(b64(lines[k].audio)); } catch (e) {} }
+    const lines = narrationLines();
+    for (const k of Object.keys(lines)) if (!voiceBuffers[voiceKey(k)] && lines[k].audio) { try { voiceBuffers[voiceKey(k)] = await decode(b64(lines[k].audio)); } catch (e) {} }
     let state = Object.assign({ playing: true, combat: false, boss: false }, o.state || {});
     const events = (o.events || []).slice().sort((a, b) => a[0] - b[0]); let ei = 0;
     const tick = t => {

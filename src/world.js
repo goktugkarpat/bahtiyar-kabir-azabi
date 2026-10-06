@@ -201,35 +201,35 @@
       var multiDraw = !!(options && options.multiDraw && T.BatchedMesh);
       var root = new T.Group();
       var isDisposed = false;
-      root.name = 'Kurban Tapınağı';
+      root.name = KabirI18n.t('Kurban Tapınağı');
       scene.add(root);
 
       var rooms = [
-        { id: 0, name: 'Kül Eşiği', x: 0, z: 4, w: 18, d: 20 },
-        { id: 1, name: 'Zincir Avlusu', x: -2, z: -21, w: 22, d: 22 },
-        { id: 2, name: 'Çürüyen Revir', x: 1, z: -47, w: 24, d: 22 },
-        { id: 3, name: 'Adak Salonu', x: 0, z: -74, w: 26, d: 24 },
-        { id: 4, name: 'Kemik Geçidi', x: -1, z: -101, w: 22, d: 22 },
-        { id: 5, name: 'Sessiz Şapel', x: 0, z: -125, w: 18, d: 18 },
-        { id: 6, name: 'Zincir Mahkemesi', x: 0, z: -155, w: 30, d: 32 }
+        { id: 0, name: KabirI18n.t('Kül Eşiği'), x: 0, z: 4, w: 18, d: 20 },
+        { id: 1, name: KabirI18n.t('Zincir Avlusu'), x: -2, z: -21, w: 22, d: 22 },
+        { id: 2, name: KabirI18n.t('Çürüyen Revir'), x: 1, z: -47, w: 24, d: 22 },
+        { id: 3, name: KabirI18n.t('Adak Salonu'), x: 0, z: -74, w: 26, d: 24 },
+        { id: 4, name: KabirI18n.t('Kemik Geçidi'), x: -1, z: -101, w: 22, d: 22 },
+        { id: 5, name: KabirI18n.t('Sessiz Şapel'), x: 0, z: -125, w: 18, d: 18 },
+        { id: 6, name: KabirI18n.t('Zincir Mahkemesi'), x: 0, z: -155, w: 30, d: 32 }
       ];
       var spawn = { x: 0, z: 8 };
       var checkpoint = { x: 0, z: -128 };
       var bossSpawn = { x: 0, z: -160 };
       var encounters = [
-        { id: 'threshold', room: 0, name: 'Eşikteki Mahkûmlar', clearText: 'İlk mühür kırıldı. Zincir Avlusu seni bekliyor.', spawns: [
+        { id: 'threshold', room: 0, name: KabirI18n.t('Eşikteki Mahkûmlar'), clearText: KabirI18n.t('İlk mühür kırıldı. Zincir Avlusu seni bekliyor.'), spawns: [
           { type: 'prisoner', x: -3.5, z: 0 },
           { type: 'prisoner', x: 3.5, z: -2.5 },
           { type: 'prisoner', x: 0, z: -4 }
         ] },
-        { id: 'courtyard', room: 1, name: 'Zincir Nöbeti', clearText: 'Avlunun mührü açıldı. Çürüyen Revir’e ilerle.', spawns: [
+        { id: 'courtyard', room: 1, name: KabirI18n.t('Zincir Nöbeti'), clearText: KabirI18n.t('Avlunun mührü açıldı. Çürüyen Revir’e ilerle.'), spawns: [
           { type: 'guard', x: 0, z: -18 },
           { type: 'prisoner', x: -4.5, z: -20 },
           { type: 'prisoner', x: 4.5, z: -23 },
           { type: 'guard', x: -3, z: -28 },
           { type: 'prisoner', x: 3.5, z: -28 }
         ] },
-        { id: 'infirmary', room: 2, name: 'Çürüyenlerin Duası', clearText: 'Revirin mührü kırıldı. Adak Salonu artık açık.', spawns: [
+        { id: 'infirmary', room: 2, name: KabirI18n.t('Çürüyenlerin Duası'), clearText: KabirI18n.t('Revirin mührü kırıldı. Adak Salonu artık açık.'), spawns: [
           { type: 'prisoner', x: -3.5, z: -40 },
           { type: 'carrier', x: 4.8, z: -44 },
           { type: 'prisoner', x: -4.5, z: -47 },
@@ -238,7 +238,7 @@
           { type: 'prisoner', x: -3.5, z: -54 },
           { type: 'carrier', x: 3, z: -55 }
         ] },
-        { id: 'offering', room: 3, name: 'Adak Ayini', clearText: 'Ayin bozuldu. Kemik Geçidi’ne giden mühür açıldı.', spawns: [
+        { id: 'offering', room: 3, name: KabirI18n.t('Adak Ayini'), clearText: KabirI18n.t('Ayin bozuldu. Kemik Geçidi’ne giden mühür açıldı.'), spawns: [
           { type: 'guard', x: -3.5, z: -67 },
           { type: 'guard', x: 3.5, z: -67 },
           { type: 'cultist', x: 0, z: -74 },
@@ -248,7 +248,7 @@
           { type: 'cultist', x: 3.5, z: -80 },
           { type: 'guard', x: 0, z: -82 }
         ] },
-        { id: 'ossuary', room: 4, name: 'Son Alay', clearText: 'Son alay düştü. Şapeldeki mühre yaklaş; yaralarını kapat.', spawns: [
+        { id: 'ossuary', room: 4, name: KabirI18n.t('Son Alay'), clearText: KabirI18n.t('Son alay düştü. Şapeldeki mühre yaklaş; yaralarını kapat.'), spawns: [
           { type: 'stalker', x: -3.8, z: -95 },
           { type: 'prisoner', x: 3.5, z: -95 },
           { type: 'guard', x: 0, z: -100 },
@@ -257,7 +257,7 @@
           { type: 'stalker', x: -3, z: -108 },
           { type: 'guard', x: 2.8, z: -109 }
         ] },
-        { id: 'executioner', room: 6, name: 'Zincir Celladı', spawns: [
+        { id: 'executioner', room: 6, name: KabirI18n.t('Zincir Celladı'), spawns: [
           { type: 'boss', x: bossSpawn.x, z: bossSpawn.z }
         ] }
       ];

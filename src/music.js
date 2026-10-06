@@ -502,7 +502,7 @@
     }
   }
   const SCENES = [
-    { name: 'Kül Eşiği', // ash threshold: low drone, far tolling, the motif on a lone cello, ash wind
+    { name: KabirI18n.t('Kül Eşiği'), // ash threshold: low drone, far tolling, the motif on a lone cello, ash wind
       drone: { d1: 1, d2: .35, fifth: .3, rub: 0, trit: 0, cut: 125 },
       pads: { bus: 'choirA', vowel: 'u', inst: 'choir', chords: [[D2, A2], [D2, A2, D3], [Bb1, F2, D3], [D2, A2]], len: [14, 22], rest: .45, att: 4, rel: 5, vel: .16 },
       gens: [
@@ -510,7 +510,7 @@
         { every: [34, 52], first: [12, 18], fn: (p, t) => { if (chance(.5)) oath(p, t); else phrase(p, 'cello', GATE, t, { beat: .8, vel: .18, n: 2 }); } },
         { every: [11, 19], first: [1, 4], fn: (p, t) => noiseSwell(p, 'fx', t, rr(5, 8), 280, 700, .25) }
       ] },
-    { name: 'Zincir Nöbeti', // chain watch: processional frame drum, rubbing low strings, chains, a far anvil
+    { name: KabirI18n.t('Zincir Nöbeti'), // chain watch: processional frame drum, rubbing low strings, chains, a far anvil
       drone: { d1: .9, d2: .25, fifth: .1, rub: .4, trit: 0, cut: 155 },
       pads: { bus: 'strings', inst: 'string', chords: [[D2, Eb2, A2], [D2, A2, Eb3], [Bb1, D3, Eb3], [D2, A2, D3]], len: [10, 16], rest: .35, att: 3, rel: 4, vel: .05, bright: .6 },
       steps(p, st, t) {
@@ -524,14 +524,14 @@
         { every: [26, 38], first: [8, 14], fn: (p, t) => toll(p, t, { vel: .35, pan: rr(-.3, .3) }) },
         { every: [40, 58], first: [16, 24], fn: (p, t) => phrase(p, 'brass', GATE, t, { beat: .7, vel: .16, att: .6, rel: 1.2, bright: .5 }) } // the watch horn: the gate motif
       ] },
-    { name: 'Çürüyenlerin Duası', // prayer of the rotting: low male chant, cracked flat bell, groaning cello
+    { name: KabirI18n.t('Çürüyenlerin Duası'), // prayer of the rotting: low male chant, cracked flat bell, groaning cello
       drone: { d1: .8, d2: .3, fifth: .35, rub: .1, trit: 0, cut: 140 },
       gens: [
         { every: [10, 16], first: [2, 4], fn: chant },
         { every: [28, 40], first: [12, 18], fn: (p, t) => toll(p, t, { vel: .35, rate: semi(1) * .985, pan: rr(-.4, .4) }) },
         { every: [20, 30], first: [8, 12], fn: (p, t) => stringNote(p, 'cello', D2, t, { vel: .2, att: 1.5, dur: 4.5, rel: 2, n: 2, gliss: -100, glissAt: 2, glissTime: 2.5 }) }
       ] },
-    { name: 'Adak Ayini', // offering rite: 7/8 frame drums, overtone chant, open-vowel clusters
+    { name: KabirI18n.t('Adak Ayini'), // offering rite: 7/8 frame drums, overtone chant, open-vowel clusters
       drone: { d1: 1, d2: .3, fifth: .35, rub: 0, trit: .15, cut: 175 },
       pads: { bus: 'choirA', vowel: 'a', inst: 'choir', chords: [[D2, A2, Eb3], [D2, Ab2, D3], [C2, G2, Eb3], [D2, A2, D3]], len: [12, 18], rest: .35, att: 3, rel: 4, vel: .11 },
       enter(p, t) { p.ot = overtone(p, t); }, exit(p, t) { if (p.ot) p.ot.release(t, 3); p.ot = null; },
@@ -544,7 +544,7 @@
         { every: [1.8, 3.6], first: [3, 4], fn: (p, t) => { if (p.ot) glide(p.ot.bp.frequency, p.ot.f * pick([6, 7, 8, 8, 9, 10, 12]), t, .18); } },
         { every: [24, 36], first: [10, 16], fn: (p, t) => toll(p, t, { vel: .35, pan: rr(-.3, .3) }) }
       ] },
-    { name: 'Kemik Geçidi', // bone passage: creeping pizzicato, bone rattles, glassy sul-ponticello clusters, falling cello
+    { name: KabirI18n.t('Kemik Geçidi'), // bone passage: creeping pizzicato, bone rattles, glassy sul-ponticello clusters, falling cello
       drone: { d1: .75, d2: .2, fifth: 0, rub: 0, trit: .35, cut: 115 },
       pads: { bus: 'hi', inst: 'string', chords: [[74, 75], [80, 81], [74, 80]], len: [8, 12], rest: .55, att: 3, rel: 3, vel: .05, trem: .8, n: 2, bright: 1 },
       gens: [
@@ -552,12 +552,12 @@
         { every: [5, 11], first: [1, 3], fn: (p, t) => playBuf('bone', t, dest(p, 'far'), { gain: rr(.4, .7), rate: rr(.85, 1.15), pan: rr(-.9, .9) }) },
         { every: [22, 34], first: [10, 14], fn: (p, t) => stringNote(p, 'cello', D3, t, { vel: .16, att: 1, dur: 4.5, rel: 1.5, n: 2, gliss: -300, glissAt: 1, glissTime: 4, vib: 4 }) }
       ] },
-    { name: 'Sessiz Şapel', // silent chapel (oath stone): almost nothing — soft "o" chords, long rests, a small high bell
+    { name: KabirI18n.t('Sessiz Şapel'), // silent chapel (oath stone): almost nothing — soft "o" chords, long rests, a small high bell
       drone: { d1: .4, d2: .25, fifth: .15, rub: 0, trit: 0, cut: 105 },
       pads: { bus: 'choirA', vowel: 'o', inst: 'choir', chords: [[D2, A2, D3, F3], [Bb1, F2, D3, F3], [G1, D2, Bb2, D3], [A1, A2, Cs3, E3]], len: [12, 18], rest: .5, att: 4, rel: 6, vel: .11 },
       gens: [{ every: [30, 44], first: [6, 10], fn: (p, t) => toll(p, t, { buf: 'bellD4', vel: .28, pan: rr(-.5, .5) }) },
         { every: [37, 55], first: [12, 18], fn: (p, t) => oath(p, t, .18) }] },
-    { name: 'Zincir Mahkemesi', // chain court before the executioner wakes: heartbeat, hummed tritone, chains, a far brass breath
+    { name: KabirI18n.t('Zincir Mahkemesi'), // chain court before the executioner wakes: heartbeat, hummed tritone, chains, a far brass breath
       drone: { d1: .9, d2: .3, fifth: 0, rub: .3, trit: .3, cut: 150 },
       pads: { bus: 'choirA', vowel: 'u', inst: 'choir', chords: [[D2, Ab2], [D2, A2], [Eb2, A2], [D2, Ab2, D3]], len: [12, 18], rest: .5, att: 4, rel: 5, vel: .1 },
       gens: [
@@ -568,7 +568,7 @@
   ];
   // A separate coastal score: unsettled low strings, drowned choir and the distant bell.
   const COAST_SCENES = SCENES.map((sc, i) => ({
-    name: ['Yanmış Mezarlık','Köklerin Yolu','Boğulmuş Sokak','Çürük İskele','Kara Kök Meydanı','Son Fener','Boğulmuş Çanlık'][i],
+    name: [KabirI18n.t('Yanmış Mezarlık'),KabirI18n.t('Köklerin Yolu'),KabirI18n.t('Boğulmuş Sokak'),KabirI18n.t('Çürük İskele'),KabirI18n.t('Kara Kök Meydanı'),KabirI18n.t('Son Fener'),KabirI18n.t('Boğulmuş Çanlık')][i],
     drone: {d1:.8, d2:.4, fifth:i === 5 ? .3 : .12, rub:.25, trit:i === 4 ? .22 : .08, cut:125 + i * 7},
     pads: {bus: i === 2 || i === 5 ? 'choirA' : 'strings', vowel:'u', inst:i === 2 || i === 5 ? 'choir' : 'string',
       chords:[[D2,A2,Eb3],[Bb1,D2,Ab2],[D2,Ab2,E3],[D2,A2,D3]], len:[16,25], rest:.38, att:4, rel:6, vel:.07, bright:.38, trem:.15},
@@ -582,7 +582,7 @@
   // the forge uses struck iron and an uneven furnace pulse. Reuse the prepared
   // instrument bank: changing chapters adds no synthesis buffers or audio bus.
   const RUINS_SCENES = SCENES.map((sc, i) => ({
-    name:['Yitik Sütunlar','Kralların Mezarları','Çöken Anıt','Kör Kristaller','Taşın İçindeki Ölüler','Yutulan Saray','Sessiz Taht'][i],
+    name:[KabirI18n.t('Yitik Sütunlar'),KabirI18n.t('Kralların Mezarları'),KabirI18n.t('Çöken Anıt'),KabirI18n.t('Kör Kristaller'),KabirI18n.t('Taşın İçindeki Ölüler'),KabirI18n.t('Yutulan Saray'),KabirI18n.t('Sessiz Taht')][i],
     drone:{d1:.55,d2:.25,fifth:i===5?.3:.12,rub:i===3?.12:.04,trit:i===6?.2:0,cut:105+i*5},
     pads:{bus:i===2||i===5?'choirA':'strings',vowel:'o',inst:i===2||i===5?'choir':'string',
       chords:i===3?[[D3,Eb3,A2+12],[D3,Ab2+12],[Bb2,F3,D3]]:[[D2,A2],[Bb1,D3,F3],[G1,D2,A2],[D2,A2,D3]],
@@ -593,7 +593,7 @@
     ]
   }));
   const FORGE_SCENES = SCENES.map((sc, i) => ({
-    name:['Kör Körükler','Kızgın Nakliye','Sönen Dökümhane','Zincir Kuyuları','Cüruf Meydanı','Köz Yemini','Kızıl Ocak'][i],
+    name:[KabirI18n.t('Kör Körükler'),KabirI18n.t('Kızgın Nakliye'),KabirI18n.t('Sönen Dökümhane'),KabirI18n.t('Zincir Kuyuları'),KabirI18n.t('Cüruf Meydanı'),KabirI18n.t('Köz Yemini'),KabirI18n.t('Kızıl Ocak')][i],
     drone:{d1:.8,d2:.18,fifth:i===5?.25:.08,rub:i===4?.2:.12,trit:i===6?.2:.05,cut:i===5?105:145},
     pads:{bus:i===5?'choirA':'strings',vowel:'o',inst:i===5?'choir':'string',
       chords:[[D2,A2],[Eb2,A2],[Bb1,D3],[D2,Ab2]],len:[12,21],rest:.48,att:3.5,rel:5,vel:i===5?.07:.045,bright:.3},
@@ -811,8 +811,8 @@
     for (const k of Object.keys(CB)) delete CB[k];
     BS.start = BS.pend2 = undefined; BS.phase = 1; BS.ch = null; T.want = T.bpm = 96;
   }
-  const ROOM_NAMES = [['kül eşiği', 'threshold', 'eşikteki mahkûmlar'], ['zincir avlusu', 'zincir nöbeti', 'courtyard'], ['çürüyen revir', 'çürüyenlerin duası', 'infirmary'],
-    ['adak salonu', 'adak ayini', 'offering'], ['kemik geçidi', 'son alay', 'ossuary'], ['sessiz şapel', 'chapel'], ['zincir mahkemesi', 'zincir celladı', 'executioner']];
+  const ROOM_NAMES = [[KabirI18n.t('kül eşiği'), 'threshold', KabirI18n.t('eşikteki mahkûmlar')], ['zincir avlusu', KabirI18n.t('zincir nöbeti'), 'courtyard'], [KabirI18n.t('çürüyen revir'), KabirI18n.t('çürüyenlerin duası'), 'infirmary'],
+    ['adak salonu', 'adak ayini', 'offering'], [KabirI18n.t('kemik geçidi'), 'son alay', 'ossuary'], [KabirI18n.t('sessiz şapel'), 'chapel'], ['zincir mahkemesi', KabirI18n.t('zincir celladı'), 'executioner']];
   function resolveRoom(r) {
     if (r === null || r === undefined) return -1;
     if (typeof r === 'object') return resolveRoom(r.id !== undefined ? r.id : r.name);

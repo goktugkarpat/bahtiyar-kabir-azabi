@@ -26,7 +26,7 @@
     var material=barkSource?barkSource.clone():new T.MeshStandardMaterial(Object.assign(B.Materials.createSurface('wood',textures,2),{color:0xb3a386,roughness:.91}));
     if(barkSource){material.onBeforeCompile=barkSource.onBeforeCompile;material.customProgramCacheKey=barkSource.customProgramCacheKey;material.color.multiplyScalar(1.18);}
     material.name='coast-burst-bark';material.normalScale.set(1.2,1.2);material.emissive.setRGB(.024,.018,.010,T.LinearSRGBColorSpace);material.emissiveIntensity=1;
-    var mesh=new T.InstancedMesh(geometry,material,pool.length);mesh.name='Kara Kıyı kök patlamaları';mesh.castShadow=false;mesh.receiveShadow=true;mesh.frustumCulled=false;mesh.visible=false;mesh.count=0;scene.add(mesh);
+    var mesh=new T.InstancedMesh(geometry,material,pool.length);mesh.name=KabirI18n.t('Kara Kıyı kök patlamaları');mesh.castShadow=false;mesh.receiveShadow=true;mesh.frustumCulled=false;mesh.visible=false;mesh.count=0;scene.add(mesh);
     var position=new T.Vector3(),scale=new T.Vector3(),rotation=new T.Quaternion(),matrix=new T.Matrix4(),axis=new T.Vector3(0,1,0);
     var calm=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     for(var i=0;i<pool.length;i++)pool[i]={live:false,x:0,y:.025,z:0,angle:0,height:1,age:0,life:.85};
@@ -54,7 +54,7 @@
         vec3 col=(vec3(.006,.018,.025)+vec3(.14,.26,.29)*foam)*mask*fade;
         if(max(col.r,max(col.g,col.b))<.002)discard;gl_FragColor=vec4(col,1.);
       }`});
-    for(var i=0;i<24;i++){var wm=waterBase.clone(),wo=new T.Mesh(waterGeo,wm);wo.visible=false;wo.frustumCulled=false;wo.renderOrder=2;wo.rotation.order='YXZ';wo.name='Kara Kıyı su darbesi';scene.add(wo);water.push({mesh:wo,mat:wm,age:1,live:false});}
+    for(var i=0;i<24;i++){var wm=waterBase.clone(),wo=new T.Mesh(waterGeo,wm);wo.visible=false;wo.frustumCulled=false;wo.renderOrder=2;wo.rotation.order='YXZ';wo.name=KabirI18n.t('Kara Kıyı su darbesi');scene.add(wo);water.push({mesh:wo,mat:wm,age:1,live:false});}
     function waterBurst(d){
       // The arena-wide dark tide already has its shelter/danger tell; do not wash it with a second surface.
       if(d.radius>=24&&d.shape!=='line')return;

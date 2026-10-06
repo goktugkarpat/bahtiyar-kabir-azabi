@@ -2,7 +2,7 @@
 (function () {
   'use strict';
   const B = window.BABA = window.BABA || {};
-  const TITLES = ['Kurban Tapınağı', 'Boğulmuş Kıyı', 'Sessiz Taht', 'Kızıl Ocak'];
+  const TITLES = [KabirI18n.t('Kurban Tapınağı'), KabirI18n.t('Boğulmuş Kıyı'), KabirI18n.t('Sessiz Taht'), KabirI18n.t('Kızıl Ocak')];
   const STORAGE = 'kabir-azabi-atlas-v1';
   function node(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; }
   function create(options) {
@@ -14,24 +14,24 @@
     let record = { version: 1, campaign: null, chapters: {} };
     const element = node('div', 'screen modal hidden'); element.id = 'atlas'; element.setAttribute('role', 'dialog'); element.setAttribute('aria-modal', 'true'); element.setAttribute('aria-labelledby', 'atlas-title');
     const panel = node('div', 'panel atlas-panel'), head = node('header', 'panel-head'), titleBlock = node('div');
-    titleBlock.append(node('span', 'eyebrow', 'KABİR AZABI')); const title = node('h2', '', TITLES[chapter - 1]); title.id = 'atlas-title'; titleBlock.append(title);
-    const closeButton = node('button', 'close', '×'); closeButton.type = 'button'; closeButton.setAttribute('aria-label', 'Haritayı kapat'); closeButton.onclick = () => options.onClose ? options.onClose() : close(); head.append(titleBlock, closeButton);
+    titleBlock.append(node('span', 'eyebrow', KabirI18n.t('KABİR AZABI'))); const title = node('h2', '', TITLES[chapter - 1]); title.id = 'atlas-title'; titleBlock.append(title);
+    const closeButton = node('button', 'close', '×'); closeButton.type = 'button'; closeButton.setAttribute('aria-label', KabirI18n.t('Haritayı kapat')); closeButton.onclick = () => options.onClose ? options.onClose() : close(); head.append(titleBlock, closeButton);
     const workspace = node('div', 'atlas-workspace'), map = node('div', 'atlas-map'), canvas = node('canvas', 'atlas-canvas'); canvas.tabIndex = 0;
-    canvas.setAttribute('role', 'img'); canvas.setAttribute('aria-label', 'Keşfettiğin yolların haritası. Sürükleyerek gez, tekerlekle yakınlaştır.');
+    canvas.setAttribute('role', 'img'); canvas.setAttribute('aria-label', KabirI18n.t('Keşfettiğin yolların haritası. Sürükleyerek gez, tekerlekle yakınlaştır.'));
     const controls = node('div', 'atlas-controls');
     function button(text, name, action) { const e = node('button', '', text); e.type = 'button'; e.setAttribute('aria-label', name); e.onclick = action; controls.append(e); return e; }
-    button('−', 'Haritayı uzaklaştır', () => zoom(.8)); button('+', 'Haritayı yakınlaştır', () => zoom(1.25));
-    button('◎', 'Bahtiyar’a dön', () => { camera.x = game.player.x; camera.z = game.player.z; fitted = false; draw(); }); button('↔', 'Keşfedilen yolları sığdır', () => fit(false));
+    button('−', KabirI18n.t('Haritayı uzaklaştır'), () => zoom(.8)); button('+', KabirI18n.t('Haritayı yakınlaştır'), () => zoom(1.25));
+    button('◎', KabirI18n.t('Bahtiyar’a dön'), () => { camera.x = game.player.x; camera.z = game.player.z; fitted = false; draw(); }); button('↔', KabirI18n.t('Keşfedilen yolları sığdır'), () => fit(false));
     const compass = node('div', 'atlas-compass'); compass.setAttribute('aria-hidden', 'true'); compass.innerHTML = '<span>K</span><svg viewBox="0 0 100 100"><path d="M50 9 57 43 91 50 57 57 50 91 43 57 9 50 43 43Z" fill="none" stroke="currentColor"/><path d="M50 9 50 50 43 43Z" fill="currentColor"/><circle cx="50" cy="50" r="29" fill="none" stroke="currentColor" opacity=".5"/><circle cx="50" cy="50" r="4" fill="currentColor"/></svg>';
-    const instructions = node('p', 'atlas-instructions', 'Sürükle · Yakınlaştır · M ile dön');
+    const instructions = node('p', 'atlas-instructions', KabirI18n.t('Sürükle · Yakınlaştır · M ile dön'));
     map.append(canvas, controls, compass, instructions);
-    const aside = node('aside', 'atlas-ledger'), hereHeading = node('h3', '', 'Bulunduğun yer'), here = node('p', 'atlas-here'), knowledge = node('small', 'atlas-knowledge');
-    const goalHeading = node('h3', '', 'İzlenen yeminler'), goals = node('div', 'atlas-goals');
-    const landmarkHeading = node('h3', '', 'Yakındaki duraklar'), landmarks = node('div', 'atlas-landmarks');
-    const legend = node('div', 'atlas-legend'); legend.innerHTML = '<span><i class="atlas-symbol hero"></i>Bahtiyar</span><span><i class="atlas-symbol oath"></i>Yemin taşı</span><span><i class="atlas-symbol quest"></i>Görev izi</span>';
+    const aside = node('aside', 'atlas-ledger'), hereHeading = node('h3', '', KabirI18n.t('Bulunduğun yer')), here = node('p', 'atlas-here'), knowledge = node('small', 'atlas-knowledge');
+    const goalHeading = node('h3', '', KabirI18n.t('İzlenen yeminler')), goals = node('div', 'atlas-goals');
+    const landmarkHeading = node('h3', '', KabirI18n.t('Yakındaki duraklar')), landmarks = node('div', 'atlas-landmarks');
+    const legend = node('div', 'atlas-legend'); legend.innerHTML = KabirI18n.t('<span><i class="atlas-symbol hero"></i>Bahtiyar</span><span><i class="atlas-symbol oath"></i>Yemin taşı</span><span><i class="atlas-symbol quest"></i>Görev izi</span>');
     aside.append(hereHeading, here, knowledge, goalHeading, goals, landmarkHeading, landmarks, legend); workspace.append(map, aside);
-    const footer = node('footer'), note = node('p', 'atlas-note', 'Yalnızca gördüğün yollar ve tanıdığın yerler işlenir.');
-    const done = node('button', 'btn small', 'Oyuna dön'); done.type = 'button'; done.onclick = closeButton.onclick; footer.append(note, done); panel.append(head, workspace, footer); element.append(panel);
+    const footer = node('footer'), note = node('p', 'atlas-note', KabirI18n.t('Yalnızca gördüğün yollar ve tanıdığın yerler işlenir.'));
+    const done = node('button', 'btn small', KabirI18n.t('Oyuna dön')); done.type = 'button'; done.onclick = closeButton.onclick; footer.append(note, done); panel.append(head, workspace, footer); element.append(panel);
     const context = canvas.getContext('2d');
     const grain = document.createElement('canvas'); grain.width = grain.height = 192; const gx = grain.getContext('2d'), image = gx.createImageData(192, 192); let seed = chapter * 7919 + 31;
     for (let i = 0; i < image.data.length; i += 4) { seed = (Math.imul(seed, 1664525) + 1013904223) | 0; const a = ((seed >>> 24) - 128) * .035; image.data[i] = 35 + a; image.data[i + 1] = 32 + a; image.data[i + 2] = 26 + a; image.data[i + 3] = 255; } gx.putImageData(image, 0, 0);
@@ -137,26 +137,26 @@
       context.restore();
     }
     function ledger() {
-      const reward = game.pendingBossReward || null, r = world.roomAt && world.roomAt(game.player.x, game.player.z); const key = String(r && r.id) + ':' + version + ':' + (game.quests ? game.quests.revision : -1) + ':' + (reward ? reward.uid : ''); if (key === lastLedger) return;lastLedger=key; here.textContent = r ? r.name : TITLES[chapter - 1]; knowledge.textContent = visited.size + ' keşfedilen durak';
+      const reward = game.pendingBossReward || null, r = world.roomAt && world.roomAt(game.player.x, game.player.z); const key = String(r && r.id) + ':' + version + ':' + (game.quests ? game.quests.revision : -1) + ':' + (reward ? reward.uid : ''); if (key === lastLedger) return;lastLedger=key; here.textContent = r ? r.name : TITLES[chapter - 1]; knowledge.textContent = visited.size + KabirI18n.t(' keşfedilen durak');
       goals.replaceChildren();
       const quests = game.quests;
-      goalHeading.textContent = reward ? 'Zafer emaneti' : quests && quests.ready ? 'Sonraki hedef' : 'İzlenen yeminler';
+      goalHeading.textContent = reward ? KabirI18n.t('Zafer emaneti') : quests && quests.ready ? KabirI18n.t('Sonraki hedef') : KabirI18n.t('İzlenen yeminler');
       function goal(name, objective, complete, onMap) {
         const block = node(typeof onMap === 'function' || typeof options.onJournal === 'function' ? 'button' : 'div', 'atlas-goal');
         if (complete) block.classList.add('complete');
-        if (typeof onMap === 'function') { block.type = 'button'; block.onclick = onMap; block.setAttribute('aria-label', name + ' · Emanete odaklan'); }
-        else if (typeof options.onJournal === 'function') { block.type = 'button'; block.onclick = () => { close(false); options.onJournal(); }; block.setAttribute('aria-label', name + ' · Görev günlüğünü aç'); }
+        if (typeof onMap === 'function') { block.type = 'button'; block.onclick = onMap; block.setAttribute('aria-label', name + KabirI18n.t(' · Emanete odaklan')); }
+        else if (typeof options.onJournal === 'function') { block.type = 'button'; block.onclick = () => { close(false); options.onJournal(); }; block.setAttribute('aria-label', name + KabirI18n.t(' · Görev günlüğünü aç')); }
         block.append(node('strong', '', name), node('p', '', objective)); goals.append(block);
       }
       if (reward) {
         const item = B.Progression && Array.isArray(B.Progression.items) && B.Progression.items.find(def => def.id === reward.id);
         const rewardRoom = Number.isFinite(reward.x) && Number.isFinite(reward.z) && world.roomAt && world.roomAt(reward.x, reward.z);
-        goal(item && item.name || 'Zafer emaneti', 'Efendi yenildi. Emanetine yaklaş.', false, () => {
+        goal(item && item.name || KabirI18n.t('Zafer emaneti'), KabirI18n.t('Efendi yenildi. Emanetine yaklaş.'), false, () => {
           if (!rewardRoom || !visited.has(String(rewardRoom.id))) return;
           camera.x = reward.x; camera.z = reward.z; fitted = false; draw(); canvas.focus({preventScroll:true});
         });
-      } else if (quests && quests.ready) goal('Efendinin kapısı açık', quests.objective, false);
-      else for (const entry of quests && quests.entries || []) goal(entry.name, entry.complete ? 'Bağ çözüldü' : entry.objective, entry.complete);
+      } else if (quests && quests.ready) goal(KabirI18n.t('Efendinin kapısı açık'), quests.objective, false);
+      else for (const entry of quests && quests.entries || []) goal(entry.name, entry.complete ? KabirI18n.t('Bağ çözüldü') : entry.objective, entry.complete);
       const nearby = rooms.filter(room => visited.has(String(room.id))).sort((a, b) => Math.hypot(a.x-game.player.x,a.z-game.player.z)-Math.hypot(b.x-game.player.x,b.z-game.player.z)).slice(0, 6); landmarks.replaceChildren();
       for (const room of nearby) { const b = node('button', '', room.name); b.type = 'button'; if (r === room) b.classList.add('here'); b.onclick = () => { camera.x = room.x; camera.z = room.z; camera.scale = Math.max(camera.scale, 4); fitted = false; draw(); }; landmarks.append(b); }
     }

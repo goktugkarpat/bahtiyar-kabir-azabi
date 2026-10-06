@@ -100,10 +100,10 @@
   /* ---------------------------------------------------------------- dormant reserve enemies of the boss encounter */
   Boss2.reserve = function (chapter, defs) {
     var set = chapter === 2
-      ? [['drowned', 'Çanın Boğulmuşu'], ['urchin', 'Tuz Muhafızı'], ['rootborn', 'Batık Kök'], ['lantern', 'Çanın Fenercisi']]
+      ? [['drowned', KabirI18n.t('Çanın Boğulmuşu')], ['urchin', KabirI18n.t('Tuz Muhafızı')], ['rootborn', KabirI18n.t('Batık Kök')], ['lantern', KabirI18n.t('Çanın Fenercisi')]]
       : chapter === 3
-      ? [['cavefang', 'Oyuk Çenesi'], ['shardseer', 'Taht Kehanetçisi'], ['ashbound', 'Taht Yeminlisi'], ['shardseer', 'Oyuk Kehanetçisi']]
-      : [['slagcrawler', 'Döküm Kölesi'], ['chainseer', 'Ocak Zincircisi'], ['emberbound', 'Kor Kölesi'], ['chainseer', 'Kül Zincircisi']];
+      ? [['cavefang', KabirI18n.t('Oyuk Çenesi')], ['shardseer', KabirI18n.t('Taht Kehanetçisi')], ['ashbound', KabirI18n.t('Taht Yeminlisi')], ['shardseer', KabirI18n.t('Oyuk Kehanetçisi')]]
+      : [['slagcrawler', KabirI18n.t('Döküm Kölesi')], ['chainseer', 'Ocak Zincircisi'], ['emberbound', KabirI18n.t('Kor Kölesi')], ['chainseer', KabirI18n.t('Kül Zincircisi')]];
     defs.forEach(function (enc) {
       var boss = enc.spawns.find(function (s) { return s.boss; });
       if (!boss || enc.spawns.some(function (s) { return s.reserve; })) return;
@@ -168,7 +168,7 @@
         orb.x = owner.x + Math.sin(owner.face + orb.off) * 1.5; orb.z = owner.z + Math.cos(owner.face + orb.off) * 1.5; orb.y = 1.9;
         var c = orb.kind === 'slag' ? [1, .45, .12] : [.5, .3, 1];
         orb.glow.material.color.setRGB(c[0]*.6,c[1]*.6,c[2]*.65);orb.glow.material.opacity=.24;orb.core.material.color.setRGB(c[0]*.75,c[1]*.75,c[2]*.8);orb.core.material.opacity=.22;
-        orb.hz.damage = o.damage || 12; orb.hz.owner = owner; orb.hz.enemy = owner.name; orb.hz.attack = o.name || 'Küre';
+        orb.hz.damage = o.damage || 12; orb.hz.owner = owner; orb.hz.enemy = owner.name; orb.hz.attack = o.name || KabirI18n.t('Küre');
         orb.glow.visible = orb.core.visible = orb.body.visible = true; orb.ring.visible = true; orb.ring.material.color.setRGB(1, .19, .10);
         return orb;
       },
@@ -177,7 +177,7 @@
         orb.on = false; orb.glow.visible = orb.core.visible = orb.body.visible = orb.ring.visible = false;
         if (!quiet && orb.launched) {
           ext.fx('boss2Orb', { x: orb.x, z: orb.z, y: 1, kind: orb.kind, end: true });
-          if (orb.kind === 'slag' && orb.owner && !orb.owner.dead && ext.walkable(orb.x, orb.z, .3)) core.ground(orb.owner, { x: orb.x, z: orb.z, radius: 1.7, duration: 3.6, damage: 4, name: 'Cüruf Birikintisi', warn: .55 });
+          if (orb.kind === 'slag' && orb.owner && !orb.owner.dead && ext.walkable(orb.x, orb.z, .3)) core.ground(orb.owner, { x: orb.x, z: orb.z, radius: 1.7, duration: 3.6, damage: 4, name: KabirI18n.t('Cüruf Birikintisi'), warn: .55 });
         }
       },
       clear: function () { for (var i = 0; i < pool.length; i++) orbs.kill(pool[i], true); }
@@ -385,7 +385,7 @@
           p.x = x; p.z = z; p.state = 1; p.k = 0; p.g.position.set(x, 0, z); p.g.scale.set(1, .02, 1); p.g.visible = true;
         }
         pillars.armed = true;
-        ext.emit('toast', { text: 'Taş siperler yükseldi. Nova geldiğinde arkalarına geç.' });
+        ext.emit('toast', { text: KabirI18n.t('Taş siperler yükseldi. Nova geldiğinde arkalarına geç.') });
       };
     }
     function pillarsTick(dt) {
@@ -404,7 +404,7 @@
     var nova = core.nova = { on: false, x: 0, z: 0, t: 0, em: 0 };
     // Begin a channel: show the safe shadows behind every standing pillar.
     core.novaBegin = function (owner) {
-      if (!core.novaHinted) { core.novaHinted = true; ext.emit('toast', { text: 'Sessiz Nova toplanıyor. Taş sütunun arkasındaki mavi sipere geç.' }); }
+      if (!core.novaHinted) { core.novaHinted = true; ext.emit('toast', { text: KabirI18n.t('Sessiz Nova toplanıyor. Taş sütunun arkasındaki mavi sipere geç.') }); }
       nova.on = true; nova.owner = owner; nova.x = owner.x; nova.z = owner.z; nova.t = 0; nova.em = 0;
       var w = 0;
       for (var i = 0; i < pillars.list.length && w < pillars.wedges.length; i++) {
@@ -427,7 +427,7 @@
       ext.fx('boss2Nova', { x: owner.x, z: owner.z, phase: 'release', forge: forge });
       if (owner.dead || player.dead) return;
       var p = pillars.blocks(owner.x, owner.z, player.x, player.z);
-      if (p) { pillars.shatter(p, 'nova'); ext.emit('toast', { text: 'Taş siper darbeyi yuttu.' }); return; }
+      if (p) { pillars.shatter(p, 'nova'); ext.emit('toast', { text: KabirI18n.t('Taş siper darbeyi yuttu.') }); return; }
       ext.hitPlayer({ damage: damage, owner: owner, enemy: owner.name, attack: name, unblockable: true, style: 'shadow', x: owner.x, z: owner.z, knockback: 0 });
     };
 
@@ -466,7 +466,7 @@
       var line = o.shape === 'line';
       return ext.hazardFrom(owner, { x: o.x, z: o.z, face: o.face || 0, shape: line ? 'line' : 'circle', radius: o.radius || 1.6, width: o.width || 1.6, length: o.length || 6,
         warn: o.warn || .5, duration: o.duration || 4, delay: o.delay || 0, damage: o.damage || 4, periodic: true, interval: .7, persistent: true, unblockable: false,
-        attack: o.name || 'Yanan Zemin', style: 'ember', fill: line ? 'forward' : 'radial', near: false, b2ground: true, pool: 'lava' });
+        attack: o.name || KabirI18n.t('Yanan Zemin'), style: 'ember', fill: line ? 'forward' : 'radial', near: false, b2ground: true, pool: 'lava' });
     };
 
     /* ---------------- adds ---------------- */
@@ -505,7 +505,7 @@
         if (!Boss2.baseSpeed[e.type]) Boss2.baseSpeed[e.type] = e.stats.speed;
         if (!b.frenzy && b.t > FRENZY_AT) {
           b.frenzy = true;
-          ext.emit('warning', { x: e.x, z: e.z, text: forge ? 'OCAK KIZIŞTI' : 'TAHT SABRINI YİTİRDİ' }); ext.sound('bossPhase'); ext.fx('boss2Frenzy', { x: e.x, z: e.z, forge: forge });
+          ext.emit('warning', { x: e.x, z: e.z, text: forge ? KabirI18n.t('OCAK KIZIŞTI') : KabirI18n.t('TAHT SABRINI YİTİRDİ') }); ext.sound('bossPhase'); ext.fx('boss2Frenzy', { x: e.x, z: e.z, forge: forge });
         }
         var tn = forge ? Boss2.tune4 : Boss2.tune;
         e.stats.speed = Boss2.baseSpeed[e.type] * tn.spd[clamp(e.phase - 1, 0, 2)] * (b.frenzy ? tn.spdFrenzy : 1);

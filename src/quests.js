@@ -9,98 +9,98 @@
   'use strict';
   var B = window.BABA, T = window.THREE, PI = Math.PI, RANGE = 2.35;
   var CHAPTERS = {
-    1: { title: 'İsimleri Çalınanlar', introduction: 'Cellat yalnız bedenleri zincirlememiş. Ölülerin isimlerini ve yeminlerini de kapıya bağlamış.', quests: [
-      { id: 'lost-names', name: 'İsimsizlerin Yemini', description: 'Unutulanların adlarını bul ve sahiplerine geri ver.', steps: [
-        { id: 'names', room: 7, dx: -2.6, dz: 2.6, shape: 'tablet', name: 'İsim Levhası', verb: 'İsim levhasını al', objective: 'Unutulanların Mahzeni’nde isim levhasını bul.', story: 'Taşa kazınmış her isim bir mahkûma ait. Son satır henüz boş: Bahtiyar. Levhayı Çürüyen Revir’deki anı taşına götür.' },
-        { id: 'memorial', room: 2, dx: 4.2, dz: 3, shape: 'memorial', name: 'Mahkûmların Anı Taşı', verb: 'İsimleri anı taşına yerleştir', objective: 'Çürüyen Revir’de isimleri anı taşına yerleştir.', story: 'İsimler yerlerine dönünce zincirlerin içindeki fısıltı kesiliyor. Celladın ilk bağı çözüldü.' }
+    1: { title: KabirI18n.t('İsimleri Çalınanlar'), introduction: KabirI18n.t('Cellat yalnız bedenleri zincirlememiş. Ölülerin isimlerini ve yeminlerini de kapıya bağlamış.'), quests: [
+      { id: 'lost-names', name: KabirI18n.t('İsimsizlerin Yemini'), description: KabirI18n.t('Unutulanların adlarını bul ve sahiplerine geri ver.'), steps: [
+        { id: 'names', room: 7, dx: -2.6, dz: 2.6, shape: 'tablet', name: KabirI18n.t('İsim Levhası'), verb: KabirI18n.t('İsim levhasını al'), objective: KabirI18n.t('Unutulanların Mahzeni’nde isim levhasını bul.'), story: KabirI18n.t('Taşa kazınmış her isim bir mahkûma ait. Son satır henüz boş: Bahtiyar. Levhayı Çürüyen Revir’deki anı taşına götür.') },
+        { id: 'memorial', room: 2, dx: 4.2, dz: 3, shape: 'memorial', name: KabirI18n.t('Mahkûmların Anı Taşı'), verb: KabirI18n.t('İsimleri anı taşına yerleştir'), objective: KabirI18n.t('Çürüyen Revir’de isimleri anı taşına yerleştir.'), story: KabirI18n.t('İsimler yerlerine dönünce zincirlerin içindeki fısıltı kesiliyor. Celladın ilk bağı çözüldü.') }
       ] },
-      { id: 'blood-verdict', name: 'Kanla Yazılan Hüküm', description: 'Adak Salonu’ndaki hükmü tersine çevir: önce Kül, sonra Kan, son olarak Yemin.', steps: [
-        { id: 'ash', room: 3, dx: -5.4, dz: 3.4, shape: 'censer', name: 'Kül Çanağı', verb: 'Kül çanağını söndür', objective: 'Adak Salonu’nda ayini boz: Kül → Kan → Yemin.', story: 'Kül çanağı sönüyor. Kazınmış söz ortaya çıktı: “Beden unutulur; kan tanıklık eder.” Sırada Kan Çanağı var.' },
-        { id: 'blood', room: 3, dx: 0, dz: -2.5, shape: 'censer', name: 'Kan Çanağı', verb: 'Kan çanağının bağını çöz', objective: 'Adak Salonu’nda ikinci bağı çöz: Kan Çanağı.', story: 'Kan çanağının demir bağı açılıyor. Hükmü bozmak için son taşı çevir: Yemin.' },
-        { id: 'oath', room: 3, dx: 5.4, dz: 3.4, shape: 'seal', name: 'Hüküm Mührü', verb: 'Yemin mührünü tersine çevir', objective: 'Adak Salonu’nda Yemin Mührü’nü tersine çevir.', story: 'Kurbanın yemini celladına döndü. Mahkeme kapısının kanla beslenen bağı kırıldı. Yeraltından kıyıya çıkan yolu Cellat koruyor.' }
+      { id: 'blood-verdict', name: KabirI18n.t('Kanla Yazılan Hüküm'), description: KabirI18n.t('Adak Salonu’ndaki hükmü tersine çevir: önce Kül, sonra Kan, son olarak Yemin.'), steps: [
+        { id: 'ash', room: 3, dx: -5.4, dz: 3.4, shape: 'censer', name: KabirI18n.t('Kül Çanağı'), verb: KabirI18n.t('Kül çanağını söndür'), objective: KabirI18n.t('Adak Salonu’nda ayini boz: Kül → Kan → Yemin.'), story: KabirI18n.t('Kül çanağı sönüyor. Kazınmış söz ortaya çıktı: “Beden unutulur; kan tanıklık eder.” Sırada Kan Çanağı var.') },
+        { id: 'blood', room: 3, dx: 0, dz: -2.5, shape: 'censer', name: KabirI18n.t('Kan Çanağı'), verb: KabirI18n.t('Kan çanağının bağını çöz'), objective: KabirI18n.t('Adak Salonu’nda ikinci bağı çöz: Kan Çanağı.'), story: KabirI18n.t('Kan çanağının demir bağı açılıyor. Hükmü bozmak için son taşı çevir: Yemin.') },
+        { id: 'oath', room: 3, dx: 5.4, dz: 3.4, shape: 'seal', name: KabirI18n.t('Hüküm Mührü'), verb: KabirI18n.t('Yemin mührünü tersine çevir'), objective: KabirI18n.t('Adak Salonu’nda Yemin Mührü’nü tersine çevir.'), story: KabirI18n.t('Kurbanın yemini celladına döndü. Mahkeme kapısının kanla beslenen bağı kırıldı. Yeraltından kıyıya çıkan yolu Cellat koruyor.') }
       ] }
     ] },
-    2: { title: 'Denizin Sakladığı', introduction: 'Kıyıdaki ölüler çanın sesiyle uyanıyor. Fener sönmeden önce burada neler olduğunu hatırlayanlar hâlâ köklerin altında.', quests: [
-      { id: 'last-voice', name: 'Boğulanların Son Sesi', description: 'Batık Gümrük’te kaybolan çan dilini bul; Son Fener’deki yas çanına geri tak.', steps: [
-        { id: 'clapper', room: 7, dx: -2.8, dz: 3, shape: 'relic', name: 'Kırık Çan Dili', verb: 'Kırık çan dilini al', objective: 'Batık Gümrük Avlusu’nda kırık çan dilini bul.', story: 'Çan diline bir fenercinin yemini kazınmış: “Dönenleri değil, dönmeyenleri çağır.” Son Fener’deki küçük yas çanı bunu bekliyor.' },
-        { id: 'mourning-bell', room: 5, dx: -4.5, dz: 4, shape: 'bell', name: 'Yas Çanı', verb: 'Çan dilini yerine tak ve çanı çal', objective: 'Son Fener’de çan dilini yas çanına tak.', story: 'Yas çanı ilk kez ölüler için çalıyor. Denizdeki çığlıklar bir an durdu; büyük çanın ilk bağı koptu.' }
+    2: { title: KabirI18n.t('Denizin Sakladığı'), introduction: KabirI18n.t('Kıyıdaki ölüler çanın sesiyle uyanıyor. Fener sönmeden önce burada neler olduğunu hatırlayanlar hâlâ köklerin altında.'), quests: [
+      { id: 'last-voice', name: KabirI18n.t('Boğulanların Son Sesi'), description: KabirI18n.t('Batık Gümrük’te kaybolan çan dilini bul; Son Fener’deki yas çanına geri tak.'), steps: [
+        { id: 'clapper', room: 7, dx: -2.8, dz: 3, shape: 'relic', name: KabirI18n.t('Kırık Çan Dili'), verb: KabirI18n.t('Kırık çan dilini al'), objective: KabirI18n.t('Batık Gümrük Avlusu’nda kırık çan dilini bul.'), story: KabirI18n.t('Çan diline bir fenercinin yemini kazınmış: “Dönenleri değil, dönmeyenleri çağır.” Son Fener’deki küçük yas çanı bunu bekliyor.') },
+        { id: 'mourning-bell', room: 5, dx: -4.5, dz: 4, shape: 'bell', name: KabirI18n.t('Yas Çanı'), verb: KabirI18n.t('Çan dilini yerine tak ve çanı çal'), objective: KabirI18n.t('Son Fener’de çan dilini yas çanına tak.'), story: KabirI18n.t('Yas çanı ilk kez ölüler için çalıyor. Denizdeki çığlıklar bir an durdu; büyük çanın ilk bağı koptu.') }
       ] },
-      { id: 'root-memory', name: 'Kara Kökün Hafızası', completeStory: 'İki hatıra serbest kaldı. Kökler çekilirken taşta aynı arma beliriyor: boş bir tahtın altında yanan ocak. Çancının ikinci bağı çözüldü.', description: 'Kara Ağacın Mezarlığı’ndaki iki mezar kabını aç; köklerin tutsak ettiği hatıraları serbest bırak.', anyOrder: true, steps: [
-        { id: 'grave-west', room: 8, dx: -3.7, dz: 2.8, shape: 'urn', name: 'Tuzla Mühürlü Mezar Kabı', verb: 'Tuz mührünü çöz', objective: 'Kara Ağacın Mezarlığı’nda tuzla mühürlü mezar kabını aç.', story: 'Kavanozun içinden su değil, kül dökülüyor. Kıyı halkı boğulmadan önce harabelerdeki krala götürülmüş.' },
-        { id: 'grave-east', room: 8, dx: 3.7, dz: -2.8, shape: 'urn', name: 'Kökle Mühürlü Mezar Kabı', verb: 'Kök mührünü çöz', objective: 'Kara Ağacın Mezarlığı’nda kökle mühürlü mezar kabını aç.', story: 'Köklerin tutsak ettiği hatıra serbest. Taşta boş bir tahtın altında yanan ocak beliriyor. Kıyının acısı o ateşe bağlı.' }
+      { id: 'root-memory', name: KabirI18n.t('Kara Kökün Hafızası'), completeStory: KabirI18n.t('İki hatıra serbest kaldı. Kökler çekilirken taşta aynı arma beliriyor: boş bir tahtın altında yanan ocak. Çancının ikinci bağı çözüldü.'), description: KabirI18n.t('Kara Ağacın Mezarlığı’ndaki iki mezar kabını aç; köklerin tutsak ettiği hatıraları serbest bırak.'), anyOrder: true, steps: [
+        { id: 'grave-west', room: 8, dx: -3.7, dz: 2.8, shape: 'urn', name: KabirI18n.t('Tuzla Mühürlü Mezar Kabı'), verb: KabirI18n.t('Tuz mührünü çöz'), objective: KabirI18n.t('Kara Ağacın Mezarlığı’nda tuzla mühürlü mezar kabını aç.'), story: KabirI18n.t('Kavanozun içinden su değil, kül dökülüyor. Kıyı halkı boğulmadan önce harabelerdeki krala götürülmüş.') },
+        { id: 'grave-east', room: 8, dx: 3.7, dz: -2.8, shape: 'urn', name: KabirI18n.t('Kökle Mühürlü Mezar Kabı'), verb: KabirI18n.t('Kök mührünü çöz'), objective: KabirI18n.t('Kara Ağacın Mezarlığı’nda kökle mühürlü mezar kabını aç.'), story: KabirI18n.t('Köklerin tutsak ettiği hatıra serbest. Taşta boş bir tahtın altında yanan ocak beliriyor. Kıyının acısı o ateşe bağlı.') }
       ] }
     ] },
-    3: { title: 'Boş Tahtın Altında', introduction: 'Kıyının çanı sustu; fakat ölüleri çağıran ses mağaranın içinden geliyor. Kral kendi adını taşın içine saklamış.', quests: [
-      { id: 'kings-name', name: 'Kralın Çalınmış Adı', description: 'Kralların Mezarları’ndaki ad levhasını al ve Çöken Anıt’ın eksik yerine yerleştir.', steps: [
-        { id: 'epitaph', room: 3, dx: 3.8, dz: 3.4, shape: 'tablet', name: 'Kazınmış Ad Levhası', verb: 'Kazınmış ad levhasını al', objective: 'Kralların Mezarları’nda kazınmış ad levhasını bul.', story: 'Levhanın arkasında başka bir unvan var: “Ocağın ilk mahkûmu.” Kralın adı anıttan sökülmüş; yerine koymalısın.' },
-        { id: 'name-monument', room: 5, dx: -3.5, dz: -1.8, shape: 'memorial', name: 'Kırık Kral Anıtı', verb: 'Ad levhasını anıta yerleştir', objective: 'Çöken Anıt’ta levhayı eksik yuvaya yerleştir.', story: 'Anıt tamamlandı: kral, ocağı yönetmek için kendi adını kurban etmiş. Adı geri dönünce tahtın ilk mührü çatladı.' }
+    3: { title: KabirI18n.t('Boş Tahtın Altında'), introduction: KabirI18n.t('Kıyının çanı sustu; fakat ölüleri çağıran ses mağaranın içinden geliyor. Kral kendi adını taşın içine saklamış.'), quests: [
+      { id: 'kings-name', name: KabirI18n.t('Kralın Çalınmış Adı'), description: KabirI18n.t('Kralların Mezarları’ndaki ad levhasını al ve Çöken Anıt’ın eksik yerine yerleştir.'), steps: [
+        { id: 'epitaph', room: 3, dx: 3.8, dz: 3.4, shape: 'tablet', name: KabirI18n.t('Kazınmış Ad Levhası'), verb: KabirI18n.t('Kazınmış ad levhasını al'), objective: KabirI18n.t('Kralların Mezarları’nda kazınmış ad levhasını bul.'), story: KabirI18n.t('Levhanın arkasında başka bir unvan var: “Ocağın ilk mahkûmu.” Kralın adı anıttan sökülmüş; yerine koymalısın.') },
+        { id: 'name-monument', room: 5, dx: -3.5, dz: -1.8, shape: 'memorial', name: KabirI18n.t('Kırık Kral Anıtı'), verb: KabirI18n.t('Ad levhasını anıta yerleştir'), objective: KabirI18n.t('Çöken Anıt’ta levhayı eksik yuvaya yerleştir.'), story: KabirI18n.t('Anıt tamamlandı: kral, ocağı yönetmek için kendi adını kurban etmiş. Adı geri dönünce tahtın ilk mührü çatladı.') }
       ] },
-      { id: 'cave-breath', name: 'Mağaranın Nefesi', description: 'Kör Kristaller’de yankıyı serbest bırak; Taşın İçindeki Ölüler’de son ses bağını sustur.', steps: [
-        { id: 'echo', room: 7, dx: 3.6, dz: 2.7, shape: 'crystal', name: 'Zincirli Yankı', verb: 'Yankının demir bağını aç', objective: 'Kör Kristaller’de zincirli yankıyı serbest bırak.', story: 'Kristalden bir emir değil, bir insan nefesi yükseliyor. Yankı kuzeydeki son ses bağına cevap veriyor.' },
-        { id: 'silence', room: 9, dx: -3.4, dz: 2.2, shape: 'seal', name: 'Son Ses Bağı', verb: 'Son ses bağını sustur', objective: 'Taşın İçindeki Ölüler’de son ses bağını sustur.', story: 'Mağara kendi sessizliğine kavuştu. Ses mührü söküldü; tahtın ardındaki merdiven Kızıl Ocak’a iniyor.' }
+      { id: 'cave-breath', name: KabirI18n.t('Mağaranın Nefesi'), description: KabirI18n.t('Kör Kristaller’de yankıyı serbest bırak; Taşın İçindeki Ölüler’de son ses bağını sustur.'), steps: [
+        { id: 'echo', room: 7, dx: 3.6, dz: 2.7, shape: 'crystal', name: KabirI18n.t('Zincirli Yankı'), verb: KabirI18n.t('Yankının demir bağını aç'), objective: KabirI18n.t('Kör Kristaller’de zincirli yankıyı serbest bırak.'), story: KabirI18n.t('Kristalden bir emir değil, bir insan nefesi yükseliyor. Yankı kuzeydeki son ses bağına cevap veriyor.') },
+        { id: 'silence', room: 9, dx: -3.4, dz: 2.2, shape: 'seal', name: KabirI18n.t('Son Ses Bağı'), verb: KabirI18n.t('Son ses bağını sustur'), objective: KabirI18n.t('Taşın İçindeki Ölüler’de son ses bağını sustur.'), story: KabirI18n.t('Mağara kendi sessizliğine kavuştu. Ses mührü söküldü; tahtın ardındaki merdiven Kızıl Ocak’a iniyor.') }
       ] }
     ] },
-    4: { title: 'Zincirlerin Kaynağı', introduction: 'Tapınağın hükmü, kıyının ağıdı, kralın sesi: hepsi bu ocakta dövülmüş. Kapıyı açmak yetmez; kalbi besleyen düzeni de bozmalısın.', quests: [
-      { id: 'last-prisoner', name: 'Son Mahkûmun Yemini', description: 'Kömür Mahkûmları’ndaki yemin halkasını al; Zincir Kuyuları’nın vincinde kullan.', steps: [
-        { id: 'last-shackle', room: 2, dx: -3.8, dz: 2.6, shape: 'relic', name: 'Son Yemin Halkası', verb: 'Yemin halkasını al', objective: 'Kömür Mahkûmları’nda son yemin halkasını bul.', story: 'Halka elini yakmıyor. Üzerinde mahkûmların ortak yemini var: “Son çıkan, zinciri de kıracak.” Kuyu vincinin kilidine uyuyor.' },
-        { id: 'prison-winch', room: 7, dx: 3.8, dz: 2.5, shape: 'winch', name: 'Mahkûm Vinci', verb: 'Halkayı tak ve kuyu zincirlerini bırak', objective: 'Zincir Kuyuları’nda yemin halkasıyla vinci aç.', story: 'Zincirler kuyuya boşalıyor. Artık ocak yeni bir mahkûmun nefesini çekemeyecek. İlk kilit açıldı.' }
+    4: { title: KabirI18n.t('Zincirlerin Kaynağı'), introduction: KabirI18n.t('Tapınağın hükmü, kıyının ağıdı, kralın sesi: hepsi bu ocakta dövülmüş. Kapıyı açmak yetmez; kalbi besleyen düzeni de bozmalısın.'), quests: [
+      { id: 'last-prisoner', name: KabirI18n.t('Son Mahkûmun Yemini'), description: KabirI18n.t('Kömür Mahkûmları’ndaki yemin halkasını al; Zincir Kuyuları’nın vincinde kullan.'), steps: [
+        { id: 'last-shackle', room: 2, dx: -3.8, dz: 2.6, shape: 'relic', name: KabirI18n.t('Son Yemin Halkası'), verb: KabirI18n.t('Yemin halkasını al'), objective: KabirI18n.t('Kömür Mahkûmları’nda son yemin halkasını bul.'), story: KabirI18n.t('Halka elini yakmıyor. Üzerinde mahkûmların ortak yemini var: “Son çıkan, zinciri de kıracak.” Kuyu vincinin kilidine uyuyor.') },
+        { id: 'prison-winch', room: 7, dx: 3.8, dz: 2.5, shape: 'winch', name: KabirI18n.t('Mahkûm Vinci'), verb: KabirI18n.t('Halkayı tak ve kuyu zincirlerini bırak'), objective: KabirI18n.t('Zincir Kuyuları’nda yemin halkasıyla vinci aç.'), story: KabirI18n.t('Zincirler kuyuya boşalıyor. Artık ocak yeni bir mahkûmun nefesini çekemeyecek. İlk kilit açıldı.') }
       ] },
-      { id: 'heart-feeds', name: 'Kalbi Besleyen Ateş', description: 'Önce döküm akışını, sonra cüruf dönüşünü, son olarak ana beslemeyi kapat.', steps: [
-        { id: 'casting-feed', room: 5, dx: -3.5, dz: 3.3, shape: 'valve', name: 'Döküm Vanası', verb: 'Döküm akışını kapat', objective: 'Sönen Dökümhane’de döküm vanasını kapat.', story: 'Sıvı demirin sesi azalıyor. Basıncı geri döndüren cüruf hattı hâlâ açık; sıradaki vana Cüruf Meydanı’nda.' },
-        { id: 'slag-return', room: 9, dx: 3.6, dz: 2.8, shape: 'valve', name: 'Cüruf Dönüş Vanası', verb: 'Cüruf dönüşünü kapat', objective: 'Cüruf Meydanı’nda dönüş vanasını kapat.', story: 'Geri dönüş sustu. Ana besleme artık güvenle kesilebilir. Son Döküm’deki mühürlü vanaya ulaş.' },
-        { id: 'heart-feed', room: 12, dx: -3.6, dz: 2.5, shape: 'valve', name: 'Kalp Besleme Vanası', verb: 'Kalbin ana beslemesini kes', objective: 'Son Döküm’de kalbin ana beslemesini kes.', story: 'Ana besleme kesildi. Kalp artık tutsaklardan beslenemiyor; ama kendi ateşi hâlâ canlı. Bu yolculuğun son zinciri içeride.' }
+      { id: 'heart-feeds', name: KabirI18n.t('Kalbi Besleyen Ateş'), description: KabirI18n.t('Önce döküm akışını, sonra cüruf dönüşünü, son olarak ana beslemeyi kapat.'), steps: [
+        { id: 'casting-feed', room: 5, dx: -3.5, dz: 3.3, shape: 'valve', name: KabirI18n.t('Döküm Vanası'), verb: KabirI18n.t('Döküm akışını kapat'), objective: KabirI18n.t('Sönen Dökümhane’de döküm vanasını kapat.'), story: KabirI18n.t('Sıvı demirin sesi azalıyor. Basıncı geri döndüren cüruf hattı hâlâ açık; sıradaki vana Cüruf Meydanı’nda.') },
+        { id: 'slag-return', room: 9, dx: 3.6, dz: 2.8, shape: 'valve', name: KabirI18n.t('Cüruf Dönüş Vanası'), verb: KabirI18n.t('Cüruf dönüşünü kapat'), objective: KabirI18n.t('Cüruf Meydanı’nda dönüş vanasını kapat.'), story: KabirI18n.t('Geri dönüş sustu. Ana besleme artık güvenle kesilebilir. Son Döküm’deki mühürlü vanaya ulaş.') },
+        { id: 'heart-feed', room: 12, dx: -3.6, dz: 2.5, shape: 'valve', name: KabirI18n.t('Kalp Besleme Vanası'), verb: KabirI18n.t('Kalbin ana beslemesini kes'), objective: KabirI18n.t('Son Döküm’de kalbin ana beslemesini kes.'), story: KabirI18n.t('Ana besleme kesildi. Kalp artık tutsaklardan beslenemiyor; ama kendi ateşi hâlâ canlı. Bu yolculuğun son zinciri içeride.') }
       ] }
     ] }
   };
 
   function verdict(title, question, options) { return { title: title, question: question, options: options }; }
   function option(id, name, story, benefit, amount, effect) { return { id: id, name: name, story: story, benefit: benefit, amount: amount, effect: effect }; }
-  CHAPTERS[1].quests[0].verdict = verdict('İsimler kimin için?', 'Levhada celladın gerçek adı da var. Mahkûmlara huzur mu vereceksin, yoksa onun gizlediği zaafı mı açığa çıkaracaksın?', [
-    option('rest', 'Mahkûmlara huzur ver', 'Adlar anı taşına dönüyor. Seni izleyen fısıltılar birer uyarıya dönüşüyor; Celladın sırrı ölülerle kalıyor.', 'damageReduction', .06, 'Bu bölümde alınan tüm hasar %6 azalır.'),
-    option('expose', 'Celladın gerçek adını açığa çıkar', 'Mahkûmların levhası Celladın adını taşıyor. Ölüler huzur bulamıyor; fakat onun her savunmasında bir çatlak görüyorsun.', 'bossDamage', .1, 'Bu bölümün efendisine verilen hasar %10 artar.')
+  CHAPTERS[1].quests[0].verdict = verdict(KabirI18n.t('İsimler kimin için?'), KabirI18n.t('Levhada celladın gerçek adı da var. Mahkûmlara huzur mu vereceksin, yoksa onun gizlediği zaafı mı açığa çıkaracaksın?'), [
+    option('rest', KabirI18n.t('Mahkûmlara huzur ver'), KabirI18n.t('Adlar anı taşına dönüyor. Seni izleyen fısıltılar birer uyarıya dönüşüyor; Celladın sırrı ölülerle kalıyor.'), 'damageReduction', .06, KabirI18n.t('Bu bölümde alınan tüm hasar %6 azalır.')),
+    option('expose', KabirI18n.t('Celladın gerçek adını açığa çıkar'), KabirI18n.t('Mahkûmların levhası Celladın adını taşıyor. Ölüler huzur bulamıyor; fakat onun her savunmasında bir çatlak görüyorsun.'), 'bossDamage', .1, KabirI18n.t('Bu bölümün efendisine verilen hasar %10 artar.'))
   ]);
-  CHAPTERS[1].quests[1].verdict = verdict('Hükmün son tanığı', 'Son mührü kırabilirsin; ya da hükmü saklayıp kanın onarıcı gücünü üstlenebilirsin. İki yemin birden taşınamaz.', [
-    option('break', 'Hükmü bütünüyle parçala', 'Yemin taşı ikiye ayrılıyor. Mahkemenin ağır soluğu göğsünden çekiliyor; artık hiçbir ayin bu hükmü yeniden kuramayacak.', 'staminaRecovery', .1, 'Bu bölümde dayanıklılık yenilenmesi %10 hızlanır.'),
-    option('bear', 'Son tanıklığı üstlen', 'Hükmü yok etmiyorsun; üzerindeki cellat adını kazıyıp mahkûmların yeminiyle mühürlüyorsun. Acı, iyileştirici bir tanıklığa dönüşüyor.', 'healingBonus', .1, 'Bu bölümde iksir ve can çalmayla iyileşme %10 artar.')
+  CHAPTERS[1].quests[1].verdict = verdict(KabirI18n.t('Hükmün son tanığı'), KabirI18n.t('Son mührü kırabilirsin; ya da hükmü saklayıp kanın onarıcı gücünü üstlenebilirsin. İki yemin birden taşınamaz.'), [
+    option('break', KabirI18n.t('Hükmü bütünüyle parçala'), KabirI18n.t('Yemin taşı ikiye ayrılıyor. Mahkemenin ağır soluğu göğsünden çekiliyor; artık hiçbir ayin bu hükmü yeniden kuramayacak.'), 'staminaRecovery', .1, KabirI18n.t('Bu bölümde dayanıklılık yenilenmesi %10 hızlanır.')),
+    option('bear', KabirI18n.t('Son tanıklığı üstlen'), KabirI18n.t('Hükmü yok etmiyorsun; üzerindeki cellat adını kazıyıp mahkûmların yeminiyle mühürlüyorsun. Acı, iyileştirici bir tanıklığa dönüşüyor.'), 'healingBonus', .1, KabirI18n.t('Bu bölümde iksir ve can çalmayla iyileşme %10 artar.'))
   ]);
-  CHAPTERS[2].quests[0].verdict = verdict('Çanın çağrısı', 'Çan artık seni dinliyor. Dönmeyenlerin ağıdını sonsuza dek susturabilir veya büyük Çancıyı kendi sesiyle yargılayabilirsin.', [
-    option('silence', 'Boğulanları sessizliğe bırak', 'Son yas sesi denize karışıyor. Dönmeyenler seni koruyan bir sessizlik bırakıyor; kıyı ilk kez cevap vermiyor.', 'damageReduction', .06, 'Bu bölümde alınan tüm hasar %6 azalır.'),
-    option('accuse', 'Çancıyı kendi sesiyle çağır', 'Küçük çanın sesi büyük çanın içine saplanıyor. Ölülerin ağıdı bitmiyor; Çancı artık saklanabileceği bir yankı bulamıyor.', 'bossDamage', .1, 'Bu bölümün efendisine verilen hasar %10 artar.')
+  CHAPTERS[2].quests[0].verdict = verdict(KabirI18n.t('Çanın çağrısı'), KabirI18n.t('Çan artık seni dinliyor. Dönmeyenlerin ağıdını sonsuza dek susturabilir veya büyük Çancıyı kendi sesiyle yargılayabilirsin.'), [
+    option('silence', KabirI18n.t('Boğulanları sessizliğe bırak'), KabirI18n.t('Son yas sesi denize karışıyor. Dönmeyenler seni koruyan bir sessizlik bırakıyor; kıyı ilk kez cevap vermiyor.'), 'damageReduction', .06, KabirI18n.t('Bu bölümde alınan tüm hasar %6 azalır.')),
+    option('accuse', KabirI18n.t('Çancıyı kendi sesiyle çağır'), KabirI18n.t('Küçük çanın sesi büyük çanın içine saplanıyor. Ölülerin ağıdı bitmiyor; Çancı artık saklanabileceği bir yankı bulamıyor.'), 'bossDamage', .1, KabirI18n.t('Bu bölümün efendisine verilen hasar %10 artar.'))
   ]);
-  CHAPTERS[2].quests[1].verdict = verdict('Köklerin tuttuğu hatıra', 'Kavanozlardaki kül, ocağın yolunu gösteriyor. Hatıraları köklerden kurtarmak mı, yaslarını yanında taşımak mı?', [
-    option('release', 'Hatıraları köklerden kurtar', 'Kökler iki mezardan da çekiliyor. Hatıralar kıyıya yayılırken yürüyüşündeki ağırlık kayboluyor.', 'staminaRecovery', .1, 'Bu bölümde dayanıklılık yenilenmesi %10 hızlanır.'),
-    option('carry', 'Yaslarını yanında taşı', 'Kökleri kesiyor ve mezar külünü saklıyorsun. Ölüler bir anlığına sana katılıyor; onların son hatırası yaranı kapatacak.', 'healingBonus', .1, 'Bu bölümde iksir ve can çalmayla iyileşme %10 artar.')
+  CHAPTERS[2].quests[1].verdict = verdict(KabirI18n.t('Köklerin tuttuğu hatıra'), KabirI18n.t('Kavanozlardaki kül, ocağın yolunu gösteriyor. Hatıraları köklerden kurtarmak mı, yaslarını yanında taşımak mı?'), [
+    option('release', KabirI18n.t('Hatıraları köklerden kurtar'), KabirI18n.t('Kökler iki mezardan da çekiliyor. Hatıralar kıyıya yayılırken yürüyüşündeki ağırlık kayboluyor.'), 'staminaRecovery', .1, KabirI18n.t('Bu bölümde dayanıklılık yenilenmesi %10 hızlanır.')),
+    option('carry', KabirI18n.t('Yaslarını yanında taşı'), KabirI18n.t('Kökleri kesiyor ve mezar külünü saklıyorsun. Ölüler bir anlığına sana katılıyor; onların son hatırası yaranı kapatacak.'), 'healingBonus', .1, KabirI18n.t('Bu bölümde iksir ve can çalmayla iyileşme %10 artar.'))
   ]);
-  CHAPTERS[3].quests[0].verdict = verdict('Tahtın altındaki isim', 'Levha kralın ocağın ilk mahkûmu olduğunu söylüyor. Adını geri verip suçunu görünür kılmak mı, krallığını tarihten silmek mi?', [
-    option('name', 'Gerçek adını tahta kazı', 'Adı yeniden görünür oluyor. Kral artık tacının ardına saklanamıyor; ölüleri çağıran sesinde ilk kez korku duyuluyor.', 'bossDamage', .1, 'Bu bölümün efendisine verilen hasar %10 artar.'),
-    option('erase', 'Krallığını tarihten sil', 'Unvanını kazıyor, mahkûmun adını mezarların arasına bırakıyorsun. Artık hiçbir hüküm onun tacından kuvvet alamıyor.', 'damageReduction', .06, 'Bu bölümde alınan tüm hasar %6 azalır.')
+  CHAPTERS[3].quests[0].verdict = verdict(KabirI18n.t('Tahtın altındaki isim'), KabirI18n.t('Levha kralın ocağın ilk mahkûmu olduğunu söylüyor. Adını geri verip suçunu görünür kılmak mı, krallığını tarihten silmek mi?'), [
+    option('name', KabirI18n.t('Gerçek adını tahta kazı'), KabirI18n.t('Adı yeniden görünür oluyor. Kral artık tacının ardına saklanamıyor; ölüleri çağıran sesinde ilk kez korku duyuluyor.'), 'bossDamage', .1, KabirI18n.t('Bu bölümün efendisine verilen hasar %10 artar.')),
+    option('erase', KabirI18n.t('Krallığını tarihten sil'), KabirI18n.t('Unvanını kazıyor, mahkûmun adını mezarların arasına bırakıyorsun. Artık hiçbir hüküm onun tacından kuvvet alamıyor.'), 'damageReduction', .06, KabirI18n.t('Bu bölümde alınan tüm hasar %6 azalır.'))
   ]);
-  CHAPTERS[3].quests[1].verdict = verdict('Mağaranın son nefesi', 'Özgür yankı dışarıya ulaşabilir. Ya da içindeki son nefesi mühürleyip ocağın derinlerine taşıyabilirsin.', [
-    option('open', 'Yankıya çıkış yolu aç', 'Mağaranın çatlakları ilk kez birbirine cevap veriyor. Son nefes özgürleşirken sana daha uzun bir soluk bırakıyor.', 'staminaRecovery', .1, 'Bu bölümde dayanıklılık yenilenmesi %10 hızlanır.'),
-    option('keep', 'Son nefesi mühürde sakla', 'Yankıyı susturmuyor, küçük bir mühürde koruyorsun. Gerektiğinde bu son nefes seni ölümün kıyısından çekecek.', 'healingBonus', .1, 'Bu bölümde iksir ve can çalmayla iyileşme %10 artar.')
+  CHAPTERS[3].quests[1].verdict = verdict(KabirI18n.t('Mağaranın son nefesi'), KabirI18n.t('Özgür yankı dışarıya ulaşabilir. Ya da içindeki son nefesi mühürleyip ocağın derinlerine taşıyabilirsin.'), [
+    option('open', KabirI18n.t('Yankıya çıkış yolu aç'), KabirI18n.t('Mağaranın çatlakları ilk kez birbirine cevap veriyor. Son nefes özgürleşirken sana daha uzun bir soluk bırakıyor.'), 'staminaRecovery', .1, KabirI18n.t('Bu bölümde dayanıklılık yenilenmesi %10 hızlanır.')),
+    option('keep', KabirI18n.t('Son nefesi mühürde sakla'), KabirI18n.t('Yankıyı susturmuyor, küçük bir mühürde koruyorsun. Gerektiğinde bu son nefes seni ölümün kıyısından çekecek.'), 'healingBonus', .1, KabirI18n.t('Bu bölümde iksir ve can çalmayla iyileşme %10 artar.'))
   ]);
-  CHAPTERS[4].quests[0].verdict = verdict('Son çıkanın yemini', 'Vinç ocak kalbine bağlı. Mahkûmların zincirlerini bırakmak mı, zincirleri kalbin aleyhine son kez germek mi?', [
-    option('free', 'Bütün mahkûm zincirlerini bırak', 'Kuyuya düşen zincirlerin ardından insan soluğu yükseliyor. Son çıkan sensin; ortak yemin sırtındaki yükü hafifletiyor.', 'damageReduction', .06, 'Bu bölümde alınan tüm hasar %6 azalır.'),
-    option('turn', 'Zincirleri kalbe geri bağla', 'Mahkûmların halkalarını söküp kalbin beslemesine geçiriyorsun. Tutsaklar özgür; kalp kendi hükmünün ağırlığını taşıyacak.', 'bossDamage', .1, 'Bu bölümün efendisine verilen hasar %10 artar.')
+  CHAPTERS[4].quests[0].verdict = verdict(KabirI18n.t('Son çıkanın yemini'), KabirI18n.t('Vinç ocak kalbine bağlı. Mahkûmların zincirlerini bırakmak mı, zincirleri kalbin aleyhine son kez germek mi?'), [
+    option('free', KabirI18n.t('Bütün mahkûm zincirlerini bırak'), KabirI18n.t('Kuyuya düşen zincirlerin ardından insan soluğu yükseliyor. Son çıkan sensin; ortak yemin sırtındaki yükü hafifletiyor.'), 'damageReduction', .06, KabirI18n.t('Bu bölümde alınan tüm hasar %6 azalır.')),
+    option('turn', KabirI18n.t('Zincirleri kalbe geri bağla'), KabirI18n.t('Mahkûmların halkalarını söküp kalbin beslemesine geçiriyorsun. Tutsaklar özgür; kalp kendi hükmünün ağırlığını taşıyacak.'), 'bossDamage', .1, KabirI18n.t('Bu bölümün efendisine verilen hasar %10 artar.'))
   ]);
-  CHAPTERS[4].quests[1].verdict = verdict('Ocak sönerken', 'Ana besleme kesildi. Son koru yaraları onarmak için saklayabilir veya kalbin kendi ateşini tüketmesini sağlayabilirsin.', [
-    option('shelter', 'Son koru bir sığınağa çevir', 'Koru ölüleri yakmak için değil, canlıyı korumak için saklıyorsun. Ocakta ilk kez acıdan başka bir sıcaklık kalıyor.', 'healingBonus', .1, 'Bu bölümde iksir ve can çalmayla iyileşme %10 artar.'),
-    option('starve', 'Kalbi kendi ateşiyle tüket', 'Geri dönüş vanasını son kez açıyor, kalbin kendi ateşini ona çeviriyorsun. Artık her yarası o ateşe hava verecek.', 'bossDamage', .1, 'Bu bölümün efendisine verilen hasar %10 artar.')
+  CHAPTERS[4].quests[1].verdict = verdict(KabirI18n.t('Ocak sönerken'), KabirI18n.t('Ana besleme kesildi. Son koru yaraları onarmak için saklayabilir veya kalbin kendi ateşini tüketmesini sağlayabilirsin.'), [
+    option('shelter', KabirI18n.t('Son koru bir sığınağa çevir'), KabirI18n.t('Koru ölüleri yakmak için değil, canlıyı korumak için saklıyorsun. Ocakta ilk kez acıdan başka bir sıcaklık kalıyor.'), 'healingBonus', .1, KabirI18n.t('Bu bölümde iksir ve can çalmayla iyileşme %10 artar.')),
+    option('starve', KabirI18n.t('Kalbi kendi ateşiyle tüket'), KabirI18n.t('Geri dönüş vanasını son kez açıyor, kalbin kendi ateşini ona çeviriyorsun. Artık her yarası o ateşe hava verecek.'), 'bossDamage', .1, KabirI18n.t('Bu bölümün efendisine verilen hasar %10 artar.'))
   ]);
 
   // The forceful verdict opens a later, forward-facing route through an existing defended chamber.
   // The quieter verdict finishes here; the risky route only earns its boss advantage when its guardians are defeated.
   [
-    { chapter: 1, choice: 'expose', room: 8, dx: -3.8, dz: 2.8, id: 'witness-proof', name: 'Celladın Saklı Tanıklığı', objective: 'Sönmüş Kandiller’deki bekçileri yen ve saklı tanıklığı ortaya çıkar.', story: 'Kandillerin son bekçisi düştü. Celladın adını saklayan tanıklık serbest; artık hükmü ona geri çevirebilirsin.', effect: 'Sönmüş Kandiller’deki bekçileri yen. Ardından efendiye hasar %10 artar.' },
-    { chapter: 2, choice: 'accuse', room: 12, dx: 3.4, dz: 2.6, id: 'bell-testimony', name: 'Fenercinin Son Tanıklığı', objective: 'Fenersiz Sığınak’taki nöbeti kır ve fenercinin tanıklığını çana bağla.', story: 'Sığınaktaki nöbet sustu. Fenercinin tanıklığı yas çanına ulaşıyor; Çancı kendi sesinin içinde açıkta kalıyor.', effect: 'Fenersiz Sığınak’ın nöbetini yen. Ardından efendiye hasar %10 artar.' },
-    { chapter: 3, choice: 'name', room: 10, dx: -3.4, dz: 2.6, id: 'royal-testimony', name: 'Kralın Son Tanığı', objective: 'Yutulan Saray’daki muhafızları yen ve kralın tanıklık mührünü kır.', story: 'Sarayın son muhafızı düştü. Taç, mahkûmun adını artık saklayamıyor. Kral kendi geçmişiyle yüzleşmek zorunda.', effect: 'Yutulan Saray’ın muhafızlarını yen. Ardından efendiye hasar %10 artar.' },
-    { chapter: 4, choice: 'turn', room: 10, dx: 3.2, dz: 2.4, id: 'turned-oath', name: 'Kalbe Dönen Yemin', objective: 'Kızıl Fırınlar’daki bekçileri yen ve halkaları kalbin beslemesine döndür.', story: 'Korun bekçileri düştü. Mahkûmların zinciri artık kalbin kendi ateşini bağlıyor; son vuruşun yolu açıldı.', effect: 'Kızıl Fırınlar’ın bekçilerini yen. Ardından efendiye hasar %10 artar.' }
+    { chapter: 1, choice: 'expose', room: 8, dx: -3.8, dz: 2.8, id: 'witness-proof', name: KabirI18n.t('Celladın Saklı Tanıklığı'), objective: KabirI18n.t('Sönmüş Kandiller’deki bekçileri yen ve saklı tanıklığı ortaya çıkar.'), story: KabirI18n.t('Kandillerin son bekçisi düştü. Celladın adını saklayan tanıklık serbest; artık hükmü ona geri çevirebilirsin.'), effect: KabirI18n.t('Sönmüş Kandiller’deki bekçileri yen. Ardından efendiye hasar %10 artar.') },
+    { chapter: 2, choice: 'accuse', room: 12, dx: 3.4, dz: 2.6, id: 'bell-testimony', name: KabirI18n.t('Fenercinin Son Tanıklığı'), objective: KabirI18n.t('Fenersiz Sığınak’taki nöbeti kır ve fenercinin tanıklığını çana bağla.'), story: KabirI18n.t('Sığınaktaki nöbet sustu. Fenercinin tanıklığı yas çanına ulaşıyor; Çancı kendi sesinin içinde açıkta kalıyor.'), effect: KabirI18n.t('Fenersiz Sığınak’ın nöbetini yen. Ardından efendiye hasar %10 artar.') },
+    { chapter: 3, choice: 'name', room: 10, dx: -3.4, dz: 2.6, id: 'royal-testimony', name: KabirI18n.t('Kralın Son Tanığı'), objective: KabirI18n.t('Yutulan Saray’daki muhafızları yen ve kralın tanıklık mührünü kır.'), story: KabirI18n.t('Sarayın son muhafızı düştü. Taç, mahkûmun adını artık saklayamıyor. Kral kendi geçmişiyle yüzleşmek zorunda.'), effect: KabirI18n.t('Yutulan Saray’ın muhafızlarını yen. Ardından efendiye hasar %10 artar.') },
+    { chapter: 4, choice: 'turn', room: 10, dx: 3.2, dz: 2.4, id: 'turned-oath', name: KabirI18n.t('Kalbe Dönen Yemin'), objective: KabirI18n.t('Kızıl Fırınlar’daki bekçileri yen ve halkaları kalbin beslemesine döndür.'), story: KabirI18n.t('Korun bekçileri düştü. Mahkûmların zinciri artık kalbin kendi ateşini bağlıyor; son vuruşun yolu açıldı.'), effect: KabirI18n.t('Kızıl Fırınlar’ın bekçilerini yen. Ardından efendiye hasar %10 artar.') }
   ].forEach(function (trial) {
     var q = CHAPTERS[trial.chapter].quests[0], chosen = q.verdict.options.find(function (choice) { return choice.id === trial.choice; });
     trial.shape = ({ expose: 'tablet', accuse: 'bell', name: 'memorial', turn: 'winch' })[trial.choice];
-    trial.verb = ({ expose: 'Saklı tanıklığı al', accuse: 'Tanıklığı yas çanına bağla', name: 'Kraliyet mührünü kır', turn: 'Halkaları kalbin beslemesine geçir' })[trial.choice]; trial.trial = true;
+    trial.verb = ({ expose: KabirI18n.t('Saklı tanıklığı al'), accuse: KabirI18n.t('Tanıklığı yas çanına bağla'), name: KabirI18n.t('Kraliyet mührünü kır'), turn: KabirI18n.t('Halkaları kalbin beslemesine geçir') })[trial.choice]; trial.trial = true;
     q.trial = trial; chosen.trial = trial; chosen.effect = trial.effect;
-    chosen.story = ({ expose: 'Celladın adını gizlememeyi seçtin. Saklı tanıklık doğrulanana kadar hükmün ona ulaşamaz.', accuse: 'Ölülerin yasını Çancıya çevirmeyi seçtin. Fenercinin tanıklığı olmadan çanın sesi onu ele vermez.', name: 'Kralı kendi adıyla yüzleştirmeyi seçtin. Son tanığın mührü kırılmadan taç geçmişini saklayabilir.', turn: 'Mahkûmların yeminini kalbe çevirmeyi seçtin. Besleme hattı bağlanana kadar zincir henüz onun ateşini tutmuyor.' })[trial.choice];
+    chosen.story = ({ expose: KabirI18n.t('Celladın adını gizlememeyi seçtin. Saklı tanıklık doğrulanana kadar hükmün ona ulaşamaz.'), accuse: KabirI18n.t('Ölülerin yasını Çancıya çevirmeyi seçtin. Fenercinin tanıklığı olmadan çanın sesi onu ele vermez.'), name: KabirI18n.t('Kralı kendi adıyla yüzleştirmeyi seçtin. Son tanığın mührü kırılmadan taç geçmişini saklayabilir.'), turn: KabirI18n.t('Mahkûmların yeminini kalbe çevirmeyi seçtin. Besleme hattı bağlanana kadar zincir henüz onun ateşini tutmuyor.') })[trial.choice];
   });
 
   function create(api) {
@@ -109,7 +109,7 @@
     var info = { chapter: chapter, title: definition.title, introduction: definition.introduction, entries: [], completed: 0, total: 2,
       ready: false, objective: '', prompt: null, markers: [], revision: 0, legacyComplete: false, pendingChoice: null,
       benefits: { damageReduction: 0, bossDamage: 0, staminaRecovery: 0, healingBonus: 0 } };
-    var root = new T.Group(); root.name = 'Hikâye görevleri'; api.root.add(root);
+    var root = new T.Group(); root.name = KabirI18n.t('Hikâye görevleri'); api.root.add(root);
     var materials = world.materials || {};
     var stone = materials.pale || materials.stone || materials.wall || materials.rock;
     var metal = materials.rust || materials.iron || stone;
@@ -142,7 +142,7 @@
         }
         var g = new T.BufferGeometry(); g.setAttribute('position', new T.BufferAttribute(positions, 3)); g.setAttribute('normal', new T.BufferAttribute(normals, 3));
         g.setAttribute('uv', new T.BufferAttribute(uvs, 2)); g.setAttribute('color', new T.BufferAttribute(colors, 3)); g.computeBoundingSphere(); geometry.push(g);
-        var mesh = new T.Mesh(g, entry.material); mesh.name = 'Görev nesnesi · ' + (entry.material.name || 'yüzey');
+        var mesh = new T.Mesh(g, entry.material); mesh.name = KabirI18n.t('Görev nesnesi · ') + (entry.material.name || KabirI18n.t('yüzey'));
         mesh.castShadow = false; mesh.receiveShadow = entry.material !== glow; mesh.matrixAutoUpdate = false; mesh.updateMatrix(); group.add(mesh);
       }
     }
@@ -194,10 +194,10 @@
       var pickup = s === 'tablet' || s === 'relic';
       if (pickup) {
         merge(pedestal, group);
-        var payload = new T.Group(); payload.name = 'Alınabilir hatıra'; payload.matrixAutoUpdate = false; payload.updateMatrix(); group.add(payload); merge(body, payload); node.payloadVisual = payload;
-      } else { merge(pedestal, group); var bodyGroup = new T.Group(); bodyGroup.name = 'Bağlı hatıra'; bodyGroup.matrixAutoUpdate = false; bodyGroup.updateMatrix(); group.add(bodyGroup); merge(body, bodyGroup); node.bodyVisual = bodyGroup; }
-      var active = new T.Group(); active.name = 'Görev mührü'; active.matrixAutoUpdate = false; active.updateMatrix(); group.add(active); merge(detail, active); node.activeVisual = active;
-      if (bindings.length) { var bound = new T.Group(); bound.name = 'Fiziksel bağ'; bound.matrixAutoUpdate = false; bound.updateMatrix(); group.add(bound); merge(bindings,bound);node.boundVisual=bound;node.bindingReleasedOnUse=s!=='winch'; }
+        var payload = new T.Group(); payload.name = KabirI18n.t('Alınabilir hatıra'); payload.matrixAutoUpdate = false; payload.updateMatrix(); group.add(payload); merge(body, payload); node.payloadVisual = payload;
+      } else { merge(pedestal, group); var bodyGroup = new T.Group(); bodyGroup.name = KabirI18n.t('Bağlı hatıra'); bodyGroup.matrixAutoUpdate = false; bodyGroup.updateMatrix(); group.add(bodyGroup); merge(body, bodyGroup); node.bodyVisual = bodyGroup; }
+      var active = new T.Group(); active.name = KabirI18n.t('Görev mührü'); active.matrixAutoUpdate = false; active.updateMatrix(); group.add(active); merge(detail, active); node.activeVisual = active;
+      if (bindings.length) { var bound = new T.Group(); bound.name = KabirI18n.t('Fiziksel bağ'); bound.matrixAutoUpdate = false; bound.updateMatrix(); group.add(bound); merge(bindings,bound);node.boundVisual=bound;node.bindingReleasedOnUse=s!=='winch'; }
       node.aftermath = Object.create(null);
       var questDefinition = definition.quests[node.quest];
       // Verdict variants are built once with the same scanned materials as the world. They never create a light or a particle fountain.
@@ -240,7 +240,7 @@
     }
     function place(step) {
       var room = world.rooms.find(function (r) { return String(r.id) === String(step.room); });
-      if (!room) throw new Error('Görev odası bulunamadı: ' + chapter + '/' + step.room);
+      if (!room) throw new Error(KabirI18n.t('Görev odası bulunamadı: ') + chapter + '/' + step.room);
       var desiredX = room.x + step.dx, desiredZ = room.z + step.dz, best = null, bestDistance = Infinity;
       // Leave room for the full prop + the hero on every side. This tests the actual collision/navigation functions,
       // so decorative blocks cannot conceal the use point. The deterministic search never changes world RNG.
@@ -254,7 +254,7 @@
         if (world.pathTo && !world.pathTo(world.spawn, { x: x, z: z }, .5).length) continue;
         best = { x: x, z: z }; bestDistance = d;
       }
-      if (!best) throw new Error('Görev nesnesine açık yol bulunamadı: ' + chapter + '/' + step.id);
+      if (!best) throw new Error(KabirI18n.t('Görev nesnesine açık yol bulunamadı: ') + chapter + '/' + step.id);
       return best;
     }
     definition.quests.forEach(function (q, qi) {
@@ -299,8 +299,8 @@
         entry.step = count; entry.complete = count === entry.steps; entry.target = target ? target.marker : null;
         entry.choice = choices[qi];
         var verdict = choices[qi] && q.verdict.options.find(function (option) { return option.id === choices[qi]; });
-        entry.outcome = verdict ? entry.complete && verdict.trial ? verdict.trial.story : verdict.story : ''; entry.consequence = verdict ? verdict.trial ? entry.complete ? 'Bu bölümün efendisine verilen hasar %10 artar.' : 'Tanıklık doğrulandığında bu bölümün efendisine verilen hasar %10 artar.' : verdict.effect : '';
-        entry.objective = entry.complete ? 'Tamamlandı' : target ? target.objective : q.description;
+        entry.outcome = verdict ? entry.complete && verdict.trial ? verdict.trial.story : verdict.story : ''; entry.consequence = verdict ? verdict.trial ? entry.complete ? KabirI18n.t('Bu bölümün efendisine verilen hasar %10 artar.') : KabirI18n.t('Tanıklık doğrulandığında bu bölümün efendisine verilen hasar %10 artar.') : verdict.effect : '';
+        entry.objective = entry.complete ? KabirI18n.t('Tamamlandı') : target ? target.objective : q.description;
         if (entry.complete) completed++;
       }
       var benefits = info.benefits; benefits.damageReduction = benefits.bossDamage = benefits.staminaRecovery = benefits.healingBonus = 0;
@@ -317,7 +317,7 @@
         if (chosen && info.entries[qi].complete) info.activeBenefits.push({ id: q.id, name: chosen.label || chosen.name || chosen.title, quest: q.name, effect: info.entries[qi].consequence, benefit: chosen.benefit, amount: chosen.amount });
       }
       info.completed = completed; info.ready = completed === 2;
-      info.objective = info.ready ? 'İki bağ çözüldü. Açılan kapıdan geç ve bölümün efendisini yen.' : info.entries[0].complete ? info.entries[1].objective : info.entries[0].objective;
+      info.objective = info.ready ? KabirI18n.t('İki bağ çözüldü. Açılan kapıdan geç ve bölümün efendisini yen.') : info.entries[0].complete ? info.entries[1].objective : info.entries[0].objective;
       info.revision++; nextScan = 0; scan();
     }
     function guarded(node) {
@@ -364,7 +364,7 @@
       if (!selected) { info.prompt = null; return; }
       prompt.id = selected.id; prompt.name = selected.name; prompt.quest = info.entries[selected.quest].name; prompt.x = selected.x; prompt.z = selected.z;
       prompt.available = selected.available && !guarded(selected);
-      prompt.text = selected.available ? guarded(selected) ? 'Önce bu salonun bekçilerini yen' : selected.verb : 'Önce ' + (info.entries[selected.quest].target ? info.entries[selected.quest].target.name : 'önceki bağı') + ' · ' + selected.name;
+      prompt.text = selected.available ? guarded(selected) ? KabirI18n.t('Önce bu salonun bekçilerini yen') : selected.verb : KabirI18n.t('Önce ') + (info.entries[selected.quest].target ? info.entries[selected.quest].target.name : KabirI18n.t('önceki bağı')) + ' · ' + selected.name;
       info.prompt = prompt;
     }
     function restore(saved, legacy) {
@@ -393,7 +393,7 @@
       }
       if (api.onChange) api.onChange();
       var completedEntry = info.entries[node.quest];
-      api.emit('quest', { id: completedEntry.id, name: completedEntry.name, text: verdict ? completedEntry.outcome + ' ' + completedEntry.consequence : node.trial ? node.story + ' Bu bölümün efendisine verilen hasar %10 artar.' : completedEntry.complete && q.completeStory ? q.completeStory : node.story,
+      api.emit('quest', { id: completedEntry.id, name: completedEntry.name, text: verdict ? completedEntry.outcome + ' ' + completedEntry.consequence : node.trial ? node.story + KabirI18n.t(' Bu bölümün efendisine verilen hasar %10 artar.') : completedEntry.complete && q.completeStory ? q.completeStory : node.story,
         complete: completedEntry.complete, completed: info.completed, total: 2, step: completedEntry.step, steps: completedEntry.steps, choice: verdict ? verdict.id : null });
       return true;
     }
@@ -413,7 +413,7 @@
       if (disposed || api.player.dead) return false;
       scan(); var node = nearNode; if (!node) return false;
       if (!node.available) { api.emit('toast', { text: info.entries[node.quest].objective }); return true; }
-      if (guarded(node)) { api.emit('toast', { text: 'Tanıklık hâlâ korunuyor. Önce bu salonun bekçilerini yen.' }); return true; }
+      if (guarded(node)) { api.emit('toast', { text: KabirI18n.t('Tanıklık hâlâ korunuyor. Önce bu salonun bekçilerini yen.') }); return true; }
       if (node.trial) return finish(node, null);
       var q = definition.quests[node.quest], max = (1 << q.steps.length) - 1;
       if ((states[node.quest] | node.bit) === max) {

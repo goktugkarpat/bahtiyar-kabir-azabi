@@ -305,7 +305,7 @@ void main(){ vec2 p = (vUv-.5)*2.*uMax; float r = length(p), a = r > 1e-6 ? atan
       t.burrow = !!(h.owner && h.owner.action && h.owner.action.burrow &&
         (h.shape === 'circle' || h.shape === 'ring') && (h.style === 'fall' || h.style === 'quake'));
       t.riteSpike = !!(h.owner && h.owner.action && h.owner.action.moveId === 'rite' &&
-        h.attack === 'Çapa Zinciri' && h.style === 'fall' && h.shape === 'circle' && h.radius === 1.7);
+        h.attack === KabirI18n.t('Çapa Zinciri') && h.style === 'fall' && h.shape === 'circle' && h.radius === 1.7);
       u.uOrigin.value.set(h.x, h.z); u.uFace.value = h.face || 0; u.uShape.value = shape; u.uStyle.value = style;
       if (shape === 0) u.uDim.value.set(h.radius, 0, 0, 0); else if (shape === 1) u.uDim.value.set(h.radius, h.arc, 0, 0);
       else if (shape === 2) u.uDim.value.set(h.width, h.length, 0, 0); else u.uDim.value.set(h.inner || 0, h.radius, h.arc || TAU, 0);

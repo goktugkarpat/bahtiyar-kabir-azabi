@@ -6,19 +6,19 @@
   function build(root, materials, baseRooms, encounters, colliders, chapter, lightSources) {
     var coast = chapter === 2;
     var rooms = coast ? [
-      {id:7,name:'Batık Gümrük Avlusu',x:-30,z:-59,w:24,d:22,parent:2,portal:-10,entryZ:-63},
-      {id:8,name:'Kara Ağacın Mezarlığı',x:-32,z:-112,w:24,d:24,parent:4,portal:-11},
-      {id:9,name:'Kül Balıkçılarının Evleri',x:-30,z:4,w:28,d:22,parent:0,portal:-10},
-      {id:10,name:'Köksüzlerin Çukuru',x:-33,z:-23,w:28,d:22,parent:1,portal:-10,entryZ:-27},
-      {id:11,name:'Çürümüş Tersane',x:-32,z:-81,w:28,d:20,parent:3,portal:-10},
-      {id:12,name:'Fenersiz Sığınak',x:-32,z:-140,w:28,d:24,parent:5,portal:-9}
+      {id:7,name:KabirI18n.t('Batık Gümrük Avlusu'),x:-30,z:-59,w:24,d:22,parent:2,portal:-10,entryZ:-63},
+      {id:8,name:KabirI18n.t('Kara Ağacın Mezarlığı'),x:-32,z:-112,w:24,d:24,parent:4,portal:-11},
+      {id:9,name:KabirI18n.t('Kül Balıkçılarının Evleri'),x:-30,z:4,w:28,d:22,parent:0,portal:-10},
+      {id:10,name:KabirI18n.t('Köksüzlerin Çukuru'),x:-33,z:-23,w:28,d:22,parent:1,portal:-10,entryZ:-27},
+      {id:11,name:KabirI18n.t('Çürümüş Tersane'),x:-32,z:-81,w:28,d:20,parent:3,portal:-10},
+      {id:12,name:KabirI18n.t('Fenersiz Sığınak'),x:-32,z:-140,w:28,d:24,parent:5,portal:-9}
     ] : [
-      {id:7,name:'Unutulanların Mahzeni',x:-28,z:-21,w:22,d:22,parent:1,portal:-11},
-      {id:8,name:'Sönmüş Kandiller',x:32,z:-74,w:26,d:24,parent:3,portal:11},
-      {id:9,name:'İsimsizlerin Mezarı',x:30,z:4,w:28,d:22,parent:0,portal:7},
-      {id:10,name:'Yitik Etler Reviri',x:-31,z:-47,w:28,d:24,parent:2,portal:-9},
-      {id:11,name:'Kefen Dokuma Odası',x:32,z:-101,w:28,d:24,parent:4,portal:8},
-      {id:12,name:'Kırık Yeminler',x:-30,z:-125,w:28,d:20,parent:5,portal:-7}
+      {id:7,name:KabirI18n.t('Unutulanların Mahzeni'),x:-28,z:-21,w:22,d:22,parent:1,portal:-11},
+      {id:8,name:KabirI18n.t('Sönmüş Kandiller'),x:32,z:-74,w:26,d:24,parent:3,portal:11},
+      {id:9,name:KabirI18n.t('İsimsizlerin Mezarı'),x:30,z:4,w:28,d:22,parent:0,portal:7},
+      {id:10,name:KabirI18n.t('Yitik Etler Reviri'),x:-31,z:-47,w:28,d:24,parent:2,portal:-9},
+      {id:11,name:KabirI18n.t('Kefen Dokuma Odası'),x:32,z:-101,w:28,d:24,parent:4,portal:8},
+      {id:12,name:KabirI18n.t('Kırık Yeminler'),x:-30,z:-125,w:28,d:20,parent:5,portal:-7}
     ];
     var floors = [], groups = [], batches = {}, geometry = {
       box:new T.BoxGeometry(1,1,1), column:new T.CylinderGeometry(.5,.58,1,12),
@@ -107,7 +107,7 @@
         if(lightSources)lightSources.push({x:x,y:2,z:z,color:color,intensity:2.1,distance:10,flicker:.4,phase:i*1.7+sign,score:0,kind:'candle',scatter:.35,glowRadius:.55,shadowNear:null,group:null,tintGroup:null,dim:color.clone(),live:1,liveColor:color.clone(),livePos:{x:x,y:2,z:z},spotW:0});
       });
       var types=coast?(i%2?['rootborn','crawler','urchin','lantern']:['drowned','urchin','crawler','lantern']):(i%2?['cultist','guard','stalker','carrier']:['prisoner','guard','carrier','stalker']);
-      encounters.push({id:(coast?'coast-side-':'temple-side-')+r.id,room:r.id,name:r.name,stage:coast?1.1+r.parent*.025:.56+r.parent*.085,clearText:'Bu alan sustu. Ana yola geri dön.',spawns:types.concat(types[(i+1)%4]).map(function(type,n){return {type:type,x:r.x+(n===4?0:n%2?-3:3),z:r.z+(n===4?0:n<2?-4:4),elite:n===4&&(i===1||i===4),name:n===4&&(i===1||i===4)?(coast?(i===1?'Köklerin Adsız Bekçisi':'Tuz İçindeki Yeminli'):(i===1?'Sönmüş Kandilin Bekçisi':'Kefen Dokuyucu')):undefined};})});
+      encounters.push({id:(coast?'coast-side-':'temple-side-')+r.id,room:r.id,name:r.name,stage:coast?1.1+r.parent*.025:.56+r.parent*.085,clearText:KabirI18n.t('Bu alan sustu. Ana yola geri dön.'),spawns:types.concat(types[(i+1)%4]).map(function(type,n){return {type:type,x:r.x+(n===4?0:n%2?-3:3),z:r.z+(n===4?0:n<2?-4:4),elite:n===4&&(i===1||i===4),name:n===4&&(i===1||i===4)?(coast?(i===1?KabirI18n.t('Köklerin Adsız Bekçisi'):KabirI18n.t('Tuz İçindeki Yeminli')):(i===1?KabirI18n.t('Sönmüş Kandilin Bekçisi'):'Kefen Dokuyucu')):undefined};})});
     });
     Object.keys(batches).forEach(function(key){var b=batches[key],m=new T.InstancedMesh(view(b.g),b.m,b.matrices.length);b.matrices.forEach(function(matrix,i){m.setMatrixAt(i,matrix);});m.instanceMatrix.needsUpdate=true;m.castShadow=b.m!==materials.floor&&b.m!==materials.earth;m.receiveShadow=true;m.computeBoundingSphere();m.matrixAutoUpdate=false;groups[b.id].add(m);});
     return {rooms:rooms,floors:floors,paths:paths,

@@ -18,9 +18,9 @@
     4: ['prisoner', 'emberbound', 'chainseer', 'slagcrawler', 'forgesentinel', 'ashwarden', 'furnaceheart']
   };
   const bossPhases = {
-    bell: ['', 'BOĞULMUŞ ÇANLIK', 'DENİZİN YEMİNİ', 'MEZAR KÖKLERİ', 'SON ÇAN'],
-    hollowking: ['', 'SESSİZ TAHT', 'TAŞ TAHT ÇÖKÜYOR', 'OYUKLAR AÇILDI'],
-    furnaceheart: ['', 'KIZIL OCAK', 'OCAK BASINCI YÜKSELİYOR', 'SON DÖKÜM']
+    bell: ['', KabirI18n.t('BOĞULMUŞ ÇANLIK'), KabirI18n.t('DENİZİN YEMİNİ'), KabirI18n.t('MEZAR KÖKLERİ'), KabirI18n.t('SON ÇAN')],
+    hollowking: ['', KabirI18n.t('SESSİZ TAHT'), KabirI18n.t('TAŞ TAHT ÇÖKÜYOR'), KabirI18n.t('OYUKLAR AÇILDI')],
+    furnaceheart: ['', 'KIZIL OCAK', KabirI18n.t('OCAK BASINCI YÜKSELİYOR'), KabirI18n.t('SON DÖKÜM')]
   };
   // Keep the small portrait images ready before the loading cover is removed.
   // Failed artwork does not prevent the player or health bar from appearing.
@@ -60,7 +60,7 @@
       el.style.cssText = 'position:fixed;left:50%;top:calc(var(--top, 0px) + 8px);width:calc(500px * var(--k, 1));transform:translateX(-50%);' +
         'display:flex;flex-wrap:wrap;align-items:center;gap:calc(7px * var(--k, 1));opacity:.01;pointer-events:none;z-index:3;contain:layout';
       const bar = (type, boss) => '<div class="target-portrait"><img alt="" width="256" height="256" src="' + portraits[type] + '"><i class="portrait-frame"></i></div>' +
-        '<div class="target-details' + (boss ? ' boss-target phase2' : '') + '" style="flex:1 1 60%"><div class="target-title"><strong class="target-name">Zincir Celladı 0123456789</strong><small class="target-phase">ZİNCİRLER KIRILDI</small></div>' +
+        '<div class="target-details' + (boss ? ' boss-target phase2' : '') + KabirI18n.t('" style="flex:1 1 60%"><div class="target-title"><strong class="target-name">Zincir Celladı 0123456789</strong><small class="target-phase">ZİNCİRLER KIRILDI</small></div>') +
         '<div class="target-health"><i class="target-fill" style="transform:scaleX(.6)"></i><b class="target-count">1234 / 5678</b><i class="target-notch" style="display:block"></i></div></div>';
       let html = '';
       for (const type of preparedImages.keys()) if (!failedImages.has(type)) html += bar(type, type === 'boss' || type === 'hollowking' || type === 'furnaceheart');
@@ -102,7 +102,7 @@
       if (previousId !== enemy.id) { root.setAttribute('data-enemy-id', enemy.id); previousId = enemy.id; }
       const type = Object.prototype.hasOwnProperty.call(portraits, enemy.type) ? enemy.type : 'prisoner';
       if (previousType !== type || previousArt && failedImages.has(previousArt)) { previousType = type; setPortrait(type); }
-      const label = enemy.name || 'Düşman';
+      const label = enemy.name || KabirI18n.t('Düşman');
       if (label !== previousName) { name.textContent = label; previousName = label; }
       const max = Math.max(1, Math.round(enemy.maxHp)), hp = Math.min(max, Math.ceil(Math.max(0, enemy.hp)));
       const text = hp + ' / ' + max;
@@ -115,7 +115,7 @@
       if (boss !== wasBoss) { root.classList.toggle('boss-target', boss); wasBoss = boss; }
       if (phase2 !== wasPhase2) { root.classList.toggle('phase2', phase2); wasPhase2 = phase2; }
       const phases = bossPhases[enemy.type];
-      const phaseText = phases ? phases[enemy.phase] || '' : boss ? phase2 ? 'ZİNCİRLER KIRILDI' : 'KURBAN SALONU' : '';
+      const phaseText = phases ? phases[enemy.phase] || '' : boss ? phase2 ? KabirI18n.t('ZİNCİRLER KIRILDI') : 'KURBAN SALONU' : '';
       if (phaseText !== previousPhase) { phase.textContent = phaseText; previousPhase = phaseText; }
     }
     return { update, clear };

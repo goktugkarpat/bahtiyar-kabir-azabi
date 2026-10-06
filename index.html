@@ -1,8 +1,9 @@
 <!doctype html>
 <html lang="tr">
 <head>
-<meta name="application-release" content="overnight-224">
+<meta name="application-release" content="overnight-225">
 <meta charset="utf-8">
+<script src="src/i18n.js?v=225"></script>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0c0a0b">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -21,6 +22,7 @@
 <link rel="stylesheet" href="src/reference-ui.css?v=215">
 <link rel="stylesheet" href="src/hybrid-b-ui.css?v=222">
 <link rel="stylesheet" href="src/atlas.css?v=215">
+<link rel="stylesheet" href="src/i18n.css?v=225">
 </head>
 <body>
 <svg class="icon-library" aria-hidden="true"><defs>
@@ -53,7 +55,7 @@
 </div>
 <script>
 /* Loading bar: each big script below reports when it has been parsed. */
-var KG_LOAD_LAST=0;window.KG_LOAD=function(p,text){p=Math.max(KG_LOAD_LAST,p);KG_LOAD_LAST=p;var f=document.getElementById('load-fill'),t=document.getElementById('load-text');if(f)f.style.transform='scaleX('+Math.max(.03,Math.min(1,p))+')';if(t&&text)t.textContent=text;};
+var KG_LOAD_LAST=0;window.KG_LOAD=function(p,text){p=Math.max(KG_LOAD_LAST,p);KG_LOAD_LAST=p;var f=document.getElementById('load-fill'),t=document.getElementById('load-text');if(f)f.style.transform='scaleX('+Math.max(.03,Math.min(1,p))+')';if(t&&text)t.textContent=KabirI18n.t(text);};
 KG_LOAD(.04);
 </script>
 
@@ -64,6 +66,7 @@ KG_LOAD(.04);
   <div class="title-copy">
     <h1 class="logo-wrap wordmark">KABİR AZABI</h1>
     <i class="title-divider" aria-hidden="true"></i>
+    <div class="language-choice" data-language-native role="group" aria-label="Language / Dil"><span>Türkçe / English</span><button type="button" data-language="tr" lang="tr">Türkçe</button><button type="button" data-language="en" lang="en">English</button></div>
     <nav class="title-actions" aria-label="Ana menü">
       <button id="play" class="btn primary big"><svg class="icon" aria-hidden="true"><use href="#i-play"/></svg><span>Yolculuğa başla</span></button>
       <button id="new" class="btn hidden"><span>Yeni yolculuk</span></button>
@@ -238,16 +241,16 @@ KG_LOAD(.04);
 <div id="warming" class="hidden" role="status" aria-live="polite"><span>Grafik hazırlanıyor…</span><div class="load-bar"><i id="warm-fill"></i></div><small>Yeni ayar için gölgeler ve ışıklar derleniyor.</small></div>
 <div id="fps" class="hidden"><div id="fps-values"></div></div><div id="fatal" class="hidden"><h2>Tapınağın kapısı açılmadı.</h2><p></p><button class="btn primary" onclick="location.reload()"><span>Yeniden dene</span></button></div>
 <script src="vendor/three.js?v=215"></script><script src="vendor/gltf-loader.js?v=215"></script><script>window.BABA={};KG_LOAD(.06,'Taşlar yerine oturuyor…');</script>
-<script src="src/materials.js?v=215"></script><script>KG_LOAD(.09);</script>
-<script src="assets/coast/surfaces.js?v=215"></script><script src="assets/ruins/surfaces.js?v=215"></script><script src="src/coast-materials.js?v=215"></script><script src="src/chapter-expansion.js?v=219"></script><script src="src/world.js?v=219"></script><script src="src/coast-world.js?v=219"></script><script src="src/ruins-kit.js?v=215"></script><script src="src/ruins-rooms.js?v=215"></script><script src="src/forge-rooms.js?v=215"></script><script src="src/ruins-world.js?v=215"></script><script src="src/forge-world.js?v=215"></script><script src="src/motion.js?v=215"></script><script src="src/models.js?v=215"></script><script>KG_LOAD(.12,'Zincirler çözülüyor…');</script>
+<script src="src/materials.js?v=225"></script><script>KG_LOAD(.09);</script>
+<script src="assets/coast/surfaces.js?v=215"></script><script src="assets/ruins/surfaces.js?v=215"></script><script src="src/coast-materials.js?v=225"></script><script src="src/chapter-expansion.js?v=225"></script><script src="src/world.js?v=225"></script><script src="src/coast-world.js?v=225"></script><script src="src/ruins-kit.js?v=215"></script><script src="src/ruins-rooms.js?v=215"></script><script src="src/forge-rooms.js?v=215"></script><script src="src/ruins-world.js?v=225"></script><script src="src/forge-world.js?v=215"></script><script src="src/motion.js?v=215"></script><script src="src/models.js?v=215"></script><script>KG_LOAD(.12,'Zincirler çözülüyor…');</script>
 <script src="assets/characters/characters.js?v=215"></script><script>KG_LOAD(.14,'Ölüler uyanıyor…');</script>
 <script src="assets/characters/authored-clips.js?v=215"></script>
-<script src="src/authored-motion.js?v=224"></script><script src="assets/equipment/material-scans.js?v=222"></script><script src="src/equipment-art.js?v=222"></script><script src="src/authored-models.js?v=222&amp;surface=1"></script><script src="src/coast-models.js?v=215"></script><script src="src/ruins-models.js?v=215"></script><script src="src/forge-models.js?v=215"></script><script src="src/limbs.js?v=215"></script><script src="src/globes.js?v=215"></script><script src="src/coast-combat.js?v=224"></script><script src="src/ruins-combat.js?v=224"></script><script src="src/forge-combat.js?v=224"></script><script src="src/progression.js?v=224"></script><script src="src/boss-mech.js?v=224"></script>
-<script src="src/ground-loot.js?v=215"></script><script src="src/quests.js?v=219"></script><script src="src/gate.js?v=215"></script><script src="src/combat.js?v=224&amp;energy=12"></script><script>KG_LOAD(.16);</script>
-<script src="src/narration.js?v=215"></script><script src="src/music.js?v=215"></script><script src="src/audio.js?v=215"></script><script src="src/telegraphs.js?v=215"></script><script src="src/effects.js?v=215"></script><script src="src/coast-effects.js?v=215"></script><script src="src/ruins-effects.js?v=215"></script><script src="src/forge-effects.js?v=215"></script><script src="src/boss2.js?v=224"></script><script src="src/skill-art.js?v=215"></script><script src="src/hud.js?v=215"></script><script src="src/buffs.js?v=219"></script><script src="src/target-hud.js?v=215"></script><script src="src/lighting.js?v=215"></script><script src="src/display.js?v=219"></script><script src="src/pacing.js?v=215"></script><script src="src/performance.js?v=215"></script><script src="src/smaa.js?v=215"></script><script src="src/post.js?v=215&amp;surface=1"></script><script src="src/levelup.js?v=215"></script><script src="src/charge.js?v=223"></script><script src="src/skill-fx.js?v=224"></script>
+<script src="src/authored-motion.js?v=225"></script><script src="assets/equipment/material-scans.js?v=222"></script><script src="src/equipment-art.js?v=225"></script><script src="src/authored-models.js?v=225&amp;surface=1"></script><script src="src/coast-models.js?v=215"></script><script src="src/ruins-models.js?v=215"></script><script src="src/forge-models.js?v=225"></script><script src="src/limbs.js?v=215"></script><script src="src/globes.js?v=215"></script><script src="src/coast-combat.js?v=225"></script><script src="src/ruins-combat.js?v=225"></script><script src="src/forge-combat.js?v=225"></script><script src="src/progression.js?v=225"></script><script src="src/boss-mech.js?v=225"></script>
+<script src="src/ground-loot.js?v=225"></script><script src="src/quests.js?v=225"></script><script src="src/gate.js?v=225"></script><script src="src/combat.js?v=225&amp;energy=12"></script><script>KG_LOAD(.16);</script>
+<script src="src/narration.js?v=225"></script><script src="src/narration-en.js?v=225"></script><script src="src/music.js?v=225"></script><script src="src/audio.js?v=225"></script><script src="src/telegraphs.js?v=225"></script><script src="src/effects.js?v=215"></script><script src="src/coast-effects.js?v=225"></script><script src="src/ruins-effects.js?v=215"></script><script src="src/forge-effects.js?v=215"></script><script src="src/boss2.js?v=225"></script><script src="src/skill-art.js?v=225"></script><script src="src/hud.js?v=225"></script><script src="src/buffs.js?v=225"></script><script src="src/target-hud.js?v=225"></script><script src="src/lighting.js?v=225"></script><script src="src/display.js?v=219"></script><script src="src/pacing.js?v=215"></script><script src="src/performance.js?v=215"></script><script src="src/smaa.js?v=215"></script><script src="src/post.js?v=215&amp;surface=1"></script><script src="src/levelup.js?v=225"></script><script src="src/charge.js?v=223"></script><script src="src/skill-fx.js?v=224"></script>
 <script src="src/character-preview.js?v=215"></script>
 <script src="assets/equipment/thumbnails.js?v=222"></script>
-<script src="src/character-ui.js?v=223&amp;learn=1"></script>
-<script src="src/warmup.js?v=215"></script><script src="src/controller.js?v=215"></script>
-<script src="src/quest-ui.js?v=215"></script><script src="src/atlas.js?v=215"></script><script src="src/app.js?v=219"></script><script>KG_LOAD(.18,'Karanlık yol hazırlanıyor…');</script>
+<script src="src/character-ui.js?v=225&amp;learn=1"></script>
+<script src="src/warmup.js?v=225"></script><script src="src/controller.js?v=225"></script>
+<script src="src/quest-ui.js?v=225"></script><script src="src/atlas.js?v=225"></script><script src="src/app.js?v=225"></script><script>KG_LOAD(.18,'Karanlık yol hazırlanıyor…');</script>
 </body></html>

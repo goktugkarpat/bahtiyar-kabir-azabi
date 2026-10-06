@@ -24,7 +24,7 @@
         if (!id) continue;
         if (!Number.isFinite(effect.remaining) || effect.remaining <= 0) { next.set(id, null); continue; }
         next.set(id, {
-          name: typeof effect.name === 'string' && effect.name.trim() ? effect.name.trim() : 'Süreli etki',
+          name: typeof effect.name === 'string' && effect.name.trim() ? effect.name.trim() : KabirI18n.t('Süreli etki'),
           icon: ICONS.has(effect.icon) ? effect.icon : '', remaining: effect.remaining,
           duration: Number.isFinite(effect.duration) && effect.duration > 0 ? Math.ceil(effect.duration) : 0
         });
@@ -38,7 +38,7 @@
         if (slot.iconName !== effect.icon) { slot.iconName = effect.icon; slot.icon.className = 'skill' + (effect.icon ? ' ' + effect.icon : ''); }
         if (slot.shown !== shown) slot.seconds.textContent = String(shown);
         if (slot.name !== effect.name || slot.shown !== shown || slot.duration !== effect.duration) {
-          const label = effect.name + ' · ' + shown + ' sn kaldı' + (effect.duration ? ' (' + effect.duration + ' sn etki)' : '');
+          const label = effect.name + ' · ' + shown + KabirI18n.t(' sn kaldı') + (effect.duration ? ' (' + effect.duration + KabirI18n.t(' sn etki)') : '');
           slot.node.setAttribute('title', label); slot.node.setAttribute('aria-label', label);
           slot.name = effect.name; slot.shown = shown; slot.duration = effect.duration;
         }
@@ -61,7 +61,7 @@
         const node = document.createElement('button'), icon = document.createElement('img'), tip = document.createElement('span');
         node.type = 'button'; node.className = 'chapter-buff'; node.dataset.benefit = effect.benefit;
         icon.src = 'assets/ui/abilities/' + (art[effect.benefit] || 'temper') + '.png'; icon.alt = '';
-        const label = (effect.name || effect.quest) + '\n' + effect.effect + '\nGörev: ' + effect.quest + '\nBu bölüm boyunca geçerli.';
+        const label = (effect.name || effect.quest) + '\n' + effect.effect + KabirI18n.t('\nGörev: ') + effect.quest + KabirI18n.t('\nBu bölüm boyunca geçerli.');
         node.setAttribute('aria-label', label); tip.className = 'chapter-buff-tip'; tip.textContent = label;
         node.append(icon, tip); nodes.push(node);
       }

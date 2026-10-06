@@ -12,7 +12,7 @@
     if (!q || !B.Quests) return { update() {}, event() {}, clear() {}, open() {}, close() {}, warm() {} };
     const definition = B.Quests.chapters[q.chapter];
     journal.tabIndex = 0;
-    journal.setAttribute('role', 'region'); journal.setAttribute('aria-label', 'Görev adımları');
+    journal.setAttribute('role', 'region'); journal.setAttribute('aria-label', KabirI18n.t('Görev adımları'));
     $('journal-title').textContent = q.title;
     $('journal-intro').textContent = q.introduction;
     for (let n = 0; n < 2; n++) {
@@ -57,29 +57,29 @@
       for (let i = 0; i < 2; i++) {
         const entry = q.entries[i], row = rows[i], card = cards[i];
         row.row.classList.toggle('complete', entry.complete); row.count.textContent = entry.complete ? '✓' : entry.step + '/' + entry.steps;
-                card.card.classList.toggle('complete', entry.complete); card.state.textContent = entry.complete ? 'BAĞ ÇÖZÜLDÜ' : entry.step + ' / ' + entry.steps + ' ADIM';
+                card.card.classList.toggle('complete', entry.complete); card.state.textContent = entry.complete ? KabirI18n.t('BAĞ ÇÖZÜLDÜ') : entry.step + ' / ' + entry.steps + ' ADIM';
         const pending = q.pendingChoice && q.pendingChoice.questId === entry.id;
         card.card.classList.toggle('awaiting-choice', !!pending); card.card.classList.toggle('has-verdict', !!entry.choice);
         card.verdict.hidden = !pending && !entry.complete && !entry.choice;
         card.options.hidden = !pending;
         card.question.hidden = !pending;
         card.outcome.hidden = !entry.complete && !entry.choice;
-        card.outcome.textContent = entry.outcome ? entry.outcome + ' ' + entry.consequence : 'Bu bağ önceki yolculuğunda çözüldü.';
+        card.outcome.textContent = entry.outcome ? entry.outcome + ' ' + entry.consequence : KabirI18n.t('Bu bağ önceki yolculuğunda çözüldü.');
         for (const button of card.buttons) button.disabled = !pending;
-        card.state.textContent = pending ? 'SON KARAR SENİN' : card.state.textContent;
+        card.state.textContent = pending ? KabirI18n.t('SON KARAR SENİN') : card.state.textContent;
       }
       for (const marker of q.markers) {
         const m = marks.get(marker.id); if (!m) continue;
         const entry = q.entries[marker.quest], selected = definition.quests[marker.quest].verdict.options.find(choice => choice.id === entry.choice);
         m.li.hidden = !!m.source.trial && !(selected && selected.trial);
         m.li.classList.toggle('done', marker.complete); m.li.classList.toggle('current', marker.active);
-        m.line.textContent = marker.complete ? 'Tamamlandı' : m.source.objective;
+        m.line.textContent = marker.complete ? KabirI18n.t('Tamamlandı') : m.source.objective;
       }
       $('journal-gate').classList.toggle('ready', q.ready);
-      $('journal-gate-text').textContent = q.pendingChoice ? 'Bir karar ver; iki yolu birden seçemezsin.' : q.ready ? 'İki bağ da çözüldü. Efendinin kapısı açık.' : 'Bağları çözerek efendinin kapısını aç.';
+      $('journal-gate-text').textContent = q.pendingChoice ? KabirI18n.t('Bir karar ver; iki yolu birden seçemezsin.') : q.ready ? KabirI18n.t('İki bağ da çözüldü. Efendinin kapısı açık.') : KabirI18n.t('Bağları çözerek efendinin kapısını aç.');
     }
     function event(data) {
-      $('quest-notice-state').textContent = data.complete ? 'GÖREV TAMAMLANDI' : data.choice ? 'KARARIN KAYDEDİLDİ' : 'GÖREV İLERLEDİ';
+      $('quest-notice-state').textContent = data.complete ? KabirI18n.t('GÖREV TAMAMLANDI') : data.choice ? KabirI18n.t('KARARIN KAYDEDİLDİ') : KabirI18n.t('GÖREV İLERLEDİ');
       $('quest-notice-title').textContent = data.name;
       $('quest-notice-text').textContent = data.text;
       notice.classList.toggle('complete', !!data.complete); notice.classList.add('show');
@@ -128,7 +128,7 @@
       // Called on the loading screen's existing HUD clone, never on the live notification.
       const el = root && root.querySelector('#quest-notice'); if (!el) return;
       el.classList.add('show', 'complete');
-      el.querySelector('small').textContent = 'GÖREV TAMAMLANDI';
+      el.querySelector('small').textContent = KabirI18n.t('GÖREV TAMAMLANDI');
       el.querySelector('strong').textContent = definition.quests[0].name;
       el.querySelector('p').textContent = definition.quests[0].steps[0].story;
     }

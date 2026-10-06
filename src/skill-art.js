@@ -15,7 +15,7 @@
   let preparation;
   function prepare() {
     if (!preparation) preparation=Promise.all(ids.map(id=>{
-      const img=images[id], error=()=>new Error('Yetenek simgesi yüklenemedi: '+id);
+      const img=images[id], error=()=>new Error(KabirI18n.t('Yetenek simgesi yüklenemedi: ')+id);
       const verify=()=>{if(!img.complete||!img.naturalWidth)throw error();};
       if(img.decode)return img.decode().then(verify);
       if(img.complete)return img.naturalWidth?Promise.resolve():Promise.reject(error());

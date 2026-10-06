@@ -71,7 +71,7 @@
         const vertex = sh(gl.VERTEX_SHADER, VERT), fragment = sh(gl.FRAGMENT_SHADER, FRAG);
         gl.attachShader(pr, vertex); gl.attachShader(pr, fragment); gl.linkProgram(pr);
         gl.deleteShader(vertex); gl.deleteShader(fragment);
-      } catch (e) { console.warn('[Kabir Azabı] orb shader', e); gl = null; }
+      } catch (e) { console.warn(KabirI18n.t('[Kabir Azabı] orb shader'), e); gl = null; }
     }
     compile();
     if (canvas.addEventListener) {
@@ -82,7 +82,7 @@
       if (lost) return false;
       if (linked || !gl) return linked;
       if (!force && ext && !gl.getProgramParameter(pr, ext.COMPLETION_STATUS_KHR)) return false;
-      if (!gl.getProgramParameter(pr, gl.LINK_STATUS)) { console.warn('[Kabir Azabı] orb shader', gl.getProgramInfoLog(pr)); gl = null; return false; }
+      if (!gl.getProgramParameter(pr, gl.LINK_STATUS)) { console.warn(KabirI18n.t('[Kabir Azabı] orb shader'), gl.getProgramInfoLog(pr)); gl = null; return false; }
       gl.useProgram(pr);
       const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
       const loc = gl.getAttribLocation(pr, 'p'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
@@ -261,7 +261,7 @@
   }
   const secs = t => t > 9.5 ? String(Math.ceil(t)) : t > 0 ? (Math.ceil(t * 10) / 10).toFixed(1) : '';
   let feedbackEl = null, feedbackSerial = 0, feedbackTime = 0, feedbackText = '';
-  const WAIT_TEXT = { attack: 'vuruş bitince', dodge: 'kaçınma bitince', stagger: 'toparlanınca', rage: 'nara bitince', cooldown: 'yeniden hazır olunca' };
+  const WAIT_TEXT = { attack: KabirI18n.t('vuruş bitince'), dodge: KabirI18n.t('kaçınma bitince'), stagger: KabirI18n.t('toparlanınca'), rage: 'nara bitince', cooldown: KabirI18n.t('yeniden hazır olunca') };
   function skillFeedback(p, dt) {
     if (!feedbackEl) {
       const hud = document.getElementById('hud'); if (!hud) return;
@@ -272,7 +272,7 @@
     if (!p.lack) { feedbackSerial = 0; feedbackTime = 0; feedbackText = ''; }
     else if (p.lack.serial !== feedbackSerial) { feedbackSerial = p.lack.serial; feedbackText = p.lack.text || ''; feedbackTime = 2.4; }
     const queued = p.pendingAction;
-    const text = queued ? (TIPS[queued.key]?.[0] || 'Yetenek') + ' sırada · ' + (WAIT_TEXT[queued.reason] || 'hareket bitince') : feedbackTime > 0 ? feedbackText : '';
+    const text = queued ? (TIPS[queued.key]?.[0] || KabirI18n.t('Yetenek')) + KabirI18n.t(' sırada · ') + (WAIT_TEXT[queued.reason] || 'hareket bitince') : feedbackTime > 0 ? feedbackText : '';
     if (feedbackEl.textContent !== text) feedbackEl.textContent = text;
     feedbackEl.classList.toggle('hidden', !text);
     feedbackEl.classList.toggle('waiting', !!queued);
@@ -285,10 +285,10 @@
     const id = row.id || null;
     if (id === sl.skillId) return;
     sl.skillId = id; sl.prevCd = 0;
-    const name = row.skill ? row.skill.name : 'Boş yetenek yuvası';
-    const description = row.skill ? row.skill.description : 'Seviye atlayınca yetenek puanı kazanırsın. Yetenek ağacından bir aktif yetenek öğren ve bu yuvaya yerleştir.';
-    const foot = row.skill ? Math.round(row.cost) + ' dayanıklılık · ' + row.maxCooldown + ' sn bekleme' : 'Yetenek ekranını aç: T';
-    const facts = row.skill && B.Progression && B.Progression.skillFacts ? B.Progression.skillFacts(row.skill).filter(f => f[0] !== 'Maliyet' && f[0] !== 'Bekleme') : null;
+    const name = row.skill ? row.skill.name : KabirI18n.t('Boş yetenek yuvası');
+    const description = row.skill ? row.skill.description : KabirI18n.t('Seviye atlayınca yetenek puanı kazanırsın. Yetenek ağacından bir aktif yetenek öğren ve bu yuvaya yerleştir.');
+    const foot = row.skill ? Math.round(row.cost) + KabirI18n.t(' dayanıklılık · ') + row.maxCooldown + KabirI18n.t(' sn bekleme') : KabirI18n.t('Yetenek ekranını aç: T');
+    const facts = row.skill && B.Progression && B.Progression.skillFacts ? B.Progression.skillFacts(row.skill).filter(f => f[0] !== KabirI18n.t('Maliyet') && f[0] !== KabirI18n.t('Bekleme')) : null;
     TIPS[row.key] = [name, description, foot, row.skill ? { tier: row.tier, line: row.line, delta: row.skill.delta, facts } : null];
     const badge = sl.el.querySelector('.tier-badge');
     if (badge) { badge.hidden = !(row.tier > 1); badge.textContent = ROMAN[row.tier] || ''; badge.dataset.tier = row.tier || ''; badge.dataset.line = row.line || ''; }
@@ -344,12 +344,12 @@
 
   /* ───────────── Skill cards: hover / keyboard focus / long press on a slot shows name, key, what it does, cost and cooldown ───────────── */
   const TIPS = {
-    light: ['Hafif saldırı', 'Atanmış fare düğmesiyle düşmanı seç: yaklaşır ve üç vuruşluk kombo yapar; basılı tutunca sürdürür. Klavye tuşu önündeki yakın düşmana vurur. Kalkanlı düşmanın gardını kıramaz. Yerinde vur tuşuyla birlikte fareden saldırırsan yürümez.', 'Dayanıklılık harcamaz'],
-    heavy: ['Yetenek yuvası · sağ tık', 'Yavaş ama çok sert vurur; kalkanlı düşmanın gardını kırar, hafif düşmanları sendeletir. Atanmış fare düğmesiyle düşmanı seç; boş yere tıklamak saldırmaz. Klavye tuşu önündeki yakın düşmana vurur. Yerinde vur tuşuyla birlikte fareden saldırırsan yürümez.', Math.round(SLOT_COST.heavy) + ' dayanıklılık'],
-    dodge: ['Kaçınma', 'Yürüdüğün yöne (yürümüyorsan fareye doğru) yuvarlanır. Yuvarlanmanın başında darbelerden korunursun; sondaki kalkışta koruma biter. Kızıl ve altın kenarlı darbelerden böyle kaç.', Math.round(SLOT_COST.dodge) + ' dayanıklılık'],
-    heal: ['Can iksiri', 'Anında can yeniler. Yemin taşında yeniden dolar.', 'sınırlı sayıda'],
-    special: ['Zincir Girdabı', 'Zincirli pala ile etrafında dönersin ve yakındaki herkese 4 kez vurursun. Hafif düşmanlar içeri çekilir, son vuruş onları savurur. Dönerken yürüyebilirsin.', Math.round(SLOT_COST.special) + ' dayanıklılık · ' + RESOURCE.cooldowns.special + ' sn bekleme'],
-    rage: ['Kan Öfkesi', 'Dayanıklılık harcayıp bağırırsın: yakındaki düşmanlar sendeler. ' + RESOURCE.durations.rage + ' sn boyunca %48 daha sert vurur, %25 az hasar alır ve vurduğun hasarın bir kısmı can olarak geri döner.', Math.round(SLOT_COST.rage) + ' dayanıklılık · ' + RESOURCE.cooldowns.rage + ' sn bekleme']
+    light: [KabirI18n.t('Hafif saldırı'), KabirI18n.t('Atanmış fare düğmesiyle düşmanı seç: yaklaşır ve üç vuruşluk kombo yapar; basılı tutunca sürdürür. Klavye tuşu önündeki yakın düşmana vurur. Kalkanlı düşmanın gardını kıramaz. Yerinde vur tuşuyla birlikte fareden saldırırsan yürümez.'), KabirI18n.t('Dayanıklılık harcamaz')],
+    heavy: [KabirI18n.t('Yetenek yuvası · sağ tık'), KabirI18n.t('Yavaş ama çok sert vurur; kalkanlı düşmanın gardını kırar, hafif düşmanları sendeletir. Atanmış fare düğmesiyle düşmanı seç; boş yere tıklamak saldırmaz. Klavye tuşu önündeki yakın düşmana vurur. Yerinde vur tuşuyla birlikte fareden saldırırsan yürümez.'), Math.round(SLOT_COST.heavy) + KabirI18n.t(' dayanıklılık')],
+    dodge: [KabirI18n.t('Kaçınma'), KabirI18n.t('Yürüdüğün yöne (yürümüyorsan fareye doğru) yuvarlanır. Yuvarlanmanın başında darbelerden korunursun; sondaki kalkışta koruma biter. Kızıl ve altın kenarlı darbelerden böyle kaç.'), Math.round(SLOT_COST.dodge) + KabirI18n.t(' dayanıklılık')],
+    heal: [KabirI18n.t('Can iksiri'), KabirI18n.t('Anında can yeniler. Yemin taşında yeniden dolar.'), KabirI18n.t('sınırlı sayıda')],
+    special: [KabirI18n.t('Zincir Girdabı'), KabirI18n.t('Zincirli pala ile etrafında dönersin ve yakındaki herkese 4 kez vurursun. Hafif düşmanlar içeri çekilir, son vuruş onları savurur. Dönerken yürüyebilirsin.'), Math.round(SLOT_COST.special) + KabirI18n.t(' dayanıklılık · ') + RESOURCE.cooldowns.special + KabirI18n.t(' sn bekleme')],
+    rage: [KabirI18n.t('Kan Öfkesi'), KabirI18n.t('Dayanıklılık harcayıp bağırırsın: yakındaki düşmanlar sendeler. ') + RESOURCE.durations.rage + KabirI18n.t(' sn boyunca %48 daha sert vurur, %25 az hasar alır ve vurduğun hasarın bir kısmı can olarak geri döner.'), Math.round(SLOT_COST.rage) + KabirI18n.t(' dayanıklılık · ') + RESOURCE.cooldowns.rage + KabirI18n.t(' sn bekleme')]
   };
   // Tier badge on a slot (II / III), and the tier / numbers block of the skill card. Plain colours only (no gradients or filters: nothing new to warm up).
   (function () {
@@ -378,7 +378,7 @@
       const name = document.createElement('b'); name.textContent = t[0]; head.appendChild(name);
       if (cap) { const k = document.createElement('kbd'); k.textContent = cap; head.appendChild(k); }
       const meta = t[3];
-      if (meta && meta.tier) { const tr = document.createElement('span'); tr.className = 'tip-tier'; tr.dataset.tier = meta.tier; tr.textContent = ROMAN[meta.tier] + '. aşama'; name.after(tr); }
+      if (meta && meta.tier) { const tr = document.createElement('span'); tr.className = 'tip-tier'; tr.dataset.tier = meta.tier; tr.textContent = ROMAN[meta.tier] + KabirI18n.t('. aşama'); name.after(tr); }
       const body = document.createElement('p'); body.textContent = t[1];
       const foot = document.createElement('small'); foot.textContent = t[2];
       tip.append(head, body);

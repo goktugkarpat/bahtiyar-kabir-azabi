@@ -221,7 +221,7 @@
       if (!info.open) {
         hintCd -= dt;
         if (hintCd <= 0 && p.z > z && p.z - z < HINT_RANGE && Math.abs(p.x - cx) < hw + 2.5) {
-          hintCd = HINT_EVERY; api.emit('toast', { text: 'Kapı mühürlü · ' + info.completed + ' / 2 görev tamamlandı. ' + (api.quests ? api.quests.objective : '') });
+          hintCd = HINT_EVERY; api.emit('toast', { text: KabirI18n.t('Kapı mühürlü · ') + info.completed + KabirI18n.t(' / 2 görev tamamlandı. ') + (api.quests ? api.quests.objective : '') });
         }
       }
     };

@@ -17,48 +17,48 @@
   // line: 'cleave' heavy strike | 'roar' war cry | 'whirl' chain whirlwind | 'charge' dash. params feed combat.js, so numbers in
   // the UI and in the fight are one source. cost is stamina out of 100, cooldown in seconds. `new` lists the highlighted changes.
   const LINES = Object.freeze([
-    { id: 'cleave', name: 'KÜLÜN ÇELİĞİ', short: 'Sert vuruş', color: '#d9884b' },
-    { id: 'roar', name: 'KANIN YEMİNİ', short: 'Nida', color: '#c8473f' },
-    { id: 'whirl', name: 'MEZARIN ZİNCİRİ', short: 'Kasırga', color: '#7f9fbd' },
-    { id: 'charge', name: 'KARA ADIM', short: 'Hücum', color: '#c9a45a' }
+    { id: 'cleave', name: KabirI18n.t('KÜLÜN ÇELİĞİ'), short: KabirI18n.t('Sert vuruş'), color: '#d9884b' },
+    { id: 'roar', name: KabirI18n.t('KANIN YEMİNİ'), short: KabirI18n.t('Nida'), color: '#c8473f' },
+    { id: 'whirl', name: KabirI18n.t('MEZARIN ZİNCİRİ'), short: KabirI18n.t('Kasırga'), color: '#7f9fbd' },
+    { id: 'charge', name: KabirI18n.t('KARA ADIM'), short: KabirI18n.t('Hücum'), color: '#c9a45a' }
   ]);
   const skills = Object.freeze([
-    { id: 'cleave', name: 'Mezar Yaran', line: 'cleave', tier: 1, level: 2, requires: null, branch: 0, cost: 22, cooldown: 4,
+    { id: 'cleave', name: KabirI18n.t('Mezar Yaran'), line: 'cleave', tier: 1, level: 2, requires: null, branch: 0, cost: 22, cooldown: 4,
       params: { damage: 78, radius: 3.7, arc: 3.65, stun: .55 },
-      description: 'Kızıl bir yarım ayla önündeki düşmanları yar. Ağır darbe gardı kırar.', delta: '' },
-    { id: 'brand', name: 'Kemik Kıran', line: 'cleave', tier: 2, level: 6, requires: 'cleave', branch: 0, cost: 33, cooldown: 6,
+      description: KabirI18n.t('Kızıl bir yarım ayla önündeki düşmanları yar. Ağır darbe gardı kırar.'), delta: '' },
+    { id: 'brand', name: KabirI18n.t('Kemik Kıran'), line: 'cleave', tier: 2, level: 6, requires: 'cleave', branch: 0, cost: 33, cooldown: 6,
       params: { damage: 106, radius: 4.5, reach: 4.2, duration: .68, strike: .22, stun: 1.1 },
-      description: 'Silahı başının üstüne kaldırıp önündeki zemine var gücüyle indir. Kehribar rengi bir şok halkası ve zemin yarıkları düşmanları ezer, sersemletir.', delta: 'Tepeden ezme: daha çok hasar, geniş şok halkası, uzun sersemletme.' },
-    { id: 'temper', name: 'Kabir Balyozu', line: 'cleave', tier: 3, level: 10, requires: 'brand', branch: 0, cost: 44, cooldown: 8,
+      description: KabirI18n.t('Silahı başının üstüne kaldırıp önündeki zemine var gücüyle indir. Kehribar rengi bir şok halkası ve zemin yarıkları düşmanları ezer, sersemletir.'), delta: KabirI18n.t('Tepeden ezme: daha çok hasar, geniş şok halkası, uzun sersemletme.') },
+    { id: 'temper', name: KabirI18n.t('Kabir Balyozu'), line: 'cleave', tier: 3, level: 10, requires: 'brand', branch: 0, cost: 44, cooldown: 8,
       params: { damage: 140, radius: 7, arc: 2.5, duration: .74, strike: .26, stun: 1.7 },
-      description: 'İleri sıçra, omuzdan gelen ağır çapraz darbeyle önünü yar. Zemin kara-mor yarıklarla çatlar; önündeki geniş koninin içindeki düşmanlar ezilir ve yere devrilir.', delta: 'Sıçrayışlı yer darbesi: çok geniş koni, en yüksek hasar, en uzun sersemletme.' },
-    { id: 'roar', name: 'Kan Nidası', line: 'roar', tier: 1, level: 2, requires: null, branch: 1, cost: 34, cooldown: 22,
+      description: KabirI18n.t('İleri sıçra, omuzdan gelen ağır çapraz darbeyle önünü yar. Zemin kara-mor yarıklarla çatlar; önündeki geniş koninin içindeki düşmanlar ezilir ve yere devrilir.'), delta: KabirI18n.t('Sıçrayışlı yer darbesi: çok geniş koni, en yüksek hasar, en uzun sersemletme.') },
+    { id: 'roar', name: KabirI18n.t('Kan Nidası'), line: 'roar', tier: 1, level: 2, requires: null, branch: 1, cost: 34, cooldown: 22,
       params: { near: 6.5, far: 10, time: 11, guard: .75, steal: .04, stun: 1.35, fear: 2.2, damage: 0, waves: 1 },
-      description: 'Kanlı bir şok dalgasıyla düşmanları sars; kısa süre saldırırken can kazan.', delta: '' },
-    { id: 'quake', name: 'Ölüm Çığlığı', line: 'roar', tier: 2, level: 6, requires: 'roar', branch: 1, cost: 45, cooldown: 27,
+      description: KabirI18n.t('Kanlı bir şok dalgasıyla düşmanları sars; kısa süre saldırırken can kazan.'), delta: '' },
+    { id: 'quake', name: KabirI18n.t('Ölüm Çığlığı'), line: 'roar', tier: 2, level: 6, requires: 'roar', branch: 1, cost: 45, cooldown: 27,
       params: { near: 8.4, far: 13, time: 14.5, guard: .68, steal: .06, stun: 1.9, fear: 3, damage: 44, waves: 1 },
-      description: 'Başını geriye atıp çığlık at: kemik beyazı ve kehribar şok halkaları yayılır, zemin yarılır, sarsılan düşmanlar hasar görür ve titrer. Öfke daha uzun sürer.', delta: 'Çığlık: daha geniş halkalar, hasar, daha uzun öfke ve can çalma.' },
-    { id: 'chainstorm', name: 'Kıyamet Narası', line: 'roar', tier: 3, level: 10, requires: 'quake', branch: 1, cost: 56, cooldown: 34,
+      description: KabirI18n.t('Başını geriye atıp çığlık at: kemik beyazı ve kehribar şok halkaları yayılır, zemin yarılır, sarsılan düşmanlar hasar görür ve titrer. Öfke daha uzun sürer.'), delta: KabirI18n.t('Çığlık: daha geniş halkalar, hasar, daha uzun öfke ve can çalma.') },
+    { id: 'chainstorm', name: KabirI18n.t('Kıyamet Narası'), line: 'roar', tier: 3, level: 10, requires: 'quake', branch: 1, cost: 56, cooldown: 34,
       params: { near: 11, far: 16, time: 18, guard: .6, steal: .09, stun: 2.5, fear: 3.8, damage: 52, waves: 3, waveDamage: 38 },
-      description: 'İki aşamalı kıyamet narası: yer yarılır, kemik ışığıyla kızıl köz parçacıkları savrulur ve üç halka art arda yayılır. Her halka düşmanları yeniden sarsıp yaralar; öfken çok uzun ve güçlü sürer.', delta: 'İki aşamalı nara, üç halka, en geniş alan, en uzun ve güçlü öfke.' },
-    { id: 'whirl', name: 'Zincir Kasırgası', line: 'whirl', tier: 1, level: 3, requires: null, branch: 2, cost: 36, cooldown: 8,
+      description: KabirI18n.t('İki aşamalı kıyamet narası: yer yarılır, kemik ışığıyla kızıl köz parçacıkları savrulur ve üç halka art arda yayılır. Her halka düşmanları yeniden sarsıp yaralar; öfken çok uzun ve güçlü sürer.'), delta: KabirI18n.t('İki aşamalı nara, üç halka, en geniş alan, en uzun ve güçlü öfke.') },
+    { id: 'whirl', name: KabirI18n.t('Zincir Kasırgası'), line: 'whirl', tier: 1, level: 3, requires: null, branch: 2, cost: 36, cooldown: 8,
       params: { ticks: 4, damage: 33, radius: 3.6, first: .06, gap: .28, duration: 1.3, stun: .6, stunLast: 1.15, pull: .45, fling: .9, grow: 1, turns: 2, move: .6 },
-      description: 'Kızıl zincirlerden bir kasırga içinde dönerek çevrendeki düşmanlara dört kez vur.', delta: '' },
-    { id: 'reap', name: 'Ölüm Biçeni', line: 'whirl', tier: 2, level: 6, requires: 'whirl', branch: 2, cost: 54, cooldown: 11,
+      description: KabirI18n.t('Kızıl zincirlerden bir kasırga içinde dönerek çevrendeki düşmanlara dört kez vur.'), delta: '' },
+    { id: 'reap', name: KabirI18n.t('Ölüm Biçeni'), line: 'whirl', tier: 2, level: 6, requires: 'whirl', branch: 2, cost: 54, cooldown: 11,
       params: { ticks: 5, damage: 36, radius: 4.8, first: .06, gap: .27, duration: 1.6, stun: .7, stunLast: 1.5, pull: 1.1, fling: 1.8, grow: 1, turns: 4, move: .65 },
-      description: 'Zincirler uzun, parlak orak yaylarına dönüşür: yerde altın bir biçme izi bırakır, beş vuruş vurur, düşmanları içeri çeker. Son vuruş onları uzağa savurur.', delta: 'Beş vuruş, daha geniş çember, daha sert çekiş ve savurma.' },
-    { id: 'rend', name: 'Son Hüküm', line: 'whirl', tier: 3, level: 10, requires: 'reap', branch: 2, cost: 74, cooldown: 15,
+      description: KabirI18n.t('Zincirler uzun, parlak orak yaylarına dönüşür: yerde altın bir biçme izi bırakır, beş vuruş vurur, düşmanları içeri çeker. Son vuruş onları uzağa savurur.'), delta: KabirI18n.t('Beş vuruş, daha geniş çember, daha sert çekiş ve savurma.') },
+    { id: 'rend', name: KabirI18n.t('Son Hüküm'), line: 'whirl', tier: 3, level: 10, requires: 'reap', branch: 2, cost: 74, cooldown: 15,
       params: { ticks: 7, damage: 35, radius: 6.2, first: .06, gap: .24, duration: 2.05, stun: .85, stunLast: 2, pull: 1.9, fling: 3.4, grow: .68, turns: 6, move: .7 },
-      description: 'Zincirler mor ateşli bir ölüm fırtınasına dönüşür: başta yer çatlar, çember dönerken genişler, yedi vuruş vurur. Son vuruş yeri sarsar ve düşmanları fırlatır.', delta: 'Yedi vuruş, genişleyen en büyük çember, en güçlü çekiş, sarsıcı son vuruş.' },
-    { id: 'charge', name: 'Kül Hücumu', line: 'charge', tier: 1, level: 5, requires: null, branch: 3, cost: 30, cooldown: 7,
+      description: KabirI18n.t('Zincirler mor ateşli bir ölüm fırtınasına dönüşür: başta yer çatlar, çember dönerken genişler, yedi vuruş vurur. Son vuruş yeri sarsar ve düşmanları fırlatır.'), delta: KabirI18n.t('Yedi vuruş, genişleyen en büyük çember, en güçlü çekiş, sarsıcı son vuruş.') },
+    { id: 'charge', name: KabirI18n.t('Kül Hücumu'), line: 'charge', tier: 1, level: 5, requires: null, branch: 3, cost: 30, cooldown: 7,
       params: { range: 8, speed: 20, damage: 86, ringMul: .55, radius: 2.6, stun: 1.4, width: 1.5, pathDamage: 0, shove: 0, knock: 2.6, hitStop: .07, pull: 0, impacts: 1 },
-      description: 'Fare imlecine doğru kül ve kıvılcımlar içinde atıl. Yoldakileri it, varınca yere çarpıp çevrendekileri sersemlet.', delta: '' },
-    { id: 'grasp', name: 'Kor Hücumu', line: 'charge', tier: 2, level: 6, requires: 'charge', branch: 3, cost: 46, cooldown: 10,
+      description: KabirI18n.t('Fare imlecine doğru kül ve kıvılcımlar içinde atıl. Yoldakileri it, varınca yere çarpıp çevrendekileri sersemlet.'), delta: '' },
+    { id: 'grasp', name: KabirI18n.t('Kor Hücumu'), line: 'charge', tier: 2, level: 6, requires: 'charge', branch: 3, cost: 46, cooldown: 10,
       params: { range: 11, speed: 27, damage: 116, ringMul: .55, radius: 3.8, stun: 1.9, width: 2.4, pathDamage: 26, shove: 3.6, knock: 3.6, hitStop: .09, pull: 2.4, impacts: 1 },
-      description: 'Omzunu öne verip kor gibi parlayan bir iz bırakarak koş: yoldaki düşmanları kıvılcımlarla yana devirir, varışta yer çatlaklarla yarılır ve düşmanlar çarpma noktasına çekilir.', delta: 'Daha uzun ve hızlı atılış, yoldakileri devirir, çatlak açan daha büyük çarpma.' },
-    { id: 'havoc', name: 'Mahşer Hücumu', line: 'charge', tier: 3, level: 10, requires: 'grasp', branch: 3, cost: 66, cooldown: 14,
+      description: KabirI18n.t('Omzunu öne verip kor gibi parlayan bir iz bırakarak koş: yoldaki düşmanları kıvılcımlarla yana devirir, varışta yer çatlaklarla yarılır ve düşmanlar çarpma noktasına çekilir.'), delta: KabirI18n.t('Daha uzun ve hızlı atılış, yoldakileri devirir, çatlak açan daha büyük çarpma.') },
+    { id: 'havoc', name: KabirI18n.t('Mahşer Hücumu'), line: 'charge', tier: 3, level: 10, requires: 'grasp', branch: 3, cost: 66, cooldown: 14,
       params: { range: 14, speed: 32, damage: 160, ringMul: .55, radius: 5, stun: 2.6, width: 3.4, pathDamage: 44, shove: 6.5, knock: 4.8, hitStop: .12, pull: 3.6, impacts: 2, damage2: 110, radius2: 6.6 },
-      description: 'Kükreyip koç gibi atıl: geniş, karanlık bir iz bırakır, yoldakileri havaya fırlatır. Varışta yer iki kez çatlar; ikinci çarpma daha ağırdır ve sersemletir.', delta: 'Çifte çarpma, yoldakileri fırlatır, en geniş alan ve en uzun sersemletme.' }
+      description: KabirI18n.t('Kükreyip koç gibi atıl: geniş, karanlık bir iz bırakır, yoldakileri havaya fırlatır. Varışta yer iki kez çatlar; ikinci çarpma daha ağırdır ve sersemletir.'), delta: KabirI18n.t('Çifte çarpma, yoldakileri fırlatır, en geniş alan ve en uzun sersemletme.') }
   ].map(s => Object.freeze(Object.assign({}, s, { params: Object.freeze(s.params), cost: s.cost }))));
   const skillIndex = Object.fromEntries(skills.map(s => [s.id, s]));
   const skillsByLine = line => skills.filter(s => s.line === line).sort((a, b) => a.tier - b.tier);
@@ -67,32 +67,32 @@
   // upgrades remain usable even when a legacy profile has uneven tiers.
   function skillAccess(state, id) {
     const skill = skillIndex[id], learned = new Set(state.learned || []);
-    if (!skill) return { known:false, blocked:true, canLearn:false, reason:'Böyle bir yetenek yok.' };
+    if (!skill) return { known:false, blocked:true, canLearn:false, reason:KabirI18n.t('Böyle bir yetenek yok.') };
     const known = learned.has(id), low = state.level < skill.level;
     const missingParent = skill.requires && !learned.has(skill.requires);
     const previous = skill.tier > 1 ? skills.filter(s => s.tier === skill.tier - 1) : [];
     const missingTier = previous.filter(s => !learned.has(s.id)).length;
     const blocked = !known && (low || !!missingParent || missingTier > 0);
-    const reason = known ? 'Öğrenildi' : low ? skill.level + '. seviye gerekli.' : missingParent ? 'Önce ' + skillIndex[skill.requires].name + ' öğrenilmeli.' : missingTier ? 'Önce ' + (skill.tier - 1) + '. aşamadaki dört yeteneği öğren.' : state.points < 1 ? 'Yetenek puanın yok.' : '1 puanla öğren';
+    const reason = known ? KabirI18n.t('Öğrenildi') : low ? (KabirI18n.lang === 'en' ? 'Requires level ' + skill.level + '.' : skill.level + KabirI18n.t('. seviye gerekli.')) : missingParent ? KabirI18n.t('Önce ') + skillIndex[skill.requires].name + KabirI18n.t(' öğrenilmeli.') : missingTier ? KabirI18n.t('Önce ') + (skill.tier - 1) + KabirI18n.t('. aşamadaki dört yeteneği öğren.') : state.points < 1 ? KabirI18n.t('Yetenek puanın yok.') : KabirI18n.t('1 puanla öğren');
     return { known, blocked, canLearn:!known && !blocked && state.points > 0, reason, missingTier, low, missingParent };
   }
 
   // Numbers shown on the tree page and in tooltips: [label, text]. Same params the fight uses.
-  const num = n => String(Number(n.toFixed(2))).replace('.', ',');
+  const num = n => String(Number(n.toFixed(2))).replace('.', KabirI18n.lang === 'en' ? '.' : ',');
   function skillFacts(s) {
     const p = s.params, out = [];
     if (s.line === 'cleave') {
-      out.push(['Temel hasar', String(p.damage)], ['Alan', num(p.radius) + ' m'], ['Sersemletme', num(p.stun) + ' sn']);
+      out.push([KabirI18n.t('Temel hasar'), String(p.damage)], [KabirI18n.t('Alan'), num(p.radius) + ' m'], [KabirI18n.t('Sersemletme'), num(p.stun) + KabirI18n.t(' sn')]);
     } else if (s.line === 'roar') {
-      out.push(['Sarsma alanı', num(p.near) + ' m'], ['Korkutma alanı', num(p.far) + ' m'], ['Temel hasar', p.damage ? (p.waves > 1 ? p.damage + ' + ' + (p.waves - 1) + '×' + p.waveDamage : String(p.damage)) : '—'],
-        ['Öfke süresi', num(p.time) + ' sn'], ['Hasar azaltma', '%' + Math.round((1 - p.guard) * 100)], ['Can çalma', '%' + Math.round(p.steal * 100)], ['Dalga', String(p.waves)]);
+      out.push([KabirI18n.t('Sarsma alanı'), num(p.near) + ' m'], [KabirI18n.t('Korkutma alanı'), num(p.far) + ' m'], [KabirI18n.t('Temel hasar'), p.damage ? (p.waves > 1 ? p.damage + ' + ' + (p.waves - 1) + '×' + p.waveDamage : String(p.damage)) : '—'],
+        [KabirI18n.t('Öfke süresi'), num(p.time) + KabirI18n.t(' sn')], [KabirI18n.t('Hasar azaltma'), '%' + Math.round((1 - p.guard) * 100)], [KabirI18n.t('Can çalma'), '%' + Math.round(p.steal * 100)], [KabirI18n.t('Dalga'), String(p.waves)]);
     } else if (s.line === 'whirl') {
-      out.push(['Temel vuruş', p.ticks + '×' + p.damage + ' = ' + p.ticks * p.damage], ['Çember', p.grow < 1 ? num(p.radius * p.grow) + ' → ' + num(p.radius) + ' m' : num(p.radius) + ' m'], ['Çekiş', num(p.pull) + ' m'], ['Son vuruşta savurma', num(p.fling) + ' m'], ['Son vuruş sersemletmesi', num(p.stunLast) + ' sn']);
+      out.push([KabirI18n.t('Temel vuruş'), p.ticks + '×' + p.damage + ' = ' + p.ticks * p.damage], [KabirI18n.t('Çember'), p.grow < 1 ? num(p.radius * p.grow) + ' → ' + num(p.radius) + ' m' : num(p.radius) + ' m'], [KabirI18n.t('Çekiş'), num(p.pull) + ' m'], [KabirI18n.t('Son vuruşta savurma'), num(p.fling) + ' m'], [KabirI18n.t('Son vuruş sersemletmesi'), num(p.stunLast) + KabirI18n.t(' sn')]);
     } else {
-      out.push(['Mesafe', num(p.range) + ' m'], ['Temel çarpma', p.impacts > 1 ? p.damage + ' + ' + p.damage2 : String(p.damage)], ['Temel yol hasarı', p.pathDamage ? String(p.pathDamage) : '—'], ['Yol genişliği', num(p.width) + ' m'], ['Yoldakini savurma', p.shove ? num(p.shove) + ' m' : '—'],
-        ['Çarpma alanı', p.impacts > 1 ? num(p.radius) + ' / ' + num(p.radius2) + ' m' : num(p.radius) + ' m'], ['Sersemletme', num(p.stun) + ' sn'], ['Çekiş', p.pull ? num(p.pull) + ' m' : '—']);
+      out.push([KabirI18n.t('Mesafe'), num(p.range) + ' m'], [KabirI18n.t('Temel çarpma'), p.impacts > 1 ? p.damage + ' + ' + p.damage2 : String(p.damage)], [KabirI18n.t('Temel yol hasarı'), p.pathDamage ? String(p.pathDamage) : '—'], [KabirI18n.t('Yol genişliği'), num(p.width) + ' m'], [KabirI18n.t('Yoldakini savurma'), p.shove ? num(p.shove) + ' m' : '—'],
+        [KabirI18n.t('Çarpma alanı'), p.impacts > 1 ? num(p.radius) + ' / ' + num(p.radius2) + ' m' : num(p.radius) + ' m'], [KabirI18n.t('Sersemletme'), num(p.stun) + KabirI18n.t(' sn')], [KabirI18n.t('Çekiş'), p.pull ? num(p.pull) + ' m' : '—']);
     }
-    out.push(['Maliyet', Math.round(s.cost) + ''], ['Bekleme', num(s.cooldown) + ' sn']);
+    out.push([KabirI18n.t('Maliyet'), Math.round(s.cost) + ''], [KabirI18n.t('Bekleme'), num(s.cooldown) + KabirI18n.t(' sn')]);
     return out;
   }
   // Old saves (before skillTree 2) used other prerequisites for the same skill ids. Rebuild a valid set with the SAME number of spent points:
@@ -127,97 +127,97 @@
       type: type || slot, description, icon: slot === 'weapon' ? type : slot, modelId: modelId || id, finish: finish || 'worn', visualScale: Object.freeze(visualScale) });
   }
   const items = Object.freeze([
-    item('dull-sword', 'Kör Mahkûm Kılıcı', 'weapon', 1, 'common', 0, 0, 0, 'sword', 'Bir mezar mahkûmunun aşınmış, çentikli kılıcı.'),
-    item('grave-sword', 'Mezar Nöbetçisi', 'weapon', 2, 'uncommon', .06, 0, 0, 'sword', 'Küller içinden çıkarılmış, hâlâ keskin bir demir kılıç.'),
-    item('rust-axe', 'Paslı Yemin Baltası', 'weapon', 2, 'uncommon', .065, 0, 0, 'axe', 'Sapına bozulmuş yeminler kazınmış bir savaş baltası.'),
-    item('bone-spear', 'Kemik Geçidi Mızrağı', 'weapon', 3, 'uncommon', .085, 0, 0, 'spear', 'Kemik halkalarla bağlanmış uzun bir mezar mızrağı.'),
-    item('executioner-axe', 'Celladın Son Hükmü', 'weapon', 4, 'boss', .12, 0, 0, 'axe', 'Zincir Celladı’nın kırılmış mührünü taşıyan baltası. Garantili ganimet.'),
-    item('bell-spear', 'Derinliklerin Suskunluğu', 'weapon', 7, 'boss', .18, 0, 0, 'spear', 'Çancının sustuğu anda karaya bıraktığı karanlık mızrak. Garantili ganimet.'),
-    item('torn-chest', 'Yırtık Mahkûm Yeleği', 'chest', 1, 'common', 0, 0, 0, null, 'Soğuk taşın üstünde parçalanmış bir deri yelek.'),
-    item('grave-chest', 'Kül Muhafızının Zırhı', 'chest', 3, 'uncommon', 0, .05, 4, null, 'Kararmış demir plakalar eski yaraları örter.'),
-    item('coast-chest', 'Boğulmuşun Zırhı', 'chest', 5, 'rare', 0, .08, 5, null, 'Tuzla aşınmış zırhın altında kalın, koyu deri vardır.'),
-    item('cloth-hood', 'Kara Bez Başlık', 'head', 1, 'common', 0, .015, 0, null, 'Sert rüzgârı kesen isli bir başlık.'),
-    item('iron-helm', 'Mezar Demiri Miğfer', 'head', 3, 'uncommon', 0, .04, 1, null, 'Çatlamış ama sağlam bir mezar muhafızı miğferi.'),
-    item('drowned-helm', 'Çan Nöbetçisi Miğferi', 'head', 5, 'rare', 0, .06, 2, null, 'Tuz lekeleri arasından silinmiş bir çan arması seçilir.'),
-    item('rag-wraps', 'Kanlı Bez Sargılar', 'hands', 1, 'common', 0, .01, 0, null, 'Avuçların eski yaralarını tutan yıpranmış sargılar.'),
-    item('chain-gloves', 'Zincir Kıran Eldivenler', 'hands', 3, 'uncommon', 0, .03, 0, null, 'Demir halkalarla güçlendirilmiş deri eldivenler.'),
-    item('salt-gauntlets', 'Tuz Çeliği Eldivenler', 'hands', 6, 'rare', 0, .055, 1, null, 'Deniz kabuğu gibi aşınmış ağır çelik eldivenler.'),
-    item('worn-boots', 'Yıpranmış Yol Çizmeleri', 'boots', 1, 'common', 0, .015, 0, null, 'Taş zeminde çok yürümüş çatlak deri çizmeler.'),
-    item('grave-boots', 'Mezar Yolu Çizmeleri', 'boots', 3, 'uncommon', 0, .035, 1, null, 'Kalın tabanları kemik ve kömür tozuyla kaplı.'),
-    item('tide-boots', 'Kara Gelgit Çizmeleri', 'boots', 5, 'rare', 0, .055, 1, null, 'Suya dayanıklı deri ile kararmış demir birlikte örülmüş.' ),
+    item('dull-sword', KabirI18n.t('Kör Mahkûm Kılıcı'), 'weapon', 1, 'common', 0, 0, 0, 'sword', KabirI18n.t('Bir mezar mahkûmunun aşınmış, çentikli kılıcı.')),
+    item('grave-sword', KabirI18n.t('Mezar Nöbetçisi'), 'weapon', 2, 'uncommon', .06, 0, 0, 'sword', KabirI18n.t('Küller içinden çıkarılmış, hâlâ keskin bir demir kılıç.')),
+    item('rust-axe', KabirI18n.t('Paslı Yemin Baltası'), 'weapon', 2, 'uncommon', .065, 0, 0, 'axe', KabirI18n.t('Sapına bozulmuş yeminler kazınmış bir savaş baltası.')),
+    item('bone-spear', KabirI18n.t('Kemik Geçidi Mızrağı'), 'weapon', 3, 'uncommon', .085, 0, 0, 'spear', KabirI18n.t('Kemik halkalarla bağlanmış uzun bir mezar mızrağı.')),
+    item('executioner-axe', KabirI18n.t('Celladın Son Hükmü'), 'weapon', 4, 'boss', .12, 0, 0, 'axe', KabirI18n.t('Zincir Celladı’nın kırılmış mührünü taşıyan baltası. Garantili ganimet.')),
+    item('bell-spear', KabirI18n.t('Derinliklerin Suskunluğu'), 'weapon', 7, 'boss', .18, 0, 0, 'spear', KabirI18n.t('Çancının sustuğu anda karaya bıraktığı karanlık mızrak. Garantili ganimet.')),
+    item('torn-chest', KabirI18n.t('Yırtık Mahkûm Yeleği'), 'chest', 1, 'common', 0, 0, 0, null, KabirI18n.t('Soğuk taşın üstünde parçalanmış bir deri yelek.')),
+    item('grave-chest', KabirI18n.t('Kül Muhafızının Zırhı'), 'chest', 3, 'uncommon', 0, .05, 4, null, KabirI18n.t('Kararmış demir plakalar eski yaraları örter.')),
+    item('coast-chest', KabirI18n.t('Boğulmuşun Zırhı'), 'chest', 5, 'rare', 0, .08, 5, null, KabirI18n.t('Tuzla aşınmış zırhın altında kalın, koyu deri vardır.')),
+    item('cloth-hood', KabirI18n.t('Kara Bez Başlık'), 'head', 1, 'common', 0, .015, 0, null, KabirI18n.t('Sert rüzgârı kesen isli bir başlık.')),
+    item('iron-helm', KabirI18n.t('Mezar Demiri Miğfer'), 'head', 3, 'uncommon', 0, .04, 1, null, KabirI18n.t('Çatlamış ama sağlam bir mezar muhafızı miğferi.')),
+    item('drowned-helm', KabirI18n.t('Çan Nöbetçisi Miğferi'), 'head', 5, 'rare', 0, .06, 2, null, KabirI18n.t('Tuz lekeleri arasından silinmiş bir çan arması seçilir.')),
+    item('rag-wraps', KabirI18n.t('Kanlı Bez Sargılar'), 'hands', 1, 'common', 0, .01, 0, null, KabirI18n.t('Avuçların eski yaralarını tutan yıpranmış sargılar.')),
+    item('chain-gloves', KabirI18n.t('Zincir Kıran Eldivenler'), 'hands', 3, 'uncommon', 0, .03, 0, null, KabirI18n.t('Demir halkalarla güçlendirilmiş deri eldivenler.')),
+    item('salt-gauntlets', KabirI18n.t('Tuz Çeliği Eldivenler'), 'hands', 6, 'rare', 0, .055, 1, null, KabirI18n.t('Deniz kabuğu gibi aşınmış ağır çelik eldivenler.')),
+    item('worn-boots', KabirI18n.t('Yıpranmış Yol Çizmeleri'), 'boots', 1, 'common', 0, .015, 0, null, KabirI18n.t('Taş zeminde çok yürümüş çatlak deri çizmeler.')),
+    item('grave-boots', KabirI18n.t('Mezar Yolu Çizmeleri'), 'boots', 3, 'uncommon', 0, .035, 1, null, KabirI18n.t('Kalın tabanları kemik ve kömür tozuyla kaplı.')),
+    item('tide-boots', KabirI18n.t('Kara Gelgit Çizmeleri'), 'boots', 5, 'rare', 0, .055, 1, null, KabirI18n.t('Suya dayanıklı deri ile kararmış demir birlikte örülmüş.') ),
     // Variants reuse authored silhouettes and scanned material maps. Their statistics offer real choices.
-    item('widow-sword', 'Dulun Son Duası', 'weapon', 3, 'uncommon', .075, 0, 2, 'sword', 'Kabzasına bir mezar duası sarılmış. Keskinlikten biraz vazgeçip yaralarını ayakta tutar.', 'grave-sword', 'ash'),
-    item('mourning-axe', 'Yasın Kör Dişi', 'weapon', 4, 'rare', .10, .015, 0, 'axe', 'Çentikli ağzının ardında kalın bir demir muhafaza vardır. Celladın baltasından zayıf, daha koruyucu.', 'rust-axe', 'blood'),
-    item('black-tide-sword', 'Kara Suyun Hükmü', 'weapon', 6, 'epic', .15, 0, 0, 'sword', 'Bir batığın içinde hâlâ keskin kalan siyah çelik. Üzerindeki tuz izi silinmez.', 'grave-sword', 'brine'),
-    item('orphan-spear', 'Yetimin Mezarsız Yemini', 'weapon', 5, 'rare', .105, 0, 3, 'spear', 'Mızrağın kemik halkalarında adı unutulmuş bir çocuğun yemini durur.', 'bone-spear', 'bone'),
-    item('ash-chest', 'Kül Kefeni', 'chest', 1, 'common', 0, .018, 1, null, 'Ateşten geriye kalan sert bez. Zırh sayılmaz ama soğuğu biraz keser.', 'torn-chest', 'ash'),
-    item('mourner-chest', 'Yas Tutmayanın Yeleği', 'chest', 2, 'uncommon', 0, .025, 3, null, 'İç dikişlerine eski sargılar sıkıştırılmış karanlık deri. Demir kadar korumaz.', 'torn-chest', 'blood'),
-    item('empty-vow-chest', 'Boş Yeminin Demiri', 'chest', 4, 'rare', 0, .065, 1, null, 'Sahibi sözünü tuttu; mezar yine de onu yuttu. Ağır demir yüksek koruma sağlar.', 'grave-chest', 'rust'),
-    item('salt-shroud', 'Dönmeyenin Tuz Kefeni', 'chest', 5, 'rare', 0, .04, 6, null, 'Boğulmuş deri ve yelken bezi birbirine dikilmiş. Darbeleri az keser, bedeni ayakta tutar.', 'coast-chest', 'brine'),
-    item('sunken-vow-chest', 'Batmış Yeminin Zırhı', 'chest', 6, 'epic', 0, .09, 2, null, 'Dipten çıkarılan plakaların arasında deniz kabukları vardır. Güçlü koruma, az can desteği.', 'coast-chest', 'rust'),
-    item('funeral-hood', 'Son Duanın Başlığı', 'head', 1, 'common', 0, .005, 2, null, 'Alnına kurumuş bir dua dikilmiş isli kumaş. Koruması zayıf, sıcaklığı hâlâ vardır.', 'cloth-hood', 'ash'),
-    item('orphan-hood', 'Kimsesizin Kara Örtüsü', 'head', 2, 'uncommon', 0, .02, 1, null, 'İs ve yağmurla ağırlaşmış bir başlık. İçinde hiçbir isim yazmaz.', 'cloth-hood', 'blood'),
-    item('no-witness-helm', 'Şahitsiz Ölüm Miğferi', 'head', 4, 'rare', 0, .05, 0, null, 'Yüzü örten demirde gözler için iki ince yarık bırakılmış.', 'iron-helm', 'rust'),
-    item('silent-watch-helm', 'Sessiz Nöbetin Yüzü', 'head', 5, 'rare', 0, .035, 3, null, 'Kaybolan fener nöbetçisinin miğferi. Tuzla ağırlaşmış astarı başını korur.', 'drowned-helm', 'brine'),
-    item('last-breath-helm', 'Son Nefesin Demiri', 'head', 6, 'epic', 0, .065, 1, null, 'İç yüzündeki tırnak izleri hiçbir ateşle silinmemiş.', 'drowned-helm', 'bone'),
-    item('burial-wraps', 'Gömülmeyenin Sargıları', 'hands', 1, 'common', 0, .005, 1, null, 'Mezarı hazırlanmamış bir ölünün koyu sargıları. Parmakları sıcak tutar.', 'rag-wraps', 'ash'),
-    item('cold-prayer-gloves', 'Soğuk Duanın Elleri', 'hands', 2, 'uncommon', 0, .02, 0, null, 'Çatlak deriye birkaç demir halka işlenmiş. Avuçlarda eski dua izleri vardır.', 'chain-gloves', 'rust'),
-    item('nameless-gauntlets', 'İsimsizin Demir Parmakları', 'hands', 4, 'rare', 0, .04, 0, null, 'Eklemlerini pas tutmuş eldivenlerin her parmağında bir çentik sayılır.', 'chain-gloves', 'blood'),
-    item('drowned-wraps', 'Boğulmuş Duanın Sargıları', 'hands', 5, 'rare', 0, .025, 3, null, 'Tuzla sertleşmiş bezin içine kuru ot ve deri sıkıştırılmış.', 'rag-wraps', 'brine'),
-    item('widow-gauntlets', 'Dulun Son Dokunuşu', 'hands', 6, 'epic', 0, .06, 0, null, 'Demir parmakların üstünde yüzük izleri kalmış. Güçlü koruması dışında hiçbir tesellisi yok.', 'salt-gauntlets', 'bone'),
-    item('ash-footwraps', 'Kül İçinde Kalan Adımlar', 'boots', 1, 'common', 0, .005, 1, null, 'İs tutmuş deri bağlar kırık tabanları bir arada tutar.', 'worn-boots', 'ash'),
-    item('gallows-boots', 'Darağacının Son Yolu', 'boots', 2, 'uncommon', 0, .025, 0, null, 'Tabanındaki demir çiviler mahkûmun yürüdüğü son yolu hatırlar.', 'grave-boots', 'rust'),
-    item('lost-pilgrim-boots', 'Dönmeyen Hacının İzleri', 'boots', 4, 'rare', 0, .025, 3, null, 'Çatlak derinin altında kalın kumaş vardır. Ağır zırh kadar korumaz.', 'worn-boots', 'blood'),
-    item('sunken-steps', 'Dipte Unutulan Adımlar', 'boots', 5, 'rare', 0, .045, 2, null, 'Islak çelik ve kararmış deri, çoktan batmış bir yolcudan kalmış.', 'tide-boots', 'brine'),
-    item('grave-silence-boots', 'Mezar Sessizliğinin Çizmeleri', 'boots', 6, 'epic', 0, .065, 0, null, 'İçlerine kum dolmuş ağır demir çizmeler. Güçlü koruması her adımda hissedilir.', 'tide-boots', 'bone'),
-    item('ruin-lament-sword', 'Harabenin Susmayan Ağıdı', 'weapon', 7, 'epic', .175, 0, 2, 'sword', 'Yıkık bir sunağın altından çıkarılmış kılıç. Kabzasındaki adları kimse hatırlamaz.', 'grave-sword', 'ash'),
-    item('sepulcher-axe', 'Boş Lahdin Ağzı', 'weapon', 8, 'epic', .195, 0, 0, 'axe', 'Bir lahit kapağından dövülmüş ağır balta. Taş tozu hâlâ ağzında durur.', 'executioner-axe', 'bone'),
-    item('starved-spear', 'Açlığın Son Yemini', 'weapon', 8, 'epic', .175, .015, 2, 'spear', 'Yeraltında açlıktan ölmüş bir nöbetçinin mızrağı. Sapı kuru deriyle tekrar bağlanmış.', 'bone-spear', 'rust'),
-    item('cave-verdict-sword', 'Kör Mağaranın Hükmü', 'weapon', 9, 'epic', .21, 0, 1, 'sword', 'Işıksız kayaların arasından keskin bir ağız olarak doğmuş siyah demir.', 'grave-sword', 'blood'),
-    item('broken-throne-axe', 'Kırık Tahtın İntikamı', 'weapon', 9, 'epic', .195, 0, 4, 'axe', 'Çökmüş tahtın demirinden yapılmış balta. Keskinlik yerine sahibini hayatta tutar.', 'executioner-axe', 'ash'),
-    item('hollow-crown-blade', 'Tahtsız Kralın Son Sözü', 'weapon', 10, 'boss', .25, 0, 3, 'sword', 'Boş Kral düştüğünde bıraktığı kemik kabzalı kılıç. Artık hiçbir tahta yemin etmez.', 'grave-sword', 'bone'),
-    item('ruin-burial-chest', 'Yıkıntının Kefen Zırhı', 'chest', 7, 'epic', 0, .095, 2, null, 'Harabe taşlarının altında çürümüş deri ve ağır demir, son bir kez bir araya getirildi.', 'grave-chest', 'ash'),
-    item('warden-chainmail', 'Mezar Ustasının Son Nöbeti', 'chest', 8, 'epic', 0, .10, 3, null, 'Harabe bekçisinin örülmüş karanlık zırhı. Pasın altında sağlam halkalar kalmış.', 'coast-chest', 'rust'),
-    item('hollow-heart-chest', 'İçi Boş Kalbin Kefeni', 'chest', 9, 'epic', 0, .065, 8, null, 'Kalp hizasındaki demir sökülmüş; geriye kalın, kanla sertleşmiş deri bırakılmış.', 'torn-chest', 'blood'),
-    item('sunless-vow-chest', 'Güneşsiz Yeminin Zırhı', 'chest', 10, 'epic', 0, .115, 1, null, 'Işığa hiç çıkmamış demir plakalar ağır darbeleri keser; içinde bir umut saklamaz.', 'coast-chest', 'bone'),
-    item('forgotten-face-helm', 'Unutulan Yüzün Demiri', 'head', 7, 'epic', 0, .07, 1, null, 'Yüz kısmı külle tıkanmış bir mezar miğferi. İçinde bir isim bulunmaz.', 'iron-helm', 'ash'),
-    item('buried-prayer-hood', 'Göçük Altındaki Dua', 'head', 8, 'epic', 0, .045, 5, null, 'Bir mağara göçüğünün altında kalmış kalın kumaş. Darbeleri az keser ama sıcaklığı kalır.', 'cloth-hood', 'blood'),
-    item('sealed-gaze-helm', 'Mühürlü Bakış', 'head', 9, 'epic', 0, .08, 1, null, 'Göz çevresine kemik halkalar bağlanmış kararmış çelik. Görmediği ölüler hâlâ önündedir.', 'drowned-helm', 'bone'),
-    item('last-witness-helm', 'Son Şahidin Suskunluğu', 'head', 10, 'epic', 0, .055, 6, null, 'Astarına son tanıklığın yazıldığı miğfer. Mürekkep kanla karışmış, sözler okunmaz olmuş.', 'drowned-helm', 'rust'),
-    item('grave-digger-grasp', 'Gömülemeyenin Parmakları', 'hands', 7, 'epic', 0, .065, 1, null, 'Taş kazmaktan aşınmış metal parmaklar. El sahibine bir mezar açamamış.', 'chain-gloves', 'ash'),
-    item('black-stone-gauntlets', 'Kara Taşın Pençeleri', 'hands', 8, 'epic', 0, .075, 0, null, 'Demir eklemlerde mağaranın kara tozu birikmiş. Ağır korumanın altında deri incelmiştir.', 'salt-gauntlets', 'bone'),
-    item('blood-oath-wraps', 'Ödenmemiş Kan Borcu', 'hands', 9, 'epic', 0, .045, 5, null, 'Sargıların arasında tutulmuş son bir yemin vardır. Kimse o borcu ödeyememiş.', 'rag-wraps', 'blood'),
-    item('buried-road-boots', 'Gömülen Yolun İzleri', 'boots', 7, 'epic', 0, .07, 1, null, 'Tabanlarında kapanmış tünellerin taşları kalmış. Geri dönülecek bir yol yok.', 'grave-boots', 'rust'),
-    item('cave-mourning-boots', 'Mağaranın Kara Yası', 'boots', 8, 'epic', 0, .045, 5, null, 'Yırtık derinin içine kalın mezar bezi dikilmiş. Her adımı son adım gibi tutar.', 'worn-boots', 'ash'),
-    item('throneless-steps', 'Tahtsızların Son Yürüyüşü', 'boots', 10, 'epic', 0, .08, 2, null, 'İç yüzünde sökülmüş bir kral arması olan ağır çizmeler. Artık sahibinden başka kimseye hizmet etmez.', 'tide-boots', 'bone')
+    item('widow-sword', KabirI18n.t('Dulun Son Duası'), 'weapon', 3, 'uncommon', .075, 0, 2, 'sword', KabirI18n.t('Kabzasına bir mezar duası sarılmış. Keskinlikten biraz vazgeçip yaralarını ayakta tutar.'), 'grave-sword', 'ash'),
+    item('mourning-axe', KabirI18n.t('Yasın Kör Dişi'), 'weapon', 4, 'rare', .10, .015, 0, 'axe', KabirI18n.t('Çentikli ağzının ardında kalın bir demir muhafaza vardır. Celladın baltasından zayıf, daha koruyucu.'), 'rust-axe', 'blood'),
+    item('black-tide-sword', KabirI18n.t('Kara Suyun Hükmü'), 'weapon', 6, 'epic', .15, 0, 0, 'sword', KabirI18n.t('Bir batığın içinde hâlâ keskin kalan siyah çelik. Üzerindeki tuz izi silinmez.'), 'grave-sword', 'brine'),
+    item('orphan-spear', KabirI18n.t('Yetimin Mezarsız Yemini'), 'weapon', 5, 'rare', .105, 0, 3, 'spear', KabirI18n.t('Mızrağın kemik halkalarında adı unutulmuş bir çocuğun yemini durur.'), 'bone-spear', 'bone'),
+    item('ash-chest', KabirI18n.t('Kül Kefeni'), 'chest', 1, 'common', 0, .018, 1, null, KabirI18n.t('Ateşten geriye kalan sert bez. Zırh sayılmaz ama soğuğu biraz keser.'), 'torn-chest', 'ash'),
+    item('mourner-chest', KabirI18n.t('Yas Tutmayanın Yeleği'), 'chest', 2, 'uncommon', 0, .025, 3, null, KabirI18n.t('İç dikişlerine eski sargılar sıkıştırılmış karanlık deri. Demir kadar korumaz.'), 'torn-chest', 'blood'),
+    item('empty-vow-chest', KabirI18n.t('Boş Yeminin Demiri'), 'chest', 4, 'rare', 0, .065, 1, null, KabirI18n.t('Sahibi sözünü tuttu; mezar yine de onu yuttu. Ağır demir yüksek koruma sağlar.'), 'grave-chest', 'rust'),
+    item('salt-shroud', KabirI18n.t('Dönmeyenin Tuz Kefeni'), 'chest', 5, 'rare', 0, .04, 6, null, KabirI18n.t('Boğulmuş deri ve yelken bezi birbirine dikilmiş. Darbeleri az keser, bedeni ayakta tutar.'), 'coast-chest', 'brine'),
+    item('sunken-vow-chest', KabirI18n.t('Batmış Yeminin Zırhı'), 'chest', 6, 'epic', 0, .09, 2, null, KabirI18n.t('Dipten çıkarılan plakaların arasında deniz kabukları vardır. Güçlü koruma, az can desteği.'), 'coast-chest', 'rust'),
+    item('funeral-hood', KabirI18n.t('Son Duanın Başlığı'), 'head', 1, 'common', 0, .005, 2, null, KabirI18n.t('Alnına kurumuş bir dua dikilmiş isli kumaş. Koruması zayıf, sıcaklığı hâlâ vardır.'), 'cloth-hood', 'ash'),
+    item('orphan-hood', KabirI18n.t('Kimsesizin Kara Örtüsü'), 'head', 2, 'uncommon', 0, .02, 1, null, KabirI18n.t('İs ve yağmurla ağırlaşmış bir başlık. İçinde hiçbir isim yazmaz.'), 'cloth-hood', 'blood'),
+    item('no-witness-helm', KabirI18n.t('Şahitsiz Ölüm Miğferi'), 'head', 4, 'rare', 0, .05, 0, null, KabirI18n.t('Yüzü örten demirde gözler için iki ince yarık bırakılmış.'), 'iron-helm', 'rust'),
+    item('silent-watch-helm', KabirI18n.t('Sessiz Nöbetin Yüzü'), 'head', 5, 'rare', 0, .035, 3, null, KabirI18n.t('Kaybolan fener nöbetçisinin miğferi. Tuzla ağırlaşmış astarı başını korur.'), 'drowned-helm', 'brine'),
+    item('last-breath-helm', KabirI18n.t('Son Nefesin Demiri'), 'head', 6, 'epic', 0, .065, 1, null, KabirI18n.t('İç yüzündeki tırnak izleri hiçbir ateşle silinmemiş.'), 'drowned-helm', 'bone'),
+    item('burial-wraps', KabirI18n.t('Gömülmeyenin Sargıları'), 'hands', 1, 'common', 0, .005, 1, null, KabirI18n.t('Mezarı hazırlanmamış bir ölünün koyu sargıları. Parmakları sıcak tutar.'), 'rag-wraps', 'ash'),
+    item('cold-prayer-gloves', KabirI18n.t('Soğuk Duanın Elleri'), 'hands', 2, 'uncommon', 0, .02, 0, null, KabirI18n.t('Çatlak deriye birkaç demir halka işlenmiş. Avuçlarda eski dua izleri vardır.'), 'chain-gloves', 'rust'),
+    item('nameless-gauntlets', KabirI18n.t('İsimsizin Demir Parmakları'), 'hands', 4, 'rare', 0, .04, 0, null, KabirI18n.t('Eklemlerini pas tutmuş eldivenlerin her parmağında bir çentik sayılır.'), 'chain-gloves', 'blood'),
+    item('drowned-wraps', KabirI18n.t('Boğulmuş Duanın Sargıları'), 'hands', 5, 'rare', 0, .025, 3, null, KabirI18n.t('Tuzla sertleşmiş bezin içine kuru ot ve deri sıkıştırılmış.'), 'rag-wraps', 'brine'),
+    item('widow-gauntlets', KabirI18n.t('Dulun Son Dokunuşu'), 'hands', 6, 'epic', 0, .06, 0, null, KabirI18n.t('Demir parmakların üstünde yüzük izleri kalmış. Güçlü koruması dışında hiçbir tesellisi yok.'), 'salt-gauntlets', 'bone'),
+    item('ash-footwraps', KabirI18n.t('Kül İçinde Kalan Adımlar'), 'boots', 1, 'common', 0, .005, 1, null, KabirI18n.t('İs tutmuş deri bağlar kırık tabanları bir arada tutar.'), 'worn-boots', 'ash'),
+    item('gallows-boots', KabirI18n.t('Darağacının Son Yolu'), 'boots', 2, 'uncommon', 0, .025, 0, null, KabirI18n.t('Tabanındaki demir çiviler mahkûmun yürüdüğü son yolu hatırlar.'), 'grave-boots', 'rust'),
+    item('lost-pilgrim-boots', KabirI18n.t('Dönmeyen Hacının İzleri'), 'boots', 4, 'rare', 0, .025, 3, null, KabirI18n.t('Çatlak derinin altında kalın kumaş vardır. Ağır zırh kadar korumaz.'), 'worn-boots', 'blood'),
+    item('sunken-steps', KabirI18n.t('Dipte Unutulan Adımlar'), 'boots', 5, 'rare', 0, .045, 2, null, KabirI18n.t('Islak çelik ve kararmış deri, çoktan batmış bir yolcudan kalmış.'), 'tide-boots', 'brine'),
+    item('grave-silence-boots', KabirI18n.t('Mezar Sessizliğinin Çizmeleri'), 'boots', 6, 'epic', 0, .065, 0, null, KabirI18n.t('İçlerine kum dolmuş ağır demir çizmeler. Güçlü koruması her adımda hissedilir.'), 'tide-boots', 'bone'),
+    item('ruin-lament-sword', KabirI18n.t('Harabenin Susmayan Ağıdı'), 'weapon', 7, 'epic', .175, 0, 2, 'sword', KabirI18n.t('Yıkık bir sunağın altından çıkarılmış kılıç. Kabzasındaki adları kimse hatırlamaz.'), 'grave-sword', 'ash'),
+    item('sepulcher-axe', KabirI18n.t('Boş Lahdin Ağzı'), 'weapon', 8, 'epic', .195, 0, 0, 'axe', KabirI18n.t('Bir lahit kapağından dövülmüş ağır balta. Taş tozu hâlâ ağzında durur.'), 'executioner-axe', 'bone'),
+    item('starved-spear', KabirI18n.t('Açlığın Son Yemini'), 'weapon', 8, 'epic', .175, .015, 2, 'spear', KabirI18n.t('Yeraltında açlıktan ölmüş bir nöbetçinin mızrağı. Sapı kuru deriyle tekrar bağlanmış.'), 'bone-spear', 'rust'),
+    item('cave-verdict-sword', KabirI18n.t('Kör Mağaranın Hükmü'), 'weapon', 9, 'epic', .21, 0, 1, 'sword', KabirI18n.t('Işıksız kayaların arasından keskin bir ağız olarak doğmuş siyah demir.'), 'grave-sword', 'blood'),
+    item('broken-throne-axe', KabirI18n.t('Kırık Tahtın İntikamı'), 'weapon', 9, 'epic', .195, 0, 4, 'axe', KabirI18n.t('Çökmüş tahtın demirinden yapılmış balta. Keskinlik yerine sahibini hayatta tutar.'), 'executioner-axe', 'ash'),
+    item('hollow-crown-blade', KabirI18n.t('Tahtsız Kralın Son Sözü'), 'weapon', 10, 'boss', .25, 0, 3, 'sword', KabirI18n.t('Boş Kral düştüğünde bıraktığı kemik kabzalı kılıç. Artık hiçbir tahta yemin etmez.'), 'grave-sword', 'bone'),
+    item('ruin-burial-chest', KabirI18n.t('Yıkıntının Kefen Zırhı'), 'chest', 7, 'epic', 0, .095, 2, null, KabirI18n.t('Harabe taşlarının altında çürümüş deri ve ağır demir, son bir kez bir araya getirildi.'), 'grave-chest', 'ash'),
+    item('warden-chainmail', KabirI18n.t('Mezar Ustasının Son Nöbeti'), 'chest', 8, 'epic', 0, .10, 3, null, KabirI18n.t('Harabe bekçisinin örülmüş karanlık zırhı. Pasın altında sağlam halkalar kalmış.'), 'coast-chest', 'rust'),
+    item('hollow-heart-chest', KabirI18n.t('İçi Boş Kalbin Kefeni'), 'chest', 9, 'epic', 0, .065, 8, null, KabirI18n.t('Kalp hizasındaki demir sökülmüş; geriye kalın, kanla sertleşmiş deri bırakılmış.'), 'torn-chest', 'blood'),
+    item('sunless-vow-chest', KabirI18n.t('Güneşsiz Yeminin Zırhı'), 'chest', 10, 'epic', 0, .115, 1, null, KabirI18n.t('Işığa hiç çıkmamış demir plakalar ağır darbeleri keser; içinde bir umut saklamaz.'), 'coast-chest', 'bone'),
+    item('forgotten-face-helm', KabirI18n.t('Unutulan Yüzün Demiri'), 'head', 7, 'epic', 0, .07, 1, null, KabirI18n.t('Yüz kısmı külle tıkanmış bir mezar miğferi. İçinde bir isim bulunmaz.'), 'iron-helm', 'ash'),
+    item('buried-prayer-hood', KabirI18n.t('Göçük Altındaki Dua'), 'head', 8, 'epic', 0, .045, 5, null, KabirI18n.t('Bir mağara göçüğünün altında kalmış kalın kumaş. Darbeleri az keser ama sıcaklığı kalır.'), 'cloth-hood', 'blood'),
+    item('sealed-gaze-helm', KabirI18n.t('Mühürlü Bakış'), 'head', 9, 'epic', 0, .08, 1, null, KabirI18n.t('Göz çevresine kemik halkalar bağlanmış kararmış çelik. Görmediği ölüler hâlâ önündedir.'), 'drowned-helm', 'bone'),
+    item('last-witness-helm', KabirI18n.t('Son Şahidin Suskunluğu'), 'head', 10, 'epic', 0, .055, 6, null, KabirI18n.t('Astarına son tanıklığın yazıldığı miğfer. Mürekkep kanla karışmış, sözler okunmaz olmuş.'), 'drowned-helm', 'rust'),
+    item('grave-digger-grasp', KabirI18n.t('Gömülemeyenin Parmakları'), 'hands', 7, 'epic', 0, .065, 1, null, KabirI18n.t('Taş kazmaktan aşınmış metal parmaklar. El sahibine bir mezar açamamış.'), 'chain-gloves', 'ash'),
+    item('black-stone-gauntlets', KabirI18n.t('Kara Taşın Pençeleri'), 'hands', 8, 'epic', 0, .075, 0, null, KabirI18n.t('Demir eklemlerde mağaranın kara tozu birikmiş. Ağır korumanın altında deri incelmiştir.'), 'salt-gauntlets', 'bone'),
+    item('blood-oath-wraps', KabirI18n.t('Ödenmemiş Kan Borcu'), 'hands', 9, 'epic', 0, .045, 5, null, KabirI18n.t('Sargıların arasında tutulmuş son bir yemin vardır. Kimse o borcu ödeyememiş.'), 'rag-wraps', 'blood'),
+    item('buried-road-boots', KabirI18n.t('Gömülen Yolun İzleri'), 'boots', 7, 'epic', 0, .07, 1, null, KabirI18n.t('Tabanlarında kapanmış tünellerin taşları kalmış. Geri dönülecek bir yol yok.'), 'grave-boots', 'rust'),
+    item('cave-mourning-boots', KabirI18n.t('Mağaranın Kara Yası'), 'boots', 8, 'epic', 0, .045, 5, null, KabirI18n.t('Yırtık derinin içine kalın mezar bezi dikilmiş. Her adımı son adım gibi tutar.'), 'worn-boots', 'ash'),
+    item('throneless-steps', KabirI18n.t('Tahtsızların Son Yürüyüşü'), 'boots', 10, 'epic', 0, .08, 2, null, KabirI18n.t('İç yüzünde sökülmüş bir kral arması olan ağır çizmeler. Artık sahibinden başka kimseye hizmet etmez.'), 'tide-boots', 'bone')
 ,
-    item("slag-edge-sword", "Cürufun Son Ağzı", "weapon", 10, "epic", 0.235, 0, 2, "sword", "Kapanmış ocağın siyah cürufu kılıcın ağzına işlemiş. Keskinliğin ardında kalın demir kalır.", "grave-sword", "rust"),
-    item("furnace-mourning-spear", "Ocağın Yas Mızrağı", "weapon", 10, "epic", 0.225, 0.015, 3, "spear", "Isıyla eğrilmiş mızrak yeniden doğrultulmuş; sapında unutulmuş nöbetlerin izleri vardır.", "bell-spear", "ash"),
-    item("ember-vow-axe", "Sönmeyen Yemin", "weapon", 11, "epic", 0.255, 0, 0, "axe", "Kızgın ocak demirinden dövülmüş çentikli balta. Sahibinin yemini çoktan yanmış, metal kalmıştır.", "executioner-axe", "blood"),
-    item("black-forge-sword", "Kara Dövmenin Hükmü", "weapon", 11, "epic", 0.24, 0, 4, "sword", "Ağzına açılmış küçük deliklerde ocak isi birikir. Keskinlikten vazgeçip savaşçıyı ayakta tutar.", "grave-sword", "bone"),
-    item("last-coal-spear", "Son Kömürün Duası", "weapon", 12, "epic", 0.27, 0, 1, "spear", "Demir ucunun üzerinde dua yerine kül durur. Ocağın son kömürü bu silah için söndürülmüş.", "bell-spear", "rust"),
-    item("furnace-oath-axe", "Ocağın Son Hükmü", "weapon", 12, "boss", 0.3, 0, 0, "axe", "Ocak Kalbi sustuğunda geriye bıraktığı ağır infaz baltası. Artık hiçbir ateşe hizmet etmez.", "executioner-axe", "blood"),
-    item("slag-burial-chest", "Cüruf Kefeni", "chest", 10, "epic", 0, 0.12, 2, null, "Soğuyan demir parçaları mezar derisine dikilmiş. Ölü bir ocağın ağırlığını taşır.", "coast-chest", "rust"),
-    item("ash-warden-chest", "Kül Nöbetinin Son Zırhı", "chest", 11, "epic", 0, 0.125, 3, null, "Kül nöbetçisinin kararmış plakalarında yalnız son vardiyanın izleri kalmış.", "coast-chest", "ash"),
-    item("hollow-ember-chest", "İçi Boş Korun Kefeni", "chest", 11, "epic", 0, 0.08, 9, null, "Kalın bezin içine kat kat deri dikilmiş. Demirden zayıf, bedeni ayakta tutmakta daha kuvvetli.", "torn-chest", "blood"),
-    item("buried-fire-chest", "Gömülen Ateşin Demiri", "chest", 12, "epic", 0, 0.135, 1, null, "Ateşte unutulup yeniden sertleşmiş plakalar. Sahibinin adı da onlar kadar kararmış.", "grave-chest", "bone"),
-    item("last-shift-helm", "Son Vardiyanın Yüzü", "head", 10, "epic", 0, 0.085, 1, null, "Siperindeki kurum hiç çıkmamış. Vardiya bitmiş ama miğfer sahibine dönememiş.", "iron-helm", "ash"),
-    item("coal-mourner-hood", "Kömür Yasçısının Örtüsü", "head", 10, "epic", 0, 0.055, 6, null, "Ocakta kalanları arayan bir yasçının kalın başlığı. İç astarı eski yaraları sıcak tutar.", "cloth-hood", "blood"),
-    item("sealed-furnace-helm", "Mühürlü Ocağın Bakışı", "head", 11, "epic", 0, 0.095, 0, null, "Yüzünü bir döküm maskesi örter. İçindeki tırnak izleri siperden dışarı hiç ulaşmamış.", "drowned-helm", "rust"),
-    item("no-dawn-helm", "Şafaksızın Son Yüzü", "head", 12, "epic", 0, 0.07, 6, null, "Şafağı bekleyen bir işçinin demiri. Bekleyiş sona ermiş; kalın astar hâlâ sağlam.", "drowned-helm", "bone"),
-    item("slag-fingers", "Cüruf Parmakları", "hands", 10, "epic", 0, 0.085, 1, null, "Erimiş metalin izleri eklemleri örtmüş. Bu eller artık bir ocak yakmayacak.", "salt-gauntlets", "rust"),
-    item("burnt-oath-wraps", "Yanmış Yeminin Sargıları", "hands", 11, "epic", 0, 0.05, 6, null, "Kurumuş sargıların içine ağır deri sıkıştırılmış. Koru yumruklayan bir mahkûmdan kalmış.", "rag-wraps", "blood"),
-    item("black-anvil-grasp", "Kara Örsün Pençeleri", "hands", 12, "epic", 0, 0.1, 0, null, "Kalın demir parmaklar ocağın örsünden yapılmış. Eldivenlerin içi sessiz ve soğuk.", "chain-gloves", "bone"),
-    item("ash-road-boots", "Kül Yolunun Son Adımları", "boots", 10, "epic", 0, 0.08, 2, null, "Tabanlarına kül ve çelik talaşı dolmuş. Geldikleri yol artık bir göçüğün altında.", "grave-boots", "ash"),
-    item("last-worker-boots", "Son İşçinin Çizmeleri", "boots", 11, "epic", 0, 0.055, 6, null, "Yırtık tabanları kat kat deriyle kapanmış. Sahibi ocağın son sesini bunlarla duymuş.", "worn-boots", "blood"),
-    item("dead-forge-steps", "Ölü Dövmenin İzleri", "boots", 12, "epic", 0, 0.1, 1, null, "Demir uçlarında kapanmış dökümhanenin işaretleri bulunur. Hiçbir kapı artık bu izleri tanımaz.", "tide-boots", "rust")
-    ,item('warden-verdict-helm', 'Harabe Yargıcının Son Yüzü', 'head', 8, 'boss', 0, .065, 3, null, 'Harabelerin ikinci muhafızının kemik perçinli hüküm miğferi. Bir daha aynı hüküm verilmeyecek.', 'iron-helm', 'bone')
-    ,item('ash-warden-grasp', 'Kül Muhafızının Son Pençesi', 'hands', 11, 'boss', 0, .085, 3, null, 'İkinci ocak muhafızının kan çizgili döküm eldiveni. Tutsakları ocağa sürükleyen parmaklar artık sessiz.', 'salt-gauntlets', 'blood')
+    item("slag-edge-sword", KabirI18n.t("Cürufun Son Ağzı"), "weapon", 10, "epic", 0.235, 0, 2, "sword", KabirI18n.t("Kapanmış ocağın siyah cürufu kılıcın ağzına işlemiş. Keskinliğin ardında kalın demir kalır."), "grave-sword", "rust"),
+    item("furnace-mourning-spear", KabirI18n.t("Ocağın Yas Mızrağı"), "weapon", 10, "epic", 0.225, 0.015, 3, "spear", KabirI18n.t("Isıyla eğrilmiş mızrak yeniden doğrultulmuş; sapında unutulmuş nöbetlerin izleri vardır."), "bell-spear", "ash"),
+    item("ember-vow-axe", KabirI18n.t("Sönmeyen Yemin"), "weapon", 11, "epic", 0.255, 0, 0, "axe", KabirI18n.t("Kızgın ocak demirinden dövülmüş çentikli balta. Sahibinin yemini çoktan yanmış, metal kalmıştır."), "executioner-axe", "blood"),
+    item("black-forge-sword", KabirI18n.t("Kara Dövmenin Hükmü"), "weapon", 11, "epic", 0.24, 0, 4, "sword", KabirI18n.t("Ağzına açılmış küçük deliklerde ocak isi birikir. Keskinlikten vazgeçip savaşçıyı ayakta tutar."), "grave-sword", "bone"),
+    item("last-coal-spear", KabirI18n.t("Son Kömürün Duası"), "weapon", 12, "epic", 0.27, 0, 1, "spear", KabirI18n.t("Demir ucunun üzerinde dua yerine kül durur. Ocağın son kömürü bu silah için söndürülmüş."), "bell-spear", "rust"),
+    item("furnace-oath-axe", KabirI18n.t("Ocağın Son Hükmü"), "weapon", 12, "boss", 0.3, 0, 0, "axe", KabirI18n.t("Ocak Kalbi sustuğunda geriye bıraktığı ağır infaz baltası. Artık hiçbir ateşe hizmet etmez."), "executioner-axe", "blood"),
+    item("slag-burial-chest", KabirI18n.t("Cüruf Kefeni"), "chest", 10, "epic", 0, 0.12, 2, null, KabirI18n.t("Soğuyan demir parçaları mezar derisine dikilmiş. Ölü bir ocağın ağırlığını taşır."), "coast-chest", "rust"),
+    item("ash-warden-chest", KabirI18n.t("Kül Nöbetinin Son Zırhı"), "chest", 11, "epic", 0, 0.125, 3, null, KabirI18n.t("Kül nöbetçisinin kararmış plakalarında yalnız son vardiyanın izleri kalmış."), "coast-chest", "ash"),
+    item("hollow-ember-chest", KabirI18n.t("İçi Boş Korun Kefeni"), "chest", 11, "epic", 0, 0.08, 9, null, KabirI18n.t("Kalın bezin içine kat kat deri dikilmiş. Demirden zayıf, bedeni ayakta tutmakta daha kuvvetli."), "torn-chest", "blood"),
+    item("buried-fire-chest", KabirI18n.t("Gömülen Ateşin Demiri"), "chest", 12, "epic", 0, 0.135, 1, null, KabirI18n.t("Ateşte unutulup yeniden sertleşmiş plakalar. Sahibinin adı da onlar kadar kararmış."), "grave-chest", "bone"),
+    item("last-shift-helm", KabirI18n.t("Son Vardiyanın Yüzü"), "head", 10, "epic", 0, 0.085, 1, null, KabirI18n.t("Siperindeki kurum hiç çıkmamış. Vardiya bitmiş ama miğfer sahibine dönememiş."), "iron-helm", "ash"),
+    item("coal-mourner-hood", KabirI18n.t("Kömür Yasçısının Örtüsü"), "head", 10, "epic", 0, 0.055, 6, null, KabirI18n.t("Ocakta kalanları arayan bir yasçının kalın başlığı. İç astarı eski yaraları sıcak tutar."), "cloth-hood", "blood"),
+    item("sealed-furnace-helm", KabirI18n.t("Mühürlü Ocağın Bakışı"), "head", 11, "epic", 0, 0.095, 0, null, KabirI18n.t("Yüzünü bir döküm maskesi örter. İçindeki tırnak izleri siperden dışarı hiç ulaşmamış."), "drowned-helm", "rust"),
+    item("no-dawn-helm", KabirI18n.t("Şafaksızın Son Yüzü"), "head", 12, "epic", 0, 0.07, 6, null, KabirI18n.t("Şafağı bekleyen bir işçinin demiri. Bekleyiş sona ermiş; kalın astar hâlâ sağlam."), "drowned-helm", "bone"),
+    item("slag-fingers", KabirI18n.t("Cüruf Parmakları"), "hands", 10, "epic", 0, 0.085, 1, null, KabirI18n.t("Erimiş metalin izleri eklemleri örtmüş. Bu eller artık bir ocak yakmayacak."), "salt-gauntlets", "rust"),
+    item("burnt-oath-wraps", KabirI18n.t("Yanmış Yeminin Sargıları"), "hands", 11, "epic", 0, 0.05, 6, null, KabirI18n.t("Kurumuş sargıların içine ağır deri sıkıştırılmış. Koru yumruklayan bir mahkûmdan kalmış."), "rag-wraps", "blood"),
+    item("black-anvil-grasp", KabirI18n.t("Kara Örsün Pençeleri"), "hands", 12, "epic", 0, 0.1, 0, null, KabirI18n.t("Kalın demir parmaklar ocağın örsünden yapılmış. Eldivenlerin içi sessiz ve soğuk."), "chain-gloves", "bone"),
+    item("ash-road-boots", KabirI18n.t("Kül Yolunun Son Adımları"), "boots", 10, "epic", 0, 0.08, 2, null, KabirI18n.t("Tabanlarına kül ve çelik talaşı dolmuş. Geldikleri yol artık bir göçüğün altında."), "grave-boots", "ash"),
+    item("last-worker-boots", KabirI18n.t("Son İşçinin Çizmeleri"), "boots", 11, "epic", 0, 0.055, 6, null, KabirI18n.t("Yırtık tabanları kat kat deriyle kapanmış. Sahibi ocağın son sesini bunlarla duymuş."), "worn-boots", "blood"),
+    item("dead-forge-steps", KabirI18n.t("Ölü Dövmenin İzleri"), "boots", 12, "epic", 0, 0.1, 1, null, KabirI18n.t("Demir uçlarında kapanmış dökümhanenin işaretleri bulunur. Hiçbir kapı artık bu izleri tanımaz."), "tide-boots", "rust")
+    ,item('warden-verdict-helm', KabirI18n.t('Harabe Yargıcının Son Yüzü'), 'head', 8, 'boss', 0, .065, 3, null, KabirI18n.t('Harabelerin ikinci muhafızının kemik perçinli hüküm miğferi. Bir daha aynı hüküm verilmeyecek.'), 'iron-helm', 'bone')
+    ,item('ash-warden-grasp', KabirI18n.t('Kül Muhafızının Son Pençesi'), 'hands', 11, 'boss', 0, .085, 3, null, KabirI18n.t('İkinci ocak muhafızının kan çizgili döküm eldiveni. Tutsakları ocağa sürükleyen parmaklar artık sessiz.'), 'salt-gauntlets', 'blood')
   ]);
   const catalog = Object.freeze(Object.fromEntries(items.map(i => [i.id, i])));
   const bossSignatures = Object.freeze({ 1:Object.freeze(['executioner-axe']),2:Object.freeze(['bell-spear']),3:Object.freeze(['hollow-crown-blade']),4:Object.freeze(['furnace-oath-axe']),ruinwarden:Object.freeze(['warden-chainmail','warden-verdict-helm']),ashwarden:Object.freeze(['ash-warden-chest','ash-warden-grasp']) });
   const signatureIds = new Set(Object.values(bossSignatures).flat());
-  const qualities = Object.freeze({ common: { name: 'Sıradan', rank: 0, color:'#c7bdae' }, uncommon: { name: 'Sıradışı', rank: 1, color:'#92ad7d' }, rare: { name: 'Nadir', rank: 2, color:'#82aac5' }, epic: { name: 'Epik', rank: 3, color:'#b394ce' }, boss: { name: 'Eşsiz', rank: 4, color:'#d6b475' } });
+  const qualities = Object.freeze({ common: { name: KabirI18n.t('Sıradan'), rank: 0, color:'#c7bdae' }, uncommon: { name: KabirI18n.t('Sıradışı'), rank: 1, color:'#92ad7d' }, rare: { name: KabirI18n.t('Nadir'), rank: 2, color:'#82aac5' }, epic: { name: KabirI18n.t('Epik'), rank: 3, color:'#b394ce' }, boss: { name: KabirI18n.t('Eşsiz'), rank: 4, color:'#d6b475' } });
   // Every identity has a fixed quality. Individual drops vary slightly in craftsmanship.
   function resolveItem(entry) {
     const def = entry && catalog[entry.id]; if (!def) return null;
@@ -334,7 +334,7 @@
     function unlock(id) {
       const skill = skillIndex[id];
       const access = skillAccess(state, id);
-      if (!access.canLearn) return result(false, access.known ? 'Bu yetenek zaten öğrenildi.' : access.reason);
+      if (!access.canLearn) return result(false, access.known ? KabirI18n.t('Bu yetenek zaten öğrenildi.') : access.reason);
       state.learned.push(id); state.points--;
       // An upgrade takes the place of its predecessor (same slot, same key); a first skill of a line takes a free slot.
       const upgraded = skill.requires ? state.loadout.indexOf(skill.requires) : -1, free = state.loadout.indexOf(null);
@@ -342,22 +342,22 @@
       changed('progression', { unlocked: id, level: state.level, points: state.points }); return result(true);
     }
     function assign(slot, id) {
-      if (!Number.isInteger(slot) || slot < 0 || slot >= SLOT_COUNT) return result(false, 'Geçersiz yetenek yuvası.');
-      if (id !== null && !state.learned.includes(id)) return result(false, 'Önce bu yeteneği öğren.');
+      if (!Number.isInteger(slot) || slot < 0 || slot >= SLOT_COUNT) return result(false, KabirI18n.t('Geçersiz yetenek yuvası.'));
+      if (id !== null && !state.learned.includes(id)) return result(false, KabirI18n.t('Önce bu yeteneği öğren.'));
       const previous = state.loadout[slot], other = id === null ? -1 : state.loadout.findIndex(o => o && skillIndex[o].line === skillIndex[id].line);
       if (other !== -1 && other !== slot) state.loadout[other] = previous;
       state.loadout[slot] = id; changed(); return result(true);
     }
     function equip(uid) {
       const entry = state.inventory.find(i => i.uid === uid);
-      if (!entry) return result(false, 'Bu eşya çantanda değil.');
+      if (!entry) return result(false, KabirI18n.t('Bu eşya çantanda değil.'));
       const def = catalog[entry.id];
-      if (def.level > state.level) return result(false, def.level + '. seviye gerekli.');
+      if (def.level > state.level) return result(false, (KabirI18n.lang === 'en' ? 'Requires level ' + def.level + '.' : def.level + KabirI18n.t('. seviye gerekli.')));
       state.equipment[def.slot] = uid; changed('progression', { equipped: uid, slot: def.slot }); return result(true);
     }
     function unequip(slot) {
-      if (!slots.includes(slot)) return result(false,'Geçersiz donanım yuvası.');
-      if (!state.equipment[slot]) return result(false,'Bu yuva zaten boş.');
+      if (!slots.includes(slot)) return result(false,KabirI18n.t('Geçersiz donanım yuvası.'));
+      if (!state.equipment[slot]) return result(false,KabirI18n.t('Bu yuva zaten boş.'));
       state.equipment[slot] = null; changed('progression',{unequipped:slot}); return result(true);
     }
     function stats() {

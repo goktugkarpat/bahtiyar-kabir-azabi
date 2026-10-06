@@ -2,11 +2,11 @@
 (function () {
   'use strict';
   const B = window.BABA = window.BABA || {};
-  const LABELS = { weapon: 'Silah', head: 'Baş', chest: 'Gövde', hands: 'Eller', boots: 'Ayaklar' };
-  const RARITY = { common: 'Sıradan', uncommon: 'Sıradışı', rare: 'Nadir', epic: 'Epik', boss: 'Eşsiz' };
-  const TYPE = { sword: 'Kılıç', axe: 'Balta', spear: 'Mızrak' };
+  const LABELS = { weapon: KabirI18n.t('Silah'), head: KabirI18n.t('Baş'), chest: KabirI18n.t('Gövde'), hands: KabirI18n.t('Eller'), boots: KabirI18n.t('Ayaklar') };
+  const RARITY = { common: KabirI18n.t('Sıradan'), uncommon: KabirI18n.t('Sıradışı'), rare: KabirI18n.t('Nadir'), epic: KabirI18n.t('Epik'), boss: KabirI18n.t('Eşsiz') };
+  const TYPE = { sword: KabirI18n.t('Kılıç'), axe: KabirI18n.t('Balta'), spear: KabirI18n.t('Mızrak') };
   const escape = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  const percent = n => Number((n * 100).toFixed(1)).toLocaleString('tr-TR') + '%';
+  const percent = n => Number((n * 100).toFixed(1)).toLocaleString(KabirI18n.lang === 'en' ? 'en-US' : 'tr-TR') + '%';
   // Prepainted miniatures match the weapon / armour family. The actual worn
   // object remains the live animated 3D figure; no extra thumbnail renderer is used.
   function menuGearIcon(def) {
@@ -269,17 +269,17 @@
     const getState = () => getGame() && getGame().progression;
     const overlay = document.createElement('section'); overlay.id = 'character'; overlay.className = 'screen overlay modal hidden';
     overlay.setAttribute('role', 'dialog'); overlay.setAttribute('aria-modal', 'true'); overlay.setAttribute('aria-labelledby', 'character-title');
-    overlay.innerHTML = '<div class="panel character-panel"><span class="funeral-effigy effigy-left" aria-hidden="true"></span><span class="funeral-effigy effigy-right" aria-hidden="true"></span><header class="panel-head"><div><span class="mourning-title">KABİR AZABI</span><h2 id="character-title">Karakter ve yetenekler</h2></div><button class="close" data-char="close" aria-label="Oyuna dön">×</button></header>' +
-      '<div class="funeral-verses"><span><span class="banner-inscription">Ölüm hakkın tezahürüdür</span></span><span><span class="banner-inscription">Her nefis ölümü tadacaktır</span></span></div><nav class="char-tabs" aria-label="Karakter sayfaları"><button data-char="tab" data-tab="inventory">Karakter ve çanta</button><button data-char="tab" data-tab="skills">Yetenek ağacı</button></nav>' +
-      '<div class="char-content"></div><footer class="char-footer"><div class="char-progress"></div><span class="char-status" role="status" aria-live="polite"></span><span class="funeral-quote"><span class="banner-inscription">Sonra bize döndürüleceksiniz</span></span><button class="btn small" data-char="close">Oyuna dön</button></footer></div>';
+    overlay.innerHTML = KabirI18n.t('<div class="panel character-panel"><span class="funeral-effigy effigy-left" aria-hidden="true"></span><span class="funeral-effigy effigy-right" aria-hidden="true"></span><header class="panel-head"><div><span class="mourning-title">KABİR AZABI</span><h2 id="character-title">Karakter ve yetenekler</h2></div><button class="close" data-char="close" aria-label="Oyuna dön">×</button></header>') +
+      KabirI18n.t('<div class="funeral-verses"><span><span class="banner-inscription">Ölüm hakkın tezahürüdür</span></span><span><span class="banner-inscription">Her nefis ölümü tadacaktır</span></span></div><nav class="char-tabs" aria-label="Karakter sayfaları"><button data-char="tab" data-tab="inventory">Karakter ve çanta</button><button data-char="tab" data-tab="skills">Yetenek ağacı</button></nav>') +
+      KabirI18n.t('<div class="char-content"></div><footer class="char-footer"><div class="char-progress"></div><span class="char-status" role="status" aria-live="polite"></span><span class="funeral-quote"><span class="banner-inscription">Sonra bize döndürüleceksiniz</span></span><button class="btn small" data-char="close">Oyuna dön</button></footer></div>');
     document.body.appendChild(overlay);
     if (!document.getElementById('skill-tree-style')) { const st = document.createElement('style'); st.id = 'skill-tree-style'; st.textContent = SKILL_TREE_CSS; document.head.appendChild(st); }
     const progress = overlay.querySelector('.char-progress'), content = overlay.querySelector('.char-content'), status = overlay.querySelector('.char-status');
     let renderedFilter = 'all';
     let opened = false, tab = 'inventory', selected = null, lastRevision = -1, priorFocus = null, previewFrame = 0, selectedSkill = 'cleave', selectedSlot = null, bagFilter = 'all', bagPage = 0, lastPointerType = 'mouse', tap = null, inspectScroll = 0;
     // ---- Item presentation: name, type line, one big primary stat with a difference arrow, then the rest. ----
-    const ATTR = { damage: ['Hasar bonusu', true], defense: ['Hasar azaltma', true], hp: ['Can gücü', false] };
-    const arrow = (d, pct) => Math.abs(d) < .00001 ? '<b class="cmp same" title="Aynı">=</b>' : '<b class="cmp ' + (d > 0 ? 'gain' : 'loss') + '"><i aria-hidden="true">' + (d > 0 ? '▲' : '▼') + '</i>' + (d > 0 ? '+' : '−') + (pct ? percent(Math.abs(d)) : Math.abs(d)) + '</b>';
+    const ATTR = { damage: [KabirI18n.t('Hasar bonusu'), true], defense: [KabirI18n.t('Hasar azaltma'), true], hp: [KabirI18n.t('Can gücü'), false] };
+    const arrow = (d, pct) => Math.abs(d) < .00001 ? KabirI18n.t('<b class="cmp same" title="Aynı">=</b>') : '<b class="cmp ' + (d > 0 ? 'gain' : 'loss') + '"><i aria-hidden="true">' + (d > 0 ? '▲' : '▼') + '</i>' + (d > 0 ? '+' : '−') + (pct ? percent(Math.abs(d)) : Math.abs(d)) + '</b>';
     const amount = (v, pct) => v ? '+' + (pct ? percent(v) : v) : pct ? '0%' : '0';
     function statLines(def, old, compare) {
       const primary = def.slot === 'weapon' ? 'damage' : 'defense';
@@ -288,17 +288,17 @@
     }
     function itemDetail(state, entry, compact) {
       const def = B.Progression.resolveItem(entry);
-      if (!def) return '<div class="char-empty-detail">' + icon(selectedSlot || 'chest') + '<h3>' + (selectedSlot ? LABELS[selectedSlot] + ' yuvası boş' : 'Bir eşya seç') + '</h3><p>Çantadan bir parçaya dokun. Özelliklerini ve giydiğinle farkını burada göreceksin.</p></div>';
+      if (!def) return '<div class="char-empty-detail">' + icon(selectedSlot || 'chest') + '<h3>' + (selectedSlot ? LABELS[selectedSlot] + KabirI18n.t(' yuvası boş') : KabirI18n.t('Bir eşya seç')) + KabirI18n.t('</h3><p>Çantadan bir parçaya dokun. Özelliklerini ve giydiğinle farkını burada göreceksin.</p></div>');
       const old = state.itemForSlot(def.slot), equipped = state.equipment[def.slot] === entry.uid, compare = !equipped && !!old, locked = def.level > state.level;
       const lines = statLines(def, equipped ? null : old, compare);
       const head = '<div class="cd-head"><span class="char-item-art cd-art">' + menuGearIcon(def) + '</span><div class="cd-title"><span class="cd-sub">' + RARITY[def.rarity] + ' · ' + (TYPE[def.type] || LABELS[def.slot]) + '</span><h3>' + escape(def.name) + '</h3></div></div>';
       const primary = '<div class="cd-primary"><span class="cd-plabel">' + lines.main.label + '</span><div class="cd-pline"><strong>' + lines.main.text + '</strong>' + lines.main.arrow + '</div></div>';
       const rest = lines.rest.length ? '<div class="cd-rest">' + lines.rest.map(r => '<div class="cd-row"><span>' + r.label + '</span><strong>' + r.text + '</strong>' + r.arrow + '</div>').join('') + '</div>' : '';
-      const req = '<div class="cd-chips"><span class="cd-chip ' + (locked ? 'bad' : 'ok') + '">' + (locked ? def.level + '. seviye gerekli' : 'Seviye ' + def.level) + '</span><span class="cd-chip power" title="Eşya gücü">Güç ' + def.power + '</span>' + (def.roll ? '<span class="cd-chip ' + (def.roll > 0 ? 'ok' : 'bad') + '" title="İşçilik">İşçilik ' + (def.roll > 0 ? '+' : '−') + Math.abs(def.roll) + '</span>' : '') + '</div>';
-      const worn = equipped ? '<div class="cd-worn"><i aria-hidden="true">✓</i> Kuşanılmış parça</div>' : '';
-      if (compact) return head + worn + primary + rest + req + '<p class="cd-hint">' + (equipped ? 'Çift tıkla: çıkar' : locked ? 'Henüz giyemezsin' : 'Çift tıkla: kuşan') + '</p>';
-      const note = equipped ? '' : '<p class="cd-note">' + (old ? 'Giydiğinle karşılaştırma: <b>' + escape(old.name) + '</b>' : 'Bu yuva şu anda boş') + '</p>';
-      const action = equipped ? '<button class="cd-btn calm" data-char="unequip" data-slot="' + def.slot + '">Çıkar</button>' : '<button class="cd-btn go" data-char="equip" data-uid="' + escape(entry.uid) + '" ' + (locked ? 'disabled' : '') + '>' + (locked ? def.level + '. seviye gerekli' : def.slot === 'weapon' ? 'Silahı kuşan' : 'Kuşan') + '</button>';
+      const req = '<div class="cd-chips"><span class="cd-chip ' + (locked ? 'bad' : 'ok') + '">' + (locked ? (KabirI18n.lang === 'en' ? 'Requires level ' + def.level : def.level + KabirI18n.t('. seviye gerekli')) : KabirI18n.t('Seviye ') + def.level) + KabirI18n.t('</span><span class="cd-chip power" title="Eşya gücü">Güç ') + def.power + '</span>' + (def.roll ? '<span class="cd-chip ' + (def.roll > 0 ? 'ok' : 'bad') + KabirI18n.t('" title="İşçilik">İşçilik ') + (def.roll > 0 ? '+' : '−') + Math.abs(def.roll) + '</span>' : '') + '</div>';
+      const worn = equipped ? KabirI18n.t('<div class="cd-worn"><i aria-hidden="true">✓</i> Kuşanılmış parça</div>') : '';
+      if (compact) return head + worn + primary + rest + req + '<p class="cd-hint">' + (equipped ? KabirI18n.t('Çift tıkla: çıkar') : locked ? KabirI18n.t('Henüz giyemezsin') : KabirI18n.t('Çift tıkla: kuşan')) + '</p>';
+      const note = equipped ? '' : '<p class="cd-note">' + (old ? KabirI18n.t('Giydiğinle karşılaştırma: <b>') + escape(old.name) + '</b>' : KabirI18n.t('Bu yuva şu anda boş')) + '</p>';
+      const action = equipped ? '<button class="cd-btn calm" data-char="unequip" data-slot="' + def.slot + KabirI18n.t('">Çıkar</button>') : '<button class="cd-btn go" data-char="equip" data-uid="' + escape(entry.uid) + '" ' + (locked ? 'disabled' : '') + '>' + (locked ? (KabirI18n.lang === 'en' ? 'Requires level ' + def.level : def.level + KabirI18n.t('. seviye gerekli')) : def.slot === 'weapon' ? KabirI18n.t('Silahı kuşan') : KabirI18n.t('Kuşan')) + '</button>';
       return head + worn + primary + rest + note + req + (def.description ? '<p class="cd-lore">' + escape(def.description) + '</p>' : '') + '<div class="cd-actions">' + action + '</div>';
     }
     // Small filled stat icons (own vectors; no network, no textures).
@@ -324,51 +324,51 @@
       const questReduction = getGame().quests && getGame().quests.benefits && getGame().quests.benefits.damageReduction;
       const oathDefense = Number.isFinite(questReduction) ? Math.max(0, Math.min(.12, questReduction)) : 0;
       const permanentDefense = oathDefense ? 1 - (1 - stats.defense) * (1 - oathDefense) : stats.defense;
-      const defenseTitle = 'Zırh ' + percent(stats.defense) + (oathDefense ? ' · Bu bölümün yemini ' + percent(oathDefense) + ' · Birlikte ' + percent(permanentDefense) : '');
+      const defenseTitle = KabirI18n.t('Zırh ') + percent(stats.defense) + (oathDefense ? KabirI18n.t(' · Bu bölümün yemini ') + percent(oathDefense) + KabirI18n.t(' · Birlikte ') + percent(permanentDefense) : '');
       const attackProfile = typeof getGame().normalAttackProfile === 'function' ? getGame().normalAttackProfile() : null;
       const attackDamage = attackProfile && Array.isArray(attackProfile.damage) ? attackProfile.damage : [25, 29, 36];
       const equipment = B.Progression.slots.map(slot => {
         const def = state.itemForSlot(slot), uid = state.equipment[slot], active = uid ? uid === selected : slot === selectedSlot;
-        return '<button class="char-equipment ' + (def ? 'worn rarity-' + def.rarity : 'empty') + (active ? ' selected' : '') + '" data-slot="' + slot + '" data-char="select" data-uid="' + escape(uid || '') + '" aria-pressed="' + active + '" aria-label="' + escape(LABELS[slot] + ' · ' + (def ? def.name + ' · Kuşanıldı · Çift tıkla çıkar' : 'Boş yuva')) + '">' + (def ? '<i class="eq-ribbon" aria-hidden="true" title="Kuşanıldı">✓</i>' : '') + '<span class="char-item-art">' + (def ? menuGearIcon(def) : icon(slot)) + '</span><span class="eq-label">' + LABELS[slot] + '</span><span class="eq-name">' + escape(def ? def.name : 'Boş') + '</span></button>';
+        return '<button class="char-equipment ' + (def ? 'worn rarity-' + def.rarity : 'empty') + (active ? ' selected' : '') + '" data-slot="' + slot + '" data-char="select" data-uid="' + escape(uid || '') + '" aria-pressed="' + active + '" aria-label="' + escape(LABELS[slot] + ' · ' + (def ? def.name + KabirI18n.t(' · Kuşanıldı · Çift tıkla çıkar') : KabirI18n.t('Boş yuva'))) + '">' + (def ? KabirI18n.t('<i class="eq-ribbon" aria-hidden="true" title="Kuşanıldı">✓</i>') : '') + '<span class="char-item-art">' + (def ? menuGearIcon(def) : icon(slot)) + '</span><span class="eq-label">' + LABELS[slot] + '</span><span class="eq-name">' + escape(def ? def.name : KabirI18n.t('Boş')) + '</span></button>';
       }).join('');
       const pageCount = Math.max(1, Math.ceil(visible.length / 16));
       bagPage = Math.min(bagPage, pageCount - 1);
       const pageItems = visible.slice(bagPage * 16, (bagPage + 1) * 16);
       const list = pageItems.map(entry => {
         const def = B.Progression.resolveItem(entry), equipped = state.equipment[def.slot] === entry.uid, upgrade = state.isUpgrade(entry), locked = def.level > state.level;
-        return '<button class="char-item rarity-' + def.rarity + (entry.uid === selected ? ' selected' : '') + (equipped ? ' equipped' : '') + (locked ? ' too-high' : '') + '" data-char="select" data-uid="' + escape(entry.uid) + '" data-item-slot="' + def.slot + '" aria-pressed="' + (entry.uid === selected) + '" aria-label="' + escape(def.name + ' · ' + RARITY[def.rarity] + ' · Seviye ' + def.level + ' · Güç ' + def.power + (equipped ? ' · Kuşanıldı' : upgrade ? ' · Kuşandığından daha iyi' : '')) + '"><span class="char-item-art">' + menuGearIcon(def) + '</span><span class="char-item-level" aria-hidden="true">' + (locked ? 'Sv ' + def.level : def.power) + '</span><strong class="char-item-name">' + escape(def.name) + '</strong>' + (upgrade && !locked ? '<b class="char-item-upgrade" title="Kuşandığından daha iyi" aria-label="Kuşandığından daha iyi">▲</b>' : '') + (equipped ? '<i class="char-item-ribbon" aria-hidden="true" title="Kuşanıldı">✓</i>' : '') + '<i class="char-quality" aria-hidden="true" title="' + RARITY[def.rarity] + '"></i></button>';
+        return '<button class="char-item rarity-' + def.rarity + (entry.uid === selected ? ' selected' : '') + (equipped ? ' equipped' : '') + (locked ? ' too-high' : '') + '" data-char="select" data-uid="' + escape(entry.uid) + '" data-item-slot="' + def.slot + '" aria-pressed="' + (entry.uid === selected) + '" aria-label="' + escape(def.name + ' · ' + RARITY[def.rarity] + KabirI18n.t(' · Seviye ') + def.level + KabirI18n.t(' · Güç ') + def.power + (equipped ? KabirI18n.t(' · Kuşanıldı') : upgrade ? KabirI18n.t(' · Kuşandığından daha iyi') : '')) + '"><span class="char-item-art">' + menuGearIcon(def) + '</span><span class="char-item-level" aria-hidden="true">' + (locked ? KabirI18n.t('Sv ') + def.level : def.power) + '</span><strong class="char-item-name">' + escape(def.name) + '</strong>' + (upgrade && !locked ? KabirI18n.t('<b class="char-item-upgrade" title="Kuşandığından daha iyi" aria-label="Kuşandığından daha iyi">▲</b>') : '') + (equipped ? KabirI18n.t('<i class="char-item-ribbon" aria-hidden="true" title="Kuşanıldı">✓</i>') : '') + '<i class="char-quality" aria-hidden="true" title="' + RARITY[def.rarity] + '"></i></button>';
       }).join('') + '<span class="char-item-empty" aria-hidden="true"></span>'.repeat(Math.max(0, 16 - pageItems.length));
-      const pagination = '<div class="bag-pagination"><button data-char="bag-page" data-direction="-1" aria-label="Önceki eşya sayfası" ' + (bagPage === 0 ? 'disabled' : '') + '>‹</button><span>' + (visible.length ? visible.length + ' eşya · ' : 'Bu türde eşyan yok · ') + (bagPage + 1) + ' / ' + pageCount + '</span><button data-char="bag-page" data-direction="1" aria-label="Sonraki eşya sayfası" ' + (bagPage + 1 >= pageCount ? 'disabled' : '') + '>›</button></div>';
+      const pagination = KabirI18n.t('<div class="bag-pagination"><button data-char="bag-page" data-direction="-1" aria-label="Önceki eşya sayfası" ') + (bagPage === 0 ? 'disabled' : '') + '>‹</button><span>' + (visible.length ? visible.length + KabirI18n.t(' eşya · ') : KabirI18n.t('Bu türde eşyan yok · ')) + (bagPage + 1) + ' / ' + pageCount + KabirI18n.t('</span><button data-char="bag-page" data-direction="1" aria-label="Sonraki eşya sayfası" ') + (bagPage + 1 >= pageCount ? 'disabled' : '') + '>›</button></div>';
       const entry = state.inventory.find(i => i.uid === selected), def = B.Progression.resolveItem(entry);
-      const filters = ['all', ...B.Progression.slots].map(slot => '<button class="char-filter' + (bagFilter === slot ? ' active' : '') + '" data-char="filter" data-filter="' + slot + '" aria-pressed="' + (bagFilter === slot) + '" title="' + (slot === 'all' ? 'Bütün eşyalar' : LABELS[slot]) + '" aria-label="' + (slot === 'all' ? 'Bütün eşyalar' : LABELS[slot] + ' eşyaları') + '">' + (slot === 'all' ? 'Tümü' : icon(slot)) + '</button>').join('');
-      const preview = typeof options.onPreview === 'function' ? '<figure class="char-preview"><span class="char-preview-label">Bahtiyar</span><canvas id="character-preview" width="420" height="520" aria-label="Bahtiyar’ın kuşandığı silah ve zırhları gösteren canlı karakter görünümü"></canvas><div class="char-preview-turn"><button data-char="turn" data-direction="-1" aria-label="Karakteri sola çevir">‹</button><button data-char="turn" data-direction="1" aria-label="Karakteri sağa çevir">›</button></div><figcaption>' + escape(weapon ? (TYPE[weapon.type] || 'Silah') + ' · ' + weapon.name : 'Silah yuvası boş') + '</figcaption></figure>' : '';
+      const filters = ['all', ...B.Progression.slots].map(slot => '<button class="char-filter' + (bagFilter === slot ? ' active' : '') + '" data-char="filter" data-filter="' + slot + '" aria-pressed="' + (bagFilter === slot) + '" title="' + (slot === 'all' ? KabirI18n.t('Bütün eşyalar') : LABELS[slot]) + '" aria-label="' + (slot === 'all' ? KabirI18n.t('Bütün eşyalar') : LABELS[slot] + KabirI18n.t(' eşyaları')) + '">' + (slot === 'all' ? KabirI18n.t('Tümü') : icon(slot)) + '</button>').join('');
+      const preview = typeof options.onPreview === 'function' ? KabirI18n.t('<figure class="char-preview"><span class="char-preview-label">Bahtiyar</span><canvas id="character-preview" width="420" height="520" aria-label="Bahtiyar’ın kuşandığı silah ve zırhları gösteren canlı karakter görünümü"></canvas><div class="char-preview-turn"><button data-char="turn" data-direction="-1" aria-label="Karakteri sola çevir">‹</button><button data-char="turn" data-direction="1" aria-label="Karakteri sağa çevir">›</button></div><figcaption>') + escape(weapon ? (TYPE[weapon.type] || KabirI18n.t('Silah')) + ' · ' + weapon.name : KabirI18n.t('Silah yuvası boş')) + '</figcaption></figure>' : '';
       const gear = B.Progression.slots.reduce((sum, slot) => sum + (state.itemForSlot(slot)?.power || 0), 0);
       const tile = (key, label, value, title = '') => '<span class="st-tile"' + (title ? ' title="' + escape(title) + '"' : '') + '>' + statIcon(key) + '<span class="st-text"><small>' + label + '</small><strong style="color:' + STAT[key][0] + '">' + value + '</strong></span></span>';
-      const statGrid = '<div class="char-stat-grid">' + tile('hp', 'Can', stats.maxHp) + tile('hit', 'Normal vuruş', Math.round(Math.round(attackDamage[0] * stats.damage) * damageScale) + '–' + Math.round(Math.round(attackDamage[2] * stats.damage) * damageScale)) + tile('def', 'Hasar azaltma', percent(permanentDefense), defenseTitle) + tile('crit', 'Kritik ihtimali', percent(stats.criticalChance)) + tile('critx', 'Kritik hasarı', '×' + stats.criticalMultiplier.toFixed(1)) + tile('power', 'Donanım gücü', gear) + '</div>';
-      return '<div class="char-inventory-layout' + (preview ? ' has-preview' : '') + '"><section class="char-sheet"><h3>Donanım <small>Kuşandıkların</small></h3>' + (preview ? '<div class="char-doll">' + preview + equipment + '</div>' : equipment) + statGrid + '</section>' +
-        '<section class="char-bag"><h3>Çanta <small>' + state.inventory.length + ' eşya</small></h3><div class="char-bag-toolbar">' + filters + '</div><div class="char-item-list char-bag-grid">' + (visible.length ? '' : '<p class="char-bag-empty">Bu türde eşyan yok.</p>') + list + '</div>' + pagination + '<p class="char-bag-help">Seç: incele · Çift tıkla veya iki kez dokun: kuşan / çıkar</p></section><section class="char-detail' + (def ? ' rarity-' + def.rarity : '') + '">' + itemDetail(state, entry, false) + '</section></div>';
+      const statGrid = '<div class="char-stat-grid">' + tile('hp', KabirI18n.t('Can'), stats.maxHp) + tile('hit', KabirI18n.t('Normal vuruş'), Math.round(Math.round(attackDamage[0] * stats.damage) * damageScale) + '–' + Math.round(Math.round(attackDamage[2] * stats.damage) * damageScale)) + tile('def', KabirI18n.t('Hasar azaltma'), percent(permanentDefense), defenseTitle) + tile('crit', KabirI18n.t('Kritik ihtimali'), percent(stats.criticalChance)) + tile('critx', KabirI18n.t('Kritik hasarı'), '×' + stats.criticalMultiplier.toFixed(1)) + tile('power', KabirI18n.t('Donanım gücü'), gear) + '</div>';
+      return '<div class="char-inventory-layout' + (preview ? ' has-preview' : '') + KabirI18n.t('"><section class="char-sheet"><h3>Donanım <small>Kuşandıkların</small></h3>') + (preview ? '<div class="char-doll">' + preview + equipment + '</div>' : equipment) + statGrid + '</section>' +
+        KabirI18n.t('<section class="char-bag"><h3>Çanta <small>') + state.inventory.length + KabirI18n.t(' eşya</small></h3><div class="char-bag-toolbar">') + filters + '</div><div class="char-item-list char-bag-grid">' + (visible.length ? '' : KabirI18n.t('<p class="char-bag-empty">Bu türde eşyan yok.</p>')) + list + '</div>' + pagination + KabirI18n.t('<p class="char-bag-help">Seç: incele · Çift tıkla veya iki kez dokun: kuşan / çıkar</p></section><section class="char-detail') + (def ? ' rarity-' + def.rarity : '') + '">' + itemDetail(state, entry, false) + '</section></div>';
     }
     // ---- Skill tree page: four horizontal paths, three tiers in each path. A lower tier upgrades the one above it in the same slot.
     const ROMAN = ['', 'I', 'II', 'III'];
-    const keyLabels = () => { try { const k = typeof options.keyLabels === 'function' ? options.keyLabels() : null; if (Array.isArray(k) && k.length >= 4) return k; } catch (_) { /* fall back */ } return ['SAĞ TIK', '1', '2', '3']; };
-    const capHtml = label => (label === 'SAĞ TIK' ? '<svg class="skt-mouse" aria-hidden="true"><use href="#i-mouse-r"/></svg>' : '') + escape(label);
-    const slotWord = label => ({ 'SAĞ TIK': 'Sağ tık', 'SOL TIK': 'Sol tık', 'ORTA TIK': 'Orta tık', 'FARE 4': 'Fare 4', 'FARE 5': 'Fare 5' }[label] || label + ' tuşu');
+    const keyLabels = () => { try { const k = typeof options.keyLabels === 'function' ? options.keyLabels() : null; if (Array.isArray(k) && k.length >= 4) return k; } catch (_) { /* fall back */ } return [KabirI18n.t('SAĞ TIK'), '1', '2', '3']; };
+    const capHtml = label => (label === KabirI18n.t('SAĞ TIK') ? '<svg class="skt-mouse" aria-hidden="true"><use href="#i-mouse-r"/></svg>' : '') + escape(label);
+    const slotWord = label => ({ 'SAĞ TIK': KabirI18n.t('Sağ tık'), 'SOL TIK': KabirI18n.t('Sol tık'), 'ORTA TIK': KabirI18n.t('Orta tık'), 'FARE 4': KabirI18n.t('Fare 4'), 'FARE 5': KabirI18n.t('Fare 5') }[label] || label + KabirI18n.t(' tuşu'));
     function talents(state) {
       const P = B.Progression, all = P.skills, chosen = all.find(s => s.id === selectedSkill) || all[0], byId = new Map(all.map(s => [s.id, s])), keys = keyLabels();
       const lineOf = id => P.lines.find(l => l.id === id) || P.lines[0];
       const learned = state.learned.includes(chosen.id), parent = byId.get(chosen.requires), prevFacts = parent ? new Map(P.skillFacts(parent)) : null;
       const access = P.skillAccess(state, chosen.id), slotOf = id => state.loadout.indexOf(id);
       const replaced = parent && slotOf(parent.id) >= 0 ? slotOf(parent.id) : -1;
-      const reason = access.canLearn ? '1 puanla öğren' + (replaced >= 0 ? ' · ' + parent.name + ' yerine geçer' : '') : access.reason;
+      const reason = access.canLearn ? KabirI18n.t('1 puanla öğren') + (replaced >= 0 ? ' · ' + parent.name + KabirI18n.t(' yerine geçer') : '') : access.reason;
       const columns = P.lines.map((line, c) => {
         const list = P.skillsByLine(line.id);
         const nodes = list.map((s, i) => {
           const gate = P.skillAccess(state, s.id), known = gate.known, blocked = gate.blocked, slot = slotOf(s.id);
           const canLearn = gate.canLearn, superseded = known && slot < 0 && list.some(next => next.tier > s.tier && state.learned.includes(next.id));
-          const stateText = slot >= 0 ? 'Etkin aşama' : superseded ? 'Önceki aşama' : known ? 'Öğrenildi' : gate.low ? 'Seviye ' + s.level : gate.missingTier ? 'Önce dört ' + ROMAN[s.tier - 1] + '. aşama' : escape(gate.reason);
+          const stateText = slot >= 0 ? KabirI18n.t('Etkin aşama') : superseded ? KabirI18n.t('Önceki aşama') : known ? KabirI18n.t('Öğrenildi') : gate.low ? KabirI18n.t('Seviye ') + s.level : gate.missingTier ? KabirI18n.t('Önce dört ') + ROMAN[s.tier - 1] + KabirI18n.t('. aşama') : escape(gate.reason);
           const link = i ? '<i class="skt-link ' + (known ? 'lit' : canLearn ? 'ready' : '') + '" aria-hidden="true"></i>' : '';
           return link + '<button data-char="skill" data-skill="' + s.id + '" data-line="' + line.id + '" data-tier="' + s.tier + '" class="skt-node ' + (known ? 'learned' : blocked ? 'locked' : canLearn ? 'available' : 'pending') + (superseded ? ' superseded' : '') + (slot >= 0 ? ' slotted' : '') + (s.id === chosen.id ? ' selected' : '') +
-            '" aria-pressed="' + (s.id === chosen.id) + '" title="' + escape(s.name) + ' · ' + ROMAN[s.tier] + '. aşama · seviye ' + s.level + (s.tier > 1 ? ' · Önce ' + ROMAN[s.tier - 1] + '. aşamadaki dört yetenek' : '') + '">' +
+            '" aria-pressed="' + (s.id === chosen.id) + '" title="' + escape(s.name) + ' · ' + ROMAN[s.tier] + KabirI18n.t('. aşama · seviye ') + s.level + (s.tier > 1 ? KabirI18n.t(' · Önce ') + ROMAN[s.tier - 1] + KabirI18n.t('. aşamadaki dört yetenek') : '') + '">' +
             '<i class="skt-emblem">' + icon(s.id) + '<b class="skt-tier">' + ROMAN[s.tier] + '</b></i><strong>' + escape(s.name) + '</strong><small class="skt-state">' + stateText + '</small>' +
             (slot >= 0 ? '<span class="skt-slotcap">' + capHtml(keys[slot]) + '</span>' : '') + '</button>';
         }).join('');
@@ -376,24 +376,24 @@
       }).join('');
       const facts = P.skillFacts(chosen).map(([label, value]) => {
         const before = prevFacts ? prevFacts.get(label) : undefined, changed = before !== undefined && before !== value;
-        const hint = (label.startsWith('Temel ') ? 'Silah, zorluk ve geçici etkiler gerçek hasarı değiştirir.' : '') + (changed ? ' Önceki aşama: ' + before : '');
+        const hint = (label.startsWith(KabirI18n.t('Temel ')) ? KabirI18n.t('Silah, zorluk ve geçici etkiler gerçek hasarı değiştirir.') : '') + (changed ? KabirI18n.t(' Önceki aşama: ') + before : '');
         return '<div class="skt-fact' + (changed ? ' changed' : '') + '"><span' + (hint ? ' title="' + escape(hint.trim()) + '"' : '') + '>' + escape(label) + '</span><b>' + escape(value) + '</b></div>';
       }).join('');
-      const assignment = learned ? '<div class="skt-assign"><small>Hangi yuvaya konsun?</small><div>' + [0, 1, 2, 3].map(slot => {
+      const assignment = learned ? KabirI18n.t('<div class="skt-assign"><small>Hangi yuvaya konsun?</small><div>') + [0, 1, 2, 3].map(slot => {
         const here = state.loadout[slot] === chosen.id, other = byId.get(state.loadout[slot]);
-        return '<button aria-label="' + escape(slotWord(keys[slot], slot) + ' yuvasına ' + chosen.name + ' ata') + '" title="' + escape(here ? 'Bu yuvada' : other ? other.name + ' yerine ata' : 'Boş yuvaya ata') + '" data-char="assign" data-skill="' + chosen.id + '" data-slot="' + slot + '" ' + (here ? 'disabled' : '') + '><span class="skt-cap">' + capHtml(keys[slot]) + '</span><span>' + (here ? 'Burada' : other ? escape(other.name) + ' yerine' : 'Boş yuva') + '</span></button>';
+        return '<button aria-label="' + escape(slotWord(keys[slot], slot) + KabirI18n.t(' yuvasına ') + chosen.name + KabirI18n.t(' ata')) + '" title="' + escape(here ? KabirI18n.t('Bu yuvada') : other ? (KabirI18n.lang === 'en' ? 'Replace ' + other.name : other.name + ' yerine ata') : KabirI18n.t('Boş yuvaya ata')) + '" data-char="assign" data-skill="' + chosen.id + '" data-slot="' + slot + '" ' + (here ? 'disabled' : '') + '><span class="skt-cap">' + capHtml(keys[slot]) + '</span><span>' + (here ? KabirI18n.t('Burada') : other ? (KabirI18n.lang === 'en' ? 'Replace ' + escape(other.name) : escape(other.name) + ' yerine') : KabirI18n.t('Boş yuva')) + '</span></button>';
       }).join('') + '</div></div>' : '';
       const loadout = state.loadout.map((id, slot) => {
         const s = byId.get(id), label = keys[slot];
-        return '<div class="skt-slot' + (s ? '' : ' empty') + '"' + (s ? ' data-line="' + s.line + '" style="--line:' + lineOf(s.line).color + '"' : '') + '><span class="skt-cap">' + capHtml(label) + '</span><button aria-label="' + escape((s ? s.name : 'Boş yetenek yuvası') + ' · ' + label) + '" title="' + escape(s ? s.name : 'Yetenek öğren ve ata') + '" data-char="skill" data-skill="' + (id || chosen.id) + '">' + (s ? icon(s.id) + '<span><strong>' + escape(s.name) + '</strong><small>' + ROMAN[s.tier] + '. aşama</small></span>' : '<span><strong>Boş yuva</strong><small>Yetenek öğren ve ata</small></span>') + '</button>' + (s ? '<button class="skt-remove" data-char="assign" data-slot="' + slot + '" data-skill="" aria-label="' + escape(s.name) + ' yuvasını boşalt">×</button>' : '') + '</div>';
+        return '<div class="skt-slot' + (s ? '' : ' empty') + '"' + (s ? ' data-line="' + s.line + '" style="--line:' + lineOf(s.line).color + '"' : '') + '><span class="skt-cap">' + capHtml(label) + '</span><button aria-label="' + escape((s ? s.name : KabirI18n.t('Boş yetenek yuvası')) + ' · ' + label) + '" title="' + escape(s ? s.name : KabirI18n.t('Yetenek öğren ve ata')) + '" data-char="skill" data-skill="' + (id || chosen.id) + '">' + (s ? icon(s.id) + '<span><strong>' + escape(s.name) + '</strong><small>' + ROMAN[s.tier] + KabirI18n.t('. aşama</small></span>') : KabirI18n.t('<span><strong>Boş yuva</strong><small>Yetenek öğren ve ata</small></span>')) + '</button>' + (s ? '<button class="skt-remove" data-char="assign" data-slot="' + slot + '" data-skill="" aria-label="' + escape(s.name) + KabirI18n.t(' yuvasını boşalt">×</button>') : '') + '</div>';
       }).join('');
       const line = lineOf(chosen.line);
-      return '<div class="skt-wrap"><div class="skt-top"><div class="skt-loadout"><h4>Donanılan yetenekler <small>' + capHtml(keys[0]) + ' · ' + escape(keys[1]) + ' · ' + escape(keys[2]) + ' · ' + escape(keys[3]) + '</small></h4><div class="skt-slots">' + loadout + '</div></div>' +
-        '<span class="skt-points"><b>' + state.points + '</b> yetenek puanı</span></div>' +
-        '<div class="skt-workspace"><div class="skt-tree"><div class="skt-cols">' + columns + '</div><p class="skt-note">Çift tıkla veya iki kez dokun: öğren. Sonraki aşama için önceki dört yeteneği tamamla; ardından istediğin sırayla yükselt.</p></div>' +
-        '<aside class="skt-inspect" data-line="' + chosen.line + '" style="--line:' + line.color + '"><small class="skt-kicker"><span class="skt-tiernum" data-tier="' + chosen.tier + '">' + ROMAN[chosen.tier] + '. AŞAMA</span> ' + escape(line.name) + ' · seviye ' + chosen.level + '</small>' +
+      return KabirI18n.t('<div class="skt-wrap"><div class="skt-top"><div class="skt-loadout"><h4>Donanılan yetenekler <small>') + capHtml(keys[0]) + ' · ' + escape(keys[1]) + ' · ' + escape(keys[2]) + ' · ' + escape(keys[3]) + '</small></h4><div class="skt-slots">' + loadout + '</div></div>' +
+        '<span class="skt-points"><b>' + state.points + KabirI18n.t('</b> yetenek puanı</span></div>') +
+        '<div class="skt-workspace"><div class="skt-tree"><div class="skt-cols">' + columns + KabirI18n.t('</div><p class="skt-note">Çift tıkla veya iki kez dokun: öğren. Sonraki aşama için önceki dört yeteneği tamamla; ardından istediğin sırayla yükselt.</p></div>') +
+        '<aside class="skt-inspect" data-line="' + chosen.line + '" style="--line:' + line.color + '"><small class="skt-kicker"><span class="skt-tiernum" data-tier="' + chosen.tier + '">' + ROMAN[chosen.tier] + KabirI18n.t('. AŞAMA</span> ') + escape(line.name) + KabirI18n.t(' · seviye ') + chosen.level + '</small>' +
         '<header>' + icon(chosen.id) + '<h3>' + escape(chosen.name) + '</h3></header><p>' + escape(chosen.description) + '</p>' +
-        (chosen.delta ? '<p class="skt-delta" title="' + escape(chosen.delta) + '"><b>▲ ' + ROMAN[chosen.tier] + '. aşama:</b> Önceki aşamaya göre güçlendi.</p>' : '') +
+        (chosen.delta ? '<p class="skt-delta" title="' + escape(chosen.delta) + '"><b>▲ ' + ROMAN[chosen.tier] + KabirI18n.t('. aşama:</b> Önceki aşamaya göre güçlendi.</p>') : '') +
         '<div class="skt-facts">' + facts + '</div>' +
         '<button class="skt-learn" data-char="unlock" data-skill="' + chosen.id + '" ' + (!access.canLearn ? 'disabled' : '') + '>' + escape(reason) + '</button>' + assignment + '</aside></div></div>';
     }
@@ -457,10 +457,10 @@
       const scroll = { content: content.scrollTop, bag: content.querySelector('.char-bag-grid')?.scrollTop || 0, tree: content.querySelector('.skt-tree')?.scrollTop || 0 };
       const focused = rememberFocus(); hideTooltip(); if (inspectScroll) clearTimeout(inspectScroll); inspectScroll = 0;
       const min = B.Progression.thresholds[state.level - 1], max = state.nextLevelXp();
-      progress.innerHTML = '<div><strong>Seviye ' + state.level + '</strong><span>' + (max ? 'Tecrübe ' + (state.xp - min) + ' / ' + (max - min) : 'En yüksek seviye') + '</span><b class="char-points' + (state.points ? ' on' : '') + '">' + state.points + ' yetenek puanı</b></div>';
+      progress.innerHTML = KabirI18n.t('<div><strong>Seviye ') + state.level + '</strong><span>' + (max ? KabirI18n.t('Tecrübe ') + (state.xp - min) + ' / ' + (max - min) : KabirI18n.t('En yüksek seviye')) + '</span><b class="char-points' + (state.points ? ' on' : '') + '">' + state.points + KabirI18n.t(' yetenek puanı</b></div>');
       overlay.querySelectorAll('[data-char="tab"]').forEach(el => { const active = el.dataset.tab === tab; el.classList.toggle('active', active); el.setAttribute('aria-pressed', String(active)); });
       overlay.querySelector('.character-panel').dataset.page = tab;
-      overlay.querySelector('#character-title').textContent = tab === 'skills' ? 'Yetenek ağacı' : 'Karakter ve çanta';
+      overlay.querySelector('#character-title').textContent = tab === 'skills' ? KabirI18n.t('Yetenek ağacı') : KabirI18n.t('Karakter ve çanta');
       overlay.querySelector('[data-tab="skills"]').dataset.points = state.points;
       stopPreview(); content.innerHTML = tab === 'skills' ? talents(state) : inventory(state);
       if (samePage) {
@@ -491,7 +491,7 @@
     }
     function change(result, message, separateFeedback = false) {
       if (!result) return;
-      status.textContent = result.ok ? message || 'Değişiklik uygulandı.' : result.reason;
+      status.textContent = result.ok ? message || KabirI18n.t('Değişiklik uygulandı.') : result.reason;
       if (result.ok && typeof options.onChange === 'function') options.onChange(getState());
       refresh(true);
       if (!separateFeedback) showToast(result.ok ? 'equip' : 'deny', status.textContent, '', result.ok ? FXC.calm : '#e0705c');
@@ -526,7 +526,7 @@
     function feedback(kind, def, uid, from) {
       const slotEl = [...content.querySelectorAll('.char-equipment')].find(el => el.dataset.slot === def.slot), cell = bagCell(uid), portrait = content.querySelector('.char-preview');
       const color = kind === 'equip' ? FXC[def.rarity] || FXC.common : FXC.calm;
-      showToast(kind, kind === 'equip' ? 'Kuşanıldı' : 'Çıkarıldı', def.name, color);
+      showToast(kind, kind === 'equip' ? KabirI18n.t('Kuşanıldı') : KabirI18n.t('Çıkarıldı'), def.name, color);
       if (kind === 'equip') {
         try { if (B.Audio && B.Audio.play) B.Audio.play('parry', { volume: .17 }); } catch (e) { /* sound is optional */ }
         if (slotEl) slotEl.classList.add('fx-await');
@@ -543,22 +543,22 @@
       const state = getState(); if (!state) return;
       const entry = state.inventory.find(i => i.uid === uid), def = B.Progression.resolveItem(entry); if (!def) return;
       const from = artRect(source || bagCell(uid)), result = state.equip(uid);
-      change(result, 'Kuşanıldı: ' + def.name, true);
+      change(result, KabirI18n.t('Kuşanıldı: ') + def.name, true);
       if (result.ok) feedback('equip', def, uid, from); else showToast('deny', result.reason, '', '#e0705c');
     }
     function doUnequip(slot, source) {
       const state = getState(); if (!state || typeof state.unequip !== 'function') return;
       const entry = state.inventory.find(i => i.uid === state.equipment[slot]), def = B.Progression.resolveItem(entry);
-      if (!def) { status.textContent = 'Bu yuva zaten boş.'; return; }
+      if (!def) { status.textContent = KabirI18n.t('Bu yuva zaten boş.'); return; }
       const from = artRect([...content.querySelectorAll('.char-equipment')].find(el => el.dataset.slot === slot) || source), result = state.unequip(slot);
-      change(result, 'Çıkarıldı: ' + def.name, true);
+      change(result, KabirI18n.t('Çıkarıldı: ') + def.name, true);
       if (result.ok) feedback('unequip', def, entry.uid, from); else showToast('deny', result.reason, '', '#e0705c');
     }
     function toggleEquipment(button) {
       const state = getState(); if (!state) return;
       if (inspectScroll) clearTimeout(inspectScroll); inspectScroll = 0; hideTooltip();
       if (button.classList.contains('char-equipment')) {
-        if (!state.equipment[button.dataset.slot]) { status.textContent = 'Bu yuva zaten boş.'; return; }
+        if (!state.equipment[button.dataset.slot]) { status.textContent = KabirI18n.t('Bu yuva zaten boş.'); return; }
         doUnequip(button.dataset.slot, button);
       } else {
         const entry = state.inventory.find(i => i.uid === button.dataset.uid), def = B.Progression.resolveItem(entry);
@@ -588,7 +588,7 @@
       const state = getState(); if (!state || state.learned.includes(id)) return;
       selectedSkill = id;
       const skill = B.Progression.skills.find(s => s.id === id);
-      change(state.unlock(id), skill ? 'Öğrenildi: ' + skill.name : undefined);
+      change(state.unlock(id), skill ? KabirI18n.t('Öğrenildi: ') + skill.name : undefined);
     }
     overlay.addEventListener('pointerdown', event => { lastPointerType = event.pointerType || 'mouse'; hideTooltip(); });
     overlay.addEventListener('click', event => {

@@ -3,34 +3,34 @@
   'use strict';
   var B = window.BABA, T = window.THREE, PI = Math.PI;
   var ROOMS = [
-    { id: 0, name: 'Yanmış Mezarlık', x: 0, z: 4, w: 24, d: 22 },
-    { id: 1, name: 'Köklerin Yolu', x: 0, z: -23, w: 24, d: 24 },
-    { id: 2, name: 'Boğulmuş Sokak', x: 0, z: -52, w: 24, d: 24 },
-    { id: 3, name: 'Çürük İskele', x: 0, z: -81, w: 24, d: 26 },
-    { id: 4, name: 'Kara Kök Meydanı', x: 0, z: -112, w: 26, d: 26 },
-    { id: 5, name: 'Son Fener', x: 0, z: -140, w: 22, d: 20 },
-    { id: 6, name: 'Boğulmuş Çanlık', x: 0, z: -172, w: 32, d: 36 }
+    { id: 0, name: KabirI18n.t('Yanmış Mezarlık'), x: 0, z: 4, w: 24, d: 22 },
+    { id: 1, name: KabirI18n.t('Köklerin Yolu'), x: 0, z: -23, w: 24, d: 24 },
+    { id: 2, name: KabirI18n.t('Boğulmuş Sokak'), x: 0, z: -52, w: 24, d: 24 },
+    { id: 3, name: KabirI18n.t('Çürük İskele'), x: 0, z: -81, w: 24, d: 26 },
+    { id: 4, name: KabirI18n.t('Kara Kök Meydanı'), x: 0, z: -112, w: 26, d: 26 },
+    { id: 5, name: KabirI18n.t('Son Fener'), x: 0, z: -140, w: 22, d: 20 },
+    { id: 6, name: KabirI18n.t('Boğulmuş Çanlık'), x: 0, z: -172, w: 32, d: 36 }
   ];
   var ENCOUNTERS = [
-    { id: 'burnt-graves', room: 0, name: 'Toprak Ölülerini Bırakmıyor', clearText: 'Kökler geri çekildi. Orman yoluna ilerle.', spawns: [
+    { id: 'burnt-graves', room: 0, name: KabirI18n.t('Toprak Ölülerini Bırakmıyor'), clearText: KabirI18n.t('Kökler geri çekildi. Orman yoluna ilerle.'), spawns: [
       { type: 'drowned', x: -4, z: 1 }, { type: 'drowned', x: 4, z: -2 }, { type: 'crawler', x: 0, z: -4 }] },
-    { id: 'root-road', room: 1, name: 'Kara Kök Nöbeti', clearText: 'Yanmış ağaçlar sustu. Kasaba aşağıda.', spawns: [
+    { id: 'root-road', room: 1, name: KabirI18n.t('Kara Kök Nöbeti'), clearText: KabirI18n.t('Yanmış ağaçlar sustu. Kasaba aşağıda.'), spawns: [
       { type: 'rootborn', x: -5, z: -18 }, { type: 'crawler', x: 5, z: -20 }, { type: 'drowned', x: -3, z: -25 },
       { type: 'urchin', x: 4, z: -27 }, { type: 'crawler', x: 0, z: -30 }] },
-    { id: 'drowned-street', room: 2, name: 'Denizin Geri Verdiği', clearText: 'Boğulmuş sokak açıldı. İskeleye git.', spawns: [
+    { id: 'drowned-street', room: 2, name: KabirI18n.t('Denizin Geri Verdiği'), clearText: KabirI18n.t('Boğulmuş sokak açıldı. İskeleye git.'), spawns: [
       { type: 'drowned', x: -4, z: -45 }, { type: 'rootborn', x: 4, z: -47 }, { type: 'lantern', x: -6, z: -53 },
       { type: 'urchin', x: 5, z: -55 }, { type: 'drowned', x: -2, z: -58 }, { type: 'crawler', x: 3, z: -60 }] },
-    { id: 'rotting-pier', room: 3, name: 'İskelenin Altındaki Sesler', clearText: 'İskele sustu. Meydanın köklerini kes.', spawns: [
+    { id: 'rotting-pier', room: 3, name: KabirI18n.t('İskelenin Altındaki Sesler'), clearText: KabirI18n.t('İskele sustu. Meydanın köklerini kes.'), spawns: [
       { type: 'urchin', x: -5, z: -73 }, { type: 'drowned', x: 4, z: -74 }, { type: 'crawler', x: -3, z: -79 },
       { type: 'lantern', x: 6, z: -81 }, { type: 'rootborn', x: 0, z: -84 }, { type: 'urchin', x: -5, z: -88 }, { type: 'crawler', x: 4, z: -90 }] },
-    { id: 'black-root-square', room: 4, name: 'Kıyının Son Nöbeti', clearText: 'Meydan açıldı. Son Fener’de yemini mühürle.', spawns: [
+    { id: 'black-root-square', room: 4, name: KabirI18n.t('Kıyının Son Nöbeti'), clearText: KabirI18n.t('Meydan açıldı. Son Fener’de yemini mühürle.'), spawns: [
       { type: 'rootborn', x: -6, z: -104 }, { type: 'rootborn', x: 6, z: -104 }, { type: 'lantern', x: 0, z: -111 },
       { type: 'drowned', x: -4, z: -112 }, { type: 'crawler', x: 5, z: -114 }, { type: 'urchin', x: -6, z: -118 },
       { type: 'lantern', x: 5, z: -120 }, { type: 'drowned', x: 0, z: -121 }] },
-    { id: 'bell-of-the-deep', room: 6, name: 'Derinliklerin Çancısı', spawns: [{ type: 'bell', x: 0, z: -178, boss: true }] }
+    { id: 'bell-of-the-deep', room: 6, name: KabirI18n.t('Derinliklerin Çancısı'), spawns: [{ type: 'bell', x: 0, z: -178, boss: true }] }
   ];
   function build(scene) {
-    var root = new T.Group(); root.name = 'Kara Kıyı'; scene.add(root);
+    var root = new T.Group(); root.name = KabirI18n.t('Kara Kıyı'); scene.add(root);
     var rooms = ROOMS.map(function (r) { return Object.assign({}, r); });
     var colliders = [], occluders = [], textures = [], geometries = [], materials = {}, batches = {}, roomGroups = [];
     var animated = [], lightSources = [], lights = [], disposed = false, seed = 47291, quality = 'high';
@@ -502,7 +502,7 @@
     };
     water.customProgramCacheKey = function () { return 'kara-coast-water-7'; };
     var seaGeo = geo(new T.PlaneGeometry(100, 245, 70, 154)); seaGeo.rotateX(-PI / 2);
-    var sea = new T.Mesh(seaGeo, water); sea.position.set(58, -.52, -89); sea.receiveShadow = true; sea.name = 'Kara Deniz'; root.add(sea);
+    var sea = new T.Mesh(seaGeo, water); sea.position.set(58, -.52, -89); sea.receiveShadow = true; sea.name = KabirI18n.t('Kara Deniz'); root.add(sea);
     // Broken, restrained shore foam; no straight bright strip or pixel noise.
     var foamCanvas=document.createElement('canvas');foamCanvas.width=128;foamCanvas.height=512;var fc=foamCanvas.getContext('2d');
     for(var j=0;j<34;j++){var x=50+rnd()*28,y=rnd()*512,r=5+rnd()*11,g=fc.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,'rgba(139,171,171,.20)');g.addColorStop(1,'rgba(139,171,171,0)');fc.fillStyle=g;fc.save();fc.translate(x,y);fc.scale(.65,1.6);fc.translate(-x,-y);fc.fillRect(x-r,y-r,r*2,r*2);fc.restore();}
@@ -521,7 +521,7 @@
     var particlesGeo = geo(new T.BufferGeometry()), points = new Float32Array(180 * 3);
     for (var i = 0; i < 180; i++) { points[i * 3] = (rnd() - .5) * 38; points[i * 3 + 1] = .35 + rnd() * 7; points[i * 3 + 2] = -rnd() * 202 + 16; }
     particlesGeo.setAttribute('position', new T.BufferAttribute(points, 3)); materials.ash = new T.PointsMaterial({ color: 0x9ca898, size: .055, transparent: true, opacity: .36, depthWrite: false, sizeAttenuation: true });
-    var ash = new T.Points(particlesGeo, materials.ash); ash.name = 'Kıyı Külü'; root.add(ash);
+    var ash = new T.Points(particlesGeo, materials.ash); ash.name = KabirI18n.t('Kıyı Külü'); root.add(ash);
     var encounterList=ENCOUNTERS.map(function(e){return Object.assign({},e);});
     var expansion=B.ChapterExpansion.build(root,materials,rooms,encounterList,colliders,2,lightSources),allRooms=rooms.concat(expansion.rooms);
     function inFloor(x, z, radius) {
@@ -608,7 +608,7 @@
     function setQuality(cfg) { quality = typeof cfg === 'string' ? cfg : cfg.quality || cfg.preset || 'high'; ash.visible = quality !== 'low'; }
     function dispose() { if (disposed) return; disposed = true; expansion.dispose(); scene.remove(root); root.traverse(function (n) { if (n.isInstancedMesh) n.dispose(); }); geometries.forEach(function (g) { g.dispose(); }); Object.keys(materials).forEach(function (k) { materials[k].dispose(); }); textures.forEach(function (t) { t.dispose(); }); root.clear(); }
     root.updateMatrixWorld(true);
-    return { chapter: 2, name: 'Kara Kıyı', root: root, rooms: allRooms, paths: expansion.paths, encounters: encounterList, spawn: { x: 0, z: 10 }, checkpoint: { x: 0, z: -141 }, bossSpawn: { x: 0, z: -178 },
+    return { chapter: 2, name: KabirI18n.t('Kara Kıyı'), root: root, rooms: allRooms, paths: expansion.paths, encounters: encounterList, spawn: { x: 0, z: 10 }, checkpoint: { x: 0, z: -141 }, bossSpawn: { x: 0, z: -178 },
       effectHeightAt: function(x,z,r){r=r||0;if(z-r<-68&&z+r>-94)return .14;if(z-r<-154)return .065;for(var i=0;i<rooms.length-1;i++){var lo=rooms[i].z-rooms[i].d*.5,hi=rooms[i+1].z+rooms[i+1].d*.5;if(z-r<lo&&z+r>hi)return .14;}return .055;},
       colliders: colliders, occluders: occluders, materials: materials, move: move, isWalkable: isWalkable, hasClearPath: hasClearPath, pathTo: pathTo, roomAt: roomAt,
       update: update, dispose: dispose, setQuality: setQuality, atmosphereAt: atmosphereAt,

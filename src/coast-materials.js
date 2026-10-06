@@ -11,7 +11,7 @@
         entry.source.data = image; entry.loaded = true;
         entry.users.forEach(function (t) { t.needsUpdate = true; }); entry.users.length = 0; resolve();
       };
-      image.onerror = function () { var error = new Error('Kıyı kaplaması yüklenemedi: ' + name + '/' + channel); errors.push(error); reject(error); };
+      image.onerror = function () { var error = new Error(KabirI18n.t('Kıyı kaplaması yüklenemedi: ') + name + '/' + channel); errors.push(error); reject(error); };
       image.src = url;
     }));
     entry.make = function () {

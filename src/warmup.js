@@ -22,13 +22,13 @@
   /* ───────────── page content (Skia raster + compositor programs) ───────────── */
   function toastStates(box) {
     for (const kind of ['rage', 'seal', 'rarity-rare', 'rarity-epic', 'rarity-boss']) {
-      const d = document.createElement('div'); d.className = 'toast ' + kind; d.textContent = 'Kara Kıyı 0123456789'; box.appendChild(d);
+      const d = document.createElement('div'); d.className = 'toast ' + kind; d.textContent = KabirI18n.t('Kara Kıyı 0123456789'); box.appendChild(d);
     }
   }
   function warningStates(box) {
     for (const [cls, x, y] of [['', 120, 200], [' unblockable', 300, 200], [' unblockable late', 480, 200]]) {
       const el = document.createElement('div'); el.className = 'direction-warning' + cls; el.style.left = x + 'px'; el.style.top = y + 'px';
-      const lab = document.createElement('span'); lab.className = 'dw-label'; const tag = document.createElement('b'); tag.textContent = cls ? 'KAÇIN' : 'DİKKAT'; lab.append(tag, 'Tehlike');
+      const lab = document.createElement('span'); lab.className = 'dw-label'; const tag = document.createElement('b'); tag.textContent = cls ? KabirI18n.t('KAÇIN') : KabirI18n.t('DİKKAT'); lab.append(tag, KabirI18n.t('Tehlike'));
       el.innerHTML = '<svg viewBox="0 0 40 40" aria-hidden="true"><path d="M20 3 37 34H3Z"/><path d="M20 14v10M20 29v.5"/></svg>'; el.append(lab); box.appendChild(el);
     }
   }
@@ -42,11 +42,11 @@
   function richState(root) {
     const text = (el, v) => { if (el) el.textContent = v; };
     const lv = root.querySelector('#level-up');
-    if (lv) { lv.classList.add('show'); text(lv.querySelector('small'), 'SEVİYE ATLADIN'); text(lv.querySelector('strong'), 'SEVİYE 12'); text(lv.querySelector('span'), '+1 YETENEK PUANI · T'); }
+    if (lv) { lv.classList.add('show'); text(lv.querySelector('small'), KabirI18n.t('SEVİYE ATLADIN')); text(lv.querySelector('strong'), KabirI18n.t('SEVİYE 12')); text(lv.querySelector('span'), '+1 YETENEK PUANI · T'); }
     const lub = root.querySelector('#lu-banner'); if (lub && B.LevelUp && B.LevelUp.paintState) B.LevelUp.paintState(lub);   // level-up banner (src/levelup.js) in its full state
     const an = root.querySelector('#announcement');
-    if (an) { an.classList.add('show'); text(an.querySelector('small'), 'KARA KIYI'); text(an.querySelector('strong'), 'Boğulmuş Çanlık'); }
-    const nar = root.querySelector('#narration p'); text(nar, 'Anlatıcı konuşuyor, sesi sulara karışıyor.');
+    if (an) { an.classList.add('show'); text(an.querySelector('small'), 'KARA KIYI'); text(an.querySelector('strong'), KabirI18n.t('Boğulmuş Çanlık')); }
+    const nar = root.querySelector('#narration p'); text(nar, KabirI18n.t('Anlatıcı konuşuyor, sesi sulara karışıyor.'));
     if (B.app && B.app.questUI) B.app.questUI.warm(root);
     const toasts = root.querySelector('#toasts'); if (toasts) toastStates(toasts);
     const warns = root.querySelector('#warnings'); if (warns) warningStates(warns);
@@ -57,9 +57,9 @@
     const combos = [['pressed', 'queued'], ['unavailable', 'short'], ['cooling', 'short'], ['ready', 'waiting'], ['burning', 'locked'], ['pressed', 'cooling', 'ready-flash'], ['unavailable', 'cooling', 'empty']];
     root.querySelectorAll('.action').forEach((a, i) => { addAll(a, combos[i % combos.length]); a.style.setProperty('--progress', '.4'); });
     // Elements the HUD code only creates on demand (hud.js: skill hint, parry callout) with their real ids so the same CSS applies.
-    if (!root.querySelector('#skill-feedback')) { const f = document.createElement('div'); f.id = 'skill-feedback'; f.textContent = 'Dayanıklılık yetmiyor · kaçınma bitince'; root.appendChild(f); }
-    if (!root.querySelector('#callout')) { const k = document.createElement('div'); k.id = 'callout'; k.textContent = 'Savuşturdun'; k.style.cssText = 'animation:none;opacity:1'; k.className = 'show'; root.appendChild(k); }
-    const tgt = root.querySelector('#target-hud'); if (tgt) { tgt.classList.remove('hidden'); tgt.classList.add('boss-target'); const bm=tgt.querySelector('#boss-mechanic'); if(bm){bm.className='timed';bm.dataset.kind='strike';text(bm.querySelector('strong'),'Yemin Çapaları');text(bm.querySelector('span'),'Yanan çapaları vur veya yanında bekleyerek söndür.');const p=bm.querySelector('i');if(p)p.style.transform='scaleX(.65)';} text(tgt.querySelector('.target-name'), 'Zincir Celladı'); text(tgt.querySelector('.target-count'), '1234 / 5678'); const f = tgt.querySelector('.target-fill'); if (f) f.style.transform = 'scaleX(.6)'; }
+    if (!root.querySelector('#skill-feedback')) { const f = document.createElement('div'); f.id = 'skill-feedback'; f.textContent = KabirI18n.t('Dayanıklılık yetmiyor · kaçınma bitince'); root.appendChild(f); }
+    if (!root.querySelector('#callout')) { const k = document.createElement('div'); k.id = 'callout'; k.textContent = KabirI18n.t('Savuşturdun'); k.style.cssText = 'animation:none;opacity:1'; k.className = 'show'; root.appendChild(k); }
+    const tgt = root.querySelector('#target-hud'); if (tgt) { tgt.classList.remove('hidden'); tgt.classList.add('boss-target'); const bm=tgt.querySelector('#boss-mechanic'); if(bm){bm.className='timed';bm.dataset.kind='strike';text(bm.querySelector('strong'),KabirI18n.t('Yemin Çapaları'));text(bm.querySelector('span'),KabirI18n.t('Yanan çapaları vur veya yanında bekleyerek söndür.'));const p=bm.querySelector('i');if(p)p.style.transform='scaleX(.65)';} text(tgt.querySelector('.target-name'), KabirI18n.t('Zincir Celladı')); text(tgt.querySelector('.target-count'), '1234 / 5678'); const f = tgt.querySelector('.target-fill'); if (f) f.style.transform = 'scaleX(.6)'; }
   }
   /* The clones above are still pictures. The real fight changes the same page content WHILE it animates (the attack sweep running round a slot, the
      slot "press" pop, the enemy bar filling, the title fading, toasts sliding in and out) on the live elements, and every one of those first frames
@@ -109,7 +109,7 @@
       let i = 0;
       for (const type of Object.keys(TH.portraits)) {
         const boss = type === 'boss';
-        img.hidden = false; img.src = TH.portraits[type]; nm.textContent = 'Zincir Celladı ' + type; ct.textContent = (1234 - i * 77) + ' / 5678'; ph.textContent = boss ? 'KURBAN SALONU' : '';
+        img.hidden = false; img.src = TH.portraits[type]; nm.textContent = KabirI18n.t('Zincir Celladı ') + type; ct.textContent = (1234 - i * 77) + ' / 5678'; ph.textContent = boss ? 'KURBAN SALONU' : '';
         root.classList.toggle('boss-target', boss); root.classList.toggle('phase2', boss && i % 2 === 0);
         fill.style.transform = 'scaleX(' + (1 - (i % 5) * .17).toFixed(2) + ')';
         i++; await frame(); await frame();
@@ -119,7 +119,7 @@
         keep(bm);keep(title,true);keep(instruction,true);keep(progress);attrs.push([bm,'data-kind',bm.getAttribute('data-kind')]);root.classList.add('boss-target');
         for(const kind of ['strike','shelter','move','dodge','adds']){
           bm.className='timed'+(kind==='shelter'?' safe':'');bm.dataset.kind=kind;
-          title.textContent=kind==='shelter'?'Sessiz Nova':'Yemin Çapaları';instruction.textContent=kind==='shelter'?'Siperdesin. Sütun darbeyi yutana kadar bekle.':'Yanan çapaları vur veya yanında bekleyerek söndür.';
+          title.textContent=kind==='shelter'?'Sessiz Nova':KabirI18n.t('Yemin Çapaları');instruction.textContent=kind==='shelter'?KabirI18n.t('Siperdesin. Sütun darbeyi yutana kadar bekle.'):KabirI18n.t('Yanan çapaları vur veya yanında bekleyerek söndür.');
           await run(100,p=>{progress.style.transform='scaleX('+(1-p*.8)+')';});
         }
       }
@@ -129,7 +129,7 @@
     const titles = async () => {
       const an = $('announcement'); if (!an) return;
       keep(an); const sm = an.querySelector('small'), st = an.querySelector('strong'); keep(sm, true); keep(st, true);
-      sm.textContent = 'KARŞILAŞMA'; st.textContent = 'Kurban Salonu';
+      sm.textContent = KabirI18n.t('KARŞILAŞMA'); st.textContent = KabirI18n.t('Kurban Salonu');
       for (const kind of ['chapter', 'boss']) { an.className = ''; void an.offsetWidth; an.className = 'show ' + kind; await wait(kind === 'chapter' ? 420 : 300); }
       an.className = ''; await wait(450);                                  // the fade-out the first fight triggers
       const lv = $('level-up'); if (lv) { keep(lv); lv.classList.add('show'); await wait(300); lv.classList.remove('show'); }
@@ -137,22 +137,22 @@
     const notices = async () => {
       const box = $('toasts');
       if (box) {
-        for (const kind of ['', 'rarity-rare']) { const d = document.createElement('div'); d.className = 'toast ' + kind; d.textContent = kind ? 'Nadir ganimet · Çelik pala' : 'Öfke söndü'; box.appendChild(d); made.push(d); }
+        for (const kind of ['', 'rarity-rare']) { const d = document.createElement('div'); d.className = 'toast ' + kind; d.textContent = kind ? KabirI18n.t('Nadir ganimet · Çelik pala') : KabirI18n.t('Öfke söndü'); box.appendChild(d); made.push(d); }
         await wait(380); for (const d of made) d.classList.add('out'); await wait(300); for (const d of made) d.remove(); made.length = 0;
       }
       const questNotice = $('quest-notice');
       if (questNotice) {
         keep(questNotice); for (const c of questNotice.children) keep(c, true);
         const qs=questNotice.querySelector('small'),qt=questNotice.querySelector('strong'),qp=questNotice.querySelector('p');
-        if(qs)qs.textContent='GÖREV TAMAMLANDI';if(qt)qt.textContent='Mezarın susturduğu yemin';if(qp)qp.textContent='Mühür çözüldü. Yolun devamı açıldı.';
+        if(qs)qs.textContent=KabirI18n.t('GÖREV TAMAMLANDI');if(qt)qt.textContent=KabirI18n.t('Mezarın susturduğu yemin');if(qp)qp.textContent=KabirI18n.t('Mühür çözüldü. Yolun devamı açıldı.');
         questNotice.classList.add('show');await wait(120);questNotice.classList.add('complete');await wait(120);questNotice.classList.remove('show');await wait(160);
       }
       const fb = $('skill-feedback'), nar = $('narration'), warns = $('warnings'), buffs = $('timed-effects');
-      if (fb) { keep(fb, true); fb.textContent = 'Dayanıklılık yetmiyor · kaçınma bitince'; fb.classList.remove('hidden'); }
-      if (nar) { keep(nar); const p = nar.querySelector('p'); keep(p, true); p.textContent = 'Anlatıcı konuşuyor, sesi sulara karışıyor.'; nar.classList.remove('hidden'); nar.classList.add('tap'); }
-      if (warns) for (const c of ['', ' unblockable']) { const el = document.createElement('div'); el.className = 'direction-warning' + c; el.style.left = '40%'; el.style.top = '45%'; el.innerHTML = '<svg viewBox="0 0 40 40" aria-hidden="true"><path d="M20 3 37 34H3Z"/><path d="M20 14v10M20 29v.5"/></svg><span class="dw-label"><b>DİKKAT</b>Tehlike</span>'; warns.appendChild(el); made.push(el); }
+      if (fb) { keep(fb, true); fb.textContent = KabirI18n.t('Dayanıklılık yetmiyor · kaçınma bitince'); fb.classList.remove('hidden'); }
+      if (nar) { keep(nar); const p = nar.querySelector('p'); keep(p, true); p.textContent = KabirI18n.t('Anlatıcı konuşuyor, sesi sulara karışıyor.'); nar.classList.remove('hidden'); nar.classList.add('tap'); }
+      if (warns) for (const c of ['', ' unblockable']) { const el = document.createElement('div'); el.className = 'direction-warning' + c; el.style.left = '40%'; el.style.top = '45%'; el.innerHTML = KabirI18n.t('<svg viewBox="0 0 40 40" aria-hidden="true"><path d="M20 3 37 34H3Z"/><path d="M20 14v10M20 29v.5"/></svg><span class="dw-label"><b>DİKKAT</b>Tehlike</span>'); warns.appendChild(el); made.push(el); }
       if (buffs) for (const [ic, ex] of [['rage', false], ['special', true]]) { const n = document.createElement('div'); n.className = 'timed-buff' + (ex ? ' expiring' : ''); const i = document.createElement('i'); i.className = 'skill ' + ic; const b = document.createElement('b'); b.className = 'buff-seconds'; b.textContent = '5'; n.append(i, b); buffs.appendChild(n); made.push(n); }
-      safe(() => B.HUD && B.HUD.callout && B.HUD.callout('Savuşturdun'));
+      safe(() => B.HUD && B.HUD.callout && B.HUD.callout(KabirI18n.t('Savuşturdun')));
       await wait(500);
       for(const [el,key,value] of attrs){if(value===null)el.removeAttribute(key);else el.setAttribute(key,value);}
       for (const el of made) el.remove(); made.length = 0;
@@ -169,7 +169,7 @@
       const nums = ['health-number', 'health-max', 'stamina-number', 'stamina-max', 'flask-count', 'kill-progress', 'objective', 'location'].map($).filter(Boolean);
       for (const el of nums) keep(el, true);
       for (const v of ['62', '100', '38', '7', '91', '15']) {
-        nums.forEach((el, i) => { el.textContent = i === 6 ? 'Celladı bul.\nGeçidi aç. ' + v : i === 5 ? v + ' / 31' : i === 7 ? 'Kurban Salonu ' + v : i % 2 ? '/ ' + (+v + 40) : v; });
+        nums.forEach((el, i) => { el.textContent = i === 6 ? KabirI18n.t('Celladı bul.\nGeçidi aç. ') + v : i === 5 ? v + ' / 31' : i === 7 ? KabirI18n.t('Kurban Salonu ') + v : i % 2 ? '/ ' + (+v + 40) : v; });
         await wait(110);
       }
     };

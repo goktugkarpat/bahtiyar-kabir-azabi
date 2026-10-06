@@ -21,7 +21,7 @@
   } catch (_) {}
   const chapter=campaign?campaign.chapter:1,coastChapter=chapter===2,ruinsChapter=chapter===3,forgeChapter=chapter===4;
   B.ActiveChapter=chapter;
-  const chapterNames=['Kurban Tapınağı','Kara Kıyı','Sessiz Taht','Kızıl Ocak'],chapterNumbers=['I','II','III','IV'];
+  const chapterNames=[KabirI18n.t('Kurban Tapınağı'),KabirI18n.t('Kara Kıyı'),KabirI18n.t('Sessiz Taht'),KabirI18n.t('Kızıl Ocak')],chapterNumbers=['I','II','III','IV'];
   function chapterLink(continueJourney = false) {
     const u = new URL(location.href); u.searchParams.delete('bolum');
     if (continueJourney) {
@@ -34,18 +34,18 @@
   $('next-chapter').onclick = () => chapterLink(true);
   $('next-chapter').classList.toggle('hidden',forgeChapter);
   if(chapter>1){
-    $('pause').setAttribute('aria-label', chapterNames[chapter-1] + ' · Mola');
-    document.querySelector('#fatal h2').textContent='Yol açılmadı.';
-    document.querySelector('#victory .eyebrow').textContent='Bölüm '+chapterNumbers[chapter-1]+' tamamlandı';
-    document.querySelector('#victory .end-quote').textContent=coastChapter?'Çanın içindeki kırık mühür, kıyının ardındaki kral harabelerini gösterdi. Denizden uzaklaş; seni çağıran ses henüz susmadı.':ruinsChapter?'Boş taht kırıldı. Altından gelen körük sesi, kralın zincirlerinin hâlâ dövüldüğünü gösterdi. Kızıl Ocak’a in; bu yeminin kaynağını söndür.':'Son döküm soğudu. Zincirin yapıldığı ocak artık sessiz. Mezarın, denizin ve taşın sesi geride kaldı.';
-    $('victory-title-text').textContent=forgeChapter?'Kızıl Ocak söndü':coastChapter?'Kıyının ardındaki yol':'Tahtın altındaki ocak';
-    if(coastChapter)$('next-chapter').textContent='Harabelere ilerle';if(ruinsChapter)$('next-chapter').textContent='Kızıl Ocak’a in';
+    $('pause').setAttribute('aria-label', chapterNames[chapter-1] + KabirI18n.t(' · Mola'));
+    document.querySelector('#fatal h2').textContent=KabirI18n.t('Yol açılmadı.');
+    document.querySelector('#victory .eyebrow').textContent=KabirI18n.t('Bölüm ')+chapterNumbers[chapter-1]+KabirI18n.t(' tamamlandı');
+    document.querySelector('#victory .end-quote').textContent=coastChapter?KabirI18n.t('Çanın içindeki kırık mühür, kıyının ardındaki kral harabelerini gösterdi. Denizden uzaklaş; seni çağıran ses henüz susmadı.'):ruinsChapter?KabirI18n.t('Boş taht kırıldı. Altından gelen körük sesi, kralın zincirlerinin hâlâ dövüldüğünü gösterdi. Kızıl Ocak’a in; bu yeminin kaynağını söndür.'):KabirI18n.t('Son döküm soğudu. Zincirin yapıldığı ocak artık sessiz. Mezarın, denizin ve taşın sesi geride kaldı.');
+    $('victory-title-text').textContent=forgeChapter?KabirI18n.t('Kızıl Ocak söndü'):coastChapter?KabirI18n.t('Kıyının ardındaki yol'):KabirI18n.t('Tahtın altındaki ocak');
+    if(coastChapter)$('next-chapter').textContent=KabirI18n.t('Harabelere ilerle');if(ruinsChapter)$('next-chapter').textContent=KabirI18n.t('Kızıl Ocak’a in');
   }
   // Chapters I-III continue automatically (see advanceChapter); the victory screen is only the final ending after chapter IV.
   $('next-chapter').classList.add('hidden'); $('victory-character').classList.add('hidden');
-  if(forgeChapter){ $('victory').classList.add('final'); $('again').querySelector('span').textContent='Yeni yolculuk'; document.querySelector('#victory .eyebrow').textContent='Yolculuk sona erdi'; }
+  if(forgeChapter){ $('victory').classList.add('final'); $('again').querySelector('span').textContent=KabirI18n.t('Yeni yolculuk'); document.querySelector('#victory .eyebrow').textContent=KabirI18n.t('Yolculuk sona erdi'); }
   let advancing = false;
-  const safe = f => { try { return f(); } catch (e) { console.warn('[Kabir Azabı]', e); } };
+  const safe = f => { try { return f(); } catch (e) { console.warn(KabirI18n.t('[Kabir Azabı]'), e); } };
   const timeText = t => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
   const loadProgress = (p, text) => { if (window.KG_LOAD) window.KG_LOAD(p, text); };
 
@@ -62,11 +62,11 @@
     high:   { scale: 1, shadows: 1024, detail: 'high',   lights: .7,  particles: 440, fog: .019, bloom: .205, corpses: 58, decals: 58, aa: true, occlusion: .5 }
   };
   const QUALITY_TEXT = {
-    low: ['Düşük', 'Akıcılık öncelikli. Hafif ışıklar ve daha az parçacık.'],
-    high: ['Yüksek', 'Ayrıntılı yüzeyler, yumuşak gölgeler, ışıklar, sis ve savaş efektleri.']
+    low: [KabirI18n.t('Düşük'), KabirI18n.t('Akıcılık öncelikli. Hafif ışıklar ve daha az parçacık.')],
+    high: [KabirI18n.t('Yüksek'), KabirI18n.t('Ayrıntılı yüzeyler, yumuşak gölgeler, ışıklar, sis ve savaş efektleri.')]
   };
   // Character textures are sized once at start (Düşük halves them); a later change of preset takes full effect after a reload.
-  const TEXTURE_NOTE = ' Karakter kaplamaları oyun yeniden açılınca bu ayara geçer.';
+  const TEXTURE_NOTE = KabirI18n.t(' Karakter kaplamaları oyun yeniden açılınca bu ayara geçer.');
   const coarsePointer = matchMedia('(pointer:coarse)').matches;
   // Desktop defaults follow the current display's pixel density. Extra AA is opt-in.
   const DEFAULTS = { difficulty: 'normal', quality: 'high', qualityVersion: 5, ...DISPLAY.defaults, frameRate: FRAME_LIMIT, exposure: 1.15, shake: .55, master: .65, music: .42, sfx: .75, voice: .85, narrationMode: 'essential', subtitles: true, uiScale: .85 };
@@ -79,9 +79,9 @@
      binds[action] = [primary, secondary]: a KeyboardEvent.code ('KeyW', 'Space', …) or 'Mouse0'…'Mouse4' (left, middle, right, back, forward); '' = empty.
      Saved with the settings (field `binds`). Esc (pause) and H (help) are fixed. Menu: the 'keybinds' screen (setupBindUI). */
   const BIND_INFO = {
-    up: ['Yukarı', ''], down: ['Aşağı', ''], left: ['Sola', ''], right: ['Sağa', ''],
-    light: ['Hafif saldırı', 'Düşmana tıkla, basılı tut · boşluğa tık: yürü'], heavy: ['Yetenek · Sağ tık', 'Yetenek ağacından bu yuvaya bir güç ata'], stand: ['Yerinde vur', 'Basılıyken tıkla: yürümeden vurur'], dodge: ['Kaçınma', 'Yürüdüğün yöne'],
-    heal: ['Can iksiri', 'Anında iyileşir'], rage: ['Yetenek · 2 tuşu', 'Yetenek ağacından bu yuvaya bir güç ata'], special: ['Yetenek · 1 tuşu', 'Yetenek ağacından bu yuvaya bir güç ata'], fourth: ['Yetenek · 3 tuşu', 'Yetenek ağacından bu yuvaya bir güç ata'], interact: ['Etkileşim', 'Yemin taşı']
+    up: [KabirI18n.t('Yukarı'), ''], down: [KabirI18n.t('Aşağı'), ''], left: [KabirI18n.t('Sola'), ''], right: [KabirI18n.t('Sağa'), ''],
+    light: [KabirI18n.t('Hafif saldırı'), KabirI18n.t('Düşmana tıkla, basılı tut · boşluğa tık: yürü')], heavy: [KabirI18n.t('Yetenek · Sağ tık'), KabirI18n.t('Yetenek ağacından bu yuvaya bir güç ata')], stand: [KabirI18n.t('Yerinde vur'), KabirI18n.t('Basılıyken tıkla: yürümeden vurur')], dodge: [KabirI18n.t('Kaçınma'), KabirI18n.t('Yürüdüğün yöne')],
+    heal: [KabirI18n.t('Can iksiri'), KabirI18n.t('Anında iyileşir')], rage: [KabirI18n.t('Yetenek · 2 tuşu'), KabirI18n.t('Yetenek ağacından bu yuvaya bir güç ata')], special: [KabirI18n.t('Yetenek · 1 tuşu'), KabirI18n.t('Yetenek ağacından bu yuvaya bir güç ata')], fourth: [KabirI18n.t('Yetenek · 3 tuşu'), KabirI18n.t('Yetenek ağacından bu yuvaya bir güç ata')], interact: [KabirI18n.t('Etkileşim'), KabirI18n.t('Yemin taşı')]
   };
   const BIND_VERSION = 1;
   // The four skill slots are named by their CURRENT key (right mouse button, 1, 2, 3 by default), never "Yetenek I / II / III", and list the equipped skill.
@@ -89,8 +89,8 @@
   function bindInfo(a) {
     if (!(a in SKILL_SLOT)) return BIND_INFO[a];
     const code = binds[a] && (binds[a][0] || binds[a][1]), cap = code ? capName(code) : '—', row = game && game.skills ? game.skills()[SKILL_SLOT[a]] : null;
-    return ['Yetenek · ' + (code === 'Mouse2' ? 'Sağ tık' : code === 'Mouse0' ? 'Sol tık' : cap + ' tuşu'),
-      row && row.skill ? 'Takılı: ' + row.skill.name + ' (' + ['', 'I', 'II', 'III'][row.skill.tier] + '. aşama)' : 'Boş yuva · T ile yetenek öğren ve ata'];
+    return [KabirI18n.t('Yetenek · ') + (code === 'Mouse2' ? KabirI18n.t('Sağ tık') : code === 'Mouse0' ? KabirI18n.t('Sol tık') : cap + KabirI18n.t(' tuşu')),
+      row && row.skill ? KabirI18n.t('Takılı: ') + row.skill.name + ' (' + ['', 'I', 'II', 'III'][row.skill.tier] + KabirI18n.t('. aşama)') : KabirI18n.t('Boş yuva · T ile yetenek öğren ve ata')];
   }
   const BIND_GROUPS = [['bind-combat', ['heavy', 'special', 'rage', 'fourth', 'light', 'stand', 'dodge', 'heal']], ['bind-misc', ['interact']]];
   const BIND_DEFAULTS = {
@@ -100,8 +100,8 @@
   };
   const BIND_MOUSE_OK = ['light', 'heavy', 'dodge', 'heal', 'rage', 'special', 'fourth'];   // walking and interact stay on the keyboard
   const BIND_RESERVED = ['Escape', 'KeyH', 'KeyI', 'KeyC', 'KeyT', 'KeyM', 'KeyL', 'KeyO', 'Tab', 'MetaLeft', 'MetaRight', 'ContextMenu'];
-  const CAP_NAMES = { Space: 'SPACE', ShiftLeft: 'SHIFT', ControlLeft: 'CTRL', AltLeft: 'ALT', ArrowUp: '↑', ArrowDown: '↓', ArrowLeft: '←', ArrowRight: '→', Enter: 'ENTER', Backspace: 'SİL', CapsLock: 'CAPS',
-    Mouse0: 'SOL TIK', Mouse1: 'ORTA TIK', Mouse2: 'SAĞ TIK', Mouse3: 'FARE 4', Mouse4: 'FARE 5' };
+  const CAP_NAMES = { Space: 'SPACE', ShiftLeft: 'SHIFT', ControlLeft: 'CTRL', AltLeft: 'ALT', ArrowUp: '↑', ArrowDown: '↓', ArrowLeft: '←', ArrowRight: '→', Enter: 'ENTER', Backspace: KabirI18n.t('SİL'), CapsLock: 'CAPS',
+    Mouse0: KabirI18n.t('SOL TIK'), Mouse1: KabirI18n.t('ORTA TIK'), Mouse2: KabirI18n.t('SAĞ TIK'), Mouse3: KabirI18n.t('FARE 4'), Mouse4: KabirI18n.t('FARE 5') };
   const binds = {}; let bindMap = {}, keyLayout = null;
   const normCode = c => c.replace(/^(Shift|Control|Alt)Right$/, '$1Left');   // both Shift keys count as one
   const mouseCode = c => /^Mouse[0-4]$/.test(c);
@@ -110,7 +110,7 @@
     if (!code) return '—';
     if (CAP_NAMES[code]) return CAP_NAMES[code];
     const ch = keyLayout && keyLayout.get(code);   // the character printed on this keyboard's key (Chrome), else the US letter
-    return ch ? ch.toLocaleUpperCase('tr') : code.replace(/^(Key|Digit)/, '').replace(/^Numpad/, 'NUM ').toUpperCase();
+    return ch ? ch.toLocaleUpperCase(KabirI18n.lang === 'en' ? 'en' : 'tr') : code.replace(/^(Key|Digit)/, '').replace(/^Numpad/, 'NUM ').toUpperCase();
   }
   function rebuildBindMap() { bindMap = {}; for (const a in binds) for (const c of binds[a]) if (c && !bindMap[c]) bindMap[c] = a; }
   // Fills `binds` from a saved value; anything invalid or double-used falls back to the default for that action.
@@ -271,7 +271,7 @@
   const buffUI = B.Buffs.create($('timed-effects'));
   const chapterBuffUI = B.Buffs.createChapter($('chapter-buffs'));
   const targetUI = B.TargetHUD.create($('target-hud'));
-  const cryEffect = { id: 'rage', name: 'Kan Öfkesi', icon: 'rage', remaining: 0, duration: B.Game.resources.durations.rage };
+  const cryEffect = { id: 'rage', name: KabirI18n.t('Kan Öfkesi'), icon: 'rage', remaining: 0, duration: B.Game.resources.durations.rage };
   const timedEffects = [cryEffect];
   let lastBuffRows = -1;
   const keys = new Set(), actions = {}, cameraPos = new THREE.Vector3(), look = new THREE.Vector3(), target = new THREE.Vector3(), projected = new THREE.Vector3();
@@ -329,7 +329,7 @@
       document.body.classList.remove('raging', 'low-hp', 'in-combat');
       if (world && world.occluders) for (const m of world.occluders) { m.material.opacity = 1; m.material.depthWrite = true; }
       $('hud').classList.add('hidden');
-      $('play').querySelector('span').textContent = game && game.hasSave ? 'Yolculuğa devam' : game && game.campaignCompleted ? 'Yolculuğun sonu' : 'Yolculuğa başla';
+      $('play').querySelector('span').textContent = game && game.hasSave ? KabirI18n.t('Yolculuğa devam') : game && game.campaignCompleted ? KabirI18n.t('Yolculuğun sonu') : KabirI18n.t('Yolculuğa başla');
       $('new').classList.toggle('hidden', !game || !game.hasSave);
     }
     if (next === 'pause') fillPause();
@@ -377,7 +377,7 @@
     flash = shake = hitPause = ragePush = 0;
     cameraKick.x = cameraKick.z = cameraKick.vx = cameraKick.vz = 0; cameraLead.set(0, 0, 0); lastFootfall = 0;
   }
-  function announce(name, sub = 'KURBAN TAPINAĞI', kind = '') {
+  function announce(name, sub = KabirI18n.t('KURBAN TAPINAĞI'), kind = '') {
     if (levelUpTimer > 0 && kind === 'checkpoint') return;
     const el = $('announcement');
     el.querySelector('small').textContent = sub; el.querySelector('strong').textContent = name;
@@ -401,9 +401,9 @@
     const el = document.createElement('div');
     el.className = 'direction-warning' + (d.unblockable ? ' unblockable' : '');
     const lab = document.createElement('span'); lab.className = 'dw-label';
-    const tag = document.createElement('b'); tag.textContent = d.unblockable ? 'KAÇIN' : 'DİKKAT'; lab.append(tag, (d.text || 'Tehlike').replace(/ · .*/, ''));
+    const tag = document.createElement('b'); tag.textContent = d.unblockable ? KabirI18n.t('KAÇIN') : KabirI18n.t('DİKKAT'); lab.append(tag, (d.text || KabirI18n.t('Tehlike')).replace(/ · .*/, ''));
     el.innerHTML = '<svg viewBox="0 0 40 40" aria-hidden="true"><path d="M20 3 37 34H3Z"/><path d="M20 14v10M20 29v.5"/></svg>';
-    el.append(lab); el.title = d.text || 'Tehlike';
+    el.append(lab); el.title = d.text || KabirI18n.t('Tehlike');
     el.style.visibility = 'hidden';
     $('warnings').appendChild(el);
     warnings.push({ el, x: d.x, z: d.z, time: 1.3, hazard: d.hazard || null, sounded: false });
@@ -448,7 +448,7 @@
     show('playing'); hud(0);
     if (fromTitle && !reducedMotion.matches) { introBlend = 0; introStart = performance.now(); introFrom.copy(cameraPos); introLook.copy(look); }   // swoop from the title shot down to the play camera
     else { introBlend = 1; cameraPos.set(game.player.x, 16, game.player.z + 13); look.set(game.player.x, .7, game.player.z); }
-    announce(chapterNames[chapter-1],'BÖLÜM '+chapterNumbers[chapter-1],'chapter');
+    announce(chapterNames[chapter-1],KabirI18n.t('BÖLÜM ')+chapterNumbers[chapter-1],'chapter');
     // A carried profile enters a fresh chapter at zero; a resumed journey has already lived this opening.
     if (B.Audio.say && !game.checkpointIndex && game.elapsed === 0 && game.kills === 0) B.Audio.say(forgeChapter ? 'forgeIntro' : ruinsChapter ? 'ruinsIntro' : coastChapter ? 'coastIntro' : 'intro');
   }
@@ -457,7 +457,7 @@
     if (name === 'questChoice') { if (game && ['playing','pause'].includes(view)) open('journal'); if (questUI) questUI.open(); return; }
     if (name === 'quest') { if (questUI) questUI.event(d); if (d.complete && questVoices[d.id] && B.Audio.sayQuest) B.Audio.sayQuest(questVoices[d.id]); return; }
     if (name === 'progression') { if (d.levels > 0) { B.Audio.play('levelUp'); fx('heroSkill', { skill: 'level', phase: 'release', x: game.player.x, z: game.player.z }); announceTimer = 0; $('announcement').classList.remove('show'); if (B.LevelUp) B.LevelUp.trigger(d, game.player); levelUpTimer = 2.7; } if (characterUI) characterUI.refresh(); return; }
-    if (name === 'loot') { for (const item of d.items || []) { const def = B.Progression.catalog[item.id]; if (def) notify(B.Progression.qualities[def.rarity].name + ' ganimet · ' + def.name + ' · Çantaya eklendi [I]', 'rarity-' + def.rarity); } return; }
+    if (name === 'loot') { for (const item of d.items || []) { const def = B.Progression.catalog[item.id]; if (def) notify(B.Progression.qualities[def.rarity].name + ' ganimet · ' + def.name + KabirI18n.t(' · Çantaya eklendi [I]'), 'rarity-' + def.rarity); } return; }
     if (name === 'hit') {
       // combat.js sizes the hit-stop itself (d.hitstop is set) and reports how hard the contact was (d.impact 0..1),
       // so here the camera only recoils; unclassified heavy hits retain the same short 8 ms limit.
@@ -479,13 +479,13 @@
         if (!reducedMotion.matches) { const a = Math.atan2(p.x - d.x, p.z - d.z); cameraKick.vx += Math.sin(a) * s * 1.4; cameraKick.vz += Math.cos(a) * s * 1.4; }
       }
     }
-    else if (name === 'rage') { shake = Math.max(shake, .45); if (!reducedMotion.matches) ragePush = 1; notify('ÖFKE UYANDI', 'rage'); }   // war cry: camera pushes in on the father
-    else if (name === 'rageEnd') notify('Öfke söndü');
-    else if (name === 'checkpoint') { $('objective').textContent = formatObjective(forgeChapter ? 'Son Döküm’e ilerle. Ocağın Kalbi’ni söndür.' : ruinsChapter ? 'Sessiz Taht’a ilerle. Oyukların Kralı’nı yen.' : coastChapter ? 'Çanlığa ilerle. Çancıyı sustur.' : 'Celladı bul. Geçidi aç.'); announce('Yemin mühürlendi', 'KONTROL NOKTASI', 'checkpoint'); notify('Canın ve iksirlerin yenilendi. Buradan geri döneceksin.', 'seal'); if (B.Audio.saySequence) B.Audio.saySequence([forgeChapter ? 'forgeCheckpoint' : ruinsChapter ? 'ruinsCheckpoint' : coastChapter ? 'coastCheckpoint' : 'checkpoint', 'heroOath']); else if (B.Audio.say) B.Audio.say(forgeChapter ? 'forgeCheckpoint' : ruinsChapter ? 'ruinsCheckpoint' : coastChapter ? 'coastCheckpoint' : 'checkpoint'); }
-    else if (name === 'encounter') { if (d.name) announce(d.name, 'KARŞILAŞMA'); }
-    else if (name === 'gateOpen') { announce('Kapı açıldı', 'BOSS KAPISI', 'seal'); }
-    else if (name === 'encounterCleared') { announce('Mühür açıldı', d.roomName || d.name || 'SALON TEMİZLENDİ', 'seal'); }
-    else if (name === 'boss') { if (d.active !== false) { announce(d.name || 'Zincir Celladı', forgeChapter ? 'SON DÖKÜM' : ruinsChapter ? 'SESSİZ TAHT' : coastChapter ? 'BOĞULMUŞ ÇANLIK' : 'KURBAN SALONU', 'boss'); if (B.Audio.saySequence) B.Audio.saySequence(forgeChapter ? ['forgeBoss'] : ruinsChapter ? ['ruinsBoss'] : coastChapter ? ['coastBoss'] : ['boss', 'cellat']); else if (B.Audio.say) B.Audio.say(forgeChapter ? 'forgeBoss' : ruinsChapter ? 'ruinsBoss' : coastChapter ? 'coastBoss' : 'boss'); } }
+    else if (name === 'rage') { shake = Math.max(shake, .45); if (!reducedMotion.matches) ragePush = 1; notify(KabirI18n.t('ÖFKE UYANDI'), 'rage'); }   // war cry: camera pushes in on the father
+    else if (name === 'rageEnd') notify(KabirI18n.t('Öfke söndü'));
+    else if (name === 'checkpoint') { $('objective').textContent = formatObjective(forgeChapter ? KabirI18n.t('Son Döküm’e ilerle. Ocağın Kalbi’ni söndür.') : ruinsChapter ? KabirI18n.t('Sessiz Taht’a ilerle. Oyukların Kralı’nı yen.') : coastChapter ? KabirI18n.t('Çanlığa ilerle. Çancıyı sustur.') : KabirI18n.t('Celladı bul. Geçidi aç.')); announce(KabirI18n.t('Yemin mühürlendi'), KabirI18n.t('KONTROL NOKTASI'), 'checkpoint'); notify(KabirI18n.t('Canın ve iksirlerin yenilendi. Buradan geri döneceksin.'), 'seal'); if (B.Audio.saySequence) B.Audio.saySequence([forgeChapter ? 'forgeCheckpoint' : ruinsChapter ? 'ruinsCheckpoint' : coastChapter ? 'coastCheckpoint' : 'checkpoint', 'heroOath']); else if (B.Audio.say) B.Audio.say(forgeChapter ? 'forgeCheckpoint' : ruinsChapter ? 'ruinsCheckpoint' : coastChapter ? 'coastCheckpoint' : 'checkpoint'); }
+    else if (name === 'encounter') { if (d.name) announce(d.name, KabirI18n.t('KARŞILAŞMA')); }
+    else if (name === 'gateOpen') { announce(KabirI18n.t('Kapı açıldı'), 'BOSS KAPISI', 'seal'); }
+    else if (name === 'encounterCleared') { announce(KabirI18n.t('Mühür açıldı'), d.roomName || d.name || KabirI18n.t('SALON TEMİZLENDİ'), 'seal'); }
+    else if (name === 'boss') { if (d.active !== false) { announce(d.name || KabirI18n.t('Zincir Celladı'), forgeChapter ? KabirI18n.t('SON DÖKÜM') : ruinsChapter ? KabirI18n.t('SESSİZ TAHT') : coastChapter ? KabirI18n.t('BOĞULMUŞ ÇANLIK') : 'KURBAN SALONU', 'boss'); if (B.Audio.saySequence) B.Audio.saySequence(forgeChapter ? ['forgeBoss'] : ruinsChapter ? ['ruinsBoss'] : coastChapter ? ['coastBoss'] : ['boss', 'cellat']); else if (B.Audio.say) B.Audio.say(forgeChapter ? 'forgeBoss' : ruinsChapter ? 'ruinsBoss' : coastChapter ? 'coastBoss' : 'boss'); } }
     else if (name === 'death') death(d);
     else if (name === 'win') victory(d);
     else if (name === 'toast') notify(d.text);
@@ -493,92 +493,92 @@
   }
   function pulse(kind) { const b = document.body; b.classList.remove('pulse-' + kind); void b.offsetWidth; b.classList.add('pulse-' + kind); setTimeout(() => b.classList.remove('pulse-' + kind), 600); }
   const DEATH_TIPS = [
-    [/[iİ]kili ayin/i, 'İki rahip arasında kızıl bir çizgi yanar; rahiplerden birine vur, ayin bozulur.'],
-    [/kırba[cç]/i, 'Zincir kırbacı ışığın yayıldığı yönden gelir; bir adım içeri gir ya da yuvarlan.'],
-    [/pala|dürtüş/i, 'Muhafızın palası inmeden önce bekler; ışık dolunca yana adım at. Kalkana hafif vurmaya devam edersen dürterek karşılık verir.'],
-    [/kor yağmuru|mangal/i, 'Kor yağmuru üç halka düşürür; halkaların arasından geç ya da yuvarlan.'],
-    [/diken|gölge adımı/i, 'Pusucu arkana geçer; yüzünü ona dön ya da ışık dolarken kaç.'],
-    [/şişe|nefes/i, 'Şişe havadayken düşeceği yeri görürsün; yeşil birikintiye basma.'],
-    [/kanca|hamle|kasırga|yargı|tekme/i, 'Cellat uzaktakini kancayla çeker, yakındakini tekmeler; halkanın içi ya da dışı güvenlidir.'],
-    [/rün|birikinti|patlama|mezar kıran|tükürük/i, 'Kızıl kenarlı işaret en ağır darbedir. Işık dolmadan alanın dışına kaç ya da yuvarlan.'],
-    [/zincir|biçiş|biçme/i, 'Cellat savurmadan önce bir an durur. O an yana kaç, sonra arkasından vur.'],
-    [/sıçrayış|kesik/i, 'Pusucu sıçramadan önce çömelir. Tam sıçrarken kaçınırsan hasar almazsın.'],
-    [/kavrayış|pençe|hücum/i, 'Mahkûmlar ikili pençe vurur. İlk darbeden sonra hemen yuvarlan, ikincisi arkandan gelir.'],
-    [/kalkan|balta|yarma/i, 'Muhafızın gecikmeli baltası bir an bekler. Erken kaçınma; ışık dolmak üzereyken yuvarlan.']
+    [/[iİ]kili ayin/i, KabirI18n.t('İki rahip arasında kızıl bir çizgi yanar; rahiplerden birine vur, ayin bozulur.')],
+    [/kırba[cç]/i, KabirI18n.t('Zincir kırbacı ışığın yayıldığı yönden gelir; bir adım içeri gir ya da yuvarlan.')],
+    [/pala|dürtüş/i, KabirI18n.t('Muhafızın palası inmeden önce bekler; ışık dolunca yana adım at. Kalkana hafif vurmaya devam edersen dürterek karşılık verir.')],
+    [/kor yağmuru|mangal/i, KabirI18n.t('Kor yağmuru üç halka düşürür; halkaların arasından geç ya da yuvarlan.')],
+    [/diken|gölge adımı/i, KabirI18n.t('Pusucu arkana geçer; yüzünü ona dön ya da ışık dolarken kaç.')],
+    [/şişe|nefes/i, KabirI18n.t('Şişe havadayken düşeceği yeri görürsün; yeşil birikintiye basma.')],
+    [/kanca|hamle|kasırga|yargı|tekme/i, KabirI18n.t('Cellat uzaktakini kancayla çeker, yakındakini tekmeler; halkanın içi ya da dışı güvenlidir.')],
+    [/rün|birikinti|patlama|mezar kıran|tükürük/i, KabirI18n.t('Kızıl kenarlı işaret en ağır darbedir. Işık dolmadan alanın dışına kaç ya da yuvarlan.')],
+    [/zincir|biçiş|biçme/i, KabirI18n.t('Cellat savurmadan önce bir an durur. O an yana kaç, sonra arkasından vur.')],
+    [/sıçrayış|kesik/i, KabirI18n.t('Pusucu sıçramadan önce çömelir. Tam sıçrarken kaçınırsan hasar almazsın.')],
+    [/kavrayış|pençe|hücum/i, KabirI18n.t('Mahkûmlar ikili pençe vurur. İlk darbeden sonra hemen yuvarlan, ikincisi arkandan gelir.')],
+    [/kalkan|balta|yarma/i, KabirI18n.t('Muhafızın gecikmeli baltası bir an bekler. Erken kaçınma; ışık dolmak üzereyken yuvarlan.')]
   ];
   const COAST_DEATH_TIPS = [
-    [/medcezir/i,'Deniz halkasının iç boşluğu ve dışı güvenlidir. Işık dolarken halkayı yuvarlanarak geç.'],
-    [/mezar kök|derin kök|çürük taç/i,'Köklerin yeri ışık görünürken sabitlenir. Çizgilerin arasına geç; erken kaçıp işarete geri girme.'],
-    [/boğulmuş çan/i,'Çanlar sırayla düşer. İlk halkadan çıkınca sonraki işaretlerin arasındaki boşluğu kullan.'],
-    [/çapa|omurga|kıyıyı yar/i,'Çancı yakınındaki alanı biçer. Çifte savuruşun ikincisini bekle, sonra yaklaş.'],
-    [/fener/i,'Fenercinin ışığı seni çağırır. Çizginin yanına çık; kızıl dairelere geri basma.'],
-    [/tuz|diken/i,'Dikenler iki dar çizgide gelir. Aralarına geç veya atış dolarken yana yuvarlan.'],
-    [/sıçray|çene|ayak/i,'Sürüngenin yere işaretlediği noktadan yana çık. Pençenin ikinci darbesini de bekle.'],
-    [/kürek|son nefes|boğulma/i,'Boğulmuş küreğini kaldırınca savuruş yönünden çık. Çığlığın halkasının ortası güvenlidir.']
+    [/medcezir/i,KabirI18n.t('Deniz halkasının iç boşluğu ve dışı güvenlidir. Işık dolarken halkayı yuvarlanarak geç.')],
+    [/mezar kök|derin kök|çürük taç/i,KabirI18n.t('Köklerin yeri ışık görünürken sabitlenir. Çizgilerin arasına geç; erken kaçıp işarete geri girme.')],
+    [/boğulmuş çan/i,KabirI18n.t('Çanlar sırayla düşer. İlk halkadan çıkınca sonraki işaretlerin arasındaki boşluğu kullan.')],
+    [/çapa|omurga|kıyıyı yar/i,KabirI18n.t('Çancı yakınındaki alanı biçer. Çifte savuruşun ikincisini bekle, sonra yaklaş.')],
+    [/fener/i,KabirI18n.t('Fenercinin ışığı seni çağırır. Çizginin yanına çık; kızıl dairelere geri basma.')],
+    [/tuz|diken/i,KabirI18n.t('Dikenler iki dar çizgide gelir. Aralarına geç veya atış dolarken yana yuvarlan.')],
+    [/sıçray|çene|ayak/i,KabirI18n.t('Sürüngenin yere işaretlediği noktadan yana çık. Pençenin ikinci darbesini de bekle.')],
+    [/kürek|son nefes|boğulma/i,KabirI18n.t('Boğulmuş küreğini kaldırınca savuruş yönünden çık. Çığlığın halkasının ortası güvenlidir.')]
   ];
   const RUINS_DEATH_TIPS = [
-    [/Sessiz Nova/i, 'Kral ile arana sağlam bir billur sütun koy. Sütun patlamayı yutar; ardından yeniden hareket et.'],
-    [/Rezonans · sütun/i, 'Nabız sırasında sütunların çevresi de patlar. Altın dairelerin dışına çık.'],
-    [/Oyukların Nabzı/i, 'Kızıl halkalar sırayla genişler. İç boşluğa veya işaretli kuşağın dışına geç.'],
-    [/Oyuğa Gömülüş|Oyuktan Fırlayan Taşlar/i, 'İlk daireden çık. Patlama geçince merkeze gir veya ardından gelen taş halkasının dışına kaç.'],
-    [/Kazıp Çıkış/i, 'Muhafız yere gömülünce eski konumunu işaretler. Kızıl daireden yana çık.'],
-    [/Billur Yıldızı/i, 'Çizgilerin kesiştiği noktadan uzaklaş. Yarıklar sırayla patlar; aralarındaki boşlukları kullan.'],
-    [/Tahtın Yarıkları|Muhafızın Hükmü|Kırılan Mezarlar|Kül Yolu/i, 'Yarık çizgilerinin arasına geç. Eski konumundaki kızıl daireye geri dönme.'],
-    [/Taht Hücumu/i, 'Kızıl hücum hattından yana çık. Son evrede ardından gelen savuruşu da bekle.'],
-    [/Soluk Küreler|Yemin Kürecikleri/i, 'Küreler seni takip eder. Yana yürüyerek mesafeni koru; sağlam sütunlar onları durdurur.'],
-    [/Yankı Hükmü/i, 'Yankıların dar yaylarından sırayla çık. Son savuruşu kralın kendisi yapar; seri bitince yaklaş.'],
-    [/Oyuktan Gelenler/i, 'Çağrı dairelerinden uzak dur. Çıkan düşmanları azaltmak kralla savaşırken sana alan açar.'],
-    [/Çöken Tavan/i, 'İlk düşüş eski konumuna gelir. Boş kalan aralığa ilerle; sonraki dairelerin üstüne basma.'],
-    [/Tahtın Biçişi/i, 'Kralın ilk savuruşundan sonra hemen yaklaşma. İlerleyen evrelerde dönüş darbesi ve tekme eklenir.'],
-    [/Kül Biçişi|Yemin Kesen/i, 'Bu savuruş iki darbedir. İlk yaydan çıkınca dönüş darbesini de bekle, sonra vur.'],
-    [/Yemin Dürtüşü|Kırık Kehanet/i, 'Dar çizgilerin yanına çık. Atışla aynı yönde geriye koşmak seni hattın içinde tutar.'],
-    [/Kemik Kuyruk/i, 'Kuyruk halkasının iç boşluğu ve dışı güvenlidir. İşaretli kuşakta bekleme.'],
-    [/Tavandan Sıçrayış/i, 'Çömelirken eski konumunu işaretler. İniş dairesinden yana çık, sonra karşılık ver.'],
-    [/Kemik Çenesi/i, 'Çenenin dar ön yayından yana çık. Isırık geçince arkasından vur.'],
-    [/Mezar Tokmağı|Taş Dirsek|Kırık Asa|Taş Topuk/i, 'Önündeki darbe yayından yana çık. Darbe geçince oluşan açıklıkta karşılık ver.']
+    [/Sessiz Nova/i, KabirI18n.t('Kral ile arana sağlam bir billur sütun koy. Sütun patlamayı yutar; ardından yeniden hareket et.')],
+    [/Rezonans · sütun/i, KabirI18n.t('Nabız sırasında sütunların çevresi de patlar. Altın dairelerin dışına çık.')],
+    [/Oyukların Nabzı/i, KabirI18n.t('Kızıl halkalar sırayla genişler. İç boşluğa veya işaretli kuşağın dışına geç.')],
+    [/Oyuğa Gömülüş|Oyuktan Fırlayan Taşlar/i, KabirI18n.t('İlk daireden çık. Patlama geçince merkeze gir veya ardından gelen taş halkasının dışına kaç.')],
+    [/Kazıp Çıkış/i, KabirI18n.t('Muhafız yere gömülünce eski konumunu işaretler. Kızıl daireden yana çık.')],
+    [/Billur Yıldızı/i, KabirI18n.t('Çizgilerin kesiştiği noktadan uzaklaş. Yarıklar sırayla patlar; aralarındaki boşlukları kullan.')],
+    [/Tahtın Yarıkları|Muhafızın Hükmü|Kırılan Mezarlar|Kül Yolu/i, KabirI18n.t('Yarık çizgilerinin arasına geç. Eski konumundaki kızıl daireye geri dönme.')],
+    [/Taht Hücumu/i, KabirI18n.t('Kızıl hücum hattından yana çık. Son evrede ardından gelen savuruşu da bekle.')],
+    [/Soluk Küreler|Yemin Kürecikleri/i, KabirI18n.t('Küreler seni takip eder. Yana yürüyerek mesafeni koru; sağlam sütunlar onları durdurur.')],
+    [/Yankı Hükmü/i, KabirI18n.t('Yankıların dar yaylarından sırayla çık. Son savuruşu kralın kendisi yapar; seri bitince yaklaş.')],
+    [/Oyuktan Gelenler/i, KabirI18n.t('Çağrı dairelerinden uzak dur. Çıkan düşmanları azaltmak kralla savaşırken sana alan açar.')],
+    [/Çöken Tavan/i, KabirI18n.t('İlk düşüş eski konumuna gelir. Boş kalan aralığa ilerle; sonraki dairelerin üstüne basma.')],
+    [/Tahtın Biçişi/i, KabirI18n.t('Kralın ilk savuruşundan sonra hemen yaklaşma. İlerleyen evrelerde dönüş darbesi ve tekme eklenir.')],
+    [/Kül Biçişi|Yemin Kesen/i, KabirI18n.t('Bu savuruş iki darbedir. İlk yaydan çıkınca dönüş darbesini de bekle, sonra vur.')],
+    [/Yemin Dürtüşü|Kırık Kehanet/i, KabirI18n.t('Dar çizgilerin yanına çık. Atışla aynı yönde geriye koşmak seni hattın içinde tutar.')],
+    [/Kemik Kuyruk/i, KabirI18n.t('Kuyruk halkasının iç boşluğu ve dışı güvenlidir. İşaretli kuşakta bekleme.')],
+    [/Tavandan Sıçrayış/i, KabirI18n.t('Çömelirken eski konumunu işaretler. İniş dairesinden yana çık, sonra karşılık ver.')],
+    [/Kemik Çenesi/i, KabirI18n.t('Çenenin dar ön yayından yana çık. Isırık geçince arkasından vur.')],
+    [/Mezar Tokmağı|Taş Dirsek|Kırık Asa|Taş Topuk/i, KabirI18n.t('Önündeki darbe yayından yana çık. Darbe geçince oluşan açıklıkta karşılık ver.')]
   ];
   const FORGE_DEATH_TIPS = [
-    [/Ocağın Saati/i, 'Güvenli dilim her dalgada saat yönünde yer değiştirir. Son evrede yalnız bir dilim kalır; sonraki boşluğa geç.'],
-    [/Örs Sarsıntısı/i, 'İniş dairesinden çık. Ardından gelen iki halkanın arasındaki işaretsiz boşlukları kullan.'],
-    [/Lav Fışkırması|Kül Fışkırması|Kor Seli/i, 'Paralel yarıkların arasına geç. Patlama bitse de kor zemini birkaç saniye yakar.'],
-    [/Kor İzi Hücumu|Kül İzi Hücumu|Kor İzi/i, 'Hücum hattından yana çık. Arkasında kalan kor izine geri basma.'],
-    [/Cüruf Küresi|Cüruf Birikintisi/i, 'Küreyi yana yürüyerek dolaştır. Düştüğünde bıraktığı köz birikintisinden uzak kal.'],
-    [/Erimiş Zincir Kırbacı/i, 'Zincir ayrı yayları sırayla biçer. Vurulmuş yayın boşluğuna geç; sıradaki yayın içinde bekleme.'],
-    [/Demir Pistonlar/i, 'Piston hattının yanına çık. Peş peşe vuruşlar aynı dar koridoru tarar.'],
-    [/Kızıl Basınç/i, 'Halkaların iç boşluğu ve işaretli sınırın dışı güvenlidir. Genişleyen kızıl kuşağın içinde bekleme.'],
-    [/Kor Bacaları/i, 'Bacalar eski konumunun çevresinde açılır. Kızıl dairelerin arasındaki boşluğu kullan.'],
-    [/Ocağın Nefesi/i, 'Kızıl nefes yayının yanına çık. Yalnız geriye kaçmak seni menzilinde tutabilir.'],
-    [/Kor Biçişi|Kül Antlaşması/i, 'İki savuruşu da bekle. İlk darbeden sonra içeri girmek dönüş darbesine yakalatır.'],
-    [/Ocağın Çekici/i, 'Çekiç yayından çık. İlerleyen evrelerde eski konumuna artçı daire düşer; seri bitince vur.'],
-    [/Cüruf Çenesi/i, 'İki çene darbesi var. İlkinden sonra öne dönme; seriyi yandan aş.'],
-    [/Kor Sıçrayışı/i, 'Sıçrayış eski konumundaki kızıl daireye iner. Yana çıkıp inişten sonra karşılık ver.'],
-    [/Cüruf Kuyruğu/i, 'Kuyruk halkasının iç boşluğu ve dışı güvenlidir. İşaretli kuşakta bekleme.'],
-    [/Zincir Tezgâhı/i, 'Zincirler dar hatlardan sırayla geçer. Hatların arasına veya atış yönünün yanına çık.'],
-    [/Ocaktan Gelenler/i, 'Çağrı dairelerinden uzak dur. Çıkan düşmanları azaltmak ocak mekaniklerinde sana alan açar.'],
-    [/Döküm Çekici|Demir Omuz|Demir Topuk|Kızgın Tekme|Zincir Halkası/i, 'Yakın darbe yayının yanına çık. Darbe tamamlandıktan sonra karşılık ver.']
+    [/Ocağın Saati/i, KabirI18n.t('Güvenli dilim her dalgada saat yönünde yer değiştirir. Son evrede yalnız bir dilim kalır; sonraki boşluğa geç.')],
+    [/Örs Sarsıntısı/i, KabirI18n.t('İniş dairesinden çık. Ardından gelen iki halkanın arasındaki işaretsiz boşlukları kullan.')],
+    [/Lav Fışkırması|Kül Fışkırması|Kor Seli/i, KabirI18n.t('Paralel yarıkların arasına geç. Patlama bitse de kor zemini birkaç saniye yakar.')],
+    [/Kor İzi Hücumu|Kül İzi Hücumu|Kor İzi/i, KabirI18n.t('Hücum hattından yana çık. Arkasında kalan kor izine geri basma.')],
+    [/Cüruf Küresi|Cüruf Birikintisi/i, KabirI18n.t('Küreyi yana yürüyerek dolaştır. Düştüğünde bıraktığı köz birikintisinden uzak kal.')],
+    [/Erimiş Zincir Kırbacı/i, KabirI18n.t('Zincir ayrı yayları sırayla biçer. Vurulmuş yayın boşluğuna geç; sıradaki yayın içinde bekleme.')],
+    [/Demir Pistonlar/i, KabirI18n.t('Piston hattının yanına çık. Peş peşe vuruşlar aynı dar koridoru tarar.')],
+    [/Kızıl Basınç/i, KabirI18n.t('Halkaların iç boşluğu ve işaretli sınırın dışı güvenlidir. Genişleyen kızıl kuşağın içinde bekleme.')],
+    [/Kor Bacaları/i, KabirI18n.t('Bacalar eski konumunun çevresinde açılır. Kızıl dairelerin arasındaki boşluğu kullan.')],
+    [/Ocağın Nefesi/i, KabirI18n.t('Kızıl nefes yayının yanına çık. Yalnız geriye kaçmak seni menzilinde tutabilir.')],
+    [/Kor Biçişi|Kül Antlaşması/i, KabirI18n.t('İki savuruşu da bekle. İlk darbeden sonra içeri girmek dönüş darbesine yakalatır.')],
+    [/Ocağın Çekici/i, KabirI18n.t('Çekiç yayından çık. İlerleyen evrelerde eski konumuna artçı daire düşer; seri bitince vur.')],
+    [/Cüruf Çenesi/i, KabirI18n.t('İki çene darbesi var. İlkinden sonra öne dönme; seriyi yandan aş.')],
+    [/Kor Sıçrayışı/i, KabirI18n.t('Sıçrayış eski konumundaki kızıl daireye iner. Yana çıkıp inişten sonra karşılık ver.')],
+    [/Cüruf Kuyruğu/i, KabirI18n.t('Kuyruk halkasının iç boşluğu ve dışı güvenlidir. İşaretli kuşakta bekleme.')],
+    [/Zincir Tezgâhı/i, KabirI18n.t('Zincirler dar hatlardan sırayla geçer. Hatların arasına veya atış yönünün yanına çık.')],
+    [/Ocaktan Gelenler/i, KabirI18n.t('Çağrı dairelerinden uzak dur. Çıkan düşmanları azaltmak ocak mekaniklerinde sana alan açar.')],
+    [/Döküm Çekici|Demir Omuz|Demir Topuk|Kızgın Tekme|Zincir Halkası/i, KabirI18n.t('Yakın darbe yayının yanına çık. Darbe tamamlandıktan sonra karşılık ver.')]
   ];
-  const GENERAL_TIPS = ['Darbe inmeden hemen önce yuvarlanarak kaçın.', 'Kaçınmanın koruması hareketin başındadır. Geç kalırsan hasar alırsın.', 'Canın azaldığında can iksiri kullan; saldırırken de içebilirsin.', 'Ağır saldırı kalkanlıların gardını kırar ama dayanıklılığını hızla tüketir.'];
+  const GENERAL_TIPS = [KabirI18n.t('Darbe inmeden hemen önce yuvarlanarak kaçın.'), KabirI18n.t('Kaçınmanın koruması hareketin başındadır. Geç kalırsan hasar alırsın.'), KabirI18n.t('Canın azaldığında can iksiri kullan; saldırırken de içebilirsin.'), KabirI18n.t('Ağır saldırı kalkanlıların gardını kırar ama dayanıklılığını hızla tüketir.')];
   // Cruel omens shown under the death card, rotated by death count and picked by the killer's name.
   const DEATH_OMENS = {
-    'Zincirli Mahkûm': ['Bir mahkûm seni ezdi. Zincirin ucunda artık sen varsın.', 'Zincirini sürüklüyordu. Şimdi seni sürükleyecek.', 'Bu taşlar, mahkûma yenilenleri unutmaz.'],
-    'Mezar Muhafızı': ['Muhafız mezarını hazır tuttu. Kapağı kapatmadı.', 'Pala inerken adını fısıldadı. Duymadın.', 'Mezarın senin için kazılı. Boş bekliyor.'],
-    'Kül Rahibi': ['Külün ayine karıştı. Kalanını da isteyecekler.', 'Kanın kutsandı. Sırası gelince yine akacak.', 'Rahip adını küle yazdı. Rüzgâr silmez.'],
-    'Karanlık Pusucusu': ['Pusucu arkandaydı. Hep arkandadır.', 'Gölgeler seni sayıyor. Bir eksiği daha var.', 'Karanlık seni gördü. Gözünü senden ayırmaz.'],
-    'Veba Taşıyıcısı': ['Çürümen başladı bile. Kokun taşlara işledi.', 'Veba senin için yolu buldu.', 'Bu kokuyla ölülerin arasına bile girilmez.'],
-    'Zincir Celladı': ['Cellat zincirini bir tur daha sardı. Sıra sende.', 'Zincir hâlâ sıcak. Boynun onu hatırlıyor.', 'Cellat seni saydı. Tek tek, sırayla.']
+    'Zincirli Mahkûm': [KabirI18n.t('Bir mahkûm seni ezdi. Zincirin ucunda artık sen varsın.'), KabirI18n.t('Zincirini sürüklüyordu. Şimdi seni sürükleyecek.'), KabirI18n.t('Bu taşlar, mahkûma yenilenleri unutmaz.')],
+    'Mezar Muhafızı': [KabirI18n.t('Muhafız mezarını hazır tuttu. Kapağı kapatmadı.'), KabirI18n.t('Pala inerken adını fısıldadı. Duymadın.'), KabirI18n.t('Mezarın senin için kazılı. Boş bekliyor.')],
+    'Kül Rahibi': [KabirI18n.t('Külün ayine karıştı. Kalanını da isteyecekler.'), KabirI18n.t('Kanın kutsandı. Sırası gelince yine akacak.'), KabirI18n.t('Rahip adını küle yazdı. Rüzgâr silmez.')],
+    'Karanlık Pusucusu': [KabirI18n.t('Pusucu arkandaydı. Hep arkandadır.'), KabirI18n.t('Gölgeler seni sayıyor. Bir eksiği daha var.'), KabirI18n.t('Karanlık seni gördü. Gözünü senden ayırmaz.')],
+    'Veba Taşıyıcısı': [KabirI18n.t('Çürümen başladı bile. Kokun taşlara işledi.'), KabirI18n.t('Veba senin için yolu buldu.'), KabirI18n.t('Bu kokuyla ölülerin arasına bile girilmez.')],
+    'Zincir Celladı': [KabirI18n.t('Cellat zincirini bir tur daha sardı. Sıra sende.'), KabirI18n.t('Zincir hâlâ sıcak. Boynun onu hatırlıyor.'), KabirI18n.t('Cellat seni saydı. Tek tek, sırayla.')]
   };
-  const DEATH_OMENS_ANY = ['Ölüm seni bile istemedi.', 'Karanlık seni yuttu ve geri tükürdü.', 'Burada ölüler bile dinlenemez.'];
+  const DEATH_OMENS_ANY = [KabirI18n.t('Ölüm seni bile istemedi.'), KabirI18n.t('Karanlık seni yuttu ve geri tükürdü.'), KabirI18n.t('Burada ölüler bile dinlenemez.')];
   function death(d = {}) {
     if (deathShown) return; deathShown = true; deaths++;
     hud(0); hudTimer = 0;
     if (B.Audio.say) B.Audio.say(coastChapter ? 'coastDeath' : 'death', true);
     const enemy = d.enemy || game.lastDeath?.enemy, attack = d.attack || game.lastDeath?.attack;
-    $('death-cause').textContent = enemy || 'Son darbeyi karanlık vurdu.';
+    $('death-cause').textContent = enemy || KabirI18n.t('Son darbeyi karanlık vurdu.');
     $('death-attack').textContent = attack || '';
-    const tip = (attack && (forgeChapter ? FORGE_DEATH_TIPS : ruinsChapter ? RUINS_DEATH_TIPS : coastChapter ? COAST_DEATH_TIPS : DEATH_TIPS).find(([re]) => re.test(attack))) || null;
+    const tip = (attack && (forgeChapter ? FORGE_DEATH_TIPS : ruinsChapter ? RUINS_DEATH_TIPS : coastChapter ? COAST_DEATH_TIPS : DEATH_TIPS).find(([re]) => re.test(KabirI18n.source(attack)))) || null;
     $('death-tip').textContent = tip ? tip[1] : GENERAL_TIPS[(deaths - 1) % GENERAL_TIPS.length];
-    const omens = DEATH_OMENS[enemy] || DEATH_OMENS_ANY;
-    $('death-detail').textContent = 'Eşyaların, seviyen ve yeteneklerin korundu. ' + (game.checkpointIndex ? 'Son yemin taşından devam edeceksin.' : 'Bölümün girişinden devam edeceksin.');
+    const omens = DEATH_OMENS[KabirI18n.source(enemy)] || DEATH_OMENS_ANY;
+    $('death-detail').textContent = KabirI18n.t('Eşyaların, seviyen ve yeteneklerin korundu. ') + (game.checkpointIndex ? KabirI18n.t('Son yemin taşından devam edeceksin.') : KabirI18n.t('Bölümün girişinden devam edeceksin.'));
     setTimeout(() => { if (game.state === 'dead') show('death'); }, 750);
   }
   function victory(d = {}) {
@@ -589,7 +589,7 @@
     if (!forgeChapter) { advanceChapter(winKey); return; }
     const t = d.time ?? game.elapsed ?? elapsed, k = d.kills ?? game.kills ?? 0;
     const stat = (icon, value, label) => `<div><svg class="icon" aria-hidden="true"><use href="#${icon}"/></svg><b>${value}</b><small>${label}</small></div>`;
-    $('victory-stats').innerHTML = stat('i-hourglass', timeText(t), 'SÜRE') + stat('i-cross', Math.round(k), 'ALT EDİLEN') + stat('i-skull', deaths, 'ÖLÜM');
+    $('victory-stats').innerHTML = stat('i-hourglass', timeText(t), KabirI18n.t('SÜRE')) + stat('i-cross', Math.round(k), KabirI18n.t('ALT EDİLEN')) + stat('i-skull', deaths, KabirI18n.t('ÖLÜM'));
     setTimeout(() => { if (game.state === 'won') show('victory'); }, 1500);
   }
   // Chapters I-III: the boss reward has been collected (combat.js win()) and the next chapter's save is written.
@@ -600,10 +600,10 @@
     clearInput(); B.HUD && B.HUD.dismissTips && B.HUD.dismissTips();
     const fade = $('chapter-fade'), narr = B.Narration && B.Narration[winKey];
     const hold = (Q.has('sessiz') ? 3.2 : Math.min(14, (narr && narr.duration) || 9) + 1) * 1000;
-    fade.querySelector('.eyebrow').textContent = 'Bölüm ' + chapterNumbers[chapter - 1] + ' tamamlandı';
+    fade.querySelector('.eyebrow').textContent = KabirI18n.t('Bölüm ') + chapterNumbers[chapter - 1] + KabirI18n.t(' tamamlandı');
     fade.querySelector('h2').textContent = $('victory-title-text').textContent;
     fade.querySelector('.end-quote').textContent = document.querySelector('#victory .end-quote').textContent;
-    fade.querySelector('.next').textContent = 'BÖLÜM ' + chapterNumbers[chapter] + ' · ' + chapterNames[chapter];
+    fade.querySelector('.next').textContent = KabirI18n.t('BÖLÜM ') + chapterNumbers[chapter] + ' · ' + chapterNames[chapter];
     setTimeout(() => { fade.classList.remove('hidden'); void fade.offsetWidth; fade.classList.add('show'); document.body.classList.add('chapter-fading'); }, 1500);
     // Music and ambience sink under the card so the swap on the next page is not a hard cut.
     setTimeout(() => {
@@ -669,7 +669,7 @@
     if (!renderer) return;
     deriveSettings();
     if (game && game.setDifficulty) game.setDifficulty(cfg.difficulty);
-    $('pause-difficulty').textContent = 'Zorluk: ' + (cfg.difficulty === 'easy' ? 'Kolay' : cfg.difficulty === 'normal' ? 'Normal' : 'Zor');
+    $('pause-difficulty').textContent = KabirI18n.t('Zorluk: ') + (cfg.difficulty === 'easy' ? KabirI18n.t('Kolay') : cfg.difficulty === 'normal' ? 'Normal' : KabirI18n.t('Zor'));
     rig.setQuality(cfg); post.setQuality(cfg);
     if (world.setQuality) world.setQuality(cfg);
     B.Audio.set({ master: cfg.master, music: cfg.music, sfx: cfg.sfx, ambient: cfg.ambient, voice: cfg.voice, narrationMode: cfg.narrationMode });
@@ -687,13 +687,13 @@
   const pct = v => Math.round(v * 100) + '%';
   const SLIDERS = {
     video: [
-      ['exposure', 'Parlaklık', 'Karanlığı kendi ekranına göre ayarla. Saldırı işaretleri her zaman görünür.', .7, 1.7, .05, v => Math.round(v / DEFAULTS.exposure * 100) + '%']
+      ['exposure', KabirI18n.t('Parlaklık'), KabirI18n.t('Karanlığı kendi ekranına göre ayarla. Saldırı işaretleri her zaman görünür.'), .7, 1.7, .05, v => Math.round(v / DEFAULTS.exposure * 100) + '%']
     ],
     audio: [
-      ['master', 'Ana ses', 'Bütün seslerin seviyesi.', 0, 1, .05, pct],
-      ['music', 'Müzik', 'Derinden gelen karanlık müzik.', 0, 1, .05, pct],
-      ['sfx', 'Efektler', 'Darbe, silah, uyarılar ve zindan sesleri.', 0, 1, .05, pct],
-      ['voice', 'Anlatıcı', 'Türkçe hikâye anlatıcısının sesi.', 0, 1, .05, pct]
+      ['master', KabirI18n.t('Ana ses'), KabirI18n.t('Bütün seslerin seviyesi.'), 0, 1, .05, pct],
+      ['music', KabirI18n.t('Müzik'), KabirI18n.t('Derinden gelen karanlık müzik.'), 0, 1, .05, pct],
+      ['sfx', KabirI18n.t('Efektler'), KabirI18n.t('Darbe, silah, uyarılar ve zindan sesleri.'), 0, 1, .05, pct],
+      ['voice', KabirI18n.t('Anlatıcı'), KabirI18n.t('Türkçe hikâye anlatıcısının sesi.'), 0, 1, .05, pct]
     ]
   };
   function sliderRow([key, label, note, min, max, step, fmt]) {
@@ -730,46 +730,47 @@
   function paintGraphicsNotes() {
     if (!renderer || !displayPlan) return;
     const r = $('display-note'), mode = $('displayMode-note'), rate = $('frameRate-note'), resolution = $('renderScale-note');
-    if (r) r.textContent = `Şu an: ${post.width} × ${post.height} piksel · ${cfg.fps ? 'en fazla ' + cfg.fps + ' FPS' : 'FPS sınırı kapalı'}.` +
-      (displayPlan.limited ? ' Ekran kartının görüntü boyutu sınırı uygulanıyor.' : '') +
-      (cfg.renderScale === 1 && cfg.dynScale < 1 ? ` Akıcılığı korumak için çizim boyutu geçici olarak %${Math.round(cfg.dynScale * 100)} düzeyinde.` : '');
+    if (r) r.textContent = `${KabirI18n.t("Şu an: ")}${post.width} × ${post.height}${KabirI18n.t(" piksel · ")}${cfg.fps ? KabirI18n.t('en fazla ') + cfg.fps + ' FPS' : KabirI18n.t('FPS sınırı kapalı')}.` +
+      (displayPlan.limited ? KabirI18n.t(' Ekran kartının görüntü boyutu sınırı uygulanıyor.') : '') +
+      (cfg.renderScale === 1 && cfg.dynScale < 1 ? `${KabirI18n.t(" Akıcılığı korumak için çizim boyutu geçici olarak %")}${Math.round(cfg.dynScale * 100)}${KabirI18n.t(" düzeyinde.")}` : '');
     if (mode) {
       mode.textContent = cfg.displayMode === 'auto'
-        ? 'Otomatik başlangıç: PC’de %100, Mac’te %70, iPad’de %75, Android’de %80. 1× / 1,25× / 1,50× bu boyutu ölçekler. Yazılar net kalır.'
-        : 'Ekranın bütün piksellerini kullanır. Retina ekranda Düşük kalite seçilse de çizim boyutu azalmaz.';
+        ? KabirI18n.t('Otomatik başlangıç: PC’de %100, Mac’te %70, iPad’de %75, Android’de %80. 1× / 1,25× / 1,50× bu boyutu ölçekler. Yazılar net kalır.')
+        : KabirI18n.t('Ekranın bütün piksellerini kullanır. Retina ekranda Düşük kalite seçilse de çizim boyutu azalmaz.');
     }
-    if (resolution) resolution.textContent = 'Seçilen görüntü boyutunu büyütür. 1.25× daha net, 1.50× en ayrıntılı görüntüdür; daha fazla ekran kartı gücü kullanır.';
-    if (rate) rate.textContent = cfg.fps ? 'En fazla ' + cfg.fps + ' kare/sn. Ekranının yenileme hızına uygun bir sınır seç. Daha düşük sınırlar işlemci yükünü ve fan sesini azaltabilir.' : 'Ekranın her yenilemesinde çizer (G-Sync / FreeSync / ProMotion ile en düzgünü).';
+    if (resolution) resolution.textContent = KabirI18n.t('Seçilen görüntü boyutunu büyütür. 1.25× daha net, 1.50× en ayrıntılı görüntüdür; daha fazla ekran kartı gücü kullanır.');
+    if (rate) rate.textContent = cfg.fps ? KabirI18n.t('En fazla ') + cfg.fps + KabirI18n.t(' kare/sn. Ekranının yenileme hızına uygun bir sınır seç. Daha düşük sınırlar işlemci yükünü ve fan sesini azaltabilir.') : KabirI18n.t('Ekranın her yenilemesinde çizer (G-Sync / FreeSync / ProMotion ile en düzgünü).');
   }
   function renderSettings() {
     const video = $('settings-video'), audio = $('settings-audio');
-    $('settings-game').replaceChildren(choiceRow('difficulty', 'Zorluk', ['easy','normal','hard'],v=>v==='easy'?'Kolay':v==='normal'?'Normal':'Zor'));
-    $('difficulty-note').textContent = 'Kolay: daha az tehlike. Normal: dengeli bir yolculuk. Zor: daha sert savaşlar. Seçimin hemen uygulanır; yeniden açılışta Normal başlar.';
-    const gameHeading = document.createElement('h3'); gameHeading.textContent = 'Yolculuğun'; $('settings-game').prepend(gameHeading);
-    const saveInfo = document.createElement('div'); saveInfo.className = 'settings-save-info'; saveInfo.innerHTML = '<strong>Yeminin sürüyor</strong><p>Ölümde son yemin noktasına dönersin. Eşyaların, tecrüben ve öğrendiğin yetenekler korunur.</p>'; $('settings-game').append(saveInfo);
+    $('settings-game').replaceChildren(choiceRow('difficulty', KabirI18n.t('Zorluk'), ['easy','normal','hard'],v=>v==='easy'?KabirI18n.t('Kolay'):v==='normal'?'Normal':KabirI18n.t('Zor')));
+    $('difficulty-note').textContent = KabirI18n.t('Kolay: daha az tehlike. Normal: dengeli bir yolculuk. Zor: daha sert savaşlar. Seçimin hemen uygulanır; yeniden açılışta Normal başlar.');
+    const languageSetting=document.createElement('div');languageSetting.className='setting';languageSetting.innerHTML='<div class="setting-head"><label>'+KabirI18n.t('Dil')+KabirI18n.t('</label></div><div class="language-choice" data-language-native><button type="button" data-language="tr" lang="tr">Türkçe</button><button type="button" data-language="en" lang="en">English</button></div><small>')+KabirI18n.t('Dil değişince oyun yeniden açılır; kayıtların korunur.')+'</small>';languageSetting.querySelectorAll('[data-language]').forEach(button=>{button.classList.toggle('selected',button.dataset.language===KabirI18n.lang);button.setAttribute('aria-pressed',String(button.dataset.language===KabirI18n.lang));button.onclick=()=>KabirI18n.setLanguage(button.dataset.language);});$('settings-game').append(languageSetting);
+    const gameHeading = document.createElement('h3'); gameHeading.textContent = KabirI18n.t('Yolculuğun'); $('settings-game').prepend(gameHeading);
+    const saveInfo = document.createElement('div'); saveInfo.className = 'settings-save-info'; saveInfo.innerHTML = KabirI18n.t('<strong>Yeminin sürüyor</strong><p>Ölümde son yemin noktasına dönersin. Eşyaların, tecrüben ve öğrendiğin yetenekler korunur.</p>'); $('settings-game').append(saveInfo);
     video.querySelectorAll('.advanced-graphics, .setting').forEach(n => n.remove()); audio.querySelectorAll('.setting').forEach(n => n.remove());
     const q = document.createElement('div'); q.className = 'setting quality';
-    q.innerHTML = `<div class="setting-head"><label id="quality-label">Grafik kalitesi</label></div><div class="segmented" role="radiogroup" aria-labelledby="quality-label">${Object.keys(QUALITY).map(k => `<button type="button" role="radio" data-quality="${k}">${QUALITY_TEXT[k][0]}</button>`).join('')}</div><small id="quality-note"></small>`;
+    q.innerHTML = `${KabirI18n.t("<div class=\"setting-head\"><label id=\"quality-label\">Grafik kalitesi</label></div><div class=\"segmented\" role=\"radiogroup\" aria-labelledby=\"quality-label\">")}${Object.keys(QUALITY).map(k => `<button type="button" role="radio" data-quality="${k}">${QUALITY_TEXT[k][0]}</button>`).join('')}</div><small id="quality-note"></small>`;
     const paintQuality = () => { q.querySelectorAll('[data-quality]').forEach(b => { const on = b.dataset.quality === cfg.quality; b.classList.toggle('selected', on); b.setAttribute('aria-checked', on); }); q.querySelector('#quality-note').textContent = QUALITY_TEXT[cfg.quality][1] + ((cfg.quality === 'low') !== lowTextures ? TEXTURE_NOTE : ''); };
     q.querySelectorAll('[data-quality]').forEach(b => b.addEventListener('click', () => { if (b.dataset.quality === cfg.quality) return; cfg.quality = b.dataset.quality; paintQuality(); applySettings(); warmShaders(true); }));
     paintQuality(); video.append(q);
     const displayNote = document.createElement('small'); displayNote.id = 'display-note'; q.append(displayNote);
-    video.append(choiceRow('displayMode', 'Görüntü boyutu', ['auto', 'native'], v => ({ auto: 'Otomatik', native: 'Tam boyut' })[v]),
-      choiceRow('renderScale', 'Render çözünürlüğü', [1, 1.25, 1.5], v => v.toFixed(v === 1 ? 1 : 2) + '×'),
-      choiceRow('frameRate', 'Kare hızı', FRAME_RATES, v => v ? v + ' FPS' : 'Ekran hızı'),
-      choiceRow('uiScale', 'Arayüz boyutu', UI_STEPS, v => v < 1 ? 'Küçük' : 'Normal'));
+    video.append(choiceRow('displayMode', KabirI18n.t('Görüntü boyutu'), ['auto', 'native'], v => ({ auto: KabirI18n.t('Otomatik'), native: KabirI18n.t('Tam boyut') })[v]),
+      choiceRow('renderScale', KabirI18n.t('Render çözünürlüğü'), [1, 1.25, 1.5], v => v.toFixed(v === 1 ? 1 : 2) + '×'),
+      choiceRow('frameRate', KabirI18n.t('Kare hızı'), FRAME_RATES, v => v ? v + ' FPS' : KabirI18n.t('Ekran hızı')),
+      choiceRow('uiScale', KabirI18n.t('Arayüz boyutu'), UI_STEPS, v => v < 1 ? KabirI18n.t('Küçük') : 'Normal'));
     // Edge smoothing (SMAA post pass in post.js) is always on: no settings row.
     paintGraphicsNotes();
-    $('uiScale-note').textContent = 'Alt çubuk, küreler, harita ve yazıları ölçekler. Yeniden açılışta Küçük başlar.';
+    $('uiScale-note').textContent = KabirI18n.t('Alt çubuk, küreler, harita ve yazıları ölçekler. Yeniden açılışta Küçük başlar.');
     for (const f of SLIDERS.video) video.append(sliderRow(f));
     for (const f of SLIDERS.audio) audio.append(sliderRow(f));
     const sub = document.createElement('div'); sub.className = 'setting toggle';
-    sub.innerHTML = '<label for="set-subtitles"><b>Altyazılar</b><small>Anlatıcının sözlerini ekranda göster.</small></label><input id="set-subtitles" type="checkbox">';
+    sub.innerHTML = KabirI18n.t('<label for="set-subtitles"><b>Altyazılar</b><small>Anlatıcının sözlerini ekranda göster.</small></label><input id="set-subtitles" type="checkbox">');
     const box = sub.querySelector('input'); box.checked = cfg.subtitles;
     box.addEventListener('change', () => { cfg.subtitles = box.checked; applySettings(); });
-    audio.append(sub, choiceRow('narrationMode', 'Anlatım', ['essential','story','off'], v => v === 'essential' ? 'Önemli anlar' : v === 'story' ? 'Tüm öykü' : 'Kapalı'));
-    const narrationNote=document.createElement('small'); narrationNote.className='settings-save-info'; narrationNote.textContent='Önemli anlarda anlatıcı giriş, karar ve dönüm noktalarında konuşur; keşif ve savaşın sesi önde kalır.'; audio.append(narrationNote);
-    $('settings-note').textContent = B.Audio.silent ? 'Test modu · sessiz' : 'Seçimler hemen uygulanır.';
+    audio.append(sub, choiceRow('narrationMode', KabirI18n.t('Anlatım'), ['essential','story','off'], v => v === 'essential' ? KabirI18n.t('Önemli anlar') : v === 'story' ? KabirI18n.t('Tüm öykü') : KabirI18n.t('Kapalı')));
+    const narrationNote=document.createElement('small'); narrationNote.className='settings-save-info'; narrationNote.textContent=KabirI18n.t('Önemli anlarda anlatıcı giriş, karar ve dönüm noktalarında konuşur; keşif ve savaşın sesi önde kalır.'); audio.append(narrationNote);
+    $('settings-note').textContent = B.Audio.silent ? KabirI18n.t('Test modu · sessiz') : KabirI18n.t('Seçimler hemen uygulanır.');
   }
   function selectSettingsPage(page) {
     if (!['game', 'video', 'audio', 'input'].includes(page)) return;
@@ -785,7 +786,7 @@
     if (!game) return;
     const total = game.enemies.filter(e => !e.reserve).length, kills = game.enemies.filter(e => e.dead && !e.reserve).length;   // reserve = dormant boss adds (boss2.js)
     const r = world && world.roomAt(game.player.x, game.player.z);
-    $('pause-room').textContent = r ? r.name : 'Kurban Tapınağı';
+    $('pause-room').textContent = r ? r.name : KabirI18n.t('Kurban Tapınağı');
     $('pause-time').textContent = timeText(game.elapsed || 0);
     $('pause-kills').textContent = kills + ' / ' + total;
   }
@@ -816,7 +817,7 @@
       B.Audio.unlock(); B.Audio.resetNarration(); clearFX(); clearNotices(); game.respawn();
       deathShown = wonShown = false; show('playing'); roomId = -1; introBlend = 1; lastHp = lastFlasks = null; hud(0);
       cameraPos.set(game.player.x, 16, game.player.z + 13); look.set(game.player.x, .7, game.player.z); snapScene();
-      announce(game.checkpointIndex ? 'Yemin Taşı' : 'Kabir Azabı', 'GERİ DÖNDÜN', 'checkpoint');
+      announce(game.checkpointIndex ? KabirI18n.t('Yemin Taşı') : KabirI18n.t('Kabir Azabı'), KabirI18n.t('GERİ DÖNDÜN'), 'checkpoint');
     };
     $('again').onclick = () => { clearFX(); begin(true); };
     $('tutorial').querySelector('button').onclick = () => { $('tutorial').classList.add('hidden'); firstHint = 0; };
@@ -978,15 +979,15 @@
   // Gives `code` to binds[action][slot]. A code that is already used elsewhere swaps places with what this slot held.
   function assignBind(action, slot, code) {
     const label = a => bindInfo(a)[0], mouseOk = a => BIND_MOUSE_OK.includes(a);
-    const walkNote = 'Tıklayarak yürümek için Hafif saldırıda en az bir fare tuşu kalmalı. Önce yedek kutuya bir fare tuşu ata.';
+    const walkNote = KabirI18n.t('Tıklayarak yürümek için Hafif saldırıda en az bir fare tuşu kalmalı. Önce yedek kutuya bir fare tuşu ata.');
     if (!code) {
-      if (!slot) return { ok: false, msg: 'Ana tuş boş bırakılamaz.' };
+      if (!slot) return { ok: false, msg: KabirI18n.t('Ana tuş boş bırakılamaz.') };
       if (action === 'light' && !mouseCode(binds.light[0])) return { ok: false, msg: walkNote };
-      binds[action][1] = ''; return { ok: true, msg: `${label(action)}: yedek tuş boşaltıldı.` };
+      binds[action][1] = ''; return { ok: true, msg: `${label(action)}${KabirI18n.t(": yedek tuş boşaltıldı.")}` };
     }
-    if (BIND_RESERVED.includes(code)) return { ok: false, msg: code === 'KeyH' ? 'H tuşu yardım için ayrılmış.' : 'Bu tuş ayrılmış, başka bir tuş dene.' };
-    if (code.startsWith('Mouse') && !mouseCode(code)) return { ok: false, msg: 'Bu fare düğmesi desteklenmiyor; başka bir düğme seç.' };
-    if (code.startsWith('Mouse') && !mouseOk(action)) return { ok: false, msg: 'Bu işlem için fare tuşu atanamaz, klavyeden bir tuş dene.' };
+    if (BIND_RESERVED.includes(code)) return { ok: false, msg: code === 'KeyH' ? KabirI18n.t('H tuşu yardım için ayrılmış.') : KabirI18n.t('Bu tuş ayrılmış, başka bir tuş dene.') };
+    if (code.startsWith('Mouse') && !mouseCode(code)) return { ok: false, msg: KabirI18n.t('Bu fare düğmesi desteklenmiyor; başka bir düğme seç.') };
+    if (code.startsWith('Mouse') && !mouseOk(action)) return { ok: false, msg: KabirI18n.t('Bu işlem için fare tuşu atanamaz, klavyeden bir tuş dene.') };
     const old = binds[action][slot]; if (old === code) return { ok: true, msg: '' };
     let hit = null; for (const a in binds) binds[a].forEach((c, i) => { if (c === code) hit = [a, i]; });
     let msg = `${label(action)}: ${capName(code)}`;
@@ -994,7 +995,7 @@
     if (hit) {
       const [a2, s2] = hit;
       if (give.startsWith('Mouse') && !mouseOk(a2)) give = '';
-      if (!give && !s2) return { ok: false, msg: `${capName(code)} zaten ${label(a2)} için ana tuş; önce onu değiştir.` };
+      if (!give && !s2) return { ok: false, msg: `${capName(code)} zaten ${label(a2)}${KabirI18n.t(" için ana tuş; önce onu değiştir.")}` };
     }
     const nextLight = binds.light.slice();
     if (hit && hit[0] === 'light') nextLight[hit[1]] = give;
@@ -1003,18 +1004,18 @@
     if (hit) {
       const [a2, s2] = hit;
       binds[a2][s2] = give;
-      msg += a2 === action ? ' (ana ve yedek yer değiştirdi)' : ` · ${label(a2)} artık ${capName(give)}`;
+      msg += a2 === action ? KabirI18n.t(' (ana ve yedek yer değiştirdi)') : ` · ${label(a2)}${KabirI18n.t(" artık ")}${capName(give)}`;
     }
     binds[action][slot] = code;
     return { ok: true, msg: msg + '.' };
   }
   let rebind = null;
-  const bindNote = t => { $('keybinds-note').textContent = t || 'Bir kutuya tıkla, sonra yeni tuşa bas.'; };
+  const bindNote = t => { $('keybinds-note').textContent = t || KabirI18n.t('Bir kutuya tıkla, sonra yeni tuşa bas.'); };
   function startRebind(action, slot) {
     if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
     rebind = { action, slot };
-    $('bind-capture-what').textContent = `${bindInfo(action)[0]} · ${slot ? 'yedek tuş' : 'ana tuş'}`;
-    $('bind-capture-hint').textContent = BIND_MOUSE_OK.includes(action) ? 'Klavyeden bir tuşa ya da fare tuşuna bas · Esc iptal' : 'Esc iptal';
+    $('bind-capture-what').textContent = `${bindInfo(action)[0]} · ${slot ? KabirI18n.t('yedek tuş') : KabirI18n.t('ana tuş')}`;
+    $('bind-capture-hint').textContent = BIND_MOUSE_OK.includes(action) ? KabirI18n.t('Klavyeden bir tuşa ya da fare tuşuna bas · Esc iptal') : KabirI18n.t('Esc iptal');
     $('bind-capture-clear').classList.toggle('hidden', !slot);
     $('bind-capture').classList.remove('hidden'); renderBinds();
   }
@@ -1028,23 +1029,23 @@
     for (const [id, list] of BIND_GROUPS) {
       const sec = $(id); if (!sec) continue;
       sec.querySelectorAll('.bindrow, .bind-cols, .bind-subhead').forEach(n => n.remove());
-      const head = document.createElement('div'); head.className = 'bind-cols'; head.innerHTML = '<span></span><span>Ana tuş</span><span>Yedek</span><span></span>'; sec.append(head);
-      const fixed = id === 'bind-misc' ? [['Mola', 'Menü ve ayarlar', 'ESC'], ['Karakter ve çanta', 'Yetenek ağacı: T', 'I / C'], ['Yardım', 'Kontroller ekranı', 'H']] : [];
+      const head = document.createElement('div'); head.className = 'bind-cols'; head.innerHTML = KabirI18n.t('<span></span><span>Ana tuş</span><span>Yedek</span><span></span>'); sec.append(head);
+      const fixed = id === 'bind-misc' ? [[KabirI18n.t('Mola'), KabirI18n.t('Menü ve ayarlar'), 'ESC'], [KabirI18n.t('Karakter ve çanta'), KabirI18n.t('Yetenek ağacı: T'), 'I / C'], [KabirI18n.t('Yardım'), KabirI18n.t('Kontroller ekranı'), 'H']] : [];
       for (const a of list) {
         if (a === 'heavy' || a === 'light') {
           const sub = document.createElement('div'); sub.className = 'bind-subhead'; sub.setAttribute('role', 'presentation');
-          sub.innerHTML = a === 'heavy' ? `<b>Yetenekler</b><span>${['heavy', 'special', 'rage', 'fourth'].map(k => { const c = binds[k][0] || binds[k][1]; return c ? capName(c) : '—'; }).join(' · ')}</span>` : '<b>Diğer savaş tuşları</b>';
+          sub.innerHTML = a === 'heavy' ? `${KabirI18n.t("<b>Yetenekler</b><span>")}${['heavy', 'special', 'rage', 'fourth'].map(k => { const c = binds[k][0] || binds[k][1]; return c ? capName(c) : '—'; }).join(' · ')}</span>` : KabirI18n.t('<b>Diğer savaş tuşları</b>');
           sec.append(sub);
         }
         const row = document.createElement('div'); row.className = 'setting bindrow'; row.dataset.bindRow = a;
-        row.innerHTML = `<div class="bind-name"><label>${bindInfo(a)[0]}</label><small>${bindInfo(a)[1]}</small></div><button type="button" class="bind-slot" data-slot="0"></button><button type="button" class="bind-slot" data-slot="1"></button><button type="button" class="bind-reset" title="Varsayılana dön" aria-label="${BIND_INFO[a][0]}: varsayılana dön">↺</button>`;
+        row.innerHTML = `<div class="bind-name"><label>${bindInfo(a)[0]}</label><small>${bindInfo(a)[1]}${KabirI18n.t("</small></div><button type=\"button\" class=\"bind-slot\" data-slot=\"0\"></button><button type=\"button\" class=\"bind-slot\" data-slot=\"1\"></button><button type=\"button\" class=\"bind-reset\" title=\"Varsayılana dön\" aria-label=\"")}${BIND_INFO[a][0]}${KabirI18n.t(": varsayılana dön\">↺</button>")}`;
         row.querySelectorAll('.bind-slot').forEach((b, i) => {
           const c = binds[a][i]; b.textContent = capName(c); b.classList.toggle('empty', !c); b.classList.toggle('listening', !!rebind && rebind.action === a && rebind.slot === i);
-          b.setAttribute('aria-label', `${bindInfo(a)[0]}, ${i ? 'yedek' : 'ana'} tuş: ${c ? capName(c) : 'boş'}. Değiştirmek için tıkla.`);
+          b.setAttribute('aria-label', `${bindInfo(a)[0]}, ${i ? 'yedek' : 'ana'}${KabirI18n.t(" tuş: ")}${c ? capName(c) : KabirI18n.t('boş')}${KabirI18n.t(". Değiştirmek için tıkla.")}`);
           b.onclick = () => startRebind(a, i);
         });
         const same = binds[a].join() === BIND_DEFAULTS[a].join(), rs = row.querySelector('.bind-reset'); rs.disabled = same;
-        rs.onclick = () => { setBinds(Object.assign({}, binds, { [a]: BIND_DEFAULTS[a] }), a); bindsChanged(); bindNote(`${bindInfo(a)[0]} varsayılana döndü.`); };
+        rs.onclick = () => { setBinds(Object.assign({}, binds, { [a]: BIND_DEFAULTS[a] }), a); bindsChanged(); bindNote(`${bindInfo(a)[0]}${KabirI18n.t(" varsayılana döndü.")}`); };
         sec.append(row);
       }
       for (const [name, note, cap] of fixed) {
@@ -1056,7 +1057,7 @@
   function setupBindUI() {
     $('settings-keys').onclick = $('controls-keys').onclick = openKeybinds;
     $('keybinds-close').onclick = $('keybinds-done').onclick = () => { if (rebind) endRebind(); back(); };
-    $('keybinds-reset').onclick = () => { setBinds(null); bindsChanged(); bindNote('Bütün tuşlar varsayılana döndü.'); };
+    $('keybinds-reset').onclick = () => { setBinds(null); bindsChanged(); bindNote(KabirI18n.t('Bütün tuşlar varsayılana döndü.')); };
     $('bind-capture-cancel').onclick = () => endRebind();
     $('bind-capture-clear').onclick = () => { const r = assignBind(rebind.action, rebind.slot, ''); if (!r.ok) { $('bind-capture-hint').textContent = r.msg; return; } bindsChanged(); endRebind(r.msg); };
     // While a slot listens, this capture-phase handler takes every key before the game's own handler sees it.
@@ -1065,7 +1066,7 @@
       e.preventDefault(); e.stopImmediatePropagation();
       if (e.repeat || /^(Meta|OS)/.test(e.key)) return;
       if (e.code === 'Escape') return endRebind();
-      if (e.key === '.') return void ($('bind-capture-hint').textContent = 'Nokta tuşu FPS göstergesi için ayrılmış.');
+      if (e.key === '.') return void ($('bind-capture-hint').textContent = KabirI18n.t('Nokta tuşu FPS göstergesi için ayrılmış.'));
       tryRebind(normCode(e.code));
     }, true);
     const cap = $('bind-capture');
@@ -1298,7 +1299,7 @@
   // frame that already carries the rest of the HUD update, and it is skipped when nothing on it moved.
   function drawMinimap() {
     if (miniPending) return; miniPending = true;
-    requestAnimationFrame(() => { miniPending = false; try { drawMinimapNow(game.player); } catch (e) { console.warn('[Kabir Azabı] minimap', e); } });
+    requestAnimationFrame(() => { miniPending = false; try { drawMinimapNow(game.player); } catch (e) { console.warn(KabirI18n.t('[Kabir Azabı] minimap'), e); } });
   }
   function drawMinimapNow(p) {
     const c = $('minimap'), x = c.getContext('2d', B.uiBitmapOptions), scale = MINI_SCALE, cx = 128, cy = 140, k = c.width / 256;
@@ -1375,7 +1376,7 @@
     const p = game.player, total = game.totalKills || game.enemies.length;
     let kills = 0; for (const e of game.enemies) if (e.dead && !e.reserve) kills++;
     const story = game.quests;
-    hudText('kill-progress', game.pendingBossReward ? 'Emaneti alarak ilerle' : story ? story.completed + ' / 2 bağ çözüldü' : kills + ' / ' + total);
+    hudText('kill-progress', game.pendingBossReward ? KabirI18n.t('Emaneti alarak ilerle') : story ? story.completed + KabirI18n.t(' / 2 bağ çözüldü') : kills + ' / ' + total);
     if (questUI) questUI.update();
 
     hq('.hero-card').classList.toggle('sealed', !!game.checkpointIndex);
@@ -1401,36 +1402,36 @@
   function gateObjective(room) {
     const gt = game.gate, story = game.quests;
     if (!gt || game.state === 'won' || !game.boss || game.boss.dead) return null;
-    if (room && room.id === gt.room) return gt.bossName + ' — bu bölümün son bağını kır.';
-    if (story) return gt.open ? 'Kapı açıldı. ' + gt.bossName + ' seni bekliyor.' : story.objective;
+    if (room && room.id === gt.room) return gt.bossName + KabirI18n.t(' — bu bölümün son bağını kır.');
+    if (story) return gt.open ? KabirI18n.t('Kapı açıldı. ') + gt.bossName + ' seni bekliyor.' : story.objective;
     return null;
   }
   function chapterObjective(room) {
-    if (game.pendingBossReward) return 'Efendi yenildi. Emanetine yaklaş.';
+    if (game.pendingBossReward) return KabirI18n.t('Efendi yenildi. Emanetine yaklaş.');
     const gateText = gateObjective(room); if (gateText) return gateText;
-    if(chapter < 3 && room && room.id >= 7){const n=game.enemies.filter(e=>!e.dead&&e.encounter.room===room.id).length;return n?'Bu yan alanda '+n+' düşman var.':'Alan temizlendi. Ana yola geri dön.';}
-    if(forgeChapter){if(game.state==='won')return 'Ocak söndü. Zincirlerin kaynağı yok oldu.';if(!room)return 'Dökümhanenin içinden kuzeye ilerle.';if(room.id===11)return game.checkpointIndex?'Köz Yemini mühürlendi. Son Döküm’e ilerle.':'Köz Yemini taşına yaklaş ve '+capName(binds.interact[0])+' ile dokun.';if(room.id===13)return 'Ocağın Kalbi’ni yen. Kızgın halkalardaki boşlukları kullan.';const n=game.enemies.filter(e=>!e.dead&&e.encounter.room===room.id).length;return n?'Bu alanda '+n+' düşman var.':'Kuzeydeki döküm salonuna ilerle.';}
-    if(ruinsChapter){if(game.state==='won')return 'Taht yıkıldı. Kralın sesi sustu.';if(!room)return 'Harabelerin içinden kuzeye ilerle.';if(room.id===11)return game.checkpointIndex?'Son yemin mühürlendi. Tahtın nöbetini aş.':'Son Yemin taşına yaklaş ve '+capName(binds.interact[0])+' ile dokun.';if(room.id===13)return 'Oyukların Kralı’nı yen. Taş halkalarının güvenli boşluklarını bul.';const n=game.enemies.filter(e=>!e.dead&&e.encounter.room===room.id).length;return n?'Bu alanda '+n+' düşman var.':room.id===5?'Yıkılmış anıtın altından mağaraya gir.':'Kuzeydeki geçide ilerle.';}
+    if(chapter < 3 && room && room.id >= 7){const n=game.enemies.filter(e=>!e.dead&&e.encounter.room===room.id).length;return n?KabirI18n.t('Bu yan alanda ')+n+KabirI18n.t(' düşman var.'):KabirI18n.t('Alan temizlendi. Ana yola geri dön.');}
+    if(forgeChapter){if(game.state==='won')return KabirI18n.t('Ocak söndü. Zincirlerin kaynağı yok oldu.');if(!room)return KabirI18n.t('Dökümhanenin içinden kuzeye ilerle.');if(room.id===11)return game.checkpointIndex?KabirI18n.t('Köz Yemini mühürlendi. Son Döküm’e ilerle.'):KabirI18n.t('Köz Yemini taşına yaklaş ve ')+capName(binds.interact[0])+' ile dokun.';if(room.id===13)return KabirI18n.t('Ocağın Kalbi’ni yen. Kızgın halkalardaki boşlukları kullan.');const n=game.enemies.filter(e=>!e.dead&&e.encounter.room===room.id).length;return n?KabirI18n.t('Bu alanda ')+n+KabirI18n.t(' düşman var.'):KabirI18n.t('Kuzeydeki döküm salonuna ilerle.');}
+    if(ruinsChapter){if(game.state==='won')return KabirI18n.t('Taht yıkıldı. Kralın sesi sustu.');if(!room)return KabirI18n.t('Harabelerin içinden kuzeye ilerle.');if(room.id===11)return game.checkpointIndex?KabirI18n.t('Son yemin mühürlendi. Tahtın nöbetini aş.'):KabirI18n.t('Son Yemin taşına yaklaş ve ')+capName(binds.interact[0])+' ile dokun.';if(room.id===13)return KabirI18n.t('Oyukların Kralı’nı yen. Taş halkalarının güvenli boşluklarını bul.');const n=game.enemies.filter(e=>!e.dead&&e.encounter.room===room.id).length;return n?KabirI18n.t('Bu alanda ')+n+KabirI18n.t(' düşman var.'):room.id===5?KabirI18n.t('Yıkılmış anıtın altından mağaraya gir.'):KabirI18n.t('Kuzeydeki geçide ilerle.');}
     if (coastChapter) {
-      if (game.state === 'won') return 'Çan sustu. Kara Kıyı özgür.';
-      if (!room) return 'Kıyının kuzeyine ilerle.';
-      if (room.id === 5) return game.checkpointIndex ? 'Yeminin mühürlendi. Çanlığa ilerle.' : 'Fenerin yemin taşına yaklaş ve ' + capName(binds.interact[0]) + ' ile dokun.';
-      if (room.id === 6) return 'Derinliklerin Çancısı’nı yen. Deniz halkalarının boşluklarını kullan.';
+      if (game.state === 'won') return KabirI18n.t('Çan sustu. Kara Kıyı özgür.');
+      if (!room) return KabirI18n.t('Kıyının kuzeyine ilerle.');
+      if (room.id === 5) return game.checkpointIndex ? KabirI18n.t('Yeminin mühürlendi. Çanlığa ilerle.') : KabirI18n.t('Fenerin yemin taşına yaklaş ve ') + capName(binds.interact[0]) + ' ile dokun.';
+      if (room.id === 6) return KabirI18n.t('Derinliklerin Çancısı’nı yen. Deniz halkalarının boşluklarını kullan.');
       const n = game.enemies.filter(e => !e.dead && e.encounter.room === room.id).length;
-      return n ? 'Bu alanda ' + n + ' düşman var. Savaş veya kuzeye ilerle.' : room.id === 4 ? 'Son Fener’in yemin taşını bul.' : 'Kuzeydeki patikaya ilerle.';
+      return n ? KabirI18n.t('Bu alanda ') + n + KabirI18n.t(' düşman var. Savaş veya kuzeye ilerle.') : room.id === 4 ? KabirI18n.t('Son Fener’in yemin taşını bul.') : 'Kuzeydeki patikaya ilerle.';
     }
-    if (game.state === 'won') return 'Geçit açıldı. Kurban Tapınağı sustu.';
+    if (game.state === 'won') return KabirI18n.t('Geçit açıldı. Kurban Tapınağı sustu.');
     if (!room) return 'Kuzeydeki salona ilerle.';
     const idx = room.id;
-    if (idx === 5) return game.checkpointIndex ? 'Yeminin mühürlendi. Zincir Mahkemesi’ne ilerle.' : 'Yemin taşına yaklaş ve ' + capName(binds.interact[0]) + ' ile dokun.';
+    if (idx === 5) return game.checkpointIndex ? KabirI18n.t('Yeminin mühürlendi. Zincir Mahkemesi’ne ilerle.') : KabirI18n.t('Yemin taşına yaklaş ve ') + capName(binds.interact[0]) + ' ile dokun.';
     if (idx === 6) {
       const boss = game.boss || game.enemies.find(e => e.boss);
-      return boss && boss.phase === 2 ? 'Zincirler kırıldı. Celladın kızıl darbelerinden kaçın.' : 'Zincir Celladı’nı yen. Tapınağın geçidini aç.';
+      return boss && boss.phase === 2 ? KabirI18n.t('Zincirler kırıldı. Celladın kızıl darbelerinden kaçın.') : KabirI18n.t('Zincir Celladı’nı yen. Tapınağın geçidini aç.');
     }
     let remaining = 0;
     for (const e of game.enemies) if (!e.dead && e.encounter && e.encounter.room === idx) remaining++;
-    if (remaining) return 'Bu salonda ' + remaining + ' düşman var. Savaş veya kuzeye ilerle.';
-    return idx === 4 ? 'Şapeldeki yemin taşını bul.' : 'Kuzeydeki salona ilerle.';
+    if (remaining) return KabirI18n.t('Bu salonda ') + remaining + KabirI18n.t(' düşman var. Savaş veya kuzeye ilerle.');
+    return idx === 4 ? KabirI18n.t('Şapeldeki yemin taşını bul.') : 'Kuzeydeki salona ilerle.';
   }
   let mechanicRecord = null, mechanicRevision = -1;
   function updateMechanic() {
@@ -1452,7 +1453,7 @@
   function hud(dt) {
     const p = game.player;
     const progression = game.progression, thresholds = B.Progression.thresholds, baseXp = thresholds[progression.level - 1], nextXp = progression.nextLevelXp();
-    hudText('hero-subtitle', 'Seviye ' + progression.level);
+    hudText('hero-subtitle', KabirI18n.t('Seviye ') + progression.level);
     const seal = hq('.portrait-seal'), levelText = String(progression.level);
     if (seal.textContent !== levelText) seal.textContent = levelText;
     const xpFraction = progression.level === B.Progression.MAX_LEVEL ? 1 : clamp((progression.xp - baseXp) / (nextXp - baseXp), 0, 1);
@@ -1460,7 +1461,7 @@
     const xpBar = hq('.chapter-progress');
     const xpValue = String(Math.round(xpFraction * 100));
     if (xpBar.getAttribute('aria-valuenow') !== xpValue) xpBar.setAttribute('aria-valuenow', xpValue);
-    const xpTitle = progression.level === B.Progression.MAX_LEVEL ? 'En yüksek seviye' : (progression.xp - baseXp) + ' / ' + (nextXp - baseXp) + ' tecrübe';
+    const xpTitle = progression.level === B.Progression.MAX_LEVEL ? KabirI18n.t('En yüksek seviye') : (progression.xp - baseXp) + ' / ' + (nextXp - baseXp) + KabirI18n.t(' tecrübe');
     if (xpBar.title !== xpTitle) xpBar.title = xpTitle;
     cryEffect.remaining = !p.dead && game.state === 'playing' ? p.rageTime || 0 : 0; if (p.rageMax > 0) cryEffect.duration = p.rageMax;
     buffUI.update(timedEffects);
@@ -1473,7 +1474,7 @@
     const actualMaxHp = Number.isFinite(p.effectiveMaxHp) && p.effectiveMaxHp > 0 ? p.effectiveMaxHp : p.maxHp;
     hudText('health-number', Math.min(Math.round(actualMaxHp), hp > 0 ? Math.max(1, Math.ceil(hp * actualMaxHp - Number.EPSILON * actualMaxHp * 4)) : 0)); hudText('health-max', '/ ' + Math.round(actualMaxHp));
     if (B.HUD) B.HUD.vitals(p, dt);   // liquid health and stamina orbs (src/hud.js)
-    hudOrbLabel('health', 'Can'); hudOrbLabel('stamina', 'Dayanıklılık');
+    hudOrbLabel('health', KabirI18n.t('Can')); hudOrbLabel('stamina', KabirI18n.t('Dayanıklılık'));
     const orb = hq('.health-orb');
     orb.classList.toggle('low', hp < .3); document.body.classList.toggle('low-hp', hp < .3 && !p.dead);
     if (lastHp !== null && p.hp < lastHp - .5) tap(orb);
@@ -1503,7 +1504,7 @@
     const blockedPrompt = !!prompt && !prompt.available;
     $('interact').classList.toggle('unavailable', blockedPrompt);
     $('interact').classList.toggle('hidden', (!near && !prompt) || (blockedPrompt && document.body.classList.contains('in-combat')));
-    hudText('interact-label', prompt ? prompt.text : 'Yemin taşına dokun');
+    hudText('interact-label', prompt ? prompt.text : KabirI18n.t('Yemin taşına dokun'));
     if (questUI) questUI.update(dt);
     if (atlasUI) atlasUI.update(dt);
     if (firstHint > 0) { firstHint -= dt; if (firstHint <= 0) $('tutorial').classList.add('hidden'); }
@@ -1602,7 +1603,7 @@
     return graphicsAdapter;
   }
   function performanceReport() {
-    return { schema: 4, game: 'Kabir Azabı', build: BUILD_TAG, capturedAt: new Date().toISOString(), view,
+    return { schema: 4, game: KabirI18n.t('Kabir Azabı'), build: BUILD_TAG, capturedAt: new Date().toISOString(), view,
       location: { room: world.rooms?.[roomId]?.name || roomId, x: game.player.x, z: game.player.z },
       display: { width: post.width, height: post.height, windowWidth: innerWidth, windowHeight: innerHeight,
         devicePixelRatio: window.devicePixelRatio || 1, renderPixelRatio: renderer.getPixelRatio() },
@@ -1629,9 +1630,9 @@
   }
   function drawFps(fps) {
     // Player-facing: only the frame rate and the render resolution. Long-frame counters stay in B.app.frameStats() (or add ?perf to the URL to print them).
-    const rate = Number.isFinite(fps) ? `${Math.round(fps)} FPS` : 'FPS ölçülüyor…';
+    const rate = Number.isFinite(fps) ? `${Math.round(fps)} FPS` : KabirI18n.t('FPS ölçülüyor…');
     let text = `${rate}\n${post.width} × ${post.height}`;
-    if (Q.has('perf')) { const s = frameStats(); text += `\nen uzun kare ${s.longestMs} ms · 12 ms üstü ${s.over12Ms} · v${s.build}`; }
+    if (Q.has('perf')) { const s = frameStats(); text += `\nen uzun kare ${s.longestMs}${KabirI18n.t(" ms · 12 ms üstü ")}${s.over12Ms} · v${s.build}`; }
     $('fps-values').textContent = text;
   }
   function fpsTick(ts) {
@@ -1879,7 +1880,7 @@
     if (!renderer || graphicsLost) return Promise.resolve(false);
     if (warming) return warming;
     const epoch = graphicsEpoch;
-    const checkContext = () => { if (graphicsLost || graphicsEpoch !== epoch) throw Error('Grafik hazırlığı bağlantı kesildiği için durduruldu.'); };
+    const checkContext = () => { if (graphicsLost || graphicsEpoch !== epoch) throw Error(KabirI18n.t('Grafik hazırlığı bağlantı kesildiği için durduruldu.')); };
     const box = $('warming'), fill = $('warm-fill');
     if (overlay && box) box.classList.remove('hidden');
     warmStats = { jobs: 0, textures: 0 };
@@ -1911,16 +1912,16 @@
       if (game.limbs && game.limbs.prepare) {
         const cutStart = performance.now();
         await game.limbs.prepare(game.enemies, async (done, count) => {
-          progress(.18 * done / Math.max(1, count), 'Düşmanlar hazırlanıyor…');
+          progress(.18 * done / Math.max(1, count), KabirI18n.t('Düşmanlar hazırlanıyor…'));
           if (!WARM_SYNC) await frame();
         });
         warmStats.cuts = Math.round(performance.now() - cutStart);
         warmStats.cutVariants = game.limbs.stats().cached;
       }
-      progress(.18, 'Kaplamalar hazırlanıyor…');
+      progress(.18, KabirI18n.t('Kaplamalar hazırlanıyor…'));
       if (B.CoastMaterials) await B.CoastMaterials.ready();
       progress(.21);
-      progress(.25, 'Işıklar ve gölgeler hazırlanıyor…');
+      progress(.25, KabirI18n.t('Işıklar ve gölgeler hazırlanıyor…'));
       checkContext(); work = prepareWarmScene();
       warmStats.jobs = work.jobs.length;
       report();
@@ -1961,7 +1962,7 @@
       });
       warmStats.programs = Math.round(performance.now() - t0);
       // Big character and surface maps: a few uploads per frame instead of all on the first draw.
-      progress(.42, 'Kaplamalar belleğe aktarılıyor…');
+      progress(.42, KabirI18n.t('Kaplamalar belleğe aktarılıyor…'));
       while (tex < work.textures.length) {
         checkContext();
         for (let i = 0; i < 3 && tex < work.textures.length; i++) safe(() => renderer.initTexture(work.textures[tex++]));
@@ -1970,7 +1971,7 @@
       warmStats.textures = Math.round(performance.now() - t0);
       // compile() prepares materials only. Upload the hidden rooms' vertex,
       // index and instance data now so entering a room cannot first allocate it.
-      progress(.78, 'Mekân ve eşyalar hazırlanıyor…');
+      progress(.78, KabirI18n.t('Mekân ve eşyalar hazırlanıyor…'));
       const geometryStart = performance.now();
       if (renderer.initGeometry) while (geo < work.geometryObjects.length) {
         checkContext();
@@ -1980,7 +1981,7 @@
       warmStats.geometryObjects = geo; warmStats.geometryUploads = Math.round(performance.now() - geometryStart);
       // Effects, hidden rooms and page content are first used mid-fight otherwise: draw/paint all of it once now (see warmup.js).
       if (!WARM_SYNC && B.Warmup) {
-        progress(.93, 'Efektler ve arayüz hazırlanıyor…');
+        progress(.93, KabirI18n.t('Efektler ve arayüz hazırlanıyor…'));
         checkContext();
         const wide = innerWidth / innerHeight < .85, touch = touchDevice();
         warmStats.roomTour = await B.Warmup.roomTour({ scene, camera, renderer, game, world, target: post.target, snap: snapScene,
@@ -1988,16 +1989,16 @@
           // so a real draw would still miss their first-use executables.
           post, rasterWarmup: B.Lighting.shaderPreparation.rasterWarmup, step: () => atmosphereStep(.25),
           cameraHeight: (wide ? 19 : touch ? 15.6 : 13.8) * CAM_NEAR, cameraBack: (wide ? 16 : 11.4) * CAM_NEAR,
-          progress: k => progress(.93 + .014 * k, 'Bölüm hazırlanıyor… ' + Math.round(k * world.rooms.length) + ' / ' + world.rooms.length) });
+          progress: k => progress(.93 + .014 * k, KabirI18n.t('Bölüm hazırlanıyor… ') + Math.round(k * world.rooms.length) + ' / ' + world.rooms.length) });
         checkContext();
-        progress(.947, 'Savaş efektleri hazırlanıyor…');
+        progress(.947, KabirI18n.t('Savaş efektleri hazırlanıyor…'));
         warmStats.fxDraw = await B.Warmup.drawAll({ scene, camera, renderer, post, feedback, game, step: () => { cameraStep(0); atmosphereStep(0); }, elapsed: () => elapsed });
         checkContext();
-        progress(.955, 'Arayüz hazırlanıyor…');
+        progress(.955, KabirI18n.t('Arayüz hazırlanıyor…'));
         warmStats.domPaint = await B.Warmup.paintDom(liveHudPaint);
         warmStats.newPrograms = B.Warmup.stats.programs;
       }
-      progress(.96, 'Son görüntü hazırlanıyor…');
+      progress(.96, KabirI18n.t('Son görüntü hazırlanıyor…'));
       // One real frame (shadow-map variants) while the cover is still up.
       checkContext(); safe(() => { cameraStep(0); atmosphereStep(0); post.render(elapsed); });
       // Automatic-resolution sizes are built now, so a later step is only a reference swap. Skipped on 120 Hz-class targets.
@@ -2008,7 +2009,7 @@
       // become obsolete and the first inventory draw compiles them again.
       const portraitStart = performance.now(), portraitPrograms = renderer.info.programs.length;
       if (characterPreview && characterPreview.warm) await characterPreview.warm();
-      if (characterUI && characterUI.warm) { try { await characterUI.warm(); } catch (e) { console.warn('[Kabir Azabı]', e); } }   // I / T pages painted once under the cover
+      if (characterUI && characterUI.warm) { try { await characterUI.warm(); } catch (e) { console.warn(KabirI18n.t('[Kabir Azabı]'), e); } }   // I / T pages painted once under the cover
       warmStats.portrait = Math.round(performance.now() - portraitStart);
       warmStats.portraitPrograms = renderer.info.programs.length - portraitPrograms;
       warmStats.total = Math.round(performance.now() - t0); warmStats.count = renderer.info.programs.length;
@@ -2016,7 +2017,7 @@
       return true;
     }
     document.body.classList.add('warming-cover');
-    warming = run().catch(e => { console.warn('[Kabir Azabı]', e); return false; }).then(ok => { warming = null; document.body.classList.remove('warming-cover'); if (box) box.classList.add('hidden'); if (onProgress) onProgress(1); return ok; });
+    warming = run().catch(e => { console.warn(KabirI18n.t('[Kabir Azabı]'), e); return false; }).then(ok => { warming = null; document.body.classList.remove('warming-cover'); if (box) box.classList.add('hidden'); if (onProgress) onProgress(1); return ok; });
     return warming;
   }
 
@@ -2032,7 +2033,7 @@
     look.set(world.spawn.x + TITLE_CAM[3], TITLE_CAM[4], world.spawn.z + TITLE_CAM[5]);
   }
   function boot() {
-    if (!B.World || !B.Models || !B.Game) throw Error('Oyun dosyaları henüz hazır değil. Sayfayı biraz sonra yenile.');
+    if (!B.World || !B.Models || !B.Game) throw Error(KabirI18n.t('Oyun dosyaları henüz hazır değil. Sayfayı biraz sonra yenile.'));
     scene = new THREE.Scene(); scene.background = new THREE.Color('#07090c');
     camera = new THREE.PerspectiveCamera(BASE_FOV, Math.max(1, innerWidth) / Math.max(1, innerHeight), .15, 150);
     renderer = new THREE.WebGLRenderer({ canvas: $('game'), antialias: false, alpha: false, powerPreference: 'high-performance', stencil: false });
@@ -2094,7 +2095,7 @@
       const noticeLayout = new ResizeObserver(placeNotices);
       noticeLayout.observe($('narration')); noticeLayout.observe($('tutorial'));
     }
-    B.Audio.onCaption((text, speaker = 'Anlatıcı') => { const n = $('narration'); n.querySelector('.narration-text span').textContent = speaker; n.querySelector('p').textContent = text; n.classList.toggle('hidden', !text || !cfg.subtitles); if (text) { tap(n); $('tutorial').classList.add('hidden'); } else if (firstHint > 0 && view === 'playing' && !document.body.classList.contains('in-combat')) { $('tutorial').classList.remove('hidden'); } placeNotices(); });
+    B.Audio.onCaption((text, speaker = KabirI18n.t('Anlatıcı')) => { const n = $('narration'); n.querySelector('.narration-text span').textContent = speaker; n.querySelector('p').textContent = text; n.classList.toggle('hidden', !text || !cfg.subtitles); if (text) { tap(n); $('tutorial').classList.add('hidden'); } else if (firstHint > 0 && view === 'playing' && !document.body.classList.contains('in-combat')) { $('tutorial').classList.remove('hidden'); } placeNotices(); });
     placeNotices();
     // The embedded UI fonts are also offered to canvas text (damage numbers, labels) once decoded.
     if (document.fonts && document.fonts.load) safe(() => { document.fonts.load('800 40px "Source Sans 3"'); });
@@ -2110,7 +2111,7 @@
       step(n = 1) { for (let i = 0; i < n; i++) { qaClock = Math.max(qaClock, last || performance.now()) + 1000 / 60; frameStep(qaClock); } renderClock.reset(); } };
     $('game').addEventListener('webglcontextlost', e => {
       e.preventDefault(); graphicsLost = graphicsRecovering = true; graphicsEpoch++; graphicsAdapter = null;
-      resetPerformance(); show('pause'); notify('Grafik bağlantısı kesildi. Oyun duraklatıldı; bağlantı bekleniyor.');
+      resetPerformance(); show('pause'); notify(KabirI18n.t('Grafik bağlantısı kesildi. Oyun duraklatıldı; bağlantı bekleniyor.'));
     });
     $('game').addEventListener('webglcontextrestored', () => {
       graphicsLost = false; graphicsRecovering = true;
@@ -2125,14 +2126,14 @@
         return warmShaders(true);
       }).then(ok => {
         if (graphicsLost || graphicsEpoch !== epoch) return;
-        if (ok === false) throw Error('Grafik hazırlığı tamamlanamadı.');
+        if (ok === false) throw Error(KabirI18n.t('Grafik hazırlığı tamamlanamadı.'));
         graphicsRecovering = false; last = visualDt = 0; renderClock.reset();
-        notify('Grafikler yeniden hazır. Devam et ile yolculuğa dönebilirsin.');
-      }).catch(e => { if (graphicsEpoch === epoch) { console.warn('[Kabir Azabı]', e); notify('Grafikler hazırlanamadı. Sayfayı yeniden yükle.'); } });
+        notify(KabirI18n.t('Grafikler yeniden hazır. Devam et ile yolculuğa dönebilirsin.'));
+      }).catch(e => { if (graphicsEpoch === epoch) { console.warn(KabirI18n.t('[Kabir Azabı]'), e); notify(KabirI18n.t('Grafikler hazırlanamadı. Sayfayı yeniden yükle.')); } });
     });
-    loadProgress(.43, 'Işıklar ve gölgeler hazırlanıyor…');
+    loadProgress(.43, KabirI18n.t('Işıklar ve gölgeler hazırlanıyor…'));
     return warmShaders(false, (k, text) => loadProgress(.43 + .57 * k, text)).then(() => {
-      loadProgress(1, 'Hazır.');
+      loadProgress(1, KabirI18n.t('Hazır.'));
       $('loading').classList.add('hidden');
       show('title');
       if (Q.get('yolculuk') === 'devam' && chapter > 1 && campaign.transition) { const url = new URL(location.href); url.searchParams.delete('yolculuk'); safe(() => history.replaceState(null, '', url)); begin(false); }
@@ -2141,7 +2142,7 @@
       if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js').catch(() => {});
     });
   }
-  loadProgress(.18, 'Karakterler hazırlanıyor…');
+  loadProgress(.18, KabirI18n.t('Karakterler hazırlanıyor…'));
   // Düşük loads the character textures at half size and touch tablets cap them at 1024 px (up to ~88 MB less video memory).
   lowTextures = cfg.quality === 'low';
   Promise.resolve().then(async () => {
@@ -2152,10 +2153,10 @@
       B.SkillArt.prepare()
     ]);
     if (B.Audio.prepare) {
-      loadProgress(.30, forgeChapter ? 'Ocağın sesleri hazırlanıyor…' : ruinsChapter ? 'Mağaranın sesleri hazırlanıyor…' : coastChapter ? 'Kıyının sesleri hazırlanıyor…' : 'Tapınağın sesleri hazırlanıyor…');
+      loadProgress(.30, forgeChapter ? KabirI18n.t('Ocağın sesleri hazırlanıyor…') : ruinsChapter ? KabirI18n.t('Mağaranın sesleri hazırlanıyor…') : coastChapter ? KabirI18n.t('Kıyının sesleri hazırlanıyor…') : KabirI18n.t('Tapınağın sesleri hazırlanıyor…'));
       try { await B.Audio.prepare(k => loadProgress(.30 + .08 * k)); }
-      catch (e) { console.warn('[Kabir Azabı] Ses hazırlığı tamamlanamadı.', e); }
+      catch (e) { console.warn(KabirI18n.t('[Kabir Azabı] Ses hazırlığı tamamlanamadı.'), e); }
     }
   })
-    .then(() => { loadProgress(.38, forgeChapter ? 'Kızıl Ocak beliriyor…' : ruinsChapter ? 'Sessiz Taht beliriyor…' : coastChapter ? 'Kara Kıyı beliriyor…' : 'Mahzen aydınlanıyor…'); return boot(); }).catch(fatal);
+    .then(() => { loadProgress(.38, forgeChapter ? KabirI18n.t('Kızıl Ocak beliriyor…') : ruinsChapter ? KabirI18n.t('Sessiz Taht beliriyor…') : coastChapter ? KabirI18n.t('Kara Kıyı beliriyor…') : KabirI18n.t('Mahzen aydınlanıyor…')); return boot(); }).catch(fatal);
 })();

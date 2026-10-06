@@ -54,7 +54,7 @@
     var planes = {}, keys = ['nx', 'ny', 'rough', 'ao', 'metal'], left = keys.length + 1;
     function finish() {
       if (--left) return;
-      try { compose(base, planes); } catch (e) { console.warn('[Kabir Azabı] surface ' + name, e); }
+      try { compose(base, planes); } catch (e) { console.warn(KabirI18n.t('[Kabir Azabı] surface ') + name, e); }
       if (--pendingSurfaces === 0) readyCallbacks.splice(0).forEach(function (cb) { cb(); });
     }
     decode(d.c || d.l, function (img) {

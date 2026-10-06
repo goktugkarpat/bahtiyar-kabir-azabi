@@ -14,8 +14,8 @@
   var B = window.BABA, T = window.THREE, TAU = Math.PI * 2;
   var MAX_ORB = 4, MAX_ANCHOR = 4, FUSE_NEAR = 2.9, FUSE_TIME = .92, FRENZY_AT = 170;
   var KIND = {
-    ember: { core: [4.2, 1.5, .35], halo: [1.5, .42, .08], blast: 3.2, style: 'ember', name: 'Kor Mühür' },
-    brine: { core: [.7, 3.2, 3.0], halo: [.12, .75, .8], blast: 3.2, style: 'tide', name: 'Boğulmuş Fener' }
+    ember: { core: [4.2, 1.5, .35], halo: [1.5, .42, .08], blast: 3.2, style: 'ember', name: KabirI18n.t('Kor Mühür') },
+    brine: { core: [.7, 3.2, 3.0], halo: [.12, .75, .8], blast: 3.2, style: 'tide', name: KabirI18n.t('Boğulmuş Fener') }
   };
   function hypot(x, z) { return Math.sqrt(x * x + z * z); }
 
@@ -49,28 +49,28 @@
         }
         for(i=0;i<hazards.length;i++){h=hazards[i];if(h.owner!==boss||h.pool!=='dark')continue;if(h.active&&h.age<h.warn+h.duration)dark=h;else if(h.age>=0&&!h.active&&(!next||h.warn-h.age<next.warn-next.age))next=h;}
         if(dark||next){h=dark||next;var safe=sheltered(h,player.x,player.z,.43),handoff=next&&dark&&next.warn-next.age<=1;
-          say('shelter','Karanlık Gelgit',handoff?'Yeni siper açıldı; diğer mavi halkaya geç.':next&&dark?'Kesikli halka hazırlanıyor; sınırı dolunca geç.':safe?'Siperdesin. Soluk mavi halkanın içinde kal.':'Soluk mavi halkanın içine gir; dışarıdaki su hasar verir.',h.active?h.age-h.warn:h.age,h.active?h.duration:h.warn,safe,0,boss);return;}
-        if(rite&&!rite.done){say('strike','Yemin Çapaları','Yanan çapaları vur veya yanında bekleyerek söndür.',rite.age,rite.seconds,false,litCount(),boss);return;}
+          say('shelter',KabirI18n.t('Karanlık Gelgit'),handoff?KabirI18n.t('Yeni siper açıldı; diğer mavi halkaya geç.'):next&&dark?KabirI18n.t('Kesikli halka hazırlanıyor; sınırı dolunca geç.'):safe?KabirI18n.t('Siperdesin. Soluk mavi halkanın içinde kal.'):KabirI18n.t('Soluk mavi halkanın içine gir; dışarıdaki su hasar verir.'),h.active?h.age-h.warn:h.age,h.active?h.duration:h.warn,safe,0,boss);return;}
+        if(rite&&!rite.done){say('strike',KabirI18n.t('Yemin Çapaları'),KabirI18n.t('Yanan çapaları vur veya yanında bekleyerek söndür.'),rite.age,rite.seconds,false,litCount(),boss);return;}
         if(core&&core.ext.game===api.game&&core.nova.on&&core.nova.owner===boss){var covered=!!core.pillars.blocks(core.nova.x,core.nova.z,player.x,player.z),limit=0;
           for(i=0;i<hazards.length;i++)if(hazards[i].owner===boss&&hazards[i].attack==='Sessiz Nova')limit=hazards[i].warn;
-          say('shelter','Sessiz Nova',covered?'Siperdesin. Sütun darbeyi yutana kadar bekle.':'Taş sütunun arkasındaki mavi sipere geç. Sütuna vurma.',core.nova.t,limit||4.6,covered,core.pillars.up(),boss);return;}
-        if(a&&a.moveId==='furnaceClock'){say('move','Ocağın Saati','Mavi açık dilime geç; kırmızı dilimler sırayla patlar.',a.age,a.duration,false,0,boss);return;}
-        var flying=liveOrbs();if(flying){say('strike',boss.type==='bell'?'Boğulmuş Fenerler':'Kor Mühürler','Havada süzülürken vurup kır; kızıl çember çıkınca uzaklaş.',0,0,false,flying,boss);return;}
-        if(core&&core.ext.game===api.game&&core.orbs.count()){say('dodge',core.chapter===3?'Soluk Küreler':'Cüruf Küreleri',core.chapter===3?'Kürelere vurulmaz. Yana kaç veya taş sipere çarptır.':'Kürelere vurulmaz. Yana kaç; bıraktıkları közden uzak dur.',0,0,false,core.orbs.count(),boss);return;}
+          say('shelter','Sessiz Nova',covered?KabirI18n.t('Siperdesin. Sütun darbeyi yutana kadar bekle.'):KabirI18n.t('Taş sütunun arkasındaki mavi sipere geç. Sütuna vurma.'),core.nova.t,limit||4.6,covered,core.pillars.up(),boss);return;}
+        if(a&&a.moveId==='furnaceClock'){say('move',KabirI18n.t('Ocağın Saati'),KabirI18n.t('Mavi açık dilime geç; kırmızı dilimler sırayla patlar.'),a.age,a.duration,false,0,boss);return;}
+        var flying=liveOrbs();if(flying){say('strike',boss.type==='bell'?KabirI18n.t('Boğulmuş Fenerler'):KabirI18n.t('Kor Mühürler'),KabirI18n.t('Havada süzülürken vurup kır; kızıl çember çıkınca uzaklaş.'),0,0,false,flying,boss);return;}
+        if(core&&core.ext.game===api.game&&core.orbs.count()){say('dodge',core.chapter===3?KabirI18n.t('Soluk Küreler'):KabirI18n.t('Cüruf Küreleri'),core.chapter===3?KabirI18n.t('Kürelere vurulmaz. Yana kaç veya taş sipere çarptır.'):KabirI18n.t('Kürelere vurulmaz. Yana kaç; bıraktıkları közden uzak dur.'),0,0,false,core.orbs.count(),boss);return;}
         var id=a&&a.moveId, text='';
-        if(id==='pull')text='Zincir seni çeker; merkeze düştüğünde hemen yana kaç.';
-        else if(id==='hooks'||id==='hook')text='Kancanın çizgisinden yana çık; ardından gelen savuruşu bekle.';
-        else if(id==='tides')text='Dalgaların arasındaki açık koridoru kullan.';
-        else if(id==='tide')text='Halkaların arasına geç; son çöküşte merkezden çık.';
-        else if(id==='toll'||id==='hollowPulse'||id==='furnaceCrown'||id==='anvilSlam'||id==='cyclone')text='Halkalar sırayla patlar. İşaretsiz aralığa geç.';
-        else if(id==='crystalStar'||id==='lavaLanes'||id==='chainWhip'||id==='fissures'||id==='vents'||id==='fall'||id==='bells'||id==='ashLava'||id==='chainLanes'||id==='piston'||id==='wardenStar')text='İşaretler sırayla vurur. Parlayan sınırların dışına çık.';
-        else if(id==='hollowBurrow'||id==='kingRush'||id==='overheatDash'||id==='bellRush'||id==='wardenBurrow'||id==='ashDash'||id==='slam'||id==='leap'||id==='charge')text='Kızıl alanı boşalt. Darbeden sonra karşılık ver.';
-        else if(id==='hollowCall'||id==='furnaceCall'||id==='drownedCall')text='Çağrı çemberinden uzak dur; çıkan yaratıkları yen.';
-        else if(id==='hollowEcho')text='Yankılar sırayla vurur. Altın dilimlerin dışına çık.';
-        if(text){say(id==='hollowCall'||id==='furnaceCall'||id==='drownedCall'?'adds':'move',a.attack||'Boss saldırısı',text,a.age,a.duration,false,0,boss);return;}
-        if(id==='lanterns'){say('shelter','Karanlık Gelgit','Mavi siper hazırlanıyor; sınırı dolunca içinde kal.',a.age,1.9,false,0,boss);return;}
-        if(id==='brine'&&boss.type==='bell'){say('move','Tuzlu Havuzlar','Dairelerden uzaklaş; kızıl kenarlı su hasar vermeyi sürdürür.',a.age,a.duration,false,0,boss);return;}
-        if(floorCount(boss)){say('move','Tehlikeli Zemin','Sınırı kızıl olan su ve köz birikintilerinden uzak dur.',0,0,false,0,boss);return;}
+        if(id==='pull')text=KabirI18n.t('Zincir seni çeker; merkeze düştüğünde hemen yana kaç.');
+        else if(id==='hooks'||id==='hook')text=KabirI18n.t('Kancanın çizgisinden yana çık; ardından gelen savuruşu bekle.');
+        else if(id==='tides')text=KabirI18n.t('Dalgaların arasındaki açık koridoru kullan.');
+        else if(id==='tide')text=KabirI18n.t('Halkaların arasına geç; son çöküşte merkezden çık.');
+        else if(id==='toll'||id==='hollowPulse'||id==='furnaceCrown'||id==='anvilSlam'||id==='cyclone')text=KabirI18n.t('Halkalar sırayla patlar. İşaretsiz aralığa geç.');
+        else if(id==='crystalStar'||id==='lavaLanes'||id==='chainWhip'||id==='fissures'||id==='vents'||id==='fall'||id==='bells'||id==='ashLava'||id==='chainLanes'||id==='piston'||id==='wardenStar')text=KabirI18n.t('İşaretler sırayla vurur. Parlayan sınırların dışına çık.');
+        else if(id==='hollowBurrow'||id==='kingRush'||id==='overheatDash'||id==='bellRush'||id==='wardenBurrow'||id==='ashDash'||id==='slam'||id==='leap'||id==='charge')text=KabirI18n.t('Kızıl alanı boşalt. Darbeden sonra karşılık ver.');
+        else if(id==='hollowCall'||id==='furnaceCall'||id==='drownedCall')text=KabirI18n.t('Çağrı çemberinden uzak dur; çıkan yaratıkları yen.');
+        else if(id==='hollowEcho')text=KabirI18n.t('Yankılar sırayla vurur. Altın dilimlerin dışına çık.');
+        if(text){say(id==='hollowCall'||id==='furnaceCall'||id==='drownedCall'?'adds':'move',a.attack||KabirI18n.t('Boss saldırısı'),text,a.age,a.duration,false,0,boss);return;}
+        if(id==='lanterns'){say('shelter',KabirI18n.t('Karanlık Gelgit'),KabirI18n.t('Mavi siper hazırlanıyor; sınırı dolunca içinde kal.'),a.age,1.9,false,0,boss);return;}
+        if(id==='brine'&&boss.type==='bell'){say('move','Tuzlu Havuzlar',KabirI18n.t('Dairelerden uzaklaş; kızıl kenarlı su hasar vermeyi sürdürür.'),a.age,a.duration,false,0,boss);return;}
+        if(floorCount(boss)){say('move',KabirI18n.t('Tehlikeli Zemin'),KabirI18n.t('Sınırı kızıl olan su ve köz birikintilerinden uzak dur.'),0,0,false,0,boss);return;}
         say('','','',0,0);
       }
 
@@ -197,7 +197,7 @@
       function armOrb(o) {
         var c = KIND[o.kind]; o.state = 2; o.fuse = 0; o.vx = o.vz = 0;
         o.hazard = api.addHazard({ owner: o.owner, enemy: o.owner ? o.owner.name : 'Boss', x: o.x, z: o.z, shape: 'circle', radius: c.blast, warn: FUSE_TIME, duration: .17,
-          damage: 22, unblockable: true, style: c.style, fill: 'inward', attack: c.name + ' Patlaması', scar: true,
+          damage: 22, unblockable: true, style: c.style, fill: 'inward', attack: c.name + KabirI18n.t(' Patlaması'), scar: true,
           onActive: function () { api.fx('boss1Orb', { x: o.x, y: .6, z: o.z, kind: o.kind, phase: 'blast', radius: c.blast }); o.burst = true; } });
         api.sound('boss1OrbFuse', { x: o.x, z: o.z, kind: o.kind });
       }
@@ -318,7 +318,7 @@
         o.action = null; o.faceLocked = false; o.stagger = o.staggerTotal = 3.1; o.staggerKind = 'heavy'; o.cooldown = Math.max(o.cooldown, .8); o.hurt = 1; o.hurtHeavy = true;
         api.fx('boss1Anchor', { x: o.x, y: 1.4, z: o.z, phase: 'broken' });
         api.emit('impact', { x: o.x, z: o.z, strength: 1, radius: 8 });
-        api.emit('toast', { text: 'Çapalar söndü. Yemin yarıda kaldı: şimdi vur.' });
+        api.emit('toast', { text: KabirI18n.t('Çapalar söndü. Yemin yarıda kaldı: şimdi vur.') });
         api.sound('bossPhase');
       }
       function endRite() {
@@ -335,7 +335,7 @@
         rite.spike -= dt;
         if (rite.spike <= 0 && rite.age > 1.4 && rite.age < rite.seconds - 1.5) {
           rite.spike = 2.3;
-          api.addHazard({ owner: o, enemy: o.name, x: player.x, z: player.z, shape: 'circle', radius: 1.7, warn: 1.05, duration: .17, damage: 12, style: 'fall', fill: 'inward', attack: 'Çapa Zinciri', scar: true });
+          api.addHazard({ owner: o, enemy: o.name, x: player.x, z: player.z, shape: 'circle', radius: 1.7, warn: 1.05, duration: .17, damage: 12, style: 'fall', fill: 'inward', attack: KabirI18n.t('Çapa Zinciri'), scar: true });
         }
         var sx = o.x, sy = 1.9, sz = o.z;
         for (var k = 0; k < MAX_ANCHOR; k++) {
@@ -428,7 +428,7 @@
           if (boss && boss.active && !boss.dead && api.game.state === 'playing' && !player.dead) {
             fightT += dt;
             if (fightT > FRENZY_AT && !boss.b1Frenzy && !(boss.stats && (boss.stats.ruins || boss.stats.forge))) {
-              boss.b1Frenzy = 1; api.emit('toast', { text: boss.type === 'bell' ? 'Çan kudurdu. Gelgit hızlanıyor.' : 'Cellat kudurdu. Darbeleri sıklaşıyor.' });
+              boss.b1Frenzy = 1; api.emit('toast', { text: boss.type === 'bell' ? KabirI18n.t('Çan kudurdu. Gelgit hızlanıyor.') : KabirI18n.t('Cellat kudurdu. Darbeleri sıklaşıyor.') });
               api.fx('boss1Orb', { x: boss.x, y: 1.4, z: boss.z, kind: boss.type === 'bell' ? 'brine' : 'ember', phase: 'blast', radius: 5 });
               api.sound('bossPhase');
             }

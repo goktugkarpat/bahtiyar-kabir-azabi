@@ -4,8 +4,8 @@
   const B = window.BABA = window.BABA || {};
   const KEY = 'baba.kabir.controller.v1';
   const DEFAULTS = Object.freeze({ light: 0, dodge: 1, special: 2, rage: 3, heal: 4, interact: 5, heavy: 7, fourth: 6, pause: 9, character: 10 });
-  const NAMES = Object.freeze(['A', 'B', 'X', 'Y', 'LB', 'RB', 'LT', 'RT', 'View', 'Menu', 'Sol çubuk', 'Sağ çubuk', 'Yukarı', 'Aşağı', 'Sol', 'Sağ', 'Xbox']);
-  const ACTIONS = Object.freeze({ light: 'Normal saldırı', heavy: 'Yetenek · sağ tık yuvası', special: 'Yetenek · 1 tuşu yuvası', rage: 'Yetenek · 2 tuşu yuvası', fourth: 'Yetenek · 3 tuşu yuvası', dodge: 'Kaçınma', heal: 'Can iksiri', interact: 'Etkileşim', pause: 'Mola', character: 'Karakter ve çanta' });
+  const NAMES = Object.freeze(['A', 'B', 'X', 'Y', 'LB', 'RB', 'LT', 'RT', 'View', 'Menu', KabirI18n.t('Sol çubuk'), KabirI18n.t('Sağ çubuk'), KabirI18n.t('Yukarı'), KabirI18n.t('Aşağı'), KabirI18n.t('Sol'), KabirI18n.t('Sağ'), 'Xbox']);
+  const ACTIONS = Object.freeze({ light: KabirI18n.t('Normal saldırı'), heavy: KabirI18n.t('Yetenek · sağ tık yuvası'), special: KabirI18n.t('Yetenek · 1 tuşu yuvası'), rage: KabirI18n.t('Yetenek · 2 tuşu yuvası'), fourth: KabirI18n.t('Yetenek · 3 tuşu yuvası'), dodge: KabirI18n.t('Kaçınma'), heal: KabirI18n.t('Can iksiri'), interact: KabirI18n.t('Etkileşim'), pause: KabirI18n.t('Mola'), character: KabirI18n.t('Karakter ve çanta') });
   const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
   function stick(x, y) {
     x = Number.isFinite(x) ? x : 0; y = Number.isFinite(y) ? y : 0;
@@ -27,17 +27,17 @@
           let index = saved.bindings[action];
           // Saves from before the 4th skill slot carry no `fourth`: it takes LT, or another free button when LT is already used.
           if (action === 'fourth' && index === undefined) index = [DEFAULTS.fourth, 8, 11, 16].find(n => !used.has(n) && !Object.values(saved.bindings).includes(n));
-          if (!Number.isInteger(index) || index < 0 || index > 16 || used.has(index)) throw new Error('Geçersiz kontrol kaydı');
+          if (!Number.isInteger(index) || index < 0 || index > 16 || used.has(index)) throw new Error(KabirI18n.t('Geçersiz kontrol kaydı'));
           used.add(index); bindings[action] = index;
         }
       }
     } catch (_) { bindings = Object.assign({}, DEFAULTS); }
-    function save() { try { storage.setItem(KEY, JSON.stringify({ version: 1, bindings })); } catch (_) { notify('Oyun kolu ayarları bu cihazda saklanamadı.'); } }
+    function save() { try { storage.setItem(KEY, JSON.stringify({ version: 1, bindings })); } catch (_) { notify(KabirI18n.t('Oyun kolu ayarları bu cihazda saklanamadı.')); } }
     function paint() {
-      if (status) status.textContent = activeIndex === null ? 'Oyun kolu bağlı değil. Xbox kolunu bağlayıp bir tuşa bas.' : activeId + ' · bağlı';
+      if (status) status.textContent = activeIndex === null ? KabirI18n.t('Oyun kolu bağlı değil. Xbox kolunu bağlayıp bir tuşa bas.') : activeId + KabirI18n.t(' · bağlı');
       for (const action of Object.keys(buttons)) {
         const button = buttons[action];
-        button.textContent = binding === action ? 'Bir tuşa bas…' : NAMES[bindings[action]] || 'Tuş ' + bindings[action];
+        button.textContent = binding === action ? KabirI18n.t('Bir tuşa bas…') : NAMES[bindings[action]] || KabirI18n.t('Tuş ') + bindings[action];
         button.setAttribute('aria-label', ACTIONS[action] + ': ' + button.textContent);
         button.setAttribute('aria-pressed', binding === action ? 'true' : 'false');
       }
@@ -45,7 +45,7 @@
     }
     function capture(action) { if (!Object.hasOwn(DEFAULTS, action)) return false; binding = action; captureArmed = false; blocked = true; paint(); return true; }
     function cancel() { binding = null; captureArmed = false; blocked = true; paint(); }
-    function reset() { bindings = Object.assign({}, DEFAULTS); cancel(); save(); notify('Oyun kolu tuşları varsayılana döndü.'); }
+    function reset() { bindings = Object.assign({}, DEFAULTS); cancel(); save(); notify(KabirI18n.t('Oyun kolu tuşları varsayılana döndü.')); }
     function setBinding(action, index) {
       if (!Object.hasOwn(DEFAULTS, action) || !Number.isInteger(index) || index < 0 || index > 16) return false;
       const other = Object.keys(bindings).find(key => key !== action && bindings[key] === index), old = bindings[action];
@@ -128,14 +128,14 @@
       const out = { connected: false, binding: !!binding, x: 0, z: 0, aimX: 0, aimZ: 0, actions: {}, lightHeld: false };
       let pad; try { pad = choose(getPads()); } catch (_) { return out; }
       if (!pad) {
-        if (activeIndex !== null) { activeIndex = null; activeId = ''; previous = []; blocked = true; disconnected = true; paint(); if (o.onDisconnect) o.onDisconnect(); notify('Oyun kolu bağlantısı kesildi.'); }
+        if (activeIndex !== null) { activeIndex = null; activeId = ''; previous = []; blocked = true; disconnected = true; paint(); if (o.onDisconnect) o.onDisconnect(); notify(KabirI18n.t('Oyun kolu bağlantısı kesildi.')); }
         return out;
       }
       const down = Array.from(pad.buttons || [], (button, index) => buttonDown(button, previous[index]));
       if (pad.index !== activeIndex || pad.id !== activeId) {
         const replacing = activeIndex !== null;
-        activeIndex = pad.index; activeId = pad.id || 'Xbox oyun kolu'; previous = down.slice(); blocked = down.some(Boolean);
-        repeatDirection = ''; paint(); notify(disconnected || replacing ? 'Oyun kolu yeniden bağlandı.' : 'Oyun kolu bağlandı.'); disconnected = false;
+        activeIndex = pad.index; activeId = pad.id || KabirI18n.t('Xbox oyun kolu'); previous = down.slice(); blocked = down.some(Boolean);
+        repeatDirection = ''; paint(); notify(disconnected || replacing ? KabirI18n.t('Oyun kolu yeniden bağlandı.') : KabirI18n.t('Oyun kolu bağlandı.')); disconnected = false;
       }
       out.connected = true;
       const edges = down.map((value, index) => value && !previous[index]); previous = down.slice();
@@ -162,17 +162,17 @@
     function mount(root) {
       if (!root || config) return;
       config = document.createElement('details'); config.id = 'controller-config'; config.className = 'controller-config';
-      const summary = document.createElement('summary'); summary.textContent = 'Xbox / oyun kolu tuşları'; config.appendChild(summary);
+      const summary = document.createElement('summary'); summary.textContent = KabirI18n.t('Xbox / oyun kolu tuşları'); config.appendChild(summary);
       status = document.createElement('p'); status.setAttribute('role', 'status'); config.appendChild(status);
-      const note = document.createElement('p'); note.textContent = 'Sol çubuk: hareket · Sağ çubuk: nişan. Menüler: yön tuşları / sol çubuk, A seç, B geri. Tuşa dokunup yeni düğmeye bas; dolu düğmeler yer değiştirir.'; config.appendChild(note);
+      const note = document.createElement('p'); note.textContent = KabirI18n.t('Sol çubuk: hareket · Sağ çubuk: nişan. Menüler: yön tuşları / sol çubuk, A seç, B geri. Tuşa dokunup yeni düğmeye bas; dolu düğmeler yer değiştirir.'); config.appendChild(note);
       const grid = document.createElement('div'); grid.className = 'controller-grid'; config.appendChild(grid);
       for (const action of Object.keys(ACTIONS)) {
         const row = document.createElement('div'), label = document.createElement('span'), button = document.createElement('button');
         label.textContent = ACTIONS[action]; button.type = 'button'; button.className = 'btn small'; button.onclick = () => capture(action);
         row.append(label, button); grid.appendChild(row); buttons[action] = button;
       }
-      const footer = document.createElement('div'), restore = document.createElement('button'); restore.type = 'button'; restore.className = 'text-button'; restore.textContent = 'Kol tuşlarını sıfırla'; restore.onclick = reset;
-      cancelButton = document.createElement('button'); cancelButton.type = 'button'; cancelButton.className = 'text-button'; cancelButton.textContent = 'Atamayı iptal et'; cancelButton.onclick = cancel;
+      const footer = document.createElement('div'), restore = document.createElement('button'); restore.type = 'button'; restore.className = 'text-button'; restore.textContent = KabirI18n.t('Kol tuşlarını sıfırla'); restore.onclick = reset;
+      cancelButton = document.createElement('button'); cancelButton.type = 'button'; cancelButton.className = 'text-button'; cancelButton.textContent = KabirI18n.t('Atamayı iptal et'); cancelButton.onclick = cancel;
       footer.append(restore, cancelButton); config.appendChild(footer);
       const scrollArea = root.querySelector('.settings-cols');
       if (scrollArea) scrollArea.appendChild(config);
