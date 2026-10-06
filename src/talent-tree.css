@@ -70,7 +70,7 @@
 @keyframes tt-key { 50% { box-shadow:0 0 0 1px #000, 0 0 22px var(--c), 0 0 4px #fff inset; } }
 #character .tt-note { flex:0 0 auto; margin:0; font:italic 400 11px/1.3 Georgia,serif; color:#8f806a; }
 /* inspect */
-#character .tt-inspect .tt-bigglyph { display:grid; place-items:center; width:66px; height:66px; border:3px ridge #b3935c; background:radial-gradient(circle,#3a2414,#100a08 72%); flex:0 0 auto; }
+#character .tt-inspect .tt-bigglyph { position:relative; overflow:hidden; display:grid; place-items:center; width:66px; height:66px; border:3px ridge #b3935c; background:radial-gradient(circle,#3a2414,#100a08 72%); flex:0 0 auto; }
 #character .tt-inspect .tt-bigglyph .tt-glyph { width:70%; height:70%; }
 #character .tt-inspect header { display:flex; align-items:center; gap:10px; }
 #character .tt-rule { font:400 12.5px/1.35 Georgia,serif; color:#c9b994; margin:0; }

@@ -112,7 +112,7 @@
     }).join('') + '</div></div>' : '';
     const learnText = a.canLearn ? t('1 puanla öğren') : a.reason;
     const inspect = '<aside class="skt-inspect tt-inspect" style="--line:' + col.color + '"><small class="skt-kicker">' + esc(KIND[sel.kind]) + ' · ' + esc(col.name) + ' · ' + esc(en() ? 'level ' + sel.level : 'seviye ' + sel.level) + '</small>' +
-      '<header>' + (sel.skill ? h.icon(sel.id) : '<span class="tt-bigglyph">' + glyph(sel.glyph, col.color) + '</span>') + '<h3>' + esc(sel.name) + '</h3></header><p>' + esc(sel.desc) + '</p>' + extra + facts +
+      '<header>' + (sel.skill ? h.icon(sel.id) : '<span class="tt-bigglyph"><img class="tt-ico" src="assets/ui/talents/' + sel.id + '.png" alt="" draggable="false" onerror="this.remove()">' + glyph(sel.glyph, col.color) + '</span>') + '<h3>' + esc(sel.name) + '</h3></header><p>' + esc(sel.desc) + '</p>' + extra + facts +
       '<div class="tt-actions"><button class="skt-learn" data-char="unlock" data-skill="' + sel.id + '" ' + (a.canLearn ? '' : 'disabled') + '>' + esc(known ? t('Öğrenildi') : learnText) + '</button>' + refund + '</div>' + assignment + '</aside>';
     // ---- loadout (same markup as before so the hybrid frame styles apply)
     const loadout = state.loadout.map((id, slot) => {
