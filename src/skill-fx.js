@@ -190,7 +190,7 @@
         bladeScore(x,z,face,R,2);
         flash(x, .25, z, .78, new T.Color('#d8c3ae'), .07);
         { const I = IM(); if (I) {   // the verdict falls: a blood-red blade of light with a bone-white heart, a torn red wall, ash rolling up
-          I.pillar(x, z, { h: 7.5, w: 1.5, life: .38, col: [1.15, .1, .05], hot: [1.9, 1.7, 1.45], a: .95, face, drop: .055 });
+          I.pillar(x, z, { h: 7.5, w: 2.2, life: .42, col: [1.15, .1, .05], hot: [1.9, 1.7, 1.45], a: .95, face, drop: .055 });
           I.dome(x, z, { r: R * .62, h: 1.25, life: .42, col: [.95, .1, .05], hot: [1.8, 1.25, .95], a: .75 });
           I.dome(x, z, { r: R * .95, h: .55, life: .55, col: [.5, .07, .04], hot: [1.1, .5, .3], a: .45, delay: .08 });
           I.plume(x, z, { n: 10, r: .8, col: [.06, .042, .036], up: 2.3, size: .5 });
