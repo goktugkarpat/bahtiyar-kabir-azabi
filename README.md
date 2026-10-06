@@ -85,6 +85,8 @@ Her yeteneğin hasar, alan, sersemletme, dayanıklılık bedeli ve bekleme süre
 - Beş donanım yuvası vardır: **silah, başlık, göğüs, eldiven, çizme**. Silahlar kılıç, balta ve mızraktır.
 - Eşyaların seviye şartı ve nadirlik derecesi vardır: **Sıradan, Sıradışı, Nadir, Epik, Eşsiz**. Eşsiz eşyalar boss'lardan düşer.
 - Düşmanlar eşya düşürür; yerden yaklaşıp alırsın. Çantadaki bir eşyaya **çift tıklayarak** giyersin. Daha güçlü olanlar işaretlenir.
+- Çanta **nadirlik, ardından aynı kalitedeki güç** sırasıyla gösterilir; yeniden açıldığında ilk sayfaya dönersin. Eşya seçimi ve kayıtların korunur.
+- Zırhların gövde, omuz, kol, başlık ve çizme biçimleri farklı görsel aileler taşır: barbar derisi, demir muhafız, deniz nöbetçisi, zincir örgü, yasçı, ocak, kemik ritüel ve lamellar zırhlar. Parçaları serbestçe karıştırabilirsin; görsel aileler ek bir set bonusu vermez.
 - Düşen eşyalar mümkün olduğunca elindekilerden daha iyi olanlara yönelir.
 
 ## Bölümler

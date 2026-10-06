@@ -112,12 +112,22 @@ void main(){
 }`;
   // Impact quad (one mesh, premultiplied alpha so fissures can be DARK): wind-up gather ring, slam shock ring + soft heat, stone fissures (tier II six, tier III eight + branches,
   // dark cores with ember-lit edges that cool and stay as scars), the tier-III second slam with twelve long fissures.
-  const IMP_FS = `varying vec2 vUv;uniform float uT1,uT2,uR,uR2,uSize,uTier,uG,uGR,uSeed;uniform vec3 uCa,uCb,uCc;
+  const IMP_FS = `varying vec2 vUv;uniform float uT1,uT2,uR,uR2,uSize,uTier,uG,uGR,uSeed,uFace;uniform vec3 uCa,uCb,uCc;
 const float PI=3.14159265;
 float hs(float n){return fract(sin(n*127.1+uSeed*31.7)*43758.5453);}
 float ring(float r,float e,float w){float d=(r-e)/w;return exp(-d*d);}
 float tri(float x){return abs(fract(x)-.5)*4.-1.;}
 vec3 CC;float CA;
+vec3 blade(vec2 p,float t,float R){
+  vec2 d=vec2(sin(uFace),cos(uFace));float y=dot(p,d),x=dot(p,vec2(d.y,-d.x));
+  float yn=y/max(R,.1);float taper=smoothstep(-.24,-.08,yn)*(1.-smoothstep(.24,.58,yn)),w=.08+.12*taper;
+  float curve=R*(.20*yn*yn-.08*yn),cut=x-curve;
+  float broken=1.-.70*exp(-pow((yn-.13)/.030,2.))-.65*exp(-pow((yn-.34)/.023,2.));
+  float edge=exp(-pow(cut/w,2.))*taper*broken;
+  float core=exp(-pow(cut/(w*.36),2.))*taper*broken;
+  float life=smoothstep(0.,.025,t)*pow(max(0.,1.-t/.48),1.5);
+  return (uCb*edge*.16+uCa*core*.15)*life;
+}
 void fissure(float r,float a,float N,float R,float Lm,float t,float so,float thick){
   float ang=(a/(2.*PI)+.5)*N;float id=mod(floor(ang+.5),N);float da=ang-floor(ang+.5);
   float j=.11*tri(r*.8+id*1.7+so)+.05*tri(r*2.1+id*.9+so*2.);
@@ -140,6 +150,7 @@ void main(){
     col+=(uCa*ring(r,e,w*.58)+uCb*ring(r,e,w*2.2)*.10)*life*.12;
     col+=uCa*.5*exp(-r*r/(uR*uR*.22))*pow(1.-k,2.2)*.04*smoothstep(0.,.015,uT1);
     float k2=clamp((uT1-.05)/.5,0.,1.);col+=uCb*.9*ring(r,uR*.62*(1.-pow(1.-k2,2.5)),.07+.1*k2)*pow(1.-k2,1.6)*step(.05,uT1)*.075;
+    col+=blade(p,uT1,uR);
     if(uTier>1.5){fissure(r,a,uTier>2.5?8.:6.,uR,uTier>2.5?1.05:.85,uT1,0.,1.);}
   }
   if(uT2>=0.){
@@ -147,6 +158,7 @@ void main(){
     col+=(uCa*ring(r,e,w*.62)+uCb*ring(r,e,w*2.5)*.12)*life*.14;
     float k3=clamp((uT2-.07)/.5,0.,1.);col+=uCb*ring(r,uR2*.7*(1.-pow(1.-k3,2.5)),.1+.12*k3)*pow(1.-k3,1.5)*step(.07,uT2)*.085;
     col+=uCa*.5*exp(-r*r/(uR2*uR2*.2))*pow(1.-k,2.4)*.03*smoothstep(0.,.015,uT2);
+    col+=blade(p,uT2,uR2);
     fissure(r,a,9.,uR2,1.0,uT2,7.,1.2);
   }
   col+=CC;
@@ -170,7 +182,7 @@ void main(){
     // circular buffers of trail points (x, z, birth, cumulative distance)
     const px = new Float32Array(TN), pz = new Float32Array(TN), py = new Float32Array(TN), pb = new Float32Array(TN), pu = new Float32Array(TN); let head = 0, cnt = 0, uAcc = 0, lastX = 0, lastZ = 0, haveLast = false;
     // ---- impact quad
-    const IU = { uT1: { value: -1 }, uT2: { value: -1 }, uR: { value: 2.2 }, uR2: { value: 5 }, uSize: { value: 10 }, uTier: { value: 1 }, uG: { value: 0 }, uGR: { value: 1.6 }, uSeed: { value: 1 }, uCa: { value: v3(PAL[1].hot) }, uCb: { value: v3(PAL[1].ring2) }, uCc: { value: v3(PAL[1].crack) } };
+    const IU = { uT1: { value: -1 }, uT2: { value: -1 }, uR: { value: 2.2 }, uR2: { value: 5 }, uSize: { value: 10 }, uTier: { value: 1 }, uG: { value: 0 }, uGR: { value: 1.6 }, uSeed: { value: 1 }, uFace: { value: 0 }, uCa: { value: v3(PAL[1].hot) }, uCb: { value: v3(PAL[1].ring2) }, uCc: { value: v3(PAL[1].crack) } };
     const iGeo = new T.PlaneGeometry(1, 1);
     const iMat = new T.ShaderMaterial({ transparent: true, depthWrite: false, blending: T.CustomBlending, blendEquation: T.AddEquation, blendSrc: T.OneFactor, blendDst: T.OneMinusSrcAlphaFactor, fog: false, uniforms: IU, vertexShader: PLANE_VS, fragmentShader: IMP_FS, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -4 });
     const quad = new T.Mesh(iGeo, iMat); quad.rotation.x = -Math.PI / 2; quad.frustumCulled = false; quad.renderOrder = 4; quad.visible = false; quad.name = 'charge-impact'; root.add(quad);
@@ -263,21 +275,21 @@ void main(){
     // ---- impact: ring + fissures + debris. second = tier-3 second slam (the quad keeps its first ring, adds the second).
     function impact(x, z, face, t, radius, second, r2) {
       const big = 1 + .22 * (t - 1);
-      setPal(t); tier = t;
+      setPal(t); tier = t; IU.uFace.value=face;
       if (!second) {
         IU.uR.value = radius; IU.uR2.value = r2 || radius * 1.2; IU.uSeed.value = rr(1, 90); gatherSet(0);
         placeQuad(x, z, Math.max(radius, r2 || 0) * 2.6 + 1.2); IU.uT1.value = quadAge1 = 0; IU.uT2.value = quadAge2 = -1;
         if (t === 1) scarFx && scarFx(x, z, 0, { shape: 'circle', radius: radius * .55, heat: .25 });
         else if (scarFx) { scarFx(x, z, 0, { shape: 'circle', radius: radius * .8, heat: .3 }); const L = Math.hypot(x - startX, z - startZ); if (L > 1) scarFx(startX, startZ, face, { shape: 'line', width: t === 3 ? 2.1 : 1.1, length: L, heat: .3 }); }
       } else { IU.uR2.value = r2 || radius; quadAge2 = 0; IU.uT2.value = 0; shownUntil = clock + 9; if (scarFx) scarFx(x, z, 0, { shape: 'circle', radius: (r2 || radius) * .75, heat: .3 }); }
-      const floor = floorY, n = sc(second ? 30 : 18 + 10 * t);
+      const floor = floorY, n = sc(second ? 24 : 16 + 7 * t);
       if (o.fragments) o.fragments(x, floor + .12, z, { count: second ? 24 : 10 + 6*t, spread: .65*big, speed: 3.4*big, lift: second ? 6 : 3.8*big, face, arc: second ? TAU : 3.4, size: .075 });
       for (let i = 0; i < n; i++) { const a = i / n * TAU + R() * .25; emit(x + Math.sin(a) * .5, floor + .1, z + Math.cos(a) * .5, 2, pal.dust, Math.sin(a) * rr(2.6, 4.4) * big, .45, Math.cos(a) * rr(2.6, 4.4) * big, .75 + R() * .4, .34 + R() * .3 + .1 * t); }
       for (let i = 0, m = sc(second ? 20 : 14 * big); i < m; i++) particle(x, floor + .15, z, 0, pal.debris, 1.5 * big, R() * TAU, 1.3);
       for (let i = 0, m = sc(second ? 16 : 14 * big); i < m; i++) { const a = (second ? R() * TAU : face + rr(-1.5, 1.5)); particle(x, floor + .25, z, 1, i % 3 ? pal.spark : pal.emberHot, 1.3 * big, a, .8); }
       for (let i = 0, m = sc(second ? 14 : 8 + 4 * t); i < m; i++) { const a = R() * TAU, r0 = R() * radius * .6; emit(x + Math.sin(a) * r0, floor + .1, z + Math.cos(a) * r0, 4, i % 2 ? pal.ember : pal.red, Math.sin(a) * rr(.2, 1.6), rr(1.2, 3.4), Math.cos(a) * rr(.2, 1.6), rr(.6, 1.1), .055); }
-      if (t >= 2) {   // upward molten fountain from the fissures / thrown stone
-        for (let i = 0, m = sc(second ? 18 : 12 * (t - 1)); i < m; i++) { const a = R() * TAU, r0 = R() * radius * .8; emit(x + Math.sin(a) * r0, floor + .1, z + Math.cos(a) * r0, 1, pal.spark, Math.sin(a) * rr(0, 2.2), rr(3, 7.5), Math.cos(a) * rr(0, 2.2), rr(.4, .8), .06); }
+      if (t >= 2) {   // directional weapon impact: low, forward chips rather than a tall fountain
+        for (let i = 0, m = sc(second ? 18 : 12 * (t - 1)); i < m; i++) { const a = second ? R()*TAU : face+rr(-1.0,1.0), r0 = R() * radius * .45; emit(x + Math.sin(a) * r0, floor + .1, z + Math.cos(a) * r0, 1, pal.spark, Math.sin(a) * rr(0, 2.2), rr(1.7, 4.2), Math.cos(a) * rr(1, 3.4), rr(.4, .8), .06); }
       }
       if (ringFx) { if (t === 2) ringFx(x, z, radius * 1.15, .45, [pal.ring2[0] * .2, pal.ring2[1] * .2, pal.ring2[2] * .25]); if (t === 3) ringFx(x, z, (second ? r2 : radius) * 1.1, second ? .6 : .5, [pal.ring2[0] * .2, pal.ring2[1] * .2, pal.ring2[2] * .25]); }
       flashFx(x, floor + .5, z, FLASH_SIZE[t] * (second ? 1.15 : 1), color.setRGB(pal.flash[0], pal.flash[1], pal.flash[2]), .06, 0);

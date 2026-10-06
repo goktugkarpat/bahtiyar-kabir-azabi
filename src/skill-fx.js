@@ -1,7 +1,7 @@
 /* KABİR AZABI — look & feel of the heavy-strike line (Mezar Yaran / Kemik Kıran / Kabir Balyozu) and the shout line (Kan Nidası / Ölüm Çığlığı / Kıyamet Narası).
    Round 7: every tier must be obviously different at a glance, not a recolour. Tier I keeps the ash / ember-orange look of effects.js (crescent, war-cry wave);
    this file draws tiers II and III:
-     strike II  "Kemik Kıran"    overhead chop: physical rubble, narrow scored fissures with an amber heart, restrained heat front and falling sparks
+     strike II  "Kemik Kıran"    overhead chop: physical rubble, a blood-red blade score with a bone-white heart, restrained heat front and falling sparks
      strike III "Kabir Balyozu"  leap + ground pound: dark violet / black-red - directional scored fissures, restrained heat fronts, heavy stone fragments and smoke
      shout  II  "Ölüm Çığlığı"   head thrown back: bone-white and amber toothed rings spreading, skull wisps, glowing cracks, gold sparks, cowed foes shudder
      shout  III "Kıyamet Narası" two stages: dark-red ember pillar around the hero, long radial fissures, three rings (one per stage / follow-up wave), a screen pulse per stage
@@ -51,6 +51,20 @@
       float ink=clamp(cleft*.55,0.,.72)*k;
       if(max(col.r,max(col.g,col.b))<.004&&ink<.004)discard;
       gl_FragColor=vec4(col+vec3(.012,.009,.006)*ink,ink);}`;
+  // Blade footprint: a tapered cut rather than another circular spell. Two pooled quads,
+  // analytic feathering, no bitmap borders and no lighting or geometry at cast time.
+  const CUT_FS = `varying vec2 vUv;uniform float uAge;uniform vec3 uHot,uEdge;
+    void main(){vec2 p=(vUv-.5)*2.;float y=p.y;
+      float taper=smoothstep(-.55,-.20,y)*(1.-smoothstep(.40,.96,y));
+      float sweep=.34*y*y-.13*y-.08+.025*sin(y*12.);
+      float d=abs(p.x-sweep),w=.065+.16*taper*(1.-smoothstep(-.1,.9,y));
+      float broken=1.-.78*exp(-pow((y-.18)/.050,2.))-.72*exp(-pow((y-.55)/.035,2.));
+      float edge=exp(-pow(d/w,2.))*taper*broken;
+      float heart=exp(-pow(d/(w*.38),2.))*taper*broken;
+      float life=smoothstep(0.,.035,uAge)*pow(max(0.,1.-uAge),1.55);
+      float wake=exp(-pow(d/(w*2.5),2.))*taper*.13;
+      float a=(edge+wake)*life;if(a<.004)discard;
+      gl_FragColor=vec4((uEdge*(edge+wake)*.36+uHot*heart*.30)*life,1.);}`;
   // Shock ring (analytic, additive): a bright edge with a trailing glow; uTeeth > 0 cuts the front into bone-like teeth. The quad only grows as far as the ring has travelled.
   const RING_FS = `varying vec2 vUv;uniform float uK,uHalf,uMax,uThick,uTeeth,uA;uniform vec3 uCol;
     void main(){vec2 q=(vUv-.5)*2.;float rw=length(q)*uHalf;float e=(1.-pow(1.-uK,2.4))*uMax;float w=uThick*(.5+.9*e/uMax)+.04;
@@ -78,6 +92,15 @@
     const ringBase = new T.ShaderMaterial({ transparent: true, depthWrite: false, blending: T.AdditiveBlending, fog: false, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4,
       uniforms: { uK: { value: 1 }, uHalf: { value: 3 }, uMax: { value: 3 }, uThick: { value: .12 }, uTeeth: { value: 0 }, uA: { value: 1 }, uCol: { value: new T.Vector3(1, .6, .2) } }, vertexShader: VS, fragmentShader: RING_FS });
     const rings = Array.from({ length: 8 }, () => { const mat = ringBase.clone(), m = new T.Mesh(plane, mat); m.frustumCulled = false; m.renderOrder = 2; m.visible = false; m.position.y = .06; root.add(m); return { m, mat, t: 9, life: 1, delay: 0, r: 1 }; });
+    const cutBase = new T.ShaderMaterial({ transparent:true, depthWrite:false, blending:T.AdditiveBlending, fog:false,
+      polygonOffset:true, polygonOffsetFactor:-4, polygonOffsetUnits:-4,
+      uniforms:{uAge:{value:1},uHot:{value:new T.Vector3(1.8,1.55,1.3)},uEdge:{value:new T.Vector3(1.8,.15,.07)}},vertexShader:VS,fragmentShader:CUT_FS });
+    const cuts=[0,1].map(()=>{const mat=cutBase.clone(),m=new T.Mesh(plane,mat);m.visible=false;m.frustumCulled=false;m.renderOrder=3;root.add(m);return {m,mat,t:1,life:.52};});
+    function bladeScore(x,z,face,R,tier){
+      const c=cuts.find(q=>!q.m.visible)||cuts[0];c.t=0;c.life=tier===2?.52:.64;c.m.visible=true;
+      c.m.position.set(x,floorAt(x,z,R)+.028,z);c.m.rotation.y=face;c.m.scale.set(tier===2?1.05:1.4,1,R*.94);
+      c.mat.uniforms.uAge.value=0;c.mat.uniforms.uHot.value.set(1.8,1.55,1.3);c.mat.uniforms.uEdge.value.set(tier===2?1.8:1.2,.12,tier===2?.065:.16);
+    }
     const pillarMat = new T.ShaderMaterial({ transparent: true, depthWrite: false, side: T.DoubleSide, blending: T.AdditiveBlending, fog: false,
       uniforms: { uT: { value: 0 }, uA: { value: 0 }, uHot: { value: new T.Vector3(3.2, 1.0, .25) }, uCold: { value: new T.Vector3(.8, .06, .08) } }, vertexShader: PIL_VS, fragmentShader: PIL_FS });
     const pillar = new T.Mesh(new T.CylinderGeometry(1, 1, 1, 36, 1, true).translate(0, .5, 0), pillarMat); pillar.frustumCulled = false; pillar.renderOrder = 3; pillar.visible = false; root.add(pillar);
@@ -151,17 +174,17 @@
     // Colours: tier II amber / gold, tier III dark violet / black-red with bone-white flashes.
     const AMB_HOT = [2.4, 1.6, .5], AMB_EDGE = [1.4, .5, .07], BONE = [1.7, 1.55, 1.3], VIO_HOT = [1.3, .5, .3], VIO_EDGE = [.55, .045, .04], DRED = [1.3, .08, .04], VIOLET = [.55, .2, 1.0];
     function strikeGather(d) {
-      const x = d.x, z = d.z, tier = d.tier, sx = Math.sin(d.face), sz = Math.cos(d.face), cx = x + sx * (d.reach || 2.4), cz = z + sz * (d.reach || 2.4), w = d.strike || .7;
+      const x = d.x, z = d.z, tier = d.tier, sx = Math.sin(d.face), sz = Math.cos(d.face), cx = x + sx * (d.reach || 2.4), cz = z + sz * (d.reach || 2.4), w = Math.max(.04, d.strike || .22), air = Math.min(Math.max(0, d.air == null ? .10 : d.air), w * .7), takeoff = Math.max(.02, w - air);
       if (tier === 2) {
         // gold pinpoints drawn up over the head with the raised cleaver, and a soft amber glow on the ground where the chop will land
-        for (let i = 0; i < scaleCount(24); i++) { const a = Math.random() * 6.283, r = rnd(.9, 2.0), life = w * rnd(.6, .95); emit(x + Math.sin(a) * r, rnd(.2, 1.4), z + Math.cos(a) * r, 4, i % 3 ? [3.2, 1.7, .4] : [3.4, 2.6, 1.2], -Math.sin(a) * r / life, (2.5 - 1) / life, -Math.cos(a) * r / life, life, .045); }
-        floorGlow(cx, cz, (d.radius || 4) * .85, w + .05, [1.3, .65, .12], .16);
+        for (let i = 0; i < scaleCount(16); i++) { const a = Math.random() * 6.283, r = rnd(.9, 2.0), life = w * rnd(.6, .95); emit(x + Math.sin(a) * r, rnd(.2, 1.4), z + Math.cos(a) * r, 4, i % 3 ? [1.8, .16, .075] : [1.7, 1.45, 1.15], -Math.sin(a) * r / life, (2.5 - 1) / life, -Math.cos(a) * r / life, life, .045); }
+        floorGlow(cx, cz, (d.radius || 4) * .36, w + .05, [.9, .10, .045], .12);
         return;
       }
       // tier III: dust kicked up in the crouch, dark embers pulled to the feet; the leap is dressed by lift trail in step()
-      for (let i = 0; i < scaleCount(26); i++) { const a = Math.random() * 6.283, r = rnd(1.1, 2.4), life = (w - (d.air || .38)) * rnd(.7, 1); emit(x + Math.sin(a) * r, rnd(.1, .6), z + Math.cos(a) * r, 4, i % 2 ? [2.4, .3, .1] : [1.3, .5, 2.2], -Math.sin(a) * r / life * .8, rnd(.6, 1.6), -Math.cos(a) * r / life * .8, life, .05); }
-      floorGlow(x, z, 2.2, (w - (d.air || .38)) + .2, [.9, .1, .1], .3);
-      later(w - (d.air || .38), () => {
+      for (let i = 0; i < scaleCount(26); i++) { const a = Math.random() * 6.283, r = rnd(1.1, 2.4), life = takeoff * rnd(.7, 1); emit(x + Math.sin(a) * r, rnd(.1, .6), z + Math.cos(a) * r, 4, i % 2 ? [2.4, .3, .1] : [1.3, .5, 2.2], -Math.sin(a) * r / life * .8, rnd(.6, 1.6), -Math.cos(a) * r / life * .8, life, .05); }
+      floorGlow(x, z, 2.2, takeoff + .2, [.9, .1, .1], .3);
+      later(takeoff, () => {
         const g = getGame(), p = g && g.player; const px = p ? p.x : x, pz = p ? p.z : z;   // take-off
         ring(px, pz, 2.6, { life: .4, thick: .1, col: [.7, .25, 1.0], a: .7 }); dustRing(px, pz, 22, 2.8, [.12, .09, .1], .3); sparks(px, pz, 8, 4, [2.6, .5, .2], 1.5);
       });
@@ -169,21 +192,23 @@
     function strikeImpact(d) {
       const tier = d.tier, x = d.x, z = d.z, ox = d.ox == null ? x : d.ox, oz = d.oz == null ? z : d.oz, R = d.radius || 4, face = d.face || 0, cl = calm();
       if (tier === 2) {
-        flash(x, .25, z, 1.0, new T.Color('#d4ad79'), .055);
-        ring(x, z, R * .68, { life: .38, thick: .055, col: [.55, .30, .10], a: .48 });
-        fissure(x, z, R * .82, { arms: 6, span: 6.283, len: .92, hot: [.85,.44,.15], edge: [.18,.07,.025], life: 1.25, face: face+.4, a: .62 });
-        floorGlow(x, z, R * .38, .24, [.85, .4, .12], .12);
-        sparks(x, z, scaleCount(20), 7.2, [1.8, 1.25, .65], 2.4);
+        bladeScore(x,z,face,R,2);
+        flash(x, .25, z, .78, new T.Color('#d8c3ae'), .07);
+        ring(x, z, R * .58, { life: .34, thick: .045, col: [.65, .09, .04], a: .4 });
+        fissure(x, z, R * .82, { arms: 5, span: 2.15, len: .92, hot: [1.15,.16,.065], edge: [.23,.035,.018], life: .95, grow:.10, face, a: .62 });
+        floorGlow(x, z, R * .30, .28, [.9, .1, .045], .10);
+        sparksCone(x, z, face, 2.1, scaleCount(18), 7.2, [1.65, .8, .55]);
         for (let i = 0; i < scaleCount(12); i++) { const a = Math.random() * 6.283; emit(x + Math.sin(a) * .35, .15, z + Math.cos(a) * .35, 4, i % 2 ? [1.6, .95, .3] : [.85, .34, .1], Math.sin(a) * rnd(.5, 2.2), rnd(1.2, 3.2), Math.cos(a) * rnd(.5, 2.2), rnd(.35, .8), .035); }
         rubble(x, z, 16, 3.2, 5);
-        dustRing(x, z, 26, R * .9, [.11, .09, .07], .34);
-        if (scar) scar(x, z, 0, { shape: 'circle', radius: R * .55, heat: .55, life: 2.2 });
-        later(.18, () => { sparks(x, z, scaleCount(7), 3.5, [1.2, .68, .24], 1.2); dustRing(x, z, 12, R * .5, [.1,.085,.065], .26); });
+        dustRing(x, z, 16, R * .65, [.11, .09, .07], .25);
+        if (scar) scar(x, z, face, { shape: 'line', width:.28, length:R*1.2, heat:.38, life:1.5 });
+        later(.14, () => { sparks(x, z, scaleCount(5), 3.5, [.9, .16, .07], 1.2); dustRing(x, z, 12, R * .5, [.1,.085,.065], .26); });
         pulse(.55, .025, .22, .07, .07); kick(.02);
         S.ringAt = nowMs(); S.ringDur = .5; S.ringX = x; S.ringZ = z; S.ringR = R * 1.5; S.ringW = .8;
         return;
       }
-      // tier III
+      // tier III: a wider blade score anchors the ground rupture to the weapon.
+      bladeScore(ox,oz,face,R,3);
       const arc = d.arc || 2.5;
       flash(ox, .3, oz, 1.25, new T.Color('#c4aba0'), .06);
       later(.05, () => flash(ox + Math.sin(face) * 1.1, .35, oz + Math.cos(face) * 1.1, .8, new T.Color('#a57c69'), .065));
@@ -270,6 +295,7 @@
     // ------------------------------------------------------------------ per frame (effects.js signatureStep)
     function step(dt) {
       clock += dt;
+      for(const c of cuts)if(c.m.visible){c.t+=dt;c.mat.uniforms.uAge.value=clamp(c.t/c.life,0,1);if(c.t>=c.life)c.m.visible=false;}
       for (let i = sched.length - 1; i >= 0; i--) { const s = sched[i]; s.t -= dt; if (s.t <= 0) { sched.splice(i, 1); s.f(); } }
       for (const f of fis) if (f.m.visible) { f.t += dt; const k = f.t / f.life, u = f.mat.uniforms; u.uT.value = clamp(k, 0, 1); u.uGrow.value = 1 - Math.pow(1 - clamp(f.t / f.grow, 0, 1), 3); if (f.t >= f.life) f.m.visible = false; }
       for (const r of rings) {
@@ -298,7 +324,7 @@
       // the raised cleaver sheds embers all through the wind-up of tiers II / III (gold for Kemik Kıran, dark red for Kabir Balyozu)
       const gp = getGame(), pl = gp && gp.player, at = pl && pl.attack;
       if (at && at.skill && at.line === 'cleave' && at.tier >= 2 && !at.hit && at.age > .08 && pl.model && pl.model.weaponTip) {
-        tipAcc += dt; while (tipAcc > .035) { tipAcc -= .035; pl.model.weaponTip.getWorldPosition(tipV); emit(tipV.x, tipV.y, tipV.z, 4, at.tier >= 3 ? (Math.random() < .3 ? [1.0, .45, 1.8] : [2.4, .4, .1]) : [2.6, 1.5, .35], rnd(-.5, .5), rnd(.3, 1.4), rnd(-.5, .5), .55, .045); }
+        tipAcc += dt; while (tipAcc > .035) { tipAcc -= .035; pl.model.weaponTip.getWorldPosition(tipV); emit(tipV.x, tipV.y, tipV.z, 4, at.tier >= 3 ? (Math.random() < .3 ? [1.0, .45, 1.8] : [2.4, .4, .1]) : [1.85, .18, .07], rnd(-.5, .5), rnd(.3, 1.4), rnd(-.5, .5), .55, .045); }
       }
       // the leap of Kabir Balyozu leaves a trail of dark embers behind the feet
       const g = getGame(), p = g && g.player;
@@ -323,13 +349,13 @@
       else if (name === 'shoutGather') shoutGather(d); else if (name === 'shoutRelease') shoutRelease(d); else if (name === 'shoutWave') shoutWave(d);
     }
     function clear() {
-      sched.length = 0; shaken.length = 0; for (const f of fis) { f.m.visible = false; f.t = 9; f.life = 1; } for (const r of rings) { r.m.visible = false; r.t = 9; r.life = 1; }
+      sched.length = 0; shaken.length = 0; for(const c of cuts){c.m.visible=false;c.t=c.life;} for (const f of fis) { f.m.visible = false; f.t = 9; f.life = 1; } for (const r of rings) { r.m.visible = false; r.t = 9; r.life = 1; }
       pil.on = false; pillar.visible = false; for (const w of wisps) { w.on = false; w.sp.visible = false; }
       S.stopUntil = 0; S.pushAt = -1e9; S.ringAt = -1e9; for (const q of S.pulses) q.t0 = -1e9;
     }
     // objects effects.js adds to its hidden warm group (they share geometry and materials with the live ones)
     function warmObjects() {
-      const out = [new T.Mesh(plane, fis[0].mat), new T.Mesh(plane, rings[0].mat), new T.Mesh(pillar.geometry, pillarMat)];
+      const out = [new T.Mesh(plane,cuts[0].mat), new T.Mesh(plane, fis[0].mat), new T.Mesh(plane, rings[0].mat), new T.Mesh(pillar.geometry, pillarMat)];
       out.push(new T.Mesh(skullBoneGeo,wisps[0].mat),new T.Mesh(skullVoidGeo,wisps[0].eyeMat));
       return out;
     }
@@ -343,7 +369,7 @@
     }
     function dispose() {
       clear(); for (const f of fis) { f.m.removeFromParent(); f.mat.dispose(); } for (const r of rings) { r.m.removeFromParent(); r.mat.dispose(); }
-      fisBase.dispose(); ringBase.dispose(); pillar.removeFromParent(); pillar.geometry.dispose(); pillarMat.dispose();
+      for(const c of cuts){c.m.removeFromParent();c.mat.dispose();}cutBase.dispose();fisBase.dispose(); ringBase.dispose(); pillar.removeFromParent(); pillar.geometry.dispose(); pillarMat.dispose();
       for (const w of wisps) { w.sp.removeFromParent(); w.mat.dispose(); w.eyeMat.dispose(); } skullBoneGeo.dispose();skullVoidGeo.dispose();plane.dispose();
     }
     return { event, step, clear, warmObjects, demo, dispose, parts: [] };

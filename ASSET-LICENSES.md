@@ -312,3 +312,11 @@ Leather and steel albedo maps in `assets/equipment/material-scans.js`: original 
 - Twenty-four concise Turkish narrator lines: original game text synthesized with Microsoft Edge Turkish `tr-TR-AhmetNeural`, restrained EQ and loudness, leading/trailing silence trimmed while preserving internal speech pauses. Embedded in `src/narration.js`.
 
 Equipment thumbnails in `assets/equipment/thumbnails.js` are offline renders of this project's own equipment geometry and PBR materials; each catalog item uses its actual equipped model.
+
+
+### Equipment PBR and set redesign (v222, 6 October 2026)
+
+- Steel uses **Metal 012**, Lennart Demes / ambientCG, **CC0 1.0**. Source: https://ambientcg.com/view?id=Metal012 ; license: https://docs.ambientcg.com/license/ . The official `Metal012_1K-JPG.zip` contains matched PBR maps; this source is procedural PBR, not a photographic scan.
+- Embedded in `assets/equipment/material-scans.js`: colour 1024 px WebP (sRGB), OpenGL normal 512 px WebP (linear), roughness 512 px lossless WebP (linear). Normal and roughness use the actual source maps rather than derivatives of albedo brightness. The polished-steel roughness is remapped to the 0.58–0.92 range for worn armour; the original source hash is recorded below. No source Blender/USD model is included.
+- Source SHA-256: colour `9d32b9bbcf071433a3ed69f0409cc11886bb3c554300acaf0da93a92a2059e5b`; OpenGL normal `6ea43f0b48f5fc7d1d11ead571c22f11233053e2a1926c5e21ea27de7d3a4287`; roughness `d808a07ffe8786a8b410dfa29f19b0a31492e450256dd9191bb9731e110dba40`.
+- Leather and cloth now reuse the existing Poly Haven **Brown Leather** and **Rough Linen** PBR source maps from the coastal package, already credited above. Three material maps remain in use per equipment surface; textures are embedded/shared for offline and file:// play. Original generated leather/linen images remain solely as local fallback data.

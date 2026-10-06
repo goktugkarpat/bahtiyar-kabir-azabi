@@ -514,3 +514,23 @@ body.in-combat #hud #interact.unavailable {display:none;}
  #pause .sepulchral-pause>footer {justify-content:center;}
  #keybinds .keybinds-panel>footer {padding-inline:8px;}
 }
+
+/* Actions stay clear of the inlaid corner fittings in both inspect panels. */
+#character .char-detail .cd-actions {margin:auto 12px 14px;}
+#character .skt-inspect>.skt-learn {width:calc(100% - 24px);margin:auto 12px 14px;}
+#character .skt-inspect>.skt-assign {padding:0 12px 14px;}
+@media(max-width:699px) {
+ #character .char-detail .cd-actions {margin-inline:8px;}
+ #character .skt-inspect>.skt-learn {width:calc(100% - 16px);margin-inline:8px;}
+ #character .skt-inspect>.skt-assign {padding-inline:8px;}
+}
+
+/* The three-column inspection stays in its column on compact desktops. */
+@media(min-width:700px) {
+ #character .char-detail {grid-column:auto;min-height:0;overflow-y:auto;}
+ #character .char-detail>* {flex-shrink:0;}
+}
+
+@media(max-width:699px) {
+ #character .skt-inspect {flex-shrink:0;min-height:min-content;}
+}

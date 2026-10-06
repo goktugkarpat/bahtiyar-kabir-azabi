@@ -312,7 +312,12 @@
     };
     const statIcon = key => '<svg class="st-ico" viewBox="0 0 48 48" aria-hidden="true" fill="currentColor" style="color:' + STAT[key][0] + '">' + STAT[key][1] + '</svg>';
     function inventory(state) {
-      const visible = state.inventory.filter(entry => bagFilter === 'all' || B.Progression.resolveItem(entry)?.slot === bagFilter);
+      // Resolve once per menu refresh; rarity leads, then stronger pieces of the
+      // same quality. Sort a view, never the saved inventory or equipment IDs.
+      const visible = state.inventory.map((entry, index) => ({ entry, index, def: B.Progression.resolveItem(entry) }))
+        .filter(item => item.def && (bagFilter === 'all' || item.def.slot === bagFilter))
+        .sort((a, b) => B.Progression.qualities[b.def.rarity].rank - B.Progression.qualities[a.def.rarity].rank || b.def.power - a.def.power || b.index - a.index)
+        .map(item => item.entry);
       if (!selectedSlot && !visible.some(i => i.uid === selected)) selected = visible[0] && visible[0].uid;
       const stats = state.stats(), weapon = state.itemForSlot('weapon'), difficulty = getGame().difficulty;
       const damageScale = difficulty === 'normal' || difficulty === 'easy' ? 1.18 : 1;
@@ -656,7 +661,7 @@
     document.addEventListener('keydown', onKey, true);
     function open(nextTab) {
       if (!getState()) return false;
-      if (!opened) priorFocus = document.activeElement;
+      if (!opened) { priorFocus = document.activeElement; bagPage = 0; }
       opened = true; tab = nextTab === 'skills' || nextTab === 'talents' ? 'skills' : 'inventory';
       overlay.classList.remove('hidden'); status.textContent = ''; tap = null; refresh(true); content.scrollTop = 0; overlay.querySelector('[data-char="close"]').focus(); return true;
     }

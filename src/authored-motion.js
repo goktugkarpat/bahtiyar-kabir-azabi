@@ -70,8 +70,8 @@
     heavy: { clip: 'attackC', start: .24, chamber: .58, contact: .686, follow: .80, end: 1.2, swing: .12, over: .5, twist: -.55, bend: -.1, strikeBend: .18, hold: 0, snapK: .88, ease: 1.7, flow: 1.5, continuous: true },
     // Heavy-strike tiers 2 / 3 (hero only): continuous overhead anticipation, committed swing and recovery.
     // Kabir Balyozu also blends crouch, takeoff and landing; it never holds a frozen sword or jump frame in mid-air.
-    strikeBrand: { clip: 'swordAttack', chamber: .30, contact: .44, follow: .50, end: .96, swing: .16, over: .12, twist: -.06, bend: -.62, strikeBend: .85, tremble: 0, hold: 0, snapK: .8, flow: 1.2, continuous: true },
-    strikePound: { clip: 'swordAttack', chamber: .30, contact: .44, follow: .50, end: .96, swing: .13, over: .1, twist: 0, bend: -.4, strikeBend: 1.0, tremble: 0, hold: 0, snapK: .5, flow: 1.35, continuous: true, pound: true },
+    strikeBrand: { clip: 'swordAttack', chamber: .30, contact: .44, follow: .50, end: .96, swing: .16, over: .12, twist: -.20, bend: -.30, strikeBend: .48, tremble: 0, hold: 0, snapK: .8, flow: 1.2, continuous: true },
+    strikePound: { clip: 'swordAttack', chamber: .30, contact: .44, follow: .50, end: .96, swing: .13, over: .1, twist: -.08, bend: -.28, strikeBend: .65, tremble: 0, hold: 0, snapK: .5, flow: 1.35, continuous: true, pound: true },
     // enemies (unarmed ones swing the same arcs with claws/hands)
     hook: { clip: 'meleeHook', chamber: .215, contact: .25, follow: .34, end: .4667, swing: .12, over: .5, twist: -.45, bend: -.12, strikeBend: .24, tremble: .05 },
     hookL: { clip: 'meleeHook', mirror: true, chamber: .215, contact: .25, follow: .34, end: .4667, swing: .12, over: .5, twist: .45, bend: -.12, strikeBend: .24, tremble: .05 },
@@ -92,9 +92,9 @@
     whip: { clip: 'meleeHook', chamber: .2, contact: .25, follow: .36, end: .4667, swing: .1, over: .75, twist: -.75, bend: -.1, strikeBend: .3, tremble: .05, hold: .15 },
     shove: { clip: 'shieldIdle', still: true, chamber: 0, contact: 0, follow: 0, end: 0, swing: .14, over: .3, twist: -.3, bend: -.2, strikeBend: .55, tremble: .05 },
     stab: { clip: 'combatIdle', still: true, stillAt: 0, spear: true, chamber: 0, contact: 0, follow: 0, end: 0, swing: .10, over: .25, twist: -.22, bend: -.12, strikeBend: .32, tremble: .04, hold: .1 },
-    spearJab: { clip: 'combatIdle', still: true, stillAt: 0, spear: true, chamber: 0, contact: 0, follow: 0, end: 0, swing: .085, over: .2, twist: -.12, bend: -.08, strikeBend: .23 },
-    spearCross: { clip: 'combatIdle', still: true, stillAt: 0, spear: true, chamber: 0, contact: 0, follow: 0, end: 0, swing: .095, over: .22, twist: .22, bend: -.07, strikeBend: .28 },
-    spearDrive: { clip: 'combatIdle', still: true, stillAt: 0, spear: true, chamber: 0, contact: 0, follow: 0, end: 0, swing: .105, over: .27, twist: -.2, bend: -.13, strikeBend: .4 },
+    spearJab: { clip: 'combatIdle', still: true, stillAt: 0, spear: true, chamber: 0, contact: 0, follow: 0, end: 0, swing: .085, over: .2, twist: -.12, bend: -.08, strikeBend: .23 , hold: 0, continuous: true, flow: 1.2},
+    spearCross: { clip: 'combatIdle', still: true, stillAt: 0, spear: true, chamber: 0, contact: 0, follow: 0, end: 0, swing: .095, over: .22, twist: .22, bend: -.07, strikeBend: .28 , hold: 0, continuous: true, flow: 1.2},
+    spearDrive: { clip: 'combatIdle', still: true, stillAt: 0, spear: true, chamber: 0, contact: 0, follow: 0, end: 0, swing: .105, over: .27, twist: -.2, bend: -.13, strikeBend: .4 , hold: 0, continuous: true, flow: 1.2},
     invokeHigh: { clip: 'swordAttack', chamber: .30, contact: .44, follow: .50, end: .9, swing: .16, over: .15, twist: 0, bend: -.5, strikeBend: .2, tremble: .06, hold: .3 },
     toss: { clip: 'meleeHook', chamber: .2, contact: .25, follow: .34, end: .4667, swing: .09, over: .6, twist: -.55, bend: -.18, strikeBend: .3, tremble: .04 },
     exhale: { clip: 'zombieScratch', chamber: .5, contact: .62, follow: .72, end: 1.1, swing: .2, over: .2, twist: 0, bend: -.62, strikeBend: .7, tremble: .1, hold: .3 },
@@ -422,7 +422,7 @@
         // stage two (.34 s later, the second ring) drives the whole body down into a slam and back up.
         var pulse = t > Tr + .3 ? Math.sin(clamp((t - Tr - .3) / .5, 0, 1) * PI) : 0;
         spineLayer(p, 0, .75 * gather - .75 * rel * fade + .55 * pulse * fade + shake * 1.5, 0);
-        p.p.y -= (.16 * gather + .03 * rel * fade + .1 * pulse) / Math.max(.4, characterScale);
+        p.p.y -= (.16 * gather + .03 * rel * fade + .1 * pulse * fade) / Math.max(.4, characterScale);
         sample('swordAttack', .30, roarBuf, false);
         var w3 = Math.max(.5 * gather, rel * fade);
         blendPose(p, roarBuf, w3, 10, 14); blendPose(p, roarBuf, w3, 37, 52);
@@ -453,15 +453,18 @@
       sampleMove(m,c.ct,p);
       if (t < Tc) {
         var cu=smooth(t/A0),au=clamp((t-A0)/air,0,1),rise=smooth(au/.32),land=smooth((au-.55)/.45);
-        blendPose(p,crouchReference,t<A0?.85*cu:.85*(1-rise)+.8*land,14,22);
+        blendPose(p,crouchReference,t<A0?.85*cu:.85*(1-rise)+.58*land,14,22);
         if(t>=A0){sample('jump',clip('jump').duration*(.08+.65*au),extra,false);blendPose(p,extra,rise*(1-land),14,22);}
-        var bend=t<A0?.3*cu:.3-.90*Math.pow(Math.sin(au*PI),2)+.70*smooth(au);
-        spineLayer(p,0,bend,0);p.p.y-=(t<A0?.15*cu:.15*(1-rise)+.17*land)*inv;
+        var bend=t<A0?.22*cu:.22-.48*Math.pow(Math.sin(au*PI),2)+.38*smooth(au);
+        spineLayer(p,0,bend,0);p.p.y-=(t<A0?.15*cu:.15*(1-rise)+.12*land)*inv;
         curve.phase=t<A0?'wind':au<.55?'rise':'swing';return;
       }
       spineLayer(p,m.twist*c.coil,m.bend*Math.max(0,c.coil)+m.strikeBend*c.strike,0);
-      var sink=1-smooth((t-Tc)/.45);
-      blendPose(p,crouchReference,.8*sink,14,22);p.p.y-=.17*sink*inv;
+      var sink=1-smooth((t-Tc)/Math.min(.32,Math.max(.08,Tend-Tc)));
+      blendPose(p,crouchReference,.58*sink,14,22);p.p.y-=.12*sink*inv;
+      // Land into the stroke, then the shoulders rebound while the feet stay grounded.
+      var rebound=Math.sin(clamp((t-Tc)/Math.max(.08,Tend-Tc),0,1)*PI)*sink;
+      spineLayer(p,-.12*rebound,-.14*rebound,0);
     }
     // Whirlwind (Zincir Kasırgası, hero only). The game turns the whole root (unwrapped yaw, accelerating to ~3 turns/s); this layer is everything the body does
     // inside that turn, on a nominal 1.3 s timeline (tt): a .12 s coil (crouch, torso wound back, cleaver hauled behind), the release into the spin (knees bent, torso
@@ -498,7 +501,18 @@
       wv.set(0, 0, 1).applyQuaternion(p.q[13]); wq.setFromUnitVectors(wv, bv); qa.identity().slerp(wq, w * wrist); rotateSubtree(p, 13, qa);
     }
     var reachUpper=new T.Vector3(),reachFore=new T.Vector3(),reachTarget=new T.Vector3(),reachElbow=new T.Vector3(),reachBend=new T.Vector3(),reachAxis=new T.Vector3(),reachQ=new T.Quaternion(),reachRest=new T.Quaternion();
-    var SPEAR_FORWARD=new T.Vector3(.14,-.14,1).normalize(),SPEAR_BRACE=new T.Vector3(-.68,-.22,.68).normalize(),SPEAR_BLADE=new T.Vector3(.06,.02,1).normalize();
+    var SPEAR_FORWARD=new T.Vector3(),SPEAR_BRACE=new T.Vector3(),SPEAR_BLADE=new T.Vector3(),spearHand=new T.Vector3(),spearShoulder=new T.Vector3(),spearOffset=new T.Vector3();
+    // Source rotations are absolute; reconstruct a joint point from its ancestor offsets.
+    // These scratch vectors are per rig and are reused for every thrust.
+    function sourcePoint(p,index,out) {
+      out.copy(sourcePos[0]);
+      for(var joint=index;joint>0;joint=PARENT[joint]){
+        var parent=PARENT[joint];spearOffset.copy(sourcePos[joint]).sub(sourcePos[parent]);
+        reachRest.copy(sourceRest[parent]).invert();reachQ.copy(p.q[parent]).multiply(reachRest);
+        out.add(spearOffset.applyQuaternion(reachQ));
+      }
+      return out;
+    }
     // Two-bone pose-space reach: the elbow bends outside the chest while the
     // spear hand extends along its shaft. It never stretches a native bone.
     function reachArm(p,index,direction,extension,side) {
@@ -513,14 +527,65 @@
       reachRest.copy(sourceRest[index+1]).invert();reachQ.copy(p.q[index+1]).multiply(reachRest);reachFore.applyQuaternion(reachQ).normalize();
       reachAxis.copy(reachTarget).sub(reachElbow).normalize();reachQ.setFromUnitVectors(reachFore,reachAxis);rotateSubtree(p,index+1,reachQ);
     }
+    var spearNativeQ=new T.Quaternion();
+    // The native shoulders are broader than the source rig. Finish the small
+    // retargeting correction at the actual shaft, without changing the right-hand strike.
+    function refreshSpearBranch(node) {
+      node.updateWorldMatrix(false,false);
+      // The weapon group owns all hidden catalog variants. Its world transforms
+      // are resolved once by the existing weapon pass, never during arm IK.
+      for(var child=0;child<node.children.length;child++)if(node.children[child]!==weapon)refreshSpearBranch(node.children[child]);
+    }
+    function nativeSpearArm(index,weight,side) {
+      var upper=mapping[index],lower=mapping[index+1],hand=mapping[index+2];
+      if(weight<.001||!upper||!lower||!hand)return;
+      wpos(upper,hipPoint);wpos(lower,kneePoint);wpos(hand,anklePoint);wquat(hand,spearNativeQ);
+      desired.lerp(anklePoint,1-weight);
+      var a=hipPoint.distanceTo(kneePoint),b=kneePoint.distanceTo(anklePoint);
+      reach.copy(desired).sub(hipPoint);var length=clamp(reach.length(),Math.abs(a-b)+.001,a+b-.002*characterScale);reach.normalize();
+      // A low outward elbow is intentional: native/source arm axis differences
+      // must never pull the rear elbow up beside the head.
+      bend.set(side*.45,-1,-.15).applyQuaternion(qRoot);bend.addScaledVector(reach,-bend.dot(reach));
+      bend.normalize();var along=(a*a+length*length-b*b)/(2*length);
+      kneeGoal.copy(hipPoint).addScaledVector(reach,along).addScaledVector(bend,Math.sqrt(Math.max(0,a*a-along*along)));
+      va.copy(kneePoint).sub(hipPoint).normalize();vb.copy(kneeGoal).sub(hipPoint).normalize();qa.setFromUnitVectors(va,vb);
+      wquat(upper,qDesired);qDesired.premultiply(qa);wquat(upper.parent,qParent).invert();upper.quaternion.copy(qParent.multiply(qDesired));upper.updateWorldMatrix(false,false);lower.updateWorldMatrix(true,false);hand.updateWorldMatrix(true,false);
+      wpos(lower,kneePoint);wpos(hand,anklePoint);va.copy(anklePoint).sub(kneePoint).normalize();vb.copy(desired).sub(kneePoint).normalize();qa.setFromUnitVectors(va,vb);
+      wquat(lower,qDesired);qDesired.premultiply(qa);wquat(lower.parent,qParent).invert();lower.quaternion.copy(qParent.multiply(qDesired));lower.updateWorldMatrix(false,false);hand.updateWorldMatrix(true,false);
+      wquat(hand.parent,qParent).invert();hand.quaternion.copy(qParent.multiply(spearNativeQ));refreshSpearBranch(upper);
+    }
+    function lockSpearRear(weight,drive,coil) {
+      if(weight<.001)return;
+      wpos(mapping[11],hipPoint);wpos(mapping[12],kneePoint);wpos(mapping[13],anklePoint);
+      var span=hipPoint.distanceTo(kneePoint)+kneePoint.distanceTo(anklePoint);
+      desired.copy(SPEAR_FORWARD).applyQuaternion(qRoot).multiplyScalar(span*(.57+.21*drive-.09*coil)).add(hipPoint);
+      nativeSpearArm(11,weight,-1);
+    }
+    function lockSpearGrip(weight) {
+      if(weight<.001||!bladeTip)return;
+      wpos(mapping[13],desired);wpos(bladeTip,reach);reach.sub(desired).normalize();desired.addScaledVector(reach,.18*characterScale);
+      nativeSpearArm(7,weight,1);
+    }
     function spearLayer(p,c,t,Tc,Tend,state) {
-      var engage=smooth(t/.065),recover=t>Tc?smooth((t-Tc)/Math.max(.04,Tend-Tc)):0,weight=engage*(1-recover);
+      var engage=smooth(t/.045),recover=t>Tc?smooth((t-Tc)/Math.max(.04,Tend-Tc)):0,weight=engage*(1-recover*recover);
       if(weight<.001)return;
       copyPose(roarBuf,p);
-      var drive=c.strike,coil=Math.max(0,c.coil),combo=finite(state.combo,0),extension=.69+.27*drive-.15*coil;
+      var drive=c.strike,coil=Math.max(0,c.coil),combo=finite(state.combo,0),extension=.57+.21*drive-.09*coil,
+        cross=combo===1?-.12*Math.sin(Math.min(1,t/Math.max(.01,Tc))*PI):0;
+      // Right hand is the rear grip. The left follows an actual point on the same
+      // shaft, rather than reaching independently and floating beside the weapon.
+      SPEAR_FORWARD.set(-.15+cross,-.52+(combo===2?-.05:0),1).normalize();
+      SPEAR_BLADE.set(.12+cross*.6,combo===2?-.08:.015,1).normalize();
       reachArm(roarBuf,11,SPEAR_FORWARD,extension,-1);
       wv.set(0,0,1).applyQuaternion(roarBuf.q[13]);reachQ.setFromUnitVectors(wv,SPEAR_BLADE);rotateSubtree(roarBuf,13,reachQ);
-      if(hero){reachArm(roarBuf,7,SPEAR_BRACE,.82+.1*drive,1);blendPose(p,roarBuf,weight,7,10);blendPose(p,roarBuf,weight,22,37);}
+      if(hero){
+        sourcePoint(roarBuf,13,spearHand);sourcePoint(roarBuf,7,spearShoulder);
+        SPEAR_BRACE.copy(spearHand).addScaledVector(SPEAR_BLADE,.18).sub(spearShoulder);
+        var braceLength=SPEAR_BRACE.length(),armSpan=sourcePos[7].distanceTo(sourcePos[8])+sourcePos[8].distanceTo(sourcePos[9]);
+        SPEAR_BRACE.normalize();reachArm(roarBuf,7,SPEAR_BRACE,braceLength/armSpan,1);
+        wv.set(0,0,1).applyQuaternion(roarBuf.q[9]);reachQ.setFromUnitVectors(wv,SPEAR_BLADE);rotateSubtree(roarBuf,9,reachQ);
+        blendPose(p,roarBuf,weight,7,10);blendPose(p,roarBuf,weight,22,37);
+      }
       blendPose(p,roarBuf,weight,11,14);blendPose(p,roarBuf,weight,37,52);
       // Finger rotations are world-space source poses: carry the cached fist into
       // each new hand frame, rather than leaving fingers facing their old idle direction.
@@ -529,7 +594,9 @@
         reachRest.copy(gripReference.q[hi]).invert();reachQ.copy(p.q[hi]).multiply(reachRest);
         for(var finger=first;finger<last;finger++){qa.copy(reachQ).multiply(gripReference.q[finger]);p.q[finger].slerp(qa,weight*.92);}
       }
-      p.p.y-=.025*drive*(combo===2?1.5:1);p.p.z+=.045*drive;
+      p.p.y-=.025*drive*(combo===2?1.5:1);p.p.z+=(combo===2?.07:.035)*drive;
+      // A small head counter-turn keeps the gaze on the target during the cross thrust.
+      euler.set(.05*drive,-cross*.45,0,'YXZ');qa.setFromEuler(euler);rotateSubtree(p,4,qa);
     }
     function whirlPose(p, u, t, dt, yaw) {
       var D = u > .001 ? t / u : WHIRL_D, tt = t * WHIRL_D / clamp(D, .4, 3), inv = 1 / Math.max(.4, characterScale), wt3 = D > 1.8 ? 2 : D > 1.45 ? 1 : 0;   // wt3: tier from the spin length (1.3 / 1.6 / 2.05 s): bigger lean, deeper crouch, faster feet
@@ -577,18 +644,22 @@
     function chargePose(p, state, dt) {
       var t = finite(state.chargeTime, 0), wind = Math.max(.04, finite(state.chargeWind, .12)), it = finite(state.impactTime, -1), s2 = finite(state.slam2Time, -1), inv = 1 / Math.max(.4, characterScale), tier = clamp(Math.round(finite(state.chargeTier, 1)), 1, 3);
       if (!cLive) { cLive = true; cGait = 0; }
-      var coil = smooth(t / wind) * (it < 0 ? 1 : 0), run = it < 0 ? smooth((t - wind) / .07) : 0, strike = it >= 0 ? smooth(it / .06) : 0;
+      // Impact carries the last dash pose into the strike. Dropping run/coil to
+      // zero on that exact frame produced a one-frame neutral pose before the slam.
+      var strike=it>=0?smooth(it/.06):0,run=smooth((t-wind)/.07),coil=smooth(t/wind)*(1-strike);
       var lift = tier === 3 && it >= 0 ? smooth((it - .08) / .14) * (s2 < 0 ? 1 : 1 - smooth(s2 / .04)) : 0, strike2 = s2 >= 0 ? smooth(s2 / .05) : 0;
+      var impactAge=tier===3&&s2>=0?s2:it, recoil=impactAge>=0?Math.sin(clamp(impactAge/.24,0,1)*PI)*(1-smooth(impactAge/.24)):0;
       var rec = tier === 3 ? (s2 >= 0 ? smooth((s2 - .12) / .3) : 0) : it >= 0 ? smooth((it - .1) / .3) : 0, hold = strike * (1 - rec), keep = 1 - rec, rs = run * (1 - strike);
       // legs: crouch in the wind-up, a sprint cycle in the dash (faster for II, long strides for III), planted wide for the lunge
       sample('crouch', 0, wLegs, false); blendPose(p, wLegs, clamp((tier === 3 ? .9 : .8) * coil * (1 - run) + (tier === 3 ? .7 : .65) * hold, 0, .88), 14, 22); blendPose(p, wLegs, clamp(.7 * coil * (1 - run) + .6 * hold, 0, .8), 0, 0);
       cGait += dt * (tier === 1 ? 3.2 : tier === 2 ? 4.1 : 2.5); sample('sprint', wrap(cGait) * clip('sprint').duration, wArm, true); blendPose(p, wArm, .95 * rs, 14, 22); blendPose(p, wArm, (tier === 3 ? .75 : .5) * rs, 0, 0);
       // torso: coiled back, then driven forward (I) / twisted shoulder-first and tilted (II) / chest up and slightly arched (III), then bowed over the lunge
       var tw, bd, sd;
-      if (tier === 1) { tw = -.45 * coil - .3 * rs + .35 * hold; bd = .22 * coil + .52 * rs + .7 * hold; sd = .12 * rs - .1 * hold; }
-      else if (tier === 2) { tw = -.45 * coil + .7 * rs + .3 * hold; bd = .22 * coil + .66 * rs + .76 * hold; sd = .32 * rs - .1 * hold; }
-      else { tw = -.4 * coil - .1 * rs + .3 * hold * (1 - lift) - .25 * lift; bd = .22 * coil - .16 * rs + .78 * hold * (1 - lift) - .12 * lift + .2 * strike2; sd = .04 * rs; }
-      spineLayer(p, tw, bd, sd);
+      if (tier === 1) { tw = -.45 * coil - .3 * rs + .35 * hold; bd = .22 * coil + .52 * rs + .52 * hold; sd = .12 * rs - .1 * hold; }
+      else if (tier === 2) { tw = -.45 * coil + .7 * rs + .3 * hold; bd = .22 * coil + .66 * rs + .60 * hold; sd = .32 * rs - .1 * hold; }
+      else { tw = -.4 * coil - .1 * rs + .3 * hold * (1 - lift) - .25 * lift; bd = .22 * coil - .16 * rs + .60 * hold * (1 - lift) - .12 * lift + .2 * strike2; sd = .04 * rs; }
+      spineLayer(p,tw-.12*recoil,bd-.20*recoil,sd);
+      p.p.z-=.035*recoil*inv;
       p.p.y -= ((tier === 3 ? .02 : tier === 2 ? .11 : .08) * rs + .1 * coil + .08 * hold) * inv; p.p.z += (.1 * hold + (tier === 3 ? .02 : .05) * run) * inv * keep;
       // free arm: swept back and wide (I), guarding across the chest (II), thrown forward for balance (III); thrown out wide on the lunge
       var wide = Math.max(rs, hold);
@@ -626,6 +697,12 @@
       var tremble = (m.tremble || 0) * c.hold * (boss ? .5 : .7), shake = tremble ? Math.sin(clock * lifeRate * 2.1 + lifeSeed) * tremble * .18 : 0;
       spineLayer(destination, m.twist * c.coil + shake * .7, m.bend * Math.max(0, c.coil) + m.strikeBend * c.strike + shake, 0);
       if (m.spear) spearLayer(destination,c,t,Tc,Tend,state);
+      if(hero && m===MOVES.strikeBrand){
+        var settle=t>Tc?Math.sin(clamp((t-Tc)/Math.max(.04,Tend-Tc),0,1)*PI)*(1-smooth((t-Tc)/Math.max(.04,Tend-Tc))):0;
+        destination.p.y-=.045*c.strike;destination.p.z+=.075*c.strike;
+        spineLayer(destination,.16*c.strike,-.09*settle,0);
+        euler.set(-.12*c.strike,0,.30*c.strike,'YXZ');qa.setFromEuler(euler);rotateSubtree(destination,7,qa);
+      }
       // The blow is still sampled at the exact gameplay contact. Only AFTER contact, the neck
       // follows the shoulder mass and the free arm catches the body's weight before settling.
       // Analytic envelopes are independent of frame rate; scratch quaternions are already pooled.
@@ -905,6 +982,16 @@
           else if (plantWeight === 0) planted.locked = false;
         } else { planted.locked = false; planted.weight = 0; }
       }
+      var spearGripWeight=0;
+      if(hero&&state.weaponType==='spear'&&swinging&&!heavy&&!roaring&&!whirling&&!charging&&!dodge&&!stagger&&!state.dead){
+        var gripT=finite(state.attackTime,-1),gripTc=finite(state.attackStrike,.2),gripEnd=finite(state.attackDuration,.51),
+          gripRecover=gripT>gripTc?smooth((gripT-gripTc)/Math.max(.04,gripEnd-gripTc)):0;
+        if(gripT>=0){
+          spearGripWeight=smooth(gripT/.045)*(1-gripRecover*gripRecover);
+          var spearMove=heroMove(combo,false,'spear'),spearCurve=moveCurve(spearMove,gripT,gripTc,gripEnd);
+          lockSpearRear(spearGripWeight,spearCurve.strike,Math.max(0,spearCurve.coil));
+        }
+      }
       if (weapon && mapping[13]) {
         qDesired.copy(qRoot).multiply(output.q[13]).multiply(qBlade);
         wquat(weapon.parent, qParent).invert(); weapon.quaternion.copy(qParent.multiply(qDesired)); weapon.updateWorldMatrix(false, true);
@@ -933,6 +1020,7 @@
           }
         }
       }
+      if(spearGripWeight>.001)lockSpearGrip(spearGripWeight);
       if (initialized && dt > 0 && !teleported) {
         if (canPlant && Math.floor(oldGait * 2) !== Math.floor(gait * 2)) {
           var landingSide = Math.abs(Math.floor(gait * 2)) % 2; emit(feet[landingSide], clamp(speed / (4 * characterScale), .25, .85));

@@ -1683,7 +1683,7 @@
     var marker = new T.Object3D(); marker.name = 'weapon_tip';
     var equipment = null, equipmentMeshes = [], equipmentArms = {}, armorMeshes = [], baseMantle = [], baseIron = null, equipmentMaterials = new Map();
     if (bp.equipmentWeapons) {
-      scene.traverse(function(n){if(n.isMesh && n.material && (/^kara-fur(?:fringe)?$/.test(n.material.name) || n.name === 'mantle-brooch' || n.name === 'base-straps' || n.name === 'base-skirt'))baseMantle.push(n);});
+      scene.traverse(function(n){if(n.isMesh && n.material && (/^kara-fur(?:fringe)?$/.test(n.material.name) || n.name === 'mantle-brooch' || n.name === 'base-straps' || n.name === 'base-skirt' || n.name === 'tabard'))baseMantle.push(n);});
       equipment = { weaponType: 'sword', weaponId: 'dull-sword', headId: null, chestId: 'torn-chest', handsId: null, bootsId: null };
       Object.keys(bp.equipmentWeapons).forEach(function (id) {
         var src = bp.equipmentWeapons[id], art = src.art.clone(), meshes = [];
