@@ -518,24 +518,24 @@
       labelPool.push(l); freeLabels.push(l); return l;
     }
     function releaseLabel(l) { l.m.visible = false; l.target = null; freeLabels.push(l); }
-    function number(value, x, y, z, player, heavy, kill, boss, target = null, tint = null) {
+    function number(value, x, y, z, player, heavy, kill, boss, target = null, tint = null, style = '') {
       if (!Number.isFinite(value) || value <= 0) return;
       // Very fast hits on the same actor show their real sum once; separate actors are never guessed from proximity.
       const merged = target ? labels.find(o => o.target === target && o.player === !!player && o.time < .12 && !o.kill) : null;
-      if (merged) { value += merged.value; heavy = heavy || merged.heavy; kill = kill || merged.kill; boss = boss || merged.boss; }
+      if (merged) { value += merged.value; heavy = heavy || merged.heavy; kill = kill || merged.kill; boss = boss || merged.boss; if (merged.style === 'crit') style = 'crit'; }
       let lift = merged ? merged.lift : 0, side = merged ? merged.offset : 0;
       // Eighteen live labels was already the limit; reuse the oldest sprite instead of replacing its GPU resources.
       if (!merged && !freeLabels.length) { if (labelPool.length < 18) makeLabel(); else releaseLabel(labels.shift()); }
       const l = merged || freeLabels.pop(), m = l.m;
       // Engraved numerals come from the HUD (src/hud.js); the plain fallback keeps effects.js standalone.
-      const c = B.HUD && B.HUD.damageCanvas ? B.HUD.damageCanvas(value, player, heavy, l.canvas) : (() => {
+      const c = B.HUD && B.HUD.damageCanvas ? B.HUD.damageCanvas(value, player, heavy, l.canvas, style) : (() => {
         const c = l.canvas; c.width = 128; c.height = 72; const ctx = c.getContext('2d');
         ctx.font = (heavy ? '800 47px' : '700 40px') + ' "Source Sans 3", Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineWidth = 6; ctx.strokeStyle = '#170b0c'; ctx.strokeText(String(value), 64, 36);
         ctx.fillStyle = player ? '#e58c78' : heavy ? '#e9bd78' : '#dad2c2'; ctx.fillText(String(value), 64, 36); return c; })();
       m.material.map.image = c; m.material.map.needsUpdate = true; m.material.opacity = 1; m.material.color.setRGB(1, 1, 1);
       // Bigger numbers for bigger blows, a hot tint on the killing blow, and a nudge so numbers from a flurry do not stack on each other.
-      const k = player ? 1 : clamp(.82 + value / 130, .82, 1.3) * (kill ? 1.18 : 1) * (boss ? 1.08 : 1), bw = (heavy ? 1.45 : 1.2) * k, bh = (heavy ? .82 : .68) * k;
-      if (kill && !player) m.material.color.setRGB(1.5, 1.12, .75); else if (heavy && !player) m.material.color.setRGB(1.2, 1.08, .9);
+      const k = player ? 1 : clamp(.82 + value / 130, .82, 1.3) * (kill ? 1.18 : 1) * (boss ? 1.08 : 1) * (style === 'crit' ? 1.16 : 1), bw = (heavy ? 1.45 : 1.2) * k, bh = (heavy ? .82 : .68) * k;
+      if (style === 'crit' && !player) m.material.color.setRGB(1.35, 1.2, 1); else if (kill && !player) m.material.color.setRGB(1.5, 1.12, .75); else if (heavy && !player) m.material.color.setRGB(1.2, 1.08, .9);
       if (tint) m.material.color.setRGB(tint[0], tint[1], tint[2]);   // talent damage over time: burn / bleed / rot
       if (!merged) {
         for (const o of labels) if (o.time < .5 && Math.abs(o.x0 - x) < 1.1 && Math.abs(o.z0 - z) < 1.1) {
@@ -545,7 +545,7 @@
       m.position.set(x + side, y + lift, z); m.scale.set(bw, bh, 1); m.visible = true;
       l.time = 0; l.vx = reduced.matches ? 0 : rnd(-.25, .25) + side * .3; l.bw = bw; l.bh = bh; l.x0 = x; l.z0 = z;
       l.side = side || (Math.random() < .5 ? 1 : -1); l.life = kill ? 1.1 : .9; l.lift = lift; l.offset = side;
-      l.target = target; l.value = value; l.player = !!player; l.heavy = !!heavy; l.kill = !!kill; l.boss = !!boss;
+      l.target = target; l.value = value; l.style = style; l.player = !!player; l.heavy = !!heavy; l.kill = !!kill; l.boss = !!boss;
       if (!merged) labels.push(l);
     }
     // ------------------------------------------------------------ "Kor ve Kül" tells (src/telegraphs.js; optional)
@@ -1287,7 +1287,7 @@
           if (!tint && (heavy || d.kill)) { const f = d.labelTarget; impactFx.dome(f.x, f.z, { r: d.kill ? 1.5 : 1.2, h: .45, life: .26, col: [.6, .3, .16], hot: [1.1, .8, .55], a: d.kill ? .3 : .24 }); }
           impactFx.hitFlash(d.labelTarget, { col: tint || (d.critical ? [1.25, .95, .6] : [.95, .8, .66]), a: d.kill ? .95 : tint ? .8 : heavy || d.critical ? .7 : .48, life: d.kill ? .26 : tint || heavy ? .2 : .14 });
         }
-        if (d.damage > 0) number(Math.round(d.damage), x, 2.5, z, d.player, d.heavy || d.critical, d.kill, d.boss, d.labelTarget || null);
+        if (d.damage > 0) number(Math.round(d.damage), x, 2.5, z, d.player, d.heavy || d.critical, d.kill, d.boss, d.labelTarget || null, null, d.player ? '' : d.critical ? 'crit' : d.rage ? 'rage' : '');
         // Blows struck in fury leave burning embers in the wound.
         if (d.rage && !d.player) for (let i = 0; i < scaleCount(heavy ? 18 : 10); i++) emit(x, y, z, 4, i % 2 ? [2.6, .6, .12] : [2.2, .25, .08], Math.sin(spray) * rnd(.6, 2.2) + rnd(-.5, .5), rnd(.4, 1.6), Math.cos(spray) * rnd(.6, 2.2) + rnd(-.5, .5), rnd(.4, .8), .045);
         if (name === 'death' && impactFx) { const pl = game.player, sk = pl && (pl.attack && pl.attack.skill || (pl.roar ? 'roar' : '')); impactFx.deathAsh(x, z, !!large, sk ? impactFx.skillTint(sk) : null); }
