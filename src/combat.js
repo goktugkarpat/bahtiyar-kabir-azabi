@@ -44,6 +44,9 @@
     // Blade direction at contact relative to facing (radians): slashes sweep across, the finisher chops forward.
     sweep: [Math.PI / 2, -Math.PI / 2, 0], heavySweep: Math.PI / 2
   };
+  // Difficulty profiles, stamina economy and the heavier hit feel live in combat-tuning.js (numbers measured with combat-balance.js).
+  const TUNE = BABA.CombatTuning || null, ECON = TUNE ? TUNE.ECONOMY : null;
+  if (TUNE) { Object.assign(FEEL.hitstop, TUNE.FEEL.hitstop); Object.assign(FEEL.knock, TUNE.FEEL.knock); }
   const reducedMotion = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : { matches: false };
   // Fairness contract (COMBAT_PLAN §1): every strike's ground tell is fixed once visible; openers warn >= .55 s
   // (crimson "unblockable" = severe blows >= .95 s), follow-ups >= .45 s; two different enemies never land within RHYTHM of each other near
@@ -523,6 +526,16 @@
     let hintCooldown = 0, deniedCooldown = 0, deniedId = '', lackSerial = 0, openingGrace = 8, corpseLifetime = 90, shadowReach = 0;
     let freeze = 0, slowmo = 0, impactScale = 1, attackSerial = 0, actionSerial = 0, evadeCooldown = 0, pairCd = 0;
     let drinkLeft = 0;   // seconds of the flask flourish still to play (also the double-press guard)
+    // Stamina economy (combat-tuning.js): staminaWait = refill pause after a spend, staminaMark = stamina at the end of the last frame,
+    // dodgeChain / lastRollAt = chained-roll surcharge, lastRollCost = what the current roll cost (refunded by a last-moment roll).
+    let staminaWait = 0, staminaMark = 100, dodgeChain = 0, lastRollAt = -99, lastRollCost = 0, perfectCd = 0;
+    const tuning = () => TUNE ? TUNE.profile(game.difficulty) : null;
+    function dodgeCost() {
+      const P = tuning(); if (!P || !ECON) return DODGE.cost;
+      const chained = simTime - lastRollAt < .48 + ECON.DODGE_CHAIN ? Math.min(ECON.CHAIN_MAX, dodgeChain + 1) : 0;
+      return DODGE.cost * (1 + P.dodgeStep * chained);
+    }
+    game.dodgeCost = dodgeCost;
     let navigationBudget = 0;   // at most two searches per update, including slow-frame substeps; the player goes first
     let decisionStep = 1 / 60;   // AI patience is measured in simulation seconds, never rendered frames
     const victims = [];
@@ -534,7 +547,7 @@
     // Brief shared-clock contact emphasis, capped below three 60 Hz frames. Inputs stay buffered through the hold.
     function hitStop(seconds, shudder) {
       if (reducedMotion.matches || !(seconds > 0)) return 0;
-      const s = Math.min(.048, seconds * impactScale); freeze = Math.max(freeze, s);
+      const s = Math.min(FEEL.hitstop.cap || .048, seconds * impactScale); freeze = Math.max(freeze, s);
       if (shudder) shudder.forEach(v => { if (!victims.some(o => o.body === v.body)) victims.push(v); });
       return s;
     }
@@ -742,6 +755,8 @@
       dodgeAge = 0; forcedMotion = null; healingAge = 0; comboStep = 0; comboWindow = 0; spinCur = 0;
       playerHitImmunity = 0; endAnnounced = false; hintCooldown = 0; deniedCooldown = 0; deniedId = ''; lackSerial = 0; openingGrace = snapshot.index ? 0 : 8;
       freeze = 0; slowmo = 0; victims.length = 0; evadeCooldown = 0; game.hitStop = 0; game.timeScale = 1; pairCd = 0;
+      staminaWait = 0; staminaMark = player.maxStamina; dodgeChain = 0; lastRollAt = -99; lastRollCost = 0; perfectCd = 0; player.opening = 0; player.dodgeCost = DODGE.cost;
+      { const P = tuning(); if (P) player.maxFlasks = P.flasks; }
       aimFace = moveFace = assistFoe = null;
       Object.assign(player, {
         x: snapshot.x, z: snapshot.z, face: Math.PI, yaw: Math.PI, hp: player.maxHp, stamina: player.maxStamina,
@@ -787,6 +802,7 @@
       hero.animate(0, heroPose);
       emit('boss', { name: game.boss ? game.boss.name : STATS.boss.name, active: false });
     }
+    setDifficulty(game.difficulty, true);   // apply the default profile once; app.js calls setDifficulty again with the saved choice
     resetToSnapshot(Object.assign(freshSnapshot(checkpointSnapshot.progression), { completed: !!checkpointSnapshot.completed }));
     // A saved run is only placed on the map when Play is pressed.
     game.checkpointIndex = checkpointSnapshot.index;
@@ -952,7 +968,8 @@
       }
       if (enemy.boss) return simultaneous === 0;
       if (enemy.tutorialStage === 0) return simultaneous === 0;
-      return simultaneous < 3 && same < (mine ? 1 : 2);
+      const P = tuning();
+      return simultaneous < (P ? P.attackers : 3) && same < (mine ? 1 : P ? P.melee : 2);
     }
 
     // ------------------------------------------------------------------ moves
@@ -972,19 +989,22 @@
       for (let s = 0; s <= .4501; s += .05) if (times.every(t => others.every(o => Math.abs(t + s - o) >= RHYTHM))) return s;
       return -1;
     }
-    function setDifficulty(level) {
+    function setDifficulty(level, force) {
       const next=['easy','normal','hard'].includes(level)?level:'normal';
-      if (next===game.difficulty) return;
+      if (next===game.difficulty && !force) return;
       game.difficulty=next;
+      const P=tuning();
       for(const enemy of enemies){
         const fraction=enemy.maxHp>0?enemy.hp/enemy.maxHp:1;
-        enemy.maxHp=Math.round(enemy.baseMaxHp*(next==='easy'?.72:1));
+        // Profile health (combat-tuning.js); elites carry the profile's elite bonus on top. Bosses use the plain multiplier.
+        enemy.maxHp=Math.round(enemy.baseMaxHp*(P?P.enemyHp*(enemy.elite&&!enemy.boss?P.eliteHp:1):next==='easy'?.72:1));
         enemy.hp=enemy.dead?0:enemy.maxHp*fraction;
       }
+      if (P) { player.maxFlasks=P.flasks; player.flasks=Math.min(player.flasks,P.flasks); }
     }
     function beginMove(enemy, move) {
-      const timingScale = game.difficulty === 'hard' ? 1 : game.difficulty === 'easy' ? 1.2 : 1.12;
-      if(game.difficulty !== 'hard') {
+      const timingScale = tuning() ? tuning().pace : game.difficulty === 'hard' ? 1 : game.difficulty === 'easy' ? 1.2 : 1.12;
+      if(timingScale !== 1) {
         const pace=timingScale;
         move=Object.assign({},move,{duration:move.duration*pace,hits:(move.hits||[]).map(h=>Object.assign({},h,{at:h.at*pace,warn:h.warn*pace}))});
         if(move.movement) move.movement=Object.assign({},move.movement,{start:move.movement.start*pace,duration:move.movement.duration*pace});
@@ -1277,7 +1297,7 @@
     }
     mech = BABA.BossMech ? BABA.BossMech.create({ root, player, game, hazards, addHazard, cancelHazards, walkable, anchorWalkable, propContacts, clearStrike, emit, sound, fx,
       groundY: (x, z) => world.effectHeightAt ? world.effectHeightAt(x, z, .6) : .06 }) : null;
-    const PACE = () => game.difficulty === 'hard' ? 1 : game.difficulty === 'easy' ? 1.2 : 1.12;   // beginMove stretches every move by this; timers that run outside a move follow it
+    const PACE = () => tuning() ? tuning().pace : game.difficulty === 'hard' ? 1 : game.difficulty === 'easy' ? 1.2 : 1.12;   // beginMove stretches every move by this; timers that run outside a move follow it
     // Zincir Çekişi (gravity pull, then the slam on the spot where you land): a gold ring drags everything inside it to the executioner, a crimson circle under him
     // appears .3 s later and bursts 1 s after that. Roll through the ring (no pull) or roll out of the circle.
     function pullMove(e) {
@@ -1466,7 +1486,7 @@
         if (enemy.boss) cd *= (enemy.enraged ? .65 : enemy.phase === 2 ? .75 : 1) * (distance(enemy, player) < 3.6 && action.cooldown == null ? .55 : 1);
         if (enemy.cdScale) cd *= enemy.cdScale;   // round 7: the chapter I / II bosses rest less (set per phase / frenzy in their attack tables)
         else if (enemy.type === 'prisoner' && enemy.hp < enemy.maxHp * .3) cd *= .7;
-        const scaled = cd * (enemy.campaignPace || 1) * (game.difficulty === 'easy' ? 1.25 : game.difficulty === 'normal' ? 1.15 : 1) * (enemy.tutorialStage === 0 ? 1.2 : enemy.tutorialStage === 1 ? 1.1 : 1);
+        const scaled = cd * (enemy.campaignPace || 1) * (tuning() ? tuning().rest : game.difficulty === 'easy' ? 1.25 : game.difficulty === 'normal' ? 1.15 : 1) * (enemy.tutorialStage === 0 ? 1.2 : enemy.tutorialStage === 1 ? 1.1 : 1);
         // A visible punish window survives late-phase and frenzy acceleration. Heavy commitments leave longer openings.
         enemy.recoveryFloor = enemy.boss ? (SPECIAL_IDS.includes(action.moveId) ? .58 : .36) : enemy.elite ? .28 : .14;
         enemy.cooldown = Math.max(enemy.recoveryFloor, scaled);
@@ -1558,6 +1578,11 @@
       } else if (enemy.boss && d < 3.2 && enemy.cooldown > .3) {
         // Between moves he steps back to the length of his axe rather than trading blows at the hero's range.
         const away = angleTo(player, enemy); moveBody(enemy, Math.sin(away) * speed * .75 * dt, Math.cos(away) * speed * .75 * dt, enemy.radius); enemy.move = .75;
+      } else if (TUNE && !enemy.boss && d < 3.3 && enemy.cooldown > .25 && enemy.stagger <= 0 && !enemy.stats.ranged) {
+        // Waiting for its turn (rest or no free attack slot): circle the hero at blade range instead of standing still.
+        // Odd and even foes go opposite ways; the radial term holds ~2.3 m so the ring keeps its pressure without crowding.
+        const a = angleTo(player, enemy), side = enemy.index % 2 ? 1 : -1, radial = clamp(2.3 - d, -.6, .6), k = TUNE.FEEL.circle;
+        moveBody(enemy, (Math.cos(a) * side * k + Math.sin(a) * radial) * speed * dt, (-Math.sin(a) * side * k + Math.cos(a) * radial) * speed * dt, enemy.radius); enemy.move = k;
       } else if (d > (enemy.boss ? 4 : 2.05)) walkTo(enemy, enemy.boss ? player : approachPoint(enemy), speed, dt);
       separateEnemies(enemy, dt);
     }
@@ -1587,6 +1612,11 @@
         emit('toast', { text: enemy.boss ? KabirI18n.t('Arena açıldı. Boss yenildi.') : seal.encounter.clearText });
       }
       emit('kill', { name: enemy.name, boss: enemy.boss, x: enemy.x, z: enemy.z }); sound(enemy.boss ? 'bossDeath' : 'kill', { type: enemy.type, x: enemy.x, z: enemy.z });
+      // The weight of the last death: the boss, or the final foe of a hall, falls in a beat of slow motion (every clock together).
+      if (TUNE && !enemy.reserve) {
+        if (enemy.boss) slowMotion(TUNE.FEEL.bossKillSlowmo);
+        else if (enemy.encounter.enemies.every(e => e.dead || e.reserve)) slowMotion(TUNE.FEEL.lastKillSlowmo);
+      }
       fx('death', { x: enemy.x, y: .8, z: enemy.z, boss: enemy.boss });
       if (globes && !enemy.boss) globes.roll(enemy, enemy.deathKind === 'blown' ? 'heavy' : 'light', angleTo(player, enemy), () => rand(enemy));   // health globe (seeded by the foe's own RNG)
       if (enemy.type === 'carrier') {
@@ -1619,7 +1649,10 @@
       if (attack && attack.critical === undefined) attack.critical = Math.random() < game.criticalChance;
       const critical = !!(attack && attack.critical);
       damage = Math.max(1, Math.round(damage * (player.damageMultiplier || 1) * (critical ? game.criticalMultiplier : 1) * (enemy.boss ? 1 + questBenefit('bossDamage', .20) : 1)));
-      if (game.difficulty !== 'hard') damage = Math.round(damage * 1.18);
+      { const P = tuning(); if (P) damage = Math.round(damage * P.playerDmg); else if (game.difficulty !== 'hard') damage = Math.round(damage * 1.18); }
+      // Opening after a last-moment roll: harder blows that stagger like heavy ones (bosses only take the damage).
+      const opening = player.opening > 0 && !!ECON && !!attack;
+      if (opening) damage = Math.round(damage * ECON.PERFECT.damage);
       if (attack) trackAttackTarget(enemy);
       const toPlayer = angleTo(enemy, player), fromFront = Math.abs(angleDifference(toPlayer, enemy.face)) < 1.4;
       const finisher = !!(attack && !heavy && attack.combo === 2), away = angleTo(player, enemy);
@@ -1645,9 +1678,9 @@
           enemy.shieldBroken = 4; enemy.shield = false;
           emit('toast', { text: KabirI18n.t('Muhafızın savunması kırıldı.') }); sound('guardBreak');
         }
-        const canStagger = !enemy.boss && (breaksGuard || enemy.poiseRecovery <= 0 && (heavy || enemy.type === 'cultist' || (!enemy.action && enemy.type !== 'guard') || (attack && attack.rage && enemy.type !== 'guard')));
+        const canStagger = !enemy.boss && (breaksGuard || enemy.poiseRecovery <= 0 && (heavy || enemy.type === 'cultist' || (!enemy.action && enemy.type !== 'guard') || (attack && attack.rage && enemy.type !== 'guard') || (opening && enemy.type !== 'guard')));
         if (canStagger) {
-          enemy.stagger = enemy.staggerTotal = heavy ? .55 : .22; enemy.staggerKind = breaksGuard ? 'guardBreak' : heavy ? 'heavy' : 'light';
+          enemy.stagger = enemy.staggerTotal = heavy ? .55 : opening ? .42 : .22; enemy.staggerKind = breaksGuard ? 'guardBreak' : heavy || opening ? 'heavy' : 'light';
           enemy.action = null; enemy.faceLocked = false;
           enemy.poiseRecovery = heavy ? 3 : 1.1;
           enemy.cooldown = Math.max(enemy.cooldown, heavy ? .9 : .3); cancelHazards(enemy, true);
@@ -1660,9 +1693,9 @@
       const killed = enemy.hp <= 0;
       if (killed) enemy.deathKind = !enemy.boss && (heavy || finisher) ? 'blown' : '';
       const spray = attack ? sweepAngle(attack) : attackFace;
-      emit('hit', { target: 'enemy', x: enemy.x, z: enemy.z, damage, blocked, braced, heavy, critical, face: attackFace, combo: attack ? attack.combo : 0, finisher, kill: killed,
+      emit('hit', { target: 'enemy', x: enemy.x, z: enemy.z, damage, blocked, braced, heavy, critical: critical || opening, opening, face: attackFace, combo: attack ? attack.combo : 0, finisher, kill: killed,
         hitstop: 0, impact: blocked ? .3 : heavy ? 1 : finisher ? .8 : .45 });
-      fx(blocked ? 'spark' : 'blood', { x: contact.x, y: contact.y, z: contact.z, damage, labelTarget: enemy, heavy: heavy || finisher, critical, face: attackFace, spray, kill: killed, boss: enemy.boss, shield: blocked, rage: !!(attack && attack.rage), braced });
+      fx(blocked ? 'spark' : 'blood', { x: contact.x, y: contact.y, z: contact.z, damage, labelTarget: enemy, heavy: heavy || finisher || opening, critical: critical || opening, face: attackFace, spray, kill: killed, boss: enemy.boss, shield: blocked, rage: !!(attack && attack.rage), braced });
       if (braced && !killed) fx('spark', { x: contact.x, y: contact.y + .2, z: contact.z, face: attackFace, glance: true });
       if (killed) killEnemy(enemy);
       else enemyPhaseChange(enemy);
@@ -1702,14 +1735,26 @@
       if (game.state !== 'playing' || player.dead || playerHitImmunity > 0) return false;
       if (player.invulnerable) {
         // A strike that passes through the roll's protection is shown, never silently swallowed.
-        if (!hazard.harmless && !hazard.periodic && evadeCooldown <= 0) { evadeCooldown = .35; fx('evade', { x: player.x, y: 1, z: player.z, face: player.face }); emit('evade', { x: player.x, z: player.z, attack: hazard.attack }); }
+        const P = tuning(), perfect = !!(P && ECON && player.dodge > 0 && dodgeAge <= P.perfectWindow && perfectCd <= 0 && !hazard.harmless && !hazard.periodic && hazard.damage > 0);
+        if (perfect) {
+          // Last-moment roll: the blow was already falling when the roll began. The roll is refunded, the chain forgiven and the
+          // hero's next blows land hard for a moment (OPENING). A thin slow-down on every clock sells the near miss (fair to both sides).
+          perfectCd = ECON.PERFECT.cooldown; player.opening = ECON.PERFECT.opening; dodgeChain = 0; lastRollAt = -99;
+          player.stamina = Math.min(player.maxStamina, player.stamina + lastRollCost * ECON.PERFECT.refund); staminaWait = 0; staminaMark = player.stamina;
+          slowMotion(ECON.PERFECT.slowmo); sound('parry', { x: player.x, z: player.z, volume: .55 });
+          flashRing(player.x, player.z, 1.6, 0xe8c27a, .45);
+          game.perfectDodges = (game.perfectDodges || 0) + 1;
+        }
+        if (!hazard.harmless && !hazard.periodic && (evadeCooldown <= 0 || perfect)) { evadeCooldown = .35; fx('evade', { x: player.x, y: 1, z: player.z, face: player.face, perfect }); emit('evade', { x: player.x, z: player.z, attack: hazard.attack, perfect }); }
         return false;
       }
       const attackSource = hazard.owner && !hazard.owner.dead ? hazard.owner : hazard;
       const incomingAngle = angleTo(player, attackSource);
       let damage = hazard.damage;
       if (hazard.owner) damage = Math.round(damage * (hazard.owner.boss ? EASE.bossDamage : EASE.damage) * BALANCE.damage * (hazard.owner.campaignDamage || 1));
-      if (game.difficulty !== 'hard') damage = Math.round(damage * (game.difficulty==='easy'?.5:.75));
+      { const P = tuning(), elite = !!(hazard.owner && hazard.owner.elite && !hazard.owner.boss);
+        if (P) damage = Math.round(damage * P.enemyDmg * (elite ? P.eliteDmg : 1));
+        else if (game.difficulty !== 'hard') damage = Math.round(damage * (game.difficulty==='easy'?.5:.75)); }
       damage = Math.max(1, Math.round(damage * (1 - (player.defense || 0)) * (1 - questBenefit('damageReduction', .12))));
       // The display event and the wound use the same final amount after the cry/fury's defence.
       if (player.roar) damage = Math.ceil(damage * .5); else if (player.rageTime > 0) damage = Math.ceil(damage * ROAR.guard);
@@ -1831,7 +1876,7 @@
         if (!player.flasks) return rejectAction(key, 'empty', KabirI18n.t('Şifa mataraların boş.'));
         if (player.hp >= player.maxHp) return rejectAction(key, 'full', KabirI18n.t('Yaraların zaten kapalı.'));
       }
-      if (key === 'dodge' && player.stamina < DODGE.cost) return rejectAction(key, 'stamina', KabirI18n.t('Kaçınma için ') + Math.round(DODGE.cost) + KabirI18n.t(' dayanıklılık gerekiyor.'), { cost: DODGE.cost, have: player.stamina });
+      if (key === 'dodge' && player.stamina < dodgeCost()) return rejectAction(key, 'stamina', KabirI18n.t('Kaçınma için ') + Math.round(dodgeCost()) + KabirI18n.t(' dayanıklılık gerekiyor.'), { cost: dodgeCost(), have: player.stamina });
       return true;
     }
     function holdInput(input, frozen) {
@@ -1860,8 +1905,9 @@
       if (deniedCooldown <= 0 || id !== deniedId) { emit('toast', { text }); deniedCooldown = 1.5; deniedId = id; }
     }
     function beginDodge(input) {
-      if (player.stamina < DODGE.cost) return rejectAction('dodge', 'stamina',
-        KabirI18n.t('Kaçınma için ') + Math.round(DODGE.cost) + KabirI18n.t(' dayanıklılık gerekiyor (şu an ') + Math.floor(player.stamina) + ').', { cost: DODGE.cost, have: player.stamina });
+      const rollCost = dodgeCost();
+      if (player.stamina < rollCost) return rejectAction('dodge', 'stamina',
+        KabirI18n.t('Kaçınma için ') + Math.round(rollCost) + KabirI18n.t(' dayanıklılık gerekiyor (şu an ') + Math.floor(player.stamina) + ').', { cost: rollCost, have: player.stamina });
       // Direction: the keys held (the real ones, not an auto-approach), else the pad's right stick, else the cursor / target of a click order, else the facing.
       const raw = pendingDodge || rawInput || input; pendingDodge = null;
       const rx = Number.isFinite(raw.x) ? raw.x : 0, rz = Number.isFinite(raw.z) ? raw.z : 0, len = Math.hypot(rx, rz);
@@ -1872,7 +1918,10 @@
       else if (dodgeAim !== null) dodgeVector = { x: Math.sin(dodgeAim), z: Math.cos(dodgeAim) };
       else dodgeVector = { x: Math.sin(player.face), z: Math.cos(player.face) };
       if (order && !order.held) order = null;   // a roll ends a one-shot order (a held button keeps going once the roll is over)
-      clearLack('dodge'); player.stamina -= DODGE.cost; player.dodge = .48; dodgeAge = 0; player.invulnerable = true;
+      // Chained rolls (one starting within ECON.DODGE_CHAIN s of the last one's end) climb in price; a pause resets the chain.
+      dodgeChain = simTime - lastRollAt < .48 + (ECON ? ECON.DODGE_CHAIN : 0) ? Math.min(ECON ? ECON.CHAIN_MAX : 0, dodgeChain + 1) : 0; lastRollAt = simTime; lastRollCost = rollCost;
+      if (ECON) staminaWait = Math.max(staminaWait, (tuning() ? tuning().regenDelay : 0) + ECON.DODGE_EXTRA_DELAY);
+      clearLack('dodge'); player.stamina -= rollCost; player.dodge = .48; dodgeAge = 0; player.invulnerable = true;
       // Two presses may share a frame. The roll starts after queuing, so retain accepted skills for this new commitment too.
       for (const key of skillKeys) if (buffer[key]) buffer[key] = Math.max(buffer[key], player.dodge + FEEL.buffer);
       player.attack = null; player.healing = 0; player.stagger = 0; healingAge = 0; forcedMotion = null; player.push = null;
@@ -2040,7 +2089,7 @@
         const clean = hits - blocks;
         let stop = clean ? (attack.heavy ? H.heavy : finisher ? H.finisher : H.light) + (clean - 1) * H.extraTarget : H.shield;
         if (breaks && attack.heavy) stop = Math.max(stop, H.guardBreak);
-        if (kills && attack.heavy) stop += game.state === 'won' ? H.bossKill : H.kill;
+        if (kills) stop += game.state === 'won' || (attack.foe && attack.foe.boss && attack.foe.dead) ? H.bossKill : H.kill;
         shudder.push({ body: player, model: hero, amp: .012 });
         hitStop(stop * (attack.contactScale || 1), shudder);
         if (clean) sound(attack.heavy || finisher ? 'heavyHit' : 'hit', { hits, volume: finisher ? 1 : .9, weaponType: progression.stats().weaponType, material: metalContacts >= clean ? 'metal' : 'flesh', heavy: !!attack.heavy, finisher, critical: !!attack.critical, kill: kills > 0 });
@@ -2341,7 +2390,7 @@
       }
       if (player.dodge > 0) {
         dodgeAge += dt; player.dodge = Math.max(0, player.dodge - dt);
-        player.invulnerable = dodgeAge <= DODGE.iframe;
+        player.invulnerable = dodgeAge <= (tuning() ? tuning().iframe : DODGE.iframe);
         const speed = dodgeAge < .30 ? 12.5 : 6.2;
         moveBody(player, dodgeVector.x * speed * dt, dodgeVector.z * speed * dt, hero.radius || .5);
       } else {
@@ -2398,10 +2447,19 @@
           forcedMotion.time -= dt; if (forcedMotion.time <= 0) forcedMotion = null;
         }
       }
-      // Energy recovers during every live action, including a held attack.
-      if (player.stamina < player.maxStamina) {
+      // Energy recovers during every live action, including a held attack, but only after a short pause once some was spent
+      // (combat-tuning.js ECONOMY: a spend restarts the pause, so constant rolling starves the bar; a breath refills it quickly).
+      const P = tuning();
+      if (P && ECON) {
+        if (player.stamina < staminaMark - .01) staminaWait = Math.max(staminaWait, P.regenDelay);
+        if (staminaWait > 0) staminaWait = Math.max(0, staminaWait - dt);
+        else if (player.stamina < player.maxStamina) player.stamina = Math.min(player.maxStamina, player.stamina + ECON.REGEN * P.regen * (1 + questBenefit('staminaRecovery', .20)) * (player.rageTime > 0 ? 1.65 : 1) * dt);
+        staminaMark = player.stamina; player.staminaWait = staminaWait;
+      } else if (player.stamina < player.maxStamina) {
         player.stamina = Math.min(player.maxStamina, player.stamina + REGEN * (1 + questBenefit('staminaRecovery', .20)) * (player.rageTime > 0 ? 1.65 : 1) * dt);
       }
+      player.opening = Math.max(0, (player.opening || 0) - dt); perfectCd = Math.max(0, perfectCd - dt);
+      player.dodgeCost = dodgeCost();
       player.status = player.healing ? KabirI18n.t('Şifa içiliyor') : player.roar ? KabirI18n.t('Savaş narası') : player.rageTime > 0 ? KabirI18n.t('Kan öfkesi') : '';
       pendingAction();
       player.move = player.dodge ? 1 : Math.min(1, moveLength) * (player.attack ? .5 : 1);
@@ -2486,7 +2544,7 @@
       hs.time = simTime; hs.attack = wh ? 0 : playerAttackPose(atk); hs.whirl = wh ? clamp(wh.age / wh.duration, 0, 1) : -1; hs.whirlTime = wh ? wh.age : -1;
       hs.attackTime = atk && !wh ? atk.age : -1; hs.attackStrike = atk ? (atk.line === 'charge' ? .2 : atk.strike) : 0; hs.attackDuration = atk ? atk.duration : 0; hs.attackSerial = atk ? atk.serial : 0;
       if (BABA.Charge && BABA.Charge.poseState) BABA.Charge.poseState(hs);   // chargeTime / impactTime ... for the Hücum pose (charge.js)
-      hs.hitAngle = player.hitAngle || 0; hs.hurtHeavy = !!player.hurtHeavy; hs.iframeEnd = DODGE.iframe / .48;
+      hs.hitAngle = player.hitAngle || 0; hs.hurtHeavy = !!player.hurtHeavy; hs.iframeEnd = (tuning() ? tuning().iframe : DODGE.iframe) / .48;
       hs.stagger = player.stagger > 0 ? 1 - player.stagger / (player.staggerTotal || .7) : 0; hs.staggerTime = player.staggerTotal || .7;
       hs.contactPhase = player.attack && player.attack.heavy ? .56 : .41;
       hs.heavy = !!(player.attack && player.attack.heavy && !wh); hs.block = false;

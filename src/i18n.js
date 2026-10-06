@@ -13,3 +13,11 @@ function localizeStatic(){document.documentElement.lang=lang;if(lang==='en'){con
 window.KabirI18n={get lang(){return lang;},getLanguage:()=>lang,t,source,setLanguage,missing:()=>Array.from(missing),dictionary:EN};
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',localizeStatic,{once:true});else localizeStatic();
 })();
+/* ajan:combat */
+Object.assign(window.KabirI18n.dictionary,{
+"Kolay: hikâye ve keşif için. Düşmanlar yarı hasar verir, daha yavaş saldırır ve aynı anda daha az kişi üstüne gelir. Yuvarlanma ucuzdur, 5 şifa matarası taşırsın.":"Easy: for the story and exploration. Foes deal half damage, attack more slowly and fewer of them come at you at once. Rolling is cheap and you carry 5 healing flasks.",
+"Normal: önerilen deneyim. Düşmanların darbelerini oku, son anda yuvarlan, dayanıklılığını yönet. Seviye atladıkça güçlenirsin ama her bölüm biraz daha sertleşir.":"Normal: the intended experience. Read your foes' blows, roll at the last moment, manage your stamina. You grow stronger with every level, but every chapter grows a little harsher.",
+"Zor: hata payı çok az. Düşmanlar daha dayanıklı, daha sert ve dinlenmeden saldırır; seçkin düşmanlar gerçek bir sınavdır. Arka arkaya yuvarlanmak hızla dayanıklılığını tüketir, 3 şifa matarası taşırsın. Son anda yuvarlanmayı öğren.":"Hard: almost no room for error. Foes are tougher, hit harder and attack without rest; elites are a true trial. Rolling again and again drains your stamina fast, and you carry 3 healing flasks. Learn to roll at the last moment.",
+"Seçimin hemen uygulanır; yeniden açılışta Normal başlar.":"Your choice applies at once; the game starts on Normal when reopened."
+});
+/* /ajan:combat */

@@ -330,7 +330,10 @@
       } else if (key === 'heal') {
         f = clamp((p.drink || 0) / .34, 0, 1);
       } else if (key === 'dodge') {
-        f = p.dodge > 0 ? clamp(p.dodge / .48, 0, 1) : 0; dim = st < SLOT_COST.dodge;
+        // Chained rolls cost more (combat-tuning.js): the corner number shows the price of the next roll.
+        const dc = p.dodgeCost || SLOT_COST.dodge, shownDc = Math.round(dc);
+        f = p.dodge > 0 ? clamp(p.dodge / .48, 0, 1) : 0; dim = st < dc;
+        if (sl.cost && sl.dc !== shownDc) { sl.dc = shownDc; sl.cost.textContent = shownDc; sl.cost.style.color = dc > SLOT_COST.dodge + .5 ? '#ff8a5c' : ''; }
       } else if (SLOT_COST[key]) dim = st < SLOT_COST[key];
       setCd(sl, f, text);
       sl.el.classList.toggle('short', dim);

@@ -320,7 +320,7 @@
         .map(item => item.entry);
       if (!selectedSlot && !visible.some(i => i.uid === selected)) selected = visible[0] && visible[0].uid;
       const stats = state.stats(), weapon = state.itemForSlot('weapon'), difficulty = getGame().difficulty;
-      const damageScale = difficulty === 'normal' || difficulty === 'easy' ? 1.18 : 1;
+      const damageScale = B.CombatTuning ? B.CombatTuning.profile(difficulty).playerDmg : difficulty === 'normal' || difficulty === 'easy' ? 1.18 : 1;
       const questReduction = getGame().quests && getGame().quests.benefits && getGame().quests.benefits.damageReduction;
       const oathDefense = Number.isFinite(questReduction) ? Math.max(0, Math.min(.12, questReduction)) : 0;
       const permanentDefense = oathDefense ? 1 - (1 - stats.defense) * (1 - oathDefense) : stats.defense;

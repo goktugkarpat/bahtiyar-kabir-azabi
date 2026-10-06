@@ -463,13 +463,13 @@
       // so here the camera only recoils; unclassified heavy hits retain the same short 8 ms limit.
       const strength = Number.isFinite(d.impact) ? d.impact : d.blocked ? .28 : d.heavy ? .85 : d.target === 'player' ? .65 : .26;
       if (!reducedMotion.matches) {
-        const face = Number.isFinite(d.face) ? d.face : game.player.face, kick = d.target === 'player' ? 1.6 : d.kill ? 2.6 : 2.1;
+        const face = Number.isFinite(d.face) ? d.face : game.player.face, kick = d.target === 'player' ? 1.8 : d.kill ? 3.2 : d.opening ? 2.8 : 2.1;   // combat feel round: kills and opening blows recoil harder
         cameraKick.vx += Math.sin(face) * strength * kick;
         cameraKick.vz += Math.cos(face) * strength * kick;
         if (!Number.isFinite(d.hitstop) && d.heavy) hitPause = Math.max(hitPause, Math.min(.008, .008 * cfg.impact / .65));
       }
       if (d.target === 'player') { flash = Math.min(1, flash + (d.blocked ? .08 : .52)); shake = Math.max(shake, .18); }
-      else shake = Math.max(shake, d.blocked ? .03 : d.kill ? .13 : d.heavy ? .1 : d.finisher ? .09 : .045);
+      else shake = Math.max(shake, d.blocked ? .03 : d.kill ? .16 : d.heavy ? .12 : d.finisher ? .1 : d.opening ? .1 : .05);
     }
     else if (name === 'impact') {
       // Slams, the finisher biting into the floor and big area blows: a short jolt that fades with distance.
@@ -670,6 +670,7 @@
     deriveSettings();
     if (game && game.setDifficulty) game.setDifficulty(cfg.difficulty);
     $('pause-difficulty').textContent = KabirI18n.t('Zorluk: ') + (cfg.difficulty === 'easy' ? KabirI18n.t('Kolay') : cfg.difficulty === 'normal' ? 'Normal' : KabirI18n.t('Zor'));
+    { const note = document.getElementById('difficulty-note'); if (note && B.CombatTuning) note.textContent = B.CombatTuning.describe(cfg.difficulty) + ' ' + KabirI18n.t('Seçimin hemen uygulanır; yeniden açılışta Normal başlar.'); }
     rig.setQuality(cfg); post.setQuality(cfg);
     if (world.setQuality) world.setQuality(cfg);
     B.Audio.set({ master: cfg.master, music: cfg.music, sfx: cfg.sfx, ambient: cfg.ambient, voice: cfg.voice, narrationMode: cfg.narrationMode });
@@ -744,7 +745,7 @@
   function renderSettings() {
     const video = $('settings-video'), audio = $('settings-audio');
     $('settings-game').replaceChildren(choiceRow('difficulty', KabirI18n.t('Zorluk'), ['easy','normal','hard'],v=>v==='easy'?KabirI18n.t('Kolay'):v==='normal'?'Normal':KabirI18n.t('Zor')));
-    $('difficulty-note').textContent = KabirI18n.t('Kolay: daha az tehlike. Normal: dengeli bir yolculuk. Zor: daha sert savaşlar. Seçimin hemen uygulanır; yeniden açılışta Normal başlar.');
+    $('difficulty-note').textContent = (B.CombatTuning ? B.CombatTuning.describe(cfg.difficulty) + ' ' + KabirI18n.t('Seçimin hemen uygulanır; yeniden açılışta Normal başlar.') : KabirI18n.t('Kolay: daha az tehlike. Normal: dengeli bir yolculuk. Zor: daha sert savaşlar. Seçimin hemen uygulanır; yeniden açılışta Normal başlar.'));
     const languageSetting=document.createElement('div');languageSetting.className='setting';languageSetting.innerHTML='<div class="setting-head"><label>'+KabirI18n.t('Dil')+KabirI18n.t('</label></div><div class="language-choice" data-language-native><button type="button" data-language="tr" lang="tr">Türkçe</button><button type="button" data-language="en" lang="en">English</button></div><small>')+KabirI18n.t('Dil değişince oyun yeniden açılır; kayıtların korunur.')+'</small>';languageSetting.querySelectorAll('[data-language]').forEach(button=>{button.classList.toggle('selected',button.dataset.language===KabirI18n.lang);button.setAttribute('aria-pressed',String(button.dataset.language===KabirI18n.lang));button.onclick=()=>KabirI18n.setLanguage(button.dataset.language);});$('settings-game').append(languageSetting);
     const gameHeading = document.createElement('h3'); gameHeading.textContent = KabirI18n.t('Yolculuğun'); $('settings-game').prepend(gameHeading);
     const saveInfo = document.createElement('div'); saveInfo.className = 'settings-save-info'; saveInfo.innerHTML = KabirI18n.t('<strong>Yeminin sürüyor</strong><p>Ölümde son yemin noktasına dönersin. Eşyaların, tecrüben ve öğrendiğin yetenekler korunur.</p>'); $('settings-game').append(saveInfo);
