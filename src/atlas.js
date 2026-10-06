@@ -186,7 +186,10 @@
             if (spans.length && !inRoom(wx, wz)) { const t = bridgeAt(wx, wz); if (t >= 0) { const f = (t / .95) % 1; grout = Math.max(grout, f < .09 ? .9 : 0); lift -= .1 + (hash(Math.floor(t / .95), 3) - .5) * .16; if (sd < .55) { r *= .72; g *= .7; b *= .74; } } }
             r = r * (1 + lift); g = g * (1 + lift); b = b * (1 + lift);
             if (grout) { r += (G[0] - r) * grout; g += (G[1] - g) * grout; b += (G[2] - b) * grout; }
-            const ao = sd < 2.4 ? .62 + .38 * Math.max(0, sd) / 2.4 : 1; r *= ao; g *= ao; b *= ao;
+            let ao = sd < 2.4 ? .62 + .38 * Math.max(0, sd) / 2.4 : 1;
+            // Carved relief: light from the upper left, so floor under north/west walls lies in their shadow.
+            if (sd > .13 && sd < .9) { const gx = sdfAt(wx + .2, wz) - sdfAt(wx - .2, wz), gz = sdfAt(wx, wz + .2) - sdfAt(wx, wz - .2), gl = Math.hypot(gx, gz); if (gl > 1e-4) ao *= 1 - .22 * ((gx + gz) / (gl * 1.4142)) * (1 - (sd - .13) / .77); }
+            r *= ao; g *= ao; b *= ao;
             const inner = Math.abs(sd - .5); if (inner < .045) { const k = .4 * (1 - inner / .045); r += (Wl[0] - r) * k; g += (Wl[1] - g) * k; b += (Wl[2] - b) * k; }
             a = 255;
             // wall ink line (anti-aliased both sides)
