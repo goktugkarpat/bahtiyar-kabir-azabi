@@ -20,9 +20,22 @@
   // Visual families: every theme speaks one metal/cloth language across head, chest, hands and boots.
   //   ember = foundry (black iron, ember), frost = sea sentinel (green bronze), holy = barrow king (gold), gore = executioner/mourning (black, crimson),
   //   void = bone rite (bone, violet light). Unique pieces always carry gold.
-  const FAMILY = { ember: ['black', 'sable'], frost: ['bronze', 'sable'], holy: ['gold', 'crimson'], gore: ['black', 'crimson'], void: ['bone', 'sable'] };
-  const trimOf = (item, unique) => unique ? 'gold' : (FAMILY[theme(item)] || ['brass'])[0];
-  const clothOf = item => (FAMILY[theme(item)] || [0, 'sable'])[1];
+  const FAMILY = { ember: ['black', 'sable'], frost: ['bronze', 'sable'], holy: ['gold', 'crimson'], gore: ['black', 'crimson'], void: ['bone', 'sable'],
+    lamellar: ['brass', 'crimson'], barbarian: ['horn', 'hide'], iron: ['dark', 'sable'] };
+  // Themed names win; the rest fall into the lamellar, barbarian-hide or iron-guard families by their fitted core.
+  function family(item) {
+    const id = item.id, m = item.modelId || '';
+    if (/lamel|empty-vow/.test(id) || m === 'lamellar-chest') return 'lamellar';
+    if (/furnace|coal|ember|slag|forge|fire|shift|dawn|anvil|burnt|hearth/.test(id)) return 'ember';
+    if (/salt|sunken|tide|drowned|silent|watch/.test(id)) return 'frost';
+    if (/warden|crown|throne|verdict|witness|barrow|king/.test(id)) return 'holy';
+    if (/blood|widow|oath|mourn|gallows|grave-digger|orphan/.test(id)) return 'gore';
+    if (/bone|gaze|breath|hollow|sealed|nameless|forgotten|black-stone|silence|rite/.test(id)) return 'void';
+    if (/torn|rag|worn|cloth|ash-|pilgrim|funeral|burial-wraps|footwraps/.test(id) || /torn-chest|rag-wraps|worn-boots|cloth-hood/.test(m)) return 'barbarian';
+    return 'iron';
+  }
+  const trimOf = (item, unique) => unique ? 'gold' : (FAMILY[family(item)] || ['brass'])[0];
+  const clothOf = item => (FAMILY[family(item)] || [0, 'sable'])[1];
   const MASKS = new Set(['sealed-mask', 'furnace-mask']);
   // gear-*: lighter tessellation for hidden-until-equipped parts (iPad memory); silhouettes keep their shape.
   const lodGear = (S, k) => Object.assign({}, S, {
@@ -219,7 +232,7 @@
     B.GearArmor.looks = lookOf;
   }
   // Family name shown in the character screen (identity only; no set bonus).
-  const FAMILY_NAME = { ember: 'Ocak Dökümü', frost: 'Deniz Nöbetçisi', holy: 'Kral Mezarı', gore: 'Cellat Yası', void: 'Kemik Ayini' };
-  function familyName(item) { if (!item || !(item.rarity === 'rare' || item.rarity === 'epic' || item.rarity === 'boss')) return ''; const n = FAMILY_NAME[theme(item)]; return n ? KabirI18n.t(n) : ''; }
+  const FAMILY_NAME = { ember: 'Ocak Dökümü', frost: 'Deniz Nöbetçisi', holy: 'Kral Mezarı', gore: 'Cellat Yası', void: 'Kemik Ayini', lamellar: 'Lamel Muhafız', barbarian: 'Derili Barbar', iron: 'Demir Muhafız' };
+  function familyName(item) { if (!item || item.rarity === 'common') return ''; const n = FAMILY_NAME[family(item)]; return n ? KabirI18n.t(n) : ''; }
   B.GearArmor = { build, looks: {}, familyName };
 })();

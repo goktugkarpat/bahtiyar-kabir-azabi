@@ -21,6 +21,6 @@ Object.assign(window.KabirI18n.dictionary,{
 "Lamel Yeminin Zırhı":"Lamellar Oath Armor","Yüzlerce küçük demir pul, deri kayışlarla birbirine bağlanmış.":"Hundreds of small iron scales laced together with leather thongs.",
 "Ocak Dökümü Eldivenler":"Hearth-Forged Gauntlets","Dökümhanede kalıba dökülmüş ağır pençeler. Eklem aralarından hâlâ kor ışığı sızar.":"Heavy claws poured into a foundry mould. Ember light still seeps between the joints.",
 "Yasçının Sessiz Adımları":"Mourner's Silent Steps",
-"Ocak Dökümü":"Foundry Cast","Deniz Nöbetçisi":"Sea Sentinel","Kral Mezarı":"Barrow King","Cellat Yası":"Executioner's Mourning","Kemik Ayini":"Bone Rite","Ayak bileklerinde kırık prangalar sallanır. Yas tutan biri bunlarla mezardan mezara yürümüş.":"Broken shackles swing at the ankles. Someone in mourning walked from grave to grave in these."
+"Ocak Dökümü":"Foundry Cast","Deniz Nöbetçisi":"Sea Sentinel","Kral Mezarı":"Barrow King","Cellat Yası":"Executioner's Mourning","Kemik Ayini":"Bone Rite","Lamel Muhafız":"Lamellar Guard","Derili Barbar":"Hide Barbarian","Demir Muhafız":"Iron Warden","Ayak bileklerinde kırık prangalar sallanır. Yas tutan biri bunlarla mezardan mezara yürümüş.":"Broken shackles swing at the ankles. Someone in mourning walked from grave to grave in these."
 });
 /* /ajan:gear */
