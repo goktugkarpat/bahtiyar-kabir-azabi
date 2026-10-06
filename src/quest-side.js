@@ -27,12 +27,21 @@
     ['ash-vizier-robe', L('Kül Vezirinin Cübbesi', 'Robe of the Ash Vizier'), 'chest', 11, 'boss', 0, .13, 4, null, L('Kadı’ya giden yol cübbenin astarına dikilmiş. Kül hiç dökülmüyor.', 'The road to the Judge is stitched into the lining. The ash never falls away.'), 'grave-chest', 'ash'],
     ['bloody-anvil-sword', L('Kanlı Örsün Kılıcı', 'Sword of the Bloody Anvil'), 'weapon', 12, 'boss', .29, 0, 0, 'sword', L('Senin kanınla soğutulan çelik. Ocak sönse de bu kılıç sıcak kalır.', 'Steel quenched in your own blood. The furnace may die; this blade stays warm.'), 'grave-sword', 'blood'],
     ['selvi-last-road', L('Selvi’nin Son Yolu', 'Selvi’s Last Road'), 'boots', 11, 'boss', 0, .09, 4, null, L('Selvi’nin halkasıyla birlikte saklanan çizmeler. Tabanında bir çocuğun çizdiği yol haritası var.', 'Boots kept beside Selvi’s ring. A child’s drawing of a road is scratched into the sole.'), 'tide-boots', 'bone'],
+    ['weaver-apprentice-wraps', L('Çırağın Kanlı Makarası', 'The Apprentice’s Bloody Spool'), 'hands', 4, 'boss', 0, .035, 5, null, L('Çırağın parmaklarına sardığı kefen ipliği. Hâlâ ılık.', 'Shroud thread the apprentice wound around her fingers. Still warm.'), 'rag-wraps', 'blood'],
+    ['crypt-walker-boots', L('Mühürlü Mahzenin Adımları', 'Steps of the Sealed Crypt'), 'boots', 4, 'boss', 0, .045, 3, null, L('Mahzenin tozunda iz bırakmayan çizmeler. Kâtiplerin gizli yolu için yapılmış.', 'Boots that leave no print in the crypt dust. Made for the scribes’ hidden road.'), 'grave-boots', 'ash'],
+    ['tide-widow-helm', L('Dul Gelgitin Yüzü', 'Face of the Widowed Tide'), 'head', 7, 'boss', 0, .07, 3, null, L('Yeminlinin karısının tuzla dolmuş miğferi. Kocasını aramaktan hiç vazgeçmedi.', 'The Salt-Sworn’s wife’s salt-choked helm. She never stopped searching for him.'), 'drowned-helm', 'brine'],
+    ['hidden-throne-chest', L('Gizli Tahtın Kefeni', 'Shroud of the Hidden Throne'), 'chest', 10, 'boss', 0, .115, 5, null, L('Kralın gizli odasında saklanan zırh. Göğsünde silinmiş bir ad var: kralın kendi adı.', 'Armor hidden in the king’s secret room. A scraped-away name on the breast: the king’s own.'), 'grave-chest', 'bone'],
+    ['seer-echo-spear', L('Kehanetin Yankısı', 'Echo of the Prophecy'), 'weapon', 10, 'boss', .245, 0, 2, 'spear', L('Ulvi’nin öğrencisinin mızrağı. Ucu, saplanacağı yeri önceden bilir.', 'The spear of Ulvi’s pupil. Its point knows where it will strike before it is thrown.'), 'bone-spear', 'ash'],
+    ['vizier-clerk-grasp', L('Hesap Kâtibinin Pençesi', 'The Tally Clerk’s Grasp'), 'hands', 12, 'boss', 0, .095, 4, null, L('Vezirin halka sayan kâtibinin demir eldiveni. Parmak boğumlarında sayılar kazılı.', 'The iron glove of the vizier’s link-counting clerk. Numbers are carved into its knuckles.'), 'chain-gloves', 'rust'],
     ['ink-headsman-helm', L('Mürekkep Cellatının Yüzü', 'Face of the Ink Headsman'), 'head', 12, 'boss', 0, .095, 5, null, L('Siyah mürekkeple kaplı ağır miğfer. Kesilen her ad, içinde bir damla bırakmış.', 'A heavy helm slick with black ink. Every name it cut left a drop inside.'), 'iron-helm', 'blood']
   ];
 
   // ---------------------------------------------------------------- common UI words
   var W = {
-    hunt: L('Ad Avı', 'Named Hunt'), rescue: L('Kurtarma', 'Rescue'), lore: L('Kâtibin Sayfaları', 'The Scribe’s Pages'), altar: L('Kan Bedeli', 'Blood Price'), siege: L('Hayatta Kal', 'Survive'), wave: L('Dalga ', 'Wave '), survive: L(' · hayatta kal', ' · survive'), chest: L('Zincirli Sandık', 'Chained Chest'), main: L('Ana Hikâye', 'Main Story'),
+    hunt: L('Ad Avı', 'Named Hunt'), rescue: L('Kurtarma', 'Rescue'), lore: L('Kâtibin Sayfaları', 'The Scribe’s Pages'), altar: L('Kan Bedeli', 'Blood Price'), siege: L('Hayatta Kal', 'Survive'), wave: L('Dalga ', 'Wave '), escape: L('Kaçış', 'Escape'), puzzle: L('Gizli Oda', 'Hidden Chamber'), run: L('Kaç! ', 'Run! '), secs: L(' sn', ' s'),
+    escapeFail: L('Geç kaldın. Emanet elinden kaydı ve yerine döndü; bedeli kanınla ödedin.', 'Too late. The relic slipped from your grasp and returned to its place; you paid in blood.'),
+    wrongSeal: L('Yanlış mühür. Taş kanını istiyor ve diğerleri sönüyor.', 'The wrong seal. The stone takes your blood and the others go dark.'),
+    chainFound: L('Yeni bir ad avı açıldı', 'A new hunt has opened'), survive: L(' · hayatta kal', ' · survive'), chest: L('Zincirli Sandık', 'Chained Chest'), main: L('Ana Hikâye', 'Main Story'),
     reward: L('Ödül: ', 'Reward: '), done: L('Tamamlandı', 'Complete'), secret: L('Gizli', 'Hidden'),
     guarded: L('Önce etraftaki ölüleri sustur', 'First silence the dead around you'), locked: L('Zincirli. Anahtarı bu bölümün av hedefi taşıyor.', 'Chained shut. This chapter’s hunted foe carries the key.'),
     follow: L('Seni izliyor. Onu yemin taşına götür.', 'Following you. Lead them to the oath stone.'), waiting: L('Yakında düşman var; kurtardığın kişi siniyor.', 'Enemies are near; the one you freed cowers.'),
@@ -82,6 +91,19 @@
         objective: L('Mangalı yak ve üç dalga boyunca hayatta kal.', 'Light the brazier and survive three waves.'),
         story: L('Son rahip mangalın küllerine düşüyor. Ateş artık kimseyi çağırmıyor; yalnızca seni ısıtıyor.', 'The last priest falls into the brazier’s ashes. The fire calls no one now; it only warms you.'),
         reward: { hp: 6, xp: 80 }, rewardText: L('Kalıcı +6 can', 'Permanent +6 health') },
+      { id: 'c1-hunt2', kind: 'hunt', after: 'c1-hunt', hidden: true, site: 'c1.hunt2', fallback: { room: 10, dx: -5, dz: 4 },
+        name: L('Dokuyucunun Çırağı', 'The Weaver’s Apprentice'), target: { name: L('Dokuyucunun Çırağı', 'The Weaver’s Apprentice'), types: ['cultist', 'carrier'], scale: 2.9 },
+        description: L('Kefen Dokuyucu düşünce çırağı kaçtı. Ustasının iplerini hâlâ canlıların boynuna dolamaya çalışıyor.', 'When the Shroud Weaver fell, her apprentice fled. She still tries to wind her mistress’s thread around living throats.'),
+        objective: L('Kaçan çırağı Yitik Etler Reviri’nde bul ve avla.', 'Find the fleeing apprentice in the Ward of Lost Flesh and hunt her.'),
+        story: L('Çırak düşerken ipliği bırakıyor. İpliğin ucu yine senin adına bağlı; birisi seni hâlâ dokuyor.', 'As the apprentice falls she lets the thread go. Its end is tied to your name again; someone is still weaving you.'),
+        reward: { item: 'weaver-apprentice-wraps', xp: 90 }, rewardText: L('Çırağın Kanlı Makarası (Eşsiz sargı)', 'The Apprentice’s Bloody Spool (Unique wraps)') },
+      { id: 'c1-puzzle', kind: 'puzzle', sites: ['c1.seal1', 'c1.seal2', 'c1.seal3'], fallbacks: [{ room: 7, dx: -6, dz: -5 }, { room: 7, dx: 0, dz: -6 }, { room: 7, dx: 6, dz: -5 }], order: [2, 0, 1], hidden: true,
+        name: L('Mühürlü Mahzen', 'The Sealed Crypt'),
+        description: L('Unutulanların Mahzeni’nin dibinde üç mühür taşı var. Kâtiplerin gizli yolu ancak doğru sırayla açılır.', 'At the back of the Crypt of the Forgotten stand three seal stones. The scribes’ hidden road opens only in the right order.'),
+        objective: L('Mühür taşlarını doğru sırayla uyandır. Çentikleri say.', 'Wake the seal stones in the right order. Count their notches.'),
+        riddle: L('“Üç yara ilk kanar, tek yara onu izler, iki yara kapıyı kapatır.”', '“Three wounds bleed first, one wound follows, two wounds close the door.”'),
+        story: L('Taşlar birbirine kenetleniyor ve zemin açılıyor. Kâtiplerin gizli dolabı hâlâ yerinde.', 'The stones lock together and the floor opens. The scribes’ hidden cabinet is still there.'),
+        reward: { item: 'crypt-walker-boots', xp: 80 }, rewardText: L('Mühürlü Mahzenin Adımları (Eşsiz çizme)', 'Steps of the Sealed Crypt (Unique boots)') },
       { id: 'c1-chest', kind: 'chest', site: 'c1.chest', fallback: { room: 12, dx: 5, dz: -3 }, key: 'c1-hunt', voice: null,
         name: L('Kâtiplerin Zincirli Sandığı', 'The Scribes’ Chained Chest'), description: L('Kırık Yeminler salonunda zincirle bağlanmış bir sandık. Anahtarı Kefen Dokuyucu taşıyor.', 'A chest bound in chains in the hall of Broken Oaths. The Shroud Weaver carries its key.'),
         objective: L('Kefen Dokuyucu’nun anahtarıyla Kırık Yeminler’deki sandığı aç.', 'Open the chest in Broken Oaths with the Shroud Weaver’s key.'),
@@ -126,6 +148,18 @@
         objective: L('Gelgit çanını çal ve boğulanların üç dalgasına dayan.', 'Ring the tide bell and withstand three waves of the drowned.'),
         story: L('Son boğulmuş tuza dönüşüyor. Çanın dili kırıldı; gelgit bu kıyıya bir daha ölü getirmeyecek.', 'The last of the drowned crumbles into salt. The bell’s tongue is broken; the tide will bring no more dead to this shore.'),
         reward: { damage: .03, xp: 140 }, rewardText: L('Kalıcı +%3 hasar', 'Permanent +3% damage') },
+      { id: 'c2-hunt2', kind: 'hunt', after: 'c2-hunt', hidden: true, site: 'c2.hunt2', fallback: { room: 7, dx: -4, dz: 4 },
+        name: L('Yeminlinin Dul Karısı', 'The Salt-Sworn’s Widow'), target: { name: L('Yeminlinin Dul Karısı', 'The Salt-Sworn’s Widow'), types: ['drowned', 'lantern'], scale: 2.9 },
+        description: L('Yeminli düşünce karısı denizden çıktı. Batık Gümrük’te kocasının katilini arıyor.', 'When the Salt-Sworn fell, his wife rose from the sea. She hunts her husband’s killer in the Sunken Customs.'),
+        objective: L('Batık Gümrük Avlusu’nda Yeminlinin dul karısını bul.', 'Find the Salt-Sworn’s widow in the Sunken Customs Yard.'),
+        story: L('Dul kadın tuza dönüşürken gülümsüyor: “Onu ben de defterden silemedim. Sen sil.”', 'The widow smiles as she turns to salt: “I could not erase him from the Ledger either. You do it.”'),
+        reward: { item: 'tide-widow-helm', xp: 140 }, rewardText: L('Dul Gelgitin Yüzü (Eşsiz miğfer)', 'Face of the Widowed Tide (Unique helm)') },
+      { id: 'c2-escape', kind: 'escape', site: 'c2.escape', fallback: { room: 3, dx: 0, dz: -8 }, goal: 'c2.escape-goal', goalFallback: { room: 4, dx: 0, dz: 6 },
+        name: L('Gelgit Basıyor', 'The Tide Comes In'), verb: L('Seyir defterini al', 'Take the log'),
+        description: L('Çürük İskele’nin ucunda boğulmuş bir kaptanın seyir defteri var. Alırsan gelgit iskeleyi yutar.', 'At the end of the Rotten Pier lies a drowned captain’s log. Take it and the tide will swallow the pier.'),
+        objective: L('Seyir defterini al ve gelgit yetişmeden Kara Kök Meydanı’na kaç.', 'Take the log and flee to the Black Root Square before the tide catches you.'),
+        story: L('Meydana nefes nefese varıyorsun. Seyir defterinin son sayfasında bir varış yazıyor: “Kâtibin kız kardeşi. Taht için.”', 'You reach the square gasping. The log’s last page records an arrival: “The scribe’s sister. For the throne.”'),
+        reward: { xp: 160, hp: 4 }, rewardText: L('+160 tecrübe ve kalıcı +4 can', '+160 experience and permanent +4 health') },
       { id: 'c2-chest', kind: 'chest', site: 'c2.chest', fallback: { room: 7, dx: 5, dz: -4 }, key: 'c2-hunt',
         name: L('Batık Gümrük Sandığı', 'The Sunken Customs Chest'), description: L('Batık Gümrük Avlusu’nda zincirle bağlı bir sandık. Anahtarı Tuz İçindeki Yeminli taşıyor.', 'A chained chest in the Sunken Customs Yard. The Salt-Sworn carries its key.'),
         objective: L('Yeminli’nin anahtarıyla Batık Gümrük’teki sandığı aç.', 'Open the chest in the Sunken Customs with the Salt-Sworn’s key.'),
@@ -170,6 +204,25 @@
         objective: L('Yemin taşını kır ve üç dalga boyunca hayatta kal.', 'Shatter the oath stone and survive three waves.'),
         story: L('Son yeminli diz çöküyor. Yemin taşının parçalarında artık hiçbir ad yazmıyor.', 'The last oath-bound kneels. No name remains on the shards of the oath stone.'),
         reward: { hp: 6, xp: 220 }, rewardText: L('Kalıcı +6 can', 'Permanent +6 health') },
+      { id: 'c3-hunt2', kind: 'hunt', after: 'c3-hunt', hidden: true, site: 'c3.hunt2', fallback: { room: 10, dx: 5, dz: -4 },
+        name: L('Ulvi’nin Öğrencisi', 'Ulvi’s Pupil'), target: { name: L('Ulvi’nin Öğrencisi', 'Ulvi’s Pupil'), types: ['shardseer', 'ashbound'], scale: 2.9 },
+        description: L('Ulvi ölünce öğrencisi son kehaneti tamamlamaya yemin etti. Yutulan Saray’da seni bekliyor.', 'When Ulvi died his pupil swore to fulfil the last prophecy. He waits for you in the Swallowed Palace.'),
+        objective: L('Yutulan Saray’da Ulvi’nin öğrencisini avla.', 'Hunt Ulvi’s pupil in the Swallowed Palace.'),
+        story: L('Öğrenci düşüyor. Kehanet tamamlanmadı; yalnızca ertelendi.', 'The pupil falls. The prophecy is not fulfilled, only postponed.'),
+        reward: { item: 'seer-echo-spear', xp: 220 }, rewardText: L('Kehanetin Yankısı (Eşsiz mızrak)', 'Echo of the Prophecy (Unique spear)') },
+      { id: 'c3-escape', kind: 'escape', site: 'c3.escape', fallback: { room: 9, dx: 6, dz: -4 }, goal: 'c3.escape-goal', goalFallback: { room: 11, dx: -6, dz: 4 },
+        name: L('Göçük', 'The Collapse'), verb: L('Mezarcının anahtarını al', 'Take the mason’s key'),
+        description: L('Taşın İçindeki Ölüler’de bir mezarcının mumyalanmış eli bir anahtar tutuyor. Elden alırsan mağara çöker.', 'In the Dead Within the Stone a mason’s mummified hand grips a key. Take it and the cave comes down.'),
+        objective: L('Anahtarı al ve göçük seni gömmeden Son Yemin taşına koş.', 'Take the key and run to the Last Oath stone before the collapse buries you.'),
+        story: L('Arkanda mağara kapanıyor. Bir kez daha diri gömülmedin; bu kez taş seni bekleyemedi.', 'The cave seals behind you. Once more you were not buried alive; this time the stone could not wait.'),
+        reward: { xp: 240, hp: 5 }, rewardText: L('+240 tecrübe ve kalıcı +5 can', '+240 experience and permanent +5 health') },
+      { id: 'c3-puzzle', kind: 'puzzle', sites: ['c3.seal1', 'c3.seal2', 'c3.seal3'], fallbacks: [{ room: 10, dx: -7, dz: -5 }, { room: 10, dx: 0, dz: 6 }, { room: 10, dx: 7, dz: -5 }], order: [1, 2, 0], hidden: true,
+        name: L('Kralın Gizli Odası', 'The King’s Hidden Chamber'),
+        description: L('Yutulan Saray’da üç mühür taşı kralın gizli odasını saklıyor.', 'In the Swallowed Palace three seal stones hide the king’s secret chamber.'),
+        objective: L('Mühür taşlarını doğru sırayla uyandır. Çentikleri say.', 'Wake the seal stones in the right order. Count their notches.'),
+        riddle: L('“Önce iki yemin, sonra üç ihanet, en son tek bir ad.”', '“First two oaths, then three betrayals, last a single name.”'),
+        story: L('Duvar geri çekiliyor. Kralın gizli odasında, adı kazınmış bir zırh asılı.', 'The wall slides back. In the king’s hidden chamber hangs armor with its name scraped away.'),
+        reward: { item: 'hidden-throne-chest', xp: 200 }, rewardText: L('Gizli Tahtın Kefeni (Eşsiz zırh)', 'Shroud of the Hidden Throne (Unique armor)') },
       { id: 'c3-chest', kind: 'chest', site: 'c3.chest', fallback: { room: 12, dx: -6, dz: 3 }, key: 'c3-hunt',
         name: L('Kraliyet Sandığı', 'The Royal Chest'), description: L('Tahtın Nöbeti’nde kraliyet mührüyle kilitli bir sandık. Anahtarı Ulvi taşıyor.', 'A chest locked with the royal seal at the Throne’s Watch. Ulvi carries its key.'),
         objective: L('Ulvi’nin anahtarıyla Tahtın Nöbeti’ndeki kraliyet sandığını aç.', 'Open the royal chest at the Throne’s Watch with Ulvi’s key.'),
@@ -214,6 +267,18 @@
         objective: L('Körük zincirlerini kır ve üç dalga boyunca hayatta kal.', 'Break the bellows chains and survive three waves.'),
         story: L('Son bekçi körüğün altında eziliyor. Köleler ilk kez kendi soluklarıyla nefes alıyor.', 'The last keeper is crushed beneath the bellows. For the first time, the slaves breathe with their own breath.'),
         reward: { damage: .03, xp: 260 }, rewardText: L('Kalıcı +%3 hasar', 'Permanent +3% damage') },
+      { id: 'c4-hunt2', kind: 'hunt', after: 'c4-hunt', hidden: true, site: 'c4.hunt2', fallback: { room: 5, dx: 5, dz: 4 },
+        name: L('Vezirin Hesap Kâtibi', 'The Vizier’s Tally Clerk'), target: { name: L('Vezirin Hesap Kâtibi', 'The Vizier’s Tally Clerk'), types: ['chainseer', 'forgesentinel'], scale: 2.9 },
+        description: L('Vezir düşünce hesap kâtibi defterleri kaçırmaya kalktı. Sönen Dökümhane’de sayıyor.', 'When the vizier fell his tally clerk tried to smuggle out the ledgers. He counts in the Dying Foundry.'),
+        objective: L('Sönen Dökümhane’de vezirin hesap kâtibini avla.', 'Hunt the vizier’s tally clerk in the Dying Foundry.'),
+        story: L('Kâtip düşüyor. Elindeki defterde son satır: “Kardeş kâtip yolda. Kadı bekliyor.” Sen gibi bir kâtipti.', 'The clerk falls. The ledger in his hand reads: “The brother scribe is on his way. The Judge waits.” He was a scribe, like you.'),
+        reward: { item: 'vizier-clerk-grasp', xp: 260 }, rewardText: L('Hesap Kâtibinin Pençesi (Eşsiz eldiven)', 'The Tally Clerk’s Grasp (Unique gauntlets)') },
+      { id: 'c4-escape', kind: 'escape', site: 'c4.escape', fallback: { room: 8, dx: -6, dz: 4 }, goal: 'c4.escape-goal', goalFallback: { room: 9, dx: 6, dz: -4 },
+        name: L('Döküm Taşıyor', 'The Pour Overflows'), verb: L('Kalıbı kır', 'Break the mould'),
+        description: L('Yutulan Çarklar’da bir döküm kalıbında son halka soğuyor. Kalıbı kırarsan erimiş demir taşar.', 'In the Swallowed Gears the last link cools in a casting mould. Break the mould and molten iron spills.'),
+        objective: L('Kalıbı kır ve demir yetişmeden Cüruf Meydanı’na kaç.', 'Break the mould and flee to the Slag Square before the iron reaches you.'),
+        story: L('Demir arkanda soğuyor. Kalıptan kurtardığın halkada bir ad var: senin adın. Henüz dövülmemiş.', 'The iron cools behind you. The link you saved from the mould bears a name: yours. Not yet forged.'),
+        reward: { xp: 300, hp: 5 }, rewardText: L('+300 tecrübe ve kalıcı +5 can', '+300 experience and permanent +5 health') },
       { id: 'c4-chest', kind: 'chest', site: 'c4.chest', fallback: { room: 10, dx: 6, dz: -3 }, key: 'c4-hunt',
         name: L('Selvi’nin Emanet Sandığı', 'Selvi’s Keepsake Chest'), description: L('Kızıl Fırınlar’da, halkaların arasında küçük bir sandık. Anahtarı Kül Veziri taşıyor.', 'In the Crimson Kilns, a small chest among the links. The Ash Vizier carries its key.'),
         objective: L('Vezirin anahtarıyla Kızıl Fırınlar’daki emanet sandığını aç.', 'Open the keepsake chest in the Crimson Kilns with the vizier’s key.'),
@@ -318,6 +383,19 @@
         for (var k = 0; k < 7; k++) kit.ring(chains, M, .075, .022, -.42 + k * .14, .52, .3, PI / 2, 0, (k % 2) * PI / 2);
         for (var k2 = 0; k2 < 3; k2++) kit.ring(chains, M, .075, .022, .05, .3 + k2 * .12, .31, 0, PI / 2, (k2 % 2) * PI / 2);
         kit.put(glowParts, EMBER, new T.SphereGeometry(.045, 10, 8), 0, .44, .32);
+      } else if (kind === 'reliquary') {
+        kit.box(body, S, .7, .7, .7, 0, .35, 0); kit.box(body, R, .76, .05, .76, 0, .72, 0);
+        kit.cyl(body, M, .2, .26, .14, 0, .8, 0);
+        for (var cg2 = 0; cg2 < 4; cg2++) { var a3 = cg2 * PI / 2 + PI / 4; kit.box(body, M, .03, .42, .03, Math.sin(a3) * .17, 1.06, Math.cos(a3) * .17, Math.cos(a3) * .25, 0, -Math.sin(a3) * .25); }
+        kit.put(glowParts, EMBER, new T.IcosahedronGeometry(.12, 0), 0, 1.02, 0);
+      } else if (kind === 'goal') {
+        kit.ring(glowParts, EMBER, 2.2, .045, 0, .06, 0, PI / 2); kit.ring(glowParts, G, 1.7, .025, 0, .06, 0, PI / 2);
+        for (var gs = 0; gs < 8; gs++) { var a4 = gs * PI / 4; kit.box(glowParts, EMBER, .08, .02, .5, Math.sin(a4) * 1.95, .07, Math.cos(a4) * 1.95, 0, a4, 0); }
+      } else if (/^sealstone/.test(kind)) {
+        var notches = +kind.slice(9);
+        kit.box(body, S, .5, 1.5, .5, 0, .75, 0); kit.box(body, S, .7, .16, .7, 0, .08, 0); kit.box(body, R, .56, .05, .56, 0, 1.52, 0);
+        for (var nt = 0; nt < notches; nt++) kit.box(body, R, .05, .34, .04, (nt - (notches - 1) / 2) * .12, .9, .26);
+        kit.put(glowParts, EMBER, new T.OctahedronGeometry(.13, 0), 0, 1.72, 0);
       } else if (kind === 'brazier') {
         kit.cyl(body, S, .42, .5, .22, 0, .11, 0); kit.cyl(body, M, .1, .12, .7, 0, .55, 0);
         kit.put(body, M, new T.LatheGeometry([new T.Vector2(.08, 0), new T.Vector2(.42, .12), new T.Vector2(.55, .3), new T.Vector2(.5, .34)], 20), 0, .86, 0);
@@ -401,12 +479,12 @@
           best.baseMaxHp = Math.round((best.baseMaxHp || best.maxHp) * def.target.scale); best.maxHp = Math.round(best.maxHp * def.target.scale); best.hp = best.maxHp;
           best.campaignDamage = (best.campaignDamage || 1) * 1.22; best.radius = (best.radius || .6) * 1.08;
           if (best.model && best.model.root) {
-            best.model.root.scale.multiplyScalar(1.16);
+            best.model.root.scale.multiplyScalar(def.after ? 1.22 : 1.16);
             // A thin smouldering brand above the named prey: visible across a hall, never a light source.
             var mt = kit.materials || {}, brand = [], bg = new T.Group(), hgt = (best.model.height || 2.1) / 1.16 + .28;
             kit.ring(brand, mt.ember || mt.hot || mt.lava || mt.lamp || kit.glow, .3, .022, 0, hgt, 0, PI / 2);
             for (var sp2 = 0; sp2 < 6; sp2++) { var an2 = sp2 * PI / 3; kit.put(brand, mt.ember || mt.hot || mt.lava || mt.lamp || kit.glow, new T.ConeGeometry(.035, .16, 5), Math.sin(an2) * .3, hgt + .07, Math.cos(an2) * .3); }
-            kit.merge(brand, bg); bg.name = 'hunt-brand'; best.model.root.add(bg);
+            kit.merge(brand, bg); bg.name = 'hunt-brand'; best.model.root.add(bg); q.brand = bg;
           }
           q.enemy = best;
         } else if (def.kind === 'rescue') {
@@ -419,13 +497,23 @@
           def.pages.forEach(function (pg, i) { var n = node(q, 'page', pg.site, def.fallbacks[i], { verb: L('Sayfayı oku', 'Read the page'), role: 'page', page: i }); q.nodes.push(n); entry.pages.push({ name: pg.name, text: pg.text, found: false }); });
         } else if (def.kind === 'altar') {
           q.altar = node(q, 'altar', def.site, def.fallback, { verb: L('Sunağa dokun', 'Touch the altar'), role: 'altar' });
+        } else if (def.kind === 'escape') {
+          q.relic = node(q, 'reliquary', def.site, def.fallback, { verb: def.verb, role: 'escape' });
+          var gp = spot(def.goal, def.goalFallback); q.goal = { x: gp.x, z: gp.z, y: gp.y }; o.reserve(gp.x, gp.z);
+          q.goalRing = prop('goal', gp.x, gp.y, gp.z); q.goalRing.group.visible = false;
+          var dist = Math.hypot(gp.x - q.relic.x, gp.z - q.relic.z); q.limit = Math.round(Math.max(18, Math.min(45, dist / 3.6 + 9)));
+        } else if (def.kind === 'puzzle') {
+          q.seals = def.sites.map(function (site, i) { return node(q, 'sealstone' + (i + 1), site, def.fallbacks[i], { verb: L('Mühür taşını uyandır', 'Wake the seal stone'), role: 'seal', seal: i }); });
+          var mid = q.seals.reduce(function (a, n) { return { x: a.x + n.x / 3, z: a.z + n.z / 3 }; }, { x: 0, z: 0 });
+          q.vault = node(q, 'chest', def.id + '-vault', { dx: 0, dz: 0, room: def.fallbacks[1].room }, { verb: L('Gizli dolabı aç', 'Open the hidden cabinet'), role: 'vault' });
+          entry.total = 4;
         } else if (def.kind === 'siege') {
           q.brazier = node(q, 'brazier', def.site, def.fallback, { verb: def.verb, role: 'siege' }); entry.total = def.waves.length;
         } else if (def.kind === 'chest') {
           q.chest = node(q, 'chest', def.site, def.fallback, { verb: L('Sandığı aç', 'Open the chest'), role: 'chest' });
         }
       } catch (e) { console.warn('[quests] side quest disabled', def.id, e); q.disabled = true; }
-      if (q.captive) q.nodes.push(q.captive); if (q.altar) q.nodes.push(q.altar); if (q.chest) q.nodes.push(q.chest); if (q.brazier) q.nodes.push(q.brazier);
+      if (q.captive) q.nodes.push(q.captive); if (q.altar) q.nodes.push(q.altar); if (q.chest) q.nodes.push(q.chest); if (q.brazier) q.nodes.push(q.brazier); if (q.relic) q.nodes.push(q.relic); if (q.seals) q.nodes.push.apply(q.nodes, q.seals.concat([q.vault]));
     });
     quests = quests.filter(function (q) { return !q.disabled; });
     info.side = quests.map(function (q) { return q.entry; });
@@ -441,9 +529,11 @@
         e.complete = s.done; e.discovered = s.discovered || s.done; e.choice = s.choice;
         if (d.kind === 'lore') { e.progress = 0; for (var i = 0; i < q.nodes.length; i++) { var got = !!(s.bits & (1 << i)); q.nodes[i].done = got; e.pages[i].found = got; if (got) e.progress++; } }
         else if (d.kind === 'rescue') { e.total = 2; e.progress = s.done ? 2 : s.stage >= 1 ? 1 : 0; }
+        else if (d.kind === 'escape') { e.progress = s.done ? 1 : 0; }
+        else if (d.kind === 'puzzle') { var lit = 0; for (var b2 = 0; b2 < 3; b2++) if (s.bits & (1 << b2)) lit++; e.progress = s.done ? 4 : lit; }
         else if (d.kind === 'siege') { e.total = d.waves.length; e.progress = s.done ? d.waves.length : Math.max(0, s.stage - 1); }
         else e.progress = s.done ? 1 : 0;
-        e.objective = s.done ? W.done : d.kind === 'siege' && s.stage >= 1 ? W.wave + s.stage + ' / ' + d.waves.length + W.survive : d.kind === 'rescue' && s.stage >= 1 ? d.follow : d.kind === 'chest' && !keyOwned(q) ? W.locked : d.objective;
+        e.objective = s.done ? W.done : d.kind === 'escape' && s.stage >= 1 ? W.run + Math.max(0, Math.ceil(q.left || 0)) + W.secs + ' · ' + d.objective : d.kind === 'puzzle' && s.stage >= 1 ? L('Gizli dolap açıldı. İçindekini al.', 'The hidden cabinet is open. Take what lies inside.') : d.kind === 'puzzle' && e.discovered ? d.objective + ' ' + d.riddle : d.kind === 'siege' && s.stage >= 1 ? W.wave + s.stage + ' / ' + d.waves.length + W.survive : d.kind === 'rescue' && s.stage >= 1 ? d.follow : d.kind === 'chest' && !keyOwned(q) ? W.locked : d.objective;
         e.available = !s.done && e.discovered && !(d.requiresMain != null && !mainDone(d.requiresMain));
         e.outcome = s.done ? (d.kind === 'altar' && s.choice ? (d.verdict.options.find(function (x) { return x.id === s.choice; }) || {}).story || '' : d.story) : '';
         e.target = null;
@@ -451,6 +541,8 @@
           if (d.kind === 'rescue') n.done = s.stage >= 1 || s.done;
           if (d.kind === 'altar' || d.kind === 'chest') n.done = s.done;
           if (d.kind === 'siege') n.done = s.done || s.stage >= 1;
+          if (d.kind === 'escape') n.done = s.done || s.stage >= 1;
+          if (d.kind === 'puzzle') n.done = s.done || (n.role === 'seal' ? !!(s.bits & (1 << n.seal)) || s.stage >= 1 : s.stage < 1);
           n.marker.complete = n.done; n.marker.active = e.available && !n.done && !(d.kind === 'chest' && !keyOwned(q));
           if (!e.target && n.marker.active) e.target = n.marker;
           var pr = n.parts; if (!pr) return;
@@ -459,7 +551,12 @@
           if (pr.chains) pr.chains.visible = !(d.kind === 'chest' ? s.done : d.kind === 'rescue' ? s.stage >= 1 || s.done : false);
           if (pr.lid) { pr.lid.rotation.x = s.done ? -1.9 : 0; pr.lid.updateMatrix(); }
         });
-        if (q.marker) { q.marker.complete = s.done; q.marker.active = !s.done && !!q.enemy && !q.enemy.dead; if (q.marker.active) e.target = q.marker; }
+        if (q.brand) q.brand.visible = !!e.discovered;
+        if (d.kind === 'puzzle' && q.vault && q.vault.parts) { q.vault.parts.group.visible = s.stage >= 1 || s.done; if (q.vault.parts.glow) q.vault.parts.glow.visible = s.stage >= 1 && !s.done; }
+        if (d.kind === 'puzzle' && q.seals) q.seals.forEach(function (n) { if (n.parts && n.parts.glow) n.parts.glow.visible = !!(s.bits & (1 << n.seal)) || s.done || s.stage >= 1; });
+        if (d.kind === 'escape' && q.goalRing) q.goalRing.group.visible = s.stage >= 1 && !s.done;
+        if (d.kind === 'escape' && s.stage >= 1 && !s.done) e.target = { id: d.goal, name: L('Kaçış noktası', 'Escape point'), x: q.goal.x, z: q.goal.z, active: true };
+        if (q.marker) { q.marker.complete = s.done; q.marker.active = !s.done && !!e.discovered && !!q.enemy && !q.enemy.dead; if (q.marker.active) e.target = q.marker; }
         if (d.kind === 'rescue' && s.stage >= 1 && !s.done) e.target = { id: d.goal, name: d.npc, x: q.goal.x, z: q.goal.z, active: true };
         if (d.kind === 'rescue' && q.actor) q.actor.root.visible = !(d.requiresMain != null && !mainDone(d.requiresMain) && !s.stage);
       });
@@ -525,6 +622,16 @@
         return true;
       }
       if (d.kind === 'chest') { complete(q, d.story); return true; }
+      if (d.kind === 'escape') { s.stage = 1; q.left = q.limit; refresh(); notify(q, d.description + ' ' + W.run + q.limit + W.secs, false); api.sound('sealOpen', { x: n.x, z: n.z }); return true; }
+      if (d.kind === 'puzzle') {
+        if (n.role === 'vault') { complete(q, d.story); return true; }
+        var lit2 = 0; for (var b3 = 0; b3 < 3; b3++) if (s.bits & (1 << b3)) lit2++;
+        if (d.order[lit2] !== n.seal) { s.bits = 0; player.hp = Math.max(1, player.hp - 10); refresh(); api.sound('hurt', { x: n.x, z: n.z }); api.emit('toast', { text: W.wrongSeal + ' ' + d.riddle }); return true; }
+        s.bits |= 1 << n.seal; api.sound('sealOpen', { x: n.x, z: n.z });
+        if (lit2 + 1 === 3) { s.stage = 1; refresh(); if (api.onChange) api.onChange(); notify(q, L('Üç mühür birden yanıyor. Taşın altında bir dolap beliriyor.', 'All three seals burn at once. A cabinet appears beneath the stone.'), false); }
+        else refresh();
+        return true;
+      }
       if (d.kind === 'siege') { s.stage = 1; q.wave = null; q.pause = .6; refresh(); notify(q, d.description, false); api.sound('sealOpen', { x: n.x, z: n.z }); return true; }
       if (d.kind === 'rescue') {
         s.stage = 1; q.actor.x = n.x + .9; q.actor.z = n.z + .6; refresh(); if (api.onChange) api.onChange();
@@ -638,11 +745,21 @@
         var q = quests[i], s = state[q.def.id];
         if (q.def.kind === 'hunt' && q.enemy) {
           if (q.marker && !q.enemy.dead) { q.marker.x = q.enemy.x; q.marker.z = q.enemy.z; }
-          if (!s.done && !q.sighted && !q.enemy.dead && Math.hypot(q.enemy.x - player.x, q.enemy.z - player.z) < 16) { q.sighted = true; api.emit('toast', { text: W.hunt + ': ' + q.def.target.name + L(' yakında. Ondan kaçma.', ' is near. Do not run from it.') }); }
+          if (!s.done && s.discovered && !q.sighted && !q.enemy.dead && Math.hypot(q.enemy.x - player.x, q.enemy.z - player.z) < 16) { q.sighted = true; api.emit('toast', { text: W.hunt + ': ' + q.def.target.name + L(' yakında. Ondan kaçma.', ' is near. Do not run from it.') }); }
           if (!s.done && q.enemy.dead) complete(q, q.def.story);
         }
         if (q.def.kind === 'rescue') updateFollower(q, dt);
         if (q.def.kind === 'siege' && s.stage >= 1 && !s.done) updateSiege(q, s, dt);
+        if (q.def.after && !s.discovered && state[q.def.after] && state[q.def.after].done) {
+          s.discovered = true; dirty = true; api.emit('toast', { text: W.chainFound + ': ' + q.def.name });
+          notify(q, q.def.description, false); if (api.onChange) api.onChange();
+        }
+        if (q.def.kind === 'escape' && s.stage >= 1 && !s.done && !player.dead) {
+          var before = Math.ceil(q.left); q.left -= dt;
+          if (Math.ceil(q.left) !== before) dirty = true;
+          if (Math.hypot(player.x - q.goal.x, player.z - q.goal.z) < 3.2) { s.stage = 2; complete(q, q.def.story); }
+          else if (q.left <= 0) { s.stage = 0; player.hp = Math.max(1, player.hp - 20); api.emit('toast', { text: W.escapeFail }); api.sound('hurt', { x: player.x, z: player.z }); dirty = true; }
+        }
         if (!s.discovered && q.def.hidden) {
           var n0 = q.nodes[0];
           if (n0 && Math.hypot(player.x - n0.x, player.z - n0.z) < 10 && (!world.hasClearPath || world.hasClearPath(player.x, player.z, n0.x, n0.z, .25))) {
@@ -666,7 +783,7 @@
     }
     function snapshot() {
       var out = { v: 1, flaskDebt: local.flaskDebt, finale: local.finale, beats: local.beats, q: {} };
-      quests.forEach(function (q) { var s = state[q.def.id]; out.q[q.def.id] = [q.def.kind === 'siege' && !s.done ? 0 : s.stage, s.bits, s.choice, s.done ? 1 : 0, s.discovered ? 1 : 0]; });
+      quests.forEach(function (q) { var s = state[q.def.id]; out.q[q.def.id] = [(q.def.kind === 'siege' || q.def.kind === 'escape') && !s.done ? 0 : s.stage, s.bits, s.choice, s.done ? 1 : 0, s.discovered ? 1 : 0]; });
       return out;
     }
     function restore(saved) {

@@ -12,6 +12,8 @@
     lore: '<path d="M6 3h9l3 3v15H6z"/><path d="M8.5 9h7M8.5 12h7M8.5 15h5" stroke-width="1.2" stroke="#0b0c0f"/>',
     altar: '<path d="M12 2c3 5 6 8 6 12a6 6 0 0 1-12 0c0-4 3-7 6-12z"/>',
     siege: '<path d="M12 2c1 4 5 5 5 10a5 5 0 0 1-10 0c0-3 2-4 2-7 1 2 2 2.5 3 2.5 0-2-1-3 0-5.5z"/><path d="M4 21h16" stroke-width="2"/>',
+    escape: '<path d="M13 3a2 2 0 1 1 0 4 2 2 0 0 1 0-4zM9 21l2-6-2-2 1-5 4 3 3 1-1 2-3-1-1 3 2 2-1 3z"/><path d="M3 9h4M2 13h4" stroke-width="1.6"/>',
+    puzzle: '<rect x="3" y="10" width="4" height="11"/><rect x="10" y="7" width="4" height="14"/><rect x="17" y="12" width="4" height="9"/><path d="M5 6v2M12 3v2M19 8v2" stroke-width="2"/>',
     chest: '<path d="M3 10h18v10H3z"/><path d="M4 10a8 5 0 0 1 16 0" fill="none" stroke-width="2"/><rect x="10.5" y="12" width="3" height="4" fill="#0b0c0f"/>'
   };
   const icon = kind => '<svg class="quest-kind-icon" viewBox="0 0 24 24" aria-hidden="true" fill="currentColor" stroke="currentColor" stroke-width="0">' + (ICONS[kind] || ICONS.main) + '</svg>';

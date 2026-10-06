@@ -79,6 +79,8 @@
 .kind-lore .journal-kind, .quest-track-row.kind-lore { color: #cdbb93 }
 .kind-altar .journal-kind, .quest-track-row.kind-altar { color: #c75a55 }
 .kind-siege .journal-kind, .quest-track-row.kind-siege { color: #e0894a }
+.kind-escape .journal-kind, .quest-track-row.kind-escape { color: #e6c35c }
+.kind-puzzle .journal-kind, .quest-track-row.kind-puzzle { color: #9fb6d8 }
 .kind-chest .journal-kind, .quest-track-row.kind-chest { color: #c9a35c }
 .journal-quest.side-quest { border-color: #6f5f4a47; background: #0d0f12e0 }
 .journal-quest.kind-altar { border-color: #7c2f2c66; background: linear-gradient(180deg, #1a0d0ee6, #0c0d10e6) }
