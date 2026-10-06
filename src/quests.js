@@ -74,6 +74,16 @@
   CHAPTERS[3].introduction = L5('Kıyının çanı sustu; ölüleri çağıran ses mağaranın içinden geliyor. Sana kalemi veren kral, kendi adını bu taşın içine saklamış. Tahtın altında Defter’in kime ait olduğu yazılı.', 'The shore’s bell is silent; the voice that calls the dead comes from within the cave. The king who handed you the pen hid his own name inside this stone. Beneath the throne is written whose Ledger it truly is.');
   CHAPTERS[4].introduction = L5('Tapınağın hükmü, kıyının ağıdı, kralın sesi: hepsi bu ocakta dövüldü. Yazdığın her ad burada bir halkaya döndü. Kapıyı açmak yetmez; kalbi besleyen düzeni de bozmalısın.', 'The temple’s sentence, the shore’s lament, the king’s voice: all were forged in this furnace. Every name you wrote became a link here. Opening the gate is not enough; you must break the order that feeds its heart.');
 
+  // The blood rite becomes a riddle: all three bowls answer, the incisions on their fronts (I, II, III) and the inscription give the order,
+  // and a wrong bowl spills the hero's blood and resets the rite.
+  (function (rite) {
+    rite.ritual = true;
+    rite.description = L5('Adak Salonu’ndaki hükmü tersine çevir. Duvardaki yazı sırayı söylüyor: “Beden unutulur, kan tanıklık eder, yemin en son konuşur.” Çanakların önündeki çentikleri say.', 'Reverse the sentence in the Hall of Offerings. The inscription gives the order: “The body is forgotten, the blood bears witness, the oath speaks last.” Count the notches on the bowls.');
+    var hint = L5('Adak Salonu’nda üç çanağı doğru sırayla boz. Yanlış çanak kan ister.', 'Break the three bowls in the Hall of Offerings in the right order. A wrong bowl demands blood.');
+    rite.steps.forEach(function (step) { step.objective = hint; });
+    rite.wrong = L5('Yanlış çanak. Ayin kanını istiyor ve baştan başlıyor. “Beden unutulur, kan tanıklık eder, yemin en son konuşur.”', 'The wrong bowl. The rite takes your blood and begins again. “The body is forgotten, the blood bears witness, the oath speaks last.”');
+  })(CHAPTERS[1].quests[1]);
+
   function verdict(title, question, options) { return { title: title, question: question, options: options }; }
   function option(id, name, story, benefit, amount, effect) { return { id: id, name: name, story: story, benefit: benefit, amount: amount, effect: effect }; }
   CHAPTERS[1].quests[0].verdict = verdict(KabirI18n.t('İsimler kimin için?'), KabirI18n.t('Levhada celladın gerçek adı da var. Mahkûmlara huzur mu vereceksin, yoksa onun gizlediği zaafı mı açığa çıkaracaksın?'), [
@@ -331,7 +341,7 @@
         for (var ni = 0; ni < nodes.length; ni++) {
           var node = nodes[ni]; if (node.quest !== qi) continue;
           node.complete = !!(states[qi] & node.bit) && (!node.trial || hasTrial); if (node.complete) count++;
-          node.available = !node.complete && (node.trial ? hasTrial && (states[qi] & (node.bit - 1)) === node.bit - 1 : q.anyOrder || states[qi] === node.bit - 1);
+          node.available = !node.complete && (node.trial ? hasTrial && (states[qi] & (node.bit - 1)) === node.bit - 1 : q.anyOrder || q.ritual || states[qi] === node.bit - 1);
           node.marker.complete = node.complete; node.marker.active = node.available;
           node.activeVisual.visible = node.available;
           if (node.payloadVisual) node.payloadVisual.visible = !node.complete;
@@ -471,6 +481,11 @@
       if (guarded(node)) { api.emit('toast', { text: KabirI18n.t('Tanıklık hâlâ korunuyor. Önce bu salonun bekçilerini yen.') }); return true; }
       if (node.trial) return finish(node, null);
       var q = definition.quests[node.quest], max = (1 << q.steps.length) - 1;
+      if (q.ritual && !node.trial && states[node.quest] !== node.bit - 1) {
+        states[node.quest] = 0; api.player.hp = Math.max(1, api.player.hp - 14); refresh();
+        api.sound('hurt', { x: node.x, z: node.z }); api.fx('parry', { x: node.x, y: node.y + .8, z: node.z });
+        api.emit('toast', { text: q.wrong }); if (api.onChange) api.onChange(); return true;
+      }
       if ((states[node.quest] | node.bit) === max) {
         info.pendingChoice = { questId: q.id, nodeId: node.id, title: q.verdict.title, question: q.verdict.question, options: q.verdict.options };
         info.revision++;
