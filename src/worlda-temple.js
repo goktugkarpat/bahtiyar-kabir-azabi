@@ -627,6 +627,10 @@
           for (var l = 0; l < 16; l++) put('link', 'iron', ax, 1 + l * .62, z5, .5, .8, .5, 0, l % 2 ? Math.PI / 2 : 0, 0, 1);
           put('link', 'rust', ax, .5, z5, .9, .9, .5, Math.PI / 2, 0, 0, 1); put('slab1', 'dark', ax, .2, z5, 1.3, .4, 1.3, 0, 0, 0, 1); solid(ax, z5, 1.3, 1.3); }); }
       beam(-35.8, -22, 1.0, 1.5, 16, '#ff3010', .12, -5);
+      // bats roosting under the high vaults of the nave and the crypts; the first screen gets its own flight under the ash light
+      if (K.root && B.WorldABats) B.WorldABats.create(T, K.root, [[0, 6.5, 0], [-1, 7, -30], [1, 7.5, -62], [-28, 6, -21], [32, 6.5, -101], [0, 8, -150]], 30);
+      // first screen (Kül Eşiği): a pale shaft falls through the broken roof ahead of the hero onto the threshold seal
+      beam(1.5, 1.2, .8, 2, 12, '#a9b8d8', .1);
       // incense and pit smoke, smouldering embers
       if (K.smokeSources) { K.smokeSources.push({ x: -35.8, y: -2, z: -22, count: 8, rate: .06, rise: 7, spread: 1.2, size: 2, alpha: .12, color: [.09, .03, .02] });
         K.smokeSources.push({ x: -30, y: 1.6, z: -132.6, count: 6, rate: .07, rise: 3.5, spread: .6, size: 1.5, alpha: .12, color: [.08, .04, .03] }); }
@@ -638,6 +642,8 @@
       // and a dirt band along every wall foot where nobody walks
       for (var mv = 0; mv < 9; mv++) { var mx = r.x + U(-r.w / 2 + 2, r.w / 2 - 2), mz = r.z + U(-r.d / 2 + 2, r.d / 2 - 2), t2 = mv % 3;
         K.floorDecal('matte', t2 === 0 ? CELL.mould : t2 === 1 ? CELL.specks : CELL.water, mx, mz, U(3, 6), U(3, 6), null, t2 === 0 ? COL.grime : t2 === 1 ? COL.dust : COL.water, 1); }
+      // moss and damp creep out of the corners and along the joints (same decal batch: no extra draw)
+      [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(function (c) { for (var ms = 0; ms < 3; ms++) K.floorDecal('matte', ms % 2 ? CELL.mould : CELL.specks, r.x + c[0] * (r.w / 2 - U(.8, 2.6)), r.z + c[1] * (r.d / 2 - U(.8, 2.6)), U(1.4, 2.8), U(1.4, 2.8), null, K.linear(.035, .05, .016), 1); });
       for (var eb = 0; eb < Math.ceil(r.w / 2.2); eb++) { K.floorDecal('matte', CELL.mould, r.x - r.w / 2 + 1.1 + eb * 2.2, r.z - r.d / 2 + .8, 2.6, 1.6, U(-.3, .3), COL.grime, 1);
         K.floorDecal('matte', CELL.ashPile, r.x - r.w / 2 + 1.1 + eb * 2.2, r.z + r.d / 2 - .8, 2.4, 1.4, U(-.3, .3), COL.dust, 1); }
       for (var es = 0; es < Math.ceil(r.d / 2.2); es++) [-1, 1].forEach(function (k) { K.floorDecal('matte', es % 2 ? CELL.mould : CELL.specks, r.x + k * (r.w / 2 - .8), r.z - r.d / 2 + 1.1 + es * 2.2, 1.6, 2.6, U(-.3, .3), es % 2 ? COL.grime : COL.dust, 1); });
@@ -672,6 +678,30 @@
     'c1.seal2': { x: -27.5, z: -14 },
     'c1.seal3': { x: -23, z: -19 }
   };
+  // Bat flocks: ONE instanced draw per chapter. Each bat is a two-wing card animated entirely in the vertex shader
+  // (circling flight around its roost, wing flap); no per-frame CPU work besides one time uniform.
+  B.WorldABats = { create: function (T, parent, roosts, count) {
+    var g = new T.BufferGeometry();
+    // body at origin, two wings (x<0 and x>0) whose tips flap in y
+    g.setAttribute('position', new T.Float32BufferAttribute([0, 0, .12, -.55, 0, -.05, 0, 0, -.12, 0, 0, .12, 0, 0, -.12, .55, 0, -.05], 3));
+    g.setAttribute('wing', new T.Float32BufferAttribute([0, 1, 0, 0, 0, 1], 1));
+    var n = count || 24, off = new Float32Array(n * 4), home = new Float32Array(n * 3);
+    for (var i = 0; i < n; i++) { var r = roosts[i % roosts.length]; home[i * 3] = r[0]; home[i * 3 + 1] = r[1]; home[i * 3 + 2] = r[2];
+      off[i * 4] = Math.random() * 6.28; off[i * 4 + 1] = 2 + Math.random() * 3.5; off[i * 4 + 2] = .5 + Math.random() * .5; off[i * 4 + 3] = Math.random() < .5 ? -1 : 1; }
+    var ig = new T.InstancedBufferGeometry(); ig.index = null; ig.setAttribute('position', g.attributes.position); ig.setAttribute('wing', g.attributes.wing);
+    ig.setAttribute('aOff', new T.InstancedBufferAttribute(off, 4)); ig.setAttribute('aHome', new T.InstancedBufferAttribute(home, 3)); ig.instanceCount = n;
+    var u = { uTime: { value: 0 } };
+    var m = new T.ShaderMaterial({ uniforms: u, side: T.DoubleSide, transparent: false,
+      vertexShader: 'attribute float wing; attribute vec4 aOff; attribute vec3 aHome; uniform float uTime; varying float vW;' +
+        'void main(){ float t=uTime*aOff.z*aOff.w+aOff.x; vec3 c=aHome+vec3(sin(t)*aOff.y, sin(t*2.3+aOff.x)*.6, cos(t*1.3)*aOff.y*.8);' +
+        ' vec3 v=normalize(vec3(cos(t)*aOff.y, 0., -sin(t*1.3)*aOff.y*1.04)*aOff.w+1e-4); vec3 s=normalize(cross(vec3(0.,1.,0.),v));' +
+        ' vec3 p=position; p.y+=wing*sin(uTime*22.+aOff.x*9.)*.32; vec3 wp=c+s*p.x*.6+vec3(0.,p.y*.6,0.)+v*p.z*.6; vW=wing;' +
+        ' gl_Position=projectionMatrix*viewMatrix*vec4(wp,1.); }',
+      fragmentShader: 'varying float vW; void main(){ gl_FragColor=vec4(vec3(.012,.01,.012)+vW*.01,1.); }' });
+    var mesh = new T.Mesh(ig, m); mesh.frustumCulled = false; mesh.name = 'wa-bats'; mesh.renderOrder = 3;
+    mesh.onBeforeRender = function () { u.uTime.value = performance.now() / 1000; };
+    parent.add(mesh); return { mesh: mesh, dispose: function () { ig.dispose(); g.dispose(); m.dispose(); } };
+  } };
   // Dripping water / blood (world.js drops + floor ripples): side crypts and the broken nave.
   var DRIPS = [[-36.6, 4.2, -26.5, 1], [29.5, 4.5, -70, 0], [26, 4.2, 8, 0], [-37.4, 4, -53.4, 1], [-24.6, 4, -40.8, 1], [36, 4.4, -96, 0], [-24, 4.2, -120, 0], [2.2, 5, -34.5, 0], [-3.2, 5, -88, 0]];
   B.WorldATemple = { active: !/[?&]nowa\b/.test(location.search), rooms: ROOMS, dress: dress, sites: SITES, drips: DRIPS };

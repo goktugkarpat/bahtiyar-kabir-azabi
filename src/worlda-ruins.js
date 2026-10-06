@@ -107,6 +107,10 @@
       K.spr(i, S.beam, x, 0, z, 3, 22, [.2, .8, .9], .25, .2, 1, 1);
       K.light(i, x - 6, 4, z, 0x58d6e0, 20, 14, { scatter: .6, glow: 1.6, flicker: .05 });
     }());
+    // ---- bats in the caverns and over the ruined city; mineral motes drifting through the crystal light ----
+    if (env.root && B.WorldABats) B.WorldABats.create(window.THREE, env.root, [[0, 7, 8], [-4, 7.5, -18], [-3, 6.5, -148], [4, 6.5, -174], [-4, 6.5, -200], [5, 6.5, -226]], 30);
+    [6, 7, 8, 9].forEach(function (i) { var r = rooms[i], R = K.rng(i, 31);
+      for (var k = 0; k < 16; k++) K.spr(i, S.mote, r.x + (R() - .5) * (r.w - 4), .5 + R() * 4, r.z + (R() - .5) * (r.d - 4), .045, .045, [.4, 1.1, 1.2], .7, R(), .3 + R() * .4, 2.2); });
     // ---- side nooks: open the wall collider, add the nook's floor, walls and shrine ----
     Object.keys(NOOK).forEach(function (key) {
       var i = +key, r = rooms[i], s = NOOK[i], R = K.rng(i, 909), wx = r.x + s * r.w / 2, t = [.86, .88, .94];
