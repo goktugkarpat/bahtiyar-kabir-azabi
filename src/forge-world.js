@@ -110,9 +110,41 @@
         live.push({ kind: 'breath', m: m, x: gx, z: gz, phase: h + q2 * .8 });
       }); });
     });
+    // Giant foundry gates closing the far ends of the slag field and the scrap graveyard (one merged mesh each, seam glow apart).
+    [[WINGS[0], WINGS[0].z0 - .9], [WINGS[3], WINGS[3].z0 - .9]].forEach(function (gz) {
+      var W = gz[0], z = gz[1], cx = W.x, parts = [], box = function (x, y, zz, sx, sy, sz, ry) { var b = new T.BoxGeometry(sx, sy, sz); if (ry) b.rotateY(ry); b.translate(x, y, zz); parts.push(b); };
+      box(cx - 8.6, 6, z, 1.8, 12, 1.8); box(cx + 8.6, 6, z, 1.8, 12, 1.8); box(cx, 12.6, z, 19.6, 1.6, 2.2); box(cx, 11.4, z, 16, .5, 1.6);
+      box(cx - 4.1, 5, z + .4, 7.6, 10, .35, .18); box(cx + 4.4, 5, z - .3, 7.6, 10, .35, -.42);   // the two leaves, one ajar
+      for (var r = 0; r < 5; r++) { box(cx - 4.1, 1.2 + r * 2, z + .62, 7.4, .22, .12, .18); box(cx + 4.4, 1.2 + r * 2, z - .52, 7.4, .22, .12, -.42); }
+      for (var p2 = -1; p2 <= 1; p2 += 2) for (var b2 = 0; b2 < 5; b2++) box(cx + p2 * 8.6, 1 + b2 * 2.4, z, 2.1, .3, 2.1);
+      var gm = new T.Mesh(B.Gear.merge(parts), ironM); gm.name = 'forge-great-gate'; own.push(gm.geometry); fxRoot.add(gm);
+      var seam = new T.Mesh(new T.BoxGeometry(.14, 9.6, .5), hotM); seam.position.set(cx + .2, 5, z); seam.rotation.y = -.1; own.push(seam.geometry); fxRoot.add(seam);
+      live.push({ kind: 'gate', m: gm, seam: seam, z: z });
+    });
+    // Hanging chains that sway over the wings (instanced links, updated only near the hero).
+    var linkG = new T.TorusGeometry(.12, .035, 5, 10), chainSpots = []; own.push(linkG);
+    WINGS.forEach(function (W) { for (var c2 = 0; c2 < 3; c2++) chainSpots.push({ x: W.side * (21 + 5 + c2 * 4.5), z: W.z + (c2 - 1) * 18, top: 12, n: 18 + c2 * 4, ph: W.id + c2 * 1.3 }); });
+    var LINKS = chainSpots.reduce(function (s, c) { return s + c.n; }, 0), chains = new T.InstancedMesh(linkG, ironM, LINKS); chains.frustumCulled = false; chains.name = 'forge-swaying-chains'; fxRoot.add(chains);
+    var cM = new T.Matrix4(), cQ = new T.Quaternion(), cE = new T.Euler(), cP = new T.Vector3(), cS = new T.Vector3(1, 1, 1);
+    // Ember rain drifting down around the hero; its strength follows slow "heat waves".
+    var ER = 420, erP = new Float32Array(ER * 3); for (q = 0; q < ER; q++) { erP[q * 3] = (Math.random() - .5) * 40; erP[q * 3 + 1] = Math.random() * 14; erP[q * 3 + 2] = (Math.random() - .5) * 34; }
+    var erG = new T.BufferGeometry(); erG.setAttribute('position', new T.BufferAttribute(erP, 3)); own.push(erG);
+    var erM = new T.ShaderMaterial({ uniforms: { t: { value: 0 }, heat: { value: .5 } }, transparent: true, depthWrite: false, blending: T.AdditiveBlending, toneMapped: false,
+      vertexShader: 'uniform float t;uniform float heat;varying float vA;void main(){vec3 p=position;float s=fract(sin(dot(p.xz,vec2(12.9,78.2)))*43758.5);p.y=mod(p.y-t*(.6+s*.9),14.);p.x+=sin(t*.7+s*20.)*.8;p.z+=cos(t*.5+s*13.)*.6;vA=heat*(.35+.65*fract(s*7.3+t*.3))*smoothstep(0.,1.5,p.y);vec4 mv=modelViewMatrix*vec4(p,1.);gl_PointSize=clamp(70./max(1.,-mv.z),1.2,4.);gl_Position=projectionMatrix*mv;}',
+      fragmentShader: 'varying float vA;void main(){vec2 c=gl_PointCoord-.5;float a=exp(-dot(c,c)*18.)*vA;gl_FragColor=vec4(vec3(1.,.42,.1)*a,a);}' }); own.push(erM);
+    var emberRain = new T.Points(erG, erM); emberRain.frustumCulled = false; emberRain.name = 'forge-ember-rain'; fxRoot.add(emberRain);
+    var heatNow = .5, baseAtmo = w.atmosphereAt;
+    w.atmosphereAt = function (x, z) { var a = baseAtmo.apply(w, arguments); if (a) { if (a.exposure != null) a.exposure *= 1 + (heatNow - .5) * .12; if (a.bloom != null) a.bloom *= 1 + (heatNow - .5) * .3; } return a; };
     var baseUpdate = w.update, baseDispose = w.dispose;
     w.update = function (dt, time, p) {
       baseUpdate.apply(w, arguments); var t = time || 0; p = p || { x: 0, z: 0 }; spM.uniforms.t.value = t;
+      // heat waves: the foundry breathes over ~2 minutes (ember rain, bloom, exposure)
+      heatNow = .3 + .7 * Math.pow(.5 + .5 * Math.sin(t * .05 + .7), 2); erM.uniforms.t.value = t; erM.uniforms.heat.value = heatNow; emberRain.position.set(p.x, 0, p.z);
+      var li = 0, anyChain = false;
+      for (var ci = 0; ci < chainSpots.length; ci++) { var C = chainSpots[ci], vis = Math.abs(C.z - p.z) < 34 && Math.abs(C.x - p.x) < 34; if (vis) anyChain = true;
+        var sw = Math.sin(t * .9 + C.ph) * .12, sw2 = Math.cos(t * .7 + C.ph * 1.7) * .08;
+        for (var k2 = 0; k2 < C.n; k2++) { var d2 = k2 * .2; cP.set(C.x + Math.sin(sw) * d2, C.top - Math.cos(sw) * d2, C.z + Math.sin(sw2) * d2); cQ.setFromEuler(cE.set(sw2, k2 % 2 ? Math.PI / 2 : 0, sw)); if (!vis) cS.set(0, 0, 0); else cS.set(1, 1, 1); chains.setMatrixAt(li++, cM.compose(cP, cQ, cS)); } }
+      if (anyChain) chains.instanceMatrix.needsUpdate = true; chains.visible = anyChain;
       for (var i = 0; i < live.length; i++) { var L = live[i];
         if (L.kind === 'ladle') {
           var near = Math.abs(p.z - (L.z0 + L.z1) / 2) < (L.z1 - L.z0) / 2 + 30; L.g.visible = near; if (!near) continue;
@@ -124,6 +156,8 @@
           L.stream.visible = L.splash.visible = pour > .15; L.sparks.visible = pour > .05;
           if (pour > .15) { var sx = L.x + L.W.side * (2.5 + 1.2 * pour), top = 6.1; L.stream.position.set(sx, top / 2, z); L.stream.scale.set(.12 + pour * .08, top, .12 + pour * .08); L.splash.position.set(sx, .12, z); L.splash.material.opacity = .45 * pour; L.sparks.position.set(sx, .1, z); }
           spM.uniforms.gain.value = Math.max(spM.uniforms.gain.value * .98, pour);
+        } else if (L.kind === 'gate') {
+          var gv = Math.abs(p.z - L.z) < 60; L.m.visible = L.seam.visible = gv; if (gv) L.seam.material.color.setRGB(.55 + .25 * heatNow + .1 * Math.sin(t * 2.3), .14 + .06 * heatNow, .03);
         } else {
           var on = Math.abs(p.z - L.z) < 40; L.m.visible = on; if (!on) continue;
           var br = .5 + .5 * Math.sin(t * 2.1 + L.phase); L.m.material.opacity = .18 + .5 * br * br; L.m.scale.x = L.m.scale.z * (1.05 + br * .2) / 1.05 * 4 / 3.4;
