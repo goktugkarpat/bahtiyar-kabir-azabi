@@ -181,7 +181,13 @@
   var SITES = {
     'c3.page1': { x: -21.2, z: -18 },       // Yitik Sütunlar: in the saint's nook behind the west arcade
     'c3.page2': { x: -9.4, z: -145.2 },     // Mağaranın Ağzı: by the crystal seam, west wall
-    'c3.chest': { x: 3, z: -297.6 }         // Tahtın Nöbeti: on the red carpet before the throne arch
+    'c3.chest': { x: 3, z: -297.6 },        // Tahtın Nöbeti: on the red carpet before the throne arch
+    'c3.altar': { x: 16.6, z: 8 },          // the hidden altar sits in the shrine nook off the ash road
+    'c3.escape': { x: 5, z: -221 },         // Taşın İçindeki Ölüler: the flight starts among the dead in the stone
+    'c3.escape-goal': { x: -2.5, z: -270 },   // ... through the broad cave passages to the oath shrine
+    'c3.seal1': { x: -4, z: -246 },         // Yutulan Saray: three seals around the swallowed palace floor
+    'c3.seal2': { x: -10, z: -252 },
+    'c3.seal3': { x: 2, z: -252.5 }
   };
   B.WorldARuins = { active: !/[?&]nowa\b/.test(location.search), dress: dress, wide: WIDE, nook: NOOK, open: OPEN, sites: SITES };
 }());

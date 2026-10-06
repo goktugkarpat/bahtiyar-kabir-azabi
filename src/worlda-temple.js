@@ -555,6 +555,52 @@
       }
       [[-1, -1], [1, -1]].forEach(function (c) { if (r.id === 6 || r.id === 3) return; pile(r.x + c[0] * (r.w / 2 - 1.3), r.z + c[1] * (r.d / 2 - 1.3), 1.0, 9); });
     });
+    // ---- broken nave: where the end walls came down (world.js BREACH), add depth and height ----
+    var beamTex = null;
+    function beam(x, z, rTop, rBot, h, color, opacity, y0) {
+      if (!K.root) return;
+      if (!beamTex) { var c = document.createElement('canvas'); c.width = 4; c.height = 64; var g = c.getContext('2d'), gr = g.createLinearGradient(0, 0, 0, 64);
+        gr.addColorStop(0, 'rgba(255,255,255,0)'); gr.addColorStop(.25, 'rgba(255,255,255,.75)'); gr.addColorStop(.85, 'rgba(255,255,255,1)'); gr.addColorStop(1, 'rgba(255,255,255,.35)');
+        g.fillStyle = gr; g.fillRect(0, 0, 4, 64); beamTex = new T.CanvasTexture(c); beamTex.colorSpace = T.SRGBColorSpace; }
+      var key = 'wa-beam-' + color;
+      if (!K.materials[key]) K.materials[key] = new T.MeshBasicMaterial({ color: color, map: beamTex, transparent: true, opacity: opacity, blending: T.AdditiveBlending, depthWrite: false, side: T.DoubleSide, fog: false, toneMapped: false });
+      var geo = new T.CylinderGeometry(rTop, rBot, h, 18, 1, true); if (K.uniqueGeometries) K.uniqueGeometries.push(geo);
+      var m = new T.Mesh(geo, K.materials[key]); m.position.set(x, (y0 || 0) + h / 2, z); m.renderOrder = 6; m.castShadow = false; m.receiveShadow = false; m.name = 'wa-beam';
+      m.updateMatrix(); m.matrixAutoUpdate = false; K.root.add(m);
+    }
+    function balcony(x0, x1, z0, z1, dir) {
+      // a raised gallery (1.2 m) in the corner of the fallen wall, three steps down into the hall (dir: +1 steps towards +z)
+      var cx = (x0 + x1) / 2, w = Math.abs(x1 - x0), d = Math.abs(z1 - z0), cz = (z0 + z1) / 2;
+      box('dark', cx, .6, cz, w, 1.2, d, 0, 0);
+      for (var q = 0; q < Math.ceil(w / 1.2); q++) put('slab' + q % 2 * 2, 'stone', x0 + (x1 > x0 ? 1 : -1) * (q + .5) * w / Math.ceil(w / 1.2), 1.26, cz, w / Math.ceil(w / 1.2) - .05, .14, d + .1, 0, 0, 0, 0, new T.Color().setScalar(U(.7, 1)));
+      for (var st = 0; st < 3; st++) put('slab0', st % 2 ? 'pale' : 'stone', cx, .2 + st * .3, cz + dir * (d / 2 + .45 + (2 - st) * .5), w - .3, .4 + st * .3, .55, 0, 0, 0, 0, new T.Color().setScalar(.8 + st * .05));
+      for (var p = 0; p <= Math.ceil(w / 1.1); p++) { var px = Math.min(x0, x1) + p * w / Math.ceil(w / 1.1);
+        put('wa-drum', 'pale', px, 1.62, cz + dir * (d / 2 - .1), .14, .7, .14, 0, 0, 0, 1); }
+      put('box', 'pale', cx, 2.0, cz + dir * (d / 2 - .1), w, .12, .26, 0, 0, 0, 1);
+      skull(cx + U(-.5, .5), cz - dir * .3, 1, U(-1, 1), 1.33); K.candleCluster(cx, cz + dir * (d / 2 + 1.9), 4);
+      solid(cx, cz + dir * .9, w, d + 1.8);
+    }
+    (function nave() {
+      var BR = K.breach || {};
+      Object.keys(BR).forEach(function (k) {
+        var i = +k, a = K.rooms[i], b = K.rooms[i + 1], half = BR[i], zEnd = a.z - a.d / 2, zNext = b.z + b.d / 2, mid = (zEnd + zNext) / 2;
+        // ceiling collapsed above the breach: dust-laden light pours in, fallen vault stones lie where it struck
+        beam(U(-2, 2), mid + U(-1, 1), 1.1, 2.6, 13, i % 2 ? '#8fa6d8' : '#c9b48a', .045);
+        K.decal('glow', CELL.glow, 0, .02, mid, 6, 5, 0, K.linear(.07, .07, .08), 0);
+        pile(-half + 1.6, mid + U(-1, 1), 1.2, 10); pile(half - 1.6, mid + U(-1, 1), 1.0, 8);
+        for (var f = 0; f < 5; f++) put('slab' + f % 4, 'stone', U(-half + 2, half - 2), .18, mid + U(-1.5, 1.5), U(.5, 1.1), U(.25, .45), U(.4, .8), U(-.3, .3), R() * 6, U(-.3, .3), 1);
+      });
+      // galleries in the corners of the broken wall between the offering hall and the bone passage
+      if (BR[3]) { var r3 = K.rooms[3], n3 = r3.z - r3.d / 2; balcony(BR[3] + .4, r3.x + r3.w / 2 - .5, n3 + .5, n3 + 3.3, 1); balcony(-BR[3] - .4, r3.x - r3.w / 2 + .5, n3 + .5, n3 + 3.3, 1); }
+      if (BR[2]) { var r2 = K.rooms[2], n2 = r2.z - r2.d / 2; balcony(BR[2] + .4, r2.x + r2.w / 2 - .5, n2 + .5, n2 + 3.1, 1); }
+      // landmarks: the great chain over the court's breach, the red light-well over the ossuary pit
+      if (BR[5]) { var r5 = K.rooms[5], z5 = r5.z - r5.d / 2 - 2;
+        // two colossal chains run from the dark vault down to anchor rings at the court's threshold
+        [-1, 1].forEach(function (s) { var ax = s * (BR[5] - .9);
+          for (var l = 0; l < 16; l++) put('link', 'iron', ax, 1 + l * .62, z5, .5, .8, .5, 0, l % 2 ? Math.PI / 2 : 0, 0, 1);
+          put('link', 'rust', ax, .5, z5, .9, .9, .5, Math.PI / 2, 0, 0, 1); put('slab1', 'dark', ax, .2, z5, 1.3, .4, 1.3, 0, 0, 0, 1); solid(ax, z5, 1.3, 1.3); }); }
+      beam(-35.8, -22, 1.2, 1.6, 16, '#ff3010', .07, -5);
+    }());
     function inHole(holes, x, z, m) { for (var i = 0; i < holes.length; i++) { var o = holes[i]; if (Math.abs(x - o.x) < o.w / 2 + m && Math.abs(z - o.z) < o.d / 2 + m) return true; } return false; }
     // Lived-in floor: grit, chips of fallen vault, stray bones, stains that run under the furniture.
     function floorLife(r, holes) {
@@ -588,7 +634,13 @@
     'c1.captive': { x: -34.6, z: -52.6 },     // lost-flesh infirmary: beside a mortuary table
     'c1.page1': { x: 22, z: 7.6 },            // nameless graves: at the foot of a grave marker
     'c1.page2': { x: -41.6, z: -122.4 },      // broken oaths: the far corner by the fallen stones
-    'c1.chest': { x: -30, z: -129.4 }         // broken oaths: before the split altar's dais
+    'c1.chest': { x: -30, z: -129.4 },        // broken oaths: before the split altar's dais
+    'c1.hunt2': { x: -31, z: -42.5 },         // lost-flesh infirmary: between the hanging lamps
+    'c1.siege': { x: 24.5, z: 1 },            // nameless graves: a brazier among the sarcophagi
+    'c1.altar': { x: -6.6, z: -104 },         // bone passage: hidden among the bone drifts by the west crypts
+    'c1.seal1': { x: -32, z: -15.5 },         // forgotten crypt: three seals on the open floor, south half
+    'c1.seal2': { x: -27.5, z: -14 },
+    'c1.seal3': { x: -23, z: -19 }
   };
   B.WorldATemple = { active: !/[?&]nowa\b/.test(location.search), rooms: ROOMS, dress: dress, sites: SITES };
 }());

@@ -633,8 +633,9 @@
         }
       }
       // ajan:world-a: some halls open into each other through a wide breach instead of a 7 m arch (BREACH[i]: between room i and i+1).
-      var BREACH = BABA.WorldATemple && BABA.WorldATemple.active ? { 1: 1, 2: 1, 3: 1, 4: 1, 5: 1 } : {}, BREACH_HALF = 6;
-      function portalHalf(i) { return BABA.WorldATemple && BABA.WorldATemple.active && i < 5 ? 4.6 : 3; }   // side-crypt doorway half-width
+      // values = half-width of the opening: nearly the whole end wall comes down, two halls read as one broken nave.
+      var BREACH = BABA.WorldATemple && BABA.WorldATemple.active ? { 0: 6.4, 1: 7.8, 2: 9.8, 3: 8.8, 4: 7.8, 5: 7.8 } : {};
+      function portalHalf(i) { return BABA.WorldATemple && BABA.WorldATemple.active ? (i === 5 ? 4 : 4.6) : 3; }   // side-crypt doorway half-width
       function endWall(room, z, entrance, front, half) {
         var xmin = room.x - room.w / 2, xmax = room.x + room.w / 2; half = half || 3.45;
         var height = front ? 1.15 : (room.id === 6 ? 6.2 : 4.8);
@@ -718,8 +719,8 @@
           if(portal) [-1,1].forEach(function(s){var ph=portalHalf(i),len=(room.d-ph*2)/2;wallRun(room.x+side*room.w/2,room.z+s*(ph+len/2),len,'z',4.25);});
           else wallRun(room.x+side*room.w/2,room.z,room.d,'z',i===6?5.8:4.25);
         });
-        endWall(room, room.z + room.d / 2, i !== 0, true, BREACH[i - 1] ? BREACH_HALF : 0);
-        endWall(room, room.z - room.d / 2, i !== 6, false, BREACH[i] ? BREACH_HALF : 0);
+        endWall(room, room.z + room.d / 2, i !== 0, true, BREACH[i - 1] || 0);
+        endWall(room, room.z - room.d / 2, i !== 6, false, BREACH[i] || 0);
         var pilasterZ = [room.z - room.d * 0.33, room.z + room.d * 0.33];
         pilasterZ.forEach(function (z) {
           [-1, 1].forEach(function (sign) {
@@ -732,11 +733,11 @@
         if (i < rooms.length - 1) {
           var end = room.z - room.d / 2;
           var next = rooms[i + 1].z + rooms[i + 1].d / 2;
-          var wide = !!BREACH[i], cw = wide ? BREACH_HALF * 2 + .6 : 7;
+          var wide = !!BREACH[i], cw = wide ? BREACH[i] * 2 + .6 : 7;
           tileFloor(0, (end + next) / 2, cw, end - next + 0.1, -1);
           wallRun(-(cw / 2 + .23), (end + next) / 2, end - next + 0.25, 'z', wide ? 1.3 : 2.1);
           wallRun(cw / 2 + .23, (end + next) / 2, end - next + 0.25, 'z', wide ? 1.3 : 2.1);
-          arch(end + 0.15, wide ? (BREACH_HALF + .3) / 3.4 : 1, wide || i === 0 || i === 2 || i === 4);
+          arch(end + 0.15, wide ? (BREACH[i] + .3) / 3.4 : 1, wide || i === 0 || i === 2 || i === 4);
           box('dark', 0, 0.002, next + 0.2, cw - .3, 0.035, 0.44);
           for (var q = -2; q <= 2; q++) box('brass', q * 1.1, 0.025, next + 0.2, 0.13, 0.025, 0.38, 0, 1);
           // Worn thresholds: grime and dragged filth gather in every passage.
@@ -1223,8 +1224,8 @@
       boneScatter(6.1, 5.2, 6, 0.85);
       ribCage(-6.4, 3.7, -0.3);
       puddle(-4.8, 0.9, 1.0, 1.5);
-      banner(-5.1, -5.48, 0.8);
-      banner(5.1, -5.48, 0.8);
+      banner(BREACH[0] ? -7.7 : -5.1, -5.48, 0.8);
+      banner(BREACH[0] ? 7.7 : 5.1, -5.48, 0.8);
       // A barred gate behind the player establishes the direction of travel.
       for (var ig = -4; ig <= 4; ig++) {
         box('iron', ig * 0.55, 1.56, 13.45, 0.09, 3.1, 0.09);
@@ -1419,8 +1420,9 @@
         [-1, 1].forEach(function (side) {
           var nx = side * Math.min(room.w / 2 - 2.2, 7.5);
           var devotional = room.id === 0 || room.id === 3 || room.id === 5 || room.id === 6;
-          alcove(nx, north, room.id === 6 ? 2.2 : 1.85, room.id === 6 ? 4.8 : 3.95, 0, devotional ? 'saint' : false);
-          if (devotional) funeraryEffigy(nx, north + .07, 0, room.id === 6 ? 1.22 : 1.03);
+          var opened = BREACH[room.id] && Math.abs(nx) < BREACH[room.id] + 1.2;   // ajan:world-a: no niche in a fallen wall
+          if (!opened) alcove(nx, north, room.id === 6 ? 2.2 : 1.85, room.id === 6 ? 4.8 : 3.95, 0, devotional ? 'saint' : false);
+          if (devotional && !opened) funeraryEffigy(nx, north + .07, 0, room.id === 6 ? 1.22 : 1.03);
           var wall = room.x + side * (room.w / 2 - .49);
           for (var bay = 0; bay < 3; bay++) {
             if(bay === 1 && room.id < 6 && side === [1,-1,-1,1,1,-1][room.id]) continue;
@@ -1595,7 +1597,7 @@
           }
           var north = room.z - room.d / 2 + 0.47, niche = side * Math.min(room.w / 2 - 2.2, 7.5);
           for (var damp = 0; damp < 3; damp++) {
-            var wx = side * (4.4 + damp * 1.35); if (BREACH[room.id] && Math.abs(wx) < BREACH_HALF + .9) continue;
+            var wx = side * (4.4 + damp * 1.35); if (BREACH[room.id] && Math.abs(wx) < BREACH[room.id] + .9) continue;
             if (wx > room.x - room.w / 2 + 0.8 && wx < room.x + room.w / 2 - 0.8 && Math.abs(wx - niche) > 1.75) {
               wallDecal('matte', CELL.grimeStreak, wx, between(2.6, 3.4), north, between(0.9, 1.65), between(2.4, 3.2), 0, COL.grime, 1);
             }
@@ -1703,7 +1705,7 @@
         skull: skull, boneScatter: boneScatter, ribCage: ribCage, rubble: rubble, slab: slab, cage: cage, chain: chain, candleCluster: candleCluster, alcove: alcove,
         vaultRib: vaultRib, funeraryEffigy: funeraryEffigy, censer: censer, hangingIron: hangingIron, hangedBody: hangedBody, shroudedRemains: shroudedRemains,
         puddle: puddle, banner: banner, torch: torch, sconce: sconce, flame: flame, lightSource: lightSource, emberSources: emberSources, smokeSources: smokeSources,
-        part: part, hangerGroup: hangerGroup, swinging: swinging, floorRing: floorRing, ritualPavement: ritualPavement, architectureMesh: architectureMesh, spot: spot, setChunkBias: function (b) { chunkBias = b || 0; }, portalHalf: portalHalf, floors: floors });
+        part: part, hangerGroup: hangerGroup, swinging: swinging, floorRing: floorRing, ritualPavement: ritualPavement, architectureMesh: architectureMesh, spot: spot, setChunkBias: function (b) { chunkBias = b || 0; }, portalHalf: portalHalf, floors: floors, breach: BREACH, root: root, uniqueMaterials: uniqueMaterials, uniqueGeometries: uniqueGeometries });
       /* /ajan:world-a */
 
       // ---- light shafts and particles ----------------------------------------------------------------------
