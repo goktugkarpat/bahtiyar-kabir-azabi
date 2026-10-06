@@ -377,12 +377,45 @@
     [[26, 2, 4.5], [33, -58, 5.5], [46, -100, 7], [30, -160, 4.5], [55, -40, 6], [52, -150, 8], [37, -28, 11], [41, -128, 11], [29.2, -86.4, 5.5], [33, -78.5, 5]].forEach(function (s, n) {
       var m = new T.Mesh(surfG, M.surf); m.position.set(s[0], -.3, s[1]); m.scale.set(s[2] * 2, 1, s[2] * 2); m.rotation.y = n * 1.3; m.renderOrder = 2; m.name = 'coast-surf'; K.root.add(m); surfs.push({ m: m, s: s[2] * 2, p: n * 1.9 });
     });
+    /* ---- living coast: light rain, lightning, crows over the shore, torn banners ---- */
+    var RN = 1100, rb = new Float32Array(RN * 2 * 3), rt = new Float32Array(RN * 2);
+    for (var ri = 0; ri < RN; ri++) { var bx = R(-22, 22), bz = R(-20, 14), by = R(0, 15); for (var tp = 0; tp < 2; tp++) { var o3 = (ri * 2 + tp) * 3; rb[o3] = bx; rb[o3 + 1] = by; rb[o3 + 2] = bz; rt[ri * 2 + tp] = tp; } }
+    var rg2 = geo(new T.BufferGeometry()); rg2.setAttribute('position', new T.BufferAttribute(rb, 3)); rg2.setAttribute('tip', new T.BufferAttribute(rt, 1));
+    M.rain = new T.ShaderMaterial({ uniforms: { time: K.clock, flash: { value: 0 } }, transparent: true, depthWrite: false, blending: T.AdditiveBlending, toneMapped: false,
+      vertexShader: 'attribute float tip;uniform float time;varying float vT;void main(){vec3 p=position;p.y=mod(p.y-time*13.,15.);p.y+=tip*.6;p.x+=tip*.16+p.y*.06;vT=tip;gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.);}',
+      fragmentShader: 'uniform float flash;varying float vT;void main(){gl_FragColor=vec4(vec3(.42,.5,.52)*(.10+.12*vT)*(1.+flash*3.),1.);}' });
+    var rain = new T.LineSegments(rg2, M.rain); rain.frustumCulled = false; rain.name = 'coast-rain'; rain.renderOrder = 4; K.root.add(rain);
+    // crows: three loose flocks wheeling over the graves, the shipyard and the bell court
+    var crowG = new T.BufferGeometry(); crowG.setAttribute('position', new T.Float32BufferAttribute([0, 0, .25, -.05, 0, -.2, .05, 0, -.2, 0, 0, .05, -.55, .08, -.05, 0, 0, -.12, 0, 0, .05, 0, 0, -.12, .55, .08, -.05], 3)); crowG.computeVertexNormals(); geo(crowG);
+    M.crow = new T.MeshBasicMaterial({ color: 0x07090a, side: T.DoubleSide, fog: true });
+    var CN = 27, crows = new T.InstancedMesh(crowG, M.crow, CN), flocks = [[-32, -112, 13], [-34, -84, 11], [0, -172, 15]], cm = new T.Matrix4(), cq = new T.Quaternion(), cs = new T.Vector3(), cp = new T.Vector3(), ce = new T.Euler();
+    crows.frustumCulled = false; crows.name = 'coast-crows'; K.root.add(crows); var crowPh = []; for (q = 0; q < CN; q++) crowPh.push([R(0, 6.28), R(4, 9), R(-1.5, 1.5), R(.25, .45)]);
+    // torn banners on poles, waving in the vertex shader
+    M.banner = M.cloth.clone(); M.banner.name = 'coast-banner'; M.banner.color.setHex(0x3c2a24);
+    M.banner.onBeforeCompile = function (sh) { sh.uniforms.bTime = K.clock; sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nuniform float bTime;').replace('#include <begin_vertex>', '#include <begin_vertex>\nfloat bw=clamp(-position.x/1.6,0.,1.);transformed.z+=sin(bTime*3.1+position.x*2.4+position.y*1.3)*.22*bw+bw*.25;transformed.y+=sin(bTime*2.3+position.x*3.)*.05*bw;'); };
+    M.banner.customProgramCacheKey = function () { return 'kara-coast-banner-1'; };
+    var bannerG = geo(new T.PlaneGeometry(1.6, .9, 8, 3)); bannerG.translate(-.8, 0, 0);
+    [[-33, 9.5, 9], [-22.5, -61, 12], [-43.5, -133.5, 12], [-62, -88, 15], [24.5, -82.5, 14]].forEach(function (b) {
+      onGround(b[2], G.cylinder, 'wood', b[0], 1.9, b[1], .07, 3.8, .07);
+      var bm = new T.Mesh(bannerG, M.banner); bm.position.set(b[0], 3.2 + gy(b[0], b[1]), b[1]); bm.rotation.y = R(0, 6); bm.castShadow = false; bm.name = 'coast-banner'; roomOf(b[2]).add(bm);
+    });
+    function roomOf(id) { return K.groups[id] || K.root; }
+    var flash = 0, nextBolt = 9, lastT = 0, api = { flash: 0 }, calmFx = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     function update(time, p) {
+      // lightning: a rare double flash; the world reads `flash` to lift the key light and exposure for a moment
+      if (!calmFx) { if (time > nextBolt) { nextBolt = time + 14 + rnd() * 22; flash = 1; } flash = Math.max(0, flash - Math.min(.1, Math.max(0, time - lastT)) * 2.6); } lastT = time;
+      var f2 = flash > .55 ? 1 : flash > .35 ? .25 : flash > .15 ? .8 : flash; api.flash = f2 * f2;
+      M.rain.uniforms.flash.value = api.flash; rain.position.set(p.x, 0, p.z);
+      for (var c = 0; c < CN; c++) { var ph = crowPh[c], fl = flocks[c % 3], a = time * ph[3] + ph[0], r2 = ph[1];
+        cp.set(fl[0] + Math.cos(a) * r2, fl[2] + ph[2] + Math.sin(time * .7 + c) * .4, fl[1] + Math.sin(a) * r2 * .8);
+        cq.setFromEuler(ce.set(0, -a + (ph[3] > 0 ? 0 : PI), Math.sin(a) * .25)); var flap = .55 + .45 * Math.abs(Math.sin(time * 7 + c * 1.3)); cs.set(1.3 * flap, 1.3 + (1 - flap) * 2, 1.3);
+        crows.setMatrixAt(c, cm.compose(cp, cq, cs)); }
+      crows.instanceMatrix.needsUpdate = true;
       for (var u = 0; u < surfs.length; u++) { var o2 = surfs[u], w2 = .5 + .5 * Math.sin(time * .9 + o2.p); o2.m.scale.set(o2.s * (1 + w2 * .12), 1, o2.s * (1 + w2 * .12)); o2.m.visible = Math.abs(o2.m.position.z - p.z) < 50; }
       M.surf.opacity = .38 + .14 * Math.sin(time * .9);
       for (var i = 0; i < mists.length; i++) { var o = mists[i]; o.m.position.x = o.x + Math.sin(time * .05 + o.p) * 2.2; o.m.position.z = o.z + Math.cos(time * .04 + o.p) * 1.6; o.m.rotation.y += .0004; o.m.visible = o.z < p.z + 18 && o.z > p.z - 34 && Math.abs(o.x - p.x) < 36; }
     }
-    return { update: update };
+    api.update = update; return api;
 
     /* ---- prop builders ---- */
     function fishRack(room, x, z, a) {
