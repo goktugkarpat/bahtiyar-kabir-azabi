@@ -506,6 +506,7 @@
     var foamCanvas=document.createElement('canvas');foamCanvas.width=128;foamCanvas.height=512;var fc=foamCanvas.getContext('2d');
     for(var j=0;j<34;j++){var x=50+rnd()*28,y=rnd()*512,r=5+rnd()*11,g=fc.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,'rgba(139,171,171,.20)');g.addColorStop(1,'rgba(139,171,171,0)');fc.fillStyle=g;fc.save();fc.translate(x,y);fc.scale(.65,1.6);fc.translate(-x,-y);fc.fillRect(x-r,y-r,r*2,r*2);fc.restore();}
     var foamTex=new T.CanvasTexture(foamCanvas);textures.push(foamTex);materials.foam=new T.MeshBasicMaterial({map:foamTex,transparent:true,opacity:.34,depthWrite:false,side:T.DoubleSide});
+    var wetBands=[];rooms.forEach(function(r,id){if(id===3)return;var wg=geo(new T.PlaneGeometry(3.4,r.d+3));wg.rotateX(-PI/2);var wb=new T.Mesh(wg,materials.puddle);wb.position.set(r.w*.5-1.6,-.4,r.z);wb.name='coast-wet-band';wb.receiveShadow=true;roomGroups[id].add(wb);wetBands.push(wb);});
     rooms.forEach(function(r,id){var fg=geo(new T.PlaneGeometry(.9,r.d+5));fg.rotateX(-PI/2);var f=new T.Mesh(fg,materials.foam);f.position.set(r.w*.5-3.65,-.36,r.z);roomGroups[id].add(f);animated.push({object:f,x:f.position.x,foam:true,phase:id});});
     var encounterList=ENCOUNTERS.map(function(e){return Object.assign({},e);});
     B.CoastOpen.encounters(open,encounterList);
@@ -629,6 +630,7 @@
       ash.position.x = calm ? 0 : Math.sin(time * .09) * .3;
       // slow tide: the black sea breathes up and down the eroded bank (~2 min period)
       sea.position.y = -.52 + (calm ? 0 : Math.sin(time * .05) * .09);
+      for (var wbI = 0; wbI < wetBands.length; wbI++) wetBands[wbI].position.y = sea.position.y + .13;
       nearby.length = 0;
       for (var i = 0; i < lightSources.length; i++) { var s = lightSources[i]; s.live = Math.max(.1, groupGain[s.group] == null ? 1 : groupGain[s.group]); s.distance = Math.hypot(s.x - p.x, s.z - p.z); if (s.distance < 18) { s.cHeld = false; s.cEff = s.intensity * s.live / (1 + s.distance * s.distance / 30); nearby.push(s); } }
       // Three pooled lamps with eased hand-offs (they used to jump to the new source in one frame) and a x1.35 lead needed to take a slot over its holder.

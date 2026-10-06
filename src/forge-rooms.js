@@ -660,6 +660,7 @@
         var xx = (xi + wallX) / 2 + RR(-1, 1), h = RR(1.2, 3.8); K.put(i, 'crag', 'rock', xx, h * .3, zz, gap * .8, h, 3.6, RR(0, 6), 0, 0, [.26, .24, .23], .5);
       }
       // the outer molten river, its iron curb and the cavern cliffs beyond (no walls: the wing opens onto a glowing chasm)
+      for (var hz = zA + 2; hz < zB; hz += 4.5) K.dec(i, 15, s * 37.6, hz, 3.4, 4.6, RR(0, 6), [.55, .14, .025], .4, 'glow');   // the river's heat glancing off the iron floor
       lavaRiver(s * 43.5, zc, 8.4, L + .2); K.heat(s * 43.5, 1.2, zc - L / 4, 7, 2.4, .8); K.heat(s * 43.5, 1.2, zc + L / 4, 7, 2.4, .8);
       for (zz = zA; zz < zB; zz += 2.6) { if (RW() < .25) continue; K.put(i, 'rock', 'rock', s * RR(39.2, 39.8), RR(.1, .3), zz + RR(-.5, .5), RR(.8, 1.6), RR(.4, .8), RR(1, 2), RR(0, 6), 0, 0, [.24, .22, .21], .5); }
       for (zz = zA + 1; zz < zB; zz += RR(3.5, 5.5)) { var ch = RR(5, 15); K.put(i, 'crag', 'rock', s * RR(50, 56), ch * .42, zz, RR(6, 9), ch, RR(5, 8), RR(0, 6), 0, s * .08, [.22, .2, .19], .6); K.spr(i, S.glow, s * 48.2, .6, zz, 4, 2, [.8, .26, .05], .45, RW(), 1, 1); }
