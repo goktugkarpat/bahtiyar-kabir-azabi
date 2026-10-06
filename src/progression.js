@@ -2,7 +2,7 @@
 (function () {
   'use strict';
   const B = window.BABA = window.BABA || {};
-  const MAX_LEVEL = 13, VERSION = 2, SKILL_TREE = 2;   // SKILL_TREE 2: four lines x three tiers; older saves carry no skillTree field and are migrated in restore()
+  const MAX_LEVEL = 13, VERSION = 2, SKILL_TREE = 3;   // SKILL_TREE 3: build tree (src/talent-tree.js); saves of trees 1-2 get every point refunded in restore()
   const POINTS = Object.freeze([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
   const LEGACY_THRESHOLDS = Object.freeze([0, 40, 100, 350, 850, 1450, 2000]);
   // Expanded route: ~60 temple foes, ~59 coastal foes, then ~60 ruin/cave and ~60 forge foes.
@@ -20,7 +20,9 @@
     { id: 'cleave', name: KabirI18n.t('KÜLÜN ÇELİĞİ'), short: KabirI18n.t('Sert vuruş'), color: '#d9884b' },
     { id: 'roar', name: KabirI18n.t('KANIN YEMİNİ'), short: KabirI18n.t('Nida'), color: '#c8473f' },
     { id: 'whirl', name: KabirI18n.t('MEZARIN ZİNCİRİ'), short: KabirI18n.t('Kasırga'), color: '#7f9fbd' },
-    { id: 'charge', name: KabirI18n.t('KARA ADIM'), short: KabirI18n.t('Hücum'), color: '#c9a45a' }
+    { id: 'charge', name: KabirI18n.t('KARA ADIM'), short: KabirI18n.t('Hücum'), color: '#c9a45a' },
+    { id: 'pyre', name: KabirI18n.t('KOR'), short: KabirI18n.t('Mühür'), color: '#e0662f' },
+    { id: 'knell', name: KabirI18n.t('ÇÜRÜME'), short: KabirI18n.t('Lanet'), color: '#8fae6a' }
   ]);
   const skills = Object.freeze([
     { id: 'cleave', name: KabirI18n.t('Mezar Yaran'), line: 'cleave', tier: 1, level: 2, requires: null, branch: 0, cost: 22, cooldown: 4,
@@ -58,7 +60,14 @@
       description: KabirI18n.t('Omzunu öne verip kor gibi parlayan bir iz bırakarak koş: yoldaki düşmanları kıvılcımlarla yana devirir, varışta yer çatlaklarla yarılır ve düşmanlar çarpma noktasına çekilir.'), delta: KabirI18n.t('Daha uzun ve hızlı atılış, yoldakileri devirir, çatlak açan daha büyük çarpma.') },
     { id: 'havoc', name: KabirI18n.t('Mahşer Hücumu'), line: 'charge', tier: 3, level: 10, requires: 'grasp', branch: 3, cost: 66, cooldown: 14,
       params: { range: 14, speed: 32, damage: 160, ringMul: .55, radius: 5, stun: 2.6, width: 3.4, pathDamage: 44, shove: 6.5, knock: 4.8, hitStop: .12, pull: 3.6, impacts: 2, damage2: 110, radius2: 6.6 },
-      description: KabirI18n.t('Kükreyip koç gibi atıl: geniş, karanlık bir iz bırakır, yoldakileri havaya fırlatır. Varışta yer iki kez çatlar; ikinci çarpma daha ağırdır ve sersemletir.'), delta: KabirI18n.t('Çifte çarpma, yoldakileri fırlatır, en geniş alan ve en uzun sersemletme.') }
+      description: KabirI18n.t('Kükreyip koç gibi atıl: geniş, karanlık bir iz bırakır, yoldakileri havaya fırlatır. Varışta yer iki kez çatlar; ikinci çarpma daha ağırdır ve sersemletir.'), delta: KabirI18n.t('Çifte çarpma, yoldakileri fırlatır, en geniş alan ve en uzun sersemletme.') },
+    // Talent tree 3 actives (runtime: src/talent-runtime.js, look: src/talent-fx.js).
+    { id: 'pyre', name: KabirI18n.t('Kor Mührü'), line: 'pyre', tier: 1, level: 4, requires: null, branch: 4, cost: 30, cooldown: 9,
+      params: { damage: 40, radius: 3.4, time: 5, dps: 22, burn: 30, reach: 2.4, burst: 0 },
+      description: KabirI18n.t('Silahını yere vurup önüne kor bir mühür kaz. Mühür birkaç saniye yanar; içine giren düşmanlar tutuşur.'), delta: '' },
+    { id: 'knell', name: KabirI18n.t('Ölüm Çanı'), line: 'knell', tier: 1, level: 4, requires: null, branch: 5, cost: 26, cooldown: 14,
+      params: { radius: 7, time: 8, amp: 1.25, burst: 38, burstRadius: 3.2, stun: 0, damage: 0 },
+      description: KabirI18n.t('Başının üstünde hayalet bir çan çalar. Çevredeki düşmanlar lanetlenir: daha çok hasar alır, ölünce çürüyüp patlar.'), delta: '' }
   ].map(s => Object.freeze(Object.assign({}, s, { params: Object.freeze(s.params), cost: s.cost }))));
   const skillIndex = Object.fromEntries(skills.map(s => [s.id, s]));
   const skillsByLine = line => skills.filter(s => s.line === line).sort((a, b) => a.tier - b.tier);
@@ -66,6 +75,7 @@
   // Restore deliberately keeps the old per-line validation: already-earned
   // upgrades remain usable even when a legacy profile has uneven tiers.
   function skillAccess(state, id) {
+    if (B.TalentTree) return B.TalentTree.access(state, id);
     const skill = skillIndex[id], learned = new Set(state.learned || []);
     if (!skill) return { known:false, blocked:true, canLearn:false, reason:KabirI18n.t('Böyle bir yetenek yok.') };
     const known = learned.has(id), low = state.level < skill.level;
@@ -88,6 +98,12 @@
         [KabirI18n.t('Öfke süresi'), num(p.time) + KabirI18n.t(' sn')], [KabirI18n.t('Hasar azaltma'), '%' + Math.round((1 - p.guard) * 100)], [KabirI18n.t('Can çalma'), '%' + Math.round(p.steal * 100)], [KabirI18n.t('Dalga'), String(p.waves)]);
     } else if (s.line === 'whirl') {
       out.push([KabirI18n.t('Temel vuruş'), p.ticks + '×' + p.damage + ' = ' + p.ticks * p.damage], [KabirI18n.t('Çember'), p.grow < 1 ? num(p.radius * p.grow) + ' → ' + num(p.radius) + ' m' : num(p.radius) + ' m'], [KabirI18n.t('Çekiş'), num(p.pull) + ' m'], [KabirI18n.t('Son vuruşta savurma'), num(p.fling) + ' m'], [KabirI18n.t('Son vuruş sersemletmesi'), num(p.stunLast) + KabirI18n.t(' sn')]);
+    } else if (s.line === 'pyre') {
+      out.push([KabirI18n.t('Temel vuruş'), String(p.damage)], [KabirI18n.t('Mühür alanı'), num(p.radius) + ' m'], [KabirI18n.t('Mühür süresi'), num(p.time) + KabirI18n.t(' sn')], [KabirI18n.t('Saniyede yanma'), String(p.dps)]);
+      if (p.burst) out.push([KabirI18n.t('Sönerken patlama'), String(p.burst)]);
+    } else if (s.line === 'knell') {
+      out.push([KabirI18n.t('Lanet alanı'), num(p.radius) + ' m'], [KabirI18n.t('Lanet süresi'), num(p.time) + KabirI18n.t(' sn')], [KabirI18n.t('Fazladan hasar'), '%' + Math.round((p.amp - 1) * 100)], [KabirI18n.t('Ölünce patlama'), String(p.burst)]);
+      if (p.stun) out.push([KabirI18n.t('Sersemletme'), num(p.stun) + KabirI18n.t(' sn')]);
     } else {
       out.push([KabirI18n.t('Mesafe'), num(p.range) + ' m'], [KabirI18n.t('Temel çarpma'), p.impacts > 1 ? p.damage + ' + ' + p.damage2 : String(p.damage)], [KabirI18n.t('Temel yol hasarı'), p.pathDamage ? String(p.pathDamage) : '—'], [KabirI18n.t('Yol genişliği'), num(p.width) + ' m'], [KabirI18n.t('Yoldakini savurma'), p.shove ? num(p.shove) + ' m' : '—'],
         [KabirI18n.t('Çarpma alanı'), p.impacts > 1 ? num(p.radius) + ' / ' + num(p.radius2) + ' m' : num(p.radius) + ' m'], [KabirI18n.t('Sersemletme'), num(p.stun) + KabirI18n.t(' sn')], [KabirI18n.t('Çekiş'), p.pull ? num(p.pull) + ' m' : '—']);
@@ -109,6 +125,8 @@
   }
   // Maps the learned skills and loadout of a pre-skillTree-2 profile (see migrateLearned); points stay consistent because they derive from level - learned.
   function migrateProfileSkills(profile) {
+    // Tree 3 changed the whole tree: every point of an older save is refunded (level stays, points = level - 1) and the UI says so.
+    if (B.TalentTree) return Object.assign({}, profile, { learned: [], loadout: [null, null, null, null], skillTree: SKILL_TREE });
     const m = migrateLearned(Array.isArray(profile.learned) ? profile.learned.filter(id => typeof id === 'string') : [], 12);
     const loadout = [0, 1, 2, 3].map(n => { const id = Array.isArray(profile.loadout) ? m.map.get(profile.loadout[n]) : null; return id || null; });
     // Old tiers of one line were separate skills; they now upgrade one slot: keep the highest slotted tier in the first slot of that line.
@@ -240,7 +258,8 @@
     const needs = p => p && typeof p === 'object' && p.skillTree !== SKILL_TREE;
     const state = createState(needs(options.profile) ? Object.assign({}, options, { profile: migrateProfileSkills(options.profile) }) : options);
     const rawRestore = state.restore, rawSnapshot = state.snapshot;
-    state.restore = profile => rawRestore(needs(profile) ? migrateProfileSkills(profile) : profile);
+    state.restore = profile => { const old = needs(profile), ok = rawRestore(old ? migrateProfileSkills(profile) : profile); if (ok && old && Array.isArray(profile.learned) && profile.learned.length) state.talentRefunded = true; return ok; };
+    if (needs(options.profile) && Array.isArray(options.profile.learned) && options.profile.learned.length) state.talentRefunded = true;
     state.snapshot = () => Object.assign(rawSnapshot(), { skillTree: SKILL_TREE });
     return state;
   }
@@ -297,10 +316,10 @@
         restoredXp = Math.floor(THRESHOLDS[tier] + fraction * (THRESHOLDS[tier + 1] - THRESHOLDS[tier]));
       }
       state.xp = Math.min(THRESHOLDS[MAX_LEVEL - 1], restoredXp); recalculate();
-      const learned = new Set();
-      for (const skill of skills) if (learned.size < POINTS[state.level - 1] && Array.isArray(profile.learned) && profile.learned.includes(skill.id) && state.level >= skill.level &&
+      const learned = new Set(B.TalentTree ? B.TalentTree.validate(profile.learned, state.level) : []);
+      if (!B.TalentTree) for (const skill of skills) if (learned.size < POINTS[state.level - 1] && Array.isArray(profile.learned) && profile.learned.includes(skill.id) && state.level >= skill.level &&
         (!skill.requires || learned.has(skill.requires))) learned.add(skill.id);
-      state.learned = Array.isArray(profile.learned) ? profile.learned.filter((id, n, list) => learned.has(id) && list.indexOf(id) === n) : []; recalculate();
+      state.learned = B.TalentTree ? Array.from(learned) : Array.isArray(profile.learned) ? profile.learned.filter((id, n, list) => learned.has(id) && list.indexOf(id) === n) : []; recalculate();
       const seen = new Set();
       state.inventory = profile.inventory.filter(i => i && typeof i.uid === 'string' && i.uid.length < 160 && catalog[i.id] && !seen.has(i.uid) && seen.add(i.uid))
         .map(i => ({ uid: i.uid, id: i.id, roll: catalog[i.id].rarity === 'boss' ? 0 : Math.max(-2, Math.min(2, Number.isInteger(i.roll) ? i.roll : 0)) }));
@@ -317,7 +336,7 @@
         state.equipment[slot] = entry && catalog[entry.id].slot === slot && catalog[entry.id].level <= state.level ? entry.uid : null;
       }
       if (!profile.equipment || !Object.prototype.hasOwnProperty.call(profile.equipment,'weapon')) state.equipment.weapon = addItem('dull-sword').uid;
-      state.loadout = [0, 1, 2, 3].map(n => Array.isArray(profile.loadout) && learned.has(profile.loadout[n]) ? profile.loadout[n] : null);
+      state.loadout = [0, 1, 2, 3].map(n => Array.isArray(profile.loadout) && learned.has(profile.loadout[n]) && skillIndex[profile.loadout[n]] ? profile.loadout[n] : null);
       // A skill line has one home (tiers replace each other): copied/corrupt saves cannot equip a line twice.
       state.loadout = state.loadout.map((id, n, list) => id && list.findIndex(o => o && skillIndex[o].line === skillIndex[id].line) !== n ? null : id);
       // A save from the three-slot days: a learned line that had no slot yet takes the new 4th slot.
@@ -336,14 +355,29 @@
       const access = skillAccess(state, id);
       if (!access.canLearn) return result(false, access.known ? KabirI18n.t('Bu yetenek zaten öğrenildi.') : access.reason);
       state.learned.push(id); state.points--;
+      if (!skill) { changed('progression', { unlocked: id, level: state.level, points: state.points }); return result(true); }   // seal / passive / keystone: no slot
       // An upgrade takes the place of its predecessor (same slot, same key); a first skill of a line takes a free slot.
       const upgraded = skill.requires ? state.loadout.indexOf(skill.requires) : -1, free = state.loadout.indexOf(null);
       if (upgraded >= 0) state.loadout[upgraded] = id; else if (free >= 0 && !state.loadout.some(o => o && skillIndex[o].line === skill.line)) state.loadout[free] = id;
       changed('progression', { unlocked: id, level: state.level, points: state.points }); return result(true);
     }
+    // Talent tree 3: give one node back (when the rest of the tree stays legal) or every node at once. The caller decides when (out of combat).
+    function refund(id) {
+      if (!B.TalentTree || !B.TalentTree.canRefund(state.learned, id, state.level)) return result(false, KabirI18n.t('Bu düğüme bağlı başka düğümler var; önce onları geri al.'));
+      const skill = skillIndex[id];
+      state.learned = state.learned.filter(x => x !== id); recalculate();
+      state.loadout = state.loadout.map(o => o !== id ? o : skill && skill.requires && state.learned.includes(skill.requires) ? skill.requires : null);
+      changed('progression', { refunded: id, level: state.level, points: state.points }); return result(true);
+    }
+    function respec() {
+      if (!state.learned.length) return result(false, KabirI18n.t('Geri alınacak puan yok.'));
+      state.learned = []; state.loadout = [null, null, null, null]; recalculate();
+      changed('progression', { respec: true, level: state.level, points: state.points }); return result(true);
+    }
     function assign(slot, id) {
       if (!Number.isInteger(slot) || slot < 0 || slot >= SLOT_COUNT) return result(false, KabirI18n.t('Geçersiz yetenek yuvası.'));
       if (id !== null && !state.learned.includes(id)) return result(false, KabirI18n.t('Önce bu yeteneği öğren.'));
+      if (id !== null && !skillIndex[id]) return result(false, KabirI18n.t('Yalnız aktif yetenekler yuvaya konur.'));
       const previous = state.loadout[slot], other = id === null ? -1 : state.loadout.findIndex(o => o && skillIndex[o].line === skillIndex[id].line);
       if (other !== -1 && other !== slot) state.loadout[other] = previous;
       state.loadout[slot] = id; changed(); return result(true);
@@ -370,9 +404,11 @@
         if (slot === 'weapon') { damage *= 1 + def.damage; weaponId = def.id; }
       }
       hp = Math.min(184, hp); damage = Math.min(1.95, damage); defense = Math.min(.30, defense);
+      const tal = B.TalentTree ? B.TalentTree.effects(state.learned) : null;
+      if (tal) hp = Math.round(hp * tal.hpMul + tal.hpAdd);
       statRevision = state.revision;
       statCache = Object.freeze({ maxHp: hp, maxHealth: hp, damage, damageMultiplier: damage, defense, defenseReduction: defense,
-        weaponId, weaponType: weaponId ? catalog[weaponId].type : 'unarmed', criticalChance: .08, criticalMultiplier: 1.5 });
+        weaponId, weaponType: weaponId ? catalog[weaponId].type : 'unarmed', criticalChance: .08 + (tal ? tal.crit : 0), criticalMultiplier: 1.5 });
       return statCache;
     }
     // Compare actual combat values in the same slot, including craftsmanship and stat caps.
@@ -506,8 +542,8 @@
       if(carried.length)changed('loot',{items:carried,boss:true,chapter,transition:true});
       state.chapter = Math.min(4, chapter + 1); changed(); return true;
     }
-    Object.assign(state, { snapshot, restore, grantEnemy, unlock, assign, equip, stats, loot, completedChapter, reset,
-      skillForSlot: slot => skillIndex[state.loadout[slot]] || null,
+    Object.assign(state, { snapshot, restore, grantEnemy, unlock, assign, equip, stats, loot, completedChapter, reset, refund, respec,
+      skillForSlot: slot => { const s = skillIndex[state.loadout[slot]] || null; return s && B.TalentTree ? B.TalentTree.effective(s, state.learned) : s; },
       collectLoot, unequip, isUpgrade,
       itemForSlot: slot => { const entry = state.inventory.find(i => i.uid === state.equipment[slot]); return resolveItem(entry); },
       nextLevelXp: () => state.level < MAX_LEVEL ? THRESHOLDS[state.level] : null });
