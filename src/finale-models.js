@@ -175,7 +175,7 @@
         A.rigid('iron', G.merge(ch), 'pelvis'); A.rigid('glow', G.merge(seals), 'pelvis');
         var cr = []; for (var m = 0; m < 4; m++) { var a0 = (m - 1.5) * .45, pts = []; for (var j = 0; j < 6; j++) pts.push(fitted.at(a0 + Math.sin(j * 1.9 + m * 2.1) * .12, fb.max.y - .1 - j * torsoH * .14, .064)); cr.push(G.tube(pts, .007, 5, 18, false)); } fitted.attach('glow', G.merge(cr));
         A.rigid('glow', seam(foreL, .04, .009, .5), foreL); A.rigid('glow', seam(foreR, -.04, .009, .5), foreR);
-        var cloak = G.sheet(22, 16, function (u, v) { var across = (u - .5) * (bw * 1.1 + v * .5); return [fitted.cx + across, fb.max.y - .05 - v * 1.5 + Math.sin(u * 23) * .05 * v * v, fb.min.z - .32 - .1 * v + Math.sin(u * 15 + v * 5) * .02]; }, true); G.uvScale(cloak, 2.4, 3); G.wear(cloak, { edge: 0, cavity: 0, border: 0, curv: 0, tear: { amount: .36, width: .028, bottom: .1, base: .02 } }); A.rigid('rag', cloak, spine);
+        var cloak = G.sheet(22, 16, function (u, v) { var across = (u - .5) * (bw * .9 + v * .3); return [fitted.cx + across, fb.max.y - .05 - v * 1.25 + Math.sin(u * 23) * .05 * v * v, fb.min.z - .1 - .12 * v + Math.sin(u * 15 + v * 5) * .03]; }, true); G.uvScale(cloak, 2.4, 3); G.wear(cloak, { edge: 0, cavity: 0, border: 0, curv: 0, tear: { amount: .36, width: .028, bottom: .1, base: .02 } }); A.rigid('rag', cloak, spine);
       });
       if (type === 'verdictseer' || type === 'damned') safe('covered thigh skin', function () {
         if (type === 'damned') return;

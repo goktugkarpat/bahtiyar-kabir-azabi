@@ -8,24 +8,25 @@
   var BASALT = [.42, .39, .38], BONE = [.92, .86, .78], PALE = [.78, .73, .68], SOOT = [.3, .28, .28], IRONT = [.6, .55, .53], RUST = [.55, .42, .36],
     BLOOD = [1.7, .22, .12], EMBER = [1.6, .42, .14], DEEP = [.9, .08, .05];
 
-  var moodBase = { fog: '#0b0607', fogDensity: .0105, mist: '#250b0b', mistA: .14, mistH: .9, mistGlow: .55, scatter: .7, wind: [.03, -.02], sky: '#9c8c90', ground: '#2a1c1c', hemi: .8, env: .26, key: '#dcc4bc', keyI: 1.55, keyDir: [-12, 24, -8],
-    rim: '#c0402c', rimI: 1.25, charRim: '#e8c8bc', charRimI: 1.35, rimDir: [.4, .6, -1], rimWrap: 1, charFill: .24, lift: [.005, .002, .002], gain: [1.06, .98, .95], sat: .8, contrast: .23, shadowTint: [1.0, .94, .96], highTint: [1.1, 1.0, .92],
-    vignette: .54, vigColor: [.012, .002, .002], bloom: .5, bloomTint: [1.06, .96, .94], exposure: 1.24 };
+  // Grade: bone-pale stone under a cold, near-white key; the void is black; red lives only in fire, blood and verdict glow.
+  var moodBase = { fog: '#09080a', fogDensity: .0095, mist: '#161214', mistA: .08, mistH: .8, mistGlow: .45, scatter: .65, wind: [.03, -.02], sky: '#a8a0a8', ground: '#2a2426', hemi: .9, env: .3, key: '#e2d8d4', keyI: 1.7, keyDir: [-12, 24, -8],
+    rim: '#c04a34', rimI: 1.2, charRim: '#ead8d0', charRimI: 1.35, rimDir: [.4, .6, -1], rimWrap: 1, charFill: .26, lift: [.004, .003, .004], gain: [1.04, 1.0, .98], sat: .74, contrast: .25, shadowTint: [.98, .95, 1.0], highTint: [1.08, 1.02, .96],
+    vignette: .52, vigColor: [.006, .002, .003], bloom: .46, bloomTint: [1.04, .98, .96], exposure: 1.28 };
   var moodSpecs = [
-    { key: '#c8c0cc', keyI: 1.5, sky: '#a09aa8', fog: '#0a0709', mist: '#1c0c10', mistA: .12, gain: [1.0, .98, 1.0], sat: .74, rim: '#a04838' },
-    { key: '#d4beb4', keyI: 1.5, fog: '#0c0607', mist: '#2a0c0c', mistA: .15, sat: .78 },
-    { key: '#dcc8bc', keyI: 1.55, fog: '#0b0708', mist: '#241010', mistA: .13, sat: .76, bloom: .48 },
-    { key: '#c8a8a0', keyI: 1.45, fog: '#100506', mist: '#360c0a', mistA: .2, mistGlow: .7, bloom: .56, gain: [1.1, .96, .92], sat: .86, rim: '#d03a24' },
-    { key: '#e0b0a0', keyI: 1.55, fog: '#110505', mist: '#3a0c0a', mistA: .18, gain: [1.12, .95, .9], sat: .9, rim: '#d83020', bloom: .54 },
-    { key: '#a8b8c0', keyI: 1.45, sky: '#8898a0', fog: '#07090a', mist: '#121a1e', mistA: .2, gain: [.98, 1.0, 1.04], sat: .7, rim: '#6a8a96', bloom: .44 },
-    { key: '#c4b0d8', keyI: 1.45, sky: '#9a8cb0', fog: '#09070c', mist: '#1c1028', mistA: .17, gain: [1.02, .97, 1.06], sat: .8, rim: '#8a50c0', bloom: .5 },
-    { key: '#f0b080', keyI: 1.6, fog: '#140806', mist: '#3a160a', mistA: .17, gain: [1.12, .99, .86], sat: .94, rim: '#e06030', bloom: .56 },
-    { key: '#d0c0c0', keyI: 1.5, fog: '#0a0607', mist: '#260c0e', mistA: .14, sat: .78, bloom: .5 },
-    { key: '#e4d0c0', keyI: 1.55, fog: '#0d0807', mist: '#2c1410', mistA: .15, sat: .8, gain: [1.08, 1.0, .92], bloom: .5 },
-    { key: '#e4a898', keyI: 1.6, fog: '#120506', mist: '#3e0c0c', mistA: .2, mistGlow: .7, gain: [1.14, .94, .9], sat: .95, rim: '#e03424', bloom: .58, vignette: .58 },
-    { key: '#f0d0b8', keyI: 1.65, hemi: .95, sky: '#b8a090', fog: '#0f0807', mist: '#2c140e', mistA: .14, mistGlow: .6, bloom: .52, exposure: 1.3, vignette: .46, sat: .9, gain: [1.1, 1.0, .9], rim: '#e07a50' },
-    { key: '#e8b0a0', keyI: 1.6, fog: '#120506', mist: '#3a0c0c', mistA: .18, bloom: .56, gain: [1.14, .95, .9], sat: .92, rim: '#e03a28' },
-    { key: '#ffd0c0', keyI: 1.75, sky: '#c0a0a0', fog: '#140405', mist: '#460c0c', mistA: .2, mistGlow: .75, bloom: .62, gain: [1.16, .95, .9], contrast: .28, vignette: .6, exposure: 1.3, shadowTint: [1.0, .9, .92], highTint: [1.2, 1.0, .9], rim: '#ff4030', charRim: '#ffd8c8', sat: 1.0 }
+    { key: '#d4d0dc', keyI: 1.7, sky: '#a8a4b4', mist: '#141218', sat: .7, rim: '#a85040' },
+    { key: '#ddd4d0', keyI: 1.7 },
+    { key: '#e6dcd4', keyI: 1.75, bloom: .44 },
+    { key: '#dcc8c4', keyI: 1.65, mist: '#1e1012', mistA: .1, mistGlow: .6, bloom: .52, gain: [1.07, .98, .96], sat: .8, rim: '#d04030' },
+    { key: '#e4ccc4', keyI: 1.7, mist: '#1c1012', gain: [1.08, .98, .96], sat: .8, rim: '#d83828', bloom: .5 },
+    { key: '#bcc8d0', keyI: 1.65, sky: '#90a0a8', fog: '#07090a', mist: '#10161a', gain: [.98, 1.0, 1.04], sat: .7, rim: '#6a8a96', bloom: .44 },
+    { key: '#d0c4e0', keyI: 1.65, sky: '#9a8cb0', mist: '#16101e', gain: [1.0, .98, 1.05], sat: .76, rim: '#8a50c0', bloom: .48 },
+    { key: '#f0c8a8', keyI: 1.7, fog: '#0c0807', mist: '#21130c', gain: [1.08, 1.0, .9], sat: .86, rim: '#e06030', bloom: .52 },
+    { key: '#ddd4d4', keyI: 1.7 },
+    { key: '#e8dcd0', keyI: 1.75, gain: [1.06, 1.0, .95], bloom: .48 },
+    { key: '#e8c4bc', keyI: 1.7, mist: '#1e0e10', mistA: .1, gain: [1.1, .97, .95], sat: .84, rim: '#e03424', bloom: .54, vignette: .56 },
+    { key: '#f2e0cc', keyI: 1.8, hemi: 1.0, sky: '#b8a8a0', mist: '#1e1612', mistGlow: .55, bloom: .5, exposure: 1.32, vignette: .46, sat: .82, gain: [1.08, 1.0, .94], rim: '#e07a50' },
+    { key: '#e8ccc4', keyI: 1.7, mist: '#1c0e10', bloom: .52, gain: [1.08, .98, .95], sat: .82, rim: '#e03a28' },
+    { key: '#f4dcd4', keyI: 1.8, sky: '#c0a8a8', fog: '#0b0607', mist: '#220c0e', mistA: .1, mistGlow: .65, bloom: .56, gain: [1.1, .97, .95], contrast: .3, vignette: .58, exposure: 1.3, shadowTint: [1.0, .92, .95], highTint: [1.14, 1.0, .94], rim: '#ff4030', charRim: '#ffe0d4', sat: .86 }
   ];
 
   function setupOnce(K) {
@@ -44,11 +45,19 @@
     K.addShape('biglink', new T.TubeGeometry(path, 20, .075, 6, true));
   }
 
-  // A colossal chain between two points (link size s): alternating planes, each link along the line.
-  function bigChain(K, id, x1, y1, z1, x2, y2, z2, s, tint) {
-    var dx = x2 - x1, dy = y2 - y1, dz = z2 - z1, L = Math.hypot(dx, dy, dz), step = .62 * s, n = Math.max(1, Math.floor(L / step));
-    var yaw = Math.atan2(dx, dz), pitch = Math.acos(Math.max(-1, Math.min(1, dy / L)));
-    for (var k = 0; k <= n; k++) { var t = k / n; K.put(id, 'biglink', 'iron', x1 + dx * t, y1 + dy * t, z1 + dz * t, s, s, s, yaw + (k % 2 ? PI / 2 : 0), pitch, 0, tint || [.5, .44, .42], .15); }
+  // A colossal chain between two points (link size s): every link along the line, alternate links turned 90 degrees about it.
+  var cq = null;
+  function bigChain(K, id, x1, y1, z1, x2, y2, z2, s, tint, sag) {
+    var T = window.THREE; if (!cq) cq = { up: new T.Vector3(0, 1, 0), d: new T.Vector3(), q: new T.Quaternion(), q2: new T.Quaternion(), p: new T.Vector3(), sc: new T.Vector3(), m: new T.Matrix4(), prev: new T.Vector3() };
+    var L = Math.hypot(x2 - x1, y2 - y1, z2 - z1), step = .6 * s, n = Math.max(1, Math.floor(L / step)); sag = sag || 0;
+    function at(t, o) { return o.set(x1 + (x2 - x1) * t, y1 + (y2 - y1) * t - sag * 4 * t * (1 - t), z1 + (z2 - z1) * t); }
+    at(0, cq.prev);
+    for (var k = 1; k <= n; k++) {
+      at(k / n, cq.p); cq.d.subVectors(cq.p, cq.prev); var len = cq.d.length(); if (len < 1e-4) continue; cq.d.multiplyScalar(1 / len);
+      cq.q.setFromUnitVectors(cq.up, cq.d); if (k % 2) { cq.q2.setFromAxisAngle(cq.d, Math.PI / 2); cq.q.premultiply(cq.q2); }
+      cq.sc.set(s, s, s); cq.m.compose(cq.prev.clone().add(cq.p).multiplyScalar(.5), cq.q, cq.sc); K.putM(id, 'biglink', 'iron', cq.m, tint || [.5, .44, .42], .15);
+      cq.prev.copy(cq.p);
+    }
   }
 
   function dress(K, r, i, info) {
@@ -90,7 +99,7 @@
     var rimR = K.rng(i, 31);
     function island(o) {
       o = o || {};
-      K.floor(i, r, { key: o.key || 'floor', tint: o.tint || [.62, .58, .56], vary: .16, tilt: .035, skip: function (lx, lz) { return !inRoom(lx, lz, -.15); }, zone: o.zone });
+      var ft = o.tint || [.62, .58, .56]; K.floor(i, r, { key: o.key || 'floor', tint: [ft[0] * 1.3, ft[1] * 1.3, ft[2] * 1.3], vary: .16, tilt: .035, skip: function (lx, lz) { return !inRoom(lx, lz, -.15); }, zone: o.zone });
       // Rim: walk every rectangle edge; where the void is just outside, break the edge with blocks and hang basalt below it.
       r.rects.forEach(function (q) {
         var edges = [[q.x - q.w / 2, q.z - q.d / 2, q.x + q.w / 2, q.z - q.d / 2, 0, -1], [q.x - q.w / 2, q.z + q.d / 2, q.x + q.w / 2, q.z + q.d / 2, 0, 1], [q.x - q.w / 2, q.z - q.d / 2, q.x - q.w / 2, q.z + q.d / 2, -1, 0], [q.x + q.w / 2, q.z - q.d / 2, q.x + q.w / 2, q.z + q.d / 2, 1, 0]];
@@ -104,7 +113,7 @@
             if (k % 2 === 0) K.put(i, 'crag', 'rock', px + e[4] * .6, -1.6 - rimR() * 1.4, pz + e[5] * .6, 2.6 * s, 2.4 * s, 2.6 * s, rimR() * 6, 0, 0, [.34, .31, .31], .5);
             if (k % 3 === 1) K.put(i, 'spike', 'rock', px + e[4] * .4, -3.6 - rimR() * 2, pz + e[5] * .4, 1.2 * s, 3.6 * s, 1.2 * s, rimR() * 6, PI + (rimR() - .5) * .3, (rimR() - .5) * .3, [.3, .28, .28], .2);
             if (k % 4 === 2 && !o.noKerb) K.put(i, 'block', 'stone', px - e[4] * .35, .18, pz - e[5] * .35, e[4] ? .45 : 1.2, .36 + rimR() * .2, e[4] ? 1.2 : .45, (rimR() - .5) * .2, 0, 0, PALE, .3);
-            if (k % 5 === 0) K.spr(i, S.glow, px + e[4] * 2.5, -6, pz + e[5] * 2.5, 4.5, 4.5, [.45, .04, .02], .5, rimR(), .5, 1);
+            if (k % 6 === 0) K.spr(i, S.glow, px + e[4] * 3, -7, pz + e[5] * 3, 3.6, 3.6, [.28, .03, .015], .35, rimR(), .5, 1);
             if (k % 3 === 0) K.spr(i, S.ember, px + e[4] * 1.5, -3, pz + e[5] * 1.5, .05, .05, [2.2, .4, .15], 1, rimR(), .1 + rimR() * .12, 9);
           }
         });
@@ -126,7 +135,7 @@
     // A colossal chain rising from a floor anchor into the dark above (local coordinates).
     function skyChain(x, z, lean, s) {
       s = s || 2.4; BX('cyl', 'iron', x, .35, z, 2.2, .7, 2.2, 0, IRONT, .5); BX('rim', 'iron', x, .8, z, 1.4 * s / 2.4, 1.4 * s / 2.4, 1.4 * s / 2.4, 0, RUST, .2, PI / 2); solidL(x, z, 2.0, 2.0);
-      bigChain(K, i, X(x), .9, Z(z), X(x + lean[0]), 28, Z(z + lean[1]), s, [.46, .4, .38]);
+      bigChain(K, i, X(x), .9, Z(z), X(x + lean[0]), 30, Z(z + lean[1]), s, [.52, .46, .44]);
       SP(S.glow, x, .5, z, 1.8, 1.8, [.4, .05, .03], .4, 1, 1);
     }
     function voidChain(x, z, dir, len) { bigChain(K, i, X(x), .2, Z(z), X(x + dir[0] * 2), -len, Z(z + dir[1] * 2), 1.6, [.42, .36, .34]); }
@@ -295,7 +304,7 @@
     /* 13 Son Mahkeme — the last court: concentric judgement rings, the judge's pulpit, a broken halo of the sky, the four lords' chained sigils */
     ROOM[13] = function () {
       island({ tint: [.54, .5, .5], noKerb: true });
-      K.dec(i, 5, X(0), Z(0), 20, 20, .2, [.55, .08, .05], .16, 'glow'); K.dec(i, 6, X(0), Z(0), 13, 13, 0, [.5, .08, .05], .14, 'glow'); K.dec(i, 6, X(0), Z(0), 26, 26, .4, [.4, .06, .04], .1, 'glow');
+      K.dec(i, 5, X(0), Z(0), 14, 14, .2, [.5, .08, .05], .07, 'glow'); K.dec(i, 6, X(0), Z(0), 22, 22, .4, [.4, .06, .04], .05, 'glow');
       // the pulpit (kürsü) at the north edge
       var pz = -13.2;
       for (var k = 0; k < 3; k++) BX('box', 'stone', 0, .3 + k * .6, pz + .6 - k * .4, 10 - k * 1.8, .6, 3.0 - k * .5, 0, [.6 - k * .04, .55 - k * .04, .52], .4);
@@ -312,10 +321,10 @@
       lords.forEach(function (L) {
         BX('box', 'stone', L[0], .4, L[1], 2.4, .8, 2.4, 0, PALE, .5); BX('box', 'rock', L[0], 3.4, L[1], 1.3, 5.6, 1.3, 0, BASALT, .5); BX('box', 'stone', L[0], 6.3, L[1], 1.9, .4, 1.9, 0, PALE, .2); solidL(L[0], L[1], 2.2, 2.2);
         HOT(L[0], 4.6, L[1] + (L[1] < 0 ? .66 : -.66), .7, .7, .04, L[2]); SP(S.glow, L[0], 6.9, L[1], 1.6, 1.6, [L[2][0] * .5, L[2][1] * .5, L[2][2] * .5], .7, 1, 1); K.spr(i, S.flame, X(L[0]), 7.3, Z(L[1]), .5, .9, L[2], .9, R(), 1, 1);
-        bigChain(K, i, X(L[0] * .92), 5.8, Z(L[1] * .92), X(L[0] * .25), .35, Z(L[1] * .25), 1.25, [.42, .36, .34]);
+        bigChain(K, i, X(L[0] * .93), 5.6, Z(L[1] * .93), X(L[0] * .45), .3, Z(L[1] * .45), .95, [.5, .44, .42], .6); BX('cyl', 'iron', L[0] * .45, .2, L[1] * .45, 1.1, .4, 1.1, 0, IRONT, .4);
         K.light(i, X(L[0]), 5, Z(L[1]), new window.THREE.Color(L[2][0] / 1.3, L[2][1] / 1.3, L[2][2] / 1.3).getHex(), 18, 12, { flicker: .1 });
       });
-      for (var k = 0; k < 8; k++) { var a = k / 8 * PI * 2, x = Math.cos(a) * 3.5, z = Math.sin(a) * 3.5; BX('rim', 'iron', x, .12, z, .9, .9, .9, 0, RUST, .2, PI / 2); }
+      
       decals({ cracks: 8, blood: 6, soot: 6, chips: 6, bones: 3 }); debris(12, 5, 22); embers(50, -16, 16, -13, 13, 8, 1.3); smoke(8, [.34, .14, .12], .24, .6, 4, 5.5);
       skyChain(-17, -2, [-5, -3], 2.6); skyChain(17, 2, [5, 3], 2.6);
     };
@@ -333,7 +342,7 @@
         K.put(i, 'box', 'rock', b.x + s * (b.w / 2 + .1), -.9, b.z, 1.2, 1.6, b.d + .6, 0, 0, 0, [.34, .31, .31], .4);
         for (var k = 0; k < 2; k++) { var z = b.z + (k ? 1 : -1) * b.d * .3; K.put(i, 'box', 'stone', b.x + s * (b.w / 2 + .25), .9, z, .7, 1.8, .7, 0, 0, 0, [.7, .64, .6], .4); K.put(i, 'cone4', 'stone', b.x + s * (b.w / 2 + .25), 2.1, z, .9, .6, .9, PI / 4, 0, 0, [.7, .64, .6], .2); }
         if (R() < .7) bigChain(K, i, b.x + s * (b.w / 2 + .3), -.2, b.z + (R() - .5) * b.d * .5, b.x + s * (b.w / 2 + 2.5), -14, b.z + (R() - .5) * 4, 1.3, [.4, .34, .32]);
-        K.spr(i, S.glow, b.x + s * (b.w / 2 + 3), -6, b.z, 5, 5, [.45, .04, .02], .45, R(), .5, 1);
+        K.spr(i, S.glow, b.x + s * (b.w / 2 + 3), -7, b.z, 3.6, 3.6, [.28, .03, .015], .35, R(), .5, 1);
       });
       K.put(i, 'crag', 'rock', b.x, -2.6, b.z, b.w * .9, 3.4, b.d * .9, R() * 6, 0, 0, [.28, .26, .26], .4);
       K.put(i, 'spike', 'rock', b.x, -7, b.z, b.w * .5, 7, b.d * .6, R() * 6, PI, 0, [.24, .22, .22], .2);

@@ -68,8 +68,8 @@
       m.customProgramCacheKey = function () { return 'finale-scan-1'; }; m.normalScale.set(.7, .7); m.name = 'finale-' + key; materials[key] = m; return m;
     }
     // Judgement stone is bone-pale limestone; the platforms are black basalt; iron is old, blood-browned.
-    surface('floor', 'monastery', 0x9a9088, .44); surface('stone', 'paving', 0xc9c0b4, .38); surface('wall', 'wall', 0x8e8a86, .26);
-    surface('rock', 'rock', 0x6e6660, .5); surface('earth', 'rock', 0x8a8078, .36); surface('iron', 'metal', 0x8b8a8c, .6);
+    surface('floor', 'monastery', 0xbab2ac, .44); surface('stone', 'paving', 0xc9c0b4, .38); surface('wall', 'wall', 0x8e8a86, .26);
+    surface('rock', 'rock', 0x7e7672, .5); surface('earth', 'rock', 0x8a8078, .36); surface('iron', 'metal', 0x8b8a8c, .6);
     surface('wood', 'wood', 0x7a6058, .5);
     function glowing(key, scan, color, emissive, intensity, scale) { var m = surface(key, scan, color, scale); m.emissive.setHex(emissive); m.emissiveIntensity = intensity; m.metalness = .2; m.roughness = .32; return m; }
     glowing('crystal', 'rock', 0xe8c0c0, 0xb01818, 1.2, .65); glowing('crystalV', 'rock', 0xd8c0ff, 0x6a24c6, 1.1, .65); glowing('crystalA', 'rock', 0xffd8b0, 0xd85020, 1.15, .65);
@@ -115,8 +115,8 @@
       fragmentShader: ['varying vec3 vP;uniform float clock;uniform sampler2D norm;',
         'void main(){vec2 p=vP.xz;vec3 a=texture2D(norm,p*.013+vec2(clock*.004,-clock*.006)).rgb;vec3 b=texture2D(norm,p*.041-vec2(clock*.009,clock*.003)+(a.rg-.5)*.6).rgb;vec3 c=texture2D(norm,p*.11+(b.rg-.5)*.5+vec2(0.,clock*.012)).rgb;',
         ' float v=(a.r-.5)*1.8+(b.g-.5)*1.4+(c.r-.5)*.6;float vein=smoothstep(.18,.0,abs(v-.05));float pool=smoothstep(.25,.75,a.g*.6+b.r*.5);',
-        ' float pulse=.75+.25*sin(clock*.6+a.b*9.);vec3 col=vec3(.012,.004,.006)+vec3(.30,.025,.015)*vein*pulse+vec3(.10,.008,.01)*pool;',
-        ' float d=distance(cameraPosition,vP);col*=1.-smoothstep(70.,150.,d)*.85;gl_FragColor=vec4(col,1.);}'].join('\n') });
+        ' float pulse=.75+.25*sin(clock*.6+a.b*9.);vec3 col=vec3(.004,.002,.003)+vec3(.11,.008,.005)*vein*vein*pulse+vec3(.018,.002,.002)*pool;',
+        ' float d=distance(cameraPosition,vP);col*=1.-smoothstep(60.,130.,d)*.9;gl_FragColor=vec4(col,1.);}'].join('\n') });
     materials.abyss = abyssMat;
     var rooms = LAYOUT.map(function (L, i) { return { id: i, name: NAMES[i], x: L.x, z: 8 - i * 26, w: L.w, d: L.d, shape: L.shape }; });
     var floors = [], paths = [], encounters = [];
@@ -136,7 +136,7 @@
     function solid(x, z, w, d) { colliders.push({ x: x, z: z, w: w, d: d }); }
     var K = B.RuinsKit.create({ forge: true, root: root, materials: materials, textures: textures, groups: groups, shapes: shapes, clock: clock, sources: sources, flames: flames, geometries: geometries, rooms: rooms, solid: solid });
     // The abyss: one huge plane far below the whole route (one draw call, no lights), plus the fog swallowing the drop.
-    var abyss = new T.Mesh(geo(new T.PlaneGeometry(320, 520)), abyssMat); abyss.rotation.x = -PI / 2; abyss.position.set(0, -34, -170); abyss.renderOrder = -10; abyss.name = 'finale-abyss'; root.add(abyss);
+    var abyss = new T.Mesh(geo(new T.PlaneGeometry(320, 520)), abyssMat); abyss.rotation.x = -PI / 2; abyss.position.set(0, -52, -170); abyss.renderOrder = -10; abyss.name = 'finale-abyss'; root.add(abyss);
     // Encounters (a fixed, hand-placed formation per platform; local coordinates; all on walkable stone).
     var FORM = {
       0: [['damned', -4, -3], ['damned', 4, -4], ['verdictseer', 0, -7]],
