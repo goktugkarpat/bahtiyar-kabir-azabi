@@ -744,7 +744,9 @@
   }
   function renderSettings() {
     const video = $('settings-video'), audio = $('settings-audio');
-    $('settings-game').replaceChildren(choiceRow('difficulty', KabirI18n.t('Zorluk'), ['easy','normal','hard'],v=>v==='easy'?KabirI18n.t('Kolay'):v==='normal'?'Normal':KabirI18n.t('Zor')));
+    const difficultyRow = choiceRow('difficulty', KabirI18n.t('Zorluk'), ['easy','normal','hard'],v=>v==='easy'?KabirI18n.t('Kolay'):v==='normal'?'Normal':KabirI18n.t('Zor'));
+    { const note = document.createElement('small'); note.id = 'difficulty-note'; note.className = 'difficulty-note'; note.style.display = 'block'; note.style.marginTop = '8px'; note.style.lineHeight = '1.45'; difficultyRow.append(note); }   // what each difficulty changes (combat-tuning.js describe)
+    $('settings-game').replaceChildren(difficultyRow);
     $('difficulty-note').textContent = (B.CombatTuning ? B.CombatTuning.describe(cfg.difficulty) + ' ' + KabirI18n.t('Seçimin hemen uygulanır; yeniden açılışta Normal başlar.') : KabirI18n.t('Kolay: daha az tehlike. Normal: dengeli bir yolculuk. Zor: daha sert savaşlar. Seçimin hemen uygulanır; yeniden açılışta Normal başlar.'));
     const languageSetting=document.createElement('div');languageSetting.className='setting';languageSetting.innerHTML='<div class="setting-head"><label>'+KabirI18n.t('Dil')+KabirI18n.t('</label></div><div class="language-choice" data-language-native><button type="button" data-language="tr" lang="tr">Türkçe</button><button type="button" data-language="en" lang="en">English</button></div><small>')+KabirI18n.t('Dil değişince oyun yeniden açılır; kayıtların korunur.')+'</small>';languageSetting.querySelectorAll('[data-language]').forEach(button=>{button.classList.toggle('selected',button.dataset.language===KabirI18n.lang);button.setAttribute('aria-pressed',String(button.dataset.language===KabirI18n.lang));button.onclick=()=>KabirI18n.setLanguage(button.dataset.language);});$('settings-game').append(languageSetting);
     const gameHeading = document.createElement('h3'); gameHeading.textContent = KabirI18n.t('Yolculuğun'); $('settings-game').prepend(gameHeading);

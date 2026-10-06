@@ -39,7 +39,7 @@
   // Per-chapter correction for common foes (not bosses), on top of the campaign ramp in combat.js. Measured with the average bot on Normal
   // (hero at the expected level/gear of the chapter: L3 / L6 / L9 / L11), health lost per hall without -> with this table:
   // ch I 23.6 -> ~20 %, ch II 12.3 (the hero's level-6 jump outran the shore foes) -> ~19 %, ch III 33 -> ~26 %, ch IV 42 -> ~34 %.
-  const CHAPTER = Object.freeze({ 1: { hp: 1, dmg: .85 }, 2: { hp: 1.12, dmg: 2.3 }, 3: { hp: 1, dmg: .88 }, 4: { hp: 1, dmg: .8 } });
+  const CHAPTER = Object.freeze({ 1: { hp: 1, dmg: .85 }, 2: { hp: 1.12, dmg: 2.15 }, 3: { hp: 1, dmg: .88 }, 4: { hp: 1, dmg: .8 } });
   // Chapter bosses (their own blows only; adds follow CHAPTER): the forge heart hit softer than the hollow king it follows.
   const BOSS = Object.freeze({ 1: { dmg: 1 }, 2: { dmg: 1 }, 3: { dmg: 1 }, 4: { dmg: 1.3 } });
   function profile(level) { return DIFFICULTY[level] || DIFFICULTY.normal; }
@@ -69,4 +69,4 @@
                    A 263 (0/0)     A 156 (0/1)     A 697 (0/3)     A 995 (1/11)
    Easy novice     A 212 (0/0)     A 150           A 225           A 321 (0/1)
    Old Hard let a skilled roller lose 35 % over all of chapter I; the spam roller now loses 3-6x what a timed roller loses on Normal.
-   Chapter II common foes were raised again after this table (dmg 2.0 -> 2.3, the level-6 hero outran them). */
+   Chapter II common foes were raised again after this table (dmg 2.0 -> 2.15; 2.3 measured 311 / 610 / 301 for normal avg / hard avg / hard skilled, a touch above chapter III). */
