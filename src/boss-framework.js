@@ -199,7 +199,9 @@
       var m = B.BossMech && B.BossMech.current, core = B.Boss2 && B.Boss2.current;
       if (m && (m.liveOrbs() > 0 || (m.riteActive && m.riteActive()) || (m.majorActive && m.majorActive(e)))) return true;
       if (core && core.ext && core.ext.game === game && ((core.nova && core.nova.on) || (core.orbs && core.orbs.count && core.orbs.count() > 0))) return true;
-      for (var i = 0; i < hazards.length; i++) { var h = hazards[i]; if (h.owner === e && !h.persistent && h.age < h.warn + h.duration) return true; }
+      // nothing pending of its own; and the floor round the hero not already crowded by the adds' blows (no unreadable stacking)
+      for (var i = 0, crowd = 0; i < hazards.length; i++) { var h = hazards[i]; if (h.persistent || h.harmless || h.age > h.warn + h.duration) continue;
+        if (h.owner === e) return true; if (hyp(h.x - player.x, h.z - player.z) < 9 && ++crowd >= 3) return true; }
       return st.tether !== null;
     }
     function pace() { return game.difficulty === 'easy' ? 1.35 : game.difficulty === 'normal' ? 1.12 : 1; }
