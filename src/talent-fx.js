@@ -83,7 +83,7 @@
     const bell = new T.Mesh(new T.LatheGeometry(pts, 20), bellMat); bell.visible = false; bell.renderOrder = 5; group.add(bell);
     const bellWire = new T.LineSegments(new T.EdgesGeometry(bell.geometry, 25), new T.LineBasicMaterial({ color: new T.Color(.85, 1, .7), transparent: true, opacity: 0, blending: T.AdditiveBlending, depthWrite: false }));
     bell.add(bellWire);
-    let bellT = 9, bellOwner = null, bellR = 7;
+    let bellT = 9, bellOwner = null, bellR = 7, bellWave = 3;
     // ---- particles
     const MAX = 900, pos = new Float32Array(MAX * 3), col = new Float32Array(MAX * 4), size = new Float32Array(MAX);
     const vel = new Float32Array(MAX * 3), life = new Float32Array(MAX), age = new Float32Array(MAX), base = new Float32Array(MAX * 4), grav = new Float32Array(MAX), size0 = new Float32Array(MAX);
@@ -115,7 +115,7 @@
       if ((kind === 'rot' || kind === 'dread') && !m.sigil) { const s = sigilPool.find(q => !q.owner); if (s) { s.owner = e; m.sigil = s; s.m.visible = true; } }
       if (m.sigil) m.sigil.mat.uniforms.uColor.value.set(...(m.rot ? COLORS.rot : COLORS.dread));
       if (fresh) {
-        const y = (e.model && e.model.root.position.y) || 0, c = COLORS[kind === 'burn' ? 'fire' : kind];
+        const y = (e.model && e.model.root.position.y) || 0, c = COLORS[kind === 'burn' ? 'fire' : kind === 'bleed' ? 'blood' : kind] || COLORS.bone;
         for (let i = 0; i < 10; i++) { const a = Math.random() * 6.283; spark(e.x + Math.sin(a) * .3, y + rnd(.6, 1.6), e.z + Math.cos(a) * .3, Math.sin(a) * rnd(.5, 1.6), rnd(.4, 1.8), Math.cos(a) * rnd(.5, 1.6), c, rnd(.35, .6), rnd(.08, .14), kind === 'bleed' ? -6 : 0); }
       }
     }
@@ -154,7 +154,7 @@
     }
     function bellAt(p, radius) {
       bellT = 0; bellOwner = p; bellR = radius; bell.visible = true;
-      for (let k = 0; k < 3; k++) setTimeout(() => { if (bellOwner) ring(bellOwner.x, bellOwner.z, bellR * (.75 + k * .14), k === 1 ? COLORS.bone : COLORS.rot, .75 + k * .1); }, 280 + k * 170);
+      bellWave = 0;
     }
     function chains(p, foes) {
       const y0 = gy(p.x, p.z) + 1;
@@ -207,12 +207,13 @@
       // bell
       if (bell.visible) {
         bellT += dt; const k = bellT / 1.3, p = bellOwner;
+        while (p && bellWave < 3 && bellT >= .28 + bellWave * .17) { ring(p.x, p.z, bellR * (.75 + bellWave * .14), bellWave === 1 ? [.42, .4, .3] : [.17, .42, .09], .75 + bellWave * .1); bellWave++; }
         if (k >= 1 || !p) { bell.visible = false; bellOwner = null; }
         else {
           const fade = Math.min(1, k * 6) * (1 - Math.max(0, (k - .6) / .4));
           bell.position.set(p.x, gy(p.x, p.z) + 2.6 + k * .5, p.z); bell.rotation.z = Math.sin(bellT * 11) * .32 * (1 - k); bell.rotation.y = bellT * .5;
           bell.scale.setScalar(.9 + .25 * Math.sin(Math.min(1, k * 3) * Math.PI / 2));
-          bellMat.opacity = .38 * fade; bellWire.material.opacity = .7 * fade;
+          bellMat.opacity = .16 * fade; bellWire.material.opacity = .85 * fade;
           if (Math.random() < dt * 40) { const a = Math.random() * 6.283; spark(p.x + Math.sin(a) * .7, bell.position.y - .2, p.z + Math.cos(a) * .7, Math.sin(a) * 1.4, -rnd(.3, 1.2), Math.cos(a) * 1.4, Math.random() < .5 ? COLORS.rot : COLORS.bone, .7, .14, -1); }
         }
       }

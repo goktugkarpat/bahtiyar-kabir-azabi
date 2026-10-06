@@ -265,10 +265,18 @@
     }
     function reset() { status.clear(); zones.length = 0; later.length = 0; if (look) look.reset(); }
     function dispose() { reset(); if (look) look.dispose(); }
-    return { isActive, cast, onCast, outgoing, onHit, onKill, incoming, regenMul, flaskHealMul, maxFlasks, dodgeCost, dodgeBlocked, onDodge, update, reset, dispose,
+    const api = { isActive, cast, onCast, outgoing, onHit, onKill, incoming, regenMul, flaskHealMul, maxFlasks, dodgeCost, dodgeBlocked, onDodge, update, reset, dispose,
       effective: skill => skill && tree ? tree.effective(skill, progression.learned) : skill,
       inCombat: () => enemies.some(e => !e.dead && e.active && Math.hypot(e.x - player.x, e.z - player.z) < 16),
       debug: () => ({ status: Array.from(status.entries()).map(([e, s]) => ({ id: e.id, hp: e.hp, bleed: s.bleed && +s.bleed.time.toFixed(2), burn: s.burn && +s.burn.time.toFixed(2), rot: +s.rot.toFixed(2), dread: +s.dread.toFixed(2) })), zones: zones.map(z => ({ kind: z.kind, owner: z.owner, life: +z.life.toFixed(2) })), later: later.length, hearth }) };
+    // A talent bug must never break a fight: every hook fails soft (neutral value) and reports once.
+    const NEUTRAL = { outgoing: (e, d) => d, incoming: d => d, regenMul: () => 1, flaskHealMul: () => 1, maxFlasks: b => b, dodgeCost: b => b, effective: s => s };
+    let warned = false;
+    for (const name of Object.keys(api)) {
+      const fn = api[name];
+      api[name] = function () { try { return fn.apply(null, arguments); } catch (err) { if (!warned) { warned = true; console.warn('TalentRuntime', name, err); } return NEUTRAL[name] ? NEUTRAL[name].apply(null, arguments) : false; } };
+    }
+    return api;
   }
   B.TalentRuntime = Object.freeze({ create });
 }());
