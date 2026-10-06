@@ -27,6 +27,7 @@
   if (BABA.CoastCombat) Object.assign(STATS, BABA.CoastCombat.stats);
   if (BABA.RuinsCombat) Object.assign(STATS, BABA.RuinsCombat.stats);
   if (BABA.ForgeCombat) Object.assign(STATS, BABA.ForgeCombat.stats);
+  if (BABA.FinaleCombat) Object.assign(STATS, BABA.FinaleCombat.stats);   // chapter V (finale-combat.js): stats carry forge:true + finale:true
   // Stronger enemies resist an unbuffed full Girdap; the boss has faster, explicitly timed normal moves.
   // Apply health once at spawn and damage once at contact so every enemy move follows the same balance.
   const BALANCE = Object.freeze({ health: 1.65, bossHealth: 1.50, damage: 1.70 });
@@ -111,7 +112,7 @@
   function create(world, services) {
     const scene = services.scene;
     const SAVE_KEY = 'baba.kabir.campaign.v1';
-    const chapter = Math.max(1, Math.min(4, world.chapter || 1));
+    const chapter = Math.max(1, Math.min(BABA.FINAL_CHAPTER || 5, world.chapter || 1)), FINAL = BABA.FINAL_CHAPTER || 5;
     const emit = (name, data) => { if (services.emit) services.emit(name, data || {}); };
     const sound = (name, opts) => { if (services.sound) services.sound(name, opts || {}); };
     const fx = (name, data) => { if (services.fx) services.fx(name, data || {}); };
@@ -183,7 +184,7 @@
       }
       try {
         const saved = JSON.parse(window.localStorage.getItem(SAVE_KEY));
-        if (!saved || saved.version !== 3 || ![2, 3, 4].includes(saved.chapter) || (!saved.transition && !saved.completed)) return false;
+        if (!saved || saved.version !== 3 || !(saved.chapter >= 2 && saved.chapter <= FINAL) || (!saved.transition && !saved.completed)) return false;
         saved.progression = progression.snapshot();
         window.localStorage.setItem(SAVE_KEY, JSON.stringify(saved));
         return true;
@@ -612,14 +613,14 @@
     encounterDefs.forEach((enc, ei) => {
       enc.spawns.forEach((s, si) => {
         const stats = STATS[s.type], model = BABA.Models.create(s.type);
-        const stage = enc.stage == null ? (chapter >= 2 ? (chapter === 4 ? 1.3 + ei * .012 : chapter === 3 ? 1.22 + ei * .014 : 1.08 + ei * .025) : ei === 0 ? .48 : ei === 1 ? .62 : .62 + .38 * ei / 5) : enc.stage;
+        const stage = enc.stage == null ? (chapter >= 2 ? (chapter >= 4 ? 1.3 + (chapter - 4) * .04 + ei * .012 : chapter === 3 ? 1.22 + ei * .014 : 1.08 + ei * .025) : ei === 0 ? .48 : ei === 1 ? .62 : .62 + .38 * ei / 5) : enc.stage;
         // Authored room stage remains intact; campaign pressure is additional, so an explicit stage cannot erase chapter progression.
         // Chapter II ramps after its midpoint. Later chapters assume a learned toolkit and retained equipment, never inspect gear to scale enemies.
         const progress = chapter === 2 && world.spawn && world.bossSpawn ? clamp((world.spawn.z - s.z) / Math.max(1, world.spawn.z - world.bossSpawn.z), 0, 1) : clamp(ei / Math.max(1, encounterDefs.length - 1), 0, 1), isBoss = !!stats.boss || s.type === 'boss';
         const pressure = chapter === 2 ? clamp((progress - .45) / .55, 0, 1) : progress;
-        const campaignHealth = chapter === 1 ? 1 : isBoss ? [1, 1, 1.22, 1.38, 1.50][chapter] : chapter === 2 ? 1 + .22 * pressure : chapter === 3 ? 1.24 + .16 * pressure : 1.40 + .16 * pressure;
-        const campaignPace = chapter === 1 || isBoss ? 1 : chapter === 2 ? 1 - .08 * pressure : chapter === 3 ? .92 - .04 * pressure : .88 - .03 * pressure;
-        const campaignDamage = chapter === 1 ? (ei === 0 ? .65 : ei === 1 ? .72 : .72 + .28 * Math.min(ei,5) / 5) : chapter === 2 ? 1.05 + .12 * pressure : chapter === 3 ? 1.22 + .12 * pressure : 1.36 + .12 * pressure;
+        const campaignHealth = chapter === 1 ? 1 : isBoss ? 1.50 + Math.max(0, chapter - 4) * .12 - (chapter < 4 ? [0, .5, .5, .28, .12][chapter] : 0) : chapter === 2 ? 1 + .22 * pressure : chapter === 3 ? 1.24 + .16 * pressure : 1.40 + (chapter - 4) * .12 + .16 * pressure;   // chapter >= 4 grows per chapter index (V: final)
+        const campaignPace = chapter === 1 || isBoss ? 1 : chapter === 2 ? 1 - .08 * pressure : chapter === 3 ? .92 - .04 * pressure : .88 - (chapter - 4) * .02 - .03 * pressure;
+        const campaignDamage = chapter === 1 ? (ei === 0 ? .65 : ei === 1 ? .72 : .72 + .28 * Math.min(ei,5) / 5) : chapter === 2 ? 1.05 + .12 * pressure : chapter === 3 ? 1.22 + .12 * pressure : 1.36 + (chapter - 4) * .1 + .12 * pressure;
         const maxHp = Math.round(stats.hp * (isBoss ? BALANCE.bossHealth : BALANCE.health) * stage * campaignHealth * (s.elite && !stats.elite ? 1.45 : 1));
         const holder = new THREE.Group(); holder.name = 'enemy-holder'; holder.add(model.root); root.add(holder);
         guardRenderMatrices(holder); guardRenderMatrices(model.root); model.root.userData.skipFresh = true;
@@ -692,7 +693,7 @@
       try {
         const saved = JSON.parse(window.localStorage.getItem(SAVE_KEY));
         if (!saved || saved.version !== 3 || saved.chapter !== chapter || !saved.progression || ![1, BABA.Progression.VERSION].includes(saved.progression.version) || !Array.isArray(saved.progression.inventory)) return null;
-        if (saved.completed && chapter === 4 && saved.index === 0) return Object.assign(freshSnapshot(saved.progression), { completed: true,
+        if (saved.completed && chapter === FINAL && saved.index === 0) return Object.assign(freshSnapshot(saved.progression), { completed: true,
           kills: Number.isSafeInteger(saved.kills) && saved.kills >= 0 ? saved.kills : 0,
           elapsed: clamp(Number(saved.elapsed) || 0, 0, 86400), quests: saved.quests || null });
         if (saved.transition && chapter >= 2 && saved.index === 0) return freshSnapshot(saved.progression);
@@ -801,7 +802,7 @@
         return;
       }
       game.state = 'playing';
-      emit('toast', { text: chapter === 4 ? (checkpointSnapshot.index ? KabirI18n.t('Son ocak yemininden devam ediyorsun. Ocağın Kalbi ileride.') : KabirI18n.t('Kızıl Ocak. Zincir tezgâhlarını geç; ocağın kalbini söndür.')) : chapter === 3 ? (checkpointSnapshot.index ? KabirI18n.t('Son yemin taşından devam ediyorsun. Oyukların Kralı ileride.') : KabirI18n.t('Sessiz Taht. Harabelerden mağaraya in; oyukların kaynağını sustur.')) : world.chapter === 2 ? (checkpointSnapshot.index ? KabirI18n.t('Son Fener’den devam ediyorsun. Çancı ileride.') : KabirI18n.t('Kara Kıyı. Kökleri yar. Boğulmuş çanı sustur.')) : checkpointSnapshot.index ? KabirI18n.t('Son mühürden devam ediyorsun. Cellat ileride.') : KabirI18n.t('Kurban Tapınağı. Mührü bul. Celladı sustur.') });
+      emit('toast', { text: chapter === 5 ? (checkpointSnapshot.index ? KabirI18n.t('Son yemin taşından devam ediyorsun. Son Yargıç ileride.') : KabirI18n.t('Son Mahkeme. Boşluğun üstündeki yolu geç; hükmü veren eli kır.')) : chapter === 4 ? (checkpointSnapshot.index ? KabirI18n.t('Son ocak yemininden devam ediyorsun. Ocağın Kalbi ileride.') : KabirI18n.t('Kızıl Ocak. Zincir tezgâhlarını geç; ocağın kalbini söndür.')) : chapter === 3 ? (checkpointSnapshot.index ? KabirI18n.t('Son yemin taşından devam ediyorsun. Oyukların Kralı ileride.') : KabirI18n.t('Sessiz Taht. Harabelerden mağaraya in; oyukların kaynağını sustur.')) : world.chapter === 2 ? (checkpointSnapshot.index ? KabirI18n.t('Son Fener’den devam ediyorsun. Çancı ileride.') : KabirI18n.t('Kara Kıyı. Kökleri yar. Boğulmuş çanı sustur.')) : checkpointSnapshot.index ? KabirI18n.t('Son mühürden devam ediyorsun. Cellat ileride.') : KabirI18n.t('Kurban Tapınağı. Mührü bul. Celladı sustur.') });
     }
     function restart() {
       if (disposed) return;
@@ -837,14 +838,14 @@
       game.attackTarget = null;
       if (globes) globes.reset();
       saveCheckpoint(); flashRing(checkpoint.x, checkpoint.z, 3.3, 0xf0d293, 1.4);
-      sound('checkpoint'); emit('checkpoint', { index: 1, name: chapter === 4 ? 'Son Ocak Yemini' : chapter === 3 ? KabirI18n.t('Tahtın Eşiği') : world.chapter === 2 ? KabirI18n.t('Son Fener') : KabirI18n.t('Celladın Eşiği') });
+      sound('checkpoint'); emit('checkpoint', { index: 1, name: chapter === 5 ? KabirI18n.t('Son Tanıklık') : chapter === 4 ? 'Son Ocak Yemini' : chapter === 3 ? KabirI18n.t('Tahtın Eşiği') : world.chapter === 2 ? KabirI18n.t('Son Fener') : KabirI18n.t('Celladın Eşiği') });
       return true;
     }
     function interact() {
       if (game.state !== 'playing') return;
       if (quests && quests.interact()) return;
       if (activateCheckpoint()) return;
-      if (distance(player, checkpoint) < 6.1) emit('toast', { text: game.checkpointIndex ? (chapter === 4 ? KabirI18n.t('Yemin mühürlü. Ocağın Kalbi ileride bekliyor.') : chapter === 3 ? KabirI18n.t('Yemin mühürlü. Oyukların Kralı ileride bekliyor.') : world.chapter === 2 ? KabirI18n.t('Yemin mühürlü. Çancı ileride bekliyor.') : KabirI18n.t('Mühür açık. Cellat salonda bekliyor.')) : KabirI18n.t('Yakındaki tehlikeden uzaklaş; sonra yemin taşına dön.') });
+      if (distance(player, checkpoint) < 6.1) emit('toast', { text: game.checkpointIndex ? (chapter === 5 ? KabirI18n.t('Yemin mühürlü. Son Yargıç ileride bekliyor.') : chapter === 4 ? KabirI18n.t('Yemin mühürlü. Ocağın Kalbi ileride bekliyor.') : chapter === 3 ? KabirI18n.t('Yemin mühürlü. Oyukların Kralı ileride bekliyor.') : world.chapter === 2 ? KabirI18n.t('Yemin mühürlü. Çancı ileride bekliyor.') : KabirI18n.t('Mühür açık. Cellat salonda bekliyor.')) : KabirI18n.t('Yakındaki tehlikeden uzaklaş; sonra yemin taşına dön.') });
     }
 
     function moveBody(body, dx, dz, radius) {
@@ -1341,11 +1342,13 @@
     const coast = BABA.CoastCombat ? BABA.CoastCombat.create({ player, pick, beginMove, clipLine, walkable, cancelHazards, emit, sound, fx, bonus: (x,z,n) => { if (globes) globes.bonus(x,z,n); } }) : null;
     const ruins = BABA.RuinsCombat ? BABA.RuinsCombat.create({ player, pick, beginMove, clipLine, walkable, cancelHazards, emit, sound, fx, bonus: (x,z,n) => { if (globes) globes.bonus(x,z,n); } }) : null;
     const forge = BABA.ForgeCombat ? BABA.ForgeCombat.create({ player, pick, beginMove, clipLine, walkable, cancelHazards, emit, sound, fx, bonus: (x,z,n) => { if (globes) globes.bonus(x,z,n); } }) : null;
+    const finale = BABA.FinaleCombat && chapter === FINAL ? BABA.FinaleCombat.create({ player, pick, beginMove, clipLine, walkable, cancelHazards, emit, sound, fx, game, enemies, bonus: (x,z,n) => { if (globes) globes.bonus(x,z,n); } }) : null;
     // Round 7: chapter III / IV boss set pieces (orbs, cover pillars, adds, burning ground) live in boss2.js; the move tables get a handle on it.
     if (BABA.Boss2 && chapter >= 2) {
       boss2 = BABA.Boss2.create({ root, world, chapter, game, player, enemies, hazards, emit, sound, fx, walkable, hitPlayer, hazardFrom, addHazard, killEnemy, restoreEnemy: enemy => { if (limbs) limbs.restore(enemy); Object.assign(enemy, freshEnemyFields(enemy)); enemy.poiseRecovery = 0; } });
       if (ruins && ruins.attach) ruins.attach(boss2);
       if (forge && forge.attach) forge.attach(boss2);
+      if (finale && finale.attach) finale.attach(boss2);
     }
     function bossAttack(e, d) {
       if (d > 14.5) return false;
@@ -1419,6 +1422,7 @@
     }
     // Kanlı Yemin: the executioner roars (a gold shockwave that pushes the hero out), then chains his blows.
     function enemyPhaseChange(enemy) {
+      if (enemy.stats.finale && finale) { finale.phase(enemy); return; }
       if (enemy.stats.forge) { forge.phase(enemy); return; }
       if (enemy.stats.ruins) { ruins.phase(enemy); return; }
       if (enemy.stats.coast) { coast.phase(enemy); return; }
@@ -1509,7 +1513,8 @@
       if (!enemy.stats.coast && !enemy.stats.ruins && !enemy.stats.forge && enemy.boss) { enemy.wrath = Math.max(0, enemy.wrath - dt * 12); if (enemy.wrath >= 70 && d < 3.2) { enemy.wrath = 0; if (beginMove(enemy, kickMove())) { advanceEnemyAction(enemy, dt); return; } } }
       if (enemy.cooldown <= 0 && enemy.fear <= 0 && openAttackSlots(enemy)) {
         let attacked = false;
-        if (enemy.stats.forge) attacked = forge.attack(enemy, d);
+        if (enemy.stats.finale && finale) attacked = finale.attack(enemy, d);
+        else if (enemy.stats.forge) attacked = forge.attack(enemy, d);
         else if (enemy.stats.ruins) attacked = ruins.attack(enemy, d);
         else if (enemy.stats.coast) attacked = coast.attack(enemy, d);
         else if (enemy.type === 'prisoner') attacked = prisonerAttack(enemy, d);
@@ -1548,10 +1553,10 @@
           const strafe = enemy.face + Math.PI / 2 * (enemy.index % 2 ? 1 : -1);
           moveBody(enemy, Math.sin(strafe) * .55 * dt, Math.cos(strafe) * .55 * dt, enemy.radius); enemy.move = .3;
         }
-      } else if (['stalker', 'crawler', 'cavefang', 'slagcrawler'].includes(enemy.type) && d > 3 && d < 6.5 && enemy.cooldown > .3) {
+      } else if (['stalker', 'crawler', 'cavefang', 'slagcrawler', 'voidcrawler'].includes(enemy.type) && d > 3 && d < 6.5 && enemy.cooldown > .3) {
         const strafe = enemy.face + Math.PI / 2 * (enemy.index % 2 ? 1 : -1);
         moveBody(enemy, Math.sin(strafe) * speed * .8 * dt, Math.cos(strafe) * speed * .8 * dt, enemy.radius); enemy.move = .8;
-      } else if (['guard', 'gravemason', 'forgesentinel'].includes(enemy.type)) {
+      } else if (['guard', 'gravemason', 'forgesentinel', 'chainjailer'].includes(enemy.type)) {
         const post = guardPost(enemy);
         if (post && distance(enemy, post) > .35) { walkTo(enemy, post, speed * .85, dt); enemy.shield = enemy.type === 'guard' && enemy.shieldBroken <= 0; }
         else if (!post && d > (enemy.type === 'guard' ? 2.65 : 3.4)) walkTo(enemy, player, speed, dt);
@@ -1690,7 +1695,7 @@
       buffer = {}; pendingDodge = null; player.pendingAction = null; player.lack = null; game.attackTarget = null;
       progression.completedChapter(chapter); syncProgression();
       // The first boss writes the shore entrance atomically with every earned reward.
-      const complete = chapter === 4;
+      const complete = chapter === FINAL;
       const transition = { version: 3, chapter: complete ? chapter : chapter + 1, index: 0, transition: !complete, completed: complete, dead: [], kills: complete ? game.kills : 0, elapsed: complete ? game.elapsed : 0, progression: progression.snapshot() };
       if (complete && quests) transition.quests = quests.snapshot();
       try { window.localStorage.setItem(SAVE_KEY, JSON.stringify(transition)); } catch (_) { emit('toast', { text: KabirI18n.t('Bölüm geçişi bu cihazda kaydedilemedi.') }); }
