@@ -49,7 +49,7 @@
     var nodes = [];
     function seed(x, z) { if (isWalkable(x, z, 1.05)) nodes.push({ x: x, z: z, edges: [] }); }
     rooms.forEach(function (r) { [-6, 0, 6].forEach(function (x) { [-7, 0, 7].forEach(function (z) { seed(x, r.z + z); }); }); });
-    WINGS.forEach(function (W) { for (var z = W.z1 - 3; z > W.z0; z -= 6) [4, 9, 14].forEach(function (t) { seed(W.side * (21 + t), z); }); });
+    WINGS.forEach(function (W) { for (var z = W.z1 - 3; z > W.z0; z -= 6) [3.5, 8.5, 13.5].forEach(function (t) { seed(W.side * (21 + t), z); }); });
     WINGS.forEach(function (W) { if (W.kind !== 'river') return; W.hosts.forEach(function (h) { var r = rooms[h], rz = r.z + (h % 2 ? 4 : -4), bx = W.side * (21 + (h % 2 ? 6 : 12)); seed(bx, rz - 2.8); seed(bx, rz); seed(bx, rz + 2.8); }); });
     Object.keys(DOORS).forEach(function (k) { var r = rooms[+k], s = DOORS[k], wallX = r.x + s * r.w / 2; seed(wallX - s * 3, r.z); seed(wallX + s * .8, r.z); seed(s * 22.5, r.z); seed((wallX + s * 21) / 2, r.z); });
     for (var i = 0; i < nodes.length; i++) for (var j = i + 1; j < nodes.length; j++) if (Math.hypot(nodes[i].x - nodes[j].x, nodes[i].z - nodes[j].z) < 30 && hasClearPath(nodes[i].x, nodes[i].z, nodes[j].x, nodes[j].z, 1.05)) { nodes[i].edges.push(j); nodes[j].edges.push(i); }

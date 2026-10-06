@@ -676,24 +676,24 @@
       }
       // kind-specific furniture (absolute coordinates); every heavy prop gets a footprint
       if (W.kind === 'slag') {
-        slagHeap(U(RR(8, 12)), zc + RR(-8, -5), 1.5, true); slagHeap(U(RR(11, 15)), zc + RR(5, 8), 1.2, i % 2 === 0);
-        cart(U(5), zc + 2.5, .3 * s, false); anvil(U(13), zc - 1, .8, 1);
+        slagHeap(U(RR(13.5, 15)), zc + RR(-8, -5), 1.4, true); slagHeap(U(RR(14, 15.5)), zc + RR(5, 8), 1.1, i % 2 === 0);
+        cart(U(4), zc + 2.5, .3 * s, false); anvil(U(14), zc - 1, .8, 1);
         if (mid) { // crane gantry with a chain-slung skip
           K.put(i, 'box', 'iron', U(4), 3.5, zc - 9, .6, 7, .6, 0, 0, 0, IRONT, .4); K.put(i, 'box', 'iron', U(16), 3.5, zc - 9, .6, 7, .6, 0, 0, 0, IRONT, .4); K.solid(U(4), zc - 9, .7, .7); K.solid(U(16), zc - 9, .7, .7);
           K.put(i, 'box', 'iron', U(10), 7.1, zc - 9, 12.6, .6, .7, 0, 0, 0, IRONT, .2); K.chain(i, U(9), 6.8, zc - 9, 2.6, [.55, .5, .48]); K.put(i, 'vat', 'iron', U(9), 3.4, zc - 9, 1.6, 1.2, 1.6, 0, 0, 0, [.5, .46, .44], .3); K.put(i, 'disc', 'hot', U(9), 3.95, zc - 9, 1.2, 1, 1.2, 0, 0, 0, [1.8, .7, .2], 0);
         }
       } else if (W.kind === 'bellows') {
-        [-1, 1].forEach(function (q) { bellows(U(9), zc + q * 6.5, s, mid && q > 0); });
-        brazierF(U(15.5), zc, 1, 18); anvil(U(5), zc - 1.5, .2, 1.1);
+        [-1, 1].forEach(function (q) { bellows(U(14.2), zc + q * 6.5, s, mid && q > 0); });
+        brazierF(U(15.5), zc, 1, 18); anvil(U(4), zc - 1.5, .2, 1.1);
       } else if (W.kind === 'river') {
         var rz = zc + (i % 2 ? 4 : -4), bx = U(i % 2 ? 6 : 12);
         lavaRiver(W.x, rz, 18, 2.6);
         K.solid((U(0) + bx - s * 2.6) / 2, rz, Math.abs(bx - s * 2.6 - U(0)), 2.2); K.solid((bx + s * 2.6 + U(18)) / 2, rz, Math.abs(U(18) - bx - s * 2.6), 2.2);
         K.put(i, 'box', 'iron', bx, .16, rz, 5.2, .2, 3.6, 0, 0, 0, [.5, .46, .44], .3); [-1, 1].forEach(function (q) { for (var pp = -1; pp <= 1; pp++) K.put(i, 'cyl6', 'iron', bx + q * 2.5, .6, rz + pp * 1.6, .08, 1.0, .08, 0, 0, 0, IRONT, .2); K.bar(i, 'cyl', 'iron', bx + q * 2.5, 1.1, rz - 1.7, bx + q * 2.5, 1.1, rz + 1.7, .05, [.6, .56, .54], .2); });
-        if (mid) chainWell(U(10), zc - (i % 2 ? 5 : -5)); else { cage(U(12), zc + (i % 2 ? -5 : 5), 1.6); slagHeap(U(5), zc + (i % 2 ? -7 : 7), 1.1, true); }
+        if (mid) chainWell(U(14), zc - (i % 2 ? 5 : -5)); else { cage(U(12), zc + (i % 2 ? -5 : 5), 1.6); slagHeap(U(5), zc + (i % 2 ? -7 : 7), 1.1, true); }
       } else {
-        for (var p2 = 0; p2 < 3; p2++) scrapPile(U(RR(5, 14)), zA + (p2 + .5) * L / 3 + RR(-2, 2), RR(1.2, 1.9));
-        cart(U(8), zc + 3.5, -.4 * s, false); K.chain(i, U(12), 6.5, zc - 3, 4.4, [.55, .5, .48]); K.chain(i, U(13), 6.5, zc - 3.6, 3.8, [.55, .5, .48]);
+        for (var p2 = 0; p2 < 3; p2++) scrapPile(U(p2 % 2 ? RR(3.6, 4.4) : RR(13.6, 15)), zA + (p2 + .5) * L / 3 + RR(-2, 2), RR(1.1, 1.5));
+        cart(U(13.6), zc + 3.5, -.4 * s, false); K.chain(i, U(12), 6.5, zc - 3, 4.4, [.55, .5, .48]); K.chain(i, U(13), 6.5, zc - 3.6, 3.8, [.55, .5, .48]);
         K.put(i, 'box', 'iron', U(12.5), 6.6, zc - 3.3, 4, .5, .5, 0, 0, 0, IRONT, .2); K.put(i, 'box', 'iron', U(14.4), 3.3, zc - 3.3, .5, 6.6, .5, 0, 0, 0, IRONT, .3); K.solid(U(14.4), zc - 3.3, .6, .6);
       }
       // overhead iron trusses on tall pillars give the open hall a rhythm (pillars sit on the outer bank, never in the lanes)
@@ -718,7 +718,7 @@
       K.light(i, U(9), 2.6, zc + (mid ? 7 : 0), 0xff8038, 20, 13, { glow: 1, scatter: .2, flicker: .18 });
     }
     function bellows(x, z, s, big) {
-      var k = big ? 1.35 : 1;
+      var k = big ? .95 : .75;
       K.put(i, 'box', 'wall', x + s * 3.2 * k, 1.1 * k, z, 2.6 * k, 2.2 * k, 3.4 * k, 0, 0, 0, [.3, .27, .26], .5);   // furnace block it feeds
       K.put(i, 'box', 'hot', x + s * 1.88 * k, .9 * k, z, .06, .9 * k, 1.6 * k, 0, 0, 0, [1.05, .34, .07], 0); K.spr(i, S.glow, x + s * 1.4 * k, .9 * k, z, 2.2, 2.2, [.9, .3, .06], .7, RW(), 1, 1);
       // the bellows: two hinged iron-shod boards and the creased leather between them

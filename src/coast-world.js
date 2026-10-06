@@ -595,6 +595,8 @@
       roomGroups.forEach(function (g, i) { var r = i < 7 ? rooms[i] : allRooms[i]; g.visible = Math.abs(r.z - p.z) < 42 + r.d * .5 && Math.abs((r.x || 0) - p.x) < 52 + r.w * .5; });if(openFx)openFx.update(time,p);
       animated.forEach(function (a) { if (calm) return; if (a.boat) {var wave=seaStateAt(a.object.position.x,a.object.position.z,time);a.object.position.y=a.y+wave.x*.45;a.object.rotation.z=a.roll+wave.y*.18;a.object.rotation.x=-wave.z*.18;} else if (a.foam){var wash=.5+.5*Math.sin(time*.85+a.phase);a.object.position.x=a.x+wash*.38;a.object.position.y=-.38+wash*.035;} });
       ash.position.x = calm ? 0 : Math.sin(time * .09) * .3;
+      // slow tide: the black sea breathes up and down the eroded bank (~2 min period)
+      sea.position.y = -.52 + (calm ? 0 : Math.sin(time * .05) * .09);
       nearby.length = 0;
       for (var i = 0; i < lightSources.length; i++) { var s = lightSources[i]; s.live = Math.max(.1, groupGain[s.group] == null ? 1 : groupGain[s.group]); s.distance = Math.hypot(s.x - p.x, s.z - p.z); if (s.distance < 18) { s.cHeld = false; s.cEff = s.intensity * s.live / (1 + s.distance * s.distance / 30); nearby.push(s); } }
       // Three pooled lamps with eased hand-offs (they used to jump to the new source in one frame) and a x1.35 lead needed to take a slot over its holder.
