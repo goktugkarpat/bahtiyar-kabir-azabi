@@ -16,7 +16,7 @@
     const status = new Map();   // enemy -> { bleed:{dps,time}, burn:{dps,time}, rot:time, rotAmp, dread:time, tick }
     const zones = [];           // { kind, x, z, r, x2, z2, w, time, life, dps, burn, tick, owner, burst }
     const later = [];           // { at, fn }
-    let clock = 0, dodgeRest = 0, refundNote = 0, hearth = false, regenHold = 0;
+    let clock = 0, leechAt = 0, lastX = 0, lastZ = 0, momentum = 0, dodgeRest = 0, refundNote = 0, hearth = false, regenHold = 0;
     const fx = () => tree.effects(progression.learned);
     const has = id => progression.learned.includes(id);
     const sealOf = line => fx().seal[line] || null;
@@ -119,10 +119,26 @@
       return false;
     }
     // ---- seals of the four old lines, fired from useSkill once a cast started -------------------------------
+    // Zincir Kırbacı: the chain lashes the three nearest foes within 7 m.
+    function lash() {
+      const F = fx(); if (!F.lash) return;
+      const near = enemies.filter(e => alive(e) && dist(e, player.x, player.z) < 7 + e.radius && ctx.canHit(e)).sort((a, b) => dist(a, player.x, player.z) - dist(b, player.x, player.z)).slice(0, 3);
+      if (!near.length) return;
+      if (look) look.chains(player, near, true);
+      sound('talentChain', { volume: .8 });
+      for (const e of near) ctx.strike(e, 42, Math.atan2(e.x - player.x, e.z - player.z));
+    }
     function onCast(skill) {
-      const seal = sealOf(skill.line), P = skill.params, face = player.face;
+      const seal = sealOf(skill.line), P = skill.params, face = player.face, F0 = fx();
+      if (F0.lash && skill.line === 'whirl') later.push({ at: clock + (P.duration || 1.3) + .02, fn: lash });
+      if (skill.line === 'charge') { if (F0.lash) later.push({ at: clock + .2, until: 1.6, fn() { if (player.attack && player.attack.line === 'charge' && this.age < this.until) return 'again'; lash(); } }); if (F0.momentum) momentum = 3.4; }
       if (!seal) return;
       const id = seal.id;
+      // seal signatures that only change the look of the old skills
+      if (id === 'cleave-sunder' && look) later.push({ at: clock + (P.strike || .16) + .03, fn() { const r = skill.id === 'brand' ? (P.reach || 2) : 1.6; const x = player.x + Math.sin(face) * r, z = player.z + Math.cos(face) * r; look.burst(x, z, 2.4, 'stone'); sound('talentRot', { x, z, volume: .4 }); } });
+      if (id === 'whirl-hook' && look) later.push({ at: clock + (P.duration || 1.3) * .45, fn() { look.chains(player, enemies.filter(e => alive(e) && dist(e, player.x, player.z) < (P.radius || 3.6) * 1.6).slice(0, 6), true); sound('talentChain', { volume: .7 }); } });
+      if (id === 'charge-chain' && look) later.push({ at: clock + .2, until: 1.8, fn() { if (player.attack && player.attack.line === 'charge' && this.age < this.until) return 'again'; look.chains(player, enemies.filter(e => alive(e) && dist(e, player.x, player.z) < (P.radius || 3) + 3.5).slice(0, 6), true); sound('talentChain'); } });
+      if (id === 'charge-echo' && look) later.push({ at: clock + .05, until: 1.4, fn() { if (player.attack && player.attack.line === 'charge' && this.age < this.until) { look.puff(player.x, (player.model && player.model.root.position.y) || 0, player.z, 'dread', 5); return 'again'; } } });
       if (id === 'cleave-ember') later.push({ at: clock + (P.strike || .16) + .04, fn() {
         const reach = skill.id === 'brand' ? (P.reach || 2) : skill.id === 'temper' ? 1.2 : .4;
         zone({ kind: 'crescent', x: player.x + Math.sin(face) * reach, z: player.z + Math.cos(face) * reach, r: Math.max(3, (P.radius || 3.7) * .9), face, time: 3, dps: 14, burn: 18, owner: 'cleave' });
@@ -160,16 +176,18 @@
       let k = 1;
       if (s) { if (s.rot > 0) k *= s.rotAmp; if (s.dread > 0) k *= 1.2; if (s.bleed && s.bleed.time > 0) k *= F.bleedingTaken; }
       if (F.vsStunned > 1 && e.stagger > 0) k *= F.vsStunned;
+      if (F.frenzy && player.hp < 40) k *= 1.25;
+      if (F.momentum && momentum > 0) k *= 1.2;
       const max = e.maxHp || e.hp || 1;
       if (F.exec && e.hp / max < .4) k *= 1.35;
       let out = Math.round(damage * k);
-      if (F.exec && !e.boss && (e.hp - out) / max < .12 && e.hp - out > 0) { out = e.hp; if (look) look.burst(e.x, e.z, 1.4, 'blood'); sound('talentExecute', { x: e.x, z: e.z }); }
+      if (F.exec && !e.boss && (e.hp - out) / max < .12 && e.hp - out > 0) { out = e.hp; if (look) look.execute(e); sound('talentExecute', { x: e.x, z: e.z }); }
       return out;
     }
     function onHit(e, damage, attack, killed) {
       if (!attack || attack.talent) return;
       const F = fx(), line = attack.line, seal = line ? sealOf(line) : null;
-      if (F.leech && !player.dead) heal(damage * F.leech / (player.effectiveMaxHp || 100));
+      if (F.leech && !player.dead) { heal(damage * F.leech / (player.effectiveMaxHp || 100)); if (look && clock - leechAt > .18) { leechAt = clock; look.leech(e, player); } }
       if (F.has.has('k-hunger')) player.stamina = Math.min(player.maxStamina, player.stamina + 3);
       if (killed) return;
       if (seal && seal.fx.bleed) bleed(e, damage * seal.fx.bleed, 4);
@@ -178,6 +196,11 @@
     }
     function onKill(e) {
       const F = fx(), s = status.get(e), x = e.x, z = e.z;
+      if (F.aftershock && e.stagger > 0) later.push({ at: clock + .08, fn() {
+        if (look) look.burst(x, z, 2.8, 'stone'); sound('talentRot', { x, z, volume: .55 }); ctx.emit('impact', { x, z, strength: .6, radius: 2.8 });
+        for (const o of enemies) if (alive(o) && dist(o, x, z) < 2.8 + o.radius && ctx.canHit(o)) { const r = ctx.strike(o, 34, Math.atan2(o.x - x, o.z - z)); if (r && !r.killed) ctx.stun(o, .6); }
+      } });
+      if (F.has.has('k-hunger') && look) look.souls(e, player);
       if (F.has.has('k-hunger')) player.stamina = Math.min(player.maxStamina, player.stamina + 30);
       if (F.harvest) { player.stamina = Math.min(player.maxStamina, player.stamina + 8); heal(.01); }
       if (s && s.rot > 0) {
@@ -192,12 +215,24 @@
       } });
       status.delete(e); if (look) look.clear(e);
     }
+    // The build shows on the hero: the keystone's path, else a path with at least three nodes.
+    const AURA = { cleave: 'stone', roar: 'blood', whirl: 'chain', charge: 'gold', pyre: 'fire', knell: 'rot' };
+    let auraKey = '', auraVal = '';
+    function auraKind() {
+      const key = progression.learned.join(','); if (key === auraKey) return auraVal;
+      auraKey = key; const F = fx();
+      if (F.keystone) return (auraVal = AURA[F.keystone.line]);
+      const count = {}; for (const id of progression.learned) { const n = tree.get(id); if (n) count[n.line] = (count[n.line] || 0) + 1; }
+      const best = Object.keys(count).sort((a, b) => count[b] - count[a])[0];
+      return (auraVal = best && count[best] >= 4 ? AURA[best] : '');
+    }
     const incoming = damage => damage * fx().taken;
     // Stamina regeneration factor (Ölü Açlığı: none above 20; Ocak Yüreği: twice inside the own seal).
     function regenMul() {
       const F = fx(); let k = F.regen;
       if (F.hunger) k = player.stamina < 20 ? .35 : 0;
       if (hearth) k *= 2;
+      if (F.frenzy && player.hp < 40) k *= 1.15;
       return k;
     }
     const flaskHealMul = () => fx().flaskHeal;
@@ -205,6 +240,7 @@
     const dodgeCost = base => fx().chainDodge ? 0 : base;
     const dodgeBlocked = () => fx().chainDodge && dodgeRest > 0;
     function onDodge() {
+      if (fx().momentum) momentum = 3;
       if (!fx().chainDodge) return;
       dodgeRest = 2;
       // Lands .3 s later, where the roll ends: the chains whip out and drag every foe within 7 m in.
@@ -219,7 +255,7 @@
     }
     // ---- per-frame ------------------------------------------------------------------------------------------
     function update(dt) {
-      clock += dt; dodgeRest = Math.max(0, dodgeRest - dt);
+      clock += dt; dodgeRest = Math.max(0, dodgeRest - dt); momentum = Math.max(0, momentum - dt);
       if (progression.talentRefunded && ctx.game.state === 'playing' && (refundNote = refundNote + dt) > 6) { refundNote = 0; progression.talentRefunded = false; ctx.emit('toast', { text: KabirI18n.t('Yetenek ağacı yenilendi: bütün puanların iade edildi. T ile yeni yolunu seç.') }); }
       ctx.game.criticalChance = .08 + fx().crit;
       for (let i = later.length - 1; i >= 0; i--) {
@@ -240,7 +276,11 @@
         s.tick -= dt;
         if (s.tick <= 0) {
           s.tick += TICK;
-          const amount = ((s.bleed ? s.bleed.dps : 0) + (s.burn ? s.burn.dps : 0)) * TICK;
+          const amount = ((s.bleed ? s.bleed.dps : 0) + (s.burn ? s.burn.dps : 0)) * TICK * (fx().plague && s.rot > 0 ? 1.4 : 1);
+          if (s.burn && fx().kindle && Math.random() < .3) {
+            const next = enemies.find(o => o !== e && alive(o) && dist(o, e.x, e.z) < 3.2 && !(status.get(o) && status.get(o).burn));
+            if (next) { burn(next, s.burn.dps * 2, 3); if (look) look.leap(e, next); }
+          }
           if (amount >= .5) ctx.dot(e, amount, s.burn && (!s.bleed || s.burn.dps >= s.bleed.dps) ? 'burn' : 'bleed');
         }
         if (!s.bleed && !s.burn && s.rot <= 0 && s.dread <= 0) status.delete(e);
@@ -261,7 +301,10 @@
           if (z.burst) fireBurst(z.x, z.z, z.burst, z.r + 1, 1);
         }
       }
-      if (look) look.update(dt, status, hearth ? player : null);
+      if (look) {
+        const moved = Math.hypot(player.x - lastX, player.z - lastZ) > dt * 1.5; lastX = player.x; lastZ = player.z;
+        look.update(dt, status, hearth ? player : null, auraKind() ? { player, kind: auraKind(), moving: moved } : null);
+      }
     }
     function reset() { status.clear(); zones.length = 0; later.length = 0; if (look) look.reset(); }
     function dispose() { reset(); if (look) look.dispose(); }

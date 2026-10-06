@@ -8,7 +8,7 @@
 (function () {
   'use strict';
   const B = window.BABA = window.BABA || {};
-  const COLORS = { fire: [1.45, .3, .04], blood: [1.5, .08, .05], rot: [.4, 1.0, .22], dread: [.55, .2, 1.0], bone: [1.4, 1.3, 1.05] };
+  const COLORS = { stone: [1.1, .85, .55], gold: [1.6, 1.15, .45], chain: [.75, .78, .85], fire: [1.45, .3, .04], blood: [1.5, .08, .05], rot: [.4, 1.0, .22], dread: [.55, .2, 1.0], bone: [1.4, 1.3, 1.05] };
   const ZONE_VS = 'varying vec2 vUv; void main(){ vUv = uv * 2.0 - 1.0; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }';
   // kind 0: seal (rune circle), 1: ring, 2: trail (uv.x along, uv.y across), 3: crescent (front arc)
   const ZONE_FS = [
@@ -77,13 +77,26 @@
       o.t = 0; o.life = life || .5; o.r = r; o.y = y || 0; o.m.position.set(x, gy(x, z) + .05 + (y || 0), z); o.m.scale.set(r, 1, r);
       o.mat.uniforms.uColor.value.set(color[0], color[1], color[2]); o.m.visible = true;
     }
-    // ---- bell (Ölüm Çanı)
-    const pts = [], H = 1.25; for (let i = 0; i <= 14; i++) { const u = i / 14; pts.push(new T.Vector2(.18 + .62 * Math.pow(u, 1.6) + (u > .92 ? (u - .92) * 2.2 : 0), H * (1 - u))); }
-    const bellMat = new T.MeshBasicMaterial({ color: new T.Color(.35, .62, .3), transparent: true, opacity: 0, blending: T.AdditiveBlending, depthWrite: false, side: T.DoubleSide, wireframe: false });
-    const bell = new T.Mesh(new T.LatheGeometry(pts, 20), bellMat); bell.visible = false; bell.renderOrder = 5; group.add(bell);
+    // ---- bell (Ölüm Çanı): a fresnel ghost bell (rim-lit, so it reads from the steep top-down camera), its clapper and a pale pillar of light
+    const pts = [], H = 1.25; for (let i = 0; i <= 18; i++) { const u = i / 18; pts.push(new T.Vector2(.2 + .62 * Math.pow(u, 1.6) + (u > .9 ? (u - .9) * 2.6 : 0), H * (1 - u))); }
+    const GHOST_VS = 'varying vec3 vN; varying vec3 vV; varying float vY; void main(){ vec4 w = modelViewMatrix * vec4(position, 1.0); vN = normalize(normalMatrix * normal); vV = normalize(-w.xyz); vY = position.y; gl_Position = projectionMatrix * w; }';
+    const GHOST_FS = 'varying vec3 vN; varying vec3 vV; varying float vY; uniform float uFade, uTime; uniform vec3 uColor; void main(){ float f = pow(1.0 - abs(dot(normalize(vN), normalize(vV))), 1.6); float band = smoothstep(.04, 0.0, abs(fract(vY * 3.2 - uTime * .8) - .5) - .42); float a = (f * 1.2 + band * .35 + .08) * uFade; gl_FragColor = vec4(uColor * a, a); }';
+    const bellMat = new T.ShaderMaterial({ vertexShader: GHOST_VS, fragmentShader: GHOST_FS, uniforms: { uFade: { value: 0 }, uTime: { value: 0 }, uColor: { value: new T.Vector3(.55, 1.25, .45) } }, transparent: true, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide });
+    const bell = new T.Mesh(new T.LatheGeometry(pts, 28), bellMat); bell.visible = false; bell.renderOrder = 5; group.add(bell);
+    const clapper = new T.Mesh(new T.SphereGeometry(.17, 12, 8), bellMat); clapper.position.y = -.15; bell.add(clapper);
     const bellWire = new T.LineSegments(new T.EdgesGeometry(bell.geometry, 25), new T.LineBasicMaterial({ color: new T.Color(.85, 1, .7), transparent: true, opacity: 0, blending: T.AdditiveBlending, depthWrite: false }));
     bell.add(bellWire);
+    const PILLAR_FS = 'varying vec2 vUv; uniform float uFade, uTime; uniform vec3 uColor; void main(){ float edge = sin(vUv.x * 3.14159); float v = smoothstep(0.0, .15, vUv.y) * (1.0 - smoothstep(.55, 1.0, vUv.y)); float flow = .6 + .4 * sin(vUv.y * 22.0 - uTime * 9.0); float a = edge * edge * v * flow * uFade * .55; gl_FragColor = vec4(uColor * a, a); }';
+    const pillarMat = new T.ShaderMaterial({ vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }', fragmentShader: PILLAR_FS,
+      uniforms: { uFade: { value: 0 }, uTime: { value: 0 }, uColor: { value: new T.Vector3(.35, .85, .3) } }, transparent: true, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide });
+    const pillar = new T.Mesh(new T.CylinderGeometry(1.25, 1.6, 5.5, 24, 1, true), pillarMat); pillar.visible = false; pillar.renderOrder = 4; group.add(pillar);
     let bellT = 9, bellOwner = null, bellR = 7, bellWave = 3;
+    // ---- chains (Zincirli Kader, Zincir Kırbacı, Kanca / Kement): real links, instanced (6 chains x 22 links), thrown out then dragged back
+    const LINKS = 22, CHAINS = 6;
+    const linkMat = new T.MeshStandardMaterial({ color: 0x5d5853, metalness: .85, roughness: .38, emissive: new T.Color(.25, .04, .02) });
+    const links = new T.InstancedMesh(new T.TorusGeometry(.13, .035, 6, 10), linkMat, LINKS * CHAINS); links.frustumCulled = false; links.count = 0; group.add(links);
+    const chainList = [];   // { from, to:{x,z,e}, t, life }
+    const _m = new T.Matrix4(), _q = new T.Quaternion(), _e = new T.Euler(), _p = new T.Vector3(), _s = new T.Vector3(1, 1, 1);
     // ---- particles
     const MAX = 900, pos = new Float32Array(MAX * 3), col = new Float32Array(MAX * 4), size = new Float32Array(MAX);
     const vel = new Float32Array(MAX * 3), life = new Float32Array(MAX), age = new Float32Array(MAX), base = new Float32Array(MAX * 4), grav = new Float32Array(MAX), size0 = new Float32Array(MAX);
@@ -156,14 +169,37 @@
       bellT = 0; bellOwner = p; bellR = radius; bell.visible = true;
       bellWave = 0;
     }
-    function chains(p, foes) {
-      const y0 = gy(p.x, p.z) + 1;
-      for (const e of foes) {
-        const d = Math.hypot(e.x - p.x, e.z - p.z), n = Math.min(26, Math.ceil(d * 4));
-        for (let i = 0; i <= n; i++) { const u = i / n; spark(p.x + (e.x - p.x) * u, y0 + Math.sin(u * Math.PI) * .35, p.z + (e.z - p.z) * u, (p.x - e.x) * .9, 0, (p.z - e.z) * .9, i % 2 ? [1.1, 1.15, 1.25] : [1.6, .35, .2], .5, .13, 0); }
-        burst(e.x, e.z, 1.1, 'blood');
+    function chains(p, foes, lash) {
+      for (const e of foes.slice(0, CHAINS)) {
+        if (chainList.length >= CHAINS) chainList.shift();
+        chainList.push({ from: p, to: e, x: e.x, z: e.z, t: 0, life: lash ? .45 : .55, lash: !!lash });
+        const y = (e.model && e.model.root.position.y) || 0;
+        for (let i = 0; i < 10; i++) spark(e.x, y + 1, e.z, rnd(-2, 2), rnd(.5, 2.5), rnd(-2, 2), i % 2 ? [1.8, 1.5, 1.1] : [1.6, .4, .12], .35, .07, -6);
       }
-      ring(p.x, p.z, 7, [.7, .72, .8], .4);
+      if (!lash) ring(p.x, p.z, 7, [.55, .55, .62], .4);
+    }
+    // Kan Yemini: a thread of blood motes from the wound to the hero. Ölü Açlığı: pale souls fly from the corpse into him.
+    function leech(e, p) {
+      const y = (e.model && e.model.root.position.y) || 0, gyp = gy(p.x, p.z);
+      for (let i = 0; i < 6; i++) { const k = rnd(.45, .7); spark(e.x + rnd(-.25, .25), y + rnd(.8, 1.4), e.z + rnd(-.25, .25), (p.x - e.x) / k, (gyp + 1.1 - y - 1.1) / k + rnd(-.3, .3), (p.z - e.z) / k, [1.5, .12, .1], k, .1, 0); }
+    }
+    function souls(e, p) {
+      const y = (e.model && e.model.root.position.y) || 0;
+      for (let i = 0; i < 16; i++) { const k = rnd(.5, .85); spark(e.x + rnd(-.4, .4), y + rnd(.5, 1.6), e.z + rnd(-.4, .4), (p.x - e.x) / k, rnd(.6, 1.6), (p.z - e.z) / k, i % 3 ? [.95, 1.05, 1.15] : [.55, .75, 1.2], k, rnd(.12, .2), -.8); }
+    }
+    function puff(x, y, z, kind, n) {
+      const c = COLORS[kind] || COLORS.bone;
+      for (let i = 0; i < (n || 6); i++) spark(x + rnd(-.3, .3), y + rnd(.2, 1.6), z + rnd(-.3, .3), rnd(-.3, .3), rnd(.1, .6), rnd(-.3, .3), c, rnd(.35, .6), rnd(.12, .22), 0);
+    }
+    function leap(a, b) {
+      const ya = ((a.model && a.model.root.position.y) || 0) + 1.2;
+      for (let i = 0; i <= 12; i++) { const u = i / 12; spark(a.x + (b.x - a.x) * u, ya + Math.sin(u * Math.PI) * .9, a.z + (b.z - a.z) * u, 0, rnd(.2, .8), 0, i % 2 ? COLORS.fire : [2.4, 1.3, .4], rnd(.25, .45), .13, 0); }
+    }
+    function execute(e) {
+      const y = (e.model && e.model.root.position.y) || 0;
+      ring(e.x, e.z, 2.2, [1.3, .06, .04], .5);
+      for (let i = 0; i < 26; i++) { const u = i / 25; spark(e.x + (u - .5) * .6, y + .2 + u * 2.6, e.z - (u - .5) * .6, rnd(-.3, .3), rnd(-.5, .5), rnd(-.3, .3), i % 3 ? [1.8, .12, .08] : [2.2, 1.6, 1.2], rnd(.25, .4), .16, 0); }
+      for (let i = 0; i < 22; i++) { const a = Math.random() * 6.283; spark(e.x, y + 1.2, e.z, Math.sin(a) * rnd(2, 5), rnd(1, 4), Math.cos(a) * rnd(2, 5), [1.4, .05, .04], rnd(.4, .8), rnd(.08, .14), -12); }
     }
     function drain(e, p) {
       const y = (e.model && e.model.root.position.y) || 0;
@@ -171,7 +207,9 @@
     }
     // ---- frame
     let time = 0;
-    function update(dt, status, hearthPlayer) {
+    let auraOf = null, auraAcc = 0;
+    function update(dt, status, hearthPlayer, aura) {
+      auraOf = aura || null;
       time += dt;
       for (const o of zonePool) {
         if (!o.z) continue;
@@ -205,17 +243,48 @@
         if (m.dread && Math.random() < dt * 10) spark(e.x + rnd(-.4, .4), y + h * rnd(.8, 1.1), e.z + rnd(-.4, .4), 0, rnd(.3, .8), 0, COLORS.dread, .8, rnd(.12, .22), 0);
         if (m.sigil) { const s = m.sigil; s.m.position.set(e.x, gy(e.x, e.z) + .05, e.z); const r = (e.radius || .5) + .55; s.m.scale.set(r, 1, r); s.m.rotation.y = time * .8; s.mat.uniforms.uTime.value = time; s.mat.uniforms.uFade.value = .55 + .25 * Math.sin(time * 5); }
       }
-      // bell
+      // bell: rises, swings hard (so its side reads from above), rings three waves; a pale pillar under it
       if (bell.visible) {
-        bellT += dt; const k = bellT / 1.3, p = bellOwner;
+        bellT += dt; const k = bellT / 1.6, p = bellOwner;
         while (p && bellWave < 3 && bellT >= .28 + bellWave * .17) { ring(p.x, p.z, bellR * (.75 + bellWave * .14), bellWave === 1 ? [.42, .4, .3] : [.17, .42, .09], .75 + bellWave * .1); bellWave++; }
-        if (k >= 1 || !p) { bell.visible = false; bellOwner = null; }
+        if (k >= 1 || !p) { bell.visible = false; pillar.visible = false; bellOwner = null; }
         else {
-          const fade = Math.min(1, k * 6) * (1 - Math.max(0, (k - .6) / .4));
-          bell.position.set(p.x, gy(p.x, p.z) + 2.6 + k * .5, p.z); bell.rotation.z = Math.sin(bellT * 11) * .32 * (1 - k); bell.rotation.y = bellT * .5;
-          bell.scale.setScalar(.9 + .25 * Math.sin(Math.min(1, k * 3) * Math.PI / 2));
-          bellMat.opacity = .16 * fade; bellWire.material.opacity = .85 * fade;
-          if (Math.random() < dt * 40) { const a = Math.random() * 6.283; spark(p.x + Math.sin(a) * .7, bell.position.y - .2, p.z + Math.cos(a) * .7, Math.sin(a) * 1.4, -rnd(.3, 1.2), Math.cos(a) * 1.4, Math.random() < .5 ? COLORS.rot : COLORS.bone, .7, .14, -1); }
+          const fade = Math.min(1, k * 7) * (1 - Math.max(0, (k - .62) / .38)), g0 = gy(p.x, p.z);
+          bell.position.set(p.x, g0 + 3.1 + k * .6, p.z); bell.rotation.x = Math.sin(bellT * 9) * .55 * (1 - k * .7) + .35; bell.rotation.y = bellT * .7;
+          bell.scale.setScalar(1.05 + .3 * Math.sin(Math.min(1, k * 4) * Math.PI / 2));
+          bellMat.uniforms.uFade.value = .75 * fade; bellMat.uniforms.uTime.value = time; bellWire.material.opacity = .9 * fade;
+          pillar.visible = true; pillar.position.set(p.x, g0 + 2.6, p.z); pillarMat.uniforms.uFade.value = fade; pillarMat.uniforms.uTime.value = time; pillar.scale.set(1 + k * .4, 1, 1 + k * .4);
+          if (Math.random() < dt * 60) { const a = Math.random() * 6.283; spark(p.x + Math.sin(a) * 1.1, bell.position.y - .4, p.z + Math.cos(a) * 1.1, Math.sin(a) * 1.8, -rnd(.5, 1.6), Math.cos(a) * 1.8, Math.random() < .5 ? COLORS.rot : COLORS.bone, .8, .18, -1); }
+        }
+      }
+      // chains: thrown out over the first 25 %, held, then dragged home
+      let li = 0;
+      for (let c = chainList.length - 1; c >= 0; c--) {
+        const ch = chainList[c]; ch.t += dt; const k = ch.t / ch.life;
+        if (k >= 1) { chainList.splice(c, 1); continue; }
+        const p = ch.from, tx = ch.to.dead ? ch.x : ch.to.x, tz = ch.to.dead ? ch.z : ch.to.z, reach = k < .25 ? k / .25 : k > .7 ? 1 - (k - .7) / .3 : 1;
+        const y0 = gy(p.x, p.z) + 1.05, ty = ((ch.to.model && ch.to.model.root.position.y) || 0) + 1, dx = tx - p.x, dz = tz - p.z, len = Math.hypot(dx, dz) || 1, yaw = Math.atan2(dx, dz);
+        const n = Math.min(LINKS, Math.max(3, Math.round(len * reach / .2)));
+        for (let i = 0; i < n && li < LINKS * CHAINS; i++) {
+          const u = (i + .5) / n * reach, sag = Math.sin(u / Math.max(.01, reach) * Math.PI) * (ch.lash ? .5 : .25) * (1 - reach * .6);
+          _p.set(p.x + dx * u, y0 + (ty - y0) * u + sag + Math.sin(time * 30 + i) * .02, p.z + dz * u);
+          _e.set(i % 2 ? Math.PI / 2 : 0, yaw, 0, 'YXZ'); _q.setFromEuler(_e); _s.set(1, 1, 1.6); _m.compose(_p, _q, _s); links.setMatrixAt(li++, _m);
+        }
+      }
+      links.count = li; if (li) links.instanceMatrix.needsUpdate = true;
+      // build aura on the hero (talent-runtime passes the dominant path)
+      if (auraOf && auraOf.player && !auraOf.player.dead) {
+        const p = auraOf.player, g0 = gy(p.x, p.z), kind = auraOf.kind, moving = auraOf.moving;
+        auraAcc += dt * (kind === 'rot' ? 16 : kind === 'fire' ? 26 : kind === 'blood' ? 7 : 10);
+        while (auraAcc >= 1) {
+          auraAcc--;
+          const a = Math.random() * 6.283, r = rnd(.15, .55);
+          if (kind === 'fire') spark(p.x + Math.sin(a) * r, g0 + rnd(.4, 1.7), p.z + Math.cos(a) * r, rnd(-.2, .2), rnd(.8, 1.8), rnd(-.2, .2), Math.random() < .3 ? [2.2, 1.1, .3] : COLORS.fire, rnd(.35, .7), rnd(.05, .1), .8);
+          else if (kind === 'rot') spark(p.x + Math.sin(a) * rnd(.3, .9), g0 + rnd(.05, .5), p.z + Math.cos(a) * rnd(.3, .9), Math.sin(a) * .3, rnd(.15, .45), Math.cos(a) * .3, [.16, .42, .1], rnd(1, 1.6), rnd(.3, .5), 0);
+          else if (kind === 'blood') spark(p.x + Math.sin(a) * .35, g0 + rnd(.9, 1.3), p.z + Math.cos(a) * .35, 0, -.2, 0, COLORS.blood, rnd(.4, .6), rnd(.05, .08), -9);
+          else if (kind === 'chain') { const b = time * 2.2 + a; spark(p.x + Math.sin(b) * .9, g0 + rnd(.5, 1.4), p.z + Math.cos(b) * .9, Math.cos(b) * 1.3, 0, -Math.sin(b) * 1.3, COLORS.chain, .5, .05, 0); }
+          else if (kind === 'gold' && moving) spark(p.x + rnd(-.3, .3), g0 + rnd(.3, 1.5), p.z + rnd(-.3, .3), 0, rnd(0, .3), 0, COLORS.gold, .3, .06, 0);
+          else if (kind === 'stone' && moving) spark(p.x + rnd(-.4, .4), g0 + .1, p.z + rnd(-.4, .4), rnd(-.5, .5), rnd(.3, .9), rnd(-.5, .5), [.5, .42, .32], .5, .09, -3);
         }
       }
       // particles
@@ -239,14 +308,14 @@
       for (const o of ringPool) o.m.visible = false;
       for (const [e] of marks) clear(e);
       for (let i = 0; i < MAX; i++) life[i] = 0;
-      bell.visible = false; bellOwner = null;
+      bell.visible = false; pillar.visible = false; bellOwner = null; chainList.length = 0; links.count = 0;
     }
     function dispose() {
       reset(); root.remove(group);
       group.traverse(o => { if (o.geometry && o.geometry !== quad) o.geometry.dispose(); if (o.material) o.material.dispose(); });
       quad.dispose();
     }
-    return { zone, unzone, mark, unmark, clear, burst, bell: bellAt, chains, drain, update, reset, dispose, debug: () => ({ live: liveCount, zones: zonePool.filter(o => o.z).length, marks: marks.size }) };
+    return { zone, unzone, mark, unmark, clear, burst, bell: bellAt, chains, drain, leech, souls, leap, execute, puff, update, reset, dispose, debug: () => ({ live: liveCount, zones: zonePool.filter(o => o.z).length, marks: marks.size }) };
   }
   B.TalentFX = Object.freeze({ create });
 }());

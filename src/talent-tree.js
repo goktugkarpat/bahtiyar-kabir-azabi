@@ -25,6 +25,7 @@
     { row: 1, name: t('I · UYANIŞ'), hint: t('Aktif yetenekler') },
     { row: 2, name: t('II · MÜHÜR'), hint: t('Her yeteneğe tek mühür') },
     { row: 3, name: t('III · BEDEN'), hint: t('3 puan harca') },
+    { row: 3.5, name: '', hint: '' },
     { row: 4, name: t('IV · DÖNÜŞÜM'), hint: t('4 puan harca') },
     { row: 5, name: t('V · KIYAMET'), hint: t('7 puan harca') },
     { row: 6, name: t('VI · KİLİT TAŞI'), hint: t('6 puan · yalnız biri') }
@@ -35,7 +36,7 @@
   // ---- row 2: seals (3 per active, exclusive per active) --------------------------------------------------------
   const mod = (id, col, slot, name, desc, glyph, fx, level) => node({ id, kind: 'mod', col, slot, row: 2, line: COLS[col].line, requires: COLS[col].line, group: 'seal-' + COLS[col].line, gate: 1, level: level || 3, name: t(name), desc: t(desc), glyph, fx });
   // ---- row 3: body passives ------------------------------------------------------------------------------------
-  const passive = (id, col, row, name, desc, glyph, fx, extra) => node(Object.assign({ id, kind: 'passive', col, row, line: COLS[col].line, gate: row === 3 ? 3 : row === 4 ? 4 : 7, level: row === 3 ? 4 : row === 4 ? 6 : 9, name: t(name), desc: t(desc), glyph, fx }, extra || {}));
+  const passive = (id, col, row, name, desc, glyph, fx, extra) => node(Object.assign({ id, kind: 'passive', col, row, line: COLS[col].line, gate: row <= 3.5 ? 3 : row === 4 ? 4 : 7, level: row === 3 ? 4 : row === 3.5 ? 5 : row === 4 ? 6 : 9, name: t(name), desc: t(desc), glyph, fx }, extra || {}));
   const key = (id, col, name, desc, price, glyph, fx) => node({ id, kind: 'key', col, row: 6, line: COLS[col].line, group: 'keystone', gate: 6, level: 8, name: t(name), desc: t(desc), price: t(price), glyph, fx });
 
   mod('cleave-sunder', 0, 0, 'Kemik Yarma', 'Darbe daha ağır iner: +%30 hasar ve +0,5 sn sersemletme. Biraz daha çok dayanıklılık ister.', 'hammer', { dmg: 1.3, stun: .5, cost: 6 });
@@ -63,6 +64,13 @@
   passive('p-haste', 3, 3, 'Sabırsız Öfke', 'Bütün yeteneklerin bekleme süresi %15 kısalır.', 'hourglass', { cd: .85 });
   passive('p-flask', 4, 3, 'Fazla Matara', 'Bir şifa matarası daha taşırsın; mataralar %20 daha çok iyileştirir.', 'flask', { flasks: 1, flaskHeal: 1.2 });
   passive('p-crit', 5, 3, 'Kemik Gözü', 'Kritik vuruş ihtimalin 8 puan artar.', 'eye', { crit: .08 });
+  // ---- row 3.5: one stranger, archetype-defining passive per column (round 2) ---------------------------------
+  passive('p-aftershock', 0, 3.5, 'Artçı Sarsıntı', 'Sersemlemiş bir düşman ölünce yer sarsılır: çevresindekilere hasar verir ve onları sersemletir.', 'burst', { aftershock: 34 });
+  passive('p-frenzy', 1, 3.5, 'Kan Çılgınlığı', 'Canın %40’ın altındayken %25 fazla hasar verir, %15 daha hızlı dayanıklılık toplarsın.', 'heart', { frenzy: true });
+  passive('p-lash', 2, 3.5, 'Zincir Kırbacı', 'Kasırga bitince ya da hücum vardığında zincir savrulur: 7 metredeki en yakın üç düşmana çarpar.', 'chain', { lash: 42 });
+  passive('p-momentum', 3, 3.5, 'Hız Kazanımı', 'Kaçındıktan ya da hücum ettikten sonra 3 saniye vuruşların %20 daha ağır iner.', 'wing', { momentum: true });
+  passive('p-kindle', 4, 3.5, 'Alev Saçağı', 'Yanan düşmanların alevi yanındakine sıçrar: her yanma vuruşunda yakındaki bir düşman tutuşabilir.', 'spread', { kindle: true });
+  passive('p-plague', 5, 3.5, 'Kara Veba', 'Lanetli düşmanların kanaması ve yanması %40 daha çok acıtır.', 'skull', { plague: true });
   // ---- rows 4/5: the column passives of the two new actives (the four old lines hold their forms there) --------
   passive('p-ember', 4, 4, 'Kor Kalp', 'Yanma %50 daha çok hasar verir ve 2 saniye daha uzun sürer.', 'flame', { burnMul: 1.5, burnTime: 2 }, { requires: 'pyre' });
   passive('p-ashfall', 4, 5, 'Kül Yağmuru', 'Yanan bir düşman ölünce alev saçar: çevresindekiler tutuşur.', 'burst', { ashfall: true }, { requires: 'p-ember' });
@@ -162,6 +170,7 @@
     e.vsStunned = e.has.has('p-crush') ? 1.25 : 1; e.exec = !!exec; e.leech = e.has.has('k-blood') ? .05 : 0;
     e.chainDodge = e.has.has('k-chains'); e.allBurn = !!pyreK; e.taken = pyreK ? pyreK.taken : 1; e.rotWorld = !!rotW;
     e.ashfall = e.has.has('p-ashfall'); e.harvest = e.has.has('p-harvest');
+    e.aftershock = e.has.has('p-aftershock'); e.frenzy = e.has.has('p-frenzy'); e.lash = e.has.has('p-lash'); e.momentum = e.has.has('p-momentum'); e.kindle = e.has.has('p-kindle'); e.plague = e.has.has('p-plague');
     if (fxCache.size > 64) fxCache.clear(); fxCache.set(k, Object.freeze(e)); return e;
   }
   // The skill as it fights with this tree: seal of its line + global passives folded into cost / cooldown / params.
@@ -190,5 +199,18 @@
     s = Object.freeze(Object.assign({}, skill, { cost, cooldown, params: Object.freeze(p), seal: seal ? seal.id : null }));
     if (effCache.size > 128) effCache.clear(); effCache.set(k, s); return s;
   }
-  B.TalentTree = Object.freeze({ cols: COLS, rows: ROWS, nodes, get, access, validate, canRefund, effects, effective, get MAX_POINTS() { return B.Progression ? B.Progression.MAX_LEVEL - 1 : 12; } });
+  // Recommended builds (shown in the tree; "apply" relearns them in this order as far as level and points allow).
+  const PRESETS = Object.freeze([
+    { id: 'pyre-priest', name: t('Kor Rahibi'), hint: t('Yere mühür kaz, her şeyi yak. Yanan Beden ile her vuruş tutuşturur.'), nodes: ['cleave', 'pyre', 'cleave-ember', 'pyre-wide', 'p-flask', 'whirl', 'whirl-ash', 'p-ember', 'p-kindle', 'charge', 'k-pyre', 'p-ashfall'] },
+    { id: 'chain-reaper', name: t('Zincirli Cellat'), hint: t('Düşmanları çekip yığ, sersemlet, Cellat ile bitir.'), nodes: ['cleave', 'whirl', 'whirl-hook', 'cleave-sunder', 'p-crush', 'p-lash', 'charge', 'charge-chain', 'p-aftershock', 'brand', 'k-exec', 'reap'] },
+    { id: 'plague-bearer', name: t('Veba Taşıyıcı'), hint: t('Çanla lanetle, kanat; ölenler patlayıp yenilerini lanetler.'), nodes: ['knell', 'cleave', 'cleave-bleed', 'knell-chain', 'whirl', 'whirl-bleed', 'p-crit', 'p-rot', 'p-plague', 'roar', 'k-rot', 'p-harvest'] },
+    { id: 'blood-penitent', name: t('Kan Kefareti'), hint: t('Can ile öde, can ile al: matara yok, her vuruş seni iyileştirir.'), nodes: ['roar', 'roar-blood', 'cleave', 'cleave-bleed', 'p-iron', 'whirl', 'p-frenzy', 'whirl-bleed', 'quake', 'k-blood', 'brand', 'charge'] },
+    { id: 'storm-rider', name: t('Kara Fırtına'), hint: t('Hiç durma: hücum, kaçın, zincirle çek, yeniden hücum.'), nodes: ['cleave', 'charge', 'charge-echo', 'whirl', 'whirl-hook', 'p-haste', 'p-momentum', 'p-wind', 'grasp', 'k-chains', 'roar', 'reap'] }
+  ]);
+  // Identity title of the two strongest columns (order-free).
+  const ARCHETYPE = { 'cleave+pyre': t('Kor Celladı'), 'cleave+whirl': t('Zincirli Cellat'), 'cleave+roar': t('Kanlı Balyoz'), 'charge+cleave': t('Koç Başı'), 'cleave+knell': t('Mezar Kazıcı'),
+    'pyre+roar': t('Kor Nidası'), 'pyre+whirl': t('Kül Fırtınası'), 'charge+pyre': t('Kor Rahibi'), 'knell+pyre': t('Kül ve Kemik'), 'roar+whirl': t('Kan Girdabı'), 'charge+roar': t('Kan Hücumu'),
+    'knell+roar': t('Kan Kefareti'), 'charge+whirl': t('Kara Fırtına'), 'knell+whirl': t('Paslı Veba'), 'charge+knell': t('Ölüm Habercisi') };
+  const archetype = (a, b) => ARCHETYPE[[a, b].sort().join('+')] || '';
+  B.TalentTree = Object.freeze({ presets: PRESETS, archetype, cols: COLS, rows: ROWS, nodes, get, access, validate, canRefund, effects, effective, get MAX_POINTS() { return B.Progression ? B.Progression.MAX_LEVEL - 1 : 12; } });
 }());
