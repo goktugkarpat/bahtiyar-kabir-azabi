@@ -513,16 +513,23 @@
       var active = s.stage >= 1 && !s.done;
       if (active) {
         var tx = player.x - Math.sin(player.face || 0) * 1.7, tz = player.z - Math.cos(player.face || 0) * 1.7;
-        var dx = tx - a.x, dz = tz - a.z, dist = Math.hypot(dx, dz), threat = guarded(a, 6.5);
+        if (world.isWalkable && !world.isWalkable(tx, tz, .35)) { tx = player.x; tz = player.z; }
+        var gap = Math.hypot(tx - a.x, tz - a.z), threat = guarded(a, 6.5);
         a.cower = threat ? Math.min(1, a.cower + dt * 3) : Math.max(0, a.cower - dt * 2);
-        if (dist > 16) { a.x = tx; a.z = tz; dist = 0; }   // never lost behind a door: catches up out of sight
-        var want = threat ? 0 : dist > 1.1 ? Math.min(6.2, dist * 1.6) : 0;
+        // Walk the navigation graph like the foes do; a captive left far behind (or wedged) catches up out of sight.
+        a.repath = (a.repath || 0) - dt;
+        if (a.repath <= 0 && gap > 1.1) { a.repath = .4; a.route = world.pathTo ? world.pathTo({ x: a.x, z: a.z }, { x: tx, z: tz }, .4) : [{ x: tx, z: tz }]; a.leg = 0; }
+        a.stuck = gap > 3 && a.speed < .2 ? (a.stuck || 0) + dt : 0;
+        if (gap > 22 || a.stuck > 2.5 || gap > 6 && !(a.route && a.route.length)) { a.x = tx; a.z = tz; gap = 0; a.route = null; a.stuck = 0; }
+        var wp = a.route && a.route[a.leg || 0];
+        while (wp && Math.hypot(wp.x - a.x, wp.z - a.z) < .25 && a.leg < a.route.length - 1) wp = a.route[++a.leg];
+        var dx = wp ? wp.x - a.x : 0, dz = wp ? wp.z - a.z : 0, dist = Math.hypot(dx, dz);
+        var want = threat || gap < 1.1 ? 0 : Math.min(6.4, 1.8 + gap * 1.4);
         a.speed += (want - a.speed) * Math.min(1, dt * 6);
         if (a.speed > .05 && dist > .01) {
-          var step = Math.min(dist, a.speed * dt), nx = a.x + dx / dist * step, nz = a.z + dz / dist * step;
-          if (!world.isWalkable || world.isWalkable(nx, nz, .35)) { a.x = nx; a.z = nz; }
+          var step = Math.min(dist, a.speed * dt); a.x += dx / dist * step; a.z += dz / dist * step;
           a.face = Math.atan2(dx, dz);
-        } else if (dist < 3) a.face = Math.atan2(player.x - a.x, player.z - a.z);
+        } else if (gap < 3) a.face = Math.atan2(player.x - a.x, player.z - a.z);
         if (Math.hypot(a.x - q.goal.x, a.z - q.goal.z) < 4.6 && Math.hypot(player.x - q.goal.x, player.z - q.goal.z) < 7) {
           s.stage = 2; a.speed = 0; a.face = Math.atan2(q.goal.x - a.x, q.goal.z - a.z); complete(q, q.def.story);
         }
@@ -585,6 +592,8 @@
     function dispose() { disposed = true; quests.forEach(function (q) { if (q.actor && q.actor.root) q.actor.root.removeFromParent(); }); }
     quests.forEach(function (q) { if (q.actor) animateActor(q.actor, 0); });
     refresh();
+    // QA hook: BABA.QuestSide.debug() lists live quest actors and states (no gameplay effect).
+    B.QuestSide.debug = function () { return quests.map(function (q) { var s = state[q.def.id]; return { id: q.def.id, stage: s.stage, done: s.done, actor: q.actor ? { x: +q.actor.x.toFixed(2), z: +q.actor.z.toFixed(2), visible: q.actor.root.visible, model: !!q.actor.model } : null, goal: q.goal || null }; }); };
     return { scan: scan, interact: interact, choose: choose, update: update, snapshot: snapshot, restore: restore, dispose: dispose, openFinale: openFinale,
       get count() { return quests.length; } };
   }

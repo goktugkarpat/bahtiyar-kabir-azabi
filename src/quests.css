@@ -63,6 +63,8 @@
 @media (max-width: 580px) { #journal-content { grid-template-columns: 1fr } .journal-panel footer { align-items: flex-start; gap: 12px } #journal-intro { font-size: 13px; margin-bottom: 15px } #quest-notice { top: 24%; width: 45vw } }
 @media (prefers-reduced-motion: reduce) { #quest-notice { transition: none } }
 /* ajan:quests — quest kinds, progress bars, compass, side cards, finale */
+#journal #journal-content { grid-auto-rows: max-content; align-content: start; align-items: start }
+#journal #journal-content > .journal-quest { min-height: max-content }
 .journal-section { grid-column: 1 / -1; margin: 6px 0 -4px; color: #b99b66; font: 500 11px/1.3 var(--text); letter-spacing: .18em; text-transform: uppercase; border-bottom: 1px solid #a18b6235; padding-bottom: 7px }
 .journal-section.side { margin-top: 14px }
 .journal-hidden-note { grid-column: 1 / -1; margin: -6px 0 0; color: #8d7a8a; font: italic 400 12px/1.5 var(--text) }

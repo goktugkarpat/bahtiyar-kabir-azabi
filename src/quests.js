@@ -285,7 +285,7 @@
           var overlaps = false;
           for (var n = 0; n < reserved.length; n++) if (Math.hypot(reserved[n].x - x, reserved[n].z - z) < 2.8) { overlaps = true; break; }
           if (overlaps || world.checkpoint && Math.hypot(world.checkpoint.x - x, world.checkpoint.z - z) < 3.2) continue;
-          if (world.pathTo && world.spawn && !world.pathTo(world.spawn, { x: x, z: z }, .5).length) continue;
+          if (world.pathTo && world.spawn) { var route = world.pathTo(world.spawn, { x: x, z: z }, .5); if (!route || !route.length) continue; }
           best = { x: x, z: z }; bestDistance = d;
         }
         if (best) return best;
