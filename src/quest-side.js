@@ -546,7 +546,10 @@
       if (finaleOpen || local.finale) return; finaleOpen = true;
       var b = boons(), pages = b.claimed.filter(function (k) { return /:c\d-pages$/.test(k); }).length, truth = pages >= 5;
       var opts = FINALE.options.map(function (x) { return x.id === 'name' && truth ? Object.assign({}, x, { effect: FINALE.truth }) : x; });
-      info.pendingChoice = { questId: 'finale', nodeId: 'finale', title: FINALE.title, question: FINALE.question, options: opts, side: true, finale: true };
+      var verdicts = b.claimed.filter(function (k) { return k.indexOf(':verdict:') > 0; });
+      var mercy = verdicts.filter(function (k) { return /:(rest|break|silence|release|erase|open|free|starve|shelter)$/.test(k); }).length, wrath = verdicts.length - mercy;
+      var tally = verdicts.length ? ' ' + L('Yol boyunca verdiğin hükümler: merhamet ', 'The verdicts you gave along the way: mercy ') + mercy + L(' · yargı ', ' · judgment ') + wrath + '.' : '';
+      info.pendingChoice = { questId: 'finale', nodeId: 'finale', title: FINALE.title, question: FINALE.question + tally, options: opts, side: true, finale: true };
       bump(); api.emit('questChoice', info.pendingChoice);
     }
     function chooseFinale(optionId) {
