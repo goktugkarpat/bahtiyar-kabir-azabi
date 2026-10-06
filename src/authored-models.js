@@ -211,7 +211,7 @@
           ' if(bm>0.){float g=kGrey(w,vKara,.05,600.,.8);vec3 hc=mix(vec3(.05,.036,.03),vec3(.58,.56,.52),g)*(.65+.7*kN(vKara*900.));diffuseColor.rgb=mix(diffuseColor.rgb,hc,bm*.88);kSkinMask*=1.-bm*.95;}}}\n#endif\n')
         .replace('#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\n' +
           '#if KARA_CLASS == 1\nroughnessFactor*=.72+.56*kN(vKara*kScale*4.+vec3(5.));roughnessFactor=mix(roughnessFactor,.26,kEdgeMask);\n' +
-          '#elif KARA_CLASS == 4\nroughnessFactor=mix(roughnessFactor,.46+.2*kN(vKara*90.),kSkinMask);\n#endif\n' +
+          '#elif KARA_CLASS == 4\nroughnessFactor=mix(roughnessFactor,.36+.26*kN(vKara*90.)*kN(vKara*23.+vec3(4.)),kSkinMask);\n#endif\n' +
           'roughnessFactor=mix(roughnessFactor,1.,kCav*.35+kCut*.3+kRustMask*.6);roughnessFactor=mix(roughnessFactor,mix(.48,.2,kWet),kBloodMask);roughnessFactor=mix(roughnessFactor,.07,kGloss);')
         .replace('#include <metalnessmap_fragment>', '#include <metalnessmap_fragment>\n' +
           '#if KARA_CLASS == 1\nmetalnessFactor=mix(metalnessFactor,1.,kEdgeMask*.8);\n#endif\nmetalnessFactor=mix(metalnessFactor,0.,max(max(kBloodMask,kGloss),kRustMask));')
@@ -1028,7 +1028,7 @@
     ], ['skin']);
     var equipment = heroEquipment(A);
     var materials = {
-      skin: bodyMaterial(A.srcMaterial('LOW_body'), 'hero-skin', { cls: 'skin', skin: 1, skinMap: true, sat: .62, tint: [.94, .86, .74], contrast: 1.06, grime: .3, blood: .18, scars: scars, face: true }),
+      skin: bodyMaterial(A.srcMaterial('LOW_body'), 'hero-skin', { cls: 'skin', skin: 1, skinMap: true, sat: .44, tint: [.78, .68, .58], contrast: 1.2, grime: .52, blood: .18, scars: scars, face: true }),
       brow: library['hero-brow'] || (library['hero-brow'] = Object.assign(std({ map: browTexture(), alphaTest: .4, roughness: .8, side: T.DoubleSide }, { sat: 1 }), { name: 'kara-hero-brow' })),
       eye: library['hero-eye'] || (library['hero-eye'] = Object.assign(new T.MeshPhysicalMaterial({ map: eyeTexture(), roughness: .4, clearcoat: .6, clearcoatRoughness: .18 }), { name: 'kara-hero-eye' })),
       leather: bodyMaterial(A.srcMaterial('LOW_cloth'), 'hero-leather', { cls: 'leather', sat: .8, tint: [1.25, 1.12, 1.0], grime: .3, blood: .12 }),

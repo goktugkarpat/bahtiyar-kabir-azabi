@@ -2649,7 +2649,7 @@
         if (p && Number.isFinite(p.x) && Number.isFinite(p.z)) { focus.x = p.x; focus.z = p.z; }
         var motionTime = reducedMotion ? 0 : time;
         flameUniforms.time.value = motionTime;
-        playerLight.position.set(focus.x, 3.3, focus.z + 1.3);
+        playerLight.position.set(focus.x - 1.2, 3.5, focus.z + .6);   // off-axis (ajan:visual-dark): side key models the body instead of flat front light
         // The hero's own light is lent to the special ability / war cry (lighting.js): warm orbiting flash, same light count, no shader rebuild.
         if (playerLightFx) { playerLight.position.set(playerLightFx.x, playerLightFx.y, playerLightFx.z); playerLight.color.setRGB(playerLightFx.r, playerLightFx.g, playerLightFx.b); playerLight.intensity = playerLightFx.intensity; playerLight.distance = playerLightFx.distance; playerLightLent = true; }
         else if (playerLightLent) { playerLight.color.set('#ffd9b0'); playerLight.intensity = 6.5; playerLight.distance = 9; playerLightLent = false; }
