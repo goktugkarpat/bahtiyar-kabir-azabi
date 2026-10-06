@@ -1284,6 +1284,7 @@
         if (d.damage > 0) number(Math.round(d.damage), x, 2.5, z, d.player, d.heavy || d.critical, d.kill, d.boss, d.labelTarget || null);
         // Blows struck in fury leave burning embers in the wound.
         if (d.rage && !d.player) for (let i = 0; i < scaleCount(heavy ? 18 : 10); i++) emit(x, y, z, 4, i % 2 ? [2.6, .6, .12] : [2.2, .25, .08], Math.sin(spray) * rnd(.6, 2.2) + rnd(-.5, .5), rnd(.4, 1.6), Math.cos(spray) * rnd(.6, 2.2) + rnd(-.5, .5), rnd(.4, .8), .045);
+        if (name === 'death' && impactFx) impactFx.deathAsh(x, z, !!large);
         if (name === 'death') goreKill(x, Math.max(.7, y), z, performance.now() - lastDir.t < 400 ? lastDir.a : Math.random() * 6.28, !!large, null, !!d.boss);
         return;
       }
