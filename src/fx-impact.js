@@ -49,7 +49,7 @@
     function dome(x, z, d) {
       const w = walls.find(q => q.t >= q.life && !q.m.visible) || walls.reduce((a, b) => (b.t / b.life > a.t / a.life ? b : a));
       const u = w.mat.uniforms, k = calm() ? .5 : 1, col = d.col || [1, .4, .1], hot = d.hot || [2, 1.6, 1.2];
-      w.t = -(d.delay || 0); w.life = d.life || .5; w.r = d.r || 3; w.h = d.h || 1.4; w.m.visible = false;
+      w.t = -(d.delay || 0); w.life = d.life || .5; w.r = d.r || 3; w.h = d.h || 1.4; w.inward = !!d.inward; w.m.visible = false;
       w.m.position.set(x, floorAt(x, z, w.r) - .02, z); w.m.rotation.y = Math.random() * 6.283;
       u.uK.value = 0; u.uA.value = (d.a == null ? 1 : d.a) * k; u.uSeed.value = d.seed == null ? Math.random() * 50 : d.seed;
       u.uCol.value.set(col[0], col[1], col[2]); u.uHot.value.set(hot[0], hot[1], hot[2]);
@@ -126,7 +126,8 @@
       for (const w of walls) {
         if (w.t >= w.life) continue; w.t += dt; if (w.t < 0) continue;
         const k = clamp(w.t / w.life, 0, 1), e = 1 - Math.pow(1 - k, 2.6), rise = Math.sin(Math.min(1, k * 3.2) * Math.PI / 2) * (1 - .55 * k);
-        w.m.visible = k < 1; w.mat.uniforms.uK.value = k; const r = w.r * (.12 + .88 * e); w.m.scale.set(r, Math.max(.01, w.h * rise), r);
+        // inward: the anticipation - a wall drawn in toward the hero (eases in, so it is fastest as it closes)
+        w.m.visible = k < 1; w.mat.uniforms.uK.value = w.inward ? 1 - Math.sin(k * Math.PI) * .85 : k; const r = w.inward ? w.r * (1 - .82 * k * k) : w.r * (.12 + .88 * e); w.m.scale.set(r, Math.max(.01, w.h * rise), r);
       }
       for (const p of blades) {
         if (p.t >= p.life) continue; p.t += dt; if (p.t < 0) continue;

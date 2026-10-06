@@ -171,11 +171,13 @@
         // gold pinpoints drawn up over the head with the raised cleaver, and a soft amber glow on the ground where the chop will land
         for (let i = 0; i < scaleCount(16); i++) { const a = Math.random() * 6.283, r = rnd(.9, 2.0), life = w * rnd(.6, .95); emit(x + Math.sin(a) * r, rnd(.2, 1.4), z + Math.cos(a) * r, 4, i % 3 ? [1.8, .16, .075] : [1.7, 1.45, 1.15], -Math.sin(a) * r / life, (2.5 - 1) / life, -Math.cos(a) * r / life, life, .045); }
         floorGlow(cx, cz, (d.radius || 4) * .36, w + .05, [.9, .10, .045], .12);
+        { const I = IM(); if (I) I.dome(x, z, { r: 2.4, h: .8, life: w * .95, col: [.6, .07, .04], hot: [1.2, .6, .4], a: .5, inward: true }); }   // anticipation: the air is drawn in
         return;
       }
       // tier III: dust kicked up in the crouch, dark embers pulled to the feet; the leap is dressed by lift trail in step()
       for (let i = 0; i < scaleCount(26); i++) { const a = Math.random() * 6.283, r = rnd(1.1, 2.4), life = takeoff * rnd(.7, 1); emit(x + Math.sin(a) * r, rnd(.1, .6), z + Math.cos(a) * r, 4, i % 2 ? [2.4, .3, .1] : [1.3, .5, 2.2], -Math.sin(a) * r / life * .8, rnd(.6, 1.6), -Math.cos(a) * r / life * .8, life, .05); }
       floorGlow(x, z, 2.2, takeoff + .2, [.9, .1, .1], .3);
+      { const I = IM(); if (I) I.dome(x, z, { r: 3.0, h: 1.0, life: takeoff, col: [.4, .1, .65], hot: [1.1, .7, 1.2], a: .55, inward: true }); }
       later(takeoff, () => {
         const g = getGame(), p = g && g.player; const px = p ? p.x : x, pz = p ? p.z : z;   // take-off
         ring(px, pz, 2.6, { life: .4, thick: .1, col: [.7, .25, 1.0], a: .7 }); dustRing(px, pz, 22, 2.8, [.12, .09, .1], .3); sparks(px, pz, 8, 4, [2.6, .5, .2], 1.5);
@@ -241,12 +243,14 @@
         // pale breath wisps and gold motes drawn in toward the throat, an amber glow under the feet
         for (let i = 0; i < scaleCount(40); i++) { const a = Math.random() * 6.283, r = rnd(1.6, 3.2), y = rnd(.2, 1.4), life = w * rnd(.6, 1); emit(x + Math.sin(a) * r, y, z + Math.cos(a) * r, i % 3 ? 5 : 4, i % 3 ? [2.2, 2.0, 1.6] : [3.2, 1.8, .5], -Math.sin(a) * r / life, (1.55 - y) / life, -Math.cos(a) * r / life, life, i % 3 ? .1 : .045); }
         floorGlow(x, z, 2.0, w + .2, [1.3, .85, .3], .16); pulse(w + .1, 0, .12, 0, 0);
+        { const I = IM(); if (I) I.dome(x, z, { r: 3.0, h: 1.3, life: w, col: [.55, .45, .3], hot: [1.0, .9, .7], a: .4, inward: true }); }   // the breath drawn in before the cry
         return;
       }
       // tier III: the ground trembles with dark embers climbing around him, getting denser until the first scream
       for (let i = 0; i < scaleCount(56); i++) { const a = Math.random() * 6.283, r = rnd(2.4, 4.2), life = w * rnd(.5, 1); emit(x + Math.sin(a) * r, rnd(.05, .5), z + Math.cos(a) * r, 4, i % 3 ? [2.6, .3, .08] : [.8, .3, 1.5], -Math.sin(a) * r / life * .9, rnd(1, 2.6), -Math.cos(a) * r / life * .9, life, .05); }
       floorGlow(x, z, 3.2, w + .3, [1.0, .08, .06], .35); fissure(x, z, 3.0, { arms: 6, len: .8, hot: [2.2, .35, .15], edge: [1.0, .08, .06], life: w + .3, grow: .9, a: .55, face: Math.random() * 6 });
       later(w * .5, () => { ring(x, z, 3.4, { life: .5, thick: .08, col: [1.4, .2, .12], a: .6 }); });
+      { const I = IM(); if (I) I.dome(x, z, { r: 4.0, h: 1.6, life: w, col: [.7, .1, .06], hot: [1.3, .6, .4], a: .45, inward: true }); }
       pulse(w + .1, 0, .22, 0, 0);
     }
     function shoutRelease(d) {
