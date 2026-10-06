@@ -6,12 +6,12 @@
   var B = window.BABA;
   function build(scene, options) {
     var w = B.RuinsWorld.build(scene, Object.assign({}, options, { chapter: 4 }));
-    var FR = B.ForgeRooms, WINGS = FR.wings || [], DOORS = FR.doors || {}, HW = FR.doorHalf || 2.2;
+    var FR = B.ForgeRooms, WINGS = FR.wings || [], DOORS = FR.doors || {}, HW = FR.doorHalf || 2.2, GH = FR.gateHalf || 3.5;
     if (!WINGS.length) return w;
     var rooms = w.rooms.slice(0, 14), floors = [];
     rooms.forEach(function (r, i) {
       floors.push({ x: r.x, z: r.z, w: r.w, d: r.d });
-      if (i < rooms.length - 1) { var n = rooms[i + 1], a = r.z - r.d / 2, b = n.z + n.d / 2; floors.push({ x: 0, z: (a + b) / 2, w: 7, d: a - b + .08 }); }
+      if (i < rooms.length - 1) { var n = rooms[i + 1], a = r.z - r.d / 2, b = n.z + n.d / 2; floors.push({ x: 0, z: (a + b) / 2, w: GH * 2, d: a - b + .08 }); }
     });
     var wingRooms = WINGS.map(function (W) { return { id: W.id, name: KabirI18n.t(W.name), x: W.x, z: W.z, w: W.w, d: W.d, wing: true }; });
     WINGS.forEach(function (W) { floors.push({ x: W.x, z: W.z, w: W.w, d: W.d }); });
@@ -23,6 +23,7 @@
     // the long wall colliders at each door are split around the opening
     var colliders = [];
     w.colliders.forEach(function (c) {
+      if (GH > 3.5 && Math.abs(Math.abs(c.x) - 3.8) < .05 && Math.abs(c.w - .65) < .05) return;   // old 7 m corridor curbs: the gates are wider now
       for (var k in DOORS) {
         var r = rooms[+k], s = DOORS[k];
         if (Math.abs(c.x - (r.x + s * r.w / 2)) < .05 && Math.abs(c.z - r.z) < .05 && c.d >= r.d - .5 && c.w < 1.2) {

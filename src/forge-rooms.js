@@ -29,7 +29,7 @@
   /* Open foundry wings (ajan world-b): four great open halls beside the chain of rooms, each reached through real side doors
      from two or three rooms, so the route loops instead of running box-to-box. Edges are lava rivers and cavern cliffs, not walls.
      Room i's door side: -1 west, +1 east. Wing z ranges are absolute (room z = 8 - 26 i). */
-  var DOOR_HW = 2.2;
+  var DOOR_HW = 2.2, GATE_HW = 6;
   var DOORS = { 1: -1, 2: -1, 3: -1, 4: 1, 5: 1, 6: 1, 7: -1, 8: -1, 9: -1, 11: 1, 12: 1 };
   var WINGS = [
     { id: 14, kind: 'slag', side: -1, hosts: [1, 2, 3], name: 'Cüruf Tarlası' },
@@ -153,17 +153,17 @@
     }
     function north(o) {
       o = o || {}; var zf = r.z - r.d / 2 - .75, h = o.h || 6.6, tint = o.tint || SOOT;
-      var lx0 = r.x - r.w / 2 - .9, lx1 = -3.9, rx0 = 3.9, rx1 = r.x + r.w / 2 + .9;
+      var lx0 = r.x - r.w / 2 - .9, lx1 = -GATE_HW, rx0 = GATE_HW, rx1 = r.x + r.w / 2 + .9;
       K.wall(i, (lx0 + lx1) / 2, zf, lx1 - lx0, 1.3, h, true, 0, 1, { tint: tint, pil: 4.6, plinthKey: 'iron' }); K.wall(i, (rx0 + rx1) / 2, zf, rx1 - rx0, 1.3, h, true, 0, 1, { tint: tint, pil: 4.6, plinthKey: 'iron' });
       if (o.noGate) return;
       [-1, 1].forEach(function (s) {
-        K.put(i, 'box', 'iron', s * 4.55, 3.2, zf + .35, 1.4, 6.4, 1.7, 0, 0, 0, IRONT, .55, 3.5); for (var b = 0; b < 4; b++) K.put(i, 'box', 'iron', s * 4.55, 1.0 + b * 1.6, zf + .35, 1.65, .2, 1.95, 0, 0, 0, [.8, .74, .7], .2);
+        K.put(i, 'box', 'iron', s * (GATE_HW + .65), 3.2, zf + .35, 1.4, 6.4, 1.7, 0, 0, 0, IRONT, .55, 3.5); for (var b = 0; b < 4; b++) K.put(i, 'box', 'iron', s * (GATE_HW + .65), 1.0 + b * 1.6, zf + .35, 1.65, .2, 1.95, 0, 0, 0, [.8, .74, .7], .2);
       });
-      K.put(i, 'box', 'iron', 0, 6.5, zf + .35, 10, .8, 1.9, 0, 0, 0, IRONT, .2); K.put(i, 'box', 'iron', 0, 5.85, zf + .35, 7.4, .5, 1.6, 0, 0, 0, SOOT, .1);   // (was 7 cm below the lintel)
-      for (var q = -3; q <= 3; q++) { K.put(i, 'cyl6', 'iron', q * 1.0, 5.1, zf + .35, .16, 1.1, .16, 0, 0, 0, [.5, .46, .44], 0); K.put(i, 'cone4', 'iron', q * 1.0, 4.32, zf + .35, .24, .5, .24, 0, 0, PI, [.56, .52, .5], 0); }   // raised portcullis
-      K.put(i, 'box', 'iron', 0, 5.3, zf + .35, 7.2, .1, .14, 0, 0, 0, [.5, .46, .44], 0); K.put(i, 'box', 'iron', 0, 4.7, zf + .35, 7.2, .08, .12, 0, 0, 0, [.5, .46, .44], 0);
+      K.put(i, 'box', 'iron', 0, 6.5, zf + .35, GATE_HW * 2 + 2.2, .8, 1.9, 0, 0, 0, IRONT, .2); K.put(i, 'box', 'iron', 0, 5.85, zf + .35, GATE_HW * 2 - .4, .5, 1.6, 0, 0, 0, SOOT, .1);   // (was 7 cm below the lintel)
+      for (var q = -5; q <= 5; q++) { K.put(i, 'cyl6', 'iron', q * 1.1, 5.1, zf + .35, .16, 1.1, .16, 0, 0, 0, [.5, .46, .44], 0); K.put(i, 'cone4', 'iron', q * 1.1, 4.32, zf + .35, .24, .5, .24, 0, 0, PI, [.56, .52, .5], 0); }   // raised portcullis
+      K.put(i, 'box', 'iron', 0, 5.3, zf + .35, GATE_HW * 2 - .6, .1, .14, 0, 0, 0, [.5, .46, .44], 0); K.put(i, 'box', 'iron', 0, 4.7, zf + .35, GATE_HW * 2 - .6, .08, .12, 0, 0, 0, [.5, .46, .44], 0);
       K.put(i, 'box', 'wall', 0, 7.05, zf + .35, 1.1, .7, 1.4, 0, 0, 0, [.5, .46, .44], .2);
-      if (o.vent) { K.put(i, 'box', 'hot', 0, 6.25, zf + 1.25, 5.8, .2, .06, 0, 0, 0, [2.0, .7, .18], 0); K.spr(i, S.glow, 0, 6.1, zf + 1.4, 4.2, .8, [.9, .3, .06], .8, 0, 1, 1); }
+      if (o.vent) { K.put(i, 'box', 'hot', 0, 6.25, zf + 1.25, GATE_HW * 2 - 2, .2, .06, 0, 0, 0, [2.0, .7, .18], 0); K.spr(i, S.glow, 0, 6.1, zf + 1.4, 4.2, .8, [.9, .3, .06], .8, 0, 1, 1); }
     }
     // props
     function anvil(x, z, rot, sc) {
@@ -330,9 +330,9 @@
     function corridor() {
       if (i >= 13) return;
       // the 4 m connecting corridor used to be the bare, untinted floor slab (a bright patch between the dark rooms): slab it like the room
-      if (floorOpt) K.floor(i, { x: 0, z: r.z - 13, w: 7, d: 4.08 }, Object.assign({}, floorOpt, { cols: 3, rows: 2, zone: null, skip: null }));
-      [-1, 1].forEach(function (s) { K.wall(i, s * 3.95, r.z - 13.7, 2.7, .8, 5.6, false, -s, 0, { tint: [.4, .37, .36], noPil: true, plinthKey: 'iron' });
-        K.sconce(i, s * 3.5, 2.5, r.z - 13.5, -s, 0, { col: FIRE, light: true, lightColor: 0xff8a3c, intensity: 30 }); });   // light candidates between the rooms
+      if (floorOpt) K.floor(i, { x: 0, z: r.z - 13, w: GATE_HW * 2, d: 4.08 }, Object.assign({}, floorOpt, { cols: 3, rows: 2, zone: null, skip: null }));
+      [-1, 1].forEach(function (s) { K.wall(i, s * (GATE_HW + .05), r.z - 13.7, 2.7, .8, 5.6, false, -s, 0, { tint: [.4, .37, .36], noPil: true, plinthKey: 'iron' });
+        K.sconce(i, s * (GATE_HW - .45), 2.5, r.z - 13.5, -s, 0, { col: FIRE, light: true, lightColor: 0xff8a3c, intensity: 30 }); });   // light candidates between the rooms
     }
     // The five rock blocks standing at (+-6.8, -7) in rooms 1,4,7,10,13 are given different jobs by the room scripts.
     var ROOM = [];
@@ -752,5 +752,5 @@
     corridor(); clutter(12);
     wingDress();
   }
-  B.ForgeRooms = { dress: dress, moodBase: moodBase, moodSpecs: moodSpecs, wings: WINGS, doors: DOORS, doorHalf: DOOR_HW };
+  B.ForgeRooms = { dress: dress, moodBase: moodBase, moodSpecs: moodSpecs, wings: WINGS, doors: DOORS, doorHalf: DOOR_HW, gateHalf: GATE_HW };
 }());
