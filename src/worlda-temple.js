@@ -160,6 +160,7 @@
     }
     // Light masonry wall: one solid core (collider + shadow) with a brick skin on the face(s) the camera sees.
     // ~12 triangles per brick instead of the chipped-slab kit (keeps the side crypts cheap in the shadow passes).
+    function portalHalf(parent) { return K.portalHalf ? K.portalHalf(parent) : 3; }
     function wallLite(x, z, length, axis, height, face) {
       var w = axis === 'x' ? length : .75, d = axis === 'z' ? length : .75;
       solid(x, z, w, d);
@@ -190,26 +191,29 @@
       // passage floor and walls
       var cx = (edge + mainEdge) / 2, clen = Math.abs(edge - mainEdge);
       floorTiles(cx, r.z, clen + .1, 6, [], 1.2);
-      wallLite(cx, r.z - 3.5, clen - .1, 'x', 2.6, 1);
-      wallLite(cx, r.z + 3.5, clen - .1, 'x', 1.0, -1);
+      // the passage is as wide as the hall's opening (portalHalf): side crypts flow out of the main halls
+      var PH = portalHalf(r.parent);
+      if (K.floors) K.floors.push({ x: cx, z: r.z, w: clen + 1, d: PH * 2 });
+      wallLite(cx, r.z - PH - .5, clen - .1, 'x', 2.6, 1);
+      wallLite(cx, r.z + PH + .5, clen - .1, 'x', 1.0, -1);
       K.floorDecal('matte', CELL.mould, cx, r.z, clen + 1, 4.4, 0, COL.grime, 0);
       // solid masonry between the two halls on either side of the passage (no dark slot between the walls)
-      var mainHalf = main.d / 2, fillLen = Math.max(r.d / 2, mainHalf) - 3.9;
+      var mainHalf = main.d / 2, fillLen = Math.max(r.d / 2, mainHalf) - PH - .9;
       [-1, 1].forEach(function (k) {
-        var h = k < 0 ? 4.25 : 1.0, fz = r.z + k * (3.9 + fillLen / 2), fw = Math.max(.1, clen - .75);
+        var h = k < 0 ? 4.25 : 1.0, fz = r.z + k * (PH + .9 + fillLen / 2), fw = Math.max(.1, clen - .75);
         box('dark', cx, h / 2, fz, fw, h, fillLen);
-        for (var q = 0; q < Math.ceil(fillLen / 1.4); q++) put('box', 'stone', cx, h + .045, r.z + k * (3.9 + (q + .5) * fillLen / Math.ceil(fillLen / 1.4)), fw + .2, .19, fillLen / Math.ceil(fillLen / 1.4) - .04, 0, 0, 0, 0, new T.Color().setScalar(.62 + q % 3 * .06));
+        for (var q = 0; q < Math.ceil(fillLen / 1.4); q++) put('box', 'stone', cx, h + .045, r.z + k * (PH + .9 + (q + .5) * fillLen / Math.ceil(fillLen / 1.4)), fw + .2, .19, fillLen / Math.ceil(fillLen / 1.4) - .04, 0, 0, 0, 0, new T.Color().setScalar(.62 + q % 3 * .06));
         solid(cx, fz, fw, fillLen);
       });
       // doorway frame: two heavy jambs and a lintel with hanging chain
       [-1, 1].forEach(function (k) {
-        put('slab2', 'dark', edge, 1.6, r.z + k * 3.25, 1.2, 3.2, .9, 0, 0, 0);
-        put('slab0', 'pale', edge, 3.3, r.z + k * 3.25, 1.35, .3, 1.05, 0, 0, 0);
+        put('slab2', 'dark', edge, 1.6, r.z + k * (PH + .25), 1.2, 3.2, .9, 0, 0, 0);
+        put('slab0', 'pale', edge, 3.3, r.z + k * (PH + .25), 1.35, .3, 1.05, 0, 0, 0);
       });
-      put('slab1', 'stone', edge, 3.75, r.z, 1.15, .65, 7.4, 0, 0, 0);
+      put('slab1', 'stone', edge, 3.75, r.z, 1.15, .65, PH * 2 + 1.4, 0, 0, 0);
       K.chain(edge - s * .2, 3.35, r.z + 1.4, 1.2, 'y', 1);
       // walls
-      [-1, 1].forEach(function (k) { var len = (r.d - 6) / 2; wallLite(edge, r.z + k * (3 + len / 2), len, 'z', 4.25, -s); });
+      [-1, 1].forEach(function (k) { var len = (r.d - PH * 2) / 2; wallLite(edge, r.z + k * (PH + len / 2), len, 'z', 4.25, -s); });
       wallLite(back, r.z, r.d, 'z', 4.8, s);
       wallLite(r.x, north, r.w + .75, 'x', 4.8, 1);
       wallLite(r.x, south, r.w + .75, 'x', 1.15, 0);

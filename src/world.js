@@ -634,6 +634,7 @@
       }
       // ajan:world-a: some halls open into each other through a wide breach instead of a 7 m arch (BREACH[i]: between room i and i+1).
       var BREACH = BABA.WorldATemple && BABA.WorldATemple.active ? { 1: 1, 2: 1, 3: 1, 4: 1 } : {}, BREACH_HALF = 6;
+      function portalHalf(i) { return BABA.WorldATemple && BABA.WorldATemple.active && i < 5 ? 4.6 : 3; }   // side-crypt doorway half-width
       function endWall(room, z, entrance, front, half) {
         var xmin = room.x - room.w / 2, xmax = room.x + room.w / 2; half = half || 3.45;
         var height = front ? 1.15 : (room.id === 6 ? 6.2 : 4.8);
@@ -714,7 +715,7 @@
         tileFloor(room.x, room.z, room.w, room.d, i);
         [-1,1].forEach(function(side){
           var portal = i < 6 && side === ([1,-1,-1,1,1,-1][i]);
-          if(portal) [-1,1].forEach(function(s){var len=(room.d-6)/2;wallRun(room.x+side*room.w/2,room.z+s*(3+len/2),len,'z',4.25);});
+          if(portal) [-1,1].forEach(function(s){var ph=portalHalf(i),len=(room.d-ph*2)/2;wallRun(room.x+side*room.w/2,room.z+s*(ph+len/2),len,'z',4.25);});
           else wallRun(room.x+side*room.w/2,room.z,room.d,'z',i===6?5.8:4.25);
         });
         endWall(room, room.z + room.d / 2, i !== 0, true, BREACH[i - 1] ? BREACH_HALF : 0);
@@ -1702,7 +1703,7 @@
         skull: skull, boneScatter: boneScatter, ribCage: ribCage, rubble: rubble, slab: slab, cage: cage, chain: chain, candleCluster: candleCluster, alcove: alcove,
         vaultRib: vaultRib, funeraryEffigy: funeraryEffigy, censer: censer, hangingIron: hangingIron, hangedBody: hangedBody, shroudedRemains: shroudedRemains,
         puddle: puddle, banner: banner, torch: torch, sconce: sconce, flame: flame, lightSource: lightSource, emberSources: emberSources, smokeSources: smokeSources,
-        part: part, hangerGroup: hangerGroup, swinging: swinging, floorRing: floorRing, ritualPavement: ritualPavement, architectureMesh: architectureMesh, spot: spot, setChunkBias: function (b) { chunkBias = b || 0; } });
+        part: part, hangerGroup: hangerGroup, swinging: swinging, floorRing: floorRing, ritualPavement: ritualPavement, architectureMesh: architectureMesh, spot: spot, setChunkBias: function (b) { chunkBias = b || 0; }, portalHalf: portalHalf, floors: floors });
       /* /ajan:world-a */
 
       // ---- light shafts and particles ----------------------------------------------------------------------
