@@ -106,7 +106,7 @@
     'uniform vec4 uPulse;',   // war cry shockwave: xy = centre (uv), z = ring radius (height units), w = strength (0 = off)
     // Cinematic layer over every room grade (ajan:visual-dark): x shadow desaturation, y shadow range (linear luma), z toe (black crush),
     // w highlight warmth; uCineTint = hue the drained shadows sink toward. uSharp = adaptive detail (SHARP variant only).
-    'uniform vec4 uCine; uniform vec3 uCineTint; uniform float uSharp, uPunch;',
+    'uniform vec4 uCine; uniform vec3 uCineTint, uCineHigh; uniform float uSharp, uPunch;',
     // Hero focus (ajan:visual-dark): xy = hero centre (uv), z = radius (height units), w = strength. The hero carries a soft pool of
     // exposure with him and the frame falls away into darkness around it, so a darker world never swallows the player.
     'uniform vec4 uFocus;',
@@ -237,7 +237,7 @@
     '  { float lc = luma(c); c *= pow(max(lc, 1e-4) / .18, uPunch) ; lc = luma(c); float shd = 1. - smoothstep(0., uCine.y, lc);',
     '    c = mix(c, vec3(lc) * uCineTint, shd * shd * uCine.x);',
     '    c *= (lc + uCine.z * .25) / (lc + uCine.z);',
-    '    c *= mix(vec3(1.), vec3(1.05, 1., .93), smoothstep(.3, .9, lc) * uCine.w); }',
+    '    c *= mix(vec3(1.), uCineHigh, smoothstep(.3, .9, lc) * uCine.w); }',
     '  #if ABILITY',
     // hit-freeze on the last tick: colour drains and the picture snaps harder for a heartbeat
     '  if (abFr > 0.) { c = mix(c, vec3(luma(c)) * 1.12, abFr * .12); c = c * (1. + abFr * .08) + abFr * .01; }',
@@ -386,7 +386,7 @@
       uLift: { value: new T.Vector3() }, uGain: { value: new T.Vector3(1, 1, 1) }, uShadowTint: { value: new T.Vector3(1, 1, 1) },
       uHighTint: { value: new T.Vector3(1, 1, 1) }, uVigColor: { value: new T.Vector3(0, 0, 0) }, uBloomTint: { value: new T.Vector3(1, 1, 1) },
       uHeat: { value: heat }, uPulse: { value: new T.Vector4(.5, .5, 0, 0) },
-      uCine: { value: new T.Vector4(.38, .12, .006, .5) }, uCineTint: { value: new T.Vector3(.9, 1, 1.08) }, uSharp: { value: .55 }, uPunch: { value: .08 }, uFocus: { value: new T.Vector4(.5, .5, .5, 0) },
+      uCine: { value: new T.Vector4(.38, .12, .006, .5) }, uCineTint: { value: new T.Vector3(.9, 1, 1.08) }, uCineHigh: { value: new T.Vector3(1.05, 1, .93) }, uSharp: { value: .55 }, uPunch: { value: .08 }, uFocus: { value: new T.Vector4(.5, .5, .5, 0) },
       uOvl: { value: new T.Vector4() }, uCss: { value: new T.Vector2(typeof innerWidth === 'number' ? innerWidth : 1280, typeof innerHeight === 'number' ? innerHeight : 800) },
       uAbA: { value: new T.Vector4() }, uAbB: { value: new T.Vector4() }, uAbC: { value: new T.Vector4(.5, .5, 0, .1) }, uAbD: { value: new T.Vector4(.5, .5, 1, 0) }
     };
@@ -528,6 +528,7 @@
       if (Number.isFinite(g.exposure)) U.uExposure.value = g.exposure;
       if (g.cine) U.uCine.value.copy(g.cine);
       if (g.cineTint) U.uCineTint.value.copy(g.cineTint);
+      if (g.cineHigh) U.uCineHigh.value.copy(g.cineHigh);
     }
     function draw(mat, rt) { quad.material = mat; renderer.setRenderTarget(rt); renderer.render(quadScene, quadCamera); }
 

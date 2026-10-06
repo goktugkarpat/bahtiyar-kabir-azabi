@@ -240,6 +240,7 @@
 
     // Scripted moments.
     var director = { bossSeen: false, bossActiveAt: -1, phase2At: -1, bossDeadAt: -1, checkpointAt: -1, lastCheckpoint: null, ritualLive: 1, wasBoss: false };
+    var contact = B.ContactShadows ? B.ContactShadows.create(scene) : null;   // (ajan:visual-dark) soft occlusion under every body
     var grade = { lift: new T.Vector3(), gain: new T.Vector3(1, 1, 1), saturation: 1, contrast: .12, shadowTint: new T.Vector3(1, 1, 1), highTint: new T.Vector3(1, 1, 1),
       vignette: .5, vignetteColor: new T.Vector3(), bloom: .6, bloomTint: new T.Vector3(1, 1, 1), exposure: 1.15 };
     var target = { fog: new T.Color(), mist: new T.Color(), sky: new T.Color(), ground: new T.Color(), key: new T.Color(), rim: new T.Color(), charRim: new T.Color() };
@@ -307,6 +308,16 @@
         });
       }
       for (var j = 0; j < blood.mats.length; j++) { var mm = blood.mats[j]; mm.userData.grade.kBlood.value = mm.userData.karaBloodBase + blood.level * .7; }
+    }
+    // Chapter colour identity (ajan:visual-dark), applied by the post cinematic layer on top of every room grade:
+    // [shadow hue, highlight hue]. Temple amber-violet, Coast cold green-grey, Throne gold-blue, Forge red-black, Finale blood-violet.
+    var LOOK = { 1: [[.96, .9, 1.12], [1.07, 1.0, .88]], 2: [[.88, 1.04, 1.0], [.99, 1.02, .97]], 3: [[.86, .95, 1.16], [1.08, 1.01, .84]],
+      4: [[1.06, .9, .88], [1.09, .96, .84]], 5: [[1.06, .84, 1.1], [1.07, .9, .94]] };
+    grade.cineTint = new T.Vector3(.9, 1, 1.08); grade.cineHigh = new T.Vector3(1.05, 1, .93);
+    var lookTint = new T.Vector3(), lookHigh = new T.Vector3();
+    function chapterLook(dt) {
+      var L5 = LOOK[B.ActiveChapter] || LOOK[1], k = 1 - Math.exp(-(dt || 0) * 1.5);
+      grade.cineTint.lerp(lookTint.fromArray(L5[0]), k); grade.cineHigh.lerp(lookHigh.fromArray(L5[1]), k);
     }
     function hitFlash(game, dt) {
       var enemies = game && game.enemies; if (!enemies) return;
@@ -763,7 +774,7 @@
         && L && L.deferShadowRefresh) L.deferShadowRefresh();
       var p = game.player, a = world.atmosphereAt(p.x, p.z);
       patchClock -= dt; if (patchClock <= 0) { patchClock = 1; patchCharacters(game); splitCharacters(game); }
-      hitFlash(game, dt); battleBlood(game, dt);
+      hitFlash(game, dt); battleBlood(game, dt); if (contact) contact.update(game);
       directorStep(dt, time, game, a);
       corpseClock -= dt; if (corpseClock <= 0 && L && L.setCorpses) { corpseClock = .5; flyCorpses(game); }
       var k = ready ? 1 - Math.exp(-dt * 2.2) : 1; ready = true;
@@ -796,12 +807,13 @@
       grade.exposure = (cfgRef.exposure || 1.15) * a.exposure;
       var fx = p.x, fz = p.z - 2;
       updateScatter(fx, fz, dt);
-      if (opts.post) { updateHeat(opts.post.heat(), fx, fz); if (opts.post.pulse) warCryPost(opts.post.heat(), opts.post.pulse(), p); opts.post.setGrade(grade); if (opts.post.setFocus) opts.post.setFocus(p.x, .9, p.z, Number.isFinite(a.focusRadius) ? a.focusRadius : FOCUS[1], Number.isFinite(a.focus) ? a.focus : FOCUS[0]); }
+      if (opts.post) { updateHeat(opts.post.heat(), fx, fz); if (opts.post.pulse) warCryPost(opts.post.heat(), opts.post.pulse(), p); chapterLook(dt); opts.post.setGrade(grade); if (opts.post.setFocus) opts.post.setFocus(p.x, .9, p.z, Number.isFinite(a.focusRadius) ? a.focusRadius : FOCUS[1], Number.isFinite(a.focus) ? a.focus : FOCUS[0]); }
       if (!ab.stepped) abilityStep(dt, game, time);
       ab.stepped = false;
     }
     function dispose() {
       [hemi, moon, rim, moonTarget, rim.target].forEach(function (o) { scene.remove(o); });
+      if (contact) contact.dispose();
       if (moon.shadow.map) moon.shadow.map.dispose();
       if (scene.environment) { scene.environment.dispose(); scene.environment = null; }
     }
