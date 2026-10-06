@@ -114,6 +114,7 @@
     materials.gold = new T.MeshStandardMaterial({ color: 0x755d2f, roughness: .48, metalness: .7 });
     materials.lamp = new T.MeshStandardMaterial({ color: 0x547b74, emissive: 0x87c5b7, emissiveIntensity: .7, roughness: .3 });
     materials.oath = new T.MeshStandardMaterial({ color: 0x88816d, emissive: 0xe8aa56, emissiveIntensity: .3, roughness: .7 });
+    materials.ember = new T.MeshStandardMaterial({ color: 0x2a140c, emissive: 0xff6a24, emissiveIntensity: 2.2, roughness: .9 });
     var box = geo(new T.BoxGeometry(1, 1, 1)), sphere = geo(new T.IcosahedronGeometry(1, 2));
     var cylinder = geo(new T.CylinderGeometry(1, 1, 1, 12)), cone = geo(new T.ConeGeometry(1, 1, 12));
     var ring = geo(new T.TorusGeometry(1, .065, 6, 20));
@@ -175,21 +176,16 @@
       var treeGeo=geo(B.Gear.merge(pieces));treeGeo.userData.coastJunctions=treeJunctions.filter(function(j){return j.variant===variant;});treeShapes.push(treeGeo);
     }
     rooms.forEach(function (r) { var g = new T.Group(); g.name = r.name; root.add(g); roomGroups.push(g); });
-    var sideMouths=[{lo:-19,hi:-9,z:-63},{lo:-21,hi:-10,z:-112},{lo:-17,hi:-9,z:4},{lo:-20,hi:-9,z:-27},{lo:-19,hi:-9,z:-81},{lo:-19,hi:-8,z:-140}];
+    // Open coast (src/coast-open.js): organic side areas, a western cliff trail, a hill and a mole; one sculpted terrain around them.
+    function mainTest(x,z){for(var i=0;i<rooms.length;i++){var r=rooms[i];if(x>=-r.w*.5&&x<=r.w*.5-4&&Math.abs(z-r.z)<=r.d*.5)return true;}return Math.abs(x)<=3.3&&z>=-190&&z<=15;}
+    var open=B.CoastOpen.layout(rooms);open.mainTest=mainTest;
+    var ground=B.CoastOpen.heightField(open);
+    open.rooms.forEach(function(r){var g=new T.Group();g.name=r.name;root.add(g);roomGroups[r.id]=g;});
     function add(room, g, mat, x, y, z, sx, sy, sz, rx, ry, rz) {
-      // Check the rotated silhouette, not just the rock's centre. This runs once
-      // during construction; decorative rubble never conceals a walkable doorway.
-      if(g===rock&&mat==='rock'&&sy>.25){
-        if(!g.boundingBox)g.computeBoundingBox();
-        position.set(x,y,z);scale.set(sx,sy,sz);rotation.setFromEuler(euler.set(rx||0,ry||0,rz||0));
-        matrix.compose(position,rotation,scale);
-        var bounds=g.boundingBox.clone().applyMatrix4(matrix);
-        sideMouths.forEach(function(m){
-          if(bounds.max.x>m.lo-.7&&bounds.min.x<m.hi+.7&&bounds.max.z>m.z-3.8&&bounds.min.z<m.z+3.8){
-            var shift=z>=m.z?m.z+3.8-bounds.min.z:m.z-3.8-bounds.max.z;
-            z+=shift;bounds.min.z+=shift;bounds.max.z+=shift;
-          }
-        });
+      // Legacy rubble of the main road never lands on the open areas' walking floor; on the slopes it follows the terrain.
+      if(room<7&&(mat==='rock'||mat==='char')&&x<-9){
+        if(g===rock&&sy>.2&&open.floorTest(x,z,-Math.max(sx,sz)*.5)&&!mainTest(x,z))return;
+        y+=ground.y(x,z);
       }
       var key = room + ':' + g.id + ':' + mat;
       if (!batches[key]) batches[key] = { room: room, geo: g, mat: materials[mat], matrices: [] };
@@ -204,15 +200,16 @@
       matrix.compose(p, rotation, new T.Vector3(radius, length, radius)); batches[key].matrices.push(matrix.clone());
     }
     function collision(x, z, w, d) { colliders.push({ x: x, z: z, w: w, d: d }); }
-    function tree(room, x, z, h, trunk, leaning) {
-      if(room < 6 && x < -17)x=-52;
+    function tree(room, x, z, h, trunk, leaning, y, force) {
       var baseRadius=Math.max(1,h*.16,trunk*5);
-      sideMouths.forEach(function(m){if(x+baseRadius>m.lo&&x-baseRadius<m.hi&&Math.abs(z-m.z)<3+baseRadius+.65)z=m.z+(z>=m.z?1:-1)*(3+baseRadius+.65);});
       var variant=Math.floor(rnd()*3),shape=treeShapes[variant],width=Math.max(h*.64,trunk*20);
-      add(room,shape,'char',x,0,z,width,h,width,0,rnd()*PI*2,(leaning||0)/h*.25);
+      if(!force&&(open.floorTest(x,z,-baseRadius*.6)||mainTest(x,z))){rnd();return {at:function(){return new T.Vector3(x,0,z);}};}
+      var key=room+':'+shape.id+':char';if(!batches[key])batches[key]={room:room,geo:shape,mat:materials.char,matrices:[]};
+      position.set(x,y==null?ground.y(x,z)-.15:y,z);scale.set(width,h,width);rotation.setFromEuler(euler.set(0,rnd()*PI*2,(leaning||0)/h*.25));
+      matrix.compose(position,rotation,scale);batches[key].matrices.push(matrix.clone());
       var transform=matrix.clone();
       // Split charred stump and a low broken limb distinguish fallen trunks from living silhouettes.
-      if(trunk>.45)beam(room,'char',[x,.7,z],[x+.45,2.0,z-.35],trunk*.20);
+      var by=position.y+.15;if(trunk>.45)beam(room,'char',[x,by+.7,z],[x+.45,by+2.0,z-.35],trunk*.20);
       return {at:function(t){return treeTrunks[variant].getPointAt(t).applyMatrix4(transform);}};
     }
     function grave(room, x, z, angle, broken) {
@@ -286,8 +283,8 @@
       // Salt-worn entry paving connects each ruin to the street without blocking the combat route.
       for(var row=0;row<3;row++)for(var col=0;col<3;col++)part(masonry,'stone',(col-1)*.64,.015,front+.9+row*.59,.58,.035,.53,0,(rnd()-.5)*.08);
     }
-    function boat(room, x, z, length, angle, sunk) {
-      var g=new T.Group();g.position.set(x,sunk?-.48:-.22,z);g.rotation.y=angle;g.rotation.z=sunk?.22:.05;
+    function boat(room, x, z, length, angle, sunk, land, flip, hulk) {
+      var g=new T.Group();g.position.set(x,land?(flip?1.02:-.12):hulk?-1.4:sunk?-.48:-.22,z);g.rotation.y=angle;g.rotation.z=flip?PI-.08:land?.16:hulk?.34:sunk?.22:.05;if(hulk)g.rotation.x=.12;
       var pieces=[],rope=[],N=20;
       function piece(geometry,sx,sy,sz,x,y,z,rx,ry,rz,list){var b=geometry.clone();scale.set(sx,sy,sz);position.set(x,y,z);rotation.setFromEuler(euler.set(rx||0,ry||0,rz||0));matrix.compose(position,rotation,scale);b.applyMatrix4(matrix);(list||pieces).push(b);}
       function spar(a,b,r,list){var pa=new T.Vector3().fromArray(a),dd=new T.Vector3().fromArray(b).sub(pa),len=dd.length();pa.addScaledVector(dd,.5);rotation.setFromUnitVectors(new T.Vector3(0,1,0),dd.normalize());matrix.compose(pa,rotation,new T.Vector3(r,len,r));var bb=cylinder.clone();bb.applyMatrix4(matrix);(list||pieces).push(bb);}
@@ -302,19 +299,22 @@
       }
       for(var j=1;j<9;j++){var t=j/10,zz=(t-.5)*length,w=Math.pow(Math.sin(t*PI),.72)*1.30;piece(plank,w*1.7,.09,.33,0,.52,zz);for(var side=-1;side<=1;side+=2)spar([side*w*.4,.12,zz],[side*w,.86,zz],.045);}
       spar([0,.12,-length*.48],[0,.12,length*.48],.10);
+      if(!land){
       spar([0,.45,0],[-length*.23,length*.74,.2],.095);
       spar([-length*.23,length*.73,.2],[length*.20,length*.67,.2],.045);
       spar([-length*.23,length*.73,.2],[-1.1,.95,-length*.27],.018,rope);spar([-length*.23,length*.73,.2],[1.1,.95,length*.30],.018,rope);
+      }
       piece(plank,.23,.07,1.1,1.55,.71,-length*.19,0,.32,-.13);spar([1.5,.75,-length*.16],[1.3,1.05,length*.28],.034);
       function baked(list,mat){var bb=geo(B.Gear.merge(list)),m=new T.Mesh(bb,mat);m.castShadow=m.receiveShadow=true;g.add(m);}
       // Double-sided hull preserves the visibly hollow interior. Source textures remain shared.
       if(!materials.hull){materials.hull=materials.wood.clone();materials.hull.side=T.DoubleSide;materials.hull.name='coast-hull';materials.hull.onBeforeCompile=materials.wood.onBeforeCompile;materials.hull.customProgramCacheKey=materials.wood.customProgramCacheKey;}
-      baked(pieces,materials.hull);baked(rope,materials.rope);
+      baked(pieces,materials.hull);if(rope.length)baked(rope,materials.rope);
+      if(land){var bc=Math.abs(Math.cos(angle)),bs=Math.abs(Math.sin(angle));collision(x,z,2.6*bc+length*bs*.9,2.6*bs+length*bc*.9);roomGroups[room].add(g);g.updateMatrixWorld(true);g.matrixAutoUpdate=false;g.children.forEach(function(c){c.matrixAutoUpdate=false;});return;}
       var sailGeo=geo(new T.PlaneGeometry(length*.38,length*.44,9,12)),pp=sailGeo.attributes.position,indices=[];
       for(var j=0;j<pp.count;j++){var yy=pp.getY(j);pp.setZ(j,.22*Math.sin(pp.getX(j)*1.7)+.14*Math.cos(yy*2.1));if(yy<-length*.10)pp.setY(j,yy+rnd()*.45);}
       var si=sailGeo.index;for(var j=0;j<si.count;j+=3){var a=si.getX(j),b=si.getX(j+1),c=si.getX(j+2);if(pp.getY(a)<0&&j%39===0)continue;indices.push(a,b,c);}sailGeo.setIndex(indices);sailGeo.computeVertexNormals();
       var sail=new T.Mesh(sailGeo,materials.cloth);sail.position.set(-length*.03,length*.51,.2);sail.rotation.y=-.3;sail.rotation.z=.18;g.add(sail);
-      roomGroups[room].add(g);animated.push({object:g,y:g.position.y,roll:g.rotation.z,phase:rnd()*6,boat:true});
+      roomGroups[room].add(g);if(!hulk)animated.push({object:g,y:g.position.y,roll:g.rotation.z,phase:rnd()*6,boat:true});
     }
     // Static corpses are posed and baked once. They keep the artist textures without a live skeleton or per-frame animation.
     function corpseTemplate() {
@@ -341,8 +341,7 @@
     // Solid land and broad connected combat spaces. Decorative roots never block the central route.
     rooms.forEach(function (r, id) {
       add(id, box, id === 3 ? 'wood' : id<=1 ? 'earth' : id<5 ? 'sand' : 'floor', -2, -.13, r.z, r.w - 4, .26, r.d);
-      add(id, box, 'earth', -r.w * .5 - 13, -.37, r.z, 26, .5, r.d + 8);
-      if (id < 6) { var next = rooms[id + 1], lo = r.z - r.d * .5, hi = next.z + next.d * .5; add(id,box,'earth',-2,-.36,(lo+hi)*.5,r.w-4,.40,lo-hi+.8);add(id, box, id === 3 ? 'wood' : id<=1 ? 'earth' : id<5 ? 'sand' : 'floor', 0, -.13, (lo + hi) * .5, 6.6, .26, lo - hi);for(var side=-1;side<=1;side+=2)add(id,box,'stone',side*3.5,.035,(lo+hi)*.5,.16,.12,lo-hi+.6); }
+      if (id < 6) { var next = rooms[id + 1], lo = r.z - r.d * .5, hi = next.z + next.d * .5; add(id,box,'earth',-2,-.24,(lo+hi)*.5,r.w-4,.40,lo-hi+.8);add(id, box, id === 3 ? 'wood' : id<=1 ? 'earth' : id<5 ? 'sand' : 'floor', 0, -.13, (lo + hi) * .5, 6.6, .26, lo - hi);if(id===5)for(var side=-1;side<=1;side+=2)add(id,box,'stone',side*3.5,.035,(lo+hi)*.5,.16,.12,lo-hi+.6); }
       for (var i = 0; i < 24; i++) {
         var side = i % 2 ? 1 : -1, x = side * (r.w * .5 + .5 + rnd() * 3), z = r.z + (rnd() - .5) * r.d;
         add(id, rock, 'rock', x, .1 + rnd() * .3, z, .8 + rnd() * 1.7, .45 + rnd() * .65, .6 + rnd() * 1.5, rnd()*.25, rnd() * 6, rnd()*.25);
@@ -402,7 +401,7 @@
     corpse(0,-8,6,.6);corpse(0,6,-2,2.4);skull(0,-7,.12,1,.4);
     // 1: a collapsed root arch and a charred shelter. The route beneath stays wide and flat.
     for (var side = -1; side <= 1; side += 2) {
-      var treeAnchor=tree(1,side*11.8,side<0?-19.8:-27,9,.7,-side*2.2),start=treeAnchor.at(.50);
+      var treeAnchor=tree(1,side*11.8,side<0?-19.8:-27,9,.7,-side*2.2,0,true),start=treeAnchor.at(.50);
       var archPoints=[start,new T.Vector3(side*8.2,4.7,-27.6),new T.Vector3(side*4.9,5.15,-28.5),new T.Vector3(side*1.8,5.1,-29)],archCurve=new T.CatmullRomCurve3(archPoints),parts=[];
       parts.push(B.Gear.tube(archPoints,function(t){return .33-.18*t;},10,26,true));
       for(var j=0;j<3;j++){var p=archCurve.getPointAt(.30+j*.22);parts.push(B.Gear.tube([p,p.clone().add(new T.Vector3(-side*.30,.40,-.15)),p.clone().add(new T.Vector3(-side*.66,.82,.20))],function(t){return .09*(1-t)+.008;},7,12,true));}
@@ -434,7 +433,7 @@
     building(4, -15, -105, 5, 6, 4, -.08); building(4, 15, -115, 4.5, 7, 4.2, .1);
     add(4, cylinder, 'stone', -11, .35, -120, 2.3, .7, 2.3); add(4, ring, 'stone', -11, .7, -120, 2.25, 2.25, 2.25, PI / 2);
     add(4, cylinder, 'bone', -11, 1.4, -120, .45, 2.2, .45); collision(-11, -120, 4.8, 4.8);
-    tree(4, -10.5, -120, 8, .65, 1.3); for (var j = 0; j < 5; j++) grave(4, 11.5 + rnd() * 2, -103 - j * 4, .3, true);
+    tree(4, -10.5, -120, 8, .65, 1.3, 0, true); for (var j = 0; j < 5; j++) grave(4, 11.5 + rnd() * 2, -103 - j * 4, .3, true);
     corpse(4,-8,-108,1.1);corpse(4,7,-117,-1.2);skull(4,-6.9,.12,-115,2);
     // 5: one refuge at the lighthouse; no extra saves inside the preceding fights.
     add(5, cylinder, 'stone', -8, 6, -146.5, 2.8, 12, 2.8); add(5, cylinder, 'rust', -8, 12.7, -146.5, 3.1, .5, 3.1);
@@ -456,7 +455,7 @@
     // 6: exposed circular bell court. The ocean and root forest meet behind the giant.
     add(6, cylinder, 'floor', 0, -.04, -174, 16.8, .14, 16.8);
     for (var j = 0; j < 24; j++) { var a = j / 24 * PI * 2, x = Math.cos(a) * 18, z = -174 + Math.sin(a) * 15; add(6, rock, 'rock', x, .7, z, .8 + rnd(), 1 + rnd(), .8, rnd(), rnd() * 5, rnd()); }
-    for (var s = -1; s <= 1; s += 2) { add(6, box, 'stone', s * 9, 4.4, -188, 1.3, 8.8, 1.5); beam(6, 'wood', [s * 9, 8.2, -188], [0, 9.4, -188], .33); tree(6, s * 14, -188, 12, .55, -s * 3); }
+    for (var s = -1; s <= 1; s += 2) { add(6, box, 'stone', s * 9, 4.4, -188, 1.3, 8.8, 1.5); beam(6, 'wood', [s * 9, 8.2, -188], [0, 9.4, -188], .33); tree(6, s * 14, -188, 12, .55, -s * 3, 0, true); }
     add(6, cylinder, 'rust', 0, 7.1, -188, 1.3, 2.6, 1.3); add(6, ring, 'gold', 0, 5.9, -188, 1.5, 1.5, 1.5, PI / 2);
     for(var side=-1;side<=1;side+=2){
       collision(side*9,-188,2.3,2.2);collision(side*10.1,-188.5,1.13,2.15);
@@ -508,6 +507,12 @@
     for(var j=0;j<34;j++){var x=50+rnd()*28,y=rnd()*512,r=5+rnd()*11,g=fc.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,'rgba(139,171,171,.20)');g.addColorStop(1,'rgba(139,171,171,0)');fc.fillStyle=g;fc.save();fc.translate(x,y);fc.scale(.65,1.6);fc.translate(-x,-y);fc.fillRect(x-r,y-r,r*2,r*2);fc.restore();}
     var foamTex=new T.CanvasTexture(foamCanvas);textures.push(foamTex);materials.foam=new T.MeshBasicMaterial({map:foamTex,transparent:true,opacity:.34,depthWrite:false,side:T.DoubleSide});
     rooms.forEach(function(r,id){var fg=geo(new T.PlaneGeometry(.9,r.d+5));fg.rotateX(-PI/2);var f=new T.Mesh(fg,materials.foam);f.position.set(r.w*.5-3.65,-.36,r.z);roomGroups[id].add(f);animated.push({object:f,x:f.position.x,foam:true,phase:id});});
+    var encounterList=ENCOUNTERS.map(function(e){return Object.assign({},e);});
+    B.CoastOpen.encounters(open,encounterList);
+    var allRooms=rooms.concat(open.rooms);
+    var openFx=B.CoastOpen.dress({add:add,beam:beam,tree:tree,grave:grave,lantern:lantern,building:building,boat:boat,corpse:corpse,skull:skull,cargo:cargo,collision:collision,geo:geo,rootTube:rootTube,
+      materials:materials,textures:textures,rnd:rnd,root:root,clock:clock,lightSources:lightSources,mainRooms:rooms,allRooms:function(){return allRooms;},
+      G:{box:box,sphere:sphere,cylinder:cylinder,cone:cone,ring:ring,headstone:headstone,plank:plank,branch:branch,rock:rock,masonry:masonry,archStone:archStone}},open,ground);
     // Static instances are assembled once. Detail lives in texture maps and silhouettes, not frame-time allocations.
     Object.keys(batches).forEach(function (key) {
       var b = batches[key], mesh = new T.InstancedMesh(b.geo, b.mat, b.matrices.length);
@@ -522,10 +527,9 @@
     for (var i = 0; i < 180; i++) { points[i * 3] = (rnd() - .5) * 38; points[i * 3 + 1] = .35 + rnd() * 7; points[i * 3 + 2] = -rnd() * 202 + 16; }
     particlesGeo.setAttribute('position', new T.BufferAttribute(points, 3)); materials.ash = new T.PointsMaterial({ color: 0x9ca898, size: .055, transparent: true, opacity: .36, depthWrite: false, sizeAttenuation: true });
     var ash = new T.Points(particlesGeo, materials.ash); ash.name = KabirI18n.t('Kıyı Külü'); root.add(ash);
-    var encounterList=ENCOUNTERS.map(function(e){return Object.assign({},e);});
-    var expansion=B.ChapterExpansion.build(root,materials,rooms,encounterList,colliders,2,lightSources),allRooms=rooms.concat(expansion.rooms);
+    var expansion={rooms:open.rooms,paths:open.paths,update:function(){},dispose:function(){}};
     function inFloor(x, z, radius) {
-      for(var j=0;j<expansion.floors.length;j++){var f=expansion.floors[j];if(Math.abs(x-f.x)<=f.w/2 && Math.abs(z-f.z)<=f.d/2-radius)return true;}
+      if(open.floorTest(x,z,radius))return true;
       for (var i = 0; i < rooms.length; i++) { var r = rooms[i]; if (x >= -r.w * .5 + radius && x <= r.w * .5 - 4 - radius && Math.abs(z - r.z) <= r.d * .5 - radius) return true; }
       return Math.abs(x) <= 3.3 - radius && z >= -190 + radius && z <= 15 - radius;
     }
@@ -549,8 +553,8 @@
     function roomAt(x, z) { for(var j=0;j<expansion.rooms.length;j++){var r=expansion.rooms[j];if(Math.abs(x-r.x)<=r.w/2&&Math.abs(z-r.z)<=r.d/2)return r;} for (var i = 0; i < rooms.length; i++) if (Math.abs(x) <= rooms[i].w * .5 + 1 && Math.abs(z - rooms[i].z) <= rooms[i].d * .5 + 1) return rooms[i]; var best = rooms[0]; for (var j = 1; j < rooms.length; j++) if (Math.abs(z - rooms[j].z) < Math.abs(z - best.z)) best = rooms[j]; return best; }
     // Small prepared waypoint graph around the few solid buildings/cargo; never builds a combat-time raster grid.
     var nodes = [];
-    allRooms.forEach(function (r) { (r.id>=7?[-5,0,5]:[-6,0,6]).forEach(function (x) { (r.id>=7?[-8,-5,-2,0,2,5,8]:[-r.d * .33, 0, r.d * .33]).forEach(function (z) { if (isWalkable(x+r.x, r.z + z, .85)) nodes.push({ x: x+r.x, z: r.z + z, edges: [] }); }); }); });
-    expansion.rooms.forEach(function(r){[r.portal,r.x+r.w/2-2,(r.portal+r.x+r.w/2)/2].forEach(function(x){var z=r.entryZ==null?r.z:r.entryZ;if(isWalkable(x,z,.85))nodes.push({x:x,z:z,edges:[]});});});
+    rooms.forEach(function (r) { [-6,0,6].forEach(function (x) { [-r.d * .33, 0, r.d * .33].forEach(function (z) { if (isWalkable(x+r.x, r.z + z, .85)) nodes.push({ x: x+r.x, z: r.z + z, edges: [] }); }); }); });
+    open.seeds.forEach(function(s){if(isWalkable(s[0],s[1],.85))nodes.push({x:s[0],z:s[1],edges:[]});});
     for (var i = 0; i < nodes.length; i++) for (var j = i + 1; j < nodes.length; j++) if (Math.hypot(nodes[i].x - nodes[j].x, nodes[i].z - nodes[j].z) < 23 && hasClearPath(nodes[i].x, nodes[i].z, nodes[j].x, nodes[j].z, .85)) { nodes[i].edges.push(j); nodes[j].edges.push(i); }
     var pathCosts=new Float64Array(nodes.length),pathPrev=new Int16Array(nodes.length),pathUsed=new Uint8Array(nodes.length);
     function pathTo(from, to, radius) {
@@ -588,7 +592,7 @@
     function update(dt, time, player) {
       expansion.update(player);
       clock.value = calm ? 0 : time;if(B.CoastClothClock)B.CoastClothClock.value=clock.value; var p = player || { x: 0, z: 8 }; heroCut.value.set(p.x,1.2,p.z);
-      roomGroups.forEach(function (g, i) { g.visible = Math.abs(rooms[i].z - p.z) < 58 + rooms[i].d * .5; });
+      roomGroups.forEach(function (g, i) { var r = i < 7 ? rooms[i] : allRooms[i]; g.visible = Math.abs(r.z - p.z) < 58 + r.d * .5 && Math.abs((r.x || 0) - p.x) < 70 + r.w * .5; });if(openFx)openFx.update(time,p);
       animated.forEach(function (a) { if (calm) return; if (a.boat) {var wave=seaStateAt(a.object.position.x,a.object.position.z,time);a.object.position.y=a.y+wave.x*.45;a.object.rotation.z=a.roll+wave.y*.18;a.object.rotation.x=-wave.z*.18;} else if (a.foam){var wash=.5+.5*Math.sin(time*.85+a.phase);a.object.position.x=a.x+wash*.38;a.object.position.y=-.38+wash*.035;} });
       ash.position.x = calm ? 0 : Math.sin(time * .09) * .3;
       nearby.length = 0;
