@@ -301,7 +301,7 @@
       solid(x, z, 2.4, 3.4);
     }
     anchor(0, 3.8, 6.9, 1, -.5); pyre(0, -8.4, 12.5, .3); pyre(0, -4.7, 6.7, -.25); K.lantern(0, 2.3, 2.6, 2.4, 'coast', true); K.lantern(0, -2.6, 2.6, -1.2, 'coast', true);
-    anchor(3, -9.4, -91.8, 1.25, .9);   // harbour plaza: a giant anchor dragged onto the pier
+    anchor(3, -9.4, -91.8, 1.25, .9); pyre(9, -23.5, 9.5, 1.2); pyre(13, -59.5, -99.5, .4);   // harbour plaza: a giant anchor dragged onto the pier
     for (q = 0; q < 6; q++) add(11, G.sphere, 'ember', -33 + (q - 2.5) * 2.1, R(.4, 1.6), -88.3 + R(-.6, .6), R(.25, .5), R(.2, .4), R(.25, .5));
     K.lightSources.push({ x: -33, y: 2.2, z: -88.3, color: new T.Color(0xff8040), intensity: 4, scatter: 1, glowRadius: 3, live: 1, group: 'coast', room: 11 });
 
