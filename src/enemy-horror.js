@@ -12,8 +12,8 @@
   var KIT = {
     crawler: ['spines'], cavefang: ['spines', 'horns'], slagcrawler: ['spines'], voidcrawler: ['spines'],
     ashbound: ['ribs', 'spines'], emberbound: ['horns'], damned: ['horns', 'ribs'], chainjailer: ['horns'],
-    drowned: ['ribs', 'tatters'], rootborn: ['ribs'], lantern: ['tatters'], shardseer: ['tatters'], chainseer: ['tatters'],
-    verdictseer: ['tatters'], prisoner: ['tatters']
+    drowned: ['ribs', 'tatters'], rootborn: ['ribs'], lantern: ['tatters'], shardseer: ['tatters'], chainseer: ['tatters', 'crown'],
+    verdictseer: ['tatters', 'crown'], prisoner: ['tatters'], ruinwarden: ['shoulders'], verdictwarden: ['shoulders', 'crown'], bell: ['crown']
   };
   function pick(A, list) { for (var i = 0; i < list.length; i++) if (A.index && A.index[list[i]] !== undefined) return list[i]; return null; }
   function V(x, y, z) { return new T.Vector3(x, y, z); }
@@ -32,7 +32,8 @@
     var top = -1e9; for (var i = 0; i < verts.length; i += 3) if (Math.abs(verts[i]) < .05 * sc && Math.abs(verts[i + 2] - hp.z) < .08 * sc && verts[i + 1] > top) top = verts[i + 1];
     if (top < hp.y) top = hp.y + .12 * sc;
     var boneKey = mats.bone ? 'bone' : mats.ash ? 'ash' : 'bone', ragKey = mats.rag ? 'rag' : mats.burlap ? 'burlap' : 'rag';
-    var hornKey = mats.ash ? 'ash' : mats.dark ? 'dark' : boneKey;
+    var hornKey = mats.ash ? 'ash' : mats.dark ? 'dark' : boneKey, ironKey = mats.iron ? 'iron' : mats.dark ? 'dark' : 'iron';
+    var clavL = pick(A, ['clavicle_l', 'shoulderL']), clavR = pick(A, ['clavicle_r', 'shoulderR']), armL = pick(A, ['upperarm_l', 'upper_armL']), armR = pick(A, ['upperarm_r', 'upper_armR']);
 
     kit.forEach(function (k) {
       try {
@@ -68,6 +69,21 @@
             });
           }
           if (ribs.length) A.rigid(boneKey, G.merge(ribs), s3);
+        } else if (k === 'crown') {
+          // a crown of iron thorns around the skull: the seers and judges read as a jagged circle from above
+          var thorns = [], cy = top - .045 * sc, rr = .1 * sc;
+          for (var t = 0; t < 9; t++) { var a = t / 9 * Math.PI * 2, x = Math.sin(a) * rr, z = hp.z + Math.cos(a) * rr * .95, len = (t % 2 ? .07 : .13) * sc;
+            thorns.push(G.spike(.016 * sc, V(x, cy, z), V(x * 1.35, cy + len, hp.z + (z - hp.z) * 1.35), 5)); }
+          thorns.push(G.tube([V(-rr, cy, hp.z), V(0, cy, hp.z + rr * .95), V(rr, cy, hp.z), V(0, cy, hp.z - rr * .95), V(-rr, cy, hp.z)], .011 * sc, 5, 24, false));
+          A.rigid(ironKey, G.merge(thorns), head);
+        } else if (k === 'shoulders') {
+          // three heavy bone horns from each shoulder: a wider, heavier upper body
+          [[armL, 1], [armR, -1]].forEach(function (e) {
+            if (!e[0]) return; var sp = A.P(e[0]), list = [];
+            for (var t = 0; t < 3; t++) { var b = V(sp.x + e[1] * .02 * sc * t, sp.y + .07 * sc, sp.z - .05 * sc + t * .05 * sc);
+              list.push(G.spike(.035 * sc, b, V(b.x + e[1] * (.1 + .03 * t) * sc, b.y + (.2 - .04 * t) * sc, b.z - .04 * sc), 6)); }
+            A.rigid(boneKey, G.merge(list), e[0]);
+          });
         } else if (k === 'tatters') {
           // torn shroud strips from the shoulders down the back to the hips (rigid to the upper spine: they sway with the torso)
           var c = A.P(s3), strips = [];
