@@ -32,6 +32,7 @@
       sk.computeVertexNormals(); G['wa-skull'] = sk;
       G['wa-socket'] = new T.IcosahedronGeometry(1, 0);
       G['wa-drum'] = new T.CylinderGeometry(.5, .5, 1, 10, 1);
+      G['wa-sheet'] = new T.PlaneGeometry(1, 1, 3, 8);   // hung cloth: enough rows to bend in the sway shader
       var flute = new T.CylinderGeometry(.5, .5, 1, 16, 1), fp = flute.attributes.position;
       for (var w = 0; w < fp.count; w++) { var fx = fp.getX(w), fz = fp.getZ(w), a = Math.atan2(fz, fx), k = 1 - .07 * Math.max(0, Math.cos(a * 8)); fp.setXYZ(w, fx * k, fp.getY(w), fz * k); }
       flute.computeVertexNormals(); G['wa-flute'] = flute;
@@ -41,6 +42,13 @@
       var wg = new T.ExtrudeGeometry(wedge, { depth: 1, bevelEnabled: false }); wg.translate(0, 0, -.5); G['wa-wedge'] = wg;
       var urn = new T.LatheGeometry([new T.Vector2(0, -.5), new T.Vector2(.28, -.5), new T.Vector2(.42, -.25), new T.Vector2(.5, .05), new T.Vector2(.36, .32), new T.Vector2(.22, .4), new T.Vector2(.27, .5), new T.Vector2(0, .5)], 10);
       G['wa-urn'] = urn;
+    }
+    if (!K.materials['wa-linen-sway']) {
+      var swayT = { value: 0 }, sw = K.materials.shroud.clone(); sw.vertexColors = false; sw.color.copy(K.linear(.3, .25, .18)); sw.side = T.DoubleSide;
+      sw.onBeforeCompile = function (sh) { sh.uniforms.waT = swayT; sh.vertexShader = 'uniform float waT;\n' + sh.vertexShader.replace('#include <begin_vertex>',
+        '#include <begin_vertex>\n vec4 waW = modelMatrix * vec4(transformed, 1.); float waH = clamp((4.0 - waW.y) / 2.6, 0., 1.);\n' +
+        ' transformed.x += sin(waT * 1.3 + waW.x * .8 + waW.z * .5) * .09 * waH * waH; transformed.z += sin(waT * 1.1 + waW.x * .6) * .14 * waH * waH;'); };
+      sw.customProgramCacheKey = function () { return 'wa-linen-sway'; }; sw.userData.waTime = swayT; K.materials['wa-linen-sway'] = sw;
     }
     if (!K.materials['wa-linen']) { var lin = K.materials.shroud.clone(); lin.vertexColors = false; lin.color.copy(K.linear(.3, .25, .18)); lin.roughness = 1; K.materials['wa-linen'] = lin; }
     // Small props never cast static shadows (detail level 1): the shadow passes only see walls, piers and big furniture.
@@ -63,6 +71,7 @@
       if (!mergeOn) return; mergeOn = false;
       Object.keys(mergeBuckets).forEach(function (mk) {
         var m = new T.Mesh(K.mergeParts(mergeBuckets[mk]), K.materials[mk]); m.name = 'wa-merged:' + name + ':' + mk;
+        if (K.materials[mk].userData.waTime) { var wt = K.materials[mk].userData.waTime; m.onBeforeRender = function () { wt.value = performance.now() / 1000; }; m.frustumCulled = false; }
         m.castShadow = false; m.receiveShadow = true; m.updateMatrix(); m.matrixAutoUpdate = false; K.root.add(m);
       });
       mergeBuckets = null;
@@ -458,6 +467,9 @@
           solid(bx, S.north + .7, 3.2, 1);
         });
         K.ribCage(r.x + S.s * 9.5, r.z + .4, 1.2);
+        // soiled sheets hung on a line between the tables: they stir in the draught
+        for (var hs = 0; hs < 4; hs++) put('wa-sheet', 'wa-linen-sway', r.x - 4.5 + hs * 3, 2.7, r.z - 9.6, 1.4, 2.2, 1, 0, U(-.15, .15), 0, 1);
+        put('wa-drum', 'wood', r.x, 3.85, r.z - 9.6, .06, 13, .06, 0, 0, PI / 2, 1);
         for (var sh = 0; sh < 4; sh++) { var shz = r.z - 4.5 + sh * 3; put('link', 'rust', S.back + S.s * .45, 1.9, shz, .22, .3, .22, 0, PI / 2, 0, 1); K.chain(S.back + S.s * .5, 1.75, shz, 1.2, 'y', 1); put('link', 'iron', S.back + S.s * .5, .5, shz, .26, .26, .18, 0, PI / 2, 0, 1);
           K.wallDecal('wet', CELL.bloodDrip, S.back + S.s * .4, 1.2, shz, .9, 1.6, S.s * PI / 2, COL.oldBlood, 1); }
         skulls(S.back + S.s * 1.6, r.z - 1.2, .8, 8);
@@ -484,7 +496,7 @@
         for (var h = 0; h < 6; h++) {
           var hx = r.x + (h - 2.5) * 3.6, hz = S.north + 3.8 + (h % 2) * 1.2;
           put('wa-drum', 'wood', hx, 3.9, hz, .1, 3.2, .1, 0, 0, PI / 2, 1);
-          for (var q = 0; q < 2; q++) put('box', 'wa-linen', hx + (q ? .75 : -.75), 2.75, hz + U(-.05, .05), 1.25, U(1.8, 2.5), .02, U(-.04, .04), 0, U(-.03, .03), 1);
+          for (var q = 0; q < 2; q++) put('wa-sheet', 'wa-linen-sway', hx + (q ? .75 : -.75), 2.75, hz + U(-.05, .05), 1.25, U(1.8, 2.5), 1, U(-.04, .04), 0, U(-.03, .03), 1);
         }
         // shroud bolts, spindle baskets and a cutting table
         for (var bb = 0; bb < 7; bb++) put('wa-drum', bb % 3 ? 'wa-linen' : 'cloth', r.x + S.s * 9.3, .3 + Math.floor(bb / 3) * .55, r.z - 4 + (bb % 3) * .62 + (bb > 2 ? .3 : 0), .5, 1.6, .5, PI / 2, 0, PI / 2);
@@ -723,6 +735,27 @@
     var mesh = new T.Mesh(ig, m); mesh.frustumCulled = false; mesh.name = 'wa-bats'; mesh.renderOrder = 3;
     mesh.onBeforeRender = function () { u.uTime.value = performance.now() / 1000; };
     parent.add(mesh); return { mesh: mesh, dispose: function () { ig.dispose(); g.dispose(); m.dispose(); } };
+  } };
+  // Falling drops + floor rings, entirely on the GPU: each instance is one quad that is a tiny falling streak for the first
+  // part of its cycle and a flat expanding ring on the floor for the rest. One draw for every drip in a chapter.
+  B.WorldADrips = { create: function (T, parent, points, color) {
+    var n = points.length, home = new Float32Array(n * 3), ph = new Float32Array(n * 2);
+    points.forEach(function (p, i) { home[i * 3] = p[0]; home[i * 3 + 1] = p[1]; home[i * 3 + 2] = p[2]; ph[i * 2] = Math.random(); ph[i * 2 + 1] = 1.6 + Math.random() * 2.2; });
+    var g = new T.InstancedBufferGeometry(); var q = new T.PlaneGeometry(1, 1);
+    g.index = q.index; g.setAttribute('position', q.attributes.position); g.setAttribute('uv', q.attributes.uv);
+    g.setAttribute('aHome', new T.InstancedBufferAttribute(home, 3)); g.setAttribute('aPh', new T.InstancedBufferAttribute(ph, 2)); g.instanceCount = n;
+    var u = { uTime: { value: 0 }, uCol: { value: new T.Vector3(color[0], color[1], color[2]) } };
+    var m = new T.ShaderMaterial({ uniforms: u, transparent: true, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide, toneMapped: false,
+      vertexShader: 'attribute vec3 aHome; attribute vec2 aPh; uniform float uTime; varying vec2 vUv; varying float vRing; varying float vA;' +
+        'void main(){ vUv=uv; float t=fract(uTime/aPh.y+aPh.x); float fallT=.28; vec3 wp;' +
+        ' if(t<fallT){ float k=t/fallT; vec3 c=vec3(aHome.x, aHome.y*(1.-k*k), aHome.z); vec4 mv=viewMatrix*vec4(c,1.); mv.xy+=position.xy*vec2(.035,.22); gl_Position=projectionMatrix*mv; vRing=0.; vA=.9; }' +
+        ' else { float k=(t-fallT)/(1.-fallT); float s=.15+k*1.1; wp=vec3(aHome.x+position.x*s, .03, aHome.z-position.y*s); gl_Position=projectionMatrix*viewMatrix*vec4(wp,1.); vRing=1.; vA=(1.-k)*.8; } }',
+      fragmentShader: 'uniform vec3 uCol; varying vec2 vUv; varying float vRing; varying float vA; void main(){ vec2 d=vUv-.5; float a;' +
+        ' if(vRing>.5){ float r=length(d)*2.; a=smoothstep(.72,.9,r)*(1.-smoothstep(.9,1.,r)); } else { a=1.-smoothstep(.0,.5,abs(d.x)*2.); a*=smoothstep(0.,.3,vUv.y); }' +
+        ' a*=vA; if(a<.01) discard; gl_FragColor=vec4(uCol*a,a); }' });
+    var mesh = new T.Mesh(g, m); mesh.frustumCulled = false; mesh.name = 'wa-drips'; mesh.renderOrder = 7;
+    mesh.onBeforeRender = function () { u.uTime.value = performance.now() / 1000; };
+    parent.add(mesh); return mesh;
   } };
   // Dripping water / blood (world.js drops + floor ripples): side crypts and the broken nave.
   var DRIPS = [[-36.6, 4.2, -26.5, 1], [29.5, 4.5, -70, 0], [26, 4.2, 8, 0], [-37.4, 4, -53.4, 1], [-24.6, 4, -40.8, 1], [36, 4.4, -96, 0], [-24, 4.2, -120, 0], [2.2, 5, -34.5, 0], [-3.2, 5, -88, 0]];
