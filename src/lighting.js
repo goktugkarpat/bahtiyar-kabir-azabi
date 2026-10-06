@@ -314,9 +314,9 @@
         var e = enemies[i], m = e && e.model; if (!m || !m.root) continue;
         // The flash runs on its own clock from the moment hurt rises (an idle foe's hurt value may not decay while it is inactive).
         var h = Number.isFinite(e.hurt) ? e.hurt : 0;
-        if (h > (e.karaHurtPrev || 0) + .05) e.karaHitT = 0; else if (Number.isFinite(e.karaHitT)) e.karaHitT += dt;
-        e.karaHurtPrev = h;
-        var ht = Number.isFinite(e.karaHitT) ? e.karaHitT : 9, v = e.dead || reducedMotion || ht > .16 ? 0 : Math.round(Math.pow(1 - ht / .16, 1.6) * 40) / 40;
+        if (h > (e.karaHurtPrev || 0) + .05 || (e.dead && !e.karaWasDead)) e.karaHitT = 0; else if (Number.isFinite(e.karaHitT)) e.karaHitT += dt;
+        e.karaHurtPrev = h; e.karaWasDead = !!e.dead;   // the killing blow flashes too
+        var ht = Number.isFinite(e.karaHitT) ? e.karaHitT : 9, v = reducedMotion || ht > .16 ? 0 : Math.round(Math.pow(1 - ht / .16, 1.6) * 40) / 40;
         var dead = e.dead ? Math.round(smooth(((e.deadAge || 0) - 1.2) / 4) * 20) / 20 : 0;   // starts after the fall, 4 s, 5 % steps
         if (v === e.karaHitShown && dead === e.karaDeadShown) continue;
         var sk = m.root.userData.karaSkeletons;
