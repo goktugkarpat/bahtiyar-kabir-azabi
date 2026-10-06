@@ -260,14 +260,14 @@
     }
     function revealedAt(wx, wz, level = 1) { if (!revealGrid) return false; const x = Math.floor(wx - bounds.x0), z = Math.floor(wz - bounds.z0); return x >= 0 && z >= 0 && x < MW && z < MH && revealGrid[z * MW + x] >= level; }
     function compose() {
-      if (!terrain) paintTerrain(); if (composedVersion === maskVersion) return; composedVersion = maskVersion;
+      if (!terrain) paintTerrain(); if (composedVersion === maskVersion) return; composedVersion = maskVersion; const t0 = performance.now();
       const mt = mistTmp.getContext('2d'); mt.globalCompositeOperation = 'source-over'; mt.clearRect(0, 0, MW, MH); mt.drawImage(mistBase, 0, 0);
       mt.globalCompositeOperation = 'destination-in'; mt.drawImage(frontC, 0, 0); mt.globalCompositeOperation = 'destination-out'; mt.drawImage(maskC, 0, 0); mt.globalCompositeOperation = 'source-over';
       const cx = composed.getContext('2d'); cx.globalCompositeOperation = 'source-over'; cx.clearRect(0, 0, TW, TH); cx.drawImage(terrain, 0, 0);
       cx.imageSmoothingEnabled = true; cx.imageSmoothingQuality = 'high';
       cx.globalCompositeOperation = 'destination-in'; cx.drawImage(maskC, 0, 0, MW * P, MH * P);
       cx.globalCompositeOperation = 'destination-over'; cx.drawImage(mistTmp, 0, 0, MW * P, MH * P); cx.globalCompositeOperation = 'source-over';
-      element.dataset.explored = String(visited.size); element.dataset.revealed = footCells ? (revealedCells / footCells).toFixed(3) : '0';
+      element.dataset.explored = String(visited.size); element.dataset.revealed = footCells ? (revealedCells / footCells).toFixed(3) : '0'; element.dataset.composeMs = (performance.now() - t0).toFixed(2);
     }
     // ---- persistence & exploration -------------------------------------------------------------------------------------
     function encodeTrail() { const a = new Int16Array(trail.length); for (let i = 0; i < trail.length; i++) a[i] = Math.round(trail[i] * 2); let s = ''; const u = new Uint8Array(a.buffer); for (let i = 0; i < u.length; i++) s += String.fromCharCode(u[i]); return btoa(s); }
@@ -441,16 +441,17 @@
       strokeRoute(c, s, 1);
       c.restore(); c.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
       const placed = [];
-      const put = (wx, wz, kind, o = {}) => { const x = toX(wx), y = toY(wz); if (x < -20 || y < -20 || x > width + 20 || y > height + 20) return; c.save(); c.translate(x, y); if (o.glow) { const g = c.createRadialGradient(0, 0, 2, 0, 0, 26); g.addColorStop(0, (KIND_COLOR[kind] || '#e9c27a') + '66'); g.addColorStop(1, (KIND_COLOR[kind] || '#e9c27a') + '00'); c.fillStyle = g; c.fillRect(-26, -26, 52, 52); } icon(c, kind, o.size || 10, o); c.restore(); placed.push({ x, y, kind, name: o.name, spec: o.spec, wx, wz }); };
+      const iconScale = Math.max(.62, Math.min(1, .5 + s * .14));
+      const put = (wx, wz, kind, o = {}) => { const x = toX(wx), y = toY(wz); if (x < -20 || y < -20 || x > width + 20 || y > height + 20) return; c.save(); c.translate(x, y); c.scale(iconScale, iconScale); if (o.glow) { const g = c.createRadialGradient(0, 0, 2, 0, 0, 26); g.addColorStop(0, (KIND_COLOR[kind] || '#e9c27a') + '66'); g.addColorStop(1, (KIND_COLOR[kind] || '#e9c27a') + '00'); c.fillStyle = g; c.fillRect(-26, -26, 52, 52); } icon(c, kind, o.size || 10, o); c.restore(); placed.push({ x, y, kind, name: o.name, spec: o.spec, wx, wz }); };
       // Boss gate and the master
       const gate = game.gate; if (gate && Number.isFinite(gate.x) && revealedAt(gate.x, gate.z)) put(gate.x, gate.z, 'gate', { open: !!gate.open, size: 11, name: gate.bossName || tr('Efendinin kapısı'), spec: { type: 'gate' } });
-      for (const [kind, e] of foes) put(e.x, e.z, kind, { size: kind === 'boss' ? 13 : 7, name: e.name });
+      for (const [kind, e] of foes) if (kind === 'boss' || s >= 2.2) put(e.x, e.z, kind, { size: kind === 'boss' ? 13 : 7, name: e.name });
       if (world.checkpoint && revealedAt(world.checkpoint.x, world.checkpoint.z)) put(world.checkpoint.x, world.checkpoint.z, 'oath', { lit: !!game.checkpointIndex, size: 11, glow: !!game.checkpointIndex, name: tr('Yemin taşı') });
       const t = target(), q = game.quests;
       // Main threads always show (they are the road); side threads once discovered.
       if (q) for (const m of q.markers || []) { if (!m.active || m.complete || !Number.isFinite(m.x)) continue; const isT = t && t.id === m.id; put(m.x, m.z, 'main', { label: m.quest ? 'II' : 'I', size: isT ? 12 : 10, glow: isT, dim: !revealedAt(m.x, m.z), name: m.name, spec: { type: 'main', index: m.quest, marker: m.id } }); }
       const sides = new Map(sideEntries().map(e => [e.id, e]));
-      for (const m of q && q.sideMarkers || []) { if (!m.active || m.complete || !Number.isFinite(m.x)) continue; const e = sides.get(m.side); if (!(e && e.discovered && !e.complete) && !revealedAt(m.x, m.z)) continue; const isT = t && t.id === m.id; put(m.x, m.z, m.kind, { size: isT ? 11 : 9, glow: isT, dim: !revealedAt(m.x, m.z), name: m.name, spec: e && e.available ? { type: 'side', id: m.side, marker: m.id } : null }); }
+      for (const m of q && q.sideMarkers || []) { if (!m.active || m.complete || !Number.isFinite(m.x)) continue; const e = sides.get(m.side); if (!(e && e.discovered && !e.complete) && !revealedAt(m.x, m.z)) continue; const isT = t && t.id === m.id; if (!isT && s < 1.8 && !revealedAt(m.x, m.z)) continue; put(m.x, m.z, m.kind, { size: isT ? 11 : 9, glow: isT, dim: !revealedAt(m.x, m.z), name: m.name, spec: e && e.available ? { type: 'side', id: m.side, marker: m.id } : null }); }
       const reward = game.pendingBossReward; if (reward && Number.isFinite(reward.x)) put(reward.x, reward.z, 'reward', { size: 12, glow: true, name: tr('Zafer emaneti') });
       placed.push({ x: toX(game.player.x), y: toY(game.player.z) }); labels(placed);
       // Hero: lantern halo, facing cone, arrow
@@ -485,8 +486,8 @@
       const hitsIcon = (x, y, w) => icons.some(b => Math.abs(b.x - x) < w / 2 + 12 && Math.abs(b.y - y) < 18);
       for (const room of list) {
         const current = room === hereRoom, branch = room.parent !== undefined || room.wing || room.trail || room.hill || room.mole || Math.abs(room.x) > 14;
-        if (s < 2.2 && !current && branch) continue; if (s < 1.6 && !current) continue;
-        const size = current ? 15 : branch ? 12 : 13.5, text = room.name; c.font = (branch ? 'italic ' : '') + (current ? '600 ' : '400 ') + size + 'px Georgia,"Times New Roman",serif';
+        if (s < 2.2 && !current && branch) continue;
+        const small = s < 2.4, size = current ? (small ? 13 : 15) : branch ? 12 : small ? 11.5 : 13.5, text = room.name; c.font = (branch ? 'italic ' : '') + (current ? '600 ' : '400 ') + size + 'px Georgia,"Times New Roman",serif';
         const x = toX(room.x), w = c.measureText(text).width; let y = null;
         for (const f of [-.32, -.12, .3, -.45]) { const yy = toY(room.z + room.d * f); if (x - w / 2 < 12 || x + w / 2 > width - 12 || yy < 46 || yy > height - 30 || occupied.some(b => Math.abs(b.x - x) < (b.w + w) / 2 + 10 && Math.abs(b.y - yy) < 22) || hitsIcon(x, yy, w)) continue; y = yy; break; }
         if (y === null) continue;
@@ -555,7 +556,7 @@
     canvas.addEventListener('pointerup', release); canvas.addEventListener('pointercancel', release); canvas.addEventListener('lostpointercapture', release);
     const observer = new ResizeObserver(resize); observer.observe(map);
     const flush = () => { if (persistDirty && !disposed) persist(); }; window.addEventListener('pagehide', flush); document.addEventListener('visibilitychange', flush);
-    function open() { if (disposed) return; if (opened) { explore(); draw(); return; } const openStart = performance.now(); explore(); element.classList.remove('hidden'); opened = true; previousFocus = document.activeElement; lastLedger = null; updateRoute(true); resize(); if (!fitOnce) fit(true); else draw(); canvas.focus({ preventScroll: true }); window.addEventListener('keydown', keydown, true); element.dataset.openMs = (performance.now() - openStart).toFixed(1); }
+    function open() { if (disposed) return; if (opened) { explore(); draw(); return; } const openStart = performance.now(); explore(); compose(); element.dataset.openComposeMs = (performance.now() - openStart).toFixed(1); element.classList.remove('hidden'); opened = true; previousFocus = document.activeElement; lastLedger = null; updateRoute(true); resize(); if (!fitOnce) fit(true); else draw(); canvas.focus({ preventScroll: true }); window.addEventListener('keydown', keydown, true); element.dataset.openMs = (performance.now() - openStart).toFixed(1); }
     function close(restore = true) { if (dragging) { try { canvas.releasePointerCapture(dragging.id); } catch (_) {} dragging = null; canvas.classList.remove('dragging'); } pointers.clear(); pinch = null; opened = false; element.classList.add('hidden'); window.removeEventListener('keydown', keydown, true); if (restore && previousFocus && previousFocus.isConnected && previousFocus.getClientRects().length) previousFocus.focus({ preventScroll: true }); previousFocus = null; }
     let lastQuest = -1, lastReward = '';
     function update(dt = 0) {
@@ -569,7 +570,7 @@
     function clear() { visited.clear(); legacy.clear(); trail = []; record.chapters[chapter] = []; if (record.trails) record.trails[chapter] = ''; version++; fitOnce = false; restamp(); persist(); explore(); if (opened) fit(true); }
     function dispose() { if (disposed) return; if (persistDirty) persist(); close(false); disposed = true; observer.disconnect(); window.removeEventListener('pagehide', flush); document.removeEventListener('visibilitychange', flush); element.remove(); if (miniTools) miniTools.remove(); footprint = sdf = terrain = composed = mistBase = maskC = frontC = mistTmp = revealGrid = null; }
     // ---- minimap ---------------------------------------------------------------------------------------------------------------
-    let miniSprites = null, miniK = 0, miniKey = '', miniTools = null, miniAngle = 0, miniBg = null, miniBgCtx = null;
+    let miniRim = null, miniRimCtx = null, miniSprites = null, miniK = 0, miniKey = '', miniTools = null, miniAngle = 0, miniBg = null, miniBgCtx = null;
     const MINI_BASE = 4.6;
     function buildMiniSprites(k) {
       const sp = {}, mk = (kind, size, o) => sprite((size * 2.6 + 8) * k, x => { x.scale(k, k); if (o && o.glow) { x.shadowColor = o.glow; x.shadowBlur = 6 * k; } icon(x, kind, size, o); });
@@ -617,8 +618,12 @@
       for (const m of q && q.sideMarkers || []) { if (!m.active || m.complete || !Number.isFinite(m.x) || t && t.id === m.id) continue; const e = sides.get(m.side); if (!(e && e.discovered) && !revealedAt(m.x, m.z)) continue; if (sp[m.kind]) edge(m.x, m.z, sp[m.kind], false); }
       for (const m of q && q.markers || []) { if (!m.active || m.complete || !Number.isFinite(m.x) || t && t.id === m.id) continue; edge(m.x, m.z, m.quest ? sp.main1 : sp.main0, false); }
       if (t) edge(t.x, t.z, t.kind === 'main' ? (t.quest ? sp.main1 : sp.main0) : sp[t.kind] || sp.main0, true);
+      // Engraved bezel: an accent ring with cardinal ticks that turn with the map, and a dark falloff at the rim.
+      { x.setTransform(k, 0, 0, k, 0, 0); if (!miniRim || miniRimCtx !== x) { miniRimCtx = x; miniRim = x.createRadialGradient(128, 128, 92, 128, 128, 128); miniRim.addColorStop(0, 'rgba(0,0,0,0)'); miniRim.addColorStop(1, 'rgba(0,0,0,.55)'); }
+        x.fillStyle = miniRim; x.fillRect(0, 0, 256, 256); x.strokeStyle = S.accent; x.globalAlpha = .35; x.lineWidth = 1; x.beginPath(); x.arc(128, 128, 122, 0, Math.PI * 2); x.stroke(); x.globalAlpha = .7; x.lineWidth = 1.6; x.beginPath();
+        for (let i = 0; i < 16; i++) { const a = miniAngle + i * Math.PI / 8, r0 = i % 4 ? 119 : 114; x.moveTo(128 + Math.cos(a) * r0, 128 + Math.sin(a) * r0); x.lineTo(128 + Math.cos(a) * 124, 128 + Math.sin(a) * 124); } x.stroke(); x.globalAlpha = 1; x.setTransform(1, 0, 0, 1, 0, 0); }
       // North on the rim (moves when the map turns with Bahtiyar).
-      { const a = -Math.PI / 2 + miniAngle, nx = 128 + Math.cos(a) * 117, ny = 128 + Math.sin(a) * 117; x.setTransform(k, 0, 0, k, 0, 0); x.font = '600 11px Georgia,serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.lineWidth = 3; x.strokeStyle = '#000'; x.strokeText(tr('K'), nx, ny); x.fillStyle = S.accent; x.fillText(tr('K'), nx, ny); x.setTransform(1, 0, 0, 1, 0, 0); }
+      { const a = -Math.PI / 2 + miniAngle, nx = 128 + Math.cos(a) * 105, ny = 128 + Math.sin(a) * 105; x.setTransform(k, 0, 0, k, 0, 0); x.font = '600 11px Georgia,serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.lineWidth = 3; x.strokeStyle = '#000'; x.strokeText(tr('K'), nx, ny); x.fillStyle = S.accent; x.fillText(tr('K'), nx, ny); x.setTransform(1, 0, 0, 1, 0, 0); }
       stamp(x, sp.hero, cx, cy, mini.rotate ? -(p.face || 0) + miniAngle : -(p.face || 0));
       return true;
     }
