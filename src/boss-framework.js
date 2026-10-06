@@ -333,6 +333,31 @@
     function env(e, o) { o.owner = null; o.enemy = e.name; o.near = false; o.cancelOnStagger = false; return api.addHazard(o); }
     BF.env = env;
 
+    /* ---- the body changes with the fight: the silhouette swells a little each phase, motes of the boss's element pour off it
+       (more with every phase, a stream when enraged), and a phase change bursts shards and embers outward. Pooled particles only
+       (the telegraph emitter, B.Boss2.out), no new meshes. */
+    function rgb(hex, k) { return [((hex >> 16) & 255) / 255 * k, ((hex >> 8) & 255) / 255 * k, (hex & 255) / 255 * k]; }
+    function emitter() { var o = B.Boss2 && B.Boss2.out; return o && o.emit ? o : null; }
+    function body(e, p, dt) {
+      var root = e.model && e.model.root; if (!root) return;
+      if (e.__bfBase == null) e.__bfBase = root.scale.x || 1;
+      var want = e.__bfBase * (1 + .045 * Math.max(0, e.phase - 1) + (e.enraged ? .035 : 0)), cur = root.scale.x;
+      if (Math.abs(want - cur) > .0005) { var nx = cur + (want - cur) * Math.min(1, dt * 2.5); root.scale.set(nx, nx, nx); }
+      var out = emitter(); if (!out || reduced.matches) return;
+      var rate = (e.phase - 1) * 5 + (e.enraged ? 14 : 0); if (rate <= 0) return;
+      st.moteAcc = (st.moteAcc || 0) + rate * dt;
+      var c = p.rgb || (p.rgb = rgb(p.color || 0xb8452d, 1.8)), H = (e.model.height || 2.6) * root.scale.y / (e.__bfBase || 1);
+      while (st.moteAcc >= 1) { st.moteAcc -= 1; var a = Math.random() * TAU, r = (e.radius || 1) * (.5 + Math.random() * .6);
+        out.emit(e.x + Math.sin(a) * r, .2 + Math.random() * H, e.z + Math.cos(a) * r, Math.random() < .7 ? 4 : 5, Math.random() < .25 ? [.06, .05, .045] : c, (Math.random() - .5) * .4, .7 + Math.random() * 1.1, (Math.random() - .5) * .4, .9 + Math.random() * .8, .05 + Math.random() * .05); }
+    }
+    function shatter(e, p, k) {
+      var out = emitter(); if (!out) return;
+      var c = p.rgb || (p.rgb = rgb(p.color || 0xb8452d, 1.8)), n = Math.round(70 * k), H = (e.model && e.model.height) || 2.6;
+      for (var i = 0; i < n; i++) { var a = Math.random() * TAU, sp = 3 + Math.random() * 6, y = .4 + Math.random() * H * .9, dark = Math.random() < .4;
+        out.emit(e.x + Math.sin(a) * .5, y, e.z + Math.cos(a) * .5, dark ? 1 : (Math.random() < .5 ? 4 : 1), dark ? [.09, .075, .06] : c, Math.sin(a) * sp, 1 + Math.random() * 4, Math.cos(a) * sp, .5 + Math.random() * .7, dark ? .09 : .06); }
+    }
+    var reduced = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : { matches: false };
+
     /* ---- per frame */
     function update(dt) {
       time += dt; stepOverlay(dt); trackRolls(dt);
@@ -357,10 +382,11 @@
         if (!e.action) { e.face = Math.atan2(player.x - e.x, player.z - e.z); api.beginMove(e, { id: 'roar', name: p.title || e.name, duration: 1.9, pose: 'roar', cooldown: .6,
           hits: [kit.hit(1.1, 1.1, 'ring', 5, 0, 'roar', { inner: 0, arc: TAU, harmless: true, style: p.style || 'roar', fill: 'radial' })] }); }
         else e.cooldown = Math.max(e.cooldown, 1.8);
-        api.sound('bossPhase');
+        api.sound('bossPhase'); api.sound('bossLayer', { kind: p.sound, size: 'intro' });
         api.fx('glowBurst', { x: e.x, y: .05, z: e.z, radius: 5.5, color: p.color || 0xb8452d, duration: 1.4 });
       }
       if (!e.active) { aura.visible = false; return; }
+      body(e, p, dt);
       var key = e.phase + (e.enraged ? 'e' : '');
       if (key !== st.phaseKey) {
         var label = e.enraged && p.enraged ? p.enraged : p.phases && p.phases[e.phase] || '';
@@ -370,6 +396,7 @@
         if (api.slowMotion) api.slowMotion(.3);
         api.emit('impact', { x: e.x, z: e.z, strength: 1, radius: 9 });
         st.sigAt = Math.min(st.sigAt, time + 6); st.sig2At = Math.min(st.sig2At, time + 14);
+        api.sound('bossLayer', { kind: p.sound, size: 'phase' }); shatter(e, p, 1);
       }
       st.exposed = Math.max(0, st.exposed - dt); st.perfectCd = Math.max(0, st.perfectCd - dt);
       // aura: crimson while enraged, gold while exposed by a perfect dodge
@@ -392,6 +419,7 @@
     // so this card fades on its own wall clock instead of the combat step).
     function slain(e) {
       var p = profileOf(e); if (!p || st.slain || !st.intro || e !== st.boss) return;
+      api.sound('bossLayer', { kind: p.sound, size: 'fall' }); shatter(e, p, 1.4);
       st.slain = true; showCard(tr('YENİLDİ'), p.title || e.name, p.epithet || '', 30, 30, true, p.color, true);
       if (api.slowMotion) api.slowMotion(.5);
       api.fx('glowBurst', { x: e.x, y: .05, z: e.z, radius: 8, color: p.color || 0xb8452d, duration: 1.6 });
@@ -409,6 +437,7 @@
         var cds = s.cd || [20], cd = cds[Math.min(cds.length - 1, e.phase - 1)];
         st[at] = time + cd * pace() * (e.enraged ? .85 : 1);
         st[other] = Math.max(st[other], time + 7);   // two signatures never follow each other directly
+        api.sound('bossLayer', { kind: p.sound, size: 'cast' });
         return true;
       }
       return false;
@@ -429,7 +458,7 @@
       if (api.slowMotion) api.slowMotion(.12);
       api.sound('parry', {});
     }
-    function reset() { st = fresh(); chain.count = 0; aura.visible = false; hideOverlay(); }
+    function reset() { var b = game.boss; if (b && b.model && b.__bfBase) b.model.root.scale.setScalar(b.__bfBase); st = fresh(); chain.count = 0; aura.visible = false; hideOverlay(); }
     function dispose() { reset(); root.parent && root.parent.remove(root); aura.geometry.dispose(); aura.material.dispose(); chain.geometry.dispose(); chain.material.dispose(); if (BF.current === dir) BF.current = null; }
     var dir = { update: update, attack: attack, slain: slain, env: env, hurt: hurt, evaded: evaded, reset: reset, dispose: dispose, tetherStart: tetherStart, kit: kit,
       get state() { return st; } };
@@ -455,7 +484,7 @@
       }
       return false;
     } },
-    title: tr('Zincir Celladı'), epithet: tr('Kurban Salonunun Yargıcı'), sub: tr('KURBAN SALONU'), color: 0xc2452a, style: 'chain', pool: 'lava',
+    title: tr('Zincir Celladı'), epithet: tr('Kurban Salonunun Yargıcı'), sub: tr('KURBAN SALONU'), color: 0xc2452a, style: 'chain', pool: 'lava', sound: 'chain',
     phases: { 2: tr('KANLI YEMİN') }, enraged: tr('SON YEMİN'),
     pursuit: { name: tr('Celladın Takibi'), pose: 'charge', dmg: 16, after: 12 },
     signature: { id: 'tether', first: 16, cd: [26, 20, 16], phase: 1, range: 12, hint: tr('Zincir sana kilitlendi. Celladın yakınında kal; uzaklaşırsan seni çeker.'),
@@ -484,7 +513,7 @@
       api.emit('toast', { text: tr('Gelgit yükseliyor. Ortadaki kuru zemine çık.') });
       return true;
     } },
-    title: tr('Derinliklerin Çancısı'), epithet: tr('Boğulmuşların Çağrıcısı'), sub: tr('BOĞULMUŞ ÇANLIK'), color: 0x3fa49a, style: 'tide', pool: 'brine',
+    title: tr('Derinliklerin Çancısı'), epithet: tr('Boğulmuşların Çağrıcısı'), sub: tr('BOĞULMUŞ ÇANLIK'), color: 0x3fa49a, style: 'tide', pool: 'brine', sound: 'tide',
     phases: { 2: tr('DENİZİN YEMİNİ'), 3: tr('MEZAR KÖKLERİ'), 4: tr('SON ÇAN') }, enraged: tr('SON ÇAN'),
     pursuit: { name: tr('Dalganın Takibi'), pose: 'charge', dmg: 15, after: 12 },
     signature: { id: 'echoToll', first: 15, cd: [24, 20, 17, 14], phase: 1, range: 15, hint: tr('Halkalar dıştan içe kapanır. Halka geçince dışarı yürü; merkez en son patlar.'),
@@ -507,7 +536,7 @@
         BF.env(e, { x: o.x, z: o.z, shape: 'circle', radius: 2.6, warn: 1.4 + q * .2, duration: .2, damage: 16, unblockable: true, style: 'rune', fill: 'inward', scar: true, attack: tr('Billur Damar') }); });
       return true;
     } },
-    title: tr('Oyukların Kralı'), epithet: tr('Sessiz Tahtın Sahibi'), sub: tr('SESSİZ TAHT'), color: 0x8a9ccf, style: 'rune', pool: 'lava',
+    title: tr('Oyukların Kralı'), epithet: tr('Sessiz Tahtın Sahibi'), sub: tr('SESSİZ TAHT'), color: 0x8a9ccf, style: 'rune', pool: 'lava', sound: 'crystal',
     phases: { 2: tr('TAŞ TAHT ÇÖKÜYOR'), 3: tr('OYUKLAR AÇILDI') },
     pursuit: { name: tr('Kralın Takibi'), pose: 'charge', dmg: 17, after: 13 },
     signature: { id: 'crystalGrid', first: 14, cd: [24, 19, 15], phase: 1, range: 16, hint: tr('Billur ızgara: bir renk patlarken diğerine geç. Yuvarlanma değil, yer seçmek kurtarır.'),
@@ -531,7 +560,7 @@
       });
       return true;
     } },
-    title: tr('Ocağın Kalbi'), epithet: tr('Son Dökümün Efendisi'), sub: tr('SON DÖKÜM'), color: 0xe0661c, style: 'ember', pool: 'lava',
+    title: tr('Ocağın Kalbi'), epithet: tr('Son Dökümün Efendisi'), sub: tr('SON DÖKÜM'), color: 0xe0661c, style: 'ember', pool: 'lava', sound: 'forge',
     phases: { 2: tr('OCAK BASINCI YÜKSELİYOR'), 3: tr('SON DÖKÜM') },
     pursuit: { name: tr('Ocağın Takibi'), pose: 'charge', dmg: 18, after: 14 },
     signature: { id: 'furnaceBeam', first: 13, cd: [22, 18, 14], phase: 1, range: 13, hint: tr('Ocak nefesi döner. Işının döndüğü yöne doğru koş ya da tam geçerken yuvarlan.'),

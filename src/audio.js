@@ -1057,6 +1057,8 @@
     ring(t, { f: 82.4, partials: [1, 2.4, 3.9, 5.3, 6.9], decay: 3.2, vol: .1 * k * s.gain, pan: s.pan, send: .65 }); sample('bell', { vol: .5 * k, at, rate: .5, send: .5 });
     thud(t, { f0: 70, f1: 30, dur: .55, vol: .7 * k * s.gain, pan: s.pan, send: .3 }); sample('carrierGurgle', { vol: .25 * k, at, rate: .55, delay: .05 });
   };
+  // ajan:bosses — heavy boss layers (intro / phase / signature / fall), synthesised in src/boss-sound.js.
+  H.bossLayer = (o, k) => { const BS = B.BossSound; if (!BS) return; const [bus, wet] = busOf(); BS.play(ctx, bus, wet, now(), k, o, { white: N.noise, pink: N.pink }); };
   // Menü: taş üstünde kısa, kuru bir tık.
   H.ui = (o, k) => { const t = now(); burst(t, .02, .4 * k, 2300, { q: 1.1 }); thud(t, { f0: 190, f1: 90, dur: .07, vol: .4 * k }); };
 
