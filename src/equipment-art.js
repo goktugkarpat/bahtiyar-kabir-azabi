@@ -754,6 +754,7 @@
       }
     });
 
+    if(B.GearArmor&&!/[?&]oldgear/.test(location.search)){try{B.GearArmor.build({A,part,sleeve,chest,hc,rx,ry,rz,facingAngle,modelOf:item=>({'no-witness-helm':'sealed-mask','forgotten-face-helm':'sealed-mask','sealed-furnace-helm':'furnace-mask','no-dawn-helm':'furnace-mask'})[item.id]||(/hood/.test(item.id)?'cloth-hood':item.modelId)});}catch(error){console.warn('gear-armor',error);}}
     const weapons={};
     const baseParts=()=>({steel:[],edge:[],dark:[],brass:[],leather:[],wood:[],bone:[]});
     function grip(P,length=.29,y=-.28) {
