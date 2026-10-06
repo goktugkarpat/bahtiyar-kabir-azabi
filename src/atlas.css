@@ -79,6 +79,8 @@
 #atlas .atlas-landmarks {display:flex;flex-direction:column;flex:none;overflow:hidden;}
 #atlas .atlas-legend {margin-top:0;}
 #atlas .atlas-landmarks>* {flex:none;}
+#atlas .atlas-ledger>:not(.atlas-goals) {flex-shrink:0;}
+#atlas .atlas-ledger [hidden] {display:none !important;}
 #atlas .atlas-legend {grid-template-columns:1fr 1fr;gap:4px 8px;}
 #atlas .atlas-legend>span {gap:5px;white-space:nowrap;}
 #atlas .atlas-legend-icon {width:18px;height:18px;flex:none;}

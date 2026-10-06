@@ -54,6 +54,7 @@ Object.assign(window.KabirI18n.dictionary,{
 "En yakın hedef":"Nearest goal","Takipte":"Tracking","Takip et":"Track","Takibi bırak":"Stop tracking","Bu yemini takip et":"Track this oath",
 "Sis, yalnız yürüdüğün yerlerden kalkar. Bir yemine dokun: yolunu çizeyim.":"The fog lifts only where you have walked. Touch an oath and its road is drawn.",
 "Küçük haritayı yakınlaştır":"Zoom the minimap in","Küçük haritayı uzaklaştır":"Zoom the minimap out",
-"Küçük harita Bahtiyar’la döner · sabitle":"Minimap turns with Bahtiyar · fix north","Küçük harita sabit · Bahtiyar’la döndür":"Minimap fixed north · turn with Bahtiyar"
+"Küçük harita Bahtiyar’la döner · sabitle":"Minimap turns with Bahtiyar · fix north",
+"Av":"Hunt","Kurtarma":"Rescue","Kayıp sayfa":"Lost page","Sunak":"Altar","Sandık":"Chest","Kuşatma":"Siege","Kaçış":"Escape","Mühür bulmacası":"Seal puzzle","Dokun: takip et":"Tap: track","Küçük harita sabit · Bahtiyar’la döndür":"Minimap fixed north · turn with Bahtiyar"
 });
 /* /ajan:map */

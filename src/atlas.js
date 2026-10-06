@@ -179,7 +179,7 @@
               if (pat === 'marble') { const dg = Math.abs(fx - fz), dg2 = Math.abs(fx + fz - 1); if (Math.min(dg, dg2) * tile < .035) grout = Math.max(grout, .55); }
               if (pat === 'plate') { const cx = Math.min(fx, 1 - fx) * tile, cz = Math.min(fz, 1 - fz) * tile; if (cx < .32 && cz < .32 && Math.hypot(cx - .2, cz - .2) < .07) { lift += .35; } if (n > .74 && nn > .6) { r += 90 * (n - .74) * 4; g += 30 * (n - .74) * 4; } }
             } else if (pat === 'ledger') {
-              const fz = wz / tile - Math.floor(wz / tile); if (fz < .045) grout = .55; const m = Math.abs(((wx % 18) + 18) % 18 - 2.2); if (m < .05) { r = 150; g = 52; b = 58; }
+              const fz = wz / tile - Math.floor(wz / tile); if (fz < .045) grout = .55;
               lift = (n - .5) * .1;
             } else { lift = (n - .5) * .22; if (sd < 1.1) { const wet = (1.1 - sd) / 1.1 * .5; r *= 1 - wet * .45; g *= 1 - wet * .3; b *= 1 - wet * .12; } }
             if (spans.length && !inRoom(wx, wz)) { const t = bridgeAt(wx, wz); if (t >= 0) { const f = (t / .95) % 1; grout = Math.max(grout, f < .09 ? .9 : 0); lift -= .1 + (hash(Math.floor(t / .95), 3) - .5) * .16; if (sd < .55) { r *= .72; g *= .7; b *= .74; } } }
@@ -321,6 +321,7 @@
       const q = game.quests, p = game.player, reward = game.pendingBossReward;
       if (reward && Number.isFinite(reward.x)) return { id: 'reward', name: tr('Zafer emaneti'), x: reward.x, z: reward.z, kind: 'reward' };
       if (tracked) {
+        if (tracked.marker) { const list = tracked.type === 'main' ? q && q.markers : q && q.sideMarkers, m = (list || []).find(x => x.id === tracked.marker && x.active && !x.complete && Number.isFinite(x.x)); if (m) return Object.assign({ kind: tracked.type === 'main' ? 'main' : m.kind }, m); }
         if (tracked.type === 'main') { const m = mainTarget(tracked.index); if (m) return Object.assign({ kind: 'main' }, m); }
         else if (tracked.type === 'side') { const e = sideEntries().find(s => s.id === tracked.id); if (e && e.available && e.target && Number.isFinite(e.target.x)) return Object.assign({ kind: e.kind }, e.target, { name: e.name }); }
         else if (tracked.type === 'gate') { const g = gateTarget(); if (g) return g; }
@@ -440,17 +441,17 @@
       strokeRoute(c, s, 1);
       c.restore(); c.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
       const placed = [];
-      const put = (wx, wz, kind, o = {}) => { const x = toX(wx), y = toY(wz); if (x < -20 || y < -20 || x > width + 20 || y > height + 20) return; c.save(); c.translate(x, y); if (o.glow) { const g = c.createRadialGradient(0, 0, 2, 0, 0, 26); g.addColorStop(0, (KIND_COLOR[kind] || '#e9c27a') + '66'); g.addColorStop(1, (KIND_COLOR[kind] || '#e9c27a') + '00'); c.fillStyle = g; c.fillRect(-26, -26, 52, 52); } icon(c, kind, o.size || 10, o); c.restore(); placed.push({ x, y }); };
+      const put = (wx, wz, kind, o = {}) => { const x = toX(wx), y = toY(wz); if (x < -20 || y < -20 || x > width + 20 || y > height + 20) return; c.save(); c.translate(x, y); if (o.glow) { const g = c.createRadialGradient(0, 0, 2, 0, 0, 26); g.addColorStop(0, (KIND_COLOR[kind] || '#e9c27a') + '66'); g.addColorStop(1, (KIND_COLOR[kind] || '#e9c27a') + '00'); c.fillStyle = g; c.fillRect(-26, -26, 52, 52); } icon(c, kind, o.size || 10, o); c.restore(); placed.push({ x, y, kind, name: o.name, spec: o.spec, wx, wz }); };
       // Boss gate and the master
-      const gate = game.gate; if (gate && Number.isFinite(gate.x) && revealedAt(gate.x, gate.z)) put(gate.x, gate.z, 'gate', { open: !!gate.open, size: 11 });
-      for (const [kind, e] of foes) put(e.x, e.z, kind, { size: kind === 'boss' ? 13 : 7 });
-      if (world.checkpoint && revealedAt(world.checkpoint.x, world.checkpoint.z)) put(world.checkpoint.x, world.checkpoint.z, 'oath', { lit: !!game.checkpointIndex, size: 11, glow: !!game.checkpointIndex });
+      const gate = game.gate; if (gate && Number.isFinite(gate.x) && revealedAt(gate.x, gate.z)) put(gate.x, gate.z, 'gate', { open: !!gate.open, size: 11, name: gate.bossName || tr('Efendinin kapısı'), spec: { type: 'gate' } });
+      for (const [kind, e] of foes) put(e.x, e.z, kind, { size: kind === 'boss' ? 13 : 7, name: e.name });
+      if (world.checkpoint && revealedAt(world.checkpoint.x, world.checkpoint.z)) put(world.checkpoint.x, world.checkpoint.z, 'oath', { lit: !!game.checkpointIndex, size: 11, glow: !!game.checkpointIndex, name: tr('Yemin taşı') });
       const t = target(), q = game.quests;
       // Main threads always show (they are the road); side threads once discovered.
-      if (q) for (const m of q.markers || []) { if (!m.active || m.complete || !Number.isFinite(m.x)) continue; const isT = t && t.id === m.id; put(m.x, m.z, 'main', { label: m.quest ? 'II' : 'I', size: isT ? 12 : 10, glow: isT, dim: !revealedAt(m.x, m.z) }); }
+      if (q) for (const m of q.markers || []) { if (!m.active || m.complete || !Number.isFinite(m.x)) continue; const isT = t && t.id === m.id; put(m.x, m.z, 'main', { label: m.quest ? 'II' : 'I', size: isT ? 12 : 10, glow: isT, dim: !revealedAt(m.x, m.z), name: m.name, spec: { type: 'main', index: m.quest, marker: m.id } }); }
       const sides = new Map(sideEntries().map(e => [e.id, e]));
-      for (const m of q && q.sideMarkers || []) { if (!m.active || m.complete || !Number.isFinite(m.x)) continue; const e = sides.get(m.side); if (!(e && e.discovered && !e.complete) && !revealedAt(m.x, m.z)) continue; const isT = t && t.id === m.id; put(m.x, m.z, m.kind, { size: isT ? 11 : 9, glow: isT, dim: !revealedAt(m.x, m.z) }); }
-      const reward = game.pendingBossReward; if (reward && Number.isFinite(reward.x)) put(reward.x, reward.z, 'reward', { size: 12, glow: true });
+      for (const m of q && q.sideMarkers || []) { if (!m.active || m.complete || !Number.isFinite(m.x)) continue; const e = sides.get(m.side); if (!(e && e.discovered && !e.complete) && !revealedAt(m.x, m.z)) continue; const isT = t && t.id === m.id; put(m.x, m.z, m.kind, { size: isT ? 11 : 9, glow: isT, dim: !revealedAt(m.x, m.z), name: m.name, spec: e && e.available ? { type: 'side', id: m.side, marker: m.id } : null }); }
+      const reward = game.pendingBossReward; if (reward && Number.isFinite(reward.x)) put(reward.x, reward.z, 'reward', { size: 12, glow: true, name: tr('Zafer emaneti') });
       placed.push({ x: toX(game.player.x), y: toY(game.player.z) }); labels(placed);
       // Hero: lantern halo, facing cone, arrow
       { const x = toX(game.player.x), y = toY(game.player.z), f = game.player.face || 0; c.save(); c.translate(x, y);
@@ -460,8 +461,23 @@
       // Off-screen tracked target: an arrow on the frame edge.
       if (t) { const x = toX(t.x), y = toY(t.z); if (x < 18 || y < 18 || x > width - 18 || y > height - 18) { const cx = width / 2, cy = height / 2, a = Math.atan2(y - cy, x - cx), k = Math.min((width / 2 - 30) / Math.abs(Math.cos(a) || 1e-6), (height / 2 - 30) / Math.abs(Math.sin(a) || 1e-6)); c.save(); c.translate(cx + Math.cos(a) * k, cy + Math.sin(a) * k); c.rotate(a); c.fillStyle = S.route; c.strokeStyle = '#000'; c.lineWidth = 2; c.beginPath(); c.moveTo(12, 0); c.lineTo(-6, -8); c.lineTo(-2, 0); c.lineTo(-6, 8); c.closePath(); c.stroke(); c.fill(); c.restore(); } }
       trackBadge.hidden = !t; if (t) { const d = Math.round(Math.hypot(t.x - game.player.x, t.z - game.player.z)); const text = (tracked ? tr('Takipte') : tr('En yakın hedef')) + ' · ' + (t.name || '') + ' · ' + d + ' m'; if (trackBadge.textContent !== text) trackBadge.textContent = text; }
+      markers = placed;
+      if (hover) { const h = placed.find(b => b.name && Math.hypot(b.x - hover.x, b.y - hover.y) < 15); if (h) tooltip(h); }
       ledger();
     }
+    let markers = [], hover = null;
+    const KIND_NAME = { main: 'Ana görev', hunt: 'Av', rescue: 'Kurtarma', lore: 'Kayıp sayfa', altar: 'Sunak', chest: 'Sandık', siege: 'Kuşatma', escape: 'Kaçış', puzzle: 'Mühür bulmacası', gate: 'Efendinin kapısı', boss: 'Efendi', elite: 'Şampiyon', oath: 'Yemin taşı', reward: 'Zafer emaneti' };
+    function tooltip(h) {
+      const c = context, kind = tr(KIND_NAME[h.kind] || ''), d = Math.round(Math.hypot(h.wx - game.player.x, h.wz - game.player.z)) + ' m', on = h.spec && tracked && JSON.stringify(tracked) === JSON.stringify(h.spec);
+      const hint = h.spec ? (on ? tr('Takipte') + ' · ' + tr('Takibi bırak') : tr('Dokun: takip et')) : '';
+      c.save(); c.font = '600 13px Georgia,serif'; const w1 = c.measureText(h.name).width; c.font = '400 11px "Source Sans 3","Segoe UI",sans-serif'; const line2 = kind + ' · ' + d, w2 = Math.max(c.measureText(line2).width, hint ? c.measureText(hint).width : 0);
+      const w = Math.max(w1, w2) + 22, hh = hint ? 56 : 42; let x = h.x + 16, y = h.y - hh / 2; if (x + w > width - 8) x = h.x - 16 - w; y = Math.max(8, Math.min(height - hh - 8, y));
+      c.fillStyle = 'rgba(10,8,7,.94)'; c.strokeStyle = KIND_COLOR[h.kind] || S.accent; c.lineWidth = 1; c.fillRect(x, y, w, hh); c.strokeRect(x + .5, y + .5, w - 1, hh - 1);
+      c.textAlign = 'left'; c.textBaseline = 'top'; c.fillStyle = '#f2e2c0'; c.font = '600 13px Georgia,serif'; c.fillText(h.name, x + 11, y + 8);
+      c.fillStyle = '#ab9f86'; c.font = '400 11px "Source Sans 3","Segoe UI",sans-serif'; c.fillText(line2, x + 11, y + 26); if (hint) { c.fillStyle = S.route; c.fillText(hint, x + 11, y + 40); }
+      c.restore();
+    }
+    function hitMarker(px, py) { let best = null, bd = 16; for (const b of markers) { if (!b.name) continue; const d = Math.hypot(b.x - px, b.y - py); if (d < bd) { bd = d; best = b; } } return best; }
     function labels(icons) {
       const c = context, s = camera.scale, hereRoom = world.roomAt && world.roomAt(game.player.x, game.player.z);
       const list = rooms.filter(r => visited.has(String(r.id))).sort((a, b) => (b === hereRoom) - (a === hereRoom) || Math.hypot(a.x - camera.x, a.z - camera.z) - Math.hypot(b.x - camera.x, b.z - camera.z));
@@ -520,15 +536,25 @@
     // Pointer: one finger drags, two fingers pinch; wheel zooms at the cursor.
     const pointers = new Map(); let pinch = null;
     canvas.addEventListener('wheel', e => { e.preventDefault(); const rect = canvas.getBoundingClientRect(); zoom(Math.exp(-Math.max(-120, Math.min(120, e.deltaY)) * .002), e.clientX - rect.left, e.clientY - rect.top); }, { passive: false });
-    canvas.addEventListener('pointerdown', e => { if (e.button && e.button !== 0) return; canvas.focus({ preventScroll: true }); pointers.set(e.pointerId, { x: e.clientX, y: e.clientY }); try { canvas.setPointerCapture(e.pointerId); } catch (_) {}
+    canvas.addEventListener('pointerdown', e => { if (e.button && e.button !== 0) return; canvas.focus({ preventScroll: true }); pointers.set(e.pointerId, { x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY }); try { canvas.setPointerCapture(e.pointerId); } catch (_) {}
       if (pointers.size === 2) { const [a, b] = Array.from(pointers.values()); pinch = { d: Math.hypot(a.x - b.x, a.y - b.y) || 1, scale: camera.scale }; dragging = null; }
       else if (pointers.size === 1) { dragging = { id: e.pointerId, x: e.clientX, y: e.clientY, cx: camera.x, cz: camera.z }; canvas.classList.add('dragging'); } });
-    canvas.addEventListener('pointermove', e => { if (!pointers.has(e.pointerId)) return; pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    canvas.addEventListener('pointermove', e => {
+      if (!pointers.has(e.pointerId)) { if (e.pointerType === 'mouse') { const rect = canvas.getBoundingClientRect(), px = e.clientX - rect.left, py = e.clientY - rect.top, h = hitMarker(px, py), was = hover && hover.id; hover = h ? { x: px, y: py, id: h.name + h.kind } : null; canvas.style.cursor = h ? 'pointer' : ''; if ((hover && hover.id) !== was) draw(); } return; }
+      const prev = pointers.get(e.pointerId); pointers.set(e.pointerId, { x: e.clientX, y: e.clientY, sx: prev.sx, sy: prev.sy });
       if (pinch && pointers.size >= 2) { const [a, b] = Array.from(pointers.values()), rect = canvas.getBoundingClientRect(); const next = pinch.scale * Math.hypot(a.x - b.x, a.y - b.y) / pinch.d; zoom(next / camera.scale, (a.x + b.x) / 2 - rect.left, (a.y + b.y) / 2 - rect.top); return; }
       if (!dragging || e.pointerId !== dragging.id) return; fitted = false; camera.x = dragging.cx - (e.clientX - dragging.x) / camera.scale; camera.z = dragging.cz - (e.clientY - dragging.y) / camera.scale; draw(); });
-    function release(e) { pointers.delete(e.pointerId); if (pointers.size < 2) pinch = null; if (dragging && e.pointerId === dragging.id) { dragging = null; canvas.classList.remove('dragging'); } }
+    function release(e) {
+      const pt = pointers.get(e.pointerId);
+      if (e.type === 'pointerup' && pt && pointers.size === 1 && Math.hypot(e.clientX - pt.sx, e.clientY - pt.sy) < 6) {
+        const rect = canvas.getBoundingClientRect(), px = e.clientX - rect.left, py = e.clientY - rect.top, h = hitMarker(px, py);
+        if (h && h.spec) { const same = tracked && JSON.stringify(tracked) === JSON.stringify(h.spec); tracked = same ? null : h.spec; lastLedger = null; updateRoute(true); }
+        hover = h ? { x: px, y: py, id: h.name + h.kind } : null; setTimeout(draw, 0);
+      }
+      pointers.delete(e.pointerId); if (pointers.size < 2) pinch = null; if (dragging && e.pointerId === dragging.id) { dragging = null; canvas.classList.remove('dragging'); } }
     canvas.addEventListener('pointerup', release); canvas.addEventListener('pointercancel', release); canvas.addEventListener('lostpointercapture', release);
     const observer = new ResizeObserver(resize); observer.observe(map);
+    const flush = () => { if (persistDirty && !disposed) persist(); }; window.addEventListener('pagehide', flush); document.addEventListener('visibilitychange', flush);
     function open() { if (disposed) return; if (opened) { explore(); draw(); return; } const openStart = performance.now(); explore(); element.classList.remove('hidden'); opened = true; previousFocus = document.activeElement; lastLedger = null; updateRoute(true); resize(); if (!fitOnce) fit(true); else draw(); canvas.focus({ preventScroll: true }); window.addEventListener('keydown', keydown, true); element.dataset.openMs = (performance.now() - openStart).toFixed(1); }
     function close(restore = true) { if (dragging) { try { canvas.releasePointerCapture(dragging.id); } catch (_) {} dragging = null; canvas.classList.remove('dragging'); } pointers.clear(); pinch = null; opened = false; element.classList.add('hidden'); window.removeEventListener('keydown', keydown, true); if (restore && previousFocus && previousFocus.isConnected && previousFocus.getClientRects().length) previousFocus.focus({ preventScroll: true }); previousFocus = null; }
     let lastQuest = -1, lastReward = '';
@@ -541,7 +567,7 @@
       if (opened && (before !== version || game.quests && game.quests.revision !== lastQuest || rewardUid !== lastReward)) { lastQuest = game.quests ? game.quests.revision : -1; lastReward = rewardUid; draw(); }
     }
     function clear() { visited.clear(); legacy.clear(); trail = []; record.chapters[chapter] = []; if (record.trails) record.trails[chapter] = ''; version++; fitOnce = false; restamp(); persist(); explore(); if (opened) fit(true); }
-    function dispose() { if (disposed) return; if (persistDirty) persist(); close(false); disposed = true; observer.disconnect(); element.remove(); if (miniTools) miniTools.remove(); footprint = sdf = terrain = composed = mistBase = maskC = frontC = mistTmp = revealGrid = null; }
+    function dispose() { if (disposed) return; if (persistDirty) persist(); close(false); disposed = true; observer.disconnect(); window.removeEventListener('pagehide', flush); document.removeEventListener('visibilitychange', flush); element.remove(); if (miniTools) miniTools.remove(); footprint = sdf = terrain = composed = mistBase = maskC = frontC = mistTmp = revealGrid = null; }
     // ---- minimap ---------------------------------------------------------------------------------------------------------------
     let miniSprites = null, miniK = 0, miniKey = '', miniTools = null, miniAngle = 0, miniBg = null, miniBgCtx = null;
     const MINI_BASE = 4.6;
@@ -611,7 +637,7 @@
     }
     explore();
     return { element, open, close, update, clear, dispose, prepareTerrain, drawTerrain, drawMinimap, warmMinimap, attachMinimap,
-      get terrainVersion() { return maskVersion; }, get explored() { return visited.size; }, get revealed() { return footCells ? revealedCells / footCells : 0; }, get tracked() { return target(); }, get route() { return route; } };
+      get terrainVersion() { return maskVersion; }, get explored() { return visited.size; }, get revealed() { return footCells ? revealedCells / footCells : 0; }, get tracked() { return target(); }, get route() { return route; }, get markers() { return markers.map(b => ({ x: b.x, y: b.y, kind: b.kind, name: b.name, track: !!b.spec })); } };
   }
   B.Atlas = { create, icon, STYLES };
 })();
