@@ -544,7 +544,7 @@
         });
       });
       var mg = geo(new T.BufferGeometry()); mg.setAttribute('position', new T.BufferAttribute(P, 3)); mg.setAttribute('normal', new T.BufferAttribute(N, 3)); mg.setAttribute('uv', new T.BufferAttribute(U, 2)); mg.setIndex(new T.BufferAttribute(I, 1)); mg.computeBoundingSphere();
-      var mesh = new T.Mesh(mg, g.mat); mesh.castShadow = [materials.lamp, materials.oath, materials.puddle, materials.funeralPaving, materials.floor, materials.sand, materials.grave, materials.bone, materials.rope, materials.flesh, materials.ember, materials.dark].indexOf(g.mat) < 0; mesh.receiveShadow = true;
+      var mesh = new T.Mesh(mg, g.mat); mesh.castShadow = [materials.lamp, materials.oath, materials.puddle, materials.funeralPaving, materials.floor, materials.sand, materials.grave, materials.bone, materials.rope, materials.flesh, materials.ember, materials.dark, materials.rock, materials.rust, materials.gold, materials.cloth].indexOf(g.mat) < 0; mesh.receiveShadow = true;
       mesh.name = 'coast-merged-' + g.room + ':' + (g.mat.name || ''); mesh.matrixAutoUpdate = false; roomGroups[g.room].add(mesh);
     });
     Object.keys(batches).forEach(function (key) {
