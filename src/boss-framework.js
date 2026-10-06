@@ -409,14 +409,14 @@
       }
       st.exposed = Math.max(0, st.exposed - dt); st.perfectCd = Math.max(0, st.perfectCd - dt);
       // aura: crimson while enraged, gold while exposed by a perfect dodge
-      var want = st.exposed > 0 ? 1 : e.enraged ? .75 : 0;
+      var want = st.exposed > 0 ? 1 : e.enraged ? .75 : e.phase >= 2 ? .4 : 0;
       st.auraA += (want - st.auraA) * Math.min(1, dt * 5);
       aura.visible = st.auraA > .02;
       if (aura.visible) {
         var u = aura.material.uniforms, R = (e.radius || 1) * 3.2;
         aura.position.set(e.x, (api.groundY ? api.groundY(e.x, e.z) : .05) + .03, e.z); aura.scale.set(R, R, 1);
         u.uT.value = time; u.uA.value = st.auraA * (st.exposed > 0 ? .55 + .25 * Math.sin(time * 14) : .5);
-        if (st.exposed > 0) u.uCol.value.setRGB(1.5, .95, .3); else u.uCol.value.setRGB(1.4, .18, .06);
+        if (st.exposed > 0) u.uCol.value.setRGB(1.5, .95, .3); else if (e.enraged) u.uCol.value.setRGB(1.4, .18, .06); else { var c = p.rgb || (p.rgb = rgb(p.color || 0xb8452d, 1.8)); u.uCol.value.setRGB(c[0] * .8, c[1] * .8, c[2] * .8); }
       }
       edgeStep(e, p);
       arenaStep(e, p);
