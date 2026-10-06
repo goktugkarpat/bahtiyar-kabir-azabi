@@ -209,8 +209,8 @@
     /* ---- pursuit: answer the end of a roll */
     function trackRolls(dt) {
       var d = player.dodge || 0;
-      if (d > st.prevDodge + .05) st.rolls.push(time);
-      if (st.prevDodge > 0 && d <= 0) st.rollEnd = { x: player.x, z: player.z, t: time };
+      if (d > st.prevDodge + .05) { st.rolls.push(time); st.rollFrom = { x: player.x, z: player.z }; }
+      if (st.prevDodge > 0 && d <= 0) st.rollEnd = { x: player.x, z: player.z, t: time, fx: st.rollFrom ? st.rollFrom.x : player.x, fz: st.rollFrom ? st.rollFrom.z : player.z };
       st.prevDodge = d;
       while (st.rolls.length && time - st.rolls[0] > 5) st.rolls.shift();
     }
@@ -218,8 +218,10 @@
       var spam = st.rolls.length >= 3, re = st.rollEnd;
       if (!re || time - re.t > .5 || !p.pursuit) return false;
       if (e.phase < 2 && !spam) return false;
-      if (time < st.pursuitAt || e.action || e.stagger > 0 || busy(e)) return false;
-      var dist = hyp(re.x - e.x, re.z - e.z); if (dist < 2.2 || dist > 9.5 || !api.clearStrike(e, re)) return false;
+      if (time < st.pursuitAt || e.action || e.stagger > 0 || (e.recoveryFloor || 0) > 0 || busy(e)) return false;
+      // only a roll that carried the hero AWAY (kiting) is chased; rolling in to punish the boss's recovery is never answered
+      var dist = hyp(re.x - e.x, re.z - e.z), from = hyp(re.fx - e.x, re.fz - e.z);
+      if (dist < 3.6 || dist > 9.5 || dist < from + 1.2 || !api.clearStrike(e, re)) return false;
       var pp = p.pursuit, end = kit.lungeEnd(e, re.x, re.z, 1.6), a = end.a, len = api.clipLine(e, a, dist + 1.4), name = pp.name;
       e.face = a;
       var mv = { id: 'pursuit_' + e.type, name: name, duration: 1.75, pose: pp.pose || 'charge', cooldown: .85,
