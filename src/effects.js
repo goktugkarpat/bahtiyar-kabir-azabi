@@ -1282,13 +1282,13 @@
           if ((heavy || tint) && !d.kill && !d.boss) { const f = d.labelTarget, sa = Math.sin(spray), ca = Math.cos(spray);
             scar(f.x, f.z, spray, { shape: 'line', width: .1, length: tint ? 1.2 : .9, heat: .03, life: 2.5 });
             for (let i = 0; i < scaleCount(8); i++) emit(f.x + rnd(-.25, .25), .08, f.z + rnd(-.25, .25), 2, DUST, sa * rnd(1.2, 2.6), rnd(.2, .6), ca * rnd(1.2, 2.6), rnd(.4, .7), rnd(.16, .26)); }
-          if (!tint && (heavy || d.kill)) { const f = d.labelTarget; impactFx.dome(f.x, f.z, { r: d.kill ? 1.9 : 1.4, h: .55, life: .28, col: [.7, .26, .1], hot: [1.4, .9, .55], a: d.kill ? .5 : .38 }); }
+          if (!tint && (heavy || d.kill)) { const f = d.labelTarget; impactFx.dome(f.x, f.z, { r: d.kill ? 1.5 : 1.2, h: .45, life: .26, col: [.6, .3, .16], hot: [1.1, .8, .55], a: d.kill ? .3 : .24 }); }
           impactFx.hitFlash(d.labelTarget, { col: tint || (d.critical ? [1.25, .95, .6] : [.95, .8, .66]), a: d.kill ? .95 : tint ? .8 : heavy || d.critical ? .7 : .48, life: d.kill ? .26 : tint || heavy ? .2 : .14 });
         }
         if (d.damage > 0) number(Math.round(d.damage), x, 2.5, z, d.player, d.heavy || d.critical, d.kill, d.boss, d.labelTarget || null);
         // Blows struck in fury leave burning embers in the wound.
         if (d.rage && !d.player) for (let i = 0; i < scaleCount(heavy ? 18 : 10); i++) emit(x, y, z, 4, i % 2 ? [2.6, .6, .12] : [2.2, .25, .08], Math.sin(spray) * rnd(.6, 2.2) + rnd(-.5, .5), rnd(.4, 1.6), Math.cos(spray) * rnd(.6, 2.2) + rnd(-.5, .5), rnd(.4, .8), .045);
-        if (name === 'death' && impactFx) impactFx.deathAsh(x, z, !!large);
+        if (name === 'death' && impactFx) { const pl = game.player, sk = pl && (pl.attack && pl.attack.skill || (pl.roar ? 'roar' : '')); impactFx.deathAsh(x, z, !!large, sk ? impactFx.skillTint(sk) : null); }
         if (name === 'death') goreKill(x, Math.max(.7, y), z, performance.now() - lastDir.t < 400 ? lastDir.a : Math.random() * 6.28, !!large, null, !!d.boss);
         return;
       }
@@ -1365,6 +1365,9 @@
         // Roll afterimages exactly while the i-frames last.
         const p = game.player, iframe = !!(p && p.invulnerable && p.dodge > 0 && !p.dead);
         if (iframe && !frozen) { ghostClock -= dt; if (ghostClock <= 0 || !wasIframe) { spawnGhost(p.model, .17, .2); ghostClock = .065; } }
+        if (wasIframe && !iframe && p && !p.dead) {   // the roll ends: the body comes down on its feet in a low puff of grit
+          const fy = floorAt(p.x, p.z, .4); for (let i = 0; i < scaleCount(10); i++) { const a = Math.random() * Math.PI * 2; emit(p.x + Math.sin(a) * .3, fy + .06, p.z + Math.cos(a) * .3, 2, [.09, .075, .06], Math.sin(a) * rnd(.6, 1.4), rnd(.1, .35), Math.cos(a) * rnd(.6, 1.4), rnd(.45, .7), rnd(.18, .28)); }
+        }
         wasIframe = iframe;
         actorTrail(game.player, dt, frozen); for (const e of game.enemies) if (e.model.root.visible || trails.get(e)?.active) actorTrail(e, dt, frozen);
       }

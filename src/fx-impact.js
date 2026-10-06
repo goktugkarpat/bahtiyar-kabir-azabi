@@ -85,11 +85,11 @@
         emit(x + Math.sin(a) * rr, .2 + Math.random() * .5, z + Math.cos(a) * rr, 2, c, Math.sin(a) * rnd(.2, .9), up * rnd(.55, 1.15), Math.cos(a) * rnd(.2, .9), rnd(1.1, 1.9), (d.size || .5) * rnd(.8, 1.25)); }
     }
     // A fallen body gives up a little grave ash and a few pale, slow motes that climb and go out (the soul torn loose).
-    function deathAsh(x, z, big) {
+    function deathAsh(x, z, big, tint) {   // tint: the killing skill's colour colours the embers that escape the body
       if (!emit) return; plume(x, z, { n: big ? 14 : 6, r: big ? 1.1 : .55, col: [.05, .042, .04], up: big ? 1.8 : 1.2, size: big ? .55 : .38 });
       const n = scaleCount(big ? 14 : 6);
       for (let i = 0; i < n; i++) { const a = Math.random() * 6.283, r = Math.random() * (big ? .9 : .45);
-        emit(x + Math.sin(a) * r, .5 + Math.random() * .9, z + Math.cos(a) * r, 5, i % 3 ? [.75, .7, .62] : [1.1, .4, .14], rnd(-.15, .15), rnd(.5, 1.1), rnd(-.15, .15), rnd(1.0, 1.7), rnd(.025, .04)); }
+        emit(x + Math.sin(a) * r, .5 + Math.random() * .9, z + Math.cos(a) * r, 5, i % 3 ? [.75, .7, .62] : tint ? [tint[0] * 1.2, tint[1] * 1.2, tint[2] * 1.2] : [1.1, .4, .14], rnd(-.15, .15), rnd(.5, 1.1), rnd(-.15, .15), rnd(1.0, 1.7), rnd(.025, .04)); }
     }
     // ---------------------------------------------------------------- body flashes
     // A rim matcap (dark heart, hot edge): the flash burns along the silhouette and the facing planes only warm a little, so the body keeps its form.
