@@ -187,15 +187,15 @@
       // passage floor and walls
       var cx = (edge + mainEdge) / 2, clen = Math.abs(edge - mainEdge);
       floorTiles(cx, r.z, clen + .1, 6, [], 1.2);
-      wallLite(cx, r.z - 3.35, clen + .2, 'x', 2.6, 1);
-      wallLite(cx, r.z + 3.35, clen + .2, 'x', 1.0, -1);
+      wallLite(cx, r.z - 3.5, clen - .1, 'x', 2.6, 1);
+      wallLite(cx, r.z + 3.5, clen - .1, 'x', 1.0, -1);
       K.floorDecal('matte', CELL.mould, cx, r.z, clen + 1, 4.4, 0, COL.grime, 0);
       // solid masonry between the two halls on either side of the passage (no dark slot between the walls)
-      var mainHalf = main.d / 2, fillLen = Math.max(r.d / 2, mainHalf) - 3.35;
+      var mainHalf = main.d / 2, fillLen = Math.max(r.d / 2, mainHalf) - 3.9;
       [-1, 1].forEach(function (k) {
-        var h = k < 0 ? 4.25 : 1.0, fz = r.z + k * (3.35 + fillLen / 2), fw = Math.max(.1, clen - .75);
+        var h = k < 0 ? 4.25 : 1.0, fz = r.z + k * (3.9 + fillLen / 2), fw = Math.max(.1, clen - .75);
         box('dark', cx, h / 2, fz, fw, h, fillLen);
-        for (var q = 0; q < Math.ceil(fillLen / 1.4); q++) put('box', 'stone', cx, h + .045, r.z + k * (3.35 + (q + .5) * fillLen / Math.ceil(fillLen / 1.4)), fw + .2, .19, fillLen / Math.ceil(fillLen / 1.4) - .04, 0, 0, 0, 0, new T.Color().setScalar(.62 + q % 3 * .06));
+        for (var q = 0; q < Math.ceil(fillLen / 1.4); q++) put('box', 'stone', cx, h + .045, r.z + k * (3.9 + (q + .5) * fillLen / Math.ceil(fillLen / 1.4)), fw + .2, .19, fillLen / Math.ceil(fillLen / 1.4) - .04, 0, 0, 0, 0, new T.Color().setScalar(.62 + q % 3 * .06));
         solid(cx, fz, fw, fillLen);
       });
       // doorway frame: two heavy jambs and a lintel with hanging chain
@@ -505,6 +505,11 @@
         K.floorRing(r.x, r.z + 1, 4.2, .1, 'dark~p'); K.floorRing(r.x, r.z + 1, 3.6, .05, 'pale~p', 1);
         K.floorDecal('matte', CELL.runes, r.x, r.z + 1, 6.4, 6.4, 0, COL.chalk, 1);
         K.floorDecal('matte', CELL.cracks, r.x + 1.6, r.z + 1.8, 4, 4, null, COL.crack, 0);
+        // the broken oath still burns in the cracks: red seams run from the altar across the hall
+        for (var fs = 0; fs < 7; fs++) { var fa = (fs - 3) * .3 + U(-.08, .08);
+          for (var fq = 0; fq < 3; fq++) { var fd = 2.6 + fq * 1.7, sx2 = r.x + Math.sin(fa) * fd, sz2 = dz + 1.6 + Math.cos(fa) * fd;
+            K.decal('glow', CELL.cracks, sx2, .012, sz2, 1.9, 1.9, fa + R(), K.linear(.55, .06, .015), 1);
+            K.floorDecal('matte', CELL.cracks, sx2, sz2, 2, 2, fa, COL.crack, 1); } }
         pile(S.back + S.s * 2.2, r.z + 6.4, 1.6, 14);
         for (var b = 0; b < 6; b++) K.floorDecal('wet', CELL.bloodSpatter, r.x + U(-9, 9), r.z + U(-6, 6), U(.8, 1.5), U(.8, 1.5), null, COL.oldBlood, 1);
       }
@@ -515,7 +520,7 @@
       var s = r.x < 0 ? 1 : -1, back = r.x - s * r.w / 2, north = r.z - r.d / 2;
       if (r.theme === 'ossuary') holes.push({ x: back + s * 3.2, z: r.z - 1, w: 3.2, d: 9 });
       if (r.theme === 'graves') holes.push({ x: r.x - 1, z: north + 3.1, w: 7, d: 3.2 });
-      floorTiles(r.x, r.z, r.w, r.d, holes, r.theme === 'oaths' ? 1.7 : 1.32, r.theme === 'oaths' || r.theme === 'graves');
+      floorTiles(r.x, r.z, r.w, r.d, holes, r.theme === 'oaths' ? 1.7 : 1.32, r.theme === 'graves');
       var S = shell(r);
       THEMES[r.theme](r, S, holes);
       floorLife(r, holes);
