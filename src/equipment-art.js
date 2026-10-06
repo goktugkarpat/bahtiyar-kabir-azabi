@@ -86,7 +86,7 @@
   };
   // Extra gear surfaces (gear-* sets): tarnished grave gold, blackened iron, horn, dyed cloth, gems.
   Object.assign(spec,{
-    gold:['metal',0xc8a15a,.52,.95], bronze:['metal',0x9a7448,.6,.92], black:['metal',0x4a4d52,.58,.9], silver:['metal',0xc9cfd4,.42,.96],
+    gold:['metal',0xd9b066,.46,.72], bronze:['metal',0x9a7448,.6,.92], black:['metal',0x4a4d52,.58,.9], silver:['metal',0xc9cfd4,.42,.96],
     horn:['bone',0x5e4c3c,.62,0], fur:['leather',0x6b5641,1,0], crimson:['cloth',0x8a2a22,1,0], sable:['cloth',0x302b27,1,0], hide:['leather',0xa98a6c,.9,0],
     gem:['metal',0x8a1018,.18,.25], bright:['metal',0xb4bec6,.48,.96]
   });
@@ -98,7 +98,7 @@
   const FINISH_GRADE={ash:{grime:.62},rust:{rust:.42,grime:.4},brine:{rust:.18,grime:.38},blood:{blood:.55,grime:.36},bone:{grime:.3}};
   function gradeOf(key,kind,extra){
     const g=Object.assign({},GRADE[kind]||GRADE.metal,extra||{});
-    if(key==='rust')g.rust=.32;if(key==='bright')Object.assign(g,{rust:0,grime:.14,wear:.7});if(key==='edge')Object.assign(g,{wear:.45,blood:.22,grime:.1});if(key==='gold'||key==='brass'||key==='bronze')Object.assign(g,{grime:.45,wear:.75,rust:0});
+    if(key==='rust')g.rust=.32;if(key==='bright')Object.assign(g,{rust:0,grime:.14,wear:.7});if(key==='edge')Object.assign(g,{wear:.45,blood:.22,grime:.1});if(key==='gold'||key==='brass'||key==='bronze')Object.assign(g,{grime:key==='gold'?.18:.4,wear:.75,rust:0});
     if(key==='dark'||key==='black')Object.assign(g,{rust:.1,wear:.85});if(key==='rag')g.blood=.25;return g;
   }
   function applyGrade(m,key,kind,extra){
@@ -112,7 +112,7 @@
       m.name='kara-equipment-'+key;m.userData.equipmentGlow=key;return palette[key]=m;
     }
     const s=spec[key]||spec.steel;
-    const m=new T.MeshStandardMaterial({...(key==='edge'?surface(s[0]):scanned[s[0]]||surface(s[0])),color:s[1],roughness:s[2],metalness:s[3],normalScale:new T.Vector2(s[0]==='metal'?.16:s[0]==='leather'?.42:s[0]==='cloth'?.25:.60,s[0]==='metal'?.16:s[0]==='leather'?.42:s[0]==='cloth'?.25:.60)});
+    const m=new T.MeshStandardMaterial({...(key==='edge'||key==='gold'||key==='silver'||key==='gem'?surface(s[0]):scanned[s[0]]||surface(s[0])),color:s[1],roughness:s[2],metalness:s[3],normalScale:new T.Vector2(s[0]==='metal'?.16:s[0]==='leather'?.42:s[0]==='cloth'?.25:.60,s[0]==='metal'?.16:s[0]==='leather'?.42:s[0]==='cloth'?.25:.60)});
     m.name='kara-equipment-'+key;m.userData.equipmentKind=s[0];applyGrade(m,key,s[0]);return palette[key]=m;
   }
   function finish(source,name) {

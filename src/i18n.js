@@ -13,3 +13,13 @@ function localizeStatic(){document.documentElement.lang=lang;if(lang==='en'){con
 window.KabirI18n={get lang(){return lang;},getLanguage:()=>lang,t,source,setLanguage,missing:()=>Array.from(missing),dictionary:EN};
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',localizeStatic,{once:true});else localizeStatic();
 })();
+/* ajan:gear */
+Object.assign(window.KabirI18n.dictionary,{
+"Kral Mezarının Altın Tacı":"Gold Crown of the Barrow King","Bir kral mezarından sökülmüş kararmış altın taç. Taşıyanın başını eğdirecek kadar ağırdır.":"A blackened gold crown pried from a barrow king's tomb. Heavy enough to bow the wearer's head.",
+"Deniz Nöbetçisinin Miğferi":"Tide Sentinel's Helm","Fener kulesinde nöbet tutan bir askerden kaldı. Siperinde tuz kristalleri parlar.":"Left by a soldier who kept watch at the lighthouse. Salt crystals glint on its visor.",
+"Kemik Ayininin Göğüslüğü":"Bone Rite Breastplate","Kaburgalar deriye dikilmiş, her biri bir ölünün adını taşır.":"Ribs stitched into leather, each one bearing a dead man's name.",
+"Lamel Yeminin Zırhı":"Lamellar Oath Armor","Yüzlerce küçük demir pul, deri kayışlarla birbirine bağlanmış.":"Hundreds of small iron scales laced together with leather thongs.",
+"Ocak Dökümü Eldivenler":"Hearth-Forged Gauntlets","Dökümhanede kalıba dökülmüş ağır pençeler. Eklem aralarından hâlâ kor ışığı sızar.":"Heavy claws poured into a foundry mould. Ember light still seeps between the joints.",
+"Yasçının Sessiz Adımları":"Mourner's Silent Steps","Ayak bileklerinde kırık prangalar sallanır. Yas tutan biri bunlarla mezardan mezara yürümüş.":"Broken shackles swing at the ankles. Someone in mourning walked from grave to grave in these."
+});
+/* /ajan:gear */

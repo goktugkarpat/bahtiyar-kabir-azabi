@@ -116,6 +116,16 @@
         emit('hands', id, mat, kn, hand);
       }
     }
+    function cuff(id, mat, trim, flare) {
+      for (const s of ['L', 'R']) {
+        const fore = 'forearm' + s, hand = 'hand' + s, cover = sleeve(A, fore, hand, .3, .9, .02, .004, ['skin', 'leather']);
+        // Flared gauntlet cuff: a cone opening toward the elbow, rolled rim, riveted band.
+        const shape = (u, v) => cover.at(u * TAU, mix(.66, .44, v), .008 + flare * v * v)[0].toArray();
+        part('hands', id, mat, G.shell(28, 6, shape, .004, true), fore);
+        part('hands', id, trim, G.tube(line(u => shape(u, 1), 36), .0032, 5, 44, true), fore);
+        const st = []; for (let i = 0; i < 10; i++) { const q = cover.at(i / 10 * TAU, .62, .013); st.push(G.stud(.0035, q[0].toArray(), q[1])); } emit('hands', id, trim, st, fore);
+      }
+    }
     function kneeSpikes(id, mat, trim, glow, spur) {
       for (const s of ['L', 'R']) {
         const shin = 'shin' + s, foot = 'tarsal' + s, cover = sleeve(A, shin, foot, .6, .95, .018, .004, ['skin', 'leather']), front = facingAngle(cover);
@@ -139,7 +149,8 @@
           if (item.rarity === 'boss') horns(id, 'horn', 'gold', .24, 'up');
           else if (rank >= 3) {
             const k = item.id.length % 4;
-            if (/breath|gaze/.test(item.id)) horns(id, 'bone', trim, .15, 'fwd');
+            if (/barrow|king/.test(item.id)) { const sp = []; for (let i = 0; i < 11; i++) { const a = i / 11 * TAU, h = i % 2 ? .07 : .12, b = [hc.x + Math.sin(a) * (rx + .012), hc.y + ry * .44, hc.z + Math.cos(a) * (rz + .012)]; sp.push(G.spike(.013, b, [b[0] + Math.sin(a) * .02, b[1] + h, b[2] + Math.cos(a) * .02], 5)); if (!(i % 2)) sp.push(G.sphere(.008, [b[0] + Math.sin(a) * .022, b[1] + h + .004, b[2] + Math.cos(a) * .022], null, 8, 6)); } emit('head', id, 'gold', sp, 'head'); part('head', id, 'gold', G.shell(44, 3, (u, v) => { const a = u * TAU; return [hc.x + Math.sin(a) * (rx + .016), hc.y + ry * (.36 + v * .1), hc.z + Math.cos(a) * (rz + .016)]; }, .004, true), 'head'); }
+            else if (/breath|gaze/.test(item.id)) horns(id, 'bone', trim, .15, 'fwd');
             else if (k === 0) { crest(id, 'black', 7, .08); aventail(id, .25); }
             else if (k === 1) { aventail(id, .35); plume(id, 'crimson'); }
             else if (k === 2) { horns(id, 'horn', trim, .16, 'down'); aventail(id, .2, 'mail'); }
@@ -156,6 +167,7 @@
             else { spikedPauldron(id, 'black', trim, 2, .1, false); sigil(id, trim, glow, 'diamond'); }
           }
         } else if (item.slot === 'hands') {
+          if (rank >= 2 && !/wrap/.test(item.id)) cuff(id, rank >= 3 ? 'black' : 'dark', trim, rank >= 3 ? .03 : .018);
           if (rank >= 3) knuckles(id, 'black', trim, glow, item.rarity === 'boss');
         } else if (item.slot === 'boots') {
           if (rank >= 3) kneeSpikes(id, 'black', trim, glow, true);

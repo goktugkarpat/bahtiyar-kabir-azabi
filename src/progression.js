@@ -213,6 +213,14 @@
     item("dead-forge-steps", KabirI18n.t("Ölü Dövmenin İzleri"), "boots", 12, "epic", 0, 0.1, 1, null, KabirI18n.t("Demir uçlarında kapanmış dökümhanenin işaretleri bulunur. Hiçbir kapı artık bu izleri tanımaz."), "tide-boots", "rust")
     ,item('warden-verdict-helm', KabirI18n.t('Harabe Yargıcının Son Yüzü'), 'head', 8, 'boss', 0, .065, 3, null, KabirI18n.t('Harabelerin ikinci muhafızının kemik perçinli hüküm miğferi. Bir daha aynı hüküm verilmeyecek.'), 'iron-helm', 'bone')
     ,item('ash-warden-grasp', KabirI18n.t('Kül Muhafızının Son Pençesi'), 'hands', 11, 'boss', 0, .085, 3, null, KabirI18n.t('İkinci ocak muhafızının kan çizgili döküm eldiveni. Tutsakları ocağa sürükleyen parmaklar artık sessiz.'), 'salt-gauntlets', 'blood')
+    /* ajan:gear — new pieces on existing fitted cores; flourishes come from gear-armor.js */
+    ,item('barrow-king-crown', KabirI18n.t('Kral Mezarının Altın Tacı'), 'head', 9, 'epic', 0, .07, 3, null, KabirI18n.t('Bir kral mezarından sökülmüş kararmış altın taç. Taşıyanın başını eğdirecek kadar ağırdır.'), 'warden-crown', 'bone')
+    ,item('tide-sentinel-helm', KabirI18n.t('Deniz Nöbetçisinin Miğferi'), 'head', 6, 'rare', 0, .05, 2, null, KabirI18n.t('Fener kulesinde nöbet tutan bir askerden kaldı. Siperinde tuz kristalleri parlar.'), 'bell-helm', 'brine')
+    ,item('bone-rite-chest', KabirI18n.t('Kemik Ayininin Göğüslüğü'), 'chest', 9, 'epic', 0, .085, 4, null, KabirI18n.t('Kaburgalar deriye dikilmiş, her biri bir ölünün adını taşır.'), 'rib-chest', 'bone')
+    ,item('lamellar-oath-chest', KabirI18n.t('Lamel Yeminin Zırhı'), 'chest', 6, 'rare', 0, .07, 1, null, KabirI18n.t('Yüzlerce küçük demir pul, deri kayışlarla birbirine bağlanmış.'), 'lamellar-chest', 'rust')
+    ,item('hearth-forged-gauntlets', KabirI18n.t('Ocak Dökümü Eldivenler'), 'hands', 10, 'epic', 0, .08, 1, null, KabirI18n.t('Dökümhanede kalıba dökülmüş ağır pençeler. Eklem aralarından hâlâ kor ışığı sızar.'), 'claw-gauntlets', 'rust')
+    ,item('mourner-silent-steps', KabirI18n.t('Yasçının Sessiz Adımları'), 'boots', 6, 'rare', 0, .045, 2, null, KabirI18n.t('Ayak bileklerinde kırık prangalar sallanır. Yas tutan biri bunlarla mezardan mezara yürümüş.'), 'shackle-boots', 'blood')
+    /* /ajan:gear */
   ]);
   const catalog = Object.freeze(Object.fromEntries(items.map(i => [i.id, i])));
   const bossSignatures = Object.freeze({ 1:Object.freeze(['executioner-axe']),2:Object.freeze(['bell-spear']),3:Object.freeze(['hollow-crown-blade']),4:Object.freeze(['furnace-oath-axe']),ruinwarden:Object.freeze(['warden-chainmail','warden-verdict-helm']),ashwarden:Object.freeze(['ash-warden-chest','ash-warden-grasp']) });
