@@ -10,6 +10,7 @@
   // Hero focus pool in the post composite (ajan:visual-dark): [strength, radius m]; rooms may override with atmosphere.focus / focusRadius. QA: ?focus=s,r
   var FOCUS = ((/[?&]focus=([\d.]+),([\d.]+)/.exec(location.search) || []).slice(1).map(Number));
   if (FOCUS.length !== 2) FOCUS = [.4, 6];
+  var FOCUS_CH = { 2: 1.4, 4: 1.25 };   // the darkest chapters carry a stronger pool so the hero never sinks into the floor
 
   // ---------------------------------------------------------------- fog chunks (all built-in materials)
   // Distance fog stays three's FogExp2; on top of it every lit surface integrates a low mist layer (thick at the
@@ -812,7 +813,7 @@
       grade.exposure = (cfgRef.exposure || 1.15) * a.exposure;
       var fx = p.x, fz = p.z - 2;
       updateScatter(fx, fz, dt);
-      if (opts.post) { updateHeat(opts.post.heat(), fx, fz); if (opts.post.pulse) warCryPost(opts.post.heat(), opts.post.pulse(), p); chapterLook(dt); opts.post.setGrade(grade); if (opts.post.setFocus) opts.post.setFocus(p.x, .9, p.z, Number.isFinite(a.focusRadius) ? a.focusRadius : FOCUS[1], Number.isFinite(a.focus) ? a.focus : FOCUS[0]); }
+      if (opts.post) { updateHeat(opts.post.heat(), fx, fz); if (opts.post.pulse) warCryPost(opts.post.heat(), opts.post.pulse(), p); chapterLook(dt); opts.post.setGrade(grade); if (opts.post.setFocus) opts.post.setFocus(p.x, .9, p.z, Number.isFinite(a.focusRadius) ? a.focusRadius : FOCUS[1], Number.isFinite(a.focus) ? a.focus : FOCUS[0] * (FOCUS_CH[B.ActiveChapter] || 1)); }
       if (!ab.stepped) abilityStep(dt, game, time);
       ab.stepped = false;
     }
