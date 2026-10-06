@@ -103,13 +103,13 @@
     'uniform float uExposure, uBloom, uAO, uSat, uContrast, uVignette, uGrain;',
     'uniform vec3 uLift, uGain, uShadowTint, uHighTint, uVigColor, uBloomTint;',
     'uniform vec4 uHeat[' + MAX_HEAT + '];',
-    'uniform vec4 uPulse;',
+    'uniform vec4 uPulse;',   // war cry shockwave: xy = centre (uv), z = ring radius (height units), w = strength (0 = off)
     // Cinematic layer over every room grade (ajan:visual-dark): x shadow desaturation, y shadow range (linear luma), z toe (black crush),
     // w highlight warmth; uCineTint = hue the drained shadows sink toward. uSharp = adaptive detail (SHARP variant only).
     'uniform vec4 uCine; uniform vec3 uCineTint; uniform float uSharp;',
     // Hero focus (ajan:visual-dark): xy = hero centre (uv), z = radius (height units), w = strength. The hero carries a soft pool of
     // exposure with him and the frame falls away into darkness around it, so a darker world never swallows the player.
-    'uniform vec4 uFocus;',   // war cry shockwave: xy = centre (uv), z = ring radius (height units), w = strength (0 = off)
+    'uniform vec4 uFocus;',
     // Special ability (only in the ABILITY variant, which is drawn while Post.setAbilityFx is being fed; otherwise this block does not exist):
     // A = spin (radial blur), chroma, flash (exposure + bloom), saturation punch; B = vignette pulse, hit-freeze desaturation, ring strength;
     // C = ring centre (uv), ring radius and width (height units of the ground ellipse); D = hero centre (uv), 1 / sin(camera pitch)
@@ -200,7 +200,7 @@
     '  #else',
     '  c = texture2D(tScene, uv).rgb;',
     '  #endif',
-      '  #if SHARP',
+    '  #if SHARP',
     // Contrast-adaptive detail: the plain cross of neighbours, pushed only where local contrast is low (texture, pores, rust, stone grain),
     // clamped to the neighbourhood so silhouettes never ring and SMAA still sees clean edges.
     '  { vec3 n0 = texture2D(tScene, uv + vec2(uTexel.x, 0.)).rgb, n1 = texture2D(tScene, uv - vec2(uTexel.x, 0.)).rgb,',
