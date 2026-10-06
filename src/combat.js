@@ -665,7 +665,9 @@
       try {
         const saved = JSON.parse(window.localStorage.getItem(SAVE_KEY));
         if (!saved || saved.version !== 3 || saved.chapter !== chapter || !saved.progression || ![1, BABA.Progression.VERSION].includes(saved.progression.version) || !Array.isArray(saved.progression.inventory)) return null;
-        if (saved.completed && chapter === 4 && saved.index === 0) return Object.assign(freshSnapshot(saved.progression), { completed: true });
+        if (saved.completed && chapter === 4 && saved.index === 0) return Object.assign(freshSnapshot(saved.progression), { completed: true,
+          kills: Number.isSafeInteger(saved.kills) && saved.kills >= 0 ? saved.kills : 0,
+          elapsed: clamp(Number(saved.elapsed) || 0, 0, 86400), quests: saved.quests || null });
         if (saved.transition && chapter >= 2 && saved.index === 0) return freshSnapshot(saved.progression);
         if ((saved.signature !== signature && !signature.startsWith(saved.signature + '|')) || ![0,1].includes(saved.index) || saved.index===0 && !saved.ongoing) return null;
         const validIds = new Set(enemies.map(e => e.id));
@@ -749,7 +751,7 @@
         const regular = enemies.filter(e => !e.boss && !e.reserve);
         const completedChapter = !!snapshot.completed || enemies.some(e => e.boss && e.dead);
         const legacyOpen = !snapshot.quests && regular.filter(e => e.dead).length >= Math.max(1, Math.min(BABA.Gate ? BABA.Gate.LEGACY_KILLS : 45, regular.length - 3));
-        quests.restore(completedChapter ? null : snapshot.quests, legacyOpen || completedChapter);
+        quests.restore(snapshot.quests, legacyOpen || completedChapter);
       }
       if (gate) gate.sync();
       const heroPose = { reset: true, time: 0, move: 0, attack: 0, dead: false, face: player.face };
@@ -1528,6 +1530,10 @@
     function trackAttackTarget(enemy) {
       if (game.state === 'playing' && enemy && !enemy.dead && enemy.model.root.visible) game.attackTarget = enemy;
     }
+    function pendingFinalBossReward(enemy) {
+      // Warden signatures also use the boss loot presentation. Only the defeated chapter boss's own reward delays the ending.
+      return enemy && progression.groundLoot.find(i => i.chapter === chapter && i.uid === 'drop-' + chapter + ':' + enemy.id);
+    }
     function killEnemy(enemy) {
       if (enemy.dead) return;
       enemy.dead = true; enemy.hp = 0; enemy.deadAge = 0; enemy.action = null; enemy.shield = false; enemy.active = false; enemy.stagger = 0;
@@ -1552,7 +1558,7 @@
           damage: 32, unblockable: true, attack: 'Çürüyen Bedenin Patlaması', persistent: true, style: 'bile', fill: 'inward', burst: true });
       }
       if (enemy.boss) {
-        const drop = progression.groundLoot.find(i => i.boss && i.chapter === chapter);
+        const drop = pendingFinalBossReward(enemy);
         if (groundLoot && drop) {
           clearHazards();
           emit('boss', {name:enemy.name,active:false});
@@ -1649,7 +1655,8 @@
       progression.completedChapter(chapter); syncProgression();
       // The first boss writes the shore entrance atomically with every earned reward.
       const complete = chapter === 4;
-      const transition = { version: 3, chapter: complete ? chapter : chapter + 1, index: 0, transition: !complete, completed: complete, dead: [], kills: 0, elapsed: 0, progression: progression.snapshot() };
+      const transition = { version: 3, chapter: complete ? chapter : chapter + 1, index: 0, transition: !complete, completed: complete, dead: [], kills: complete ? game.kills : 0, elapsed: complete ? game.elapsed : 0, progression: progression.snapshot() };
+      if (complete && quests) transition.quests = quests.snapshot();
       try { window.localStorage.setItem(SAVE_KEY, JSON.stringify(transition)); } catch (_) { emit('toast', { text: 'Bölüm geçişi bu cihazda kaydedilemedi.' }); }
       game.hasSave = !complete; game.campaignCompleted = complete;
       emit('boss', { name: game.boss ? game.boss.name : STATS.boss.name, active: false });
@@ -2593,7 +2600,7 @@
       if (globes) globes.update(dt);
       if (groundLoot && game.state === 'playing' && !player.dead) {
         groundLoot.update(dt);
-        if (game.boss && game.boss.dead && !endAnnounced && !progression.groundLoot.some(i => i.boss && i.chapter===chapter)) { win(); }
+        if (game.boss && game.boss.dead && !endAnnounced && !pendingFinalBossReward(game.boss)) { win(); }
       }
       if (game.state !== 'playing') { propContacts.length = 0; const visualDt = Math.min(dt, .033); updateSceneState(visualDt); animateAll(visualDt); return; }
       // Fixed upper bound prevents fast dodge movement from tunneling on occasional slow frames.
