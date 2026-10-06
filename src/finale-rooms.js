@@ -176,6 +176,10 @@
         K.spr(i, S.beam, X(x), 0, Z(z), 1.6 + RB() * .8, 13, [VOID[0] * .45, VOID[1] * .45, VOID[2] * .45], .5, RB(), 1, 1);
         K.spr(i, S.pool, X(x), .12, Z(z), 3.6, 3.6, [VOID[0] * .3, VOID[1] * .3, VOID[2] * .3], .45, RB(), 1, 1);
         for (var m = 0; m < 10; m++) K.spr(i, S.mote, X(x + (RB() - .5) * 3), .5 + RB() * 5, Z(z + (RB() - .5) * 3), .04, .04, [.6, .65, 1.4], .8, RB(), .3 + RB() * .4, 1.6); }
+      // ember clouds drifting in the drop beside the platform (lit from below by the abyss)
+      for (var k = 0; k < 5; k++) { var s2 = k % 2 ? 1 : -1, x = s2 * (r.w / 2 + 3 + RB() * 9), z = (RB() - .5) * r.d * 1.2;
+        K.spr(i, S.smoke, X(x), -5 - RB() * 5, Z(z), 7 + RB() * 5, 7 + RB() * 5, k % 3 ? [.32, .07, .05] : [.12, .1, .26], .5, RB(), .03 + RB() * .03, 3);
+        K.spr(i, S.ember, X(x), -6, Z(z), .06, .06, [2.4, .4, .15], 1, RB(), .08 + RB() * .1, 12); }
       // deep ruins
       for (var k = 0; k < 4; k++) { var s = k % 2 ? 1 : -1, x = s * (r.w / 2 + 5 + RB() * 12), z = (RB() - .5) * r.d * 1.4, y = -12 - RB() * 14, sc = 1.4 + RB() * 1.6;
         if (k < 2) { for (var q = 0; q < 7; q++) { var a = q / 7 * PI; K.put(i, 'block', 'stone', X(x + Math.cos(a) * 3.2 * sc), y + Math.sin(a) * 3.2 * sc, Z(z), 1.1 * sc, .9 * sc, 1.3 * sc, 0, 0, a - PI / 2, [.42, .4, .44], .3); }
@@ -386,7 +390,7 @@
     };
     ROOM[i]();
     voidLight();
-    floorLife(i === 13 ? 2 : 5, i === 11 || i === 13 ? 0 : 2, [5, 6, 8].indexOf(i) >= 0 ? [.35, .42, 1.3] : i % 3 === 0 ? [1.4, .95, .4] : [1.2, .16, .08]);
+    floorLife(i === 13 ? 2 : 5, i === 11 || i === 13 ? 0 : 2, [5, 6, 8].indexOf(i) >= 0 ? [.16, .2, .66] : i % 3 === 0 ? [.62, .4, .14] : [.56, .07, .035]);
   }
   // Causeways across every gap: cut slabs, low kerbs, a hanging underside and chains dropping into the void.
   function bridges(K, info) {

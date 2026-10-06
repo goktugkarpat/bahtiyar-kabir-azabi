@@ -103,8 +103,11 @@
           for (var bi = 0; bi < list.length; bi++) { var bb = list[bi]; if (!bb.boss || bb.dead || !bb.active || bb.finIntro) continue; bb.finIntro = true;
             api.fx('bossPhase', { x: bb.x, y: 2, z: bb.z, phase: 1 }); api.emit('impact', { x: bb.x, z: bb.z, strength: 1, radius: 12 });
             if (B.Boss2.out && B.Boss2.out.emit) for (var q = 0; q < 70; q++) { var qa = q / 70 * TAU, qr = 2 + (q % 5) * 1.6; B.Boss2.out.emit(bb.x + Math.sin(qa) * qr, .2, bb.z + Math.cos(qa) * qr, 4, q % 3 ? [2.6, .3, .15] : [.6, .7, 2.4], Math.sin(qa) * 1.5, 2 + (q % 4), Math.cos(qa) * 1.5, 1.2, .12); } }
-          for (var i = 0; i < list.length; i++) { var e = list[i]; if (e.dead || !e.active || !e.boss || e.phase < 3) continue;
-            if (core.time - (e.b2fx || 0) > .12 && B.Boss2.out && B.Boss2.out.emit) { e.b2fx = core.time; var a = Math.random() * TAU; B.Boss2.out.emit(e.x + Math.sin(a) * 1.0, .3 + Math.random() * 3, e.z + Math.cos(a) * 1.0, 4, [3.0, .35, .2], 0, .9, 0, .7, .1); } }
+          for (var i = 0; i < list.length; i++) { var e = list[i]; if (e.dead || !e.active || !e.boss) continue;
+            // the Qadi's aura: ash and blood embers rise off him, cold void sparks join from the second phase, a storm in the third
+            var gap = e.phase >= 3 ? .06 : e.phase >= 2 ? .12 : .2;
+            if (core.time - (e.b2fx || 0) > gap && B.Boss2.out && B.Boss2.out.emit) { e.b2fx = core.time; var a = Math.random() * TAU, cold = e.phase >= 2 && Math.random() < .35, rr = .7 + Math.random() * .8;
+              B.Boss2.out.emit(e.x + Math.sin(a) * rr, .3 + Math.random() * 3.6, e.z + Math.cos(a) * rr, 4, cold ? [.7, .8, 2.8] : [3.0, .35, .2], Math.sin(a) * .3, .8 + Math.random() * (e.phase >= 3 ? 2.4 : 1), Math.cos(a) * .3, .8, .1); } }
         },
         attack: function (e, d) {
           if (core && e.boss && !e.dead && core.freeReserve(e) > 0 && core.orbs.count() === 0 && core.groundCount() === 0 && !core.nova.on && (e.forceMove === 'kadiCall' || e.b2 && e.b2.t >= 12 && ready(e, 'kadiCall'))) { e.forceMove = null; return api.beginMove(e, call(e)); }
