@@ -88,6 +88,25 @@
       K.spr(i, S.glow, x, 15, z, 6, 6, [.25, .32, .5], .5, .2, 1, 1);
       K.rubble(i, x + 5, z + 3, 3.5, 22, 2.2, 'stone', t, K.rng(4, 77));
     }());
+    // ---- a broken watchtower east of the lost colonnade: a lit window still burns near its top ----
+    (function () {
+      var i = 1, r = rooms[1], x = r.x + 22, z = r.z - 3, t = [.72, .74, .82], R = K.rng(1, 88);
+      for (var c = 0; c < 9; c++) { var w = 5.2 - c * .18; K.put(i, 'block', 'wall', x, .9 + c * 1.8, z, w, 1.8, w, (R() - .5) * .04, 0, 0, [t[0] * (.9 + R() * .2), t[1] * (.9 + R() * .2), t[2] * (.9 + R() * .2)], .4, 3); }
+      for (var k = 0; k < 6; k++) { var a = k / 6 * 6.28; if (k === 2 || k === 3) continue; K.put(i, 'block', 'stone', x + Math.cos(a) * 1.9, 17.4 + R() * .6, z + Math.sin(a) * 1.9, 1.1, 1.2 + R(), 1.1, a, 0, 0, t, .3); }
+      K.put(i, 'box', 'hot', x - 2.45, 13.6, z, .1, 1.3, .7, 0, 0, 0, [1.6, .8, .35], 0);
+      K.spr(i, S.glow, x - 2.9, 13.6, z, 2.4, 2.4, [.9, .45, .15], .8, .4, 1, 1);
+      K.rubble(i, x - 3, z + 3, 3.2, 20, 2.0, 'stone', t, R);
+    }());
+    // ---- a crystal spire breaking through the cavern roof east of the blind crystals ----
+    (function () {
+      var i = 7, r = rooms[7], x = r.x + 21, z = r.z - 2, R = K.rng(7, 99);
+      K.put(i, 'crag', 'rock', x, 2, z, 8, 4, 7, R() * 6, 0, 0, [.5, .58, .66], .5, 3);
+      K.put(i, 'crystal', 'crystal', x, 8, z, 2.2, 15, 2.2, .3, .08, -.05, null, 0);
+      for (var k = 0; k < 7; k++) { var a = R() * 6.28, d = 1.6 + R() * 1.8, h = 3 + R() * 6; K.put(i, 'crystal', R() < .3 ? 'crystalV' : 'crystal', x + Math.cos(a) * d, h * .45 + 1.5, z + Math.sin(a) * d, h * .17, h, h * .17, R() * 6, Math.cos(a) * .35, Math.sin(a) * .35, null, 0); }
+      K.spr(i, S.glow, x, 9, z, 7, 7, [.1, .5, .55], .7, .1, 1, 1);
+      K.spr(i, S.beam, x, 0, z, 3, 22, [.2, .8, .9], .25, .2, 1, 1);
+      K.light(i, x - 6, 4, z, 0x58d6e0, 20, 14, { scatter: .6, glow: 1.6, flicker: .05 });
+    }());
     // ---- side nooks: open the wall collider, add the nook's floor, walls and shrine ----
     Object.keys(NOOK).forEach(function (key) {
       var i = +key, r = rooms[i], s = NOOK[i], R = K.rng(i, 909), wx = r.x + s * r.w / 2, t = [.86, .88, .94];
