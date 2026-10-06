@@ -158,6 +158,10 @@
       terrain = document.createElement('canvas'); terrain.width = TW; terrain.height = TH;
       const tx = terrain.getContext('2d'), img = tx.createImageData(TW, TH), data = img.data;
       const F = S.floor, F2 = S.floor2, G = S.grout, Wl = S.wall, Hh = S.hatch, tile = S.tile, out = S.out, pat = S.pattern, inv = 1 / P;
+      // Causeways (Son Mahkeme): path corridors that lie outside every room rectangle are drawn as planked bridges.
+      const spans = out === 'void' ? (world.paths || []).filter(q => q && q.a && q.b && q.width).map(q => ({ ax: q.a.x, az: q.a.z, bx: q.b.x, bz: q.b.z, hw: q.width / 2 + .4, len: Math.hypot(q.b.x - q.a.x, q.b.z - q.a.z) || 1 })) : [];
+      const inRoom = (x, z) => { for (const r of rooms) if (Math.abs(x - r.x) < r.w / 2 && Math.abs(z - r.z) < r.d / 2) return true; return false; };
+      function bridgeAt(x, z) { for (const q of spans) { const ux = (q.bx - q.ax) / q.len, uz = (q.bz - q.az) / q.len, t = (x - q.ax) * ux + (z - q.az) * uz; if (t < 0 || t > q.len) continue; const side = Math.abs((x - q.ax) * uz - (z - q.az) * ux); if (side < q.hw) return t; } return -1; }
       for (let py = 0; py < TH; py++) {
         const wz = bounds.z0 + (py + .5) * inv;
         for (let px = 0; px < TW; px++) {
@@ -178,6 +182,7 @@
               const fz = wz / tile - Math.floor(wz / tile); if (fz < .045) grout = .55; const m = Math.abs(((wx % 18) + 18) % 18 - 2.2); if (m < .05) { r = 150; g = 52; b = 58; }
               lift = (n - .5) * .1;
             } else { lift = (n - .5) * .22; if (sd < 1.1) { const wet = (1.1 - sd) / 1.1 * .5; r *= 1 - wet * .45; g *= 1 - wet * .3; b *= 1 - wet * .12; } }
+            if (spans.length && !inRoom(wx, wz)) { const t = bridgeAt(wx, wz); if (t >= 0) { const f = (t / .95) % 1; grout = Math.max(grout, f < .09 ? .9 : 0); lift -= .1 + (hash(Math.floor(t / .95), 3) - .5) * .16; if (sd < .55) { r *= .72; g *= .7; b *= .74; } } }
             r = r * (1 + lift); g = g * (1 + lift); b = b * (1 + lift);
             if (grout) { r += (G[0] - r) * grout; g += (G[1] - g) * grout; b += (G[2] - b) * grout; }
             const ao = sd < 2.4 ? .62 + .38 * Math.max(0, sd) / 2.4 : 1; r *= ao; g *= ao; b *= ao;
@@ -203,9 +208,10 @@
                 if (d < .3) { const sh = 1 - d / .3; r *= 1 - sh * .6; g *= 1 - sh * .6; b *= 1 - sh * .6; a = Math.max(a, 255 * sh * .85); }
               }
             } else { // void: platforms float; a cast shadow down-right and a violet rim glow
-              const so = sdfAt(wx - .8, wz - 1.6);
-              if (so > -.6) { const k = Math.min(1, (so + .6) / 1.2); r = 3; g = 2; b = 8; a = 255 * .72 * k; }
-              const glow = Math.exp(-d * 2.4) * .7; if (glow > .02) { r = r + (Hh[0] - r) * glow; g = g + (Hh[1] - g) * glow; b = b + (Hh[2] - b) * glow; a = Math.max(a, 255 * glow); }
+              const so = sdfAt(wx - 1.1, wz - 2.4);
+              if (so > -.9) { const k = Math.min(1, (so + .9) / 1.6); r = 2; g = 1; b = 6; a = 255 * .9 * k; }
+              if (d < .22) { const k = 1 - d / .22, jag = n > .5 ? 1 : .55; r = r + (46 - r) * k * jag; g = g + (40 - g) * k * jag; b = b + (52 - b) * k * jag; a = Math.max(a, 255 * k * jag); }
+              const glow = Math.exp(-d * 1.7) * .8; if (glow > .02) { r = r + (Hh[0] - r) * glow; g = g + (Hh[1] - g) * glow; b = b + (Hh[2] - b) * glow; a = Math.max(a, 255 * glow); }
             }
           }
           data[o] = r; data[o + 1] = g; data[o + 2] = b; data[o + 3] = a;
@@ -380,7 +386,7 @@
       for (let i = 0; i < im.data.length; i += 4) { s = (Math.imul(s, 1664525) + 1013904223) | 0; const v = (s >>> 24); im.data[i] = im.data[i + 1] = im.data[i + 2] = v; im.data[i + 3] = 14; } sx.putImageData(im, 0, 0); x.drawImage(small, 0, 0, width, height);
       let r = chapter * 977 + 3; const rnd = () => { r = (Math.imul(r, 1664525) + 1013904223) | 0; return (r >>> 8) / 16777216; };
       x.lineCap = 'round';
-      if (S.motif === 'tablet') { x.strokeStyle = '#00000080'; for (let i = 0; i < 9; i++) { x.lineWidth = .6 + rnd() * 1.2; x.beginPath(); let px = rnd() * width, py = rnd() * height; x.moveTo(px, py); for (let k = 0; k < 7; k++) { px += (rnd() - .5) * 90; py += (rnd() - .5) * 90; x.lineTo(px, py); } x.stroke(); } x.strokeStyle = '#d6b88a10'; x.lineWidth = 1; for (let i = 0; i < 9; i++) { x.beginPath(); x.arc(rnd() * width, rnd() * height, 30 + rnd() * 120, 0, Math.PI * 2); x.stroke(); } }
+      if (S.motif === 'tablet') { for (let i = 0; i < 7; i++) { let px = rnd() * width, py = rnd() * height, a = rnd() * Math.PI * 2; for (let k = 0; k < 14; k++) { const nx = px + Math.cos(a) * (10 + rnd() * 18), ny = py + Math.sin(a) * (10 + rnd() * 18); x.strokeStyle = 'rgba(0,0,0,.5)'; x.lineWidth = 1.4 - k * .08; x.beginPath(); x.moveTo(px, py); x.lineTo(nx, ny); x.stroke(); x.strokeStyle = 'rgba(214,184,138,.07)'; x.lineWidth = .6; x.beginPath(); x.moveTo(px + .8, py + 1); x.lineTo(nx + .8, ny + 1); x.stroke(); px = nx; py = ny; a += (rnd() - .5) * 1.1; } } x.strokeStyle = '#d6b88a10'; x.lineWidth = 1; for (let i = 0; i < 9; i++) { x.beginPath(); x.arc(rnd() * width, rnd() * height, 30 + rnd() * 120, 0, Math.PI * 2); x.stroke(); } }
       if (S.motif === 'chart') { x.strokeStyle = '#8fc8c818'; x.lineWidth = 1; for (let i = 0; i < 70; i++) { const px = rnd() * width, py = rnd() * height, w = 8 + rnd() * 16; x.beginPath(); x.moveTo(px, py); x.quadraticCurveTo(px + w / 4, py - 3, px + w / 2, py); x.quadraticCurveTo(px + w * .75, py + 3, px + w, py); x.stroke(); } }
       if (S.motif === 'forge') { for (let i = 0; i < 14; i++) { x.strokeStyle = 'rgba(255,' + (70 + rnd() * 60 | 0) + ',20,' + (.05 + rnd() * .1) + ')'; x.lineWidth = .8 + rnd() * 1.6; x.beginPath(); let px = rnd() * width, py = rnd() * height; x.moveTo(px, py); for (let k = 0; k < 6; k++) { px += (rnd() - .5) * 70; py += (rnd() - .5) * 70; x.lineTo(px, py); } x.stroke(); } }
       if (S.motif === 'ledger') { for (let i = 0; i < 160; i++) { x.fillStyle = 'rgba(210,200,255,' + (rnd() * .35) + ')'; x.fillRect(rnd() * width, rnd() * height, 1, 1); } x.strokeStyle = '#b79cff10'; x.lineWidth = 1.2; for (let i = 0; i < 4; i++) { x.beginPath(); const cx = rnd() * width, cy = rnd() * height; for (let a = 0; a < 18; a += .2) x.lineTo(cx + Math.cos(a) * a * 9, cy + Math.sin(a) * a * 5); x.stroke(); } }
@@ -466,7 +472,7 @@
         if (s < 2.2 && !current && branch) continue; if (s < 1.6 && !current) continue;
         const size = current ? 15 : branch ? 12 : 13.5, text = room.name; c.font = (branch ? 'italic ' : '') + (current ? '600 ' : '400 ') + size + 'px Georgia,"Times New Roman",serif';
         const x = toX(room.x), w = c.measureText(text).width; let y = null;
-        for (const f of [-.32, -.12, .3, -.45]) { const yy = toY(room.z + room.d * f); if (x - w / 2 < 12 || x + w / 2 > width - 12 || yy < 20 || yy > height - 30 || occupied.some(b => Math.abs(b.x - x) < (b.w + w) / 2 + 10 && Math.abs(b.y - yy) < 22) || hitsIcon(x, yy, w)) continue; y = yy; break; }
+        for (const f of [-.32, -.12, .3, -.45]) { const yy = toY(room.z + room.d * f); if (x - w / 2 < 12 || x + w / 2 > width - 12 || yy < 46 || yy > height - 30 || occupied.some(b => Math.abs(b.x - x) < (b.w + w) / 2 + 10 && Math.abs(b.y - yy) < 22) || hitsIcon(x, yy, w)) continue; y = yy; break; }
         if (y === null) continue;
         occupied.push({ x, y, w });
         c.lineJoin = 'round'; c.strokeStyle = 'rgba(0,0,0,.85)'; c.lineWidth = 4.5; c.strokeText(text, x, y); c.fillStyle = current ? '#fff0cc' : branch ? S.side : S.label; c.fillText(text, x, y);
@@ -482,11 +488,11 @@
       knowledge.textContent = visited.size + tr(' keşfedilen durak') + ' · ' + (KabirI18n.lang === 'tr' ? '%' + pct + ' keşfedildi' : pct + '% explored'); exploredFill.style.width = pct + '%';
       goals.replaceChildren();
       goalHeading.textContent = reward ? tr('Zafer emaneti') : q && q.ready ? tr('Sonraki hedef') : tr('İzlenen yeminler');
-      function goal(name, objective, complete, select, isTracked, kind) {
+      function goal(name, objective, complete, select, isTracked, kind, brief) {
         const block = node('button', 'atlas-goal'); block.type = 'button'; block.dataset.kind = kind || 'main';
         if (complete) block.classList.add('complete'); if (isTracked) block.classList.add('tracked');
         const strong = node('strong', '', name); if (!complete && select) strong.append(node('em', '', isTracked ? tr('Takipte') : tr('Takip et')));
-        block.append(strong, node('p', '', objective));
+        block.append(strong); if (!brief) block.append(node('p', '', objective));
         if (select && !complete) { block.onclick = select; block.setAttribute('aria-label', name + ' · ' + (isTracked ? tr('Takibi bırak') : tr('Bu yemini takip et'))); }
         else if (typeof options.onJournal === 'function') { block.onclick = () => { close(false); options.onJournal(); }; block.setAttribute('aria-label', name + tr(' · Görev günlüğünü aç')); }
         goals.append(block);
@@ -498,8 +504,9 @@
         goal(item && item.name || tr('Zafer emaneti'), tr('Efendi yenildi. Emanetine yaklaş.'), false, () => { if (Number.isFinite(reward.x)) { camera.x = reward.x; camera.z = reward.z; fitted = false; draw(); } }, true, 'reward');
       } else if (q && q.ready) goal(tr('Efendinin kapısı açık'), q.objective, false, choose({ type: 'gate' }), !!tracked && tracked.type === 'gate', 'gate');
       else (q && q.entries || []).forEach((entry, i) => goal(entry.name, entry.complete ? tr('Bağ çözüldü') : entry.objective, entry.complete, choose({ type: 'main', index: i }), !!tracked && tracked.type === 'main' && tracked.index === i, 'main'));
-      if (!reward) for (const e of sideEntries().filter(e => e.available && e.target && !e.complete).slice(0, 3)) goal(e.name, e.objective, false, choose({ type: 'side', id: e.id }), !!tracked && tracked.type === 'side' && tracked.id === e.id, e.kind);
-      const nearby = rooms.filter(room => visited.has(String(room.id))).sort((a, b) => Math.hypot(a.x - game.player.x, a.z - game.player.z) - Math.hypot(b.x - game.player.x, b.z - game.player.z)).slice(0, 5); landmarks.replaceChildren();
+      if (!reward) for (const e of sideEntries().filter(e => e.available && e.target && !e.complete).slice(0, 3)) { const on = !!tracked && tracked.type === 'side' && tracked.id === e.id; goal(e.name, e.objective, false, choose({ type: 'side', id: e.id }), on, e.kind, !on); }
+      const crowded = goals.children.length >= 3; landmarkHeading.hidden = landmarks.hidden = crowded;
+      const nearby = rooms.filter(room => visited.has(String(room.id))).sort((a, b) => Math.hypot(a.x - game.player.x, a.z - game.player.z) - Math.hypot(b.x - game.player.x, b.z - game.player.z)).slice(0, 3); landmarks.replaceChildren();
       for (const room of nearby) { const b = node('button', '', room.name); b.type = 'button'; if (r === room) b.classList.add('here'); b.onclick = () => { camera.x = room.x; camera.z = room.z; camera.scale = Math.max(camera.scale, 4); fitted = false; draw(); }; landmarks.append(b); }
     }
     function resize() { const r = map.getBoundingClientRect(); if (r.width < 2 || r.height < 2) return; width = Math.round(r.width); height = Math.round(r.height); pixelRatio = Math.min(2, window.devicePixelRatio || 1); canvas.width = Math.round(width * pixelRatio); canvas.height = Math.round(height * pixelRatio); if (opened) { if (!fitOnce || fitted) fit(!fitOnce || fitted === 'nearby'); else draw(); } }

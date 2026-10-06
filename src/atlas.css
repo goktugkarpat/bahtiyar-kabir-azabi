@@ -72,11 +72,12 @@
 #atlas .atlas-goal.tracked strong em {color:#1a120a;background:var(--atlas-accent,#d9a85c);border-color:var(--atlas-accent,#d9a85c);}
 #atlas .atlas-goal[data-kind="hunt"],#atlas .atlas-goal[data-kind="siege"],#atlas .atlas-goal[data-kind="altar"] {border-left-color:#c85a4688;}
 #atlas .atlas-goal[data-kind="lore"],#atlas .atlas-goal[data-kind="rescue"],#atlas .atlas-goal[data-kind="chest"],#atlas .atlas-goal[data-kind="puzzle"],#atlas .atlas-goal[data-kind="escape"] {border-left-color:#8fa6b888;}
-#atlas .atlas-goals {display:flex;flex-direction:column;gap:9px;flex:0 1 auto;min-height:64px;overflow:auto;scrollbar-width:thin;scrollbar-color:#6a5636 transparent;margin-bottom:14px;padding-right:2px;}
+#atlas .atlas-goals {display:flex;flex-direction:column;gap:9px;flex:1 1 auto;min-height:64px;overflow:auto;scrollbar-width:thin;scrollbar-color:#6a5636 transparent;margin-bottom:14px;padding-right:2px;}
 #atlas .atlas-goals>* {flex:none;}
 #atlas .atlas-goal p {display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
 #atlas .atlas-goal.tracked p {-webkit-line-clamp:4;}
-#atlas .atlas-landmarks {display:flex;flex-direction:column;flex:0 1 auto;overflow:hidden;}
+#atlas .atlas-landmarks {display:flex;flex-direction:column;flex:none;overflow:hidden;}
+#atlas .atlas-legend {margin-top:0;}
 #atlas .atlas-landmarks>* {flex:none;}
 #atlas .atlas-legend {grid-template-columns:1fr 1fr;gap:4px 8px;}
 #atlas .atlas-legend>span {gap:5px;white-space:nowrap;}
