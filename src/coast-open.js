@@ -39,6 +39,8 @@
     for (var i = 0; i < 5; i++) { var a = baseRooms[i], b = baseRooms[i + 1]; rects.push({ x0: -9.5, x1: 5.5, z0: b.z + b.d / 2 - 1, z1: a.z - a.d / 2 + 1 }); }
     // Gallows hill path (two bends) and the broken mole into the sea with its beacon platform.
     rects.push({ x0: -58, x1: -46, z0: -97.6, z1: -93.6 }); rects.push({ x0: -60.5, x1: -55, z0: -99, z1: -92 });
+    // the strand along the whole shoreline (north of the pier and south of it); the pier itself is the bridge between them
+    rects.push({ x0: 7.5, x1: 11.4, z0: -66.5, z1: 14 }); rects.push({ x0: 7.5, x1: 11.4, z0: -149.4, z1: -95.5 });
     rects.push({ x0: 6, x1: 25, z0: -87.9, z1: -84.9 }); rects.push({ x0: 23, x1: 31, z0: -91, z1: -82 });
     function floorTest(x, z, r) {
       r = r || 0;
@@ -58,6 +60,7 @@
       seeds.push([r.x + r.w / 2 + 1, r.entryZ], [-10.5, r.entryZ], [r.x - r.w / 2 - 1, r.z]);
     });
     for (i = 0; i < 5; i++) { var za = baseRooms[i].z - baseRooms[i].d / 2 - 2; seeds.push([-6, za], [3, za]); }
+    for (var sz = 10; sz > -148; sz -= 7) if (sz > -66 || sz < -96) seeds.push([9.6, sz]);
     var paths = baseRooms.slice(1, 7).map(function (r, i) { return { a: baseRooms[i], b: r, width: 6.6 }; }).concat(rooms.filter(function (r) { return r.parent != null; }).map(function (r) { return { a: { x: -10, z: r.entryZ }, b: { x: r.x + r.w / 2 - 2, z: r.entryZ }, width: 8.6 }; }));
     return { rooms: rooms, floorTest: floorTest, seeds: seeds, paths: paths };
   }
@@ -274,6 +277,16 @@
     function patches(room, cx, cz, a, b, n, mat, h) { for (var k = 0; k < n; k++) { var x = cx + R(-a, a), z = cz + R(-b, b); if (!L.floorTest(x, z, .2)) continue; add(room, G.rock, mat, x, -.022 + (h || 0), z, R(1.2, 3.2), .05, R(.9, 2.4), 0, R(0, 6), 0); } }
     for (var ch2 = 0; ch2 < 70; ch2++) { var chx = -32 + R(-12, 12), chz = -81 + R(-9, 9); if (!L.floorTest(chx, chz, .3)) continue; add(11, G.plank, 'wood', chx, .02, chz, R(.15, .5), .03, R(.05, .12), 0, R(0, 6), 0); }
     patches(10, -33, -23, 12, 9, 9, 'puddle', .045);
+
+    /* ---- the strand: driftwood, kelp, bones and sea-lanterns on posts along the shoreline walk ---- */
+    for (z = 12; z > -149; z -= R(5, 8)) {
+      if (z < -66 && z > -96) continue; var sr = nearestMain(z);
+      if (rnd() < .6) beam(sr, 'char', [R(8.4, 10.8), .06, z], [R(8.4, 11), .1, z + R(-1.6, 1.6)], R(.06, .12));
+      add(sr, G.plank, 'root', R(8, 11), .02, z + R(-2, 2), R(.6, 1.4), .025, R(.06, .12), 0, R(0, 6), 0);
+      if (rnd() < .35) K.skull(sr, R(8.5, 11), .09, z + R(-2, 2), R(0, 6));
+      add(sr, G.rock, 'puddle', R(9, 11), .006, z + R(-2, 2), R(.5, 1.2), .03, R(.4, .9), 0, R(0, 6), 0);
+    }
+    [6, -22, -48, -108, -136].forEach(function (z) { var sr = nearestMain(z); add(sr, G.cylinder, 'wood', 11.9, 1.3, z, .09, 2.6, .09); add(sr, G.box, 'wood', 11.6, 2.5, z, .7, .07, .07); K.lantern(sr, 11.3, 2.1, z, 'coast'); });
 
     /* ---- 6: the drowned bell court floor: flat detail only (the boss needs the whole disc) ---- */
     (function () {

@@ -187,6 +187,8 @@
         if(g===rock&&sy>.2&&open.floorTest(x,z,-Math.max(sx,sz)*.5)&&!mainTest(x,z))return;
         y+=ground.y(x,z);
       }
+      // nothing solid-looking stands on the walkable strand: shore rocks are pushed seaward
+      if(room<6&&room!==3&&g===rock&&mat==='rock'&&x>8&&sy>.2)x=Math.max(x,11.7+Math.max(sx,sz)*.8);
       var key = room + ':' + g.id + ':' + mat;
       if (!batches[key]) batches[key] = { room: room, geo: g, mat: materials[mat], matrices: [] };
       position.set(x, y, z); scale.set(sx, sy, sz); rotation.setFromEuler(euler.set(rx || 0, ry || 0, rz || 0));
@@ -352,7 +354,7 @@
       }
       // Shattered retaining wall, tide-washed pebbles and small barnacle clusters outside the route.
       if(id!==3)for(var j=0;j<9;j++){
-        var shore=r.w*.5-3.55,zz=r.z-r.d*.45+j*r.d*.11;
+        var shore=r.w*.5-3.55+(id<6?3.6:0),zz=r.z-r.d*.45+j*r.d*.11;
         add(id,box,'stone',shore,.12,zz,.42,.35,.95,0,(rnd()-.5)*.09,(rnd()-.5)*.07);
         if(j%3===0){add(id,rock,'rock',shore+.75,-.16,zz,.9,.45,.72,0,rnd()*3,0);for(var k=0;k<5;k++)add(id,rock,'rock',shore+.65+(rnd()-.5)*.55,.13+rnd()*.13,zz+(rnd()-.5)*.5,.055,.065,.055,0,rnd()*6,0);}
       }
@@ -371,7 +373,9 @@
       lantern(id, r.w * .5 - 1.5, 2.3, r.z - r.d * .3, id === 6 ? 'brazier1' : 'coast');
     });
     // A continuous eroded bank hides rectangular land edges. The flat walking footprint is unchanged.
-    rooms.forEach(function(r,id){if(id===3)return;var edge=r.w*.5-4,rows=6,N=Math.ceil(r.d/1.2),pos=[],uv=[],ix=[];
+    rooms.forEach(function(r,id){if(id===3)return;var beach=id<6?3.6:0,edge=r.w*.5-4+beach,rows=6,N=Math.ceil(r.d/1.2),pos=[],uv=[],ix=[];
+      // the strand: a flat, walkable band of wet sand that follows the whole shoreline (the old bank starts beyond it)
+      if(beach){add(id,box,'sand',edge-beach*.5,-.13,r.z,beach+.1,.26,r.d+(id<5?6.2:0));}
       for(var j=0;j<=N;j++){var zz=r.z-r.d*.5+j*r.d/N,bulge=1.35+.65*Math.sin(zz*.41)+.38*Math.sin(zz*.97);
         for(var k=0;k<rows;k++){var t=k/(rows-1),xx=edge+t*(3.1+bulge),yy=-.018-.80*Math.pow(t,1.3)+Math.sin(zz*.6+k*.9)*.045*t;pos.push(xx,yy,zz);uv.push(xx*.31,zz*.31);}}
       for(var j=0;j<N;j++)for(var k=0;k<rows-1;k++){var a=j*rows+k;ix.push(a,a+rows,a+1,a+1,a+rows,a+rows+1);}
@@ -506,8 +510,8 @@
     var foamCanvas=document.createElement('canvas');foamCanvas.width=128;foamCanvas.height=512;var fc=foamCanvas.getContext('2d');
     for(var j=0;j<34;j++){var x=50+rnd()*28,y=rnd()*512,r=5+rnd()*11,g=fc.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,'rgba(139,171,171,.20)');g.addColorStop(1,'rgba(139,171,171,0)');fc.fillStyle=g;fc.save();fc.translate(x,y);fc.scale(.65,1.6);fc.translate(-x,-y);fc.fillRect(x-r,y-r,r*2,r*2);fc.restore();}
     var foamTex=new T.CanvasTexture(foamCanvas);textures.push(foamTex);materials.foam=new T.MeshBasicMaterial({map:foamTex,transparent:true,opacity:.34,depthWrite:false,side:T.DoubleSide});
-    var wetBands=[];rooms.forEach(function(r,id){if(id===3)return;var wg=geo(new T.PlaneGeometry(3.4,r.d+3));wg.rotateX(-PI/2);var wb=new T.Mesh(wg,materials.puddle);wb.position.set(r.w*.5-1.6,-.4,r.z);wb.name='coast-wet-band';wb.receiveShadow=true;roomGroups[id].add(wb);wetBands.push(wb);});
-    rooms.forEach(function(r,id){var fg=geo(new T.PlaneGeometry(.9,r.d+5));fg.rotateX(-PI/2);var f=new T.Mesh(fg,materials.foam);f.position.set(r.w*.5-3.65,-.36,r.z);roomGroups[id].add(f);animated.push({object:f,x:f.position.x,foam:true,phase:id});});
+    var wetBands=[];rooms.forEach(function(r,id){if(id===3)return;var wg=geo(new T.PlaneGeometry(3.4,r.d+3));wg.rotateX(-PI/2);var wb=new T.Mesh(wg,materials.puddle);wb.position.set(r.w*.5-1.6+(id<6?3.6:0),-.4,r.z);wb.name='coast-wet-band';wb.receiveShadow=true;roomGroups[id].add(wb);wetBands.push(wb);});
+    rooms.forEach(function(r,id){var fg=geo(new T.PlaneGeometry(.9,r.d+5));fg.rotateX(-PI/2);var f=new T.Mesh(fg,materials.foam);f.position.set(r.w*.5-3.65+(id!==3&&id<6?3.6:0),-.36,r.z);roomGroups[id].add(f);animated.push({object:f,x:f.position.x,foam:true,phase:id});});
     var encounterList=ENCOUNTERS.map(function(e){return Object.assign({},e);});
     B.CoastOpen.encounters(open,encounterList);
     var allRooms=rooms.concat(open.rooms);
