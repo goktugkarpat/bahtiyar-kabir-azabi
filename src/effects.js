@@ -1182,7 +1182,7 @@
     function burst(name, d = {}) {
       const game = getGame(); if (!game) return; const x = d.x ?? game.player.x, y = d.y ?? 1, z = d.z ?? game.player.z;
       if (name.indexOf('boss1') === 0) { boss1Fx(name, d, x, y, z); return; }
-      if (name === 'talentTick') { number(Math.round(d.damage || 0), x, 2.5, z, false, false, !!d.kill, false, null, d.kind === 'burn' ? [1.75, .78, .28] : d.kind === 'bleed' ? [1.55, .32, .26] : d.kind === 'rot' ? [.72, 1.45, .45] : null); return; }   // bleed / burn ticks (talent-runtime.js); their look is talent-fx.js
+      if (name === 'talentTick') { number(Math.round(d.damage || 0), x, 2.5, z, false, false, !!d.kill, false, null, d.kind === 'burn' ? [2.2, .62, .1] : d.kind === 'bleed' ? [2.1, .16, .12] : d.kind === 'rot' ? [.5, 1.9, .28] : null); return; }   // bleed / burn ticks (talent-runtime.js); their look is talent-fx.js
       if (name === 'heroSkill') {
         const face = d.face || 0, sx = Math.sin(face), sz = Math.cos(face), r = d.radius || 3.2;
         const count = scaleCount(d.phase === 'gather' ? 20 : d.skill === 'reap' ? 65 : 40);
