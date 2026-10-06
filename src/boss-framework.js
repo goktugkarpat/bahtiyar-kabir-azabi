@@ -69,7 +69,7 @@
       '#bf-cine .card.show strong{animation:bf-in 1.5s cubic-bezier(.2,.8,.2,1) both}' +
       '#bf-cine .card.phase{top:63%}#bf-cine .card.phase strong{font-size:clamp(24px,3.4vw,46px)}' +
       'body.bf-intro #announcement,body.bf-intro #boss-mechanic{visibility:hidden}' +
-      '#bf-cine .flash{position:absolute;left:50%;top:62%;transform:translateX(-50%);font-size:clamp(13px,1.4vw,19px);letter-spacing:.42em;color:#f3d38b;opacity:0;text-shadow:0 0 14px rgba(240,170,60,.75),0 0 4px #000;transition:opacity .25s}' +
+      '#bf-cine .flash{position:absolute;left:50%;top:73%;transform:translateX(-50%);font-size:clamp(13px,1.4vw,19px);letter-spacing:.42em;color:#f3d38b;opacity:0;text-shadow:0 0 14px rgba(240,170,60,.75),0 0 4px #000;transition:opacity .25s}' +
       '#bf-cine .flash.show{opacity:1;animation:bf-pop .5s cubic-bezier(.2,.8,.2,1) both}' +
       '@keyframes bf-in{from{letter-spacing:.42em;opacity:0;filter:blur(6px)}to{letter-spacing:.09em;opacity:1;filter:blur(0)}}' +
       '@keyframes bf-pop{from{transform:translateX(-50%) scale(1.35);opacity:0}to{transform:translateX(-50%) scale(1);opacity:1}}' +
@@ -329,6 +329,9 @@
       var o = h.owner; if (!o || !o.boss || h.harmless || h.periodic || h.persistent || !(player.dodge > 0) || st.perfectCd > 0 || o !== st.boss) return;
       var age = DODGE_LEN - player.dodge;
       if (age > PERFECT) return;
+      // only a deliberate roll counts: a roll chained straight out of another one (spam) earns nothing
+      for (var i = 0, n = 0; i < st.rolls.length; i++) if (time - st.rolls[i] < 1.15) n++;
+      if (n > 1) return;
       st.perfectCd = 3; st.exposed = 2.6;
       player.stamina = Math.min(player.maxStamina || 100, (player.stamina || 0) + 14);
       flash(tr('KUSURSUZ KAÇIŞ'));
