@@ -1,7 +1,7 @@
 /* KABİR AZABI — cinematic impact layer shared by the hero's skills (skill-fx.js, charge.js, effects.js).
    Everything is pooled and made once; nothing is created or compiled at cast time (warmObjects() goes through effects.js warm()).
      dome(x, z, o)    a vertical shock wall: an open cylinder that bursts up out of the floor, races outward and sinks (volume for ground impacts)
-                      o: { r (final radius m), h (height m), life, col [r,g,b] edge, hot [r,g,b] core, a, delay, seed }
+                      o: { r (final radius m), h (height m), life, col [r,g,b] edge, hot [r,g,b] core, a, delay, seed, inward, style 0 ragged / 1 bone teeth / 2 sound bands / 3 flame tongues }
      pillar(x, z, o)  a vertical blade of light that drops from above and thins out (Kemik Kıran's verdict, Mahşer's landing)
                       o: { h, w, life, col, hot, a, delay }
      plume(x, z, o)   a column of heavy smoke and ash that rolls up from an impact (effects.js particles, kind 2)
@@ -20,12 +20,17 @@
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v)), rnd = (a, b) => a + Math.random() * (b - a);
   const VS = 'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}';
   // Shock wall: ragged top edge (two value-noise octaves around the ring), bright foot where it tears out of the floor, hot core early, edge colour later.
-  const WALL_FS = `varying vec2 vUv;uniform float uK,uA,uSeed;uniform vec3 uCol,uHot;
+  // uStyle gives each ability its own wall: 0 ragged (stone / ash), 1 bone teeth (Ölüm Çığlığı, Mahşer), 2 sound bands climbing (the cries), 3 flame tongues (Kor).
+  const WALL_FS = `varying vec2 vUv;uniform float uK,uA,uSeed,uStyle;uniform vec3 uCol,uHot;
     float h(float n){return fract(sin(n*91.7+uSeed*13.1)*43758.5453);}
     float vn(float x){float c=floor(x),f=fract(x);return mix(h(c),h(c+1.),f*f*(3.-2.*f));}
     void main(){float u=vUv.x;float n=vn(u*46.)*.55+vn(u*13.+20.)*.45;float y=vUv.y;
-      float top=.30+.70*n;float body=pow(max(0.,1.-y/top),1.7)*smoothstep(0.,.03,y);
-      float streak=.65+.35*vn(u*90.+uK*6.);float foot=exp(-pow(y/.07,2.));
+      float top=.30+.70*n;float streak=.65+.35*vn(u*90.+uK*6.);
+      if(uStyle>.5&&uStyle<1.5){float tt=fract(u*26.+h(floor(u*26.))*.3);float tooth=1.-abs(tt-.5)*2.;top=.12+.88*pow(tooth,1.6)*(.55+.45*n);}
+      if(uStyle>2.5){float fl=vn(u*34.+y*2.5-uK*9.);top=.18+.82*fl*fl;streak=.45+.55*vn(u*70.-y*7.+uK*14.);}
+      float body=pow(max(0.,1.-y/top),1.7)*smoothstep(0.,.03,y);
+      if(uStyle>1.5&&uStyle<2.5){body*=.35+.65*pow(.5+.5*sin(y*30.-uK*26.),3.);}
+      float foot=exp(-pow(y/.07,2.));
       float life=pow(1.-uK,1.6)*smoothstep(0.,.05,uK);
       float a=(body*streak+foot*.55)*life*uA;if(a<.004)discard;
       vec3 col=mix(uCol,uHot,clamp(body*1.3*(1.-uK*1.6),0.,1.));gl_FragColor=vec4(col*a,1.);}`;
@@ -44,14 +49,14 @@
     // ---------------------------------------------------------------- shock walls (pool 10)
     const wallGeo = new T.CylinderGeometry(1, 1, 1, 56, 1, true).translate(0, .5, 0);
     const wallBase = new T.ShaderMaterial({ transparent: true, depthWrite: false, side: T.DoubleSide, blending: T.AdditiveBlending, fog: false,
-      uniforms: { uK: { value: 1 }, uA: { value: 1 }, uSeed: { value: 0 }, uCol: { value: new T.Vector3(1, .4, .1) }, uHot: { value: new T.Vector3(2, 1.6, 1.2) } }, vertexShader: VS, fragmentShader: WALL_FS });
+      uniforms: { uK: { value: 1 }, uA: { value: 1 }, uSeed: { value: 0 }, uStyle: { value: 0 }, uCol: { value: new T.Vector3(1, .4, .1) }, uHot: { value: new T.Vector3(2, 1.6, 1.2) } }, vertexShader: VS, fragmentShader: WALL_FS });
     const walls = Array.from({ length: 10 },() => { const mat = wallBase.clone(), m = new T.Mesh(wallGeo, mat); m.frustumCulled = false; m.visible = false; m.renderOrder = 4; root.add(m); return { m, mat, t: 9, life: 1, r: 1, h: 1 }; });
     function dome(x, z, d) {
       const w = walls.find(q => q.t >= q.life && !q.m.visible) || walls.reduce((a, b) => (b.t / b.life > a.t / a.life ? b : a));
       const u = w.mat.uniforms, k = calm() ? .5 : 1, col = d.col || [1, .4, .1], hot = d.hot || [2, 1.6, 1.2];
       w.t = -(d.delay || 0); w.life = d.life || .5; w.r = d.r || 3; w.h = d.h || 1.4; w.inward = !!d.inward; w.m.visible = false;
       w.m.position.set(x, floorAt(x, z, w.r) - .02, z); w.m.rotation.y = Math.random() * 6.283;
-      u.uK.value = 0; u.uA.value = (d.a == null ? 1 : d.a) * k; u.uSeed.value = d.seed == null ? Math.random() * 50 : d.seed;
+      u.uK.value = 0; u.uA.value = (d.a == null ? 1 : d.a) * k; u.uSeed.value = d.seed == null ? Math.random() * 50 : d.seed; u.uStyle.value = d.style || 0;
       u.uCol.value.set(col[0], col[1], col[2]); u.uHot.value.set(hot[0], hot[1], hot[2]);
     }
     // ---------------------------------------------------------------- light blades (pool 4): two crossed vertical quads

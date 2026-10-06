@@ -306,10 +306,11 @@ void main(){
       if (ringFx) { if (t === 2) ringFx(x, z, radius * 1.15, .45, [pal.ring2[0] * .2, pal.ring2[1] * .2, pal.ring2[2] * .25]); if (t === 3) ringFx(x, z, (second ? r2 : radius) * 1.1, second ? .6 : .5, [pal.ring2[0] * .2, pal.ring2[1] * .2, pal.ring2[2] * .25]); }
       flashFx(x, floor + .5, z, FLASH_SIZE[t] * (second ? 1.15 : 1), color.setRGB(pal.flash[0], pal.flash[1], pal.flash[2]), .06, 0);
       {   // fx-impact.js: a shock wall tears up out of the floor (ash-orange / ember-gold / violet), smoke rolls up; Mahşer's second slam drops a blade of light first
-        const I = B.FxImpact && B.FxImpact.active, W = [null, { col: [.9, .32, .1], hot: [1.7, 1.1, .6] }, { col: [1.05, .55, .14], hot: [1.9, 1.5, .9] }, { col: [.5, .16, .85], hot: [1.5, 1.15, 1.6] }][t];
+        const I = B.FxImpact && B.FxImpact.active, W = [null, { col: [.5, .38, .3], hot: [1.3, .75, .42] }, { col: [1.05, .55, .14], hot: [1.9, 1.5, .9] }, { col: [.5, .16, .85], hot: [1.5, 1.15, 1.6] }][t];
         if (I && W) {
           const rad = second ? (r2 || radius) : radius;
-          I.dome(x, z, { r: rad * (second ? 1.05 : .85), h: second ? 2.1 : 1.0 + .3 * t, life: second ? .62 : .44 + .04 * t, col: W.col, hot: W.hot, a: second ? .95 : .55 + .12 * t });
+          // identity: Kül = ragged ash wall, Kor = flame tongues, Mahşer = jagged bone-violet crown
+          I.dome(x, z, { r: rad * (second ? 1.05 : .85), h: second ? 2.1 : 1.0 + .3 * t, life: second ? .62 : .44 + .04 * t, col: W.col, hot: W.hot, a: second ? .95 : .55 + .12 * t, style: [0, 0, 3, 1][t] });
           if (t >= 2 || second) I.dome(x, z, { r: rad * .5, h: .6, life: .3, col: W.col, hot: W.hot, a: .5, delay: .05 });
           if (second) I.pillar(x, z, { h: 8, w: 1.6, life: .4, col: W.col, hot: [1.7, 1.5, 1.9], a: .85, drop: .06 });
           I.plume(x, z, { n: second ? 16 : 6 + 3 * t, r: rad * .25, col: t === 3 ? [.045, .03, .055] : [.06, .045, .035], up: 2 + .3 * t, size: .45 + .05 * t });

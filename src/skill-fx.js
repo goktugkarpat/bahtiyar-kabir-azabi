@@ -243,14 +243,14 @@
         // pale breath wisps and gold motes drawn in toward the throat, an amber glow under the feet
         for (let i = 0; i < scaleCount(40); i++) { const a = Math.random() * 6.283, r = rnd(1.6, 3.2), y = rnd(.2, 1.4), life = w * rnd(.6, 1); emit(x + Math.sin(a) * r, y, z + Math.cos(a) * r, i % 3 ? 5 : 4, i % 3 ? [2.2, 2.0, 1.6] : [3.2, 1.8, .5], -Math.sin(a) * r / life, (1.55 - y) / life, -Math.cos(a) * r / life, life, i % 3 ? .1 : .045); }
         floorGlow(x, z, 2.0, w + .2, [1.3, .85, .3], .16); pulse(w + .1, 0, .12, 0, 0);
-        { const I = IM(); if (I) I.dome(x, z, { r: 3.0, h: 1.3, life: w, col: [.55, .45, .3], hot: [1.0, .9, .7], a: .4, inward: true }); }   // the breath drawn in before the cry
+        { const I = IM(); if (I) I.dome(x, z, { r: 3.0, h: 1.3, life: w, col: [.55, .45, .3], hot: [1.0, .9, .7], a: .4, inward: true, style: 1 }); }   // the breath drawn in before the cry
         return;
       }
       // tier III: the ground trembles with dark embers climbing around him, getting denser until the first scream
       for (let i = 0; i < scaleCount(56); i++) { const a = Math.random() * 6.283, r = rnd(2.4, 4.2), life = w * rnd(.5, 1); emit(x + Math.sin(a) * r, rnd(.05, .5), z + Math.cos(a) * r, 4, i % 3 ? [2.6, .3, .08] : [.8, .3, 1.5], -Math.sin(a) * r / life * .9, rnd(1, 2.6), -Math.cos(a) * r / life * .9, life, .05); }
       floorGlow(x, z, 3.2, w + .3, [1.0, .08, .06], .35); fissure(x, z, 3.0, { arms: 6, len: .8, hot: [2.2, .35, .15], edge: [1.0, .08, .06], life: w + .3, grow: .9, a: .55, face: Math.random() * 6 });
       later(w * .5, () => { ring(x, z, 3.4, { life: .5, thick: .08, col: [1.4, .2, .12], a: .6 }); });
-      { const I = IM(); if (I) I.dome(x, z, { r: 4.0, h: 1.6, life: w, col: [.7, .1, .06], hot: [1.3, .6, .4], a: .45, inward: true }); }
+      { const I = IM(); if (I) I.dome(x, z, { r: 4.0, h: 1.6, life: w, col: [.7, .1, .06], hot: [1.3, .6, .4], a: .35, inward: true, style: 2 }); }
       pulse(w + .1, 0, .22, 0, 0);
     }
     function shoutRelease(d) {
@@ -258,7 +258,7 @@
       if (tier === 2) {
         flash(x, 1.4, z, 1.15, new T.Color('#c6b395'), .08);
         { const I = IM(); if (I) {   // the death cry is a visible pressure front: a tall bone-pale wall, an amber echo behind it
-          I.dome(x, z, { r: V * 1.15, h: 2.2, life: .62, col: [.62, .5, .34], hot: [1.15, 1.0, .82], a: .42 });
+          I.dome(x, z, { r: V * 1.15, h: 2.2, life: .62, col: [.62, .5, .34], hot: [1.15, 1.0, .82], a: .5, style: 1 });
           I.dome(x, z, { r: V * .8, h: 1.1, life: .5, col: [.75, .4, .12], hot: [1.3, .9, .5], a: .45, delay: .12 });
         } }
         ring(x, z, V, { life: .48, thick: .05, col: [.62,.50,.34], a:.65 });
@@ -279,8 +279,8 @@
       // tier III - stage one (the rings of stage two come as shoutWave)
       flash(x, 1.4, z, 1.4, new T.Color('#b8a0ac'), .08);
       { const I = IM(); if (I) {   // the doom cry: a towering bone-white wall, a blood-red one on its heels, grave smoke
-        I.dome(x, z, { r: V * 1.25, h: 2.8, life: .7, col: [.62, .52, .44], hot: [1.25, 1.1, 1.0], a: .48 });
-        I.dome(x, z, { r: V * .9, h: 1.5, life: .55, col: [.9, .12, .07], hot: [1.5, .6, .35], a: .55, delay: .1 });
+        I.dome(x, z, { r: V * 1.25, h: 2.4, life: .7, col: [.62, .52, .44], hot: [1.1, 1.0, .9], a: .32, style: 2 });
+        I.dome(x, z, { r: V * .9, h: 1.3, life: .55, col: [.9, .12, .07], hot: [1.3, .55, .32], a: .36, delay: .1, style: 2 });
         I.plume(x, z, { n: 12, r: 1.4, col: [.045, .032, .04], up: 2.2, size: .55 });
       } }
       ring(x, z, V * .85, { life:.52, thick:.065, col:[.60,.48,.32], a:.6 });
@@ -289,26 +289,26 @@
       fissure(x, z, 2.8, { arms:5, span:6.283, len:.8, hot:[.75,.23,.10], edge:[.25,.06,.02], life:1.6, grow:.25, face:Math.random()*6 });
       floorGlow(x, z, near * .4, .65, [.55,.07,.045], .10);
       // A spreading surge of loose embers, not a solid wall around the hero.
-      embersUp(x, z, 44, 1.6, [[1.35,.38,.10],[.85,.16,.055],[.85,.70,.48]], 1.8, .95, .036);
+      embersUp(x, z, 32, 1.6,[[1.35,.38,.10],[.85,.16,.055],[.85,.70,.48]], 1.8, .95, .036);
       for (let i = 0; i < 6 && !calm(); i++) wisp(x, 1.3, z, i / 6 * 6.283 + rnd(-.2, .2), rnd(3.4, 5.4), rnd(.7,.95), rnd(.34,.5), i % 2 ? [.9, .85, 1.0] : [1.0, .45, .35]);
       sparks(x, z, scaleCount(22), 7.5, [1.35,.34,.12], 2.7); rubble(x, z, 16, 4.4, 5.4); dustRing(x, z, 34, V, [.1, .08, .09], .4);
       for (let i = 0; i < scaleCount(12); i++) { const a = Math.random() * 6.283; emit(x + Math.sin(a) * rnd(0, 1.4), .25, z + Math.cos(a) * rnd(0, 1.4), 2, [.035, .026, .04], Math.sin(a) * rnd(1.2, 3.8), rnd(.4, 1.3), Math.cos(a) * rnd(1.2, 3.8), rnd(1, 1.7), .55); }
       if (scar) scar(x, z, 0, { shape: 'circle', radius: 3.4, heat: .55, life: 3 });
       if (game) for (const e of game.enemies) if (!e.dead && e.fear > 1 && e.model.root.visible && shaken.length < 14) shaken.push({ e, t: 0, life: Math.min(2.4, e.stagger > 0 ? e.stagger : 1.6), amp: .035 });
-      pulse(1.0, .03, .32, .1, .14); hitPause(70); kick(.045);
+      pulse(1.0, .022, .26, .08, .1); hitPause(70); kick(.04);
       S.ringAt = nowMs(); S.ringDur = .7; S.ringX = x; S.ringZ = z; S.ringR = V * 1.6; S.ringW = 1.2;
     }
     function shoutWave(d) {
       const x = d.x, z = d.z, n = d.n || 1, V = (d.radius || 8) * .50;
       flash(x, 1.4, z, 1.0 + n * .2, new T.Color(n % 2 ? '#b8a0e0' : '#d09070'), .09);
-      { const I = IM(); if (I) I.dome(x, z, { r: V * 1.15, h: 1.8 + .4 * n, life: .6, col: n % 2 ? [.45, .26, .7] : [.85, .3, .1], hot: n % 2 ? [1.4, 1.2, 1.7] : [1.7, 1.1, .6], a: .6 }); }
+      { const I = IM(); if (I) I.dome(x, z, { r: V * 1.15, h: 1.8 + .4 * n, life: .6, col: n % 2 ? [.45, .26, .7] : [.85, .3, .1], hot: n % 2 ? [1.2, 1.05, 1.5] : [1.4, .95, .55], a: .36, style: 2 }); }
       ring(x, z, V * 1.12, { life:.56, thick:.055, col:n%2?[.36,.23,.48]:[.55,.19,.065], a:.6 });
       fissure(x, z, V * 1.1, { arms:6, len:1, hot:n%2?[.6,.27,.35]:[.72,.36,.12], edge:[.15,.05,.02], life:1.3, grow:.3, face:Math.random()*6, a:.6 });
       sparks(x, z, scaleCount(14), 7, n%2?[.6,.32,.85]:[1.15,.5,.15], 2.4);
       embersUp(x, z, 22, 1.6, [[1.4,.34,.08],[.85,.70,.48]], 1.9, .85, .035);
       ring(x,z,V*.82,{life:.42,thick:.035,col:[.56,.45,.30],delay:.055,a:.40});
       for (let i = 0; i < 3 && !calm(); i++) wisp(x, 1.3, z, i / 3 * 6.283 + rnd(0,1.2), rnd(3.4,5), rnd(.65,.85), rnd(.30,.44), [.95, .9, 1.0]);
-      pulse(.7, .02 + .005 * n, .26, .08, .1); hitPause(n > 1 ? 80 : 50); kick(.03 + .01 * n);
+      pulse(.7, .015 + .004 * n, .2, .06, .08); hitPause(n > 1 ? 80 : 50); kick(.03 + .01 * n);
       S.ringAt = nowMs(); S.ringDur = .6; S.ringX = x; S.ringZ = z; S.ringR = V * 1.6; S.ringW = 1.0;
     }
     // ------------------------------------------------------------------ per frame (effects.js signatureStep)
