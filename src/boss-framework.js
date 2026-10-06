@@ -565,7 +565,7 @@
       [-1, 1].forEach(function (sgn) {
         var o = alongX ? { x: ar.x - ar.w / 2, z: ar.z + sgn * off } : { x: ar.x + sgn * off, z: ar.z - ar.d / 2 };
         BF.env(e, { x: o.x, z: o.z, face: alongX ? Math.PI / 2 : 0, shape: 'line', width: 2.3, length: alongX ? ar.w : ar.d, warn: 1.8, duration: 5, damage: 6, periodic: true, interval: .7,
-          persistent: true, unblockable: true, pool: 'lava', poolGain: .9, style: 'ember', fill: 'forward', attack: tr('Döküm Oluğu') });
+          persistent: true, unblockable: sgn < 0, pool: 'lava', poolGain: .9, style: 'ember', fill: 'forward', attack: tr('Döküm Oluğu') });   // one warning banner for the pair
       });
       return true;
     } },
