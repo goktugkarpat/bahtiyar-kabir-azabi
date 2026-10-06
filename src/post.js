@@ -225,7 +225,7 @@
     '  #endif',
     '  c += texture2D(tBloom, uv).rgb * uBloom * uBloomTint * abBl;',
     '  if (uFocus.w > 0.) { vec2 fd = (vUv - uFocus.xy) * vec2(uAspect, 1.) / uFocus.z; float ff = exp(-dot(fd, fd));',
-    '    c *= mix(1. - uFocus.w * .45, 1. + uFocus.w, ff); }',
+    '    c *= mix(1. - uFocus.w * .22, 1. + uFocus.w * .85, ff); }',
     '  c = aces(c * uExposure * abEx);',
     '  float l = luma(c);',
     '  c *= mix(uShadowTint, uHighTint, smoothstep(.02, .42, l));',
@@ -385,7 +385,7 @@
       uLift: { value: new T.Vector3() }, uGain: { value: new T.Vector3(1, 1, 1) }, uShadowTint: { value: new T.Vector3(1, 1, 1) },
       uHighTint: { value: new T.Vector3(1, 1, 1) }, uVigColor: { value: new T.Vector3(0, 0, 0) }, uBloomTint: { value: new T.Vector3(1, 1, 1) },
       uHeat: { value: heat }, uPulse: { value: new T.Vector4(.5, .5, 0, 0) },
-      uCine: { value: new T.Vector4(.45, .14, .008, .5) }, uCineTint: { value: new T.Vector3(.9, 1, 1.08) }, uSharp: { value: .55 }, uFocus: { value: new T.Vector4(.5, .5, .5, 0) },
+      uCine: { value: new T.Vector4(.38, .12, .006, .5) }, uCineTint: { value: new T.Vector3(.9, 1, 1.08) }, uSharp: { value: .55 }, uFocus: { value: new T.Vector4(.5, .5, .5, 0) },
       uOvl: { value: new T.Vector4() }, uCss: { value: new T.Vector2(typeof innerWidth === 'number' ? innerWidth : 1280, typeof innerHeight === 'number' ? innerHeight : 800) },
       uAbA: { value: new T.Vector4() }, uAbB: { value: new T.Vector4() }, uAbC: { value: new T.Vector4(.5, .5, 0, .1) }, uAbD: { value: new T.Vector4(.5, .5, 1, 0) }
     };
