@@ -25,7 +25,8 @@
           phases: { 2: KabirI18n.t('II. FAZ ADI'), 3: KabirI18n.t('…') }, enraged: KabirI18n.t('ÖFKE ADI'),
           pursuit: { name: KabirI18n.t('… Takibi'), pose: 'charge', dmg: 16, after: 12 },
           signature: { id: 'mySig', first: 14, cd: [22, 17, 13], phase: 1, range: 15, hint: KabirI18n.t('HUD talimatı'),
-                       build: function (e, d, k) { return move; } }   // k = BossFramework kit (rings(), grid(), beam(), tether(), lunge()).
+                       build: function (e, d, k) { return move; } }   // k = BossFramework kit (hit(), rings(), grid(), beam(), lungeEnd()).
+          signature2: { … same shape, usually phase: 2 … }   // optional second signature, own clock, never directly after the first
         });
         Moves are ordinary combat.js moves: { id, name, duration, pose, cooldown, hits:[{ at, warn, shape, … }] } (see combat.js 'moves').
      3. Nothing else: combat.js calls director.attack() before the boss's own table, director.update() each step,
@@ -45,6 +46,7 @@
     register: function (type, profile) {
       BF.profiles[type] = profile;
       if (profile.signature && profile.signature.hint) BF.hints[profile.signature.id] = profile.signature.hint;
+      if (profile.signature2 && profile.signature2.hint) BF.hints[profile.signature2.id] = profile.signature2.hint;
       if (profile.pursuit) BF.hints['pursuit_' + type] = tr('Yuvarlanışının bittiği yere atılır; çizgiden yana çık, ardından gelen daireden yürüyerek çık.');
     },
     hint: function (id) { return BF.hints[id] || ''; },
@@ -285,7 +287,12 @@
         st.intro = true; st.phaseKey = e.phase + (e.enraged ? 'e' : '');
         showCard(p.sub || tr('BOSS'), p.title || e.name, p.epithet || '', 3.8, 3.2, false, p.color);
         st.sigAt = time + (p.signature ? p.signature.first || 14 : 1e9) * pace(); st.pursuitAt = time + 6;
-        e.cooldown = Math.max(e.cooldown, 1.8); api.sound('bossPhase');
+        st.sig2At = time + (p.signature2 ? p.signature2.first || 30 : 1e9) * pace();
+        // the held breath: a harmless war roar while the title burns in (the first real blow comes after it)
+        if (!e.action) { e.face = Math.atan2(player.x - e.x, player.z - e.z); api.beginMove(e, { id: 'roar', name: p.title || e.name, duration: 1.9, pose: 'roar', cooldown: .6,
+          hits: [kit.hit(1.1, 1.1, 'ring', 5, 0, 'roar', { inner: 0, arc: TAU, harmless: true, style: p.style || 'roar', fill: 'radial' })] }); }
+        else e.cooldown = Math.max(e.cooldown, 1.8);
+        api.sound('bossPhase');
         api.fx('glowBurst', { x: e.x, y: .05, z: e.z, radius: 5.5, color: p.color || 0xb8452d, duration: 1.4 });
       }
       if (!e.active) { aura.visible = false; return; }
@@ -295,7 +302,7 @@
         st.phaseKey = key;
         if (label) showCard(e.enraged ? tr('ÖFKE') : ['', 'I', 'II', 'III', 'IV', 'V'][e.phase] + ' · ' + tr('EVRE'), label, p.title || e.name, 3.2, 2.2, true, p.color);
         api.fx('glowBurst', { x: e.x, y: .05, z: e.z, radius: 7, color: p.color || 0xb8452d, duration: 1.1 });
-        st.sigAt = Math.min(st.sigAt, time + 6);
+        st.sigAt = Math.min(st.sigAt, time + 6); st.sig2At = Math.min(st.sig2At, time + 14);
       }
       st.exposed = Math.max(0, st.exposed - dt); st.perfectCd = Math.max(0, st.perfectCd - dt);
       // aura: crimson while enraged, gold while exposed by a perfect dodge
@@ -315,14 +322,18 @@
 
     /* ---- hooks called by combat.js */
     function attack(e, d) {
-      var p = profileOf(e); if (!p || !p.signature || !st.intro || st.boss !== e) return false;
-      var s = p.signature;
-      if (time < st.sigAt || e.phase < (s.phase || 1) || d > (s.range || 15) || busy(e)) return false;
-      var mv = s.build(e, d, kit, api);
-      if (!mv || !api.beginMove(e, mv)) { st.sigAt = time + 2; return false; }
-      var cds = s.cd || [20], cd = cds[Math.min(cds.length - 1, e.phase - 1)];
-      st.sigAt = time + cd * pace() * (e.enraged ? .85 : 1);
-      return true;
+      var p = profileOf(e); if (!p || !st.intro || st.boss !== e) return false;
+      for (var k = 0; k < 2; k++) {
+        var s = k ? p.signature2 : p.signature, at = k ? 'sig2At' : 'sigAt', other = k ? 'sigAt' : 'sig2At';
+        if (!s || time < st[at] || e.phase < (s.phase || 1) || d > (s.range || 15) || busy(e)) continue;
+        var mv = s.build(e, d, kit, api);
+        if (!mv || !api.beginMove(e, mv)) { st[at] = time + 2; continue; }
+        var cds = s.cd || [20], cd = cds[Math.min(cds.length - 1, e.phase - 1)];
+        st[at] = time + cd * pace() * (e.enraged ? .85 : 1);
+        st[other] = Math.max(st[other], time + 7);   // two signatures never follow each other directly
+        return true;
+      }
+      return false;
     }
     function hurt(e, damage) { return st.exposed > 0 && e === st.boss ? Math.round(damage * 1.3) : damage; }
     function evaded(h) {
@@ -359,6 +370,15 @@
         return { id: 'tether', name: name, duration: 2.0, pose: 'hookSwing', cooldown: .7, hits: [
           k.hit(1.1, 1.1, 'line', 0, 8, 'hookSwing', { width: 1.2, length: api.clipLine(e, e.face, Math.min(13, d + 1.5)), style: 'chain', fill: 'forward', projectile: { kind: 'hook', flight: .22, fromY: 1.7 }, attack: name,
             onHitPlayer: function () { if (BF.current && !e.dead) BF.current.tetherStart(e, e.enraged ? 6.5 : 5.5); } })] };
+      } },
+    // Zincir Kafesi (phase II): a cage of burning chain closes round the hero and the executioner for 7 s; the floor inside stays clean.
+    // The ring is shown 1.3 s before it ignites (step out of it or stay in); then he fights you inside it, the edge bites if you cross.
+    signature2: { id: 'chainCage', first: 22, cd: [30, 26, 21], phase: 2, range: 9, hint: tr('Zincir kafesi kapanıyor. Halkanın içinde kal; kızgın zincire basma.'),
+      build: function (e, d, k, api) {
+        var p = api.player, o = { x: (e.x + p.x) / 2, z: (e.z + p.z) / 2 }, name = tr('Zincir Kafesi');
+        return { id: 'chainCage', name: name, duration: 2.2, pose: 'chainLash', cooldown: .6, hits: [
+          k.hit(1.3, 1.3, 'ring', 7.4, 6, 'chainLash', { inner: 5.9, arc: TAU, origin: o, persistent: true, periodic: true, interval: .7, duration: 7, pool: 'lava', poolGain: .8, style: 'chain', fill: 'inward', attack: name, beat: true }),
+          k.hit(1.3, 1.3, 'circle', 2.2, 18, 'chainLash', { origin: { x: p.x, z: p.z }, style: 'chain', fill: 'inward', beat: false, attack: name + tr(' · darbe') })] };
       } }
   });
   BF.register('bell', {
