@@ -83,6 +83,10 @@
     rite.steps.forEach(function (step) { step.objective = hint; });
     rite.wrong = L5('Yanlış çanak. Ayin kanını istiyor ve baştan başlıyor. “Beden unutulur, kan tanıklık eder, yemin en son konuşur.”', 'The wrong bowl. The rite takes your blood and begins again. “The body is forgotten, the blood bears witness, the oath speaks last.”');
   })(CHAPTERS[1].quests[1]);
+  // Guarded relics: the urns, the chained echo and the prisoners' winch cannot be touched while their dead still stand nearby.
+  CHAPTERS[2].quests[1].steps.forEach(function (step) { step.guard = 9; });
+  CHAPTERS[3].quests[1].steps[0].guard = 9;
+  CHAPTERS[4].quests[0].steps[1].guard = 9;
 
   function verdict(title, question, options) { return { title: title, question: question, options: options }; }
   function option(id, name, story, benefit, amount, effect) { return { id: id, name: name, story: story, benefit: benefit, amount: amount, effect: effect }; }
@@ -379,6 +383,8 @@
       info.revision++; nextScan = 0; scan();
     }
     function guarded(node) {
+      // ajan:quests: some relics are watched by their own dead; living foes within `guard` metres must fall first.
+      if (node && node.guard && api.enemies) { for (var gi = 0; gi < api.enemies.length; gi++) { var ge = api.enemies[gi]; if (!ge.dead && !ge.reserve && !ge.boss && Math.hypot(ge.x - node.x, ge.z - node.z) < node.guard) return true; } return false; }
       if (!node || !node.trial || !api.enemies) return false;
       var room = world.rooms.find(function (r) { return String(r.id) === String(node.room); });
       if (!room) return false;
@@ -478,7 +484,7 @@
       if (disposed || api.player.dead) return false;
       scan(); var node = nearNode; if (!node) return side ? side.interact() : false;
       if (!node.available) { api.emit('toast', { text: info.entries[node.quest].objective }); return true; }
-      if (guarded(node)) { api.emit('toast', { text: KabirI18n.t('Tanıklık hâlâ korunuyor. Önce bu salonun bekçilerini yen.') }); return true; }
+      if (guarded(node)) { api.emit('toast', { text: node.guard ? L5('Ölüler bu emaneti hâlâ bekliyor. Önce etrafındakileri sustur.', 'The dead still watch over this relic. Silence those around it first.') : KabirI18n.t('Tanıklık hâlâ korunuyor. Önce bu salonun bekçilerini yen.') }); return true; }
       if (node.trial) return finish(node, null);
       var q = definition.quests[node.quest], max = (1 << q.steps.length) - 1;
       if (q.ritual && !node.trial && states[node.quest] !== node.bit - 1) {
