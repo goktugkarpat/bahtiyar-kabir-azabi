@@ -77,7 +77,7 @@
     /* ---- living foundry set pieces (few meshes, animated here): a travelling casting ladle that stops and pours, spark showers,
        and the great bellows' breathing furnace glow. Own resources only; disposed with the world. ---- */
     var T = window.THREE, own = [], live = [], fxRoot = new T.Group(); fxRoot.name = 'forge-setpieces'; w.root.add(fxRoot);
-    var ironM = new T.MeshStandardMaterial({ color: 0x2b2624, roughness: .55, metalness: .8 }), hotM = new T.MeshBasicMaterial({ color: 0xc8380a, toneMapped: false, fog: false }), glowTex = (function () { var c = document.createElement('canvas'); c.width = c.height = 64; var x = c.getContext('2d'), gr = x.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(.4, 'rgba(255,255,255,.45)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = gr; x.fillRect(0, 0, 64, 64); return new T.CanvasTexture(c); })(),
+    var ironM = new T.MeshStandardMaterial({ color: 0x4e423c, roughness: .5, metalness: .75, emissive: 0x1a0702, emissiveIntensity: 1 }), hotM = new T.MeshBasicMaterial({ color: 0xc8380a, toneMapped: false, fog: false }), glowTex = (function () { var c = document.createElement('canvas'); c.width = c.height = 64; var x = c.getContext('2d'), gr = x.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(.4, 'rgba(255,255,255,.45)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = gr; x.fillRect(0, 0, 64, 64); return new T.CanvasTexture(c); })(),
       glowM = new T.MeshBasicMaterial({ map: glowTex, color: 0xe04a10, transparent: true, opacity: .5, blending: T.AdditiveBlending, depthWrite: false, toneMapped: false, side: T.DoubleSide });
     own.push(ironM, hotM, glowM, glowTex);
     var cyl = new T.CylinderGeometry(1, .82, 1, 16, 1, true), disc = new T.CircleGeometry(1, 16), rodG = new T.CylinderGeometry(1, 1, 1, 6), plane = new T.PlaneGeometry(1, 1); disc.rotateX(-Math.PI / 2); plane.rotateX(-Math.PI / 2); own.push(cyl, disc, rodG, plane);
@@ -119,11 +119,12 @@
       for (var p2 = -1; p2 <= 1; p2 += 2) for (var b2 = 0; b2 < 5; b2++) box(cx + p2 * 8.6, 1 + b2 * 2.4, z, 2.1, .3, 2.1);
       var gm = new T.Mesh(B.Gear.merge(parts), ironM); gm.name = 'forge-great-gate'; own.push(gm.geometry); fxRoot.add(gm);
       var seam = new T.Mesh(new T.BoxGeometry(.14, 9.6, .5), hotM); seam.position.set(cx + .2, 5, z); seam.rotation.y = -.1; own.push(seam.geometry); fxRoot.add(seam);
-      live.push({ kind: 'gate', m: gm, seam: seam, z: z });
+      var back = new T.Mesh(new T.PlaneGeometry(22, 15), new T.MeshBasicMaterial({ map: glowTex, color: 0xd04010, transparent: true, opacity: .8, blending: T.AdditiveBlending, depthWrite: false, toneMapped: false })); back.position.set(cx, 6.5, z - 1.6); own.push(back.geometry, back.material); fxRoot.add(back);
+      live.push({ kind: 'gate', m: gm, seam: seam, back: back, z: z });
     });
     // Hanging chains that sway over the wings (instanced links, updated only near the hero).
     var linkG = new T.TorusGeometry(.12, .035, 5, 10), chainSpots = []; own.push(linkG);
-    WINGS.forEach(function (W) { for (var c2 = 0; c2 < 3; c2++) chainSpots.push({ x: W.side * (21 + 5 + c2 * 4.5), z: W.z + (c2 - 1) * 18, top: 12, n: 18 + c2 * 4, ph: W.id + c2 * 1.3 }); });
+    WINGS.forEach(function (W) { for (var c2 = 0; c2 < 3; c2++) chainSpots.push({ x: W.side * (21 + 5 + c2 * 4.5), z: W.z + (c2 - 1) * 18, top: 10, n: 14 + c2 * 3, ph: W.id + c2 * 1.3 }); });
     var LINKS = chainSpots.reduce(function (s, c) { return s + c.n; }, 0), chains = new T.InstancedMesh(linkG, ironM, LINKS); chains.frustumCulled = false; chains.name = 'forge-swaying-chains'; fxRoot.add(chains);
     var cM = new T.Matrix4(), cQ = new T.Quaternion(), cE = new T.Euler(), cP = new T.Vector3(), cS = new T.Vector3(1, 1, 1);
     // Ember rain drifting down around the hero; its strength follows slow "heat waves".
@@ -143,7 +144,7 @@
       var li = 0, anyChain = false;
       for (var ci = 0; ci < chainSpots.length; ci++) { var C = chainSpots[ci], vis = Math.abs(C.z - p.z) < 34 && Math.abs(C.x - p.x) < 34; if (vis) anyChain = true;
         var sw = Math.sin(t * .9 + C.ph) * .12, sw2 = Math.cos(t * .7 + C.ph * 1.7) * .08;
-        for (var k2 = 0; k2 < C.n; k2++) { var d2 = k2 * .2; cP.set(C.x + Math.sin(sw) * d2, C.top - Math.cos(sw) * d2, C.z + Math.sin(sw2) * d2); cQ.setFromEuler(cE.set(sw2, k2 % 2 ? Math.PI / 2 : 0, sw)); if (!vis) cS.set(0, 0, 0); else cS.set(1, 1, 1); chains.setMatrixAt(li++, cM.compose(cP, cQ, cS)); } }
+        for (var k2 = 0; k2 < C.n; k2++) { var d2 = k2 * .36; cP.set(C.x + Math.sin(sw) * d2, C.top - Math.cos(sw) * d2, C.z + Math.sin(sw2) * d2); cQ.setFromEuler(cE.set(sw2, k2 % 2 ? Math.PI / 2 : 0, sw)); if (!vis) cS.set(0, 0, 0); else cS.set(1.8, 1.8, 1.8); chains.setMatrixAt(li++, cM.compose(cP, cQ, cS)); } }
       if (anyChain) chains.instanceMatrix.needsUpdate = true; chains.visible = anyChain;
       for (var i = 0; i < live.length; i++) { var L = live[i];
         if (L.kind === 'ladle') {
@@ -157,7 +158,7 @@
           if (pour > .15) { var sx = L.x + L.W.side * (2.5 + 1.2 * pour), top = 6.1; L.stream.position.set(sx, top / 2, z); L.stream.scale.set(.12 + pour * .08, top, .12 + pour * .08); L.splash.position.set(sx, .12, z); L.splash.material.opacity = .45 * pour; L.sparks.position.set(sx, .1, z); }
           spM.uniforms.gain.value = Math.max(spM.uniforms.gain.value * .98, pour);
         } else if (L.kind === 'gate') {
-          var gv = Math.abs(p.z - L.z) < 60; L.m.visible = L.seam.visible = gv; if (gv) L.seam.material.color.setRGB(.55 + .25 * heatNow + .1 * Math.sin(t * 2.3), .14 + .06 * heatNow, .03);
+          var gv = Math.abs(p.z - L.z) < 60; L.m.visible = L.seam.visible = L.back.visible = gv; if (gv) L.back.material.opacity = .45 + .4 * heatNow; if (gv) L.seam.material.color.setRGB(.55 + .25 * heatNow + .1 * Math.sin(t * 2.3), .14 + .06 * heatNow, .03);
         } else {
           var on = Math.abs(p.z - L.z) < 40; L.m.visible = on; if (!on) continue;
           var br = .5 + .5 * Math.sin(t * 2.1 + L.phase); L.m.material.opacity = .18 + .5 * br * br; L.m.scale.x = L.m.scale.z * (1.05 + br * .2) / 1.05 * 4 / 3.4;

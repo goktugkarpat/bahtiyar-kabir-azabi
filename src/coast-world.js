@@ -620,7 +620,7 @@
     var atmo = { room: 0 }; Object.keys(cooked[0]).forEach(function (k) { var v = cooked[0][k]; atmo[k] = v && v.clone ? v.clone() : Array.isArray(v) ? v.slice() : v; });
     function atmosphereAt(x, z) {
       var a = 0, b = 0, mix = 0; for (var i = 1; i < rooms.length; i++) { if (z <= rooms[i - 1].z && z >= rooms[i].z) { a = i - 1; b = i; mix = (rooms[i - 1].z - z) / (rooms[i - 1].z - rooms[i].z); break; } if (z < rooms[i].z) a = b = i; }
-      mix = mix * mix * (3 - 2 * mix); Object.keys(cooked[a]).forEach(function (k) { var va = cooked[a][k], vb = cooked[b][k]; if (va && va.isColor || va && va.isVector3) atmo[k].copy(va).lerp(vb, mix); else if (Array.isArray(va)) for (var j = 0; j < va.length; j++) atmo[k][j] = va[j] + (vb[j] - va[j]) * mix; else atmo[k] = va + (vb - va) * mix; }); atmo.room = mix < .5 ? a : b; atmo.saturation = atmo.sat; if (openFx && openFx.flash > .01) { atmo.keyI *= 1 + openFx.flash * 2.2; atmo.exposure *= 1 + openFx.flash * .35; atmo.hemi *= 1 + openFx.flash * .8; } return atmo;
+      mix = mix * mix * (3 - 2 * mix); Object.keys(cooked[a]).forEach(function (k) { var va = cooked[a][k], vb = cooked[b][k]; if (va && va.isColor || va && va.isVector3) atmo[k].copy(va).lerp(vb, mix); else if (Array.isArray(va)) for (var j = 0; j < va.length; j++) atmo[k][j] = va[j] + (vb[j] - va[j]) * mix; else atmo[k] = va + (vb - va) * mix; }); atmo.room = mix < .5 ? a : b; atmo.saturation = atmo.sat; if (openFx && openFx.intro > .001) { var iI = openFx.intro; atmo.exposure *= 1 - .5 * iI * iI; atmo.mistA = (atmo.mistA || 0) + .25 * iI; atmo.fogDensity *= 1 + .8 * iI; } if (openFx && openFx.flash > .01) { atmo.keyI *= 1 + openFx.flash * 2.2; atmo.exposure *= 1 + openFx.flash * .35; atmo.hemi *= 1 + openFx.flash * .8; } return atmo;
     }
     var groupGain = {}, fxLight = null, nearby = [];
     var lampSlots = [{ src: null, w: 0 }, { src: null, w: 0 }, { src: null, w: 0 }], pxGain = 0;
@@ -629,7 +629,7 @@
     function update(dt, time, player) {
       expansion.update(player);
       clock.value = calm ? 0 : time;if(B.CoastClothClock)B.CoastClothClock.value=clock.value; var p = player || { x: 0, z: 8 }; heroCut.value.set(p.x,1.2,p.z);
-      roomGroups.forEach(function (g, i) { var r = i < 7 ? rooms[i] : allRooms[i]; g.visible = r.z - r.d * .5 < p.z + 22 && r.z + r.d * .5 > p.z - 40 && Math.abs((r.x || 0) - p.x) < 40 + r.w * .5; });if(openFx)openFx.update(time,p);
+      roomGroups.forEach(function (g, i) { var r = i < 7 ? rooms[i] : allRooms[i]; g.visible = r.z - r.d * .5 < p.z + 20 && r.z + r.d * .5 > p.z - 34 && Math.abs((r.x || 0) - p.x) < 33 + r.w * .5; });if(openFx)openFx.update(time,p);
       animated.forEach(function (a) { if (calm) return; if (a.boat) {var wave=seaStateAt(a.object.position.x,a.object.position.z,time);a.object.position.y=a.y+wave.x*.45;a.object.rotation.z=a.roll+wave.y*.18;a.object.rotation.x=-wave.z*.18;} else if (a.foam){var wash=.5+.5*Math.sin(time*.85+a.phase);a.object.position.x=a.x+wash*.38;a.object.position.y=-.38+wash*.035;} });
       ash.position.x = calm ? 0 : Math.sin(time * .09) * .3;
       // slow tide: the black sea breathes up and down the eroded bank (~2 min period)

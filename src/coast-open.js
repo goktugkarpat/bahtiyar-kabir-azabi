@@ -60,6 +60,7 @@
       seeds.push([r.x + r.w / 2 + 1, r.entryZ], [-10.5, r.entryZ], [r.x - r.w / 2 - 1, r.z]);
     });
     for (i = 0; i < 5; i++) { var za = baseRooms[i].z - baseRooms[i].d / 2 - 2; seeds.push([-6, za], [3, za]); }
+    [[0, 7.5], [-2, 9.5], [2, 9.5], [-2, 4], [2, 4], [0, 1], [-7, 8.5], [7, 9], [-7, 1], [7, 1], [-1.5, -6], [3, -6], [-8, -6]].forEach(function (s) { seeds.push(s); });   // opening graveyard: dense seeds around the set pieces
     for (var sz = 10; sz > -148; sz -= 7) if (sz > -66 || sz < -96) seeds.push([9.6, sz]);
     var paths = baseRooms.slice(1, 7).map(function (r, i) { return { a: baseRooms[i], b: r, width: 6.6 }; }).concat(rooms.filter(function (r) { return r.parent != null; }).map(function (r) { return { a: { x: -10, z: r.entryZ }, b: { x: r.x + r.w / 2 - 2, z: r.entryZ }, width: 8.6 }; }));
     return { rooms: rooms, floorTest: floorTest, seeds: seeds, paths: paths };
@@ -299,7 +300,7 @@
       K.lightSources.push({ x: x, y: 1.4, z: z, color: new T.Color(0xff7a30), intensity: 4.4, scatter: 1, glowRadius: 2.4, live: 1, group: 'coast', room: room });
       solid(x, z, 2.4, 3.4);
     }
-    anchor(0, 6.2, 12.4, 1, -.5); pyre(0, -8.4, 12.5, .3);
+    anchor(0, 6.2, 12.4, 1, -.5); pyre(0, -8.4, 12.5, .3); K.lantern(0, 2.3, 2.6, 2.4, 'coast', true); K.lantern(0, -2.6, 2.6, -1.2, 'coast', true);
     anchor(3, -9.4, -91.8, 1.25, .9);   // harbour plaza: a giant anchor dragged onto the pier
     for (q = 0; q < 6; q++) add(11, G.sphere, 'ember', -33 + (q - 2.5) * 2.1, R(.4, 1.6), -88.3 + R(-.6, .6), R(.25, .5), R(.2, .4), R(.25, .5));
     K.lightSources.push({ x: -33, y: 2.2, z: -88.3, color: new T.Color(0xff8040), intensity: 4, scatter: 1, glowRadius: 3, live: 1, group: 'coast', room: 11 });
@@ -448,6 +449,7 @@
       var amt = .25 + .75 * Math.pow(.5 + .5 * Math.sin(time * .035 + 1.2), 1.5); M.rain.uniforms.amt.value = amt; rain.visible = amt > .08; api.rain = amt;
       if (!calmFx && amt > .6 && time > nextBolt) { nextBolt = time + 14 + rnd() * 22; flash = 1; } flash = Math.max(0, flash - Math.min(.1, Math.max(0, time - lastT)) * 2.6); lastT = time;
       var f2 = flash > .55 ? 1 : flash > .35 ? .25 : flash > .15 ? .8 : flash; api.flash = f2 * f2;
+      if (api.t0 == null) api.t0 = time; var since = time - api.t0; api.intro = calmFx ? 0 : Math.max(0, 1 - since / 6); if (since < 6 && since > 2.2 && flash === 0 && !api.introBolt) { api.introBolt = true; flash = 1; }   // opening: the coast fades in out of the mist, one bolt reveals it
       M.rain.uniforms.flash.value = api.flash; rain.position.set(p.x, 0, p.z);
       var crowsOn = false; for (var fi = 0; fi < 3; fi++) if (Math.abs(flocks[fi][1] - p.z) < 40 && Math.abs(flocks[fi][0] - p.x) < 40) crowsOn = true; crows.visible = crowsOn;
       if (crowsOn) for (var c = 0; c < CN; c++) { var ph = crowPh[c], fl = flocks[c % 3], a = time * ph[3] + ph[0], r2 = ph[1];
