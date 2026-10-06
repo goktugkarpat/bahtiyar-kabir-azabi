@@ -270,6 +270,11 @@
       [r.z - r.d / 2, r.z + r.d / 2].forEach(function (ez) { for (var k = 0; k < 14; k++) { var x = R(-r.w / 2, -9), z = ez + R(-1, 1); add(id, K.G.paving[k % 3], 'funeralPaving', x, .012, z, R(.5, .9), .34, R(.5, .9), 0, R(0, 6), 0); } });
     });
 
+    // Area-specific ground: blown sand in the fishers' village, sawdust and chips in the shipyard, black mud in the pit.
+    function patches(room, cx, cz, a, b, n, mat, h) { for (var k = 0; k < n; k++) { var x = cx + R(-a, a), z = cz + R(-b, b); if (!L.floorTest(x, z, .2)) continue; add(room, G.rock, mat, x, -.022 + (h || 0), z, R(1.2, 3.2), .05, R(.9, 2.4), 0, R(0, 6), 0); } }
+    for (var ch2 = 0; ch2 < 70; ch2++) { var chx = -32 + R(-12, 12), chz = -81 + R(-9, 9); if (!L.floorTest(chx, chz, .3)) continue; add(11, G.plank, 'wood', chx, .02, chz, R(.15, .5), .03, R(.05, .12), 0, R(0, 6), 0); }
+    patches(10, -33, -23, 12, 9, 9, 'puddle', .045);
+
     /* ---- 6: the drowned bell court floor: flat detail only (the boss needs the whole disc) ---- */
     (function () {
       var cx = 0, cz = -174;
