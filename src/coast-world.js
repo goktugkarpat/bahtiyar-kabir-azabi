@@ -34,7 +34,7 @@
     var rooms = ROOMS.map(function (r) { return Object.assign({}, r); });
     var colliders = [], occluders = [], textures = [], geometries = [], materials = {}, batches = {}, roomGroups = [];
     var animated = [], lightSources = [], lights = [], disposed = false, seed = 47291, quality = 'high';
-    var heroCut = { value: new T.Vector3(0,1.2,10) };
+    var heroCut = { value: new T.Vector3(0,1.2,10) }, coastRain = { value: .5 };
     var clock = { value: 0 }, calm = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     var matrix = new T.Matrix4(), position = new T.Vector3(), scale = new T.Vector3(), rotation = new T.Quaternion(), euler = new T.Euler();
     function rnd() { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 4294967296; }
@@ -78,6 +78,20 @@
             .replace('#include <color_fragment>','#include <color_fragment>\nvec2 grime=texture2D(coastGrime,coastWorld.xz*.047+coastWorld.y*.021).rg;float damp=(1.-smoothstep(.08,2.0,coastWorld.y))*smoothstep(.28,.73,grime.r);float salt=smoothstep(.74,.94,grime.g)*(1.-smoothstep(.3,1.8,coastWorld.y));diffuseColor.rgb*=mix(vec3(.83,.85,.82),vec3(1.12,1.07,.95),smoothstep(.24,.78,grime.g));diffuseColor.rgb*=mix(vec3(1.),vec3(.57,.66,.63),damp*.44);diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.32,.34,.29),salt*.12);');
           if(key==='wall'||key==='rock')sh.fragmentShader=sh.fragmentShader.replace('#include <color_fragment>','#include <color_fragment>\ndiffuseColor.rgb=mix(vec3(dot(diffuseColor.rgb,vec3(.2126,.7152,.0722))),diffuseColor.rgb,.42);');
           if(key==='sand'||key==='earth'||key==='wood')sh.fragmentShader=sh.fragmentShader.replace('#include <roughnessmap_fragment>','#include <roughnessmap_fragment>\nroughnessFactor=mix(roughnessFactor,max(.39,roughnessFactor*.72),damp);');
+          // Ground detail (world-b): two-scale tone breakup, moss in hollows, hairline cracks, rain-dependent wetness with real
+          // puddle gloss, the odd old blood stain; all world-space and procedural (no extra textures, same meshes).
+          if(key==='stone'||key==='floor'||key==='sand'||key==='earth'||key==='wood'){
+            sh.uniforms.coastRain=coastRain;
+            var crackFn='uniform float coastRain;vec2 gh2(vec2 p){p=vec2(dot(p,vec2(127.1,311.7)),dot(p,vec2(269.5,183.3)));return fract(sin(p)*43758.5453);}float gCrack(vec2 p){vec2 i=floor(p),f=fract(p);float d1=8.,d2=8.;for(int y=-1;y<=1;y++)for(int x=-1;x<=1;x++){vec2 g=vec2(float(x),float(y));vec2 o=gh2(i+g);float d=length(g+o-f);if(d<d1){d2=d1;d1=d;}else if(d<d2)d2=d;}return d2-d1;}';
+            sh.fragmentShader=sh.fragmentShader.replace('uniform vec3 coastHero;','uniform vec3 coastHero;'+crackFn)
+              .replace('#include <alphamap_fragment>','#include <alphamap_fragment>\nfloat gFlat=smoothstep(.55,.9,coastNormal.y)*(1.-smoothstep(.25,1.2,coastWorld.y));vec2 gN1=texture2D(coastGrime,coastWorld.xz*.11+.31).rg;vec2 gN2=texture2D(coastGrime,coastWorld.xz*.019+.77).rg;'+
+                'diffuseColor.rgb*=mix(.8,1.14,gN2.r)*mix(.93,1.05,gN1.g);'+
+                (key==='wood'?'float gMoss=0.;float gCr=0.;':'float gMoss=smoothstep(.56,.8,gN2.g)*gFlat*(1.-damp*.3);diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.13,.17,.09)*(.7+gN1.r*.6),gMoss*.62);'+
+                'float gCr=(1.-smoothstep(.0,.05,gCrack(coastWorld.xz*.9)))*smoothstep(.45,.7,gN1.r)*gFlat;diffuseColor.rgb*=1.-gCr*.55;')+
+                'float gPud=smoothstep(.6,.68,texture2D(coastGrime,coastWorld.xz*.031+.13).r)*gFlat*(.35+.65*coastRain);diffuseColor.rgb*=mix(1.,.55,gPud);'+
+                'float gBlood=smoothstep(.86,.9,gN2.r)*smoothstep(.5,.8,gN1.r)*gFlat;diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.16,.025,.02),gBlood*.55);')
+              .replace('#include <roughnessmap_fragment>','#include <roughnessmap_fragment>\nroughnessFactor=mix(roughnessFactor,.2,gPud);roughnessFactor*=mix(1.,.84,coastRain*gFlat);roughnessFactor=mix(roughnessFactor,1.,gCr*.5+gMoss*.2);');
+          }
           if(key==='rock'){
             var tri='vec3 cw=pow(abs(normalize(coastNormal)),vec3(6.));cw/=max(cw.x+cw.y+cw.z,.001);vec3 csign=sign(coastNormal);vec3 cpos=coastWorld*coastTile;vec2 cx=vec2(cpos.z*csign.x,cpos.y),cy=vec2(cpos.x*csign.y,-cpos.z),cz=vec2(-cpos.x*csign.z,cpos.y);';
             sh.fragmentShader=sh.fragmentShader.replace('#include <map_fragment>',tri+'\ndiffuseColor*=texture2D(map,cx)*cw.x+texture2D(map,cy)*cw.y+texture2D(map,cz)*cw.z;vec3 cArm=texture2D(roughnessMap,cx).rgb*cw.x+texture2D(roughnessMap,cy).rgb*cw.y+texture2D(roughnessMap,cz).rgb*cw.z;')
@@ -87,7 +101,7 @@
               .replace('#include <normal_fragment_maps>','vec3 cnx=texture2D(normalMap,cx).xyz*2.-1.;vec3 cny=texture2D(normalMap,cy).xyz*2.-1.;vec3 cnz=texture2D(normalMap,cz).xyz*2.-1.;cnx.xy*=normalScale;cny.xy*=normalScale;cnz.xy*=normalScale;vec3 cbase=normalize(coastNormal);vec3 cbx=vec3(cbase.x,cnx.y+cbase.y,cnx.x*csign.x+cbase.z);vec3 cby=vec3(cny.x*csign.y+cbase.x,cbase.y,-cny.y+cbase.z);vec3 cbz=vec3(-cnz.x*csign.z+cbase.x,cnz.y+cbase.y,cbase.z);normal=normalize(mat3(viewMatrix)*(cbx*cw.x+cby*cw.y+cbz*cw.z));');
           }
         };
-        m.customProgramCacheKey=function(){return 'kara-coast-scans-84-'+key;};
+        m.customProgramCacheKey=function(){return 'kara-coast-scans-86-'+key;};
       }
       var strength=key==='sand'?.65:key==='wood'?.72:key==='char'?.82:key==='rock'?1.05:.9;
       m.normalScale.set(strength,strength);m.name='coast-'+key;materials[key]=m;return m;
@@ -631,7 +645,7 @@
     function update(dt, time, player) {
       expansion.update(player);
       clock.value = calm ? 0 : time;if(B.CoastClothClock)B.CoastClothClock.value=clock.value; var p = player || { x: 0, z: 8 }; heroCut.value.set(p.x,1.2,p.z);
-      roomGroups.forEach(function (g, i) { var r = i < 7 ? rooms[i] : allRooms[i]; g.visible = r.z - r.d * .5 < p.z + 20 && r.z + r.d * .5 > p.z - 34 && Math.abs((r.x || 0) - p.x) < 33 + r.w * .5; });if(openFx)openFx.update(time,p);
+      roomGroups.forEach(function (g, i) { var r = i < 7 ? rooms[i] : allRooms[i]; g.visible = r.z - r.d * .5 < p.z + 20 && r.z + r.d * .5 > p.z - 34 && Math.abs((r.x || 0) - p.x) < 33 + r.w * .5; });if(openFx)openFx.update(time,p);if(openFx&&openFx.rain!=null)coastRain.value=openFx.rain;
       animated.forEach(function (a) { if (calm) return; if (a.boat) {var wave=seaStateAt(a.object.position.x,a.object.position.z,time);a.object.position.y=a.y+wave.x*.45;a.object.rotation.z=a.roll+wave.y*.18;a.object.rotation.x=-wave.z*.18;} else if (a.foam){var wash=.5+.5*Math.sin(time*.85+a.phase);a.object.position.x=a.x+wash*.38;a.object.position.y=-.38+wash*.035;} });
       ash.position.x = calm ? 0 : Math.sin(time * .09) * .3;
       // slow tide: the black sea breathes up and down the eroded bank (~2 min period)

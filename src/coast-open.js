@@ -428,7 +428,7 @@
     var rg2 = geo(new T.BufferGeometry()); rg2.setAttribute('position', new T.BufferAttribute(rb, 3)); rg2.setAttribute('tip', new T.BufferAttribute(rt, 1));
     M.rain = new T.ShaderMaterial({ uniforms: { time: K.clock, flash: { value: 0 }, amt: { value: 1 } }, transparent: true, depthWrite: false, blending: T.AdditiveBlending, toneMapped: false,
       vertexShader: 'attribute float tip;uniform float time;varying float vT;void main(){vec3 p=position;p.y=mod(p.y-time*13.,15.);p.y+=tip*1.25;p.x+=tip*.3+p.y*.06;vT=tip;gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.);}',
-      fragmentShader: 'uniform float flash;uniform float amt;varying float vT;void main(){gl_FragColor=vec4(vec3(.42,.5,.52)*(.03+.09*vT)*(1.+flash*3.)*amt,1.);}' });
+      fragmentShader: 'uniform float flash;uniform float amt;varying float vT;void main(){gl_FragColor=vec4(vec3(.42,.5,.52)*(.012+.045*vT)*(1.+flash*3.)*amt,1.);}' });
     var rain = new T.LineSegments(rg2, M.rain); rain.frustumCulled = false; rain.name = 'coast-rain'; rain.renderOrder = 4; K.root.add(rain);
     // crows: three loose flocks wheeling over the graves, the shipyard and the bell court
     var crowG = new T.BufferGeometry(); crowG.setAttribute('position', new T.Float32BufferAttribute([0, 0, .25, -.05, 0, -.2, .05, 0, -.2, 0, 0, .05, -.55, .08, -.05, 0, 0, -.12, 0, 0, .05, 0, 0, -.12, .55, .08, -.05], 3)); crowG.computeVertexNormals(); geo(crowG);
