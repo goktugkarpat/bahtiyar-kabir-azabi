@@ -1090,7 +1090,7 @@
     }
     const k = opts.volume == null ? 1 : opts.volume;
     try {
-      const h = H[name] || (/slam|explosion/.test(name) ? H.slam : null);
+      const h = H[name] || (B.TalentAudio && B.TalentAudio.has(name) ? (o, k2) => { const [bus, wet] = busOf(); B.TalentAudio.play(name, ctx, bus, wet, now(), k2, o, N); } : null) || (/slam|explosion/.test(name) ? H.slam : null);   // talent tree 3 sounds: src/talent-audio.js
       if (h) h(opts, k, name);
     } catch (e) { console.warn('Audio', name, e); }
   }

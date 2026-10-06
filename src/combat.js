@@ -161,6 +161,25 @@
     const progression = BABA.Progression.create({ chapter, emit, groundLoot:true });
     let appliedLevel = progression.level;
     game.progression = progression;
+    // Talent tree 3 (src/talent-runtime.js): bleed / burn / curses / burning ground, Kor Mührü + Ölüm Çanı, seals and keystones.
+    const talents = BABA.TalentRuntime ? BABA.TalentRuntime.create({ game, player, enemies, progression, root, fx, sound, emit, groundY: (x, z) => world.effectHeightAt ? world.effectHeightAt(x, z, .6) : .06,
+      strike: (e, amount, face) => { if (!e || e.dead) return null; if (!e.active) { e.active = true; e.activated = true; if (e.encounter) e.encounter.activated = true; } return hurtEnemy(e, Math.round(amount), true, face, { talent: true, combo: 0, face, heavy: true }); },
+      dot: (e, amount, kind) => talentTick(e, amount, kind), stun: (e, s) => stunEnemy(e, s, 'heavy'),
+      yank: (e, x, z, keep) => { const d = Math.hypot(x - e.x, z - e.z); if (d > keep) { e.push = null; moveBody(e, (x - e.x) / d * (d - keep), (z - e.z) / d * (d - keep), e.radius); } },
+      canHit: e => !!e && !e.dead && !enemyUnderground(e) && e.model.root.visible && clearStrike(player, e) }) : null;
+    game.talents = talents;
+    // A damage-over-time tick: no knock-back, no stagger, no on-hit procs; numbers and kills as usual.
+    function talentTick(enemy, amount, kind) {
+      if (!enemy || enemy.dead || enemyUnderground(enemy) || game.state !== 'playing') return null;
+      if (!enemy.active) { enemy.active = true; enemy.activated = true; if (enemy.encounter) enemy.encounter.activated = true; }
+      let damage = Math.max(1, Math.round(amount * (player.damageMultiplier || 1) * (game.difficulty !== 'hard' ? 1.18 : 1)));
+      if (talents) damage = talents.outgoing(enemy, damage, null);
+      enemy.hp = Math.max(0, enemy.hp - damage); if (enemy.boss && !enemy.action) enemy.wrath += damage;
+      const killed = enemy.hp <= 0;
+      fx('talentTick', { x: enemy.x, y: 1.4, z: enemy.z, damage, kind, labelTarget: enemy, kill: killed });
+      if (killed) { enemy.deathKind = ''; killEnemy(enemy); } else enemyPhaseChange(enemy);
+      return { killed };
+    }
     const groundLoot = BABA.GroundLoot ? BABA.GroundLoot.create(root, world, {player, progression, chapter, sound, fx, onCollect:saveProfileChoices}) : null;
     game.groundLoot = groundLoot;
     game.syncProgression = syncProgression;
@@ -200,12 +219,14 @@
     }
     function selectedSkill(slot) {
       const state = progression, id = state.loadout[slot];
-      return id && state.learned.includes(id) ? SKILLS[id] || null : null;
+      const skill = id && state.learned.includes(id) ? SKILLS[id] || null : null;
+      return skill && talents ? talents.effective(skill) : skill;
     }
     function syncProgression(fill) {
       const stats = progression.stats();
       const wasMax = player.effectiveMaxHp || stats.maxHp, woundHp = player.hp * wasMax / 100;
       player.maxHp = 100; player.effectiveMaxHp = stats.maxHp;
+      if (talents) { player.maxFlasks = talents.maxFlasks(4); player.flasks = Math.min(player.flasks, player.maxFlasks); }
       player.damageMultiplier = stats.damageMultiplier; player.defense = stats.defense;
       // Preserve the original effective wounds and growth: 100 is the health unit, not a loss of gear strength.
       const levelHeal = progression.level > appliedLevel ? Math.max(0, stats.maxHp - wasMax) : 0;
@@ -347,6 +368,15 @@
           release: SHOUT_TIME.release[skill.tier - 1], duration: SHOUT_TIME.duration[skill.tier - 1], move: SHOUT_TIME.move[skill.tier - 1] });
         player.rageCd = 0; started = startWarCry();
         if (started) player.rageCd = player.rageMaxCd = skill.cooldown;
+      } else if (talents && talents.isActive(skill)) {
+        if (skill.line === 'pyre') {
+          // Kor Mührü: the heavy overhead blow (light damage), the seal is cut into the floor at contact (talent-runtime.js).
+          const savedPlan = swingPlan;
+          if (!swingPlan) swingPlan = { stand: true, face: player.face };
+          started = beginAttack(true, hasAim, true);
+          if (started) { player.stamina -= skill.cost - RESOURCES.costs.heavy; Object.assign(player.attack, { skill: skill.id, line: skill.line, tier: 1, params: P, damage: P.damage, radius: 3, arc: 1.9 }); talents.cast(skill, player.face); }
+          else swingPlan = savedPlan;
+        } else { started = talents.cast(skill, player.face); if (started) player.stamina -= skill.cost; }
       } else if (skill.line === 'charge') {
         const target = chargeTarget(skill, hasAim), attack = { skill: skill.id, line: 'charge', tier: skill.tier, params: P, heavy: true, combo: 0, age: 0, duration: .5, strike: .2, hit: true, face: player.face,
           damage: P.damage, radius: 0, serial: ++attackSerial, queued: null, lunge: 0, lunged: 1, lungeLead: .1, whooshed: true, whooshAt: 99, originX: player.x, originZ: player.z, victims: new Set() };
@@ -376,6 +406,7 @@
         sound(skill.tier >= 3 ? 'strikeWind3' : 'strikeWind2', { x: player.x, z: player.z, strike: P.strike, air: LEAP_AIR });
       }
       if (!started) return false;
+      if (talents) talents.onCast(skill);
       skillCooldowns[skill.line] = skill.cooldown;
       for (const inputKey of skillKeys) delete buffer[inputKey];
       delete buffer.light;
@@ -739,6 +770,7 @@
       if (limbs) limbs.reset(enemies);
       if (globes) globes.reset();
       if (groundLoot) groundLoot.reset();
+      if (talents) talents.reset();
       simTime = 0; buffer = {}; drinkLeft = 0; blockedPropHold = null; order = null; swingPlan = null; dodgeAim = null; pendingClick = pendingDodge = null; showTargetRing(null); clearMoveMark();
       dodgeAge = 0; forcedMotion = null; healingAge = 0; comboStep = 0; comboWindow = 0; spinCur = 0;
       playerHitImmunity = 0; endAnnounced = false; hintCooldown = 0; deniedCooldown = 0; deniedId = ''; lackSerial = 0; openingGrace = snapshot.index ? 0 : 8;
@@ -1585,6 +1617,7 @@
       cancelHazards(enemy, false); if (!enemy.reserve) game.kills++;
       if (mobMods) mobMods.kill(enemy);
       if (director && enemy.boss) director.slain(enemy);
+      if (talents) talents.onKill(enemy);
       progression.grantEnemy(enemy.id, enemy.type, enemy.boss, chapter, game.difficulty, enemy.elite, enemy);
       syncProgression();
       if (gate) gate.kill(enemy);
@@ -1668,9 +1701,11 @@
       if (mobMods && !blocked) damage = mobMods.hurt(enemy, damage, heavy || !!(attack && (attack.whirl || attack.rage)), blocked);
       if (director && enemy.boss) damage = director.hurt(enemy, damage);
       if (mobAbil && !blocked) damage = mobAbil.hurt(enemy, damage, attackFace);
+      if (talents && !blocked) damage = talents.outgoing(enemy, damage, attack);
       enemy.hp = Math.max(0, enemy.hp - damage); if (enemy.boss && !enemy.action) enemy.wrath += damage;
       if (player.rageTime > 0 && !blocked && player.hp > 0) player.hp = Math.min(player.maxHp, player.hp + damage * ROAR.steal * (1 + questBenefit('healingBonus', .20)) * 100 / player.effectiveMaxHp);   // blood fury: a little of every blow comes back
       const killed = enemy.hp <= 0;
+      if (talents && !blocked) talents.onHit(enemy, damage, attack, killed);
       if (killed) enemy.deathKind = !enemy.boss && (heavy || finisher) ? 'blown' : '';
       const spray = attack ? sweepAngle(attack) : attackFace;
       emit('hit', { target: 'enemy', x: enemy.x, z: enemy.z, damage, blocked, braced, heavy, critical, face: attackFace, combo: attack ? attack.combo : 0, finisher, kill: killed,
@@ -1727,6 +1762,7 @@
       damage = Math.max(1, Math.round(damage * (1 - (player.defense || 0)) * (1 - questBenefit('damageReduction', .12))));
       // The display event and the wound use the same final amount after the cry/fury's defence.
       if (player.roar) damage = Math.ceil(damage * .5); else if (player.rageTime > 0) damage = Math.ceil(damage * ROAR.guard);
+      if (talents) damage = talents.incoming(damage);
       damage *= 100 / player.effectiveMaxHp;
       player.hitAngle = angleDifference(incomingAngle, player.face);
       const heavyBlow = hazard.damage >= 26;
@@ -1874,6 +1910,7 @@
       if (deniedCooldown <= 0 || id !== deniedId) { emit('toast', { text }); deniedCooldown = 1.5; deniedId = id; }
     }
     function beginDodge(input) {
+      if (talents && talents.dodgeBlocked()) return rejectAction('dodge', 'cooldown', KabirI18n.t('Zincirler henüz toplanmadı.'));
       if (player.stamina < DODGE.cost) return rejectAction('dodge', 'stamina',
         KabirI18n.t('Kaçınma için ') + Math.round(DODGE.cost) + KabirI18n.t(' dayanıklılık gerekiyor (şu an ') + Math.floor(player.stamina) + ').', { cost: DODGE.cost, have: player.stamina });
       // Direction: the keys held (the real ones, not an auto-approach), else the pad's right stick, else the cursor / target of a click order, else the facing.
@@ -1891,7 +1928,7 @@
       for (const key of skillKeys) if (buffer[key]) buffer[key] = Math.max(buffer[key], player.dodge + FEEL.buffer);
       player.attack = null; player.healing = 0; player.stagger = 0; healingAge = 0; forcedMotion = null; player.push = null;
       player.face = Math.atan2(dodgeVector.x, dodgeVector.z); comboStep = 0; comboWindow = 0;
-      delete buffer.dodge; emit('dodge', { x: player.x, z: player.z }); sound('dodge');
+      delete buffer.dodge; emit('dodge', { x: player.x, z: player.z }); sound('dodge'); if (talents) talents.onDodge();
       fx('dodge', { x: player.x, y: .1, z: player.z, face: player.face }); return true;
     }
     // The HUD pulses the requested slot; reason distinguishes resource shortages from cooldowns.
@@ -2348,7 +2385,7 @@
         else if (!player.flasks) deny(KabirI18n.t('Şifa mataraların boş.'));
         else if (player.hp >= player.maxHp) deny(KabirI18n.t('Yaraların zaten kapalı.'));
         else {
-          clearLack('heal'); player.flasks--; player.hp = Math.min(player.maxHp, player.hp + 64 * (1 + questBenefit('healingBonus', .20)) * 100 / player.effectiveMaxHp); drinkLeft = DRINK;
+          clearLack('heal'); player.flasks--; player.hp = Math.min(player.maxHp, player.hp + 64 * (1 + questBenefit('healingBonus', .20)) * (talents ? talents.flaskHealMul() : 1) * 100 / player.effectiveMaxHp); drinkLeft = DRINK;
           emit('heal', { hp: player.hp, flasks: player.flasks }); sound('healStart'); sound('heal');
           flashRing(player.x, player.z, 1.3, 0xd7bf88, .6);
         }
@@ -2413,8 +2450,9 @@
         }
       }
       // Energy recovers during every live action, including a held attack.
+      if (talents) { DODGE.cost = talents.dodgeCost(RESOURCES.costs.dodge); talents.update(dt); }
       if (player.stamina < player.maxStamina) {
-        player.stamina = Math.min(player.maxStamina, player.stamina + REGEN * (1 + questBenefit('staminaRecovery', .20)) * (player.rageTime > 0 ? 1.65 : 1) * dt);
+        player.stamina = Math.min(player.maxStamina, player.stamina + REGEN * (1 + questBenefit('staminaRecovery', .20)) * (player.rageTime > 0 ? 1.65 : 1) * (talents ? talents.regenMul() : 1) * dt);
       }
       player.status = player.healing ? KabirI18n.t('Şifa içiliyor') : player.roar ? KabirI18n.t('Savaş narası') : player.rageTime > 0 ? KabirI18n.t('Kan öfkesi') : '';
       pendingAction();
@@ -2683,6 +2721,7 @@
     }
     function dispose() {
       if (disposed) return; disposed = true;
+      if (talents) talents.dispose();
       cancelPlayerCharge();
       renderTraversal = false;
       for (const { node, guard, descriptor } of matrixGuards) {

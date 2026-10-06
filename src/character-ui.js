@@ -354,6 +354,7 @@
     const capHtml = label => (label === KabirI18n.t('SAĞ TIK') ? '<svg class="skt-mouse" aria-hidden="true"><use href="#i-mouse-r"/></svg>' : '') + escape(label);
     const slotWord = label => ({ 'SAĞ TIK': KabirI18n.t('Sağ tık'), 'SOL TIK': KabirI18n.t('Sol tık'), 'ORTA TIK': KabirI18n.t('Orta tık'), 'FARE 4': KabirI18n.t('Fare 4'), 'FARE 5': KabirI18n.t('Fare 5') }[label] || label + KabirI18n.t(' tuşu'));
     function talents(state) {
+      if (B.TalentTreeUI && B.TalentTree) return B.TalentTreeUI.render(state, { selected: selectedSkill, keys: keyLabels(), capHtml, slotWord, icon, escape, game: getGame() });   // talent tree 3 (talent-ui.js)
       const P = B.Progression, all = P.skills, chosen = all.find(s => s.id === selectedSkill) || all[0], byId = new Map(all.map(s => [s.id, s])), keys = keyLabels();
       const lineOf = id => P.lines.find(l => l.id === id) || P.lines[0];
       const learned = state.learned.includes(chosen.id), parent = byId.get(chosen.requires), prevFacts = parent ? new Map(P.skillFacts(parent)) : null;
@@ -587,8 +588,10 @@
     function learnSkill(id) {
       const state = getState(); if (!state || state.learned.includes(id)) return;
       selectedSkill = id;
-      const skill = B.Progression.skills.find(s => s.id === id);
-      change(state.unlock(id), skill ? KabirI18n.t('Öğrenildi: ') + skill.name : undefined);
+      const skill = B.TalentTree ? B.TalentTree.get(id) : B.Progression.skills.find(s => s.id === id);
+      const result = state.unlock(id);
+      if (result && result.ok) try { if (B.Audio && B.Audio.play) B.Audio.play(skill && skill.kind === 'key' ? 'talentKeystone' : 'talentLearn', { volume: .6 }); } catch (_) { /* sound is optional */ }
+      change(result, skill ? KabirI18n.t('Öğrenildi: ') + skill.name : undefined);
     }
     overlay.addEventListener('pointerdown', event => { lastPointerType = event.pointerType || 'mouse'; hideTooltip(); });
     overlay.addEventListener('click', event => {
@@ -626,6 +629,9 @@
         }
         case 'assign': if (state) change(state.assign(Number(button.dataset.slot), button.dataset.skill || null)); break;
         case 'unlock': if (state) learnSkill(button.dataset.skill); break;
+        case 'talent': if (state && B.TalentTreeUI && B.TalentTreeUI.action) { const r = B.TalentTreeUI.action(button, state, getGame()); if (r.quiet) refresh(true); else change(r, r.message); } break;
+        case 'refund': if (state && state.refund) change(state.refund(button.dataset.skill), KabirI18n.t('Puan geri alındı.')); break;
+        case 'respec': if (state && state.respec && (!getGame().talents || !getGame().talents.inCombat())) change(state.respec(), KabirI18n.t('Yol sıfırlandı: bütün puanlar geri verildi.')); break;
       }
     });
     overlay.addEventListener('dblclick', event => {
