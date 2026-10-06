@@ -147,7 +147,7 @@
       try {
         if (item.slot === 'head') {
           if (/hood/.test(core)) { if (rank >= 3) browBand(id, trim, glow); continue; }
-          if (rank >= 2) browBand(id, trim, glow);
+          if (rank >= 1) browBand(id, rank >= 2 ? trim : 'dark', glow);
           if (MASKS.has(core) && rank >= 2) visorGlow(id, glow || 'ember');
           if (unique) horns(id, 'horn', 'gold', .24, 'up');
           else if (rank >= 3) {
@@ -160,7 +160,7 @@
             else { crest(id, 'black', 5, .11); plume(id, 'sable'); }
           } else if (rank === 2) aventail(id, .15);
         } else if (item.slot === 'chest') {
-          if (rank >= 2) riveted(id, trim);
+          if (rank >= 1) riveted(id, rank >= 2 ? trim : 'dark');
           if (unique) { spikedPauldron(id, 'black', 'gold', 3, .13, true); sigil(id, 'gold', glowKey, 'sun'); halfCape(id, 'crimson', .52); }
           else if (rank >= 3) {
             const k = item.id.length % 3;
