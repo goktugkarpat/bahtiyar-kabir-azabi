@@ -300,10 +300,10 @@
     for (q = 0; q < 5; q++) K.skull(10, r10.x + R(-9, 9), .1, r10.z + R(-8, 8), R(0, 6));
 
     /* ---- 7: drowned customs yard with the bell tower (landmark) ---- */
-    bellTower(7, -39, -51.5);
+    bellTower(7, -40, -66.2);
     K.building(7, -22, -68.5, 5.2, 5.4, 3.6, -.06);
-    for (q = 0; q < 5; q++) { var cx7 = -38 + q * 3.2, cz7 = -67.5; arcadePier(7, cx7, cz7, q === 2); }
-    crateStack(7, -20.5, -52, .2); crateStack(7, -24, -50, -.3); barrels(7, -36, -64, 3);
+    for (q = 0; q < 4; q++) { var cx7 = -34 + q * 3.2, cz7 = -50.2; arcadePier(7, cx7, cz7, q === 1); }
+    crateStack(7, -21.5, -54, .2); crateStack(7, -23, -57.8, -.3); barrels(7, -36, -64, 3);
     for (q = 0; q < 5; q++) add(7, G.rock, 'puddle', -30 + R(-8, 8), -.045, -59 + R(-7, 7), R(1, 2.4), .05, R(.8, 1.8), 0, R(0, 6), 0);
     K.corpse(7, -27, -66, .4); K.cargo(7, -36.5, -55, .5);
 
@@ -317,8 +317,8 @@
     K.tree(8, -40.5, -104.5, 15, .9, 1.2, 0, true); solid(-40.5, -104.5, 1.6, 1.6);
     for (q = 0; q < 6; q++) { var a3 = q / 6 * PI * 2 + .4; var pts = [[-40.5, .2, -104.5]]; for (var s3 = 1; s3 <= 5; s3++) pts.push([-40.5 + Math.cos(a3) * s3 * 1.9, .1 + Math.sin(s3 * 1.3 + q) * .08, -104.5 + Math.sin(a3) * s3 * 1.6]); add(8, geo(K.rootTube(pts, function (t) { return .02 + .3 * Math.pow(1 - t, 1.2); }, q * 1.9)), 'root', 0, 0, 0, 1, 1, 1); }
     for (var gr = 0; gr < 3; gr++) for (var gc = 0; gc < 5; gc++) { var gx8 = -40 + gc * 3.4, gz8 = -117.5 + gr * 3; if (Math.abs(gx8 - -32) < 4.5 && Math.abs(gz8 - -112) < 4.5) continue; K.grave(8, gx8, gz8, R(-.15, .15), (gr + gc) % 3 === 0); }
-    mausoleum(8, -23, -104.5);
-    ironFence(8, -44, -120.5, -20, -120.5); ironFence(8, -44, -103, -44, -120.5);
+    mausoleum(8, -23.4, -119);
+    ironFence(8, -44, -121.5, -26.5, -121.5); ironFence(8, -44, -103, -44, -120.5);
 
     /* ---- 12: the lightless refuge ---- */
     for (q = 0; q < 26; q++) { var a4 = PI * .5 + q / 25 * PI, px = -32 + Math.cos(a4) * 13.4, pz = -140 + Math.sin(a4) * 11.2; if (Math.abs(pz - -139) < 6.5 && px > -25) continue; if (Math.abs(pz + 140) < 4.4 && px < -40) continue; stake(12, px, pz, a4); }
