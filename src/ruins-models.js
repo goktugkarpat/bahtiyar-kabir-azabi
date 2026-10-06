@@ -204,8 +204,8 @@
     }
     if(type==='gravemason'){
       safe('gravemason',function(){
-        // A carved headstone strapped to the back, rope-lashed: the mason carries the next grave.
-        var slab=C.forgedBlock(.42,.5,.1,[0,0,0],.037).rotateX(-.3).rotateZ(.05).translate(fitted.cx,chest.y-.22,fb.min.z-.13);plateWear(slab,.25);
+        // A carved headstone strapped to the back, rope-lashed: the mason carries the next grave. (visual-dark: arched top so it reads as a grave, not a crate)
+        var slab=G.merge([C.forgedBlock(.42,.5,.1,[0,0,0],.037),G.cyl(.205,.205,.094,18,[0,.25,0],[Math.PI/2,0,0]),G.box(.045,.26,.024,[0,.1,-.058]),G.box(.17,.045,.024,[0,.16,-.058])]).rotateX(-.3).rotateZ(.05).translate(fitted.cx,chest.y-.22,fb.min.z-.13);plateWear(slab,.25);
         A.rigid('ash',G.merge([slab,G.box(.33,.06,.13,[fitted.cx+.005,chest.y-.01,fb.min.z-.205],[-.3,0,.05])]),spine);
         var ropes=[];[0,1].forEach(function(i){ropes.push(G.tube([[chest.x-.25,chest.y+.28-i*.30,fb.min.z-.07],[chest.x,chest.y+.31-i*.30,fb.min.z-.24],[chest.x+.25,chest.y+.28-i*.30,fb.min.z-.07]],.016,6,14,false));});
         ropes.push(G.tube([[chest.x-.2,chest.y+.26,chest.z+.15],[chest.x,chest.y+.02,chest.z+.2],[chest.x+.2,chest.y-.22,chest.z+.15]],.02,6,14,false));

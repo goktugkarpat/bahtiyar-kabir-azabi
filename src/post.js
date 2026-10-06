@@ -106,7 +106,10 @@
     'uniform vec4 uPulse;',
     // Cinematic layer over every room grade (ajan:visual-dark): x shadow desaturation, y shadow range (linear luma), z toe (black crush),
     // w highlight warmth; uCineTint = hue the drained shadows sink toward. uSharp = adaptive detail (SHARP variant only).
-    'uniform vec4 uCine; uniform vec3 uCineTint; uniform float uSharp;',   // war cry shockwave: xy = centre (uv), z = ring radius (height units), w = strength (0 = off)
+    'uniform vec4 uCine; uniform vec3 uCineTint; uniform float uSharp;',
+    // Hero focus (ajan:visual-dark): xy = hero centre (uv), z = radius (height units), w = strength. The hero carries a soft pool of
+    // exposure with him and the frame falls away into darkness around it, so a darker world never swallows the player.
+    'uniform vec4 uFocus;',   // war cry shockwave: xy = centre (uv), z = ring radius (height units), w = strength (0 = off)
     // Special ability (only in the ABILITY variant, which is drawn while Post.setAbilityFx is being fed; otherwise this block does not exist):
     // A = spin (radial blur), chroma, flash (exposure + bloom), saturation punch; B = vignette pulse, hit-freeze desaturation, ring strength;
     // C = ring centre (uv), ring radius and width (height units of the ground ellipse); D = hero centre (uv), 1 / sin(camera pitch)
@@ -221,6 +224,8 @@
     '  c *= mix(1., ao, uAO * (1. - .5 * smoothstep(.5, 3., l0)));',
     '  #endif',
     '  c += texture2D(tBloom, uv).rgb * uBloom * uBloomTint * abBl;',
+    '  if (uFocus.w > 0.) { vec2 fd = (vUv - uFocus.xy) * vec2(uAspect, 1.) / uFocus.z; float ff = exp(-dot(fd, fd));',
+    '    c *= mix(1. - uFocus.w * .45, 1. + uFocus.w, ff); }',
     '  c = aces(c * uExposure * abEx);',
     '  float l = luma(c);',
     '  c *= mix(uShadowTint, uHighTint, smoothstep(.02, .42, l));',
@@ -380,7 +385,7 @@
       uLift: { value: new T.Vector3() }, uGain: { value: new T.Vector3(1, 1, 1) }, uShadowTint: { value: new T.Vector3(1, 1, 1) },
       uHighTint: { value: new T.Vector3(1, 1, 1) }, uVigColor: { value: new T.Vector3(0, 0, 0) }, uBloomTint: { value: new T.Vector3(1, 1, 1) },
       uHeat: { value: heat }, uPulse: { value: new T.Vector4(.5, .5, 0, 0) },
-      uCine: { value: new T.Vector4(.45, .14, .008, .5) }, uCineTint: { value: new T.Vector3(.9, 1, 1.08) }, uSharp: { value: .55 },
+      uCine: { value: new T.Vector4(.45, .14, .008, .5) }, uCineTint: { value: new T.Vector3(.9, 1, 1.08) }, uSharp: { value: .55 }, uFocus: { value: new T.Vector4(.5, .5, .5, 0) },
       uOvl: { value: new T.Vector4() }, uCss: { value: new T.Vector2(typeof innerWidth === 'number' ? innerWidth : 1280, typeof innerHeight === 'number' ? innerHeight : 800) },
       uAbA: { value: new T.Vector4() }, uAbB: { value: new T.Vector4() }, uAbC: { value: new T.Vector4(.5, .5, 0, .1) }, uAbD: { value: new T.Vector4(.5, .5, 1, 0) }
     };
@@ -786,6 +791,17 @@
       ab.spin = ab.chroma = ab.flash = ab.sat = ab.vig = ab.freeze = ab.ringA = 0; ab.hasSpin = ab.live = false;
       return any;
     }
+    // Hero focus pool: world point of the hero (call every frame; strength 0 turns it off). Radius in metres at the hero's depth.
+    var focusPoint = new T.Vector3();
+    function setFocus(x, y, z, radius, strength) {
+      if (!(strength > 0) || !Number.isFinite(x) || !Number.isFinite(z)) { U.uFocus.value.w = 0; return; }
+      camera.updateMatrixWorld();
+      focusPoint.set(x, y, z); var depth = -focusPoint.applyMatrix4(camera.matrixWorldInverse).z;
+      if (!(depth > .1)) { U.uFocus.value.w = 0; return; }
+      var unit = 1 / (2 * depth * Math.tan(camera.fov * Math.PI / 360));
+      focusPoint.set(x, y, z).project(camera);
+      U.uFocus.value.set(focusPoint.x * .5 + .5, focusPoint.y * .5 + .5, Math.max(.05, radius * unit), Math.min(1, strength));
+    }
     function heatSources() { return heat; }
     function pulse() { return U.uPulse.value; }
     function dispose() {
@@ -817,7 +833,7 @@
         U.uOvl.value.set(flash || 0, (rage || 0) * .32, low || 0, 0);
         if (cssW > 0 && cssH > 0) U.uCss.value.set(cssW, cssH);
       },
-      render: render, setSize: setSize, setQuality: setQuality, setGrade: setGrade, heat: heatSources, pulse: pulse, setAbilityFx: setAbilityFx, clearAbilityFx: clearAbilityFx, dispose: dispose, compile: compile,
+      render: render, setSize: setSize, setQuality: setQuality, setGrade: setGrade, heat: heatSources, pulse: pulse, setAbilityFx: setAbilityFx, clearAbilityFx: clearAbilityFx, setFocus: setFocus, dispose: dispose, compile: compile,
       setTiming: setTiming, resetTiming: resetTiming,
       uniforms: U, get target() { return sceneRT; }, prewarm: prewarm, keepSizes: setKeepSets,
       get samples() { return 0; },
