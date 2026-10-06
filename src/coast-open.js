@@ -301,7 +301,7 @@
       K.lightSources.push(pyreLight[pyreLight.length] = { x: x, y: 1.4, z: z, color: new T.Color(0xff7a30), intensity: 4.4, scatter: 1, glowRadius: 2.4, live: 1, group: 'coast', room: room });
       solid(x, z, 2.4, 3.4);
     }
-    anchor(0, 3.8, 6.9, 1, -.5); pyre(0, -4.7, 6.7, -.25); galleon(0, 15.5, 2.5, -.2);   // the opening frame: a drowned galleon looms off the graveyard shore K.lantern(0, 4.9, 2.7, 5.4, 'coast', true); K.lantern(0, -2.6, 2.6, -1.2, 'coast', true);
+    anchor(0, 3.8, 6.9, 1, -.5); pyre(0, -4.7, 6.7, -.25); galleon(0, 15.5, 2.5, -.2); stumpBeacon(0, 5.1, 2.6);   // top-right of the opening frame: a burning sea-tower on the bank   // the opening frame: a drowned galleon looms off the graveyard shore K.lantern(0, 4.9, 2.7, 5.4, 'coast', true); K.lantern(0, -2.6, 2.6, -1.2, 'coast', true);
     anchor(3, -9.4, -91.8, 1.25, .9); pyre(9, -23.5, 9.5, 1.2); pyre(13, -59.5, -99.5, .4);   // harbour plaza: a giant anchor dragged onto the pier
     for (q = 0; q < 6; q++) add(11, G.sphere, 'ember', -33 + (q - 2.5) * 2.1, R(.4, 1.6), -88.3 + R(-.6, .6), R(.25, .5), R(.2, .4), R(.25, .5));
     K.lightSources.push({ x: -33, y: 2.2, z: -88.3, color: new T.Color(0xff8040), intensity: 4, scatter: 1, glowRadius: 3, live: 1, group: 'coast', room: 11 });
@@ -624,6 +624,15 @@
       for (k = 0; k < 9; k++) add(room, G.rock, 'rock', x + R(-2.6, 2.6), -.3, z + R(-2.6, 2.6), R(.6, 1.3), R(.5, .9), R(.6, 1.2), 0, R(0, 6), 0);
       K.lightSources.push({ x: x, y: 8.6, z: z, color: new T.Color(0xff9348), intensity: 4.2, scatter: 1.2, glowRadius: 3, live: 1, group: 'coast', room: room });
       solid(x, z, 2.6, 2.6);
+    }
+    function stumpBeacon(room, x, z) {   // a broken sea-mark tower: low enough that its fire stays in the camera frame
+      add(room, G.cylinder, 'stone', x, .25, z, 1.7, .5, 1.7);
+      for (var k = 0; k < 3; k++) add(room, G.cylinder, 'wall', x, .75 + k * .95, z, 1.15 - k * .08, .95, 1.15 - k * .08, (k - 1) * .02, k * .5, 0);
+      for (k = 0; k < 7; k++) { var a = k / 7 * PI * 2; add(room, G.masonry, 'wall', x + Math.cos(a) * .95, 3.35 + (k % 3) * .25, z + Math.sin(a) * .95, .55, .5 + (k % 2) * .4, .4, R(-.15, .15), -a, 0); }
+      add(room, G.cylinder, 'rust', x, 3.45, z, .75, .25, .75); add(room, G.sphere, 'ember', x, 3.65, z, .45, .3, .45);
+      for (k = 0; k < 6; k++) add(room, G.masonry, 'stone', x + R(-2, 2), .15, z + R(-2, 2), R(.4, .8), R(.25, .45), R(.3, .7), R(-.3, .3), R(0, 6), 0);
+      pyreSpots.push([x, z]); K.lightSources.push(pyreLight[pyreLight.length] = { x: x, y: 4.2, z: z, color: new T.Color(0xff8a3c), intensity: 4.4, scatter: 1.2, glowRadius: 2.6, live: 1, group: 'coast', room: room });
+      solid(x, z, 2.2, 2.2);
     }
     function galleon(room, x, z, a) {
       K.boat(room, x, z, 20, a, true, false, false, true);

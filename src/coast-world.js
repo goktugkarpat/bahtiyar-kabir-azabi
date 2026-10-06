@@ -13,7 +13,7 @@
   ];
   var ENCOUNTERS = [
     { id: 'burnt-graves', room: 0, name: KabirI18n.t('Toprak Ölülerini Bırakmıyor'), clearText: KabirI18n.t('Kökler geri çekildi. Orman yoluna ilerle.'), spawns: [
-      { type: 'drowned', x: -4, z: 1 }, { type: 'drowned', x: 4, z: -2 }, { type: 'crawler', x: 0, z: -4 }] },
+      { type: 'drowned', x: -4, z: 1 }, { type: 'drowned', x: 1.5, z: -3.5 }, { type: 'crawler', x: -1.5, z: -5.5 }] },
     { id: 'root-road', room: 1, name: KabirI18n.t('Kara Kök Nöbeti'), clearText: KabirI18n.t('Yanmış ağaçlar sustu. Kasaba aşağıda.'), spawns: [
       { type: 'rootborn', x: -5, z: -18 }, { type: 'crawler', x: 5, z: -20 }, { type: 'drowned', x: -3, z: -25 },
       { type: 'urchin', x: 4, z: -27 }, { type: 'crawler', x: 0, z: -30 }] },
