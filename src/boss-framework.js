@@ -221,7 +221,7 @@
     var st = null;
     function fresh() {
       return { boss: null, intro: false, phaseKey: '', sigAt: 0, pursuitAt: 0, rolls: [], prevDodge: 0, rollEnd: null, exposed: 0, perfectCd: 0,
-        edge: null, tether: null, yankCd: 0, hold: 0, auraA: 0 };
+        edge: null, tether: null, yankCd: 0, hold: 0, auraA: 0, arenaAt: 0, arenaN: 0 };
     }
     st = fresh();
     var profileOf = function (e) { return e && BF.profiles[e.type]; };
@@ -318,6 +318,21 @@
       api.emit('toast', { text: tr('Arena daralıyor. Duvarlardan uzak dur, ortada savaş.') });
     }
 
+    /* ---- arena feature: the room itself fights (profile.arena), owner-less hazards on their own clock, never during the boss's big set pieces */
+    function arenaStep(e, p) {
+      var A = p.arena; if (!A || e.phase < (A.phase || 1) || game.state !== 'playing') return;
+      if (!st.arenaAt) { st.arenaAt = time + (A.first || 12) * pace(); return; }
+      if (time < st.arenaAt) return;
+      var m = B.BossMech && B.BossMech.current;
+      if ((m && (m.liveOrbs() > 0 || (m.riteActive && m.riteActive()) || (m.majorActive && m.majorActive(e)))) || st.tether || busy(e)) { st.arenaAt = time + 1.2; return; }
+      var ar = arenaOf(e); if (!ar) { st.arenaAt = time + 1e9; return; }
+      st.arenaN++;
+      var made = A.build(e, { x: ar.x || 0, z: ar.z, w: ar.w || 20, d: ar.d || 20 }, st.arenaN, kit, api);
+      var every = A.every || [16]; st.arenaAt = time + every[Math.min(every.length - 1, e.phase - 1)] * pace() * (made === false ? .15 : 1);
+    }
+    function env(e, o) { o.owner = null; o.enemy = e.name; o.near = false; o.cancelOnStagger = false; return api.addHazard(o); }
+    BF.env = env;
+
     /* ---- per frame */
     function update(dt) {
       time += dt; stepOverlay(dt); trackRolls(dt);
@@ -368,6 +383,7 @@
         if (st.exposed > 0) u.uCol.value.setRGB(1.5, .95, .3); else u.uCol.value.setRGB(1.4, .18, .06);
       }
       edgeStep(e, p);
+      arenaStep(e, p);
       tetherStep(dt);
       if (!e.action && e.stagger <= 0) pursuit(e, p);
     }
@@ -415,14 +431,30 @@
     }
     function reset() { st = fresh(); chain.count = 0; aura.visible = false; hideOverlay(); }
     function dispose() { reset(); root.parent && root.parent.remove(root); aura.geometry.dispose(); aura.material.dispose(); chain.geometry.dispose(); chain.material.dispose(); if (BF.current === dir) BF.current = null; }
-    var dir = { update: update, attack: attack, slain: slain, hurt: hurt, evaded: evaded, reset: reset, dispose: dispose, tetherStart: tetherStart, kit: kit,
+    var dir = { update: update, attack: attack, slain: slain, env: env, hurt: hurt, evaded: evaded, reset: reset, dispose: dispose, tetherStart: tetherStart, kit: kit,
       get state() { return st; } };
     BF.current = dir;
     return dir;
   }
 
   /* ------------------------------------------------------------------ the four chapter bosses */
+  // Arena features (one per boss; each boss's room plays differently): profile.arena = { phase, first, every:[per phase], build(e, arena, n, kit, api) }.
+  // build() places owner-less hazards through BF.env(e, hazard); return false to retry soon.
   BF.register('boss', {
+    // Çöken Zemin: from the Blood Oath on, the old sacrificial floor gives way under the fight, a slab at a time; the pit stays.
+    arena: { phase: 2, first: 8, every: [12, 11, 9], build: function (e, ar, n, k, api) {
+      var p = api.player, hz = api.hazards, live = 0, i;
+      for (i = 0; i < hz.length; i++) if (hz[i].envPit && hz[i].age < hz[i].warn + hz[i].duration) live++;
+      if (live >= 4) return false;
+      for (var tries = 0; tries < 10; tries++) {
+        var a = (n * 2.39 + tries * 1.7) % (Math.PI * 2), r = 3 + (tries % 3) * 1.6, x = p.x + Math.sin(a) * r, z = p.z + Math.cos(a) * r;
+        if (!api.walkable(x, z, 1.2) || Math.hypot(x - e.x, z - e.z) < 3) continue;
+        BF.env(e, { x: x, z: z, shape: 'circle', radius: 2.3, warn: 1.6, duration: .2, damage: 16, unblockable: true, style: 'fall', fill: 'inward', scar: true, attack: tr('Çöken Zemin') });
+        BF.env(e, { x: x, z: z, shape: 'circle', radius: 2.1, warn: 1.8, duration: 28, damage: 6, periodic: true, interval: .8, persistent: true, unblockable: true, pool: 'lava', poolGain: .5, style: 'quake', envPit: true, attack: tr('Çöken Zemin · çukur') });
+        return true;
+      }
+      return false;
+    } },
     title: tr('Zincir Celladı'), epithet: tr('Kurban Salonunun Yargıcı'), sub: tr('KURBAN SALONU'), color: 0xc2452a, style: 'chain', pool: 'lava',
     phases: { 2: tr('KANLI YEMİN') }, enraged: tr('SON YEMİN'),
     pursuit: { name: tr('Celladın Takibi'), pose: 'charge', dmg: 16, after: 12 },
@@ -444,6 +476,14 @@
       } }
   });
   BF.register('bell', {
+    // Yükselen Gelgit: the sea pours over the belfry's outer floor for six seconds; only the raised centre stays dry.
+    arena: { phase: 1, first: 16, every: [24, 21, 18, 16], build: function (e, ar, n, k, api) {
+      var inner = Math.max(5.5, Math.min(ar.w, ar.d) * .3);
+      BF.env(e, { x: ar.x, z: ar.z, face: 0, shape: 'ring', inner: inner, radius: Math.hypot(ar.w, ar.d) * .5 + 2, arc: Math.PI * 2, warn: 2.2, duration: 6, damage: 5, periodic: true, interval: .9,
+        persistent: true, unblockable: true, pool: 'brine', poolGain: .8, tellGain: .5, style: 'tide', fill: 'inward', attack: tr('Yükselen Gelgit') });
+      api.emit('toast', { text: tr('Gelgit yükseliyor. Ortadaki kuru zemine çık.') });
+      return true;
+    } },
     title: tr('Derinliklerin Çancısı'), epithet: tr('Boğulmuşların Çağrıcısı'), sub: tr('BOĞULMUŞ ÇANLIK'), color: 0x3fa49a, style: 'tide', pool: 'brine',
     phases: { 2: tr('DENİZİN YEMİNİ'), 3: tr('MEZAR KÖKLERİ'), 4: tr('SON ÇAN') }, enraged: tr('SON ÇAN'),
     pursuit: { name: tr('Dalganın Takibi'), pose: 'charge', dmg: 15, after: 12 },
@@ -457,6 +497,16 @@
         return { id: 'drownWell', name: name, duration: 3.9, pose: 'castHigh', cooldown: .9, hits: k.prison(e, o, name, 'tide', 'brine', 5, 30) }; } }
   });
   BF.register('hollowking', {
+    // Billur Damarlar: six crystal veins in the throne room's floor erupt in a fixed turning order (two opposite vents a time),
+    // plus the vent nearest the hero: learn the order, keep off the next pair.
+    arena: { phase: 1, first: 10, every: [10, 8.5, 7], build: function (e, ar, n, k, api) {
+      var R = Math.min(ar.w, ar.d) * .3, p = api.player, near = -1, best = 1e9, i, pts = [];
+      for (i = 0; i < 6; i++) { var a = i * Math.PI / 3 + .5, o = { x: ar.x + Math.sin(a) * R, z: ar.z + Math.cos(a) * R }; pts.push(o); var dd = Math.hypot(o.x - p.x, o.z - p.z); if (dd < best) { best = dd; near = i; } }
+      var pick = [n % 3, n % 3 + 3]; if (pick.indexOf(near) < 0 && e.phase >= 2) pick.push(near);
+      pick.forEach(function (j, q) { var o = pts[j]; if (!api.walkable(o.x, o.z, .8)) return;
+        BF.env(e, { x: o.x, z: o.z, shape: 'circle', radius: 2.6, warn: 1.4 + q * .2, duration: .2, damage: 16, unblockable: true, style: 'rune', fill: 'inward', scar: true, attack: tr('Billur Damar') }); });
+      return true;
+    } },
     title: tr('Oyukların Kralı'), epithet: tr('Sessiz Tahtın Sahibi'), sub: tr('SESSİZ TAHT'), color: 0x8a9ccf, style: 'rune', pool: 'lava',
     phases: { 2: tr('TAŞ TAHT ÇÖKÜYOR'), 3: tr('OYUKLAR AÇILDI') },
     pursuit: { name: tr('Kralın Takibi'), pose: 'charge', dmg: 17, after: 13 },
@@ -471,6 +521,16 @@
         return { id: 'crystalPrison', name: name, duration: 3.9, pose: 'castHigh', cooldown: .9, hits: k.prison(e, o, name, 'rune', '', 5, 30) }; } }
   });
   BF.register('furnaceheart', {
+    // Döküm Olukları: two casting channels across the forge floor fill with molten metal for five seconds, axis alternating each time.
+    arena: { phase: 1, first: 12, every: [17, 15, 12], build: function (e, ar, n, k, api) {
+      var alongX = n % 2 === 0, off = (alongX ? ar.d : ar.w) * .17;
+      [-1, 1].forEach(function (sgn) {
+        var o = alongX ? { x: ar.x - ar.w / 2, z: ar.z + sgn * off } : { x: ar.x + sgn * off, z: ar.z - ar.d / 2 };
+        BF.env(e, { x: o.x, z: o.z, face: alongX ? Math.PI / 2 : 0, shape: 'line', width: 2.3, length: alongX ? ar.w : ar.d, warn: 1.8, duration: 5, damage: 6, periodic: true, interval: .7,
+          persistent: true, unblockable: true, pool: 'lava', poolGain: .9, style: 'ember', fill: 'forward', attack: tr('Döküm Oluğu') });
+      });
+      return true;
+    } },
     title: tr('Ocağın Kalbi'), epithet: tr('Son Dökümün Efendisi'), sub: tr('SON DÖKÜM'), color: 0xe0661c, style: 'ember', pool: 'lava',
     phases: { 2: tr('OCAK BASINCI YÜKSELİYOR'), 3: tr('SON DÖKÜM') },
     pursuit: { name: tr('Ocağın Takibi'), pose: 'charge', dmg: 18, after: 14 },
