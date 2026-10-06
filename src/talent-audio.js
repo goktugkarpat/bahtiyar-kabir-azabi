@@ -38,15 +38,15 @@
       case 'talentKnell': {
         // a cracked funeral bell: low inharmonic partials, a hum, a slow beat and a second, distant strike
         const strike = (t0, v) => { metal(t0, 98, v, 3.2, [.5, 1, 1.19, 1.56, 2.0, 2.74, 3.76]); thump(t0, 70, 40, .6, v * .6); const a = g(0), hp = f('highpass', 1800, .7, a); hiss(t0, .05, hp); env(a, t0, v * .4 * k, .001, .04); };
-        strike(t, .55); strike(t + .62, .22);
-        { const a = g(0), o1 = osc('sine', 49, t, 3.4, a), lfo = osc('sine', 3.1, t, 3.4, g(.3 * k, a.gain)); env(a, t, .2 * k, .2, 2.8); void o1; void lfo; }
+        strike(t, .3); strike(t + .62, .13);
+        { const a = g(0), o1 = osc('sine', 49, t, 3.4, a), lfo = osc('sine', 3.1, t, 3.4, g(.3 * k, a.gain)); env(a, t, .09 * k, .2, 2.8); void o1; void lfo; }
         break;
       }
       case 'talentRot':
         thump(t, 140, 48, .35, .5); { const a = g(0), bp = f('bandpass', 420, 1.6, a); hiss(t, .45, bp); bp.frequency.setValueAtTime(900, t); bp.frequency.exponentialRampToValueAtTime(180, t + .4); env(a, t, .42 * k, .004, .4); }
         crackle(t, .25, 7, .12, 900); whoosh(t + .02, .5, 600, 120, .12, 2); break;
       case 'talentBurst':
-        thump(t, 110, 30, .8, .7); whoosh(t, .55, 900, 140, .34, .6); crackle(t, .9, 26, .22);
+        thump(t, 110, 30, .8, .5); whoosh(t, .55, 900, 140, .26, .6); crackle(t, .9, 26, .22);
         { const a = g(0), lp = f('lowpass', 900, .6, a); hiss(t, 1.2, lp); env(a, t, .45 * k, .005, .9); } break;
       case 'talentChain':
       case 'talentChainMiss': {

@@ -63,7 +63,7 @@
       description: KabirI18n.t('Kükreyip koç gibi atıl: geniş, karanlık bir iz bırakır, yoldakileri havaya fırlatır. Varışta yer iki kez çatlar; ikinci çarpma daha ağırdır ve sersemletir.'), delta: KabirI18n.t('Çifte çarpma, yoldakileri fırlatır, en geniş alan ve en uzun sersemletme.') },
     // Talent tree 3 actives (runtime: src/talent-runtime.js, look: src/talent-fx.js).
     { id: 'pyre', name: KabirI18n.t('Kor Mührü'), line: 'pyre', tier: 1, level: 4, requires: null, branch: 4, cost: 30, cooldown: 9,
-      params: { damage: 40, radius: 3.4, time: 5, dps: 22, burn: 30, reach: 2.4, burst: 0 },
+      params: { damage: 40, radius: 3.4, time: 5, dps: 14, burn: 24, reach: 2.4, burst: 0 },
       description: KabirI18n.t('Silahını yere vurup önüne kor bir mühür kaz. Mühür birkaç saniye yanar; içine giren düşmanlar tutuşur.'), delta: '' },
     { id: 'knell', name: KabirI18n.t('Ölüm Çanı'), line: 'knell', tier: 1, level: 4, requires: null, branch: 5, cost: 26, cooldown: 14,
       params: { radius: 7, time: 8, amp: 1.25, burst: 38, burstRadius: 3.2, stun: 0, damage: 0 },
