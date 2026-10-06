@@ -64,6 +64,13 @@
     // the room lights; gravity, bounce and friction settle them on the actual floor.
     // Casting never allocates a mesh or shader, and the low preset bounds their count.
     const chipGeo = new T.IcosahedronGeometry(1, 0);
+    // Cache the twelve hull points once; rotated chips land on their surface,
+    // rather than burying a long edge using only their unrotated thickness.
+    const chipHull = [], chipHullKeys = new Set(), chipPositions = chipGeo.attributes.position;
+    for (let i = 0; i < chipPositions.count; i++) {
+      const x = chipPositions.getX(i), y = chipPositions.getY(i), z = chipPositions.getZ(i), key = x + ':' + y + ':' + z;
+      if (!chipHullKeys.has(key)) { chipHullKeys.add(key); chipHull.push([x,y,z]); }
+    }
     const chipStoneMat = new T.MeshStandardMaterial({ color: 0xffffff, roughness: .93, metalness: .04 });
     const chipMetalMat = new T.MeshStandardMaterial({ color: 0xffffff, roughness: .47, metalness: .84 });
     const chipPools = [
@@ -119,16 +126,24 @@
             }else{c.x+=dx;c.z+=dz;}
             c.y+=c.vy*dt;c.floor=physicalFloorAt(c.x,c.z);
             c.rx += c.wx * dt; c.ry += c.wy * dt; c.rz += c.wz * dt;
-            if (c.y <= c.floor + c.sy * .6) {
-              c.y = c.floor + c.sy * .6; c.bounce++;
-              c.vy = Math.abs(c.vy) * (pool.metal ? .24 : .18);
+          }
+          chipDummy.position.set(c.x, c.y, c.z); chipDummy.rotation.set(c.rx, c.ry, c.rz);
+          chipDummy.scale.set(c.sx, c.sy, c.sz); chipDummy.updateMatrix();
+          const matrix = chipDummy.matrix.elements; let support = 0;
+          for (const v of chipHull) support = Math.max(support, -(matrix[1]*v[0] + matrix[5]*v[1] + matrix[9]*v[2]));
+          if (c.y <= c.floor + support) {
+            c.y = c.floor + support;
+            if (!c.rest && dt > 0) {
+              c.bounce++; c.vy = Math.abs(c.vy) * (pool.metal ? .24 : .18);
               c.vx *= .55; c.vz *= .55; c.wx *= .4; c.wy *= .4; c.wz *= .4;
               if (c.bounce > 2 || c.vy < .4) { c.rest = true; c.vy = c.wx = c.wy = c.wz = 0; }
             }
           }
           const vanish = 1 - Math.pow(clamp((c.time - c.life + .55) / .55, 0, 1), 3);
-          chipDummy.position.set(c.x, c.y, c.z); chipDummy.rotation.set(c.rx, c.ry, c.rz);
-          chipDummy.scale.set(c.sx * vanish, c.sy * vanish, c.sz * vanish); chipDummy.updateMatrix();
+          // Shrinking resting chips keep their lower face on the floor.
+          if (c.rest) c.y = c.floor + support * vanish;
+          for (let col = 0; col < 3; col++) for (let row = 0; row < 3; row++) matrix[col*4+row] *= vanish;
+          matrix[13] = c.y;
           pool.mesh.setMatrixAt(n, chipDummy.matrix);
           const q = c.shade; chipTint.setRGB(pool.metal ? .31*q : .25*q, pool.metal ? .27*q : .22*q, pool.metal ? .22*q : .19*q);
           pool.mesh.setColorAt(n, chipTint); n++;

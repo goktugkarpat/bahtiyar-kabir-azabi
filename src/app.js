@@ -732,7 +732,7 @@
     const r = $('display-note'), mode = $('displayMode-note'), rate = $('frameRate-note'), resolution = $('renderScale-note');
     if (r) r.textContent = `Şu an: ${post.width} × ${post.height} piksel · ${cfg.fps ? 'en fazla ' + cfg.fps + ' FPS' : 'FPS sınırı kapalı'}.` +
       (displayPlan.limited ? ' Ekran kartının görüntü boyutu sınırı uygulanıyor.' : '') +
-      (cfg.dynScale < 1 ? ` Akıcılığı korumak için çizim boyutu geçici olarak %${Math.round(cfg.dynScale * 100)} düzeyinde.` : '');
+      (cfg.renderScale === 1 && cfg.dynScale < 1 ? ` Akıcılığı korumak için çizim boyutu geçici olarak %${Math.round(cfg.dynScale * 100)} düzeyinde.` : '');
     if (mode) {
       mode.textContent = cfg.displayMode === 'auto'
         ? 'Otomatik: yüksek çözünürlüklü ekranlarda grafik kalitesine uygun boyut seçer. Düşük ayar bilgisayarı daha az çalıştırır. Yazılar net kalır.'

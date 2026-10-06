@@ -1679,12 +1679,14 @@
       // duraklaması oyun sayacıyla ses saatini ayırsa da kaydı erken kesme.
       if (!voiceNode && current.left <= 0) finishVoice();
     }
-    for (const q of queue) q.age += dt;
+    const settings = !!(B.app && B.app.view === 'settings');
+    // Volume preview keeps audio running, but a waiting story beat belongs to the journey.
+    for (const q of queue) if (!settings || q.force || URGENT.has(q.key)) q.age += dt;
     queue = queue.filter(q => q.force || q.age < 150);
     const next = queue[0];
     const breathingRoom = next && (next.force || URGENT.has(next.key) || nclock - lastNarrationEnd >= (narrationMode === 'essential' ? 24 : 9));
     if (!current && next && next.ready && !suspended && breathingRoom) {
-      const calm = !st.combat && !tellRecent && calmAround() && !(ctx && ctx.currentTime < T.until);
+      const calm = !settings && !st.combat && !tellRecent && calmAround() && !(ctx && ctx.currentTime < T.until);
       if (next.force || calm || (URGENT.has(next.key) && !tellRecent)) { queue.shift(); startVoice(next); }
     }
   }

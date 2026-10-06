@@ -533,7 +533,7 @@
       shell({ glow: .9 }); north({ vent: false });
       for (var k = 0; k < 3; k++) K.put(i, 'cyl', 'iron', X(0), .09 + k * .17, Z(0), 12.2 - k * 1.6, .18, 12.2 - k * 1.6, 0, 0, 0, [.62, .58, .56], .1);
       K.put(i, 'cyl', 'iron', X(0), .56, Z(0), 6.8, .18, 6.8, 0, 0, 0, [.66, .6, .56], 0);
-      K.dec(i, 5, X(0), Z(0), 8.6, 8.6, .2, [.8, .28, .06], .95, 'glow', .54); K.dec(i, 6, X(0), Z(0), 5.2, 5.2, 0, [.6, .22, .05], .7, 'glow', .67);   // were at y=.055, buried under the steps
+      K.dec(i, 5, X(0), Z(0), 8.6, 8.6, .2, [.54, .22, .07], .22, 'glow', .54); K.dec(i, 6, X(0), Z(0), 5.2, 5.2, 0, [.49, .19, .055], .20, 'glow', .67);   // were at y=.055, buried under the steps
       anvil(X(0), Z(0), 0, 1.8); K.put(i, 'crystal', 'crystalA', X(0), 2.7, Z(0), .8, 1.6, .8, .3, 0, 0, null, 0);
       K.spr(i, S.glow, X(0), 2.9, Z(0), 1.5, 1.2, [1.2, .55, .14], .55, 0, 1, 1);   // was a 7 m flat orange disc over the altar K.spr(i, S.pool, X(0), .7, Z(0), 7.5, 7.5, [.9, .42, .12], .5, .2, 1, 1); K.light(i, X(0), 3.4, Z(0), 0xffa050, 17, 13, { scatter: .9, glow: 2.2, flicker: .1 });
       for (var q = 0; q < 4; q++) { var a = q * PI / 2 + PI / 4; K.brazier(i, X(Math.cos(a) * 7.6), Z(Math.sin(a) * 7.6), { s: 1.0, col: FIRE, lightColor: 0xff9040, intensity: 26 }); }
@@ -579,15 +579,15 @@
       K.solid(X(0), Z(fz - 1.2), 13.5, 3.4);   // the furnace body was walk-through at |x|>2.4
       K.put(i, 'box', 'wall', X(0), 3.3, Z(fz - 1.2), 13.5, 6.6, 3.4, 0, 0, 0, [.42, .38, .36], .5, 4); K.put(i, 'box', 'iron', X(0), 6.8, Z(fz - 1.2), 14.2, .5, 3.8, 0, 0, 0, IRONT, .2);
       K.put(i, 'box', 'iron', X(-5.6), 3.4, Z(fz + .6), 1.6, 6.8, 1.0, 0, 0, 0, IRONT, .4); K.put(i, 'box', 'iron', X(5.6), 3.4, Z(fz + .6), 1.6, 6.8, 1.0, 0, 0, 0, IRONT, .4);
-      K.put(i, 'disc', 'hot', X(0), 2.3, Z(fz + .55), 5.4, 1, 5.4, 0, PI / 2, 0, [2.2, 1.2, .5], 0);
+      K.put(i, 'disc', 'hot', X(0), 2.3, Z(fz + .55), 5.4, 1, 5.4, 0, PI / 2, 0, [.82, .32, .085], 0);
       K.put(i, 'rim', 'iron', X(0), 2.3, Z(fz + .5), 5.8, 5.8, 5.8, 0, 0, 0, IRONT, .2); K.put(i, 'rim', 'iron', X(0), 2.3, Z(fz + .6), 6.4, 6.4, 6.4, 0, 0, 0, [.5, .46, .44], .2);
       for (var b = -3; b <= 3; b++) K.put(i, 'box', 'iron', X(b * .75), 2.3, Z(fz + .75), .14, 5.4, .14, 0, 0, 0, [.46, .42, .4], 0);
-      K.spr(i, S.glow, X(0), 2.3, Z(fz + 1.3), 8, 8, [1.9, .85, .28], 1, 0, 1, 1); K.spr(i, S.glow, X(0), 2.3, Z(fz + 1.0), 4.4, 4.4, [2.2, 1.4, .7], .9, .3, 1, 1); K.spr(i, S.pool, X(0), .14, Z(fz + 5), 17, 11, [1.3, .5, .12], .24, 0, 1, 1);
-      K.light(i, X(0), 3.0, Z(fz + 3), 0xff8a40, 34, 16, { scatter: .8, glow: 2.4, flicker: .12 }); K.heat(X(0), 2.4, Z(fz + 1.5), 6, 6, 1.4);
+      K.spr(i, S.glow, X(0), 2.3, Z(fz + 1.3), 8, 8, [.86, .30, .08], .22, 0, 1, 1); K.spr(i, S.glow, X(0), 2.3, Z(fz + 1.0), 4.4, 4.4, [1.1, .46, .16], .24, .3, 1, 1); K.spr(i, S.pool, X(0), .14, Z(fz + 5), 17, 11, [1.3, .5, .12], .24, 0, 1, 1);
+      K.light(i, X(0), 3.0, Z(fz + 3), 0xff8a40, 22, 16, { scatter: .45, glow: .75, flicker: .12 }); K.heat(X(0), 2.4, Z(fz + 1.5), 6, 6, 1.4);
       for (var a = 0; a < 3; a++) { var an = (a - 1) * .7; K.dec(i, 15, X(Math.sin(an) * 6.5), Z(fz + 5.8 + Math.cos(an) * 3), 8, 8, an + PI / 2, [1.0, .34, .07], .13, 'glow', .06); }
       K.put(i, 'box', 'iron', X(0), .5, Z(-9), 4.8, 1.0, 1.6, 0, 0, 0, IRONT, .4); K.put(i, 'box', 'hot', X(0), 1.02, Z(-9), 4.2, .04, 1.2, 0, 0, 0, [1.3, .46, .1], 0);
       [-1, 1].forEach(function (s) { K.put(i, 'box', 'iron', X(s * 6.8), 1.1, Z(-7), 3.2, 2.2, 2.2, 0, 0, 0, IRONT, .5); K.put(i, 'cyl', 'iron', X(s * 6.8), 2.9, Z(-7), 1.2, 1.4, 1.2, 0, 0, 0, [.7, .64, .6], .3); K.spr(i, S.smoke, X(s * 6.8), 3.6, Z(-7), 1.2, 1.2, [.4, .32, .28], .25, R(), .12, 3); });
-      [-1, 1].forEach(function (s) { for (var q = 0; q < 2; q++) { var x = s * (3.2 + q * 3.6); K.put(i, 'box', 'hot', X(x), .08, Z(fz + 3), .7, .04, 4, 0, 0, 0, [2, .7, .16], 0); } });
+      [-1, 1].forEach(function (s) { for (var q = 0; q < 2; q++) { var x = s * (3.2 + q * 3.6); K.put(i, 'box', 'hot', X(x), .08, Z(fz + 3), .7, .04, 4, 0, 0, 0, [.85, .30, .07], 0); } });
       // Ancient floor engraving stays below the live attack tells in contrast.
       K.dec(i, 5, X(0), Z(3), 13, 13, .2, [.52, .22, .08], .10, 'glow');
       decals({ cracks: 6, soot: 8, chips: 6, plates: 4, heat: 1, blood: 2 });
