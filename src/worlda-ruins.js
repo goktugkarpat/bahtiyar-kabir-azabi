@@ -66,7 +66,6 @@
           K.rubble(i, s * (WIDE_W / 2 + .3), mid + (R() - .5) * 1.5, 1.6, 12, 1.1, 'rock', [.62, .68, .72], R);
           K.put(i, 'tooth', 'rock', s * (WIDE_W / 2 - .2), .9, mid + (R() - .5) * 2, 1.0, 1.8 + R(), 1.0, R() * 6, 0, s * .15, [.6, .66, .7], .5);
           solid(s * (WIDE_W / 2 - .2), mid, 1.3, 1.6);
-          K.stalactite(i, s * (WIDE_W / 2 - 1.5), 6.4, mid + (R() - .5) * 2, .7, 2.4 + R() * 1.5, [.6, .66, .7]);
         });
         K.dec(i, 4, 0, mid, 6, d + 2, 0, [.55, .54, .52], .8); K.dec(i, 0, (R() - .5) * 4, mid, 5, 5, R() * 6, [1, 1, 1], .8);
       }
@@ -91,7 +90,6 @@
           stalagmites(i, X(s * 10.4), Z(-6.5 + (s > 0 ? 1.5 : 0)), 5, R, tint);
           stalagmites(i, X(s * 10.8), Z(4.8 - (s > 0 ? 1.2 : 0)), 4, R, tint);
           for (var v = 0; v < 3; v++) K.dec(i, 1, X(s * (8 + R() * 3)), Z((R() - .5) * (r.d - 4)), 4 + R() * 3, 1.2 + R(), R() * 6.28, vein, .55, 'glow');
-          for (var st = 0; st < 3; st++) K.stalactite(i, X(s * (8.5 + R() * 2)), 6.6, Z((R() - .5) * (r.d - 4)), .4 + R() * .4, 1.4 + R() * 2.2, tint);
         });
         skullHeap(i, X(-sgn * (r.w / 2 - 3.2)), Z(1.5), .9, 10, R);
         for (var pd = 0; pd < 3; pd++) K.dec(i, 9, X((R() - .5) * 16), Z((R() - .5) * 14), 2 + R() * 2, 1.6 + R() * 1.6, R() * 6.28, [1, 1, 1], .85, 'wet');
@@ -118,5 +116,5 @@
     'c3.page2': { x: -9.4, z: -145.2 },     // Mağaranın Ağzı: by the crystal seam, west wall
     'c3.chest': { x: 3, z: -297.6 }         // Tahtın Nöbeti: on the red carpet before the throne arch
   };
-  B.WorldARuins = { active: true, dress: dress, wide: WIDE, sites: SITES };
+  B.WorldARuins = { active: !/[?&]nowa\b/.test(location.search), dress: dress, wide: WIDE, sites: SITES };
 }());

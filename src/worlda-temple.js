@@ -26,6 +26,11 @@
       var rk = new T.IcosahedronGeometry(.5, 1), rp = rk.attributes.position;
       for (var v = 0; v < rp.count; v++) { var x = rp.getX(v), y = rp.getY(v), z = rp.getZ(v), f = 1 + .22 * Math.sin(x * 19 + y * 11) * Math.cos(z * 13 - x * 5); rp.setXYZ(v, x * f, y * f * .8, z * f); }
       rk.computeVertexNormals(); G['wa-rock'] = rk;
+      G['wa-pebble'] = new T.IcosahedronGeometry(.5, 0);
+      var sk = new T.SphereGeometry(1, 7, 5), sp = sk.attributes.position;
+      for (var q = 0; q < sp.count; q++) { var qx = sp.getX(q), qy = sp.getY(q), qz = sp.getZ(q), tp = qy < -.1 ? .7 + (qy + 1) * .33 : 1; sp.setXYZ(q, qx * tp, qy, qz * (qz > 0 && qy < 0 ? .8 : 1)); }
+      sk.computeVertexNormals(); G['wa-skull'] = sk;
+      G['wa-socket'] = new T.IcosahedronGeometry(1, 0);
       G['wa-drum'] = new T.CylinderGeometry(.5, .5, 1, 10, 1);
       var flute = new T.CylinderGeometry(.5, .5, 1, 16, 1), fp = flute.attributes.position;
       for (var w = 0; w < fp.count; w++) { var fx = fp.getX(w), fz = fp.getZ(w), a = Math.atan2(fz, fx), k = 1 - .07 * Math.max(0, Math.cos(a * 8)); fp.setXYZ(w, fx * k, fp.getY(w), fz * k); }
@@ -44,9 +49,15 @@
       for (var i = 0; i < n; i++) { var a = R() * 6.28, d = Math.sqrt(R()) * r, s = U(.22, .62) * (1 - d / r * .5); rock(i % 4 ? (mat || 'stone') : 'dark', x + Math.cos(a) * d, s * .3 + (1 - d / r) * r * .22, z + Math.sin(a) * d, s); }
       K.floorDecal('matte', CELL.ashPile, x, z, r * 2.7, r * 2.7, null, COL.dust, 1);
     }
+    function skull(x, z, s, yaw, y) {
+      y = y || 0; var fx = Math.sin(yaw), fz = Math.cos(yaw), sx = Math.cos(yaw), sz = -Math.sin(yaw);
+      put('wa-skull', 'bone', x, y + .2 * s, z, .17 * s, .2 * s, .19 * s, U(-.2, .2), yaw, U(-.2, .2), 2);
+      [-1, 1].forEach(function (k) { put('wa-socket', 'foundation', x + fx * .14 * s + sx * k * .065 * s, y + .21 * s, z + fz * .14 * s + sz * k * .065 * s, .05 * s, .045 * s, .03 * s, 0, yaw, 0, 2); });
+      put('box', 'bone', x + fx * .1 * s, y + .06 * s, z + fz * .1 * s, .14 * s, .06 * s, .1 * s, 0, yaw, 0, 2);
+    }
     function skulls(x, z, r, n, y0) {
       // A heap: skulls stacked into a rough cone; bones underneath.
-      for (var i = 0; i < n; i++) { var a = R() * 6.28, d = Math.sqrt(R()) * r, h = (1 - d / r) * r * .7; K.skull(x + Math.cos(a) * d, z + Math.sin(a) * d, U(.85, 1.1), U(-2.4, 2.4), (y0 || 0) + h); }
+      for (var i = 0; i < n; i++) { var a = R() * 6.28, d = Math.sqrt(R()) * r, h = (1 - d / r) * r * .7; skull(x + Math.cos(a) * d, z + Math.sin(a) * d, U(.85, 1.1), U(-2.4, 2.4), (y0 || 0) + h); }
       for (var j = 0; j < n; j++) { var b = R() * 6.28, e = Math.sqrt(R()) * r * 1.1, l = U(.3, .62), dx = Math.cos(b) * l * .5, dz = Math.sin(b) * l * .5, px = x + Math.cos(b * 1.7) * e, pz = z + Math.sin(b * 1.7) * e, py = (y0 || 0) + .06 + (1 - e / r / 1.1) * r * .45;
         rod('bone', [px - dx, py, pz - dz], [px + dx, py + U(-.08, .08), pz + dz], .032, 2); }
       K.floorDecal('matte', CELL.specks, x, z, r * 3, r * 3, null, COL.dust, 1);
@@ -113,8 +124,8 @@
             var off = -len / 2 + (p + .5) * len / Math.ceil(len / 1.3) + (c % 2 ? .3 : 0);
             if (Math.abs(off) > len / 2) continue;
             var col = new T.Color().setScalar(U(.55, .95) * (1 - c / Math.ceil(depth / .55) * .6));
-            if (s[3] === 'x') put('slab' + (p + c) % 4, 'stone', cx + off, y, cz, len / Math.ceil(len / 1.3) - .05, .5, .5, 0, 0, 0, 0, col);
-            else put('slab' + (p + c) % 4, 'stone', cx, y, cz + off, .5, .5, len / Math.ceil(len / 1.3) - .05, 0, 0, 0, 0, col);
+            if (s[3] === 'x') put('box', 'stone', cx + off, y, cz, len / Math.ceil(len / 1.3) - .05, .5, .5, 0, 0, 0, 1, col);
+            else put('box', 'stone', cx, y, cz + off, .5, .5, len / Math.ceil(len / 1.3) - .05, 0, 0, 0, 1, col);
           }
         }
         // coping: chipped rim stones
@@ -126,7 +137,7 @@
       });
       K.box('foundation', o.x, -depth - .3, o.z, o.w, .2, o.d);
       // What was thrown down: a slope of bones and skulls at the bottom.
-      for (var i = 0; i < 26; i++) K.skull(o.x + U(-hx + .4, hx - .4), o.z + U(-hz + .4, hz - .4), U(.9, 1.2), U(-3, 3), -depth - .2 + U(0, .4));
+      for (var i = 0; i < 18; i++) skull(o.x + U(-hx + .4, hx - .4), o.z + U(-hz + .4, hz - .4), U(.9, 1.2), U(-3, 3), -depth - .2 + U(0, .4));
       for (var j = 0; j < 30; j++) { var bx = o.x + U(-hx + .3, hx - .3), bz = o.z + U(-hz + .3, hz - .3), ba = R() * 6.28, by = -depth - .12 + U(0, .35);
         rod('bone', [bx - Math.cos(ba) * .3, by, bz - Math.sin(ba) * .3], [bx + Math.cos(ba) * .3, by + U(-.1, .1), bz + Math.sin(ba) * .3], .035, 2); }
       if (glow) {
@@ -142,10 +153,32 @@
         var x = axisX ? p : at, z = axisX ? at : p;
         K.alcove(x, z, 2.0, 3.3, angle, kind === 'saint' ? 'saint' : kind === 'bones');
         var nx = Math.sin(angle), nz = Math.cos(angle);
-        if (kind === 'bones') { for (var s = 0; s < 3; s++) K.skull(x + Math.cos(angle) * (s - 1) * .45 + nx * .2, z - Math.sin(angle) * (s - 1) * .45 + nz * .2, .95, angle + U(-.4, .4), .5 + (s === 1 ? .32 : 0)); }
+        if (kind === 'bones') { for (var s = 0; s < 3; s++) skull(x + Math.cos(angle) * (s - 1) * .45 + nx * .2, z - Math.sin(angle) * (s - 1) * .45 + nz * .2, .95, angle + U(-.4, .4), .5 + (s === 1 ? .32 : 0)); }
         else if (kind === 'urns') urnRow(x - Math.cos(angle) * .5 + nx * .22, z + Math.sin(angle) * .5 + nz * .22, 3, Math.cos(angle) * .5, -Math.sin(angle) * .5);
         K.wallDecal('matte', CELL.grimeStreak, x + nx * .41, U(1.4, 2.4), z + nz * .41, U(1.2, 1.8), U(2.2, 3.4), angle, COL.grime, 1);
       }
+    }
+    // Light masonry wall: one solid core (collider + shadow) with a brick skin on the face(s) the camera sees.
+    // ~12 triangles per brick instead of the chipped-slab kit (keeps the side crypts cheap in the shadow passes).
+    function wallLite(x, z, length, axis, height, face) {
+      var w = axis === 'x' ? length : .75, d = axis === 'z' ? length : .75;
+      solid(x, z, w, d);
+      box('dark', x, height / 2, z, w, height, d);
+      var courses = Math.max(1, Math.floor(height / .56)), h = height / courses, pieces = Math.ceil(length / 1.5), step = length / pieces;
+      [-1, 1].forEach(function (side) {
+        if (face && side !== face) return;
+        for (var row = 0; row < courses; row++) for (var j = 0; j <= pieces; j++) {
+          var left = Math.max(-length / 2, -length / 2 + (j - (row % 2) * .5) * step), right = Math.min(length / 2, -length / 2 + (j + 1 - (row % 2) * .5) * step);
+          if (right - left < .05) continue;
+          var off = (left + right) / 2, bl = right - left - .05, shade = new T.Color().setScalar(U(.7, 1.08)), pr = U(.0, .035);
+          if (axis === 'x') put('box', 'stone', x + off, (row + .5) * h, z + side * (.39 + pr), bl, h - .05, .08, 0, 0, 0, 1, shade);
+          else put('box', 'stone', x + side * (.39 + pr), (row + .5) * h, z + off, .08, h - .05, bl, 0, 0, 0, 1, shade);
+        }
+      });
+      box('dark', x, .19, z, w + (axis === 'z' ? .25 : 0), .38, d + (axis === 'x' ? .25 : 0));
+      var caps = Math.ceil(length / 1.42), span = length / caps;
+      for (var q = 0; q < caps; q++) { var o = -length / 2 + (q + .5) * span;
+        put('box', 'stone', x + (axis === 'x' ? o : 0), height + .045, z + (axis === 'z' ? o : 0), axis === 'x' ? span - .04 : .94, .19, axis === 'z' ? span - .04 : .94, 0, 0, 0, 0, new T.Color().setScalar(.7 + q % 3 * .06)); }
     }
     // Shell: masonry walls (collider), the doorway towards the main hall, a low front parapet, buttresses and corner collapse.
     function shell(r) {
@@ -154,8 +187,8 @@
       // passage floor and walls
       var cx = (edge + mainEdge) / 2, clen = Math.abs(edge - mainEdge);
       floorTiles(cx, r.z, clen + .1, 6, [], 1.2);
-      K.wallRun(cx, r.z - 3.35, clen + .2, 'x', 2.6);
-      K.wallRun(cx, r.z + 3.35, clen + .2, 'x', 1.0);
+      wallLite(cx, r.z - 3.35, clen + .2, 'x', 2.6, 1);
+      wallLite(cx, r.z + 3.35, clen + .2, 'x', 1.0, -1);
       K.floorDecal('matte', CELL.mould, cx, r.z, clen + 1, 4.4, 0, COL.grime, 0);
       // doorway frame: two heavy jambs and a lintel with hanging chain
       [-1, 1].forEach(function (k) {
@@ -165,10 +198,10 @@
       put('slab1', 'stone', edge, 3.75, r.z, 1.15, .65, 7.4, 0, 0, 0);
       K.chain(edge - s * .2, 3.35, r.z + 1.4, 1.2, 'y', 1);
       // walls
-      [-1, 1].forEach(function (k) { var len = (r.d - 6) / 2; K.wallRun(edge, r.z + k * (3 + len / 2), len, 'z', 4.25); });
-      K.wallRun(back, r.z, r.d, 'z', 4.8);
-      K.wallRun(r.x, north, r.w + .75, 'x', 4.8);
-      K.wallRun(r.x, south, r.w + .75, 'x', 1.15);
+      [-1, 1].forEach(function (k) { var len = (r.d - 6) / 2; wallLite(edge, r.z + k * (3 + len / 2), len, 'z', 4.25, -s); });
+      wallLite(back, r.z, r.d, 'z', 4.8, s);
+      wallLite(r.x, north, r.w + .75, 'x', 4.8, 1);
+      wallLite(r.x, south, r.w + .75, 'x', 1.15, 0);
       // vault springers along the two long walls (with their footprint as collider)
       [r.z - r.d * .3, r.z + r.d * .3].forEach(function (z) {
         K.vaultRib(r, z, -s); solid(back + s * .55, z, 1.1, 1.3);
@@ -219,15 +252,20 @@
       var src = K.lightSource(x, y - 1.55, z, sick ? '#a9d75c' : '#ff8a3c', sick ? 14 : 18, 10, .9, { kind: sick ? 'lamp' : 'lantern' });
       K.swinging(g, src, f, .025, U(.8, 1.2));
     }
-    function deadLamp(x, z, y, links) {
-      var parts = { iron: [] };
+    function deadLamp(x, z, y, links, into) {
+      // parts are relative to the shared group origin (into.x0, 5.4, into.z0): one mesh per material for the whole hall
+      if (into.x0 == null) { into.x0 = x; into.y0 = y; into.z0 = z; }
+      var ox = x - into.x0, oy = y - into.y0, oz = z - into.z0, parts = { iron: [] };
+      parts.iron.push(K.part('pole', 0, (11 - y) / 2, 0, .028, 11 - y, .028));
       for (var i = 0; i < (links || 6); i++) parts.iron.push(K.part('link', 0, -i * .19, 0, .085, .15, .085, 0, i % 2 * PI / 2, 0));
       var b = -(links || 6) * .19 - .3;
       parts.iron.push(K.part('cone', 0, b, 0, .22, .18, .22));
       [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(function (c) { parts.iron.push(K.part('box', c[0] * .14, b - .3, c[1] * .14, .03, .46, .03)); });
       parts.iron.push(K.part('octagon', 0, b - .55, 0, .2, .05, .2));
       parts.wax = [K.part('pole', 0, b - .44, 0, .06, .18, .06)];
-      K.hangerGroup(x, y, z, parts, false);
+      var off = new T.Matrix4().makeTranslation(ox, oy, oz);
+      parts.iron.forEach(function (p) { p.matrix.premultiply(off); into.iron.push(p); });
+      parts.wax.forEach(function (p) { p.matrix.premultiply(off); into.wax.push(p); });
     }
 
     var THEMES = {
@@ -242,7 +280,7 @@
           var bx = r.x + k * (r.w / 2 - 1.9);
           for (var row = 0; row < 4; row++) {
             put('slab' + row % 4, 'dark', bx, .4 + row * .62, S.north + .62, 2.6, .08, .5, 0, 0, 0, 1);
-            for (var c = 0; c < 6; c++) K.skull(bx - 1.1 + c * .44, S.north + .66, .95, U(-.25, .25), .44 + row * .62);
+            for (var c = 0; c < 6; c++) skull(bx - 1.1 + c * .44, S.north + .66, .95, U(-.25, .25), .44 + row * .62);
           }
           solid(bx, S.north + .7, 2.8, .9);
         });
@@ -264,10 +302,12 @@
       },
       // Sönmüş Kandiller — a forest of dead hanging lamps, a fallen chandelier, rows of guttered candles.
       lamps: function (r, S) {
+        var deadParts = { iron: [], wax: [], x0: null };
         for (var i = 0; i < 16; i++) {
           var lx = r.x + U(-r.w / 2 + 2.5, r.w / 2 - 2.5), lz = r.z + U(-r.d / 2 + 2.5, r.d / 2 - 2.5);
-          if (i < 3) lamp(lx, lz, 5.2, false); else deadLamp(lx, lz, U(4.6, 5.6), Math.floor(U(4, 12)));
+          if (i < 3) lamp(lx, lz, 5.2, false); else deadLamp(lx, lz, U(4.6, 5.6), Math.floor(U(4, 12)), deadParts, r);
         }
+        if (deadParts.iron.length) K.hangerGroup(deadParts.x0, deadParts.y0, deadParts.z0, { iron: deadParts.iron, wax: deadParts.wax }, false);
         // fallen chandelier: a great iron ring cracked into the floor, candles spilled
         var cx = r.x - S.s * 6.5, cz = r.z - 6.5;
         put('wa-frame', 'iron', cx, .12, cz, 4.2, 4.2, 3.2, PI / 2 - .05, .3, .04);
@@ -443,6 +483,7 @@
       }
     };
     ROOMS.forEach(function (r) {
+      if (K.setChunkBias) K.setChunkBias(r.x > 0 ? 500 : 700);
       var holes = [];
       var s = r.x < 0 ? 1 : -1, back = r.x - s * r.w / 2, north = r.z - r.d / 2;
       if (r.theme === 'ossuary') holes.push({ x: back + s * 3.2, z: r.z - 1, w: 3.2, d: 9 });
@@ -451,6 +492,7 @@
       var S = shell(r);
       THEMES[r.theme](r, S, holes);
       floorLife(r, holes);
+      if (K.setChunkBias) K.setChunkBias(0);
     });
     // Main halls: grit and stray bones on the floor, fallen vault stones heaped into the dark corners (no colliders: walls already bound them).
     K.rooms.forEach(function (r) {
@@ -461,7 +503,7 @@
     // Lived-in floor: grit, chips of fallen vault, stray bones, stains that run under the furniture.
     function floorLife(r, holes) {
       for (var i = 0; i < 34; i++) { var x = r.x + U(-r.w / 2 + .8, r.w / 2 - .8), z = r.z + U(-r.d / 2 + .8, r.d / 2 - .8); if (inHole(holes, x, z, .5)) continue;
-        put('wa-rock', i % 3 ? 'stone' : 'dark', x, .03, z, U(.08, .22), U(.05, .12), U(.08, .2), U(-.3, .3), R() * 6, U(-.3, .3), 2); }
+        put('wa-pebble', i % 3 ? 'stone' : 'dark', x, .03, z, U(.08, .22), U(.05, .12), U(.08, .2), U(-.3, .3), R() * 6, U(-.3, .3), 2); }
       for (var j = 0; j < 9; j++) { var bx = r.x + U(-r.w / 2 + 1, r.w / 2 - 1), bz = r.z + U(-r.d / 2 + 1, r.d / 2 - 1), a = R() * 6.28, l = U(.25, .5); if (inHole(holes, bx, bz, .5)) continue;
         rod('bone', [bx - Math.cos(a) * l / 2, .05, bz - Math.sin(a) * l / 2], [bx + Math.cos(a) * l / 2, .05, bz + Math.sin(a) * l / 2], .03, 2); }
       for (var k = 0; k < 14; k++) { var dx = r.x + U(-r.w / 2 + 1, r.w / 2 - 1), dz = r.z + U(-r.d / 2 + 1, r.d / 2 - 1); if (inHole(holes, dx, dz, 0)) continue;
@@ -485,5 +527,5 @@
     'c1.page2': { x: -41.6, z: -122.4 },      // broken oaths: the far corner by the fallen stones
     'c1.chest': { x: -30, z: -129.4 }         // broken oaths: before the split altar's dais
   };
-  B.WorldATemple = { active: true, rooms: ROOMS, dress: dress, sites: SITES };
+  B.WorldATemple = { active: !/[?&]nowa\b/.test(location.search), rooms: ROOMS, dress: dress, sites: SITES };
 }());

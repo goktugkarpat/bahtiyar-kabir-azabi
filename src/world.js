@@ -486,9 +486,10 @@
       var decorationBatches = [];
       var allBatches = [];
       var occluders = [];
+      var chunkBias = 0; // ajan:world-a: side crypts get their own batches (culled apart from the main hall beside them)
       function put(geo, mat, x, y, z, sx, sy, sz, rx, ry, rz, level, color) {
         level = level || 0;
-        var chunk = level ? coarseChunk(z) : chunkOf(z), key = geo + ':' + mat + ':' + level + ':' + chunk;
+        var chunk = (level ? coarseChunk(z) : chunkOf(z)) + chunkBias, key = geo + ':' + mat + ':' + level + ':' + chunk;
         if (!batches[key]) batches[key] = { geo: geo, mat: mat, level: level, transforms: [], colors: [] };
         tmp.position.set(x, y, z);
         tmp.rotation.set(rx || 0, ry || 0, rz || 0);
@@ -508,7 +509,7 @@
         tmp.quaternion.setFromUnitVectors(new T.Vector3(0, 1, 0), delta.clone().normalize());
         tmp.scale.set(radius, delta.length(), radius);
         tmp.updateMatrix();
-        var key = 'pole:' + mat + ':' + (level || 0) + ':' + (level ? coarseChunk(tmp.position.z) : chunkOf(tmp.position.z));
+        var key = 'pole:' + mat + ':' + (level || 0) + ':' + ((level ? coarseChunk(tmp.position.z) : chunkOf(tmp.position.z)) + chunkBias);
         if (!batches[key]) batches[key] = { geo: 'pole', mat: mat, level: level || 0, transforms: [], colors: [] };
         batches[key].transforms.push(tmp.matrix.clone());
         batches[key].colors.push(null);
@@ -522,7 +523,7 @@
         dust: linear(.22, .2, .16), cold: linear(.35, .45, .7), warm: linear(.9, .6, .28), sick: linear(.35, .45, .12), redGlow: linear(.7, .12, .04)
       };
       function decal(type, cell, x, y, z, sx, sz, yaw, color, level, wall) {
-        var chunk = coarseChunk(z), key = type + ':' + chunk + ':' + (level || 0);
+        var chunk = coarseChunk(z) + chunkBias, key = type + ':' + chunk + ':' + (level || 0);
         if (!decalBatches[key]) decalBatches[key] = { type: type, level: level || 0, transforms: [], colors: [], cells: [] };
         tmp.position.set(x, y, z);
         if (wall == null) tmp.rotation.set(-Math.PI / 2, 0, yaw || 0); else tmp.rotation.set(0, wall, yaw || 0);
@@ -1698,7 +1699,7 @@
         skull: skull, boneScatter: boneScatter, ribCage: ribCage, rubble: rubble, slab: slab, cage: cage, chain: chain, candleCluster: candleCluster, alcove: alcove,
         vaultRib: vaultRib, funeraryEffigy: funeraryEffigy, censer: censer, hangingIron: hangingIron, hangedBody: hangedBody, shroudedRemains: shroudedRemains,
         puddle: puddle, torch: torch, sconce: sconce, flame: flame, lightSource: lightSource, emberSources: emberSources, smokeSources: smokeSources,
-        part: part, hangerGroup: hangerGroup, swinging: swinging, floorRing: floorRing, ritualPavement: ritualPavement, architectureMesh: architectureMesh, spot: spot });
+        part: part, hangerGroup: hangerGroup, swinging: swinging, floorRing: floorRing, ritualPavement: ritualPavement, architectureMesh: architectureMesh, spot: spot, setChunkBias: function (b) { chunkBias = b || 0; } });
       /* /ajan:world-a */
 
       // ---- light shafts and particles ----------------------------------------------------------------------
