@@ -154,6 +154,13 @@
         }
         return hits;
       },
+      // Prison: a burning wall closes round the hero, the floor inside is doomed (crimson, shown from the start). One deliberate roll
+      // through the wall (or a walk before it ignites) is the way out; spamming rolls inside the circle does nothing.
+      prison: function (e, o, name, style, pool, dmgWall, dmgCore) {
+        return [
+          hit(.9, .9, 'ring', 4.7, dmgWall, 'castHigh', { inner: 3.6, arc: TAU, origin: o, persistent: true, periodic: true, interval: .35, duration: 2.6, pool: pool, poolGain: .9, style: style, fill: 'inward', beat: true, attack: name }),
+          hit(3.2, 3.2, 'circle', 3.65, dmgCore, 'castHigh', { origin: o, style: style, fill: 'inward', unblockable: true, beat: false, scar: true, attack: name + tr(' · çöküş') })];
+      },
       // A beam sweeping round the boss: one line per step, every step shown .75 s ahead, so the safe side is always readable.
       beam: function (e, name, style, steps, dir, a0, dmg, twin) {
         var hits = [];
@@ -389,7 +396,10 @@
       build: function (e, d, k, api) {
         var o = { x: api.player.x, z: api.player.z }, n = e.phase >= 3 ? 4 : 3, name = tr('Yankı Çanı');
         return { id: 'echoToll', name: name, duration: 1.3 + n * .55 + 1.1, pose: 'roar', cooldown: 1.0, hits: k.rings(e, o, name, 'tide', n, 2.4, 14, 24) };
-      } }
+      } },
+    signature2: { id: 'drownWell', first: 20, cd: [28, 24, 19], phase: 2, range: 15, hint: tr('Kuyunun duvarı seni kapatır; merkez çökecek. Duvar yanmadan yürü ya da duvarı tek yuvarlanışla geç.'),
+      build: function (e, d, k, api) { var o = { x: api.player.x, z: api.player.z }, name = tr('Boğulma Kuyusu');
+        return { id: 'drownWell', name: name, duration: 3.9, pose: 'castHigh', cooldown: .9, hits: k.prison(e, o, name, 'tide', 'brine', 5, 30) }; } }
   });
   BF.register('hollowking', {
     title: tr('Oyukların Kralı'), epithet: tr('Sessiz Tahtın Sahibi'), sub: tr('SESSİZ TAHT'), color: 0x8a9ccf, style: 'rune', pool: 'lava',
@@ -400,7 +410,10 @@
         var o = { x: api.player.x, z: api.player.z }, name = tr('Billur Izgara');
         var waves = e.phase >= 3 ? 3 : 2;
         return { id: 'crystalGrid', name: name, duration: 1.45 + waves * .95 + .8, pose: 'castHigh', cooldown: 1.0, hits: k.grid(e, o, name, 'rune', 4, 3.0, waves, 16) };
-      } }
+      } },
+    signature2: { id: 'crystalPrison', first: 20, cd: [28, 24, 19], phase: 2, range: 15, hint: tr('Billur duvar seni kapatır; merkez çökecek. Duvar yanmadan yürü ya da duvarı tek yuvarlanışla geç.'),
+      build: function (e, d, k, api) { var o = { x: api.player.x, z: api.player.z }, name = tr('Billur Hapis');
+        return { id: 'crystalPrison', name: name, duration: 3.9, pose: 'castHigh', cooldown: .9, hits: k.prison(e, o, name, 'rune', '', 5, 30) }; } }
   });
   BF.register('furnaceheart', {
     title: tr('Ocağın Kalbi'), epithet: tr('Son Dökümün Efendisi'), sub: tr('SON DÖKÜM'), color: 0xe0661c, style: 'ember', pool: 'lava',
@@ -410,6 +423,9 @@
       build: function (e, d, k, api) {
         var p = api.player, toHero = Math.atan2(p.x - e.x, p.z - e.z), dir = (Math.floor(e.picks || 0) % 2) ? 1 : -1, steps = e.phase >= 3 ? 16 : 13, name = tr('Ocak Nefesi');
         return { id: 'furnaceBeam', name: name, duration: 1.35 + steps * .15 + .8, pose: 'castHigh', cooldown: 1.1, hits: k.beam(e, name, 'ember', steps, dir, toHero - dir * 1.2, 15, e.phase >= 3) };
-      } }
+      } },
+    signature2: { id: 'crucible', first: 20, cd: [28, 24, 19], phase: 2, range: 15, hint: tr('Pota duvarı seni kapatır; merkez çökecek. Duvar yanmadan yürü ya da duvarı tek yuvarlanışla geç.'),
+      build: function (e, d, k, api) { var o = { x: api.player.x, z: api.player.z }, name = tr('Pota');
+        return { id: 'crucible', name: name, duration: 3.9, pose: 'castHigh', cooldown: .9, hits: k.prison(e, o, name, 'ember', 'lava', 5, 30) }; } }
   });
 }());
