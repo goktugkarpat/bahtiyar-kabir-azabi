@@ -68,7 +68,7 @@
       '#bf-cine .card.show i{width:62%}' +
       '#bf-cine .card.show strong{animation:bf-in 1.5s cubic-bezier(.2,.8,.2,1) both}' +
       '#bf-cine .card.phase{top:63%}#bf-cine .card.phase strong{font-size:clamp(24px,3.4vw,46px)}' +
-      'body.bf-intro #announcement{visibility:hidden}' +
+      'body.bf-intro #announcement,body.bf-intro #boss-mechanic{visibility:hidden}' +
       '#bf-cine .flash{position:absolute;left:50%;top:62%;transform:translateX(-50%);font-size:clamp(13px,1.4vw,19px);letter-spacing:.42em;color:#f3d38b;opacity:0;text-shadow:0 0 14px rgba(240,170,60,.75),0 0 4px #000;transition:opacity .25s}' +
       '#bf-cine .flash.show{opacity:1;animation:bf-pop .5s cubic-bezier(.2,.8,.2,1) both}' +
       '@keyframes bf-in{from{letter-spacing:.42em;opacity:0;filter:blur(6px)}to{letter-spacing:.09em;opacity:1;filter:blur(0)}}' +
@@ -283,7 +283,7 @@
       }
       if (e.active && !st.intro) {
         st.intro = true; st.phaseKey = e.phase + (e.enraged ? 'e' : '');
-        showCard(p.sub || tr('BOSS'), p.title || e.name, p.epithet || '', 4.6, 3.4, false, p.color);
+        showCard(p.sub || tr('BOSS'), p.title || e.name, p.epithet || '', 3.8, 3.2, false, p.color);
         st.sigAt = time + (p.signature ? p.signature.first || 14 : 1e9) * pace(); st.pursuitAt = time + 6;
         e.cooldown = Math.max(e.cooldown, 1.8); api.sound('bossPhase');
         api.fx('glowBurst', { x: e.x, y: .05, z: e.z, radius: 5.5, color: p.color || 0xb8452d, duration: 1.4 });

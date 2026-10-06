@@ -35,7 +35,8 @@
   var CLASH = { fire: 'venom', venom: 'fire', reflect: 'warded', warded: 'reflect' };
   var CHANCE = [0, .2, .24, .28, .32, .34], COUNT = [0, 1, 1, 2, 2, 2];
 
-  function hash(s) { var h = 2166136261; for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
+  function hash(s) { var h = 2166136261; for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+    h ^= h >>> 16; h = Math.imul(h, 0x85ebca6b); h ^= h >>> 13; h = Math.imul(h, 0xc2b2ae35); h ^= h >>> 16; return h >>> 0; }
 
   var RING_VS = 'varying vec2 vU; varying vec3 vC; void main(){ vU = uv*2.-1.;\n#ifdef USE_INSTANCING_COLOR\n vC = instanceColor;\n#else\n vC = vec3(1.);\n#endif\n' +
     ' vec4 p = vec4(position,1.);\n#ifdef USE_INSTANCING\n p = instanceMatrix*p;\n#endif\n gl_Position = projectionMatrix*modelViewMatrix*p; }';
@@ -43,11 +44,11 @@
     ' float band = smoothstep(.76,.82,r)*(1.-smoothstep(.9,.96,r)); float hair = smoothstep(.6,.62,r)*(1.-smoothstep(.635,.655,r));' +
     ' float glyph = step(.5, fract(a*12./6.2832))*smoothstep(.66,.7,r)*(1.-smoothstep(.74,.77,r))*(.6+.4*sin(a*3.+uT*2.));' +
     ' float core = (1.-smoothstep(0.,.8,r))*.12;' +
-    ' gl_FragColor = vec4(vC*(band*1.1+hair*.7+glyph*.8+core)*.62, 1.); }';
+    ' gl_FragColor = vec4(vC*(band*1.3+hair*.8+glyph*1.+core)*.9, 1.); }';
   var SHELL_VS = 'varying vec3 vN; varying vec3 vV; varying vec3 vC; void main(){ vec4 p = vec4(position,1.); vec3 n = normal;\n#ifdef USE_INSTANCING\n p = instanceMatrix*p; n = mat3(instanceMatrix)*n;\n#endif\n' +
     '#ifdef USE_INSTANCING_COLOR\n vC = instanceColor;\n#else\n vC = vec3(1.);\n#endif\n vec4 w = modelMatrix*p; vN = normalize(mat3(modelMatrix)*n); vV = normalize(cameraPosition - w.xyz); gl_Position = projectionMatrix*viewMatrix*w; }';
-  var SHELL_FS = 'uniform float uT; varying vec3 vN; varying vec3 vV; varying vec3 vC; void main(){ float f = pow(1.-abs(dot(normalize(vN), vV)), 2.4);' +
-    ' float bands = .75+.25*sin(vN.y*18.+uT*4.); gl_FragColor = vec4(vC*(f*1.25*bands+.035), 1.); }';
+  var SHELL_FS = 'uniform float uT; varying vec3 vN; varying vec3 vV; varying vec3 vC; void main(){ float f = pow(1.-abs(dot(normalize(vN), vV)), 3.2);' +
+    ' float bands = .6+.4*sin(vN.y*22.+uT*4.)*sin(atan(vN.z,vN.x)*7.-uT*1.3); gl_FragColor = vec4(vC*(f*.95*bands+.012), 1.); }';
 
   B.MobMods = {
     MODS: MODS, POOL: POOL, current: null,
@@ -66,10 +67,10 @@
         var cap = chapter >= 4 ? 2 : 1, have = perEnc.get(e.encounter) || 0;
         if (!named && have >= cap) return;
         perEnc.set(e.encounter, have + 1);
-        var n = Math.min(3, COUNT[chapter] + (named ? 1 : 0) + ((h >>> 11) % 3 === 0 && chapter >= 2 ? 1 : 0)), list = [], k = h >>> 3;
+        var n = Math.min(named ? 3 : 2, COUNT[chapter] + (named ? 1 : 0) + ((h >>> 11) % 3 === 0 && chapter >= 2 ? 1 : 0)), list = [];
         var pool = POOL.filter(function (id) { return chapter >= 2 || (id !== 'reflect' && id !== 'warded'); });
         for (var tries = 0; list.length < n && tries < 20; tries++) {
-          var id = pool[k % pool.length]; k = Math.imul(k ^ (k >>> 7), 2654435761) >>> 0;
+          var id = pool[hash(e.id + '#' + chapter + '#' + tries) % pool.length];
           if (list.indexOf(id) >= 0 || list.indexOf(CLASH[id]) >= 0) continue;
           if (id === 'mending' && (e.stats.ranged || e.type === 'cultist') === false && tries < 6) continue;   // healers prefer back-line bodies
           list.push(id);
@@ -124,7 +125,7 @@
         for (var i = 0; i < champs.length; i++) {
           var c = champs[i], e = c.e, visible = !e.dead && !e.reserve && e.model && e.model.root.visible !== false;
           if (!visible) { tmp.position.set(0, -50, 0); tmp.scale.set(.001, .001, .001); tmp.rotation.set(0, 0, 0); tmp.updateMatrix(); rings.setMatrixAt(i, tmp.matrix); shells.setMatrixAt(i, tmp.matrix); continue; }
-          var R = (e.radius || .6) * 2.6, y = ground(e.x, e.z) + .04;
+          var R = (e.radius || .6) * 2.9, y = ground(e.x, e.z) + .07;
           tmp.position.set(e.x, y, e.z); tmp.rotation.set(0, c.spin + time * .7, 0); tmp.scale.set(R, 1, R); tmp.updateMatrix(); rings.setMatrixAt(i, tmp.matrix);
           var live = e.active && game.state === 'playing';
           // mirror shell cycle / seal
