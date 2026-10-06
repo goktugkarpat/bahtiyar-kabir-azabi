@@ -537,6 +537,7 @@
     if (weapon === 'spear' && throttle('spearBite', .08)) sample('hitCut', { vol: .20*k, rate: 1.2, lp: 4900, send: .03 });
     if (o.critical && throttle('criticalBite', .16)) { sample('hitCutSteel', { vol: .18*k, rate: 1.14, delay: .003 }); sample('hitRingA', { vol: .10*k, rate: .93, delay: .012, send: .13 }); }
     if (tier || kill) sample('hitSub', { vol: (tier === 2 ? .45 : tier === 1 ? .3 : .22) * k * (kill ? 1.3 : 1), send: .1, detune: .03, delay: .004 });
+    if (kill) thud(t + .008, { f0: 82, f1: 30, dur: .42, vol: .42 * k, send: .15 });   // the body's weight gives out (render: kills had the least sub of any blow)
     if (kill) {   // the finishing blow: bone and wet crunch, a spray, a heavier ring
       const dead = targets.find(e => e.dead), armor = dead && MATERIAL[dead.type] === 'armor', at = dead && Number.isFinite(dead.x) ? dead : null;
       if (armor) { sample('hitRingB', { vol: .55 * k, at, send: .2, rate: .9, delay: .01 }); sample('metal', { vol: .6 * k, at, rate: .72, delay: .02 }); sample('armor', { vol: .65 * k, at, rate: .6, delay: .02 }); }
@@ -923,6 +924,7 @@
     for (let i = 0; i < 3; i++) ring(t + r + .12 + i * .14, { f: 440 - i * 40, partials: [1, 2.76], decay: .7, vol: .025 * k, send: .5 });   // the spreading rings
     whoosh(t + r + .01, { dur: .7, peak: .1, f0: 1500, f1: 480, f2: 180, q: .6, vol: .3 * k, low: 200, send: .3 });   // the pressure wall (fx-impact.js)
     // the death cry must outlast the first cry (render: its tail was 1.25 s against 1.75 s): a low rolling echo of bone and stone
+    thud(t + r + .02, { f0: 58, f1: 19, dur: 1.5, vol: .7 * k, send: .35 });   // a deeper floor than Kan Nidası
     burst(t + r + .25, 1.5, .1 * k, 200, { q: .6, attack: .25, bus: 'amb', send: .35, buf: N.brown }); thud(t + r + .5, { f0: 70, f1: 30, dur: .7, vol: .45 * k, send: .4 });
     sample('bone', { vol: .3 * k, rate: .55, delay: r + .45, send: .4 });
     duck(N.musicDuck, .45, .7, .4); duck(N.ambDuck, .5, .7, .4); stinger('rage', .25);

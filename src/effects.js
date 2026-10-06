@@ -688,7 +688,7 @@
       scar(x,z,0,{shape:'circle',radius:1.15,life:1.15,heat:.16});
       fragments(x,floorAt(x,z,.3)+.07,z,{count:calm?4:8,spread:.8,speed:1.7,lift:1.5,size:.065});
       flash(x,1.1,z,.72,new T.Color('#b78556'),.07,0,softMap);
-      if(impactFx)impactFx.dome(x,z,{r:V*1.05,h:1.5,life:.5,col:[.55,.3,.14],hot:[1.2,.8,.5],a:.42,style:2});   // a low wall of heat and grit carries the cry outward
+      if(impactFx)impactFx.dome(x,z,{r:V*1.05,h:1.5,life:.5,col:[.55,.3,.14],hot:[1.2,.8,.5],a:.42,style:0});   // a low wall of heat and grit carries the cry outward
       const ringDust=scaleCount(14);for(let i=0;i<ringDust;i++){const a=i/ringDust*Math.PI*2;particle(x+Math.sin(a)*.8,.08,z+Math.cos(a)*.8,2,DUST,1.2,a,.20);}
       for(let i=0;i<(calm?4:scaleCount(12));i++){const a=Math.random()*Math.PI*2;streak(x+Math.sin(a)*.8,.12+Math.random()*.15,z+Math.cos(a)*.8,Math.sin(a)*(2.3+Math.random()*1.5),.45+Math.random()*.7,Math.cos(a)*(2.3+Math.random()*1.5),.22+Math.random()*.15,.028,[.85,.40,.13]);}
       roarSpiral.on=!calm;roarSpiral.t=0;roarSpiral.x=x;roarSpiral.z=z;roarSpiral.R=Math.min(2.3,V*.6);
