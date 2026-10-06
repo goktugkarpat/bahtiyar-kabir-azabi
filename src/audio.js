@@ -615,6 +615,12 @@
   // Impact layers: I the old iron crack and floor thud; II + stone fissures cracking and a molten ring; III a deep, long boom with tumbling rubble.
   H.chargeImpact = (o, k) => {
     const tier = o.tier || 1, t = now(), at = { x: o.x, z: o.z }; H.specialHit(o, k * (tier === 3 ? 1.1 : .95));
+    // identity tails (offline render showed I and II nearly identical): I Kül = a dry ash crumble settling; II Kor = molten hiss with ember crackle
+    if (tier === 1) { sample('debris', { vol: .5 * k, at, rate: 1.15, delay: .06 }); burst(t + .04, .7, .09 * k, 900, { q: .5, f1: 260, attack: .08, send: .25 }); }
+    if (tier === 2) {
+      burst(t + .05, 1.3, .11 * k, 5200, { q: .7, f1: 2400, attack: .06, send: .2 }); ring(t + .02, { f: 523, partials: [1, 2.76, 5.4], decay: 1.2, vol: .03 * k, send: .5 });
+      for (let i = 0; i < 9; i++) burst(t + .12 + i * rand(.07, .13), .025, .045 * k, rand(3500, 8000), { q: 3 });
+    }
     if (tier >= 2) {
       sample('debris', { vol: .8 * k, at, rate: .7, delay: .03 }); sample('hitCrack', { vol: .6 * k, rate: .7, delay: .01 }); sample('bone', { vol: .4 * k, at, rate: .6, delay: .06 });
       burst(t + .02, .5, .13 * k, 2600, { q: 1, f1: 700, send: .2 }); ring(t + .04, { f: 262, partials: [1, 2.4, 3.9, 5.7], decay: 1.1, vol: .035 * k, send: .5 });
@@ -916,6 +922,9 @@
     ring(t + r + .01, { f: 587, partials: [1, 2.4, 3.9, 5.4], decay: 1.7, vol: .06 * k, send: .55 });
     for (let i = 0; i < 3; i++) ring(t + r + .12 + i * .14, { f: 440 - i * 40, partials: [1, 2.76], decay: .7, vol: .025 * k, send: .5 });   // the spreading rings
     whoosh(t + r + .01, { dur: .7, peak: .1, f0: 1500, f1: 480, f2: 180, q: .6, vol: .3 * k, low: 200, send: .3 });   // the pressure wall (fx-impact.js)
+    // the death cry must outlast the first cry (render: its tail was 1.25 s against 1.75 s): a low rolling echo of bone and stone
+    burst(t + r + .25, 1.5, .1 * k, 200, { q: .6, attack: .25, bus: 'amb', send: .35, buf: N.brown }); thud(t + r + .5, { f0: 70, f1: 30, dur: .7, vol: .45 * k, send: .4 });
+    sample('bone', { vol: .3 * k, rate: .55, delay: r + .45, send: .4 });
     duck(N.musicDuck, .45, .7, .4); duck(N.ambDuck, .5, .7, .4); stinger('rage', .25);
   };
   // Tier III shout "Kıyamet Narası": stage 1 = very low roar + sub-boom + choir fifth + rumble; stage 2 (+.34 s) a second blast; the third ring (+.68 s) closes with a stone crack.
