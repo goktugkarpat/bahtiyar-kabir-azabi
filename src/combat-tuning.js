@@ -37,9 +37,9 @@
     circle: .42
   });
   // Per-chapter correction for common foes (not bosses), on top of the campaign ramp in combat.js. Measured with the average bot on Normal
-  // (hero at the expected level/gear of the chapter: L3 / L6 / L9 / L11), health lost per hall before -> after this table:
-  // ch I 23.6 % -> see notes, ch II 12.3 % (the hero's level-6 jump outran the shore foes) -> raised, ch III 33 %, ch IV 42 %.
-  const CHAPTER = Object.freeze({ 1: { hp: 1, dmg: .85 }, 2: { hp: 1.12, dmg: 2.0 }, 3: { hp: 1, dmg: .88 }, 4: { hp: 1, dmg: .8 } });
+  // (hero at the expected level/gear of the chapter: L3 / L6 / L9 / L11), health lost per hall without -> with this table:
+  // ch I 23.6 -> ~20 %, ch II 12.3 (the hero's level-6 jump outran the shore foes) -> ~19 %, ch III 33 -> ~26 %, ch IV 42 -> ~34 %.
+  const CHAPTER = Object.freeze({ 1: { hp: 1, dmg: .85 }, 2: { hp: 1.12, dmg: 2.3 }, 3: { hp: 1, dmg: .88 }, 4: { hp: 1, dmg: .8 } });
   // Chapter bosses (their own blows only; adds follow CHAPTER): the forge heart hit softer than the hollow king it follows.
   const BOSS = Object.freeze({ 1: { dmg: 1 }, 2: { dmg: 1 }, 3: { dmg: 1 }, 4: { dmg: 1.3 } });
   function profile(level) { return DIFFICULTY[level] || DIFFICULTY.normal; }
@@ -52,5 +52,21 @@
   }
   B.CombatTuning = Object.freeze({ DIFFICULTY, CHAPTER, BOSS, ECONOMY, FEEL, profile, describe });
 })();
-/* Measurements (BABA.Balance.run, expected gear and level per chapter; see the report in the branch notes):
-   filled in after tuning below. */
+/* Measurements (BABA.Balance.run; every hall / boss fought from full health with the chapter's expected level and gear:
+   ch I L3, ch II L6, ch III L9, ch IV L11). Bots: novice (sees a tell after .42 s, ignores 35 %), average (.30 s, 18 %),
+   skilled (.20 s, 6 %, rolls late), spam (rolls at every tell at once plus random rolls). Numbers = % health lost summed over the chapter's
+   12-13 fights (deaths / flasks used). BEFORE = old code (flat 12/s regen, .45 s i-frames, hard = no ease), AFTER = this file.
+                      ch I            ch II           ch III          ch IV
+   Normal average  B 117 (0/0)     B  33 (0/0)     B 204 (0/0)       -
+                   A 256 (0/1)     A 169..235      A 334 (0/0)     A 440 (0/1)
+   Normal skilled  B  66           -               B  97             -
+                   A  17           A  72           A 160           A 216
+   Normal spam     B 485 (0/3)     -               B 859 (0/7)       -
+                   A 803 (0/7)     A 821 (0/10)    A 1158 (1/13)   A 1506 (2/20)
+   Hard average    B 228 (0/0)     B 100 (0/0)     B 457 (0/1)       -
+                   A 963 (0/9)     A 475 (1/3)     A 1118 (1/10)   A 1356 (0/22)
+   Hard skilled    B  35           -               B 108             -
+                   A 263 (0/0)     A 156 (0/1)     A 697 (0/3)     A 995 (1/11)
+   Easy novice     A 212 (0/0)     A 150           A 225           A 321 (0/1)
+   Old Hard let a skilled roller lose 35 % over all of chapter I; the spam roller now loses 3-6x what a timed roller loses on Normal.
+   Chapter II common foes were raised again after this table (dmg 2.0 -> 2.3, the level-6 hero outran them). */
