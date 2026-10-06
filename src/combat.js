@@ -1583,6 +1583,7 @@
       if (game.attackTarget === enemy) game.attackTarget = null;
       cancelHazards(enemy, false); if (!enemy.reserve) game.kills++;
       if (mobMods) mobMods.kill(enemy);
+      if (director && enemy.boss) director.slain(enemy);
       progression.grantEnemy(enemy.id, enemy.type, enemy.boss, chapter, game.difficulty, enemy.elite, enemy);
       syncProgression();
       if (gate) gate.kill(enemy);

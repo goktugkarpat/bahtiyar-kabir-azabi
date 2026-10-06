@@ -289,7 +289,8 @@
       if (e.dead || game.state !== 'playing') {
         aura.visible = false; st.tether = null; chain.count = 0;
         if (st.edge) { var ix = hazards.indexOf(st.edge); if (ix >= 0) hazards.splice(ix, 1); st.edge = null; }
-        if (game.state === 'dead' || e.dead) { if (cine && cine.barsT > 0) { cine.barsT = .01; } }
+        if (e.dead) slain(e);
+        else if (game.state === 'dead' && cine && cine.barsT > 0) cine.barsT = .01;
         return;
       }
       if (e.active && !st.intro) {
@@ -311,6 +312,8 @@
         st.phaseKey = key;
         if (label) showCard(e.enraged ? tr('ÖFKE') : ['', 'I', 'II', 'III', 'IV', 'V'][e.phase] + ' · ' + tr('EVRE'), label, p.title || e.name, 3.2, 2.2, true, p.color);
         api.fx('glowBurst', { x: e.x, y: .05, z: e.z, radius: 7, color: p.color || 0xb8452d, duration: 1.1 });
+        if (api.slowMotion) api.slowMotion(.3);
+        api.emit('impact', { x: e.x, z: e.z, strength: 1, radius: 9 });
         st.sigAt = Math.min(st.sigAt, time + 6); st.sig2At = Math.min(st.sig2At, time + 14);
       }
       st.exposed = Math.max(0, st.exposed - dt); st.perfectCd = Math.max(0, st.perfectCd - dt);
@@ -329,6 +332,16 @@
       if (!e.action && e.stagger <= 0) pursuit(e, p);
     }
 
+    // The fall: a short title card and the bars close in once more. Called from combat.js killEnemy (the game may leave 'playing' at once,
+    // so this card fades on its own wall clock instead of the combat step).
+    function slain(e) {
+      var p = profileOf(e); if (!p || st.slain || !st.intro || e !== st.boss) return;
+      st.slain = true; showCard(tr('YENİLDİ'), p.title || e.name, p.epithet || '', 30, 30, true, p.color);
+      if (api.slowMotion) api.slowMotion(.5);
+      api.fx('glowBurst', { x: e.x, y: .05, z: e.z, radius: 8, color: p.color || 0xb8452d, duration: 1.6 });
+      setTimeout(function () { if (cine) { cine.barsT = 0; cine.el.classList.remove('on'); } }, 2600);
+      setTimeout(hideOverlay, 3600);
+    }
     /* ---- hooks called by combat.js */
     function attack(e, d) {
       var p = profileOf(e); if (!p || !st.intro || st.boss !== e) return false;
@@ -362,7 +375,7 @@
     }
     function reset() { st = fresh(); chain.count = 0; aura.visible = false; hideOverlay(); }
     function dispose() { reset(); root.parent && root.parent.remove(root); aura.geometry.dispose(); aura.material.dispose(); chain.geometry.dispose(); chain.material.dispose(); if (BF.current === dir) BF.current = null; }
-    var dir = { update: update, attack: attack, hurt: hurt, evaded: evaded, reset: reset, dispose: dispose, tetherStart: tetherStart, kit: kit,
+    var dir = { update: update, attack: attack, slain: slain, hurt: hurt, evaded: evaded, reset: reset, dispose: dispose, tetherStart: tetherStart, kit: kit,
       get state() { return st; } };
     BF.current = dir;
     return dir;
