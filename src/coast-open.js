@@ -163,7 +163,12 @@
       var n = .5 + .5 * Math.sin(x * .21 + z * .17) * Math.sin(x * .07 - z * .11), moss = smooth(.4, 3, d) * (1 - smooth(2.5, 5, y)) * n, wet = (1 - smooth(0, 2.2, din)) * (1 - smooth(0, 1, d)) * .6;
       var r0 = .78, g0 = .74, b0 = .66;
       r0 = r0 * (1 - moss * .35) - wet * .2; g0 = g0 * (1 - moss * .12) - wet * .14; b0 = b0 * (1 - moss * .38) - wet * .1;
-      var crest = smooth(2.5, 5.5, y) * .2; col[k * 3] = r0 + crest; col[k * 3 + 1] = g0 + crest; col[k * 3 + 2] = b0 + crest * .9;
+      var crest = smooth(2.5, 5.5, y) * .2;
+      // relief: steep banks darken to wet rock, ledge tops catch a pale salt crust; the trail's own bed is a darker trodden mud
+      var hl = H.h[k - (i > 0 ? 1 : 0)], hr = H.h[k + (i < nx - 1 ? 1 : 0)], hd = H.h[k - (j > 0 ? nx : 0)], hu = H.h[k + (j < nz - 1 ? nx : 0)];
+      var slope = Math.min(1, Math.hypot(hr - hl, hu - hd) * .9), cav = Math.max(-.4, Math.min(.4, (hl + hr + hd + hu) * .25 - y));
+      var trod = d <= 0 && Math.abs(x - trailX(z)) < 1.6 ? .55 : 0, shade = 1 - slope * .42 - cav * .5;
+      col[k * 3] = (r0 + crest) * shade - trod * .12; col[k * 3 + 1] = (g0 + crest) * shade - trod * .13; col[k * 3 + 2] = (b0 + crest * .9) * shade - trod * .12;
     }
     for (j = 0; j < nz - 1; j++) for (i = 0; i < nx - 1; i++) {
       var a = j * nx + i, b = a + 1, c = a + nx, e = c + 1;
@@ -176,9 +181,9 @@
     var terrain = new T.Mesh(tg, M.terrain); terrain.receiveShadow = true; terrain.castShadow = false; terrain.name = 'coast-open-terrain'; terrain.matrixAutoUpdate = false; K.root.add(terrain);
 
     // Ridge stones and exposed rock shelves along the slopes (the landscape keeps a hard skeleton).
-    for (var q = 0; q < 300; q++) {
+    for (var q = 0; q < 420; q++) {
       var x = R(-94, -2), z = R(-198, 22), d = H.outer(x, z); if (d < .8 || d > 14) continue;
-      var big = d > 4 && rnd() < .35, s = big ? R(1.4, 3.4) : R(.35, 1.2);
+      var big = d > 3 && rnd() < .45, s = big ? R(1.4, 3.6) : R(.35, 1.2); s = Math.min(s, (d + .4) / .7);
       onGround(nearestRoom(x, z), G.rock, 'rock', x, -.15 * s, z, s * R(.8, 1.4), s * R(.45, .9), s * R(.8, 1.3), R(-.2, .2), R(0, 6), R(-.2, .2));
     }
 
@@ -209,7 +214,13 @@
       K.tree(nearestRoom(x, z), x, z, R(5, 11), R(.18, .42), R(-1.5, 1.5), gy(x, z) - .2);
     }
 
-    /* ---- trail: cairns, way-shrines, fence, lanterns, bones ---- */
+    /* ---- trail: sunken flagstones, cairns, way-shrines, fence, lanterns, bones ---- */
+    for (z = 7; z > -146; z -= 1.05) {
+      if (B.Gear.hash(z * 3.1, 7, 1) < .3) continue;
+      var tx = trailX(z) + Math.sin(z * .7) * .5, nst = B.Gear.hash(z, 2, 3) < .5 ? 1 : 2;
+      for (var st = 0; st < nst; st++) add(15, K.G.paving[(((st + Math.round(z)) % 3) + 3) % 3], 'funeralPaving', tx + (nst > 1 ? (st - .5) * .95 : 0) + R(-.15, .15), .008, z + R(-.1, .1), R(.65, .95), .34, R(.6, .85), 0, R(-.4, .4), 0);
+    }
+    for (q = 0; q < 160; q++) { z = R(-146, 8); x = trailX(z) + R(-2.6, 2.6); var ps = R(.05, .16); add(15, G.pebble, 'rock', x, .02, z, ps, ps * .5, ps * .8, 0, R(0, 6), 0); }
     for (z = 4; z > -146; z -= 7.5) {
       var cx = trailX(z), s = (Math.floor(-z / 7.5) % 2) ? 1 : -1, ex = cx + s * 3.35;
       if (L.floorTest(ex, z, -.2)) continue;
@@ -258,6 +269,20 @@
       }
       [r.z - r.d / 2, r.z + r.d / 2].forEach(function (ez) { for (var k = 0; k < 14; k++) { var x = R(-r.w / 2, -9), z = ez + R(-1, 1); add(id, K.G.paving[k % 3], 'funeralPaving', x, .012, z, R(.5, .9), .34, R(.5, .9), 0, R(0, 6), 0); } });
     });
+
+    /* ---- 6: the drowned bell court floor: flat detail only (the boss needs the whole disc) ---- */
+    (function () {
+      var cx = 0, cz = -174;
+      [3.2, 6.4, 9.6, 12.8, 15.6].forEach(function (rad, ring) {
+        var n = Math.round(rad * 2 * PI / 1.05);
+        for (var k = 0; k < n; k++) { var a = k / n * PI * 2, wear = B.Gear.hash(k, ring, 61); if (wear < .28) continue;
+          add(6, K.G.paving[(k + ring) % 3], 'funeralPaving', cx + Math.cos(a) * rad, .012, cz + Math.sin(a) * rad, .95, .34, .7 + wear * .3, 0, -a, 0); }
+      });
+      for (var k = 0; k < 12; k++) { var a = R(0, PI * 2), rr = R(2, 14); add(6, G.rock, 'puddle', cx + Math.cos(a) * rr, -.04, cz + Math.sin(a) * rr, R(.9, 2.4), .05, R(.6, 1.6), 0, R(0, 6), 0); }
+      for (k = 0; k < 40; k++) { a = R(0, PI * 2); rr = R(3, 16); add(6, G.plank, 'root', cx + Math.cos(a) * rr, .02, cz + Math.sin(a) * rr, R(.6, 1.6), .025, R(.05, .12), 0, R(0, 6), 0); }   // stranded kelp
+      for (k = 0; k < 7; k++) { a = R(0, PI * 2); rr = R(13, 15.5); add(6, G.cone, 'rust', cx + Math.cos(a) * rr, .25, cz + Math.sin(a) * rr, R(.4, .8), R(.3, .6), R(.4, .8), R(1.2, 1.9), R(0, 6), R(-.3, .3)); }   // bell shards
+      for (k = 0; k < 18; k++) { a = R(0, PI * 2); rr = R(1, 16); var ps = R(.06, .18); add(6, G.pebble, 'bone', cx + Math.cos(a) * rr, .03, cz + Math.sin(a) * rr, ps, ps * .4, ps * 1.6, 0, R(0, 6), 0); }
+    }());
 
     /* ---- 9: ash fishers' houses ---- */
     var nt;
