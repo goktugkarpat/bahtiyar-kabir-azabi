@@ -218,5 +218,8 @@
     }
     B.GearArmor.looks = lookOf;
   }
-  B.GearArmor = { build, looks: {} };
+  // Family name shown in the character screen (identity only; no set bonus).
+  const FAMILY_NAME = { ember: 'Ocak Dökümü', frost: 'Deniz Nöbetçisi', holy: 'Kral Mezarı', gore: 'Cellat Yası', void: 'Kemik Ayini' };
+  function familyName(item) { if (!item || !(item.rarity === 'rare' || item.rarity === 'epic' || item.rarity === 'boss')) return ''; const n = FAMILY_NAME[theme(item)]; return n ? KabirI18n.t(n) : ''; }
+  B.GearArmor = { build, looks: {}, familyName };
 })();
