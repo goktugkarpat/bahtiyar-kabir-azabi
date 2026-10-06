@@ -78,7 +78,7 @@
     if (h.shape === 'ring') return { x: -dx / d, z: -dz / d };
     return { x: dx / d, z: dz / d };
   }
-  function setupProfile(game, chapter, level, gear) {
+  function setupProfile(game, chapter, level, gear, build) {
     const P = B.Progression, prog = game.progression, kit = GEAR[chapter] || GEAR[1];
     const lvl = Math.max(1, Math.min(P.MAX_LEVEL, level || kit.level));
     const inv = [], eq = {};
@@ -86,6 +86,16 @@
     const snap = prog.snapshot();
     prog.restore(Object.assign({}, snap, { xp: P.thresholds[lvl - 1], learned: [], loadout: [null, null, null, null], inventory: inv, equipment: {}, completed: [1, 2, 3].filter(c => c < chapter) }));
     Object.values(eq).forEach(uid => prog.equip(uid));
+    // talent tree 3 (talent-tree.js): build = a preset id or a list of node ids; learned in a legal order as far as the level allows, actives slotted in that order.
+    const T = B.TalentTree, list = build && T ? (Array.isArray(build) ? build : ((T.presets.find(p => p.id === build) || {}).nodes || null)) : null;
+    if (list) {
+      for (const id of T.validate(list, prog.level, prog.boons ? prog.boons().points || 0 : 0)) prog.unlock(id);
+      const top = [];
+      for (const id of prog.learned) { const sk = P.skills.find(k => k.id === id); if (!sk) continue; const i = top.findIndex(o => P.skills.find(k => k.id === o).line === sk.line); if (i >= 0) top[i] = id; else top.push(id); }
+      top.slice(0, 4).forEach((id, n) => prog.assign(n, id));
+      game.syncProgression(true);
+      return { level: prog.level, stats: prog.stats(), learned: prog.learned.slice(), loadout: prog.loadout.slice() };
+    }
     // Learn every reachable skill, lowest level first (one line at a time so upgrades follow), then fill the four slots by line.
     for (let pass = 0; pass < 4; pass++) for (const s of P.skills.slice().sort((a, b) => a.level - b.level)) prog.unlock(s.id);
     const lines = ['cleave', 'whirl', 'roar', 'charge'];
@@ -118,7 +128,7 @@
     const bot = Object.assign({}, BOTS[o.bot] || BOTS.average, o.tune || {});
     if (game.state !== 'playing') game.start();
     game.setDifficulty(o.difficulty);
-    const profile = setupProfile(game, chapter, o.level, o.gear);
+    const profile = setupProfile(game, chapter, o.level, o.gear, o.build);
     game.saveProfileChoices();
     const prog = game.progression, grant = prog.grantEnemy;
     prog.grantEnemy = () => ({ xp: 0, levels: 0, items: [], duplicate: true });   // no levelling inside a measurement

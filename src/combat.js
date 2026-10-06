@@ -167,7 +167,7 @@
     game.progression = progression;
     // Talent tree 3 (src/talent-runtime.js): bleed / burn / curses / burning ground, Kor Mührü + Ölüm Çanı, seals and keystones.
     const talents = BABA.TalentRuntime ? BABA.TalentRuntime.create({ game, player, enemies, progression, root, fx, sound, emit, groundY: (x, z) => world.effectHeightAt ? world.effectHeightAt(x, z, .6) : .06,
-      strike: (e, amount, face) => { if (!e || e.dead) return null; if (!e.active) { e.active = true; e.activated = true; if (e.encounter) e.encounter.activated = true; } return hurtEnemy(e, Math.round(amount), true, face, { talent: true, combo: 0, face, heavy: true }); },
+      strike: (e, amount, face) => { if (!e || e.dead) return null; if (!e.active) { e.active = true; e.activated = true; if (e.encounter) e.encounter.activated = true; } return hurtEnemy(e, Math.round(amount), true, face, { talent: true, combo: 0, face, heavy: true, gained: 99 }); },   // gained: talent bursts never refill the stamina orb (ECONOMY.HIT)
       dot: (e, amount, kind) => talentTick(e, amount, kind), stun: (e, s) => stunEnemy(e, s, 'heavy'),
       yank: (e, x, z, keep) => { const d = Math.hypot(x - e.x, z - e.z); if (d > keep) { e.push = null; moveBody(e, (x - e.x) / d * (d - keep), (z - e.z) / d * (d - keep), e.radius); } },
       canHit: e => !!e && !e.dead && !enemyUnderground(e) && e.model.root.visible && clearStrike(player, e) }) : null;
@@ -176,8 +176,11 @@
     function talentTick(enemy, amount, kind) {
       if (!enemy || enemy.dead || enemyUnderground(enemy) || game.state !== 'playing') return null;
       if (!enemy.active) { enemy.active = true; enemy.activated = true; if (enemy.encounter) enemy.encounter.activated = true; }
-      let damage = Math.max(1, Math.round(amount * (player.damageMultiplier || 1) * (game.difficulty !== 'hard' ? 1.18 : 1)));
+      let damage = Math.max(1, Math.round(amount * (player.damageMultiplier || 1)));
+      { const P = tuning(); damage = Math.max(1, Math.round(damage * (P ? P.playerDmg : game.difficulty !== 'hard' ? 1.18 : 1))); }   // same difficulty scale as hurtEnemy
       if (talents) damage = talents.outgoing(enemy, damage, null);
+      if (mobMods) damage = mobMods.hurt(enemy, damage, false, false, true);   // armoured / warded champions also dampen burn and bleed
+      if (director && enemy.boss) damage = director.hurt(enemy, damage);
       enemy.hp = Math.max(0, enemy.hp - damage); if (enemy.boss && !enemy.action) enemy.wrath += damage;
       const killed = enemy.hp <= 0;
       fx('talentTick', { x: enemy.x, y: 1.4, z: enemy.z, damage, kind, labelTarget: enemy, kill: killed });
@@ -230,7 +233,7 @@
       const stats = progression.stats();
       const wasMax = player.effectiveMaxHp || stats.maxHp, woundHp = player.hp * wasMax / 100;
       player.maxHp = 100; player.effectiveMaxHp = stats.maxHp;
-      if (talents) { player.maxFlasks = talents.maxFlasks(4); player.flasks = Math.min(player.flasks, player.maxFlasks); }
+      if (talents && !BABA.QuestSide) { player.maxFlasks = talents.maxFlasks(4); player.flasks = Math.min(player.flasks, player.maxFlasks); }   // with quest-side.js the flask capacity is set there (it adds the talent delta)
       player.damageMultiplier = stats.damageMultiplier; player.defense = stats.defense;
       // Preserve the original effective wounds and growth: 100 is the health unit, not a loss of gear strength.
       const levelHeal = progression.level > appliedLevel ? Math.max(0, stats.maxHp - wasMax) : 0;
@@ -1984,7 +1987,7 @@
       if (order && !order.held) order = null;   // a roll ends a one-shot order (a held button keeps going once the roll is over)
       // Chained rolls (one starting within ECON.DODGE_CHAIN s of the last one's end) climb in price; a pause resets the chain.
       dodgeChain = simTime - lastRollAt < .48 + (ECON ? ECON.DODGE_CHAIN : 0) ? Math.min(ECON ? ECON.CHAIN_MAX : 0, dodgeChain + 1) : 0; lastRollAt = simTime; lastRollCost = rollCost;
-      if (ECON) staminaWait = Math.max(staminaWait, (tuning() ? tuning().regenDelay : 0) + ECON.DODGE_EXTRA_DELAY);
+      if (ECON && rollCost > 0) staminaWait = Math.max(staminaWait, (tuning() ? tuning().regenDelay : 0) + ECON.DODGE_EXTRA_DELAY);   // Zincirli Kader rolls cost nothing and do not pause the refill
       clearLack('dodge'); player.stamina -= rollCost; player.dodge = .48; dodgeAge = 0; player.invulnerable = true;
       // Two presses may share a frame. The roll starts after queuing, so retain accepted skills for this new commitment too.
       for (const key of skillKeys) if (buffer[key]) buffer[key] = Math.max(buffer[key], player.dodge + FEEL.buffer);
