@@ -111,7 +111,9 @@
     function hitFlash(enemy, d) {
       if (calm() || !enemy || !enemy.model || !enemy.model.root) return;
       const ov = overlayOf(enemy.model); if (!ov.list.length) return;
-      let s = ov.slot; if (!s) { s = flashSlots.find(q => !q.ov) || null; if (!s) return; s.ov = ov; ov.slot = s; for (const it of ov.list) it.c.material = s.mat; }
+      let s = ov.slot; if (!s) {   // low particle budgets (iPad) flash fewer bodies at once: each flash redraws that body's skinned meshes
+        let busy = 0; for (const q of flashSlots) if (q.ov) busy++; if (busy >= Math.min(8, scaleCount(8))) return;
+        s = flashSlots.find(q => !q.ov) || null; if (!s) return; s.ov = ov; ov.slot = s; for (const it of ov.list) it.c.material = s.mat; }
       const col = (d && d.col) || [1, .82, .66], a = d && d.a != null ? d.a : .55;
       const left = s.t < s.life ? s.a * Math.pow(1 - s.t / s.life, 2) : 0;
       s.t = 0; s.life = (d && d.life) || .16; s.a = Math.max(a, left); s.mat.color.setRGB(col[0], col[1], col[2]); s.mat.opacity = s.a;
