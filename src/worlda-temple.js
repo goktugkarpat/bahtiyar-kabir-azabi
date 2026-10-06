@@ -43,10 +43,16 @@
       G['wa-urn'] = urn;
     }
     if (!K.materials['wa-linen']) { var lin = K.materials.shroud.clone(); lin.vertexColors = false; lin.color.copy(K.linear(.55, .47, .34)); lin.roughness = 1; K.materials['wa-linen'] = lin; }
-    var put = K.put, box = K.box, rod = K.rod, solid = K.solid;
+    // Small props never cast static shadows (detail level 1): the shadow passes only see walls, piers and big furniture.
+    function put(geo, mat, x, y, z, sx, sy, sz, rx, ry, rz, level, color) {
+      if (!level && mat !== 'floor' && Math.max(Math.abs(sx), Math.abs(sy), Math.abs(sz)) < 1.6) level = 1;
+      K.put(geo, mat, x, y, z, sx, sy, sz, rx, ry, rz, level, color);
+    }
+    function box(mat, x, y, z, w, h, d, angle, level, color) { put('box', mat, x, y, z, w, h, d, 0, angle || 0, 0, level, color); }
+    var rod = K.rod, solid = K.solid;
     function rock(mat, x, y, z, s, sy) { put('wa-rock', mat, x, y, z, s * U(.8, 1.25), (sy || s) * U(.7, 1.1), s * U(.8, 1.25), U(-.4, .4), R() * 6.28, U(-.4, .4), 1); }
     function pile(x, z, r, n, mat) {
-      for (var i = 0; i < n; i++) { var a = R() * 6.28, d = Math.sqrt(R()) * r, s = U(.22, .62) * (1 - d / r * .5); rock(i % 4 ? (mat || 'stone') : 'dark', x + Math.cos(a) * d, s * .3 + (1 - d / r) * r * .22, z + Math.sin(a) * d, s); }
+      for (var i = 0; i < n; i++) { var a = R() * 6.28, d = Math.sqrt(R()) * r, s = U(.22, .62) * (1 - d / r * .5); rock(mat || 'stone', x + Math.cos(a) * d, s * .3 + (1 - d / r) * r * .22, z + Math.sin(a) * d, s); }
       K.floorDecal('matte', CELL.ashPile, x, z, r * 2.7, r * 2.7, null, COL.dust, 1);
     }
     function skull(x, z, s, yaw, y) {
@@ -105,7 +111,7 @@
           if (!skip) {
             var v = U(.7, 1.04), shade = new T.Color().setRGB(v * U(.95, 1.03), v, v * U(.96, 1.02));
             var broken = R() < .07, sink = broken ? -.03 : U(-.005, .005);
-            put('slab' + Math.floor(R() * 4), pale && R() < .1 ? 'pale' : 'floor', px, -.141 + sink, pz, tw - .045, .24, td - .045, broken ? U(-.03, .03) : 0, Math.floor(R() * 2) * PI, broken ? U(-.03, .03) : 0, 0, shade);
+            put(R() < .5 ? 'slab0' : 'slab2', pale && R() < .1 ? 'pale' : 'floor', px, -.141 + sink, pz, tw - .045, .24, td - .045, broken ? U(-.03, .03) : 0, Math.floor(R() * 2) * PI, broken ? U(-.03, .03) : 0, 0, shade);
             if (R() < .16) K.floorDecal('matte', CELL.cracks, px + U(-.4, .4), pz + U(-.3, .3), U(.7, 1.4), U(.7, 1.4), null, COL.crack, 1);
           }
           laid += tw; ix++;
@@ -137,8 +143,8 @@
       });
       K.box('foundation', o.x, -depth - .3, o.z, o.w, .2, o.d);
       // What was thrown down: a slope of bones and skulls at the bottom.
-      for (var i = 0; i < 18; i++) skull(o.x + U(-hx + .4, hx - .4), o.z + U(-hz + .4, hz - .4), U(.9, 1.2), U(-3, 3), -depth - .2 + U(0, .4));
-      for (var j = 0; j < 30; j++) { var bx = o.x + U(-hx + .3, hx - .3), bz = o.z + U(-hz + .3, hz - .3), ba = R() * 6.28, by = -depth - .12 + U(0, .35);
+      for (var i = 0; i < 10; i++) skull(o.x + U(-hx + .4, hx - .4), o.z + U(-hz + .4, hz - .4), U(.9, 1.2), U(-3, 3), -depth - .2 + U(0, .4));
+      for (var j = 0; j < 14; j++) { var bx = o.x + U(-hx + .3, hx - .3), bz = o.z + U(-hz + .3, hz - .3), ba = R() * 6.28, by = -depth - .12 + U(0, .35);
         rod('bone', [bx - Math.cos(ba) * .3, by, bz - Math.sin(ba) * .3], [bx + Math.cos(ba) * .3, by + U(-.1, .1), bz + Math.sin(ba) * .3], .035, 2); }
       if (glow) {
         K.decal('glow', CELL.glow, o.x, -depth - .18, o.z, o.w * 1.3, o.d * 1.1, 0, glow, 0);
@@ -293,14 +299,14 @@
         // skull walls: stacked rows of skulls on shelves against the north wall corners
         [-1, 1].forEach(function (k) {
           var bx = r.x + k * (r.w / 2 - 1.9);
-          for (var row = 0; row < 4; row++) {
+          for (var row = 0; row < 3; row++) {
             put('slab' + row % 4, 'dark', bx, .4 + row * .62, S.north + .62, 2.6, .08, .5, 0, 0, 0, 1);
             for (var c = 0; c < 6; c++) skull(bx - 1.1 + c * .44, S.north + .66, .95, U(-.25, .25), .44 + row * .62);
           }
           solid(bx, S.north + .7, 2.8, .9);
         });
-        skulls(S.back + S.s * 3.4, r.z + 5.6, 1.1, 16);
-        skulls(r.x + S.s * 6.3, r.z - 7.6, .9, 11);
+        skulls(S.back + S.s * 3.4, r.z + 5.6, 1.1, 10);
+        skulls(r.x + S.s * 6.3, r.z - 7.6, .9, 8);
         K.ribCage(r.x - S.s * 2.5, r.z + 7.2, .7);
         K.boneScatter(r.x + 2, r.z - 4.5, 7, 1.1);
         brokenColumn(r.x + S.s * 6.5, r.z + 6.5, 2.1, true);
@@ -560,7 +566,7 @@
         K.floorDecal('matte', CELL.ashPile, r.x - r.w / 2 + 1.1 + eb * 2.2, r.z + r.d / 2 - .8, 2.4, 1.4, U(-.3, .3), COL.dust, 1); }
       for (var es = 0; es < Math.ceil(r.d / 2.2); es++) [-1, 1].forEach(function (k) { K.floorDecal('matte', es % 2 ? CELL.mould : CELL.specks, r.x + k * (r.w / 2 - .8), r.z - r.d / 2 + 1.1 + es * 2.2, 1.6, 2.6, U(-.3, .3), es % 2 ? COL.grime : COL.dust, 1); });
       for (var i = 0; i < 34; i++) { var x = r.x + U(-r.w / 2 + .8, r.w / 2 - .8), z = r.z + U(-r.d / 2 + .8, r.d / 2 - .8); if (inHole(holes, x, z, .5)) continue;
-        put('wa-pebble', i % 3 ? 'stone' : 'dark', x, .03, z, U(.08, .22), U(.05, .12), U(.08, .2), U(-.3, .3), R() * 6, U(-.3, .3), 2); }
+        put('wa-pebble', 'stone', x, .03, z, U(.08, .22), U(.05, .12), U(.08, .2), U(-.3, .3), R() * 6, U(-.3, .3), 2); }
       for (var j = 0; j < 9; j++) { var bx = r.x + U(-r.w / 2 + 1, r.w / 2 - 1), bz = r.z + U(-r.d / 2 + 1, r.d / 2 - 1), a = R() * 6.28, l = U(.25, .5); if (inHole(holes, bx, bz, .5)) continue;
         rod('bone', [bx - Math.cos(a) * l / 2, .05, bz - Math.sin(a) * l / 2], [bx + Math.cos(a) * l / 2, .05, bz + Math.sin(a) * l / 2], .03, 2); }
       for (var k = 0; k < 14; k++) { var dx = r.x + U(-r.w / 2 + 1, r.w / 2 - 1), dz = r.z + U(-r.d / 2 + 1, r.d / 2 - 1); if (inHole(holes, dx, dz, 0)) continue;
