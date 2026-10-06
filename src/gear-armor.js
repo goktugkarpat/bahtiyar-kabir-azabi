@@ -118,11 +118,11 @@
     }
     function kneeSpikes(id, mat, trim, glow, spur) {
       for (const s of ['L', 'R']) {
-        const shin = 'shin' + s, foot = 'tarsal' + s, knee = A.P(shin), sk = A.box(A.cloud([shin], ['skin'], .42)), c = sk.getCenter(new T.Vector3());
-        const kp = [knee.x, knee.y + .012, Math.max(knee.z + .09, c.z + .075)];
-        part('boots', id, mat, G.spike(.02, kp, [kp[0], kp[1] + .05, kp[2] + .085], 6), shin);
-        part('boots', id, trim, G.ring(.02, .004, kp, [PI / 2, 0, 0], 5, 16), shin);
-        if (glow) part('boots', id, glow, G.sphere(.007, [kp[0], kp[1] - .03, kp[2] + .006], [1, 1, .5], 8, 6), shin);
+        const shin = 'shin' + s, foot = 'tarsal' + s, cover = sleeve(A, shin, foot, .6, .95, .018, .004, ['skin', 'leather']), front = facingAngle(cover);
+        const q = cover.at(front, .8, .006), kp = q[0].toArray(), n = q[1];
+        part('boots', id, mat, G.spike(.014, kp, [kp[0] + n.x * .06, kp[1] + .03, kp[2] + n.z * .06], 6), shin);
+        part('boots', id, trim, G.ring(.017, .0035, kp, [PI / 2, 0, 0], 5, 16), shin);
+        if (glow) { const g = cover.at(front, .86, .006)[0]; part('boots', id, glow, G.sphere(.007, g.toArray(), [1, 1, .5], 8, 6), shin); }
         if (spur) { const fb = A.box(A.cloud([foot], ['skin'], .35)), hp = [mix(fb.min.x, fb.max.x, .5), fb.min.y + .04, fb.min.z - .02]; part('boots', id, trim, G.tube([hp, [hp[0], hp[1] + .004, hp[2] - .05]], .0035, 5, 6, true), foot); const r = new T.TorusGeometry(.014, .003, 4, 10); r.translate(hp[0], hp[1] + .004, hp[2] - .055); part('boots', id, mat, r, foot); }
       }
     }
