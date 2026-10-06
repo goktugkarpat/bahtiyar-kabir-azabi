@@ -27,11 +27,19 @@
     [[[-.3,0],[.22,.56],[0,.88],[-.22,.56],[.3,0]]],
     [[[0,0],[0,1]],[[0,1],[.25,.8]],[[0,0],[-.25,.2]]]
   ];
+  // gear-*: lighter tessellation for hidden-until-equipped parts (iPad memory); silhouettes keep their shape.
+  const lodGear = (S, k) => Object.assign({}, S, {
+    tube: (p, r, rad, tub, caps) => S.tube(p, r, Math.max(3, Math.round((rad || 8) * .75)), Math.max(2, Math.ceil((tub || Math.max(4, p.length * 5)) * k)), caps),
+    shell: (nu, nv, fn, t, c, f, o) => S.shell(Math.max(2, Math.round(nu * k)), Math.max(1, Math.round(nv * k)), fn, t, c, f, o),
+    sphere: (r, p, s, ws, hs) => S.sphere(r, p, s, Math.max(6, Math.round((ws || 14) * .7)), Math.max(4, Math.round((hs || 10) * .7))),
+    lathe: (pr, seg, a, b) => S.lathe(pr, Math.max(8, Math.round((seg || 24) * .7)), a, b) });
   function build(ctx) {
-    const G = B.Gear, { equipmentWeapon } = ctx, out = {};
+    const G = lodGear(B.Gear, .6), { equipmentWeapon } = ctx, out = {};
     const KEYS = ['steel','edge','dark','brass','leather','wood','bone','gold','black','gem','crimson','sable','horn','hide','ember','frost','venom','void','holy','gore','rag','cloth','silver','strap','bronze','salt','rust'];
     const parts = () => { const P = {}; KEYS.forEach(k => P[k] = []); return P; };
     const v3 = a => new T.Vector3().fromArray(a);
+    const GLOWS = new Set(['ember', 'frost', 'venom', 'void', 'holy', 'gore']);
+    const grand = id => { const it = B.Progression && B.Progression.catalog[id]; return it && (it.rarity === 'epic' || it.rarity === 'boss'); };
     const bz = (u, thick, fuller, bev) => { let z = thick * .5 * (1 - .3 * u); if (fuller && u > fuller[0] && u < fuller[1]) z -= thick * .26 * Math.sin((u - fuller[0]) / (fuller[1] - fuller[0]) * PI); if (u > 1 - bev) z *= 1 - (u - (1 - bev)) / bev * .94; return z; };
     const line = (fn, n) => Array.from({ length: n + 1 }, (_, i) => fn(i / n));
     // mirror x about the curve c(y) (double-edged blades); winding is restored.
@@ -166,7 +174,7 @@
         for (const c of chips) if (c[2] === sideSign || !c[2]) w -= c[1] * Math.max(0, 1 - Math.abs(t - c[0]) / .02);
         return Math.max(.0008, w);
       };
-      const rows = serr ? 220 : 110;
+      const rows = serr ? 150 : 64;
       if (o.single) { // single-edged: spine at -X, edge +X
         const spine = o.spine || (t => .02 + .01 * (1 - t));
         const b = G.blade(y0, top, rows, y => { const t = (y - y0) / (top - y0); const c = curve(t); return [c - spine(t) * (t > .92 ? 1 - (t - .92) / .08 * .9 : 1), c + edgeAt(y, 1)]; }, thick, .26, o.fuller || [.12, .42]);
@@ -194,6 +202,10 @@
           for (const z of [1, -1]) P[o.cracks].push(G.tube(pts.map(p => [p[0], p[1], z * (p[2] + .0004)]), .0011, 4, 12, true));
         }
       }
+      // Epic/unique: a lit channel down the blade reads from the isometric camera.
+      const gk = GLOWS.has(o.runes) ? o.runes : GLOWS.has(o.cracks) ? o.cracks : null;
+      if (gk && grand(id)) for (const z of [1, -1]) { const u0 = o.single ? .3 : 0, zz = (o.single ? bz(u0, thick, o.fuller || [.12, .42], .26) : bz(0, thick, [-.3, .3], .3)) + .0018;
+        P[gk].push(G.tube(line(t => { const y = mix(y0 + .03, mix(y0, top, .9), t), tt = (y - y0) / (top - y0), sp = o.single ? (o.spine || (q => .02 + .01 * (1 - q)))(tt) : 0; return [curve(tt) + (o.single ? mix(-sp, edgeAt(y, 1), .3) : 0) + (o.runes && GLOWS.has(o.runes) ? .011 : 0), y, z * zz]; }, 40), t => .0024 * (1 - t * .5), 4, 60, true)); }
       if (o.blood) P.steel.forEach(g => G.bloodied(g, mix(y0, top, .25), top, .5));
       if (o.blood) P.edge.forEach(g => G.bloodied(g, mix(y0, top, .2), top, .2));
       guard(P, o.guard || 'cross', o.guardOpts);
@@ -250,6 +262,8 @@
       P.steel.push(G.lathe([[0, -.5], [.016, -.49], [.027, -.465], [.028, -.445], [.022, -.44]], 16));
       for (const yy of [.0, .16]) P[o.ring || 'brass'].push(G.ring(.027, .003, [0, yy, 0], null, 6, 24));
       if (o.tassel) tassel(P, [0, y - .14, .03], o.tassel[1] || .22, o.tassel[0], o.tassel[2] || 6, o.seed || 1);
+      const gk = GLOWS.has(o.runes) ? o.runes : GLOWS.has(o.cracks) ? o.cracks : null;
+      if (gk && grand(id)) for (const sx of bits) for (const z of [1, -1]) P[gk].push(G.tube(line(t => { const p = arc[Math.round(t * N)]; return [(p[0] + .03) * sx, p[1] - (t - .5) * .008, z * .0128]; }, 18), .0024, 4, 40, true));
       if (o.blood) { P[o.headMat || 'steel'].forEach(g => G.bloodied(g, y + .2, y - .2, .1)); }
       if (o.extra) o.extra(P, { y, L, arc, top });
       out[id] = equipmentWeapon({ parts: P, tip: new T.Vector3(-L - bulge, y + .02, 0) }, id, 'axe', o.finish || 'steel');
@@ -272,6 +286,7 @@
       for (const a of [0, PI]) { const g = G.extrude([[-.006, hb - .16], [.006, hb - .16], [.004, hb - .32], [0, hb - .34], [-.004, hb - .32]], .004, .0012); g.translate(0, 0, .022); g.rotateY(a); P.dark.push(g); }
       if (o.wings) for (const s of [-1, 1]) P[o.wingMat || 'steel'].push(G.extrude(o.wings.map(([x, yy]) => [s * x, hb + yy]), .014, .003));
       if (o.runes) runes(P, o.runes, o.runeCount || 4, (i, n) => { const y = mix(hb + .05, top - head * .38, (i + .5) / n), t = (y - hb) / head; return width(t, 1) > .02 ? [c(y), y, bz(0, o.thick || .024, [-.32, .32], .32) + .0009, .8] : null; }, Math.min(.03, head * .5 / (o.runeCount || 4)), o.seed || 3, .001);
+      if (GLOWS.has(o.runes) && grand(id)) for (const z of [1, -1]) P[o.runes].push(G.tube(line(t => { const y = mix(hb + .02, top - .04, t); return [c(y) + .009, y, z * (bz(.3, o.thick || .024, [-.32, .32], .32) + .0014)]; }, 30), t => .002 * (1 - t * .5), 4, 40, true));
       if (o.binding) { for (let k = 0; k < 7; k++) P[o.binding].push(G.ring(.024, .0028, [0, hb - .19 - k * .009, 0], [0, 0, .12 * (k % 2 ? 1 : -1)], 5, 18)); }
       if (o.tassel) tassel(P, [0, hb - .16, .028], o.tassel[1] || .24, o.tassel[0], o.tassel[2] || 7, o.seed || 2);
       P.steel.push(G.lathe([[.006, -.72], [.02, -.6], [.023, -.56], [.019, -.54]], 12));

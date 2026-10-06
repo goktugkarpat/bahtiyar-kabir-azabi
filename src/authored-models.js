@@ -1828,7 +1828,7 @@
       });
       armorMeshes.forEach(function (m) {
         var slot = m.userData.equipmentSlot, id = equipment[slot + 'Id'], item = equipmentItem(id, slot), model = equipmentModel(item,id);
-        m.visible = model === m.userData.equipmentId || !!id && m.userData.equipmentId === 'variant@' + id;
+        m.visible = model === m.userData.equipmentId || !!id && (m.userData.equipmentId === 'variant@' + id || !!B.GearArmor && B.GearArmor.looks[id] === m.userData.equipmentId);
         m.material = equipmentFinish(equipmentMaterials.get(m), m.visible && item && item.finish);
       });
       var chestItem = equipmentItem(equipment.chestId, 'chest'), chestModel = equipmentModel(chestItem,equipment.chestId);
