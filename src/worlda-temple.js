@@ -529,6 +529,12 @@
     // Main halls: grit and stray bones on the floor, fallen vault stones heaped into the dark corners (no colliders: walls already bound them).
     K.rooms.forEach(function (r) {
       floorLife({ x: r.x, z: r.z, w: r.w - 2, d: r.d - 2, theme: 'oaths' }, []);
+      if (r.id === 6) {
+        // the executioner's court: the condemned's remains swept to the edges, dried blood running to the drains
+        [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(function (c) { skulls(r.x + c[0] * (r.w / 2 - 2.2), r.z + c[1] * (r.d / 2 - 2.4), .75, 12); });
+        for (var bt = 0; bt < 6; bt++) { var ba = bt / 6 * 6.28 + .3; bloodTrail(r.x + Math.cos(ba) * 4, r.z - 2 + Math.sin(ba) * 4, r.x + Math.cos(ba) * 11, r.z - 2 + Math.sin(ba) * 11); }
+        for (var bb = 0; bb < 10; bb++) K.ribCage(r.x + (bb % 2 ? 1 : -1) * U(10.5, 12.5), r.z + U(-12, 10), R() * 6);
+      }
       [[-1, -1], [1, -1]].forEach(function (c) { if (r.id === 6 || r.id === 3) return; pile(r.x + c[0] * (r.w / 2 - 1.3), r.z + c[1] * (r.d / 2 - 1.3), 1.0, 9); });
     });
     function inHole(holes, x, z, m) { for (var i = 0; i < holes.length; i++) { var o = holes[i]; if (Math.abs(x - o.x) < o.w / 2 + m && Math.abs(z - o.z) < o.d / 2 + m) return true; } return false; }
