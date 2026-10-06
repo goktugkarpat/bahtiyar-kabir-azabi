@@ -52,7 +52,7 @@
     ' vec2 e=min(vUv,1.-vUv)*vE.xy*2.;float bank=1.-smoothstep(0.,.45,min(e.x,e.y));',
     ' crust=clamp(crust+bank*.85,0.,1.);',
     ' float pulse=.55+.45*sin(clock*1.2+p.y*.7+a.g*7.);',
-    ' vec3 molten=mix(vec3(.40,.03,.002),vec3(.78,.13,.008),pulse*.55+c.g*.45);',
+    ' vec3 molten=mix(vec3(.46,.022,.002),vec3(.92,.115,.006),pulse*.55+c.g*.45);',
     ' float seam=smoothstep(0.,.1,crust)*(1.-smoothstep(.1,.35,crust));',
     ' vec3 crustCol=vec3(.03,.017,.013)+vec3(.20,.045,.008)*smoothstep(.85,.4,crust);',
     ' vec3 col=mix(molten,crustCol,smoothstep(.2,.7,crust));',
