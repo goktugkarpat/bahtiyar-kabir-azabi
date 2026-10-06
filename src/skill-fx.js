@@ -120,6 +120,7 @@
     const lift = { trail: 0 }; let tipAcc = 0; const tipV = new T.Vector3();
     let clock = 0;
     const later = (t, f) => { if (sched.length < 40) sched.push({ t, f }); };
+    const IM = () => B.FxImpact && B.FxImpact.active;   // fx-impact.js: shock walls, light blades, smoke columns
     const col = (r, g, b) => [r, g, b];
     // ---- helpers
     function fissure(x, z, R, o2) {
@@ -178,6 +179,7 @@
       later(takeoff, () => {
         const g = getGame(), p = g && g.player; const px = p ? p.x : x, pz = p ? p.z : z;   // take-off
         ring(px, pz, 2.6, { life: .4, thick: .1, col: [.7, .25, 1.0], a: .7 }); dustRing(px, pz, 22, 2.8, [.12, .09, .1], .3); sparks(px, pz, 8, 4, [2.6, .5, .2], 1.5);
+        const I = IM(); if (I) I.dome(px, pz, { r: 2.2, h: .7, life: .32, col: [.45, .14, .75], hot: [1.2, .9, 1.3], a: .55 });
       });
     }
     function strikeImpact(d) {
@@ -185,6 +187,12 @@
       if (tier === 2) {
         bladeScore(x,z,face,R,2);
         flash(x, .25, z, .78, new T.Color('#d8c3ae'), .07);
+        { const I = IM(); if (I) {   // the verdict falls: a blood-red blade of light with a bone-white heart, a torn red wall, ash rolling up
+          I.pillar(x, z, { h: 7.5, w: 1.5, life: .38, col: [1.15, .1, .05], hot: [1.9, 1.7, 1.45], a: .95, face, drop: .055 });
+          I.dome(x, z, { r: R * .62, h: 1.25, life: .42, col: [.95, .1, .05], hot: [1.8, 1.25, .95], a: .75 });
+          I.dome(x, z, { r: R * .95, h: .55, life: .55, col: [.5, .07, .04], hot: [1.1, .5, .3], a: .45, delay: .08 });
+          I.plume(x, z, { n: 10, r: .8, col: [.06, .042, .036], up: 2.3, size: .5 });
+        } }
         ring(x, z, R * .58, { life: .34, thick: .045, col: [.65, .09, .04], a: .4 });
         fissure(x, z, R * .82, { arms: 5, span: 2.15, len: .92, hot: [1.15,.16,.065], edge: [.23,.035,.018], life: .95, grow:.10, face, a: .62 });
         floorGlow(x, z, R * .30, .28, [.9, .1, .045], .10);
@@ -202,6 +210,12 @@
       bladeScore(ox,oz,face,R,3);
       const arc = d.arc || 2.5;
       flash(ox, .3, oz, 1.25, new T.Color('#c4aba0'), .06);
+      { const I = IM(); if (I) {   // the grave bursts open: a tall violet wall, a black-red echo, a column of grave smoke
+        I.dome(ox, oz, { r: R * .8, h: 2.1, life: .6, col: [.48, .12, .8], hot: [1.55, 1.15, 1.5], a: .9 });
+        I.dome(ox, oz, { r: R * .5, h: 1.0, life: .42, col: [.95, .09, .06], hot: [1.6, .7, .45], a: .6, delay: .1 });
+        I.dome(ox, oz, { r: R * 1.05, h: .45, life: .7, col: [.26, .08, .4], hot: [.7, .4, .8], a: .4, delay: .22 });
+        I.plume(ox, oz, { n: 18, r: 1.3, col: [.04, .028, .05], up: 2.7, size: .62 });
+      } }
       later(.05, () => flash(ox + Math.sin(face) * 1.1, .35, oz + Math.cos(face) * 1.1, .8, new T.Color('#a57c69'), .065));
       ring(ox, oz, R * .72, { life: .48, thick: .07, col: [.30,.13,.40], a: .45 });
       ring(ox, oz, R * .48, { life: .36, thick: .05, col: [.55,.13,.08], teeth: 17, delay: .09, a: .42 });
@@ -239,6 +253,10 @@
       const x = d.x, z = d.z, tier = d.tier, near = d.radius || 8, far = d.far || 12, V = near * .50, game = getGame();
       if (tier === 2) {
         flash(x, 1.4, z, 1.15, new T.Color('#c6b395'), .08);
+        { const I = IM(); if (I) {   // the death cry is a visible pressure front: a tall bone-pale wall, an amber echo behind it
+          I.dome(x, z, { r: V * 1.15, h: 2.2, life: .62, col: [.62, .5, .34], hot: [1.15, 1.0, .82], a: .42 });
+          I.dome(x, z, { r: V * .8, h: 1.1, life: .5, col: [.75, .4, .12], hot: [1.3, .9, .5], a: .45, delay: .12 });
+        } }
         ring(x, z, V, { life: .48, thick: .05, col: [.62,.50,.34], a:.65 });
         ring(x, z, V * 1.2, { life: .6, thick: .045, col: [.5,.29,.1], delay:.1, a:.55 });
         fissure(x, z, near * .65, { arms: 5, span: 6.283, len: .82, hot: [.48,.36,.24], edge:[.11,.07,.04], life:1.5, grow:.25, face:Math.random()*6, a:.6 });
@@ -256,6 +274,11 @@
       }
       // tier III - stage one (the rings of stage two come as shoutWave)
       flash(x, 1.4, z, 1.4, new T.Color('#b8a0ac'), .08);
+      { const I = IM(); if (I) {   // the doom cry: a towering bone-white wall, a blood-red one on its heels, grave smoke
+        I.dome(x, z, { r: V * 1.25, h: 2.8, life: .7, col: [.62, .52, .44], hot: [1.25, 1.1, 1.0], a: .48 });
+        I.dome(x, z, { r: V * .9, h: 1.5, life: .55, col: [.9, .12, .07], hot: [1.5, .6, .35], a: .55, delay: .1 });
+        I.plume(x, z, { n: 12, r: 1.4, col: [.045, .032, .04], up: 2.2, size: .55 });
+      } }
       ring(x, z, V * .85, { life:.52, thick:.065, col:[.60,.48,.32], a:.6 });
       ring(x, z, V * 1.2, { life:.64, thick:.05, col:[.45,.12,.065], delay:.08, a:.55 });
       fissure(x, z, near * .72, { arms:7, span:6.283, len:1, hot:[.6,.18,.08], edge:[.18,.025,.016], life:1.9, grow:.32, face:Math.random()*6 });
@@ -274,6 +297,7 @@
     function shoutWave(d) {
       const x = d.x, z = d.z, n = d.n || 1, V = (d.radius || 8) * .50;
       flash(x, 1.4, z, 1.0 + n * .2, new T.Color(n % 2 ? '#b8a0e0' : '#d09070'), .09);
+      { const I = IM(); if (I) I.dome(x, z, { r: V * 1.15, h: 1.8 + .4 * n, life: .6, col: n % 2 ? [.45, .26, .7] : [.85, .3, .1], hot: n % 2 ? [1.4, 1.2, 1.7] : [1.7, 1.1, .6], a: .6 }); }
       ring(x, z, V * 1.12, { life:.56, thick:.055, col:n%2?[.36,.23,.48]:[.55,.19,.065], a:.6 });
       fissure(x, z, V * 1.1, { arms:6, len:1, hot:n%2?[.6,.27,.35]:[.72,.36,.12], edge:[.15,.05,.02], life:1.3, grow:.3, face:Math.random()*6, a:.6 });
       sparks(x, z, scaleCount(14), 7, n%2?[.6,.32,.85]:[1.15,.5,.15], 2.4);

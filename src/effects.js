@@ -688,6 +688,7 @@
       scar(x,z,0,{shape:'circle',radius:1.15,life:1.15,heat:.16});
       fragments(x,floorAt(x,z,.3)+.07,z,{count:calm?4:8,spread:.8,speed:1.7,lift:1.5,size:.065});
       flash(x,1.1,z,.72,new T.Color('#b78556'),.07,0,softMap);
+      if(impactFx)impactFx.dome(x,z,{r:V*1.05,h:1.5,life:.5,col:[.55,.3,.14],hot:[1.2,.8,.5],a:.42});   // a low wall of heat and grit carries the cry outward
       const ringDust=scaleCount(14);for(let i=0;i<ringDust;i++){const a=i/ringDust*Math.PI*2;particle(x+Math.sin(a)*.8,.08,z+Math.cos(a)*.8,2,DUST,1.2,a,.20);}
       for(let i=0;i<(calm?4:scaleCount(12));i++){const a=Math.random()*Math.PI*2;streak(x+Math.sin(a)*.8,.12+Math.random()*.15,z+Math.cos(a)*.8,Math.sin(a)*(2.3+Math.random()*1.5),.45+Math.random()*.7,Math.cos(a)*(2.3+Math.random()*1.5),.22+Math.random()*.15,.028,[.85,.40,.13]);}
       roarSpiral.on=!calm;roarSpiral.t=0;roarSpiral.x=x;roarSpiral.z=z;roarSpiral.R=Math.min(2.3,V*.6);
@@ -1130,7 +1131,8 @@
       return { m, mat, time: 1, life: .56 };
     });
     // Level-up (src/levelup.js): restrained ground echoes and small GPU-animated reward motes. All materials are created here, at build time, and warmed in warm().
-    const chargeFx = B.Charge && B.Charge.createWorld ? B.Charge.createWorld({ T, root, getGame, getSettings, scaleCount, emit, particle, flash, fragments, scar, ring: chRing }) : null;   // src/charge.js
+    const impactFx = B.FxImpact && B.FxImpact.createWorld ? B.FxImpact.createWorld({ T, root, getGame, emit, scaleCount }) : null;   // src/fx-impact.js (shock walls, light blades, body flashes)
+    const chargeFx = B.Charge && B.Charge.createWorld ?B.Charge.createWorld({ T, root, getGame, getSettings, scaleCount, emit, particle, flash, fragments, scar, ring: chRing }) : null;   // src/charge.js
     const levelFx = B.LevelUp && B.LevelUp.createWorld ? B.LevelUp.createWorld({ T, root, getGame, getSettings, scaleCount, emit, particle, flash }) : null;
     const skillFx = B.SkillFx && B.SkillFx.createWorld ? B.SkillFx.createWorld({ T, root, getGame, getSettings, scaleCount, emit, particle, flash, fragments, streak, scar, tells: () => tells, streakOn: () => { skMesh.visible = true; } }) : null;   // src/skill-fx.js (strike / shout tiers II-III)
     function signatureStep(dt) {
@@ -1138,6 +1140,7 @@
       if (levelFx) levelFx.step(dt);
       if (chargeFx) chargeFx.step(dt);
       if (skillFx) skillFx.step(dt);
+      if (impactFx) impactFx.step(dt);
     }
     // ------------------------------------------------------------ bursts
     const RED = [.17, .008, .014], DARK = [.09, .004, .008], SPARK = [4.5, 2.65, .9], STEEL = [3.2, 3.0, 2.6], DUST = [.10, .08, .065];
@@ -1270,6 +1273,10 @@
         const S = clamp(((d.player ? .55 : heavy ? 1.05 : .7) + (d.kill ? .6 : 0) + (d.boss ? .3 : 0)) * clamp(.85 + (d.damage || 0) / 120, .85, 1.3), .3, 2.2);
         goreHit(x, y, z, spray, S, { kill: !!d.kill, heavy, boss: !!d.boss, player: !!d.player, foe: d.labelTarget || (d.player ? game.player : nearestFoe(x, z, 1.6, true)) });
         if (!d.player && name === 'blood') gearHit(d.kill ? .3 : heavy ? .16 : .08); else if (d.player) gearHit(.06);
+        if (impactFx && !d.player && d.labelTarget) {   // the struck body flares in the colour of the skill that hit it (fx-impact.js)
+          const pl = game.player, sk = pl && (pl.attack && pl.attack.skill || (pl.roar ? 'roar' : '')), tint = sk && impactFx.skillTint(sk);
+          impactFx.hitFlash(d.labelTarget, { col: tint || (d.critical ? [1.25, .95, .6] : [.95, .8, .66]), a: d.kill ? .95 : tint ? .8 : heavy || d.critical ? .7 : .48, life: d.kill ? .26 : tint || heavy ? .2 : .14 });
+        }
         if (d.damage > 0) number(Math.round(d.damage), x, 2.5, z, d.player, d.heavy || d.critical, d.kill, d.boss, d.labelTarget || null);
         // Blows struck in fury leave burning embers in the wound.
         if (d.rage && !d.player) for (let i = 0; i < scaleCount(heavy ? 18 : 10); i++) emit(x, y, z, 4, i % 2 ? [2.6, .6, .12] : [2.2, .25, .08], Math.sin(spray) * rnd(.6, 2.2) + rnd(-.5, .5), rnd(.4, 1.6), Math.cos(spray) * rnd(.6, 2.2) + rnd(-.5, .5), rnd(.4, .8), .045);
@@ -1368,7 +1375,7 @@
       for (const tr of trails.values()) { while (tr.samples.length) tr.free.push(tr.samples.pop()); tr.active = false; tr.mesh.visible = false; tr.mesh.geometry.setDrawRange(0, 0); }
       for (const g of ghosts) { g.active = false; g.group.visible = false; }
       for (const s of scars) releaseScar(s); scars.length = 0;
-      for (const o of skillCrescents) o.m.visible = false; if (levelFx) levelFx.clear(); if (chargeFx) chargeFx.clear(); if (skillFx) skillFx.clear();
+      for (const o of skillCrescents) o.m.visible = false; if (levelFx) levelFx.clear(); if (chargeFx) chargeFx.clear(); if (skillFx) skillFx.clear(); if (impactFx) impactFx.clear();
       if (tells) tells.clear(); chainClear();
       fragmentsClear(); goreClear(); gearBlood = 0; gearApply();
     }
@@ -1416,6 +1423,7 @@
       add(new T.Sprite(new T.SpriteMaterial({ map: softMap, transparent: true, depthWrite: false, depthTest: false, blending: T.AdditiveBlending, fog: false })));
       for (const o of skillCrescents) add(new T.Mesh(plane, o.mat)); if (levelFx) for (const part of levelFx.parts) add(part.points ? new T.Points(part.geo, part.mat) : new T.Mesh(part.geo, part.mat)); if (chargeFx) for (const part of chargeFx.parts) add(new T.Mesh(part.geo, part.mat));
       if (skillFx) for (const obj of skillFx.warmObjects()) add(obj);
+      if (impactFx) for (const obj of impactFx.warmObjects()) add(obj);
       for (const pool of chipPools) { const mesh = new T.InstancedMesh(chipGeo, pool.mat, 1); mesh.setColorAt(0, chipTint.setRGB(.3, .27, .23)); mesh.receiveShadow = true; add(mesh); }
       add(new T.InstancedMesh(gdGeo, gdMat, 1)); add(new T.Mesh(bsGeo, bsMat)); add(new T.InstancedMesh(chGeoG, gcMat, 1));
     }
