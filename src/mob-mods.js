@@ -14,6 +14,7 @@
      mending  Şifacı      every 6.5 s a green pulse heals allies within 8 m — kill it first.
      echoing  Yankılı     every blow it lands on the floor repeats once in the same place (.7 s tell after the first): the roll that
                           dodged the first must not end inside the echo (anti dodge-spam, fully telegraphed).
+     sniper   Keskin Nişancı (ranged foes only) every ~6.5 s from 6-16 m: a thin aimed shot, its line drawn 1.15 s ahead; step out of the line.
      blink    Gölge Adımlı an ambusher: every ~7 s, from 4-11 m, a shadow circle opens beside / behind the hero (.65 s) and it steps out of it.
    Hooks (combat.js): create(api) after the enemies exist; update(dt) every step; hurt(e,damage,heavy,blocked) before health is reduced;
    kill(e) when a foe dies. New modifiers: add an entry to MODS (name, color, optional apply/hurt/step/kill) and to POOL.
@@ -34,11 +35,12 @@
     volatile: { name: tr('Patlayan'), color: [1.5, .22, .1] },
     mending:  { name: tr('Şifacı'), color: [.35, 1.3, .7] },
     echoing:  { name: tr('Yankılı'), color: [1.25, .9, .35] },
-    blink:    { name: tr('Gölge Adımlı'), color: [.55, .35, 1.0] }
+    blink:    { name: tr('Gölge Adımlı'), color: [.55, .35, 1.0] },
+    sniper:   { name: tr('Keskin Nişancı'), color: [1.4, 1.2, .55] }
   };
-  var POOL = ['hasted', 'armored', 'fire', 'venom', 'volatile', 'mending', 'reflect', 'warded', 'echoing', 'blink'];
+  var POOL = ['hasted', 'armored', 'fire', 'venom', 'volatile', 'mending', 'reflect', 'warded', 'echoing', 'blink', 'sniper'];
   var CLASH = { fire: 'venom', venom: 'fire', reflect: 'warded', warded: 'reflect' };
-  var CHANCE = [0, .2, .24, .28, .32, .34], COUNT = [0, 1, 1, 2, 2, 2];
+  var CHANCE = [0, .2, .24, .27, .3, .32], COUNT = [0, 1, 1, 2, 2, 2];
 
   function hash(s) { var h = 2166136261; for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
     h ^= h >>> 16; h = Math.imul(h, 0x85ebca6b); h ^= h >>> 13; h = Math.imul(h, 0xc2b2ae35); h ^= h >>> 16; return h >>> 0; }
@@ -69,11 +71,13 @@
         var ei = order.indexOf(e.encounter), h = hash(e.id + ':' + chapter), named = e.elite;
         if (chapter === 1 && ei < 2 && !named) return;
         if (!named && (h % 1000) / 1000 >= CHANCE[chapter]) return;
-        var cap = chapter >= 4 ? 2 : 1, have = perEnc.get(e.encounter) || 0;
+        var cap = 1, have = perEnc.get(e.encounter) || 0;
         if (!named && have >= cap) return;
         perEnc.set(e.encounter, have + 1);
         var n = Math.min(named ? 3 : 2, COUNT[chapter] + (named ? 1 : 0) + ((h >>> 11) % 3 === 0 && chapter >= 2 ? 1 : 0)), list = [];
-        var pool = POOL.filter(function (id) { return chapter >= 2 || (id !== 'reflect' && id !== 'warded'); });
+        var ranged = !!(e.stats.ranged || e.type === 'cultist' || e.type === 'carrier');
+        var pool = POOL.filter(function (id) { return (chapter >= 2 || (id !== 'reflect' && id !== 'warded')) && (id !== 'sniper' || ranged) && (id !== 'blink' || !ranged); });
+        if (ranged) pool.push('sniper', 'sniper');
         for (var tries = 0; list.length < n && tries < 20; tries++) {
           var id = pool[hash(e.id + '#' + chapter + '#' + tries) % pool.length];
           if (list.indexOf(id) >= 0 || list.indexOf(CLASH[id]) >= 0) continue;
@@ -164,6 +168,7 @@
           c.reflectCd = Math.max(0, c.reflectCd - dt);
           if (c.has('echoing')) echo(c);
           if (c.has('blink')) blink(c, dt);
+          if (c.has('sniper')) snipe(c, dt);
         }
         rings.instanceMatrix.needsUpdate = true; shells.instanceMatrix.needsUpdate = true;
       }
@@ -202,6 +207,15 @@
           return;
         }
         c.blinkT = 1.5;
+      }
+      // Sharpshooter: a long aimed line from a ranged champion when it is resting between its own moves.
+      function snipe(c, dt) {
+        var e = c.e; if ((c.snipeT = (c.snipeT == null ? 3 : c.snipeT) - dt) > 0 || e.action || e.stagger > 0 || !e.active) return;
+        var d = hyp(player.x - e.x, player.z - e.z); if (d < 6 || d > 16 || (api.clearStrike && !api.clearStrike(e, player))) { c.snipeT = .8; return; }
+        var a = Math.atan2(player.x - e.x, player.z - e.z); e.face = a;
+        var mv = { id: 'snipe', name: tr('Nişancı Atışı'), duration: 1.75, pose: 'throw', cooldown: .9, hits: [
+          { at: 1.15, warn: 1.15, shape: 'line', width: .75, length: api.clipLine(e, a, 17), face: a, dmg: 17, style: 'thrust', fill: 'forward', pose: 'throw', projectile: { kind: 'spur', flight: .16, fromY: 1.4 } }] };
+        if (api.beginMove(e, mv)) c.snipeT = 6.5; else c.snipeT = 1;
       }
       function find(e) { if (!e || !e.champion) return null; for (var i = 0; i < champs.length; i++) if (champs[i].e === e) return champs[i]; return null; }
       function hurt(e, damage, heavy, blocked) {
