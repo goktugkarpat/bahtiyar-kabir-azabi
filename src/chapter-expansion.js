@@ -47,6 +47,8 @@
       var corridor={x:(edge+r.portal)/2,z:entryZ,w:Math.abs(edge-r.portal)+1,d:6};floors.push(corridor);
       paths.push({a:{x:r.portal,z:entryZ},b:{x:edge-side*2,z:entryZ},width:6});
       var floorMat=coast?(i?'earth':'floor'):'floor';
+      // ajan:world-a — the temple's side crypts are drawn (walls, colliders, props, lights) by worlda-temple.js inside world.js.
+      if(!coast&&B.WorldATemple&&B.WorldATemple.active){pushEncounter(r,i);return;}
       put(i,'box',floorMat,r.x,-.15,r.z,r.w,.3,r.d);
       var main=baseRooms[r.parent],mainEdge=main.x-side*main.w/2;
       put(i,'box',floorMat,(edge+mainEdge)/2,-.15,entryZ,Math.abs(edge-mainEdge),.3,6);
@@ -106,9 +108,12 @@
         put(i,'urn',coast?'lamp':'ember',x,1.96,z,.18,.32,.18);
         if(lightSources)lightSources.push({x:x,y:2,z:z,color:color,intensity:2.1,distance:10,flicker:.4,phase:i*1.7+sign,score:0,kind:'candle',scatter:.35,glowRadius:.55,shadowNear:null,group:null,tintGroup:null,dim:color.clone(),live:1,liveColor:color.clone(),livePos:{x:x,y:2,z:z},spotW:0});
       });
+      pushEncounter(r,i);
+    });
+    function pushEncounter(r,i){
       var types=coast?(i%2?['rootborn','crawler','urchin','lantern']:['drowned','urchin','crawler','lantern']):(i%2?['cultist','guard','stalker','carrier']:['prisoner','guard','carrier','stalker']);
       encounters.push({id:(coast?'coast-side-':'temple-side-')+r.id,room:r.id,name:r.name,stage:coast?1.1+r.parent*.025:.56+r.parent*.085,clearText:KabirI18n.t('Bu alan sustu. Ana yola geri dön.'),spawns:types.concat(types[(i+1)%4]).map(function(type,n){return {type:type,x:r.x+(n===4?0:n%2?-3:3),z:r.z+(n===4?0:n<2?-4:4),elite:n===4&&(i===1||i===4),name:n===4&&(i===1||i===4)?(coast?(i===1?KabirI18n.t('Köklerin Adsız Bekçisi'):KabirI18n.t('Tuz İçindeki Yeminli')):(i===1?KabirI18n.t('Sönmüş Kandilin Bekçisi'):'Kefen Dokuyucu')):undefined};})});
-    });
+    }
     Object.keys(batches).forEach(function(key){var b=batches[key],m=new T.InstancedMesh(view(b.g),b.m,b.matrices.length);b.matrices.forEach(function(matrix,i){m.setMatrixAt(i,matrix);});m.instanceMatrix.needsUpdate=true;m.castShadow=b.m!==materials.floor&&b.m!==materials.earth;m.receiveShadow=true;m.computeBoundingSphere();m.matrixAutoUpdate=false;groups[b.id].add(m);});
     return {rooms:rooms,floors:floors,paths:paths,
       update:function(p){if(!p)return;groups.forEach(function(g,i){var r=rooms[i];g.visible=Math.abs(p.z-r.z)<48&&Math.abs(p.x-r.x)<65;});},

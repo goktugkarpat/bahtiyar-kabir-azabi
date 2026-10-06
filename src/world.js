@@ -1692,6 +1692,14 @@
       for (var rc = 0; rc < 7; rc++) { var ra = rc / 7 * Math.PI * 2 + .22; candleRing(Math.sin(ra) * 6.75, -74 + Math.cos(ra) * 6.75, 3, 'ritualCandles'); }
       // The oath stone's own light: a faint call before it is sworn, a golden flood afterwards.
       lightSource(0, .75, -128, '#ffc066', 16, 9, .15, { kind: 'special', group: 'oath', phase: 5, scatter: 1.4, glowRadius: 1.8 });
+      /* ajan:world-a — side crypts and extra dressing are composed in worlda-temple.js with this file's own kit. */
+      if (BABA.WorldATemple && BABA.WorldATemple.active) BABA.WorldATemple.dress({ T: T, put: put, box: box, rod: rod, solid: solid, wallRun: wallRun, pillar: pillar,
+        floorDecal: floorDecal, wallDecal: wallDecal, decal: decal, CELL: CELL, COL: COL, linear: linear, geometries: geometries, materials: materials, rooms: rooms,
+        skull: skull, boneScatter: boneScatter, ribCage: ribCage, rubble: rubble, slab: slab, cage: cage, chain: chain, candleCluster: candleCluster, alcove: alcove,
+        vaultRib: vaultRib, funeraryEffigy: funeraryEffigy, censer: censer, hangingIron: hangingIron, hangedBody: hangedBody, shroudedRemains: shroudedRemains,
+        puddle: puddle, torch: torch, sconce: sconce, flame: flame, lightSource: lightSource, emberSources: emberSources, smokeSources: smokeSources,
+        part: part, hangerGroup: hangerGroup, swinging: swinging, floorRing: floorRing, ritualPavement: ritualPavement, architectureMesh: architectureMesh, spot: spot });
+      /* /ajan:world-a */
 
       // ---- light shafts and particles ----------------------------------------------------------------------
       // [top xyz, floor xyz, top width, floor width, colour, strength, cookie, gain group]
