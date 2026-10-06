@@ -135,7 +135,7 @@
           }
           for(var n=0;n<5;n++){var x=r.x+s*(10+rnd()),z=r.z+(n-2)*4.2,h=1.1+rnd()*2.3;
             put(i,'tooth','rock',x,h/2,z,.65,h,.65,.2,0,s*.12);solid(x,z,.75,.75);
-            if(n%2===i%2){put(i,'spike','crystal',x-s*.55,.65,z,.38,1.3,.38,.4,0,s*.25);put(i,'spike','crystal',x-s*.8,.38,z+.3,.3,.76,.3,.7,0,-s*.32);}
+            if(n%2===i%2&&!(B.WorldARuins&&B.WorldARuins.active)){put(i,'spike','crystal',x-s*.55,.65,z,.38,1.3,.38,.4,0,s*.25);put(i,'spike','crystal',x-s*.8,.38,z+.3,.3,.76,.3,.7,0,-s*.32);}
           }
         });
         if(i===9||i===10){for(var n=0;n<4;n++){var s=n%2?1:-1,x=r.x+s*7.7,z=r.z+(n<2?-5:5);keep=false;solid(x,z,1.8,2.7);}}
