@@ -911,7 +911,7 @@
       'warden-chainmail':'chainmail-chest','ash-warden-chest':'warden-chest','hollow-heart-chest':'rib-chest','hollow-ember-chest':'rib-chest','slag-burial-chest':'warden-chest','sunless-vow-chest':'rib-chest',
       'black-stone-gauntlets':'claw-gauntlets','black-anvil-grasp':'claw-gauntlets','ash-warden-grasp':'warden-grasp','nameless-gauntlets':'claw-gauntlets',
       'gallows-boots':'shackle-boots','buried-road-boots':'shackle-boots','throneless-steps':'crown-boots','dead-forge-steps':'crown-boots',
-      'hollow-crown-blade':'crown-blade','furnace-oath-axe':'furnace-axe','widow-sword':'vow-sword','black-tide-sword':'tide-blade','ruin-lament-sword':'vow-sword','cave-verdict-sword':'tide-blade','slag-edge-sword':'slag-blade','black-forge-sword':'slag-blade','mourning-axe':'hook-axe','sepulcher-axe':'hook-axe','broken-throne-axe':'furnace-axe','ember-vow-axe':'hook-axe','orphan-spear':'fork-spear','starved-spear':'fork-spear','last-coal-spear':'fork-spear'
+      'hollow-crown-blade':'crown-blade','furnace-oath-axe':'furnace-axe','last-verdict-blade':'crown-blade','void-oath-axe':'furnace-axe','verdict-warden-helm':'iron-helm','sentence-wraps':'rag-wraps','widow-sword':'vow-sword','black-tide-sword':'tide-blade','ruin-lament-sword':'vow-sword','cave-verdict-sword':'tide-blade','slag-edge-sword':'slag-blade','black-forge-sword':'slag-blade','mourning-axe':'hook-axe','sepulcher-axe':'hook-axe','broken-throne-axe':'furnace-axe','ember-vow-axe':'hook-axe','orphan-spear':'fork-spear','starved-spear':'fork-spear','last-coal-spear':'fork-spear'
     };
     return special[id] || item && item.modelId || id;
   }
@@ -1637,6 +1637,9 @@
   }
   // Which swing (if any) the hero's blade draws right now: the whirlwind for its whole length, otherwise a short window around the damage frame of a blow.
   var trailCfg = { on: false, life: .3, gain: 1, detail: 1 };
+  // [core rgb, hot rgb, gain] per blow source (see the trail extra below).
+  var TRAIL_TINT = { cleave: [1.0, .22, .03, 1.0, .62, .22, 1], whirl: [.16, .3, .62, .62, .82, 1.0, 1.05], charge: [.75, .42, .08, 1.0, .82, .42, 1],
+    roar: [.85, .06, .03, 1.0, .35, .2, 1], rage: [.85, .04, .02, 1.0, .3, .16, .95], opening: [1.0, .72, .2, 1.0, .96, .78, 1.15] };
   function trailWindow(state) {
     var c = trailCfg, s = B.app && B.app.settings, pc = s && s.particles, whirl = state.whirl;
     c.detail = pc ? clamp((pc - 120) / 420, .2, 1) : 1; c.on = false;
@@ -1791,7 +1794,11 @@
       if(c.on){
         var empowered=state.heavy||Number.isFinite(state.whirl)&&state.whirl>=0;
         var uniforms=trail.mesh.material.uniforms;
-        if(empowered){uniforms.core.value.setRGB(1.0,.2,.03);uniforms.hot.value.setRGB(1.0,.62,.22);}
+        // Combat feel round: the ribbon is coloured by what drives the blow (state.trailTint from combat.js): the four skill lines keep their
+        // tree colours (cleave ember, whirl cold steel-blue, charge ash-gold), blood fury burns crimson, the opening after a last-moment roll flashes white-gold.
+        var tint=TRAIL_TINT[state.trailTint];
+        if(tint){uniforms.core.value.setRGB(tint[0],tint[1],tint[2]);uniforms.hot.value.setRGB(tint[3],tint[4],tint[5]);c.gain*=tint[6];}
+        else if(empowered){uniforms.core.value.setRGB(1.0,.2,.03);uniforms.hot.value.setRGB(1.0,.62,.22);}
         else{uniforms.core.value.setRGB(.40,.36,.29);uniforms.hot.value.setRGB(.90,.83,.68);c.gain*=.58;}
       }
       trail.update(dt, trailA, trailB, c.on && !state.dead, c);
@@ -1855,4 +1862,5 @@
     };
   }
   B.Models = { register: function (type, cfg, recipe) { if (prepared) throw Error(KabirI18n.t('Karakter kaydı hazırlıktan önce yapılmalı.')); TYPES[type] = cfg; R[type] = function (A) { return recipe(A, { bases: bases, bodyMaterial: bodyMaterial, gearMaterial: gearMaterial, clothWeights: clothWeights, sleeve: sleeve, whiteMap: function () { return NO_WHITE ? null : whiteMap(); }, forgedBlock: forgedBlock, forgedBlade: forgedBlade, forgedGrip: forgedGrip }); }; }, create: create, prepare: prepare, templates: bases, blueprints: blueprints, types: TYPES };
+  B.Models.grade = grade;   // gear-*: equipment surfaces share the character grade (edge wear, cavities, rust, blood)
 })();
