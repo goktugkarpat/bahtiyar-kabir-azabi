@@ -161,13 +161,13 @@
           hit(.9, .9, 'ring', 4.7, dmgWall, 'castHigh', { inner: 3.6, arc: TAU, origin: o, persistent: true, periodic: true, interval: .35, duration: 2.6, pool: pool, poolGain: .9, style: style, fill: 'inward', beat: true, attack: name }),
           hit(3.2, 3.2, 'circle', 3.65, dmgCore, 'castHigh', { origin: o, style: style, fill: 'inward', unblockable: true, beat: false, scar: true, attack: name + tr(' · çöküş') })];
       },
-      // A beam sweeping round the boss: one line per step, every step shown .75 s ahead, so the safe side is always readable.
+      // A beam sweeping round the boss: one line per step, every step shown .62 s ahead, so the safe side is always readable.
       beam: function (e, name, style, steps, dir, a0, dmg, twin) {
         var hits = [];
         for (var s = 0; s < steps; s++) {
           var a = a0 + dir * s * .3, at = 1.35 + s * .15;
-          hits.push(hit(at, s ? .75 : 1.35, 'line', 0, dmg, 'castHigh', { origin: { x: e.x, z: e.z }, face: a, width: 1.7, length: api.clipLine(e, a, 13), style: style, fill: 'forward', beat: s === 0, attack: name, duration: .14 }));
-          if (twin) hits.push(hit(at, s ? .75 : 1.35, 'line', 0, dmg, 'castHigh', { origin: { x: e.x, z: e.z }, face: a + Math.PI, width: 1.7, length: api.clipLine(e, a + Math.PI, 13), style: style, fill: 'forward', beat: false, attack: name, duration: .14 }));
+          hits.push(hit(at, s ? .62 : 1.35, 'line', 0, dmg, 'castHigh', { origin: { x: e.x, z: e.z }, face: a, width: 1.7, length: api.clipLine(e, a, 13), style: style, fill: 'forward', beat: s === 0, attack: name, duration: .14 }));
+          if (twin) hits.push(hit(at, s ? .62 : 1.35, 'line', 0, dmg, 'castHigh', { origin: { x: e.x, z: e.z }, face: a + Math.PI, width: 1.7, length: api.clipLine(e, a + Math.PI, 13), style: style, fill: 'forward', beat: false, attack: name, duration: .14 }));
         }
         return hits;
       }
