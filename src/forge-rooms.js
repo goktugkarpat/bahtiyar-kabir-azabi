@@ -631,6 +631,8 @@
     // Beyond the walls on the sides without a wing: a glowing abyss with crags, hanging chains and far furnace light (never walkable).
     function abyss(s) {
       var wx = r.x + s * (r.w / 2 + 1);
+      // the molten river that runs beside the whole forge and links the open wings (seen over the wall tops)
+      var rx = s * 43.5; if (Math.abs(rx - wx) > 6) { lavaRiver(rx, r.z, 8.4, 26.2); for (var b2 = 0; b2 < 3; b2++) K.put(i, 'rock', 'rock', s * RR(39, 40), RR(.1, .3), r.z + (b2 - 1) * 8 + RR(-2, 2), RR(1, 2), RR(.5, .9), RR(1.2, 2.4), RR(0, 6), 0, 0, [.24, .22, .21], .5); K.heat(rx, 1.2, r.z, 7, 2.2, .6); }
       for (var k = 0; k < 5; k++) { var z = r.z - 11 + k * 5.5 + RR(-1, 1), h = RR(3, 7); K.put(i, 'crag', 'rock', wx + s * RR(7, 15), h * .3 - 4.2, z, RR(4, 7), h, RR(4, 6), RR(0, 6), 0, s * .1, [.2, .18, .17], .6); }
       for (k = 0; k < 3; k++) { var cz = r.z + (k - 1) * 8 + RR(-1, 1); K.chain(i, wx + s * RR(3, 7), 12, cz, RR(10, 15), [.45, .4, .38]); }
       for (k = 0; k < 4; k++) K.spr(i, S.glow, wx + s * RR(6, 12), -2.5, r.z + RR(-10, 10), 5, 4, [.6, .16, .03], .16, RW(), 1, 1);
