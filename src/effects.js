@@ -1278,6 +1278,10 @@
         if (impactFx && !d.player && d.labelTarget) {   // the struck body flares in the colour of the skill that hit it (fx-impact.js)
           const pl = game.player, sk = pl && (pl.attack && pl.attack.skill || (pl.roar ? 'roar' : '')), tint = sk && impactFx.skillTint(sk);
           // the combo finisher / a heavy blow without a skill of its own: a small slap of air and grit at the foe's feet
+          // a heavy blow that does not kill shoves the foe back: its heels plough a short drag mark and kick grit along the push
+          if ((heavy || tint) && !d.kill && !d.boss) { const f = d.labelTarget, sa = Math.sin(spray), ca = Math.cos(spray);
+            scar(f.x, f.z, spray, { shape: 'line', width: .1, length: tint ? 1.2 : .9, heat: .03, life: 2.5 });
+            for (let i = 0; i < scaleCount(8); i++) emit(f.x + rnd(-.25, .25), .08, f.z + rnd(-.25, .25), 2, DUST, sa * rnd(1.2, 2.6), rnd(.2, .6), ca * rnd(1.2, 2.6), rnd(.4, .7), rnd(.16, .26)); }
           if (!tint && (heavy || d.kill)) { const f = d.labelTarget; impactFx.dome(f.x, f.z, { r: d.kill ? 1.9 : 1.4, h: .55, life: .28, col: [.7, .26, .1], hot: [1.4, .9, .55], a: d.kill ? .5 : .38 }); }
           impactFx.hitFlash(d.labelTarget, { col: tint || (d.critical ? [1.25, .95, .6] : [.95, .8, .66]), a: d.kill ? .95 : tint ? .8 : heavy || d.critical ? .7 : .48, life: d.kill ? .26 : tint || heavy ? .2 : .14 });
         }

@@ -714,6 +714,14 @@
         spineLayer(destination,.16*c.strike,-.09*settle,0);
         euler.set(-.12*c.strike,0,.30*c.strike,'YXZ');qa.setFromEuler(euler);rotateSubtree(destination,7,qa);
       }
+      // Hero sword combo + heavy: weight transfer. The mass rocks back onto the rear foot while the blade coils,
+      // drives down and through the target on the strike, and settles with a small dip as it lands (the finisher deepest).
+      if (hero && (m === MOVES.slashA || m === MOVES.slashB || m === MOVES.cleave || m === MOVES.heavy)) {
+        var ws = 1 / Math.max(.4, characterScale), fin = m === MOVES.cleave ? 1.5 : m === MOVES.heavy ? 1.3 : 1,
+          aft = t > Tc ? clamp((t - Tc) / Math.max(.04, Tend - Tc), 0, 1) : 0, land = Math.sin(aft * PI) * (1 - aft), back = Math.max(0, c.coil) * (t < Tc ? 1 : 0);
+        destination.p.z += (-.028 * back + .042 * c.strike * (1 - .7 * aft)) * fin * ws;
+        destination.p.y -= (.01 * back + .022 * c.strike * (1 - aft) + .03 * land) * fin * ws;
+      }
       // The blow is still sampled at the exact gameplay contact. Only AFTER contact, the neck
       // follows the shoulder mass and the free arm catches the body's weight before settling.
       // Analytic envelopes are independent of frame rate; scratch quaternions are already pooled.
