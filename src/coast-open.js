@@ -299,7 +299,7 @@
       K.lightSources.push({ x: x, y: 1.4, z: z, color: new T.Color(0xff7a30), intensity: 4.4, scatter: 1, glowRadius: 2.4, live: 1, group: 'coast', room: room });
       solid(x, z, 2.4, 3.4);
     }
-    anchor(0, 5.4, 5.6, 1, -.5); pyre(0, -5.3, 6.4, .3);
+    anchor(0, 6.2, 12.4, 1, -.5); pyre(0, -8.4, 12.5, .3);
     anchor(3, -9.4, -91.8, 1.25, .9);   // harbour plaza: a giant anchor dragged onto the pier
     for (q = 0; q < 6; q++) add(11, G.sphere, 'ember', -33 + (q - 2.5) * 2.1, R(.4, 1.6), -88.3 + R(-.6, .6), R(.25, .5), R(.2, .4), R(.25, .5));
     K.lightSources.push({ x: -33, y: 2.2, z: -88.3, color: new T.Color(0xff8040), intensity: 4, scatter: 1, glowRadius: 3, live: 1, group: 'coast', room: 11 });
