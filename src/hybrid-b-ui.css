@@ -390,8 +390,11 @@
 /* Unavailable quest instructions return after danger passes; actionable counters stay visible. */
 body.in-combat #hud #interact.unavailable {display:none;}
 @media (min-width:1101px) {
- #hud #interact {bottom:max(170px,calc(195px * var(--k)));height:auto;min-height:44px;max-width:360px;padding:8px 13px;gap:9px;border:1px solid #a7895870;border-image:none;border-radius:1px;background:linear-gradient(#17140fea,#0b0b09e8);box-shadow:inset 0 1px 0 #ddc59a18,0 4px 15px #0007;font:500 14px/1.35 var(--text);letter-spacing:0;color:#d9d1bb;animation:none;}
+ #hud #interact {bottom:max(170px,calc(195px * var(--k)),calc(var(--effect-floor) + var(--buff-rows,0) * (var(--effect-size) + var(--effect-gap)) + 12px));height:auto;min-height:44px;max-width:360px;padding:8px 13px;gap:9px;border:1px solid #a7895870;border-image:none;border-radius:1px;background:linear-gradient(#17140fea,#0b0b09e8);box-shadow:inset 0 1px 0 #ddc59a18,0 4px 15px #0007;font:500 14px/1.35 var(--text);letter-spacing:0;color:#d9d1bb;animation:none;}
  #hud #interact kbd {flex:none;min-width:26px;min-height:26px;display:grid;place-items:center;border:1px solid #a7895866;background:#16140e;color:#e8d5ad;font-size:13px;}
  #hud #interact .icon {flex:none;width:19px;height:19px;}
  #hud #interact-label {max-width:275px;text-align:left;}
 }
+
+/* One visible acknowledgement; the persistent live region must not cover equipment statistics. */
+#character .char-footer .char-status {position:absolute;bottom:0;left:0;width:1px;height:1px;max-width:none;margin:0;padding:0;border:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap;}

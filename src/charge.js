@@ -10,6 +10,7 @@
      fx(name, data)      effect dispatcher (optional; this module draws its own visuals through the world layer built in effects.js)
      sound(name, pos)    used names (pos = { x, z, tier, ... }): 'chargeWind' (wind-up swell), 'chargeRoar' (tier 3 roar), 'chargeDash' (dash layers per tier), 'chargeImpact' (slam, per tier), 'chargeSlam2' (tier 3 second slam)
      emit(name, data)    optional; called as emit('charge', { phase: 'wind'|'dash'|'impact'|'slam2'|'end', tier, x, z }) for HUD / QA
+     canHit(enemy)       optional combat eligibility predicate: walls, seals and underground bodies; checked before targeting, stopping, damage and control
      damage(enemy, amount, opts)   opts = { kind: 'charge', primary: bool, path: bool, ring: bool, second: bool, heavy: true, face }
      stun(enemy, seconds)
      push(enemy, dx, dz, force)    dx, dz = unit direction, force = metres of shove (the caller maps it to its own push model)
@@ -354,6 +355,9 @@ void main(){
   function evt(i, name, x, z) { const c = i.ctx; if (c && c.emit) try { c.emit('charge', { phase: name, tier: i.st.tier, x, z }); } catch (e) {} }
   function snd(i, name, x, z, extra) { const c = i.ctx; if (c && c.sound) try { const p = { x, z, tier: i.st.tier }; if (extra) Object.assign(p, extra); c.sound(name, p); } catch (e) {} }
   function alive(e) { return e && !e.dead && Number.isFinite(e.x) && Number.isFinite(e.z); }
+  // Combat owns walls, closed seals and underground bodies. Apply its
+  // predicate before choosing, stopping on or affecting a target.
+  function eligible(i, e) { return alive(e) && (!i.ctx.canHit || i.ctx.canHit(e)); }
   function hurt(i, e, amount, opts) { const c = i.ctx; if (c.damage && amount > 0) { opts.kind = 'charge'; opts.face = i.face; c.damage(e, Math.round(amount), opts); } }
   function stunE(i, e, sec) { const c = i.ctx; if (c.stun && sec > 0) c.stun(e, e.boss ? sec * .35 : sec); }
   function pushE(i, e, ux, uz, f) { const c = i.ctx; if (c.push && f > 0 && !e.boss) c.push(e, ux, uz, f); }
@@ -362,13 +366,13 @@ void main(){
   function slam(i, x, z, second) {
     const st = i.st, c = i.ctx, W = B.Charge._world, radius = second ? st.secondRadius : st.impactRadius;
     // primary = the closest living foe to the impact point inside the radius (tier 1: the one that stopped the dash)
-    let primary = i.primary;
-    if (!second && !primary) { let bd = 1e9; for (const e of c.enemies || []) { if (!alive(e)) continue; const d = Math.hypot(e.x - x, e.z - z) - e.radius; if (d < radius && d < bd) { bd = d; primary = e; } } }
+    let primary = eligible(i, i.primary) ? i.primary : null;
+    if (!second && !primary) { let bd = 1e9; for (const e of c.enemies || []) { if (!alive(e)) continue; const d = Math.hypot(e.x - x, e.z - z) - e.radius; if (d < radius && d < bd && eligible(i, e)) { bd = d; primary = e; } } }
     let hits = 0;
     for (const e of c.enemies || []) {
       if (!alive(e)) continue;
       const dx = e.x - x, dz = e.z - z, d = Math.hypot(dx, dz);
-      if (d - (e.radius || .5) * .5 > radius) continue;
+      if (d - (e.radius || .5) * .5 > radius || !eligible(i, e)) continue;
       const ux = d > .05 ? dx / d : Math.sin(i.face), uz = d > .05 ? dz / d : Math.cos(i.face), isP = e === primary && !second;
       if (second) { hurt(i, e, st.secondDamage * (1 - .35 * d / radius), { second: true, ring: true, heavy: true }); stunE(i, e, st.stunSeconds * .6); pushE(i, e, ux, uz, st.knock * .8 * (1 - .4 * d / radius)); }
       else {
@@ -423,10 +427,10 @@ void main(){
       if (!alive(e) || i.hitSet.has(e)) continue;
       const t = l2 > 1e-8 ? clamp(((e.x - ox) * vx + (e.z - oz) * vz) / l2, 0, 1) : 0, cx = ox + vx * t, cz = oz + vz * t, dd = Math.hypot(e.x - cx, e.z - cz);
       if (st.stopAtFirst) {
-        if (dd > (e.radius || .5) + rad + .12) continue;
+        if (dd > (e.radius || .5) + rad + .12 || !eligible(i, e)) continue;
         i.hitSet.add(e); i.primary = e; return true;   // the dash ends on the first foe (impact there)
       }
-      if (dd > (e.radius || .5) + half) continue;
+      if (dd > (e.radius || .5) + half || !eligible(i, e)) continue;
       i.hitSet.add(e);
       const side = (e.x - cx) * i.dz - (e.z - cz) * i.dx, s = side >= 0 ? 1 : -1, ux = i.dz * s, uz = -i.dx * s;   // perpendicular to the path, away from the line
       hurt(i, e, st.pathDamage, { path: true });

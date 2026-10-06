@@ -678,12 +678,12 @@
   // Fitted limb sleeve (vambraces, greaves): a solid shell shrink-wrapped around the flesh of one bone segment.
   // t0..t1 are fractions along from->to; angle 0 is the upper/outer face (world up projected off the bone axis).
   // Returns { geometry, at(angle, t, lift) -> [point, outwardNormal] } in bind space.
-  function sleeve(A, from, to, t0, t1, offset, thickness, keys, flare) {
+  function sleeve(A, from, to, t0, t1, offset, thickness, keys, flare, tessellation) {
     var a = A.P(from), b = A.P(to), axis = b.clone().sub(a), len = axis.length(); axis.multiplyScalar(1 / len);
     var ey = new T.Vector3(0, 1, 0); if (Math.abs(ey.dot(axis)) > .9) ey.set(1, 0, 0); ey.addScaledVector(axis, -ey.dot(axis)).normalize();
     var ex = new T.Vector3().crossVectors(axis, ey).normalize(), d = new T.Vector3();
     var pts = A.cloud([from], keys, .45).map(function (p) { d.copy(p).sub(a); return { t: d.dot(axis) / len, ang: Math.atan2(d.dot(ex), d.dot(ey)), r: Math.hypot(d.dot(ex), d.dot(ey)) }; });
-    var NU = 20, NV = 8, grid = [], fallback = 0;
+    var NU = tessellation ? clamp(Math.floor(tessellation.u || 20), 8, 24) : 20, NV = tessellation ? clamp(Math.floor(tessellation.v || 6), 3, 10) : 8, grid = [], fallback = 0;
     pts.forEach(function (p) { if (p.t > t0 && p.t < t1) fallback = Math.max(fallback, p.r * .8); });
     for (var j = 0; j <= NV; j++) {
       grid.push([]); var t = mix(t0, t1, j / NV);
@@ -702,7 +702,7 @@
       var r = radius(ang, v) + offset + (flare || 0) * Math.pow(Math.max(0, 1 - v * 3), 2) + (lift || 0), n = ey.clone().multiplyScalar(Math.cos(ang)).addScaledVector(ex, Math.sin(ang));
       return [a.clone().addScaledVector(axis, mix(t0, t1, v) * len).addScaledVector(n, r), n];
     }
-    var g = G.shell(NU * 2, NV * 2, function (u, v) { var p = at(u * TAU, v)[0]; return [p.x, p.y, p.z]; }, thickness, true);
+    var g = G.shell(tessellation ? NU : NU * 2, tessellation ? NV : NV * 2, function (u, v) { var p = at(u * TAU, v)[0]; return [p.x, p.y, p.z]; }, thickness, true);
     return { geometry: g, at: function (ang, t, lift) { return at(ang, (t - t0) / (t1 - t0), lift); } };
   }
 
@@ -1846,5 +1846,5 @@
       }
     };
   }
-  B.Models = { register: function (type, cfg, recipe) { if (prepared) throw Error('Karakter kaydı hazırlıktan önce yapılmalı.'); TYPES[type] = cfg; R[type] = function (A) { return recipe(A, { bases: bases, bodyMaterial: bodyMaterial, gearMaterial: gearMaterial, clothWeights: clothWeights, whiteMap: function () { return NO_WHITE ? null : whiteMap(); }, forgedBlock: forgedBlock, forgedBlade: forgedBlade, forgedGrip: forgedGrip }); }; }, create: create, prepare: prepare, templates: bases, blueprints: blueprints, types: TYPES };
+  B.Models = { register: function (type, cfg, recipe) { if (prepared) throw Error('Karakter kaydı hazırlıktan önce yapılmalı.'); TYPES[type] = cfg; R[type] = function (A) { return recipe(A, { bases: bases, bodyMaterial: bodyMaterial, gearMaterial: gearMaterial, clothWeights: clothWeights, sleeve: sleeve, whiteMap: function () { return NO_WHITE ? null : whiteMap(); }, forgedBlock: forgedBlock, forgedBlade: forgedBlade, forgedGrip: forgedGrip }); }; }, create: create, prepare: prepare, templates: bases, blueprints: blueprints, types: TYPES };
 })();

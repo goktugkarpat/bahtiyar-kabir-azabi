@@ -411,7 +411,7 @@
   }
 
   // ------------------------------------------------------------------ oyun bilgisi
-  const MATERIAL = { prisoner: 'flesh', cultist: 'flesh', stalker: 'bone', carrier: 'wet', guard: 'armor', boss: 'armor', drowned: 'wet', rootborn: 'bone', crawler: 'bone', urchin: 'wet', lantern: 'flesh', bell: 'armor' };
+  const MATERIAL = { prisoner: 'flesh', cultist: 'flesh', stalker: 'bone', carrier: 'wet', guard: 'armor', boss: 'armor', drowned: 'wet', rootborn: 'bone', crawler: 'bone', urchin: 'wet', lantern: 'flesh', bell: 'armor', ashbound:'flesh', shardseer:'bone', cavefang:'bone', gravemason:'bone', ruinwarden:'armor', hollowking:'armor', emberbound:'flesh', chainseer:'flesh', slagcrawler:'bone', forgesentinel:'armor', ashwarden:'armor', furnaceheart:'armor' };
   function player() { const g = game(); return g && g.player; }
   function struckEnemies() {
     const g = game(), p = player(); if (!g || !p || !g.enemies) return [];
@@ -471,7 +471,7 @@
   // A blade lands on a foe (layers: steel/flesh bite, wet slap, material body, bone crack, metal ring; the body punch is added once per blow in H.hit).
   // tier: 0 light, 1 finisher, 2 heavy attack.
   function impact(type, heavy, k, at, tier = heavy ? 2 : 0) {
-    const m = MATERIAL[type] || 'flesh', boss = type === 'boss', w = tier === 2 ? 1 : tier === 1 ? .8 : .55, o = { at, send: tier ? .16 : .1, detune: .02 };
+    const m = MATERIAL[type] || 'flesh', boss = type === 'boss' || type === 'bell' || type === 'hollowking' || type === 'furnaceheart', w = tier === 2 ? 1 : tier === 1 ? .8 : .55, o = { at, send: tier ? .16 : .1, detune: .02 };
     const L = (name, vol, x) => sample(name, Object.assign({ vol: vol * k }, o, x)), fi = 1 + Math.floor(Math.random() * 3);   // flesh variant 0 is a hissy squelch: skipped
     if (m === 'armor') {
       L('hitCutSteel', .5 + .25 * w, { rate: rand(.95, 1.08) });
@@ -496,11 +496,12 @@
       if (type === 'cultist') L('cloth', .25, { rate: 1.2 });
     }
   }
-  const PAIN = { prisoner: 'prisonerYell', guard: 'guardGrunt', cultist: 'hurt', stalker: 'stalkerShriek', carrier: 'carrierGurgle', boss: 'bossRoar' };
+  const PAIN = { prisoner: 'prisonerYell', guard: 'guardGrunt', cultist: 'hurt', stalker: 'stalkerShriek', carrier: 'carrierGurgle', boss: 'bossRoar', ashbound:'prisonerYell', shardseer:'hurt', cavefang:'stalkerShriek', gravemason:'guardGrunt', ruinwarden:'guardGrunt', hollowking:'bossRoar', emberbound:'prisonerYell', chainseer:'hurt', slagcrawler:'carrierGurgle', forgesentinel:'guardGrunt', ashwarden:'guardGrunt', furnaceheart:'bossRoar' };
+  const PAIN_RATE = {ashbound:.84,shardseer:.92,cavefang:1.08,gravemason:.76,ruinwarden:.8,hollowking:.72,emberbound:.8,chainseer:.8,slagcrawler:.72,forgesentinel:.72,ashwarden:.8,furnaceheart:.65};
   function painVocal(e, heavy) {
     if (!e || e.dead || !throttle('pain_' + e.type, e.boss ? 2.4 : .75) || !chance(heavy ? .8 : .45)) return;
     const n = PAIN[e.type] || 'prisonerYell';
-    sample(n, { vol: e.boss ? .45 : .5, at: e, rate: e.type === 'cultist' ? 1.12 : rand(1, 1.12), delay: .05, send: .15 });
+    sample(n, { vol: e.boss ? .45 : .5, at: e, rate: PAIN_RATE[e.type] || (e.type === 'cultist' ? 1.12 : rand(1, 1.12)), delay: .05, send: .15 });
   }
 
   // ------------------------------------------------------------------ olaylar
@@ -795,9 +796,21 @@
     burst(t, .6, .08 * k * s.gain, 2600, { q: 1.5, pan: s.pan });
   };
   const DEATH = { prisoner: 'prisonerDeath', guard: 'guardDeath', cultist: 'cultistDeath', stalker: 'stalkerDeath', carrier: 'carrierDeath' };
+  // Existing voice recordings, shaped by anatomy and the material that lands.
+  const DEATH_MATERIAL = {
+    drowned:['carrierDeath',.78,'wetStep',.7], rootborn:['guardDeath',.72,'debris',.65],
+    crawler:['stalkerDeath',1.12,'bone',1.1], urchin:['carrierDeath',.86,'bone',.85], lantern:['cultistDeath',.9,'chain',1.15],
+    ashbound:['prisonerDeath',.84,'armorStep',.85], shardseer:['cultistDeath',.86,'bone',1.25],
+    cavefang:['stalkerDeath',1.08,'bone',1.12], gravemason:['guardDeath',.72,'debris',.82], ruinwarden:['guardDeath',.8,'armor',.74],
+    emberbound:['prisonerDeath',.8,'metal',.88], chainseer:['cultistDeath',.76,'chain',.82],
+    slagcrawler:['carrierDeath',.67,'scuff',.72], forgesentinel:['guardDeath',.66,'metal',.62], ashwarden:['guardDeath',.76,'chain',.72]
+  };
   H.kill = (o, k) => {
-    const e = justKilled(), type = o.type || (e && e.type) || 'prisoner', at = e || null, t = now(), s = at ? spatial(at.x, at.z) : { pan: 0, gain: 1 };
-    sample(DEATH[type] || 'prisonerDeath', { vol: .85 * k, at, delay: .04, send: .2, prio: 1 });
+    const e = justKilled(), type = o.type || (e && e.type) || 'prisoner',
+      at = Number.isFinite(o.x) && Number.isFinite(o.z) ? o : e || null,
+      t = now(), s = at ? spatial(at.x, at.z) : { pan: 0, gain: 1 }, signature = DEATH_MATERIAL[type];
+    sample(signature ? signature[0] : DEATH[type] || 'prisonerDeath', { vol: .85 * k, at, delay: .04, send: .2, prio: 1, rate: signature ? signature[1] : 1 });
+    if (signature) sample(signature[2], {vol:.38*k,at,delay:.46,rate:signature[3],send:.12});
     sample('thump', { vol: .6 * k, at, delay: .42, rate: .7 }); thud(t + .44, { f0: 90, f1: 35, dur: .25, vol: .5 * k * s.gain, pan: s.pan });
     if (type === 'guard') { sample('armor', { vol: .55 * k, at, delay: .47, rate: .72 }); sample('armorStep', { vol: .4 * k, at, delay: .6, rate: .7 }); }
     if (type === 'prisoner') sample('chain', { vol: .35 * k, at, delay: .45, rate: .9 });

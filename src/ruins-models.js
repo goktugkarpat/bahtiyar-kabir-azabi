@@ -19,14 +19,14 @@
   function plateWear(g,edge){return G.wear(g,{edge:edge==null?.42:edge,border:.35,curv:.006,cavity:.02});}
   var GLOW=[];   // emissive materials the telegraph layer breathes (see telegraphs.js glowPulse)
   function make(type,cfg){cfg.chapter=3;B.Models.register(type,cfg,function(A,C){
-    var exec=cfg.base==='executioner',head=exec?'head':'Head',spine=exec?'spine03':'spine_03',handL=exec?'handL':'hand_l',handR=exec?'handR':'hand_r',armL=exec?'upper_armL':'upperarm_l',armR=exec?'upper_armR':'upperarm_r';
+    var exec=cfg.base==='executioner',head=exec?'head':'Head',spine=exec?'spine03':'spine_03',handL=exec?'handL':'hand_l',handR=exec?'handR':'hand_r',armL=exec?'upper_armL':'upperarm_l',armR=exec?'upper_armR':'upperarm_r',thighL=exec?'thighL':'thigh_l',thighR=exec?'thighR':'thigh_r';
     var skin=A.addFrom(C.bases[cfg.base],function(){return true;},'skin')[0];if(exec)A.remapBone('neutral_bone','pelvis');
     if(type==='cavefang'){A.lengthen({lowerarm_l:1.35,lowerarm_r:1.35,hand_l:1.25,hand_r:1.25});var slim={};slim[spine]=.78;A.slim(skin,slim,1);}
     var p=A.P(head),chest=A.P(spine),hip=A.P('pelvis'),stone=type==='gravemason'||type==='ruinwarden'||type==='hollowking';
     var fitted=torsoFit(A,exec,chest),fb=fitted.box,bw=Math.max(.34,fb.max.x-fb.min.x);
     // Ash-grey, dirty palettes: no clean cloth, no bare-steel patches. The linen scan is indigo, so it is desaturated first.
     var tint=type==='ashbound'?[1.02,.76,.60]:type==='shardseer'?[.82,.80,.94]:type==='cavefang'?[.84,.78,.70]:[1.12,.95,.78];
-    var clothTint=type==='shardseer'?[.13,.10,.22]:type==='hollowking'?[.42,.06,.08]:type==='ruinwarden'?[.30,.07,.07]:type==='gravemason'?[.19,.15,.12]:type==='cavefang'?[.2,.18,.15]:[.22,.15,.10];
+    var clothTint=type==='shardseer'?[.13,.10,.22]:type==='hollowking'?[.13,.025,.028]:type==='ruinwarden'?[.09,.026,.026]:type==='gravemason'?[.19,.15,.12]:type==='cavefang'?[.2,.18,.15]:[.22,.15,.10];
     var materials={skin:C.bodyMaterial(A.srcMaterial(exec?'Exec_mesh':'SuperHero_Male',C.bases[cfg.base]),'ruins-'+type+'-skin',{cls:'skin',skin:1,skinMap:exec,sat:.5,tint:tint,grime:.42,blood:type==='cavefang'?.45:.2,scale:8,fresh:true},{roughness:.7}),
       iron:C.bodyMaterial(C.gearMaterial('iron'),'ruins-'+type+'-iron',{cls:'metal',tint:[1.02,.9,.78],rust:.34,grime:.4,wear:.5,scale:8},{roughness:.66}),
       leather:C.bodyMaterial(C.gearMaterial('leather'),'ruins-'+type+'-leather',{cls:'leather',tint:stone?[.74,.52,.36]:type==='shardseer'?[.30,.25,.34]:[.62,.31,.16],grime:.32,blood:.12,scale:7},{roughness:.86}),
@@ -35,6 +35,21 @@
       glow:new T.MeshStandardMaterial({color:0x302a48,emissive:0x7552b4,emissiveIntensity:type==='hollowking'?1.1:.78,roughness:.48,metalness:.15}),
       ash:C.bodyMaterial(C.gearMaterial('ash'),'ruins-'+type+'-ash',{cls:'bone',tint:[.5,.48,.46],grime:.75,scale:6},{roughness:.92})};
     GLOW.push({mat:materials.glow,base:materials.glow.emissiveIntensity,type:type});
+    // Reuse the hero's measured limb fitting, with a camera-appropriate NPC mesh budget.
+    // Every piece joins an existing material group and the original skeleton.
+    function limbCover(key,from,to,t0,t1,pad,thickness,flare){
+      var q=C.sleeve(A,from,to,t0,t1,pad,thickness,['skin'],flare,{u:20,v:6});
+      G.uvScale(q.geometry,.8,.7);G.wear(q.geometry,{edge:key==='iron'?.18:0,border:.2,cavity:.025,curv:.004});
+      A.transfer(key,q.geometry,['skin'],{bones:[from,to]});return q;
+    }
+    function boot(foot,toe,key){
+      var pts=A.cloud([foot,toe],['skin'],.35),box=A.box(pts),c=box.getCenter(new T.Vector3()),sz=box.getSize(new T.Vector3());
+      if(!pts.length)return;
+      var w=Math.max(.054,sz.x*.54),len=Math.max(.13,sz.z*.55),base=box.min.y+.005;
+      var shoe=G.shell(20,7,function(u,v){var a=u*TAU,e=v*Math.PI/2,r=Math.pow(Math.max(0,Math.cos(e)),.35),toeShape=.92+.08*Math.cos(a);return[c.x+Math.sin(a)*w*toeShape*r,base+.018+Math.sin(e)*Math.max(.12,sz.y*1.02),c.z+Math.cos(a)*len*r];},.004,false,true);
+      G.uvScale(shoe,.8,.7);A.rigid(key||'leather',shoe,foot);
+    }
+
     // Banded plate that hugs the real torso, no floating bricks: n lames, each a rolled-rim shell flaring at its lower edge.
     function lames(key,count,top,gap,height,pad,flare){
       var list=[];
@@ -43,11 +58,25 @@
     }
     var torsoTop=fb.max.y-.07,torsoH=fb.max.y-fb.min.y;
     // Weathered skirt follows the pelvis, never floats.
-    if(type!=='cavefang'){
+    if(type==='ashbound'){
       safe('skirt',function(){
         var cloth=G.sheet(28,12,function(u,v){var a=u*TAU,r=.21+v*.055;return[hip.x+Math.sin(a)*r,hip.y+.06-v*(type==='shardseer'?.65:.38)+Math.sin(a*9)*.035*v,hip.z+Math.cos(a)*r];},true);G.uvScale(cloth,3,2);A.rigid('rag',cloth,'pelvis');
       });
     }
+    if(stone)safe('articulated waist armour',function(){
+      // Short curved tassets replace the broad hanging cloth. Their surface follows
+      // the imported hips; a small thigh influence separates them during a stride.
+      var upper=hip.y+.085,lower=hip.y-(type==='hollowking'?.38:type==='ruinwarden'?.32:.27),cloud=A.cloud(['pelvis',thighL,thighR],['skin'],.25),near=cloud.filter(function(q){return q.y<upper+.03&&q.y>lower-.04;}),hb=A.box(near.length?near:cloud),cx=(hb.min.x+hb.max.x)*.5,cz=(hb.min.z+hb.max.z)*.5;
+      function surface(a,y,pad){var best=0,fallback=.25,score=Infinity;for(var k=0;k<cloud.length;k++){var q=cloud[k],dx=q.x-cx,dz=q.z-cz,r=Math.hypot(dx,dz),df=Math.abs(Math.atan2(Math.sin(Math.atan2(dx,dz)-a),Math.cos(Math.atan2(dx,dz)-a))),dy=Math.abs(q.y-y);if(dy<.065&&df<.25)best=Math.max(best,r);var sc=dy*4+df*.18;if(sc<score){score=sc;fallback=r;}}var r=Math.max(.21,best||fallback)+pad;return[cx+Math.sin(a)*r,y,cz+Math.cos(a)*r];}
+      var count=type==='hollowking'?8:type==='ruinwarden'?8:6,parts=[];
+      for(var i=0;i<count;i++)(function(i){var center=(i+.5)*TAU/count,half=TAU/count*.43;
+        var panel=G.shell(10,5,function(u,v){var a=center+(u-.5)*half*2*(1-v*.12),y=upper+(lower-upper)*v+.018*Math.pow(Math.sin(u*Math.PI),2)*v*v;return surface(a,y,.029+.027*v+.006*Math.sin(v*Math.PI));},.010,false,true);
+        G.uvScale(panel,.7,.8);parts.push(plateWear(panel,.28));
+        for(var j=0;j<2;j++){var p2=surface(center+(j?-.18:.18)*half,upper-.045,.043);parts.push(G.sphere(.009,p2,[1,.8,1],6,4));}
+      })(i);
+      var belt=G.shell(40,2,function(u,v){return surface(u*TAU,upper+.024-v*.060,.030);},.010,true,true);G.uvScale(belt,2,.3);parts.push(plateWear(belt,.22));
+      A.weighted('iron',G.merge(parts),C.clothWeights(A,'pelvis',thighL,thighR,upper,lower,.24));
+    });
     if(stone){
       safe('lames',function(){
         var n=type==='hollowking'?6:type==='ruinwarden'?5:4;
@@ -65,6 +94,18 @@
       var spikes=[],crown=type==='hollowking'?9:7;
       safe('crown',function(){for(var i=0;i<crown;i++){var a=i/crown*TAU,rr=type==='hollowking'?.125:.11,base=p.clone().add(V(Math.sin(a)*rr,.10,Math.cos(a)*rr)),tall=type==='hollowking'?(i%2?.42:.2):(.16+(i%2)*.08);spikes.push(G.spike(type==='hollowking'?.042:.035,base,base.clone().add(V(Math.sin(a)*.07,tall,Math.cos(a)*.07))));}A.rigid(type==='hollowking'?'bone':'iron',G.merge(spikes),head);});
     }
+    if(type==='ashbound')safe('ash militia clothing',function(){
+      ['l','r'].forEach(function(side){limbCover('rag','upperarm_'+side,'lowerarm_'+side,.12,.9,.018,.002,.012);limbCover('leather','thigh_'+side,'calf_'+side,.04,1.02,.016,.003,.010);limbCover('leather','calf_'+side,'foot_'+side,-.02,.88,.019,.003,.008);boot('foot_'+side,'ball_'+side);});
+    });
+    if(type==='shardseer')safe('grave seer vestments',function(){
+      var top=hip.y+.07,bottom=Math.min(A.P('foot_l').y,A.P('foot_r').y)+.15,cloud=A.cloud(['pelvis','thigh_l','thigh_r','calf_l','calf_r'],['skin'],.25);
+      function radial(a,y){var best=0,fallback=.24,score=Infinity;for(var i=0;i<cloud.length;i++){var q=cloud[i],dx=q.x-hip.x,dz=q.z-hip.z,r=Math.hypot(dx,dz),df=Math.abs(Math.atan2(Math.sin(Math.atan2(dx,dz)-a),Math.cos(Math.atan2(dx,dz)-a))),dy=Math.abs(q.y-y);if(dy<.07&&df<.3)best=Math.max(best,r);var sc=dy*4+df*.2;if(sc<score){score=sc;fallback=r;}}return Math.max(.24,best||fallback)+.050;}
+      var robe=G.shell(32,12,function(u,v){var gap=.10+v*.17,a=gap+u*(TAU-gap*2),y=top+(bottom-top)*v,r=radial(a,y)+v*.018+Math.sin(a*8+v)*.026*v*v;return[hip.x+Math.sin(a)*r,y+Math.sin(a*9)*.014*v*v,hip.z+Math.cos(a)*r];},.003,false,true);G.uvScale(robe,1,.9);G.wear(robe,{edge:0,tear:{amount:.2,width:.018,bottom:.025,base:.008}});A.weighted('rag',robe,C.clothWeights(A,'pelvis','thigh_l','thigh_r',top,bottom,.40));
+      var cuirass=G.sheet(32,14,function(u,v){return fitted.at(u*TAU,fb.max.y-.014-v*(fb.max.y-fb.min.y-.07),.025);},true,true);G.uvScale(cuirass,1,1);G.fillWear(cuirass);fitted.attach('rag',cuirass);
+      var hc=A.cloud([head],['skin'],.55),hb=A.box(hc),h=hb.getCenter(new T.Vector3()),hs=hb.getSize(new T.Vector3());
+      var hood=G.shell(28,10,function(u,v){var a=.72+u*(TAU-1.44),r=Math.max(.14,hs.x*.56)*Math.sin(v*Math.PI*.65)+.025+v*v*.045;return[h.x+Math.sin(a)*r,hb.max.y+.045+(hb.min.y-hb.max.y-.085)*v,h.z+Math.cos(a)*r-.012];},.003,false,true);G.uvScale(hood,.8,.8);G.fillWear(hood);A.rigid('rag',hood,head);
+      ['l','r'].forEach(function(side){limbCover('rag','upperarm_'+side,'lowerarm_'+side,.07,.94,.024,.002,.016);limbCover('rag','lowerarm_'+side,'hand_'+side,.02,.87,.026,.002,.017);limbCover('rag','thigh_'+side,'calf_'+side,-.02,1.06,.025,.003,.006);limbCover('rag','calf_'+side,'foot_'+side,-.05,.94,.022,.003,.005);boot('foot_'+side,'ball_'+side,'rag');});
+    });
     if(type==='ashbound'){
       safe('ashbound',function(){
         // The surviving ash oath is armoured from the back as well as the front: leather jerkin, collar, belt, iron seal.
@@ -85,10 +126,10 @@
         var cloak=G.sheet(20,16,function(u,v){var across=(u-.5)*(.43+v*.12);return[chest.x+across,chest.y+.22-v*.73+Math.sin(u*19)*.035*v*v,fb.min.z-.025-.035*v+Math.sin(u*17+v*6)*.012];},true);G.uvScale(cloak,2,2.5);G.wear(cloak,{edge:0,cavity:0,border:0,curv:0,tear:{amount:.64,width:.045,bottom:.12,base:.025}});A.rigid('rag',cloak,spine);
         var binding=[];[-1,1].forEach(function(sign){binding.push(G.tube([[chest.x+sign*.18,chest.y+.18,chest.z-.10],[chest.x+sign*.14,chest.y+.24,chest.z],[chest.x+sign*.17,chest.y+.12,chest.z+.12]],.015,7,16,true));});A.rigid('iron',G.merge(binding),spine);
         // A halo of grave crystal grows out of the seer's spine and shoulder: tall emissive silhouette that blooms in the dark.
-        var shard=[];
-        for(var i=0;i<7;i++){var f=(i-3)/3,base=V(chest.x+f*.17,chest.y+.18-Math.abs(f)*.06,fb.min.z-.035),tall=.46-Math.abs(f)*.2+(i%2)*.1;shard.push(G.spike(.052-Math.abs(f)*.012,base,base.clone().add(V(f*.30,tall,-.14-Math.abs(f)*.04))));}
+        var shard=[],veins=[];
+        for(var i=0;i<7;i++){var f=(i-3)/3,base=V(chest.x+f*.17,chest.y+.18-Math.abs(f)*.06,fb.min.z-.035),tall=.46-Math.abs(f)*.2+(i%2)*.1;var end=base.clone().add(V(f*.30,tall,-.14-Math.abs(f)*.04));shard.push(G.spike(.052-Math.abs(f)*.012,base,end));veins.push(G.spike(.008,base.clone().add(V(0,0,.024)),end.clone().add(V(0,-.045,.010))));}
         [-1,1].forEach(function(s){var b0=A.P(s<0?armL:armR);shard.push(G.spike(.04,b0.clone().add(V(s*.08,.08,-.02)),b0.clone().add(V(s*.20,.30,-.05))));shard.push(G.spike(.03,b0.clone().add(V(s*.10,.07,.04)),b0.clone().add(V(s*.24,.2,.07))));});
-        A.rigid('glow',G.merge(shard),spine);
+        A.rigid('ash',G.merge(shard),spine);A.rigid('glow',G.merge(veins),spine);
         A.rigid('iron',G.tube([[chest.x-.17,chest.y+.12,chest.z-.14],[chest.x,chest.y+.08,chest.z-.18],[chest.x+.17,chest.y+.12,chest.z-.14]],.020,7,18,true),spine);
         // pale gem set in a rune-ring at the brow
         A.rigid('iron',G.ring(.05,.008,[p.x,p.y+.07,p.z+.095],[Math.PI/2.4,0,0],6,18),head);A.rigid('glow',G.sphere(.022,[p.x,p.y+.07,p.z+.105],[1,1.3,.7],8,6),head);
@@ -117,9 +158,8 @@
     if(type==='ruinwarden'||type==='hollowking'){
       safe('cloak',function(){
         var king=type==='hollowking',len=king?1.25:.95,hw=king?bw*1.1:bw*.95;
-        var cloak=G.sheet(20,14,function(u,v){var across=(u-.5)*(hw+v*.34);return[fitted.cx+across,fb.max.y-.04-v*len+Math.sin(u*23)*.04*v*v,fb.min.z-.04-.07*v+Math.sin(u*15+v*5)*.018];},true);G.uvScale(cloak,2.4,3);G.wear(cloak,{edge:0,cavity:0,border:0,curv:0,tear:{amount:.7,width:.05,bottom:.22,base:.03}});A.rigid('rag',cloak,spine);
-        // tabard front, short and ragged
-        var tab=G.sheet(10,12,function(u,v){return[fitted.cx+(u-.5)*(.34+v*.08),hip.y+.06-v*.5+Math.sin(u*17)*.03*v,hip.z+.2+Math.sin(u*9+v*4)*.01];},false);G.uvScale(tab,1.5,2);G.wear(tab,{edge:0,cavity:0,border:0,curv:0,tear:{amount:.6,width:.05,bottom:.2,base:.03}});A.rigid('rag',tab,'pelvis');
+        var cloak=G.sheet(20,14,function(u,v){var across=(u-.5)*(hw+v*.34);return[fitted.cx+across,fb.max.y-.04-v*len+Math.sin(u*23)*.04*v*v,fb.min.z-.04-.07*v+Math.sin(u*15+v*5)*.018];},true);G.uvScale(cloak,2.4,3);G.wear(cloak,{edge:0,cavity:0,border:0,curv:0,tear:{amount:.28,width:.025,bottom:.07,base:.012}});A.rigid('rag',cloak,spine);
+
       });
     }
     if(type==='hollowking'){
@@ -139,11 +179,16 @@
         var ch=[];for(var c=0;c<10;c++)ch.push(G.ring(.03,.008,[hip.x-.22,hip.y-.02-c*.055,hip.z+.04],[c%2?Math.PI/2:0,0,0],5,10));A.rigid('iron',G.merge(ch),'pelvis');
       });
     }
+    if(type==='shardseer')safe('covered thigh skin',function(){
+      var knee=Math.max(A.P('calf_l').y,A.P('calf_r').y)+.035;
+      function covered(q){return /^thigh_[lr]$/.test(q.bone)&&q.p.y<hip.y-.025&&q.p.y>knee;}
+      A.trim(skin,function(a,b,c){return !(covered(a)&&covered(b)&&covered(c));});
+    });
     var weapon;
-    if(type==='shardseer'){weapon={parts:{wood:[G.cyl(.025,.035,1.25,10,[0,.45,0])],glow:[G.spike(.075,new T.Vector3(0,1.04,0),new T.Vector3(0,1.48,0)),G.spike(.045,new T.Vector3(.06,1.02,0),new T.Vector3(.18,1.30,.0)),G.spike(.045,new T.Vector3(-.06,1.02,0),new T.Vector3(-.18,1.26,.02)),G.spike(.035,new T.Vector3(0,1.02,.06),new T.Vector3(.02,1.22,.16))],iron:[G.ring(.058,.013,[0,1.04,0],[Math.PI/2,0,0],6,20),G.cyl(.04,.032,.10,8,[0,1.0,0])]},tip:new T.Vector3(0,1.48,0)};}
+    if(type==='shardseer'){weapon={parts:{wood:[G.cyl(.025,.035,1.25,10,[0,.45,0])],ash:[G.spike(.075,new T.Vector3(0,1.04,0),new T.Vector3(0,1.48,0)),G.spike(.045,new T.Vector3(.06,1.02,0),new T.Vector3(.18,1.30,.0)),G.spike(.045,new T.Vector3(-.06,1.02,0),new T.Vector3(-.18,1.26,.02)),G.spike(.035,new T.Vector3(0,1.02,.06),new T.Vector3(.02,1.22,.16))],glow:[G.spike(.012,new T.Vector3(0,1.06,.055),new T.Vector3(0,1.46,.014))],iron:[G.ring(.058,.013,[0,1.04,0],[Math.PI/2,0,0],6,20),G.cyl(.04,.032,.10,8,[0,1.0,0])]},tip:new T.Vector3(0,1.48,0)};}
     else if(type==='gravemason'){weapon={parts:{wood:[G.cyl(.035,.05,1.18,10,[0,.40,0])],iron:[C.forgedBlock(.44,.24,.22,[0,.99,0],.043),G.ring(.056,.012,[0,.75,0],[Math.PI/2,0,0],6,20),G.spike(.05,V(0,1.11,0),V(0,1.25,0),4)]},tip:new T.Vector3(0,1.11,0)};}
     else if(type!=='cavefang'){weapon={parts:{iron:[C.forgedBlade(1.05,.12,false),C.forgedBlock(.38,.055,.07,[0,.06,0],.012),G.cyl(.042,.048,.043,8,[0,-.27,0])],leather:[C.forgedGrip(.033,.25,-.25)]},tip:new T.Vector3(0,1.05,0)};}
-    if(weapon) weapon.materials = { glow: materials.glow, iron: materials.iron, leather: materials.leather };
+    if(weapon) weapon.materials = { ash: materials.ash, glow: materials.glow, iron: materials.iron, leather: materials.leather };
     return {materials:materials,weapon:weapon};
   });}
   make('ashbound',{base:'ubc',height:2.3,radius:.46,motionType:'guard'});

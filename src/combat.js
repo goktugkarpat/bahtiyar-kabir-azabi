@@ -249,7 +249,9 @@
         stun(enemy, seconds) { stunEnemy(enemy, seconds, 'heavy'); },
         push(enemy, dx, dz, force) { if (enemy && !enemy.dead && force > 0 && (dx || dz)) { enemy.push = null; push(enemy, Math.atan2(dx, dz), enemy.boss ? force * .3 : force); } },
         move(dx, dz) { moveBody(player, dx, dz, hero.radius || .5); },
-        canHit(enemy) { return !!enemy && !enemy.dead && clearStrike(player, enemy); },
+        canHit(enemy) {
+          return !!enemy && !enemy.dead && !enemyUnderground(enemy) && enemy.model.root.visible && clearStrike(player, enemy);
+        },
         hitStop
       };
     }
@@ -374,7 +376,7 @@
       if (pull && !attack.pulled && handle.impacted) {
         attack.pulled = true;
         for (const e of enemies) {
-          if (e.dead || e.boss || !e.model.root.visible) continue;
+          if (e.dead || e.boss || enemyUnderground(e) || !e.model.root.visible) continue;
           const d = Math.hypot(e.x - handle.impactX, e.z - handle.impactZ);
           if (d > attack.params.radius + 3 || d < 1.4 || !clearStrike({ x: handle.impactX, z: handle.impactZ }, e)) continue;
           e.push = null; moveBody(e, (handle.impactX - e.x) / d * Math.min(pull, d - 1.2), (handle.impactZ - e.z) / d * Math.min(pull, d - 1.2), e.radius);
@@ -395,7 +397,7 @@
         if (attack.skill === 'brand') {
           if (Math.hypot(enemy.x - cx, enemy.z - cz) > P.radius + enemy.radius * .6) continue;
         } else if (Math.hypot(dx, dz) > P.radius + enemy.radius * .5 || Math.abs(angleDifference(Math.atan2(dx, dz), attack.face)) > P.arc / 2) continue;
-        const r = skillContact(enemy, attack); hits++;
+        const r = skillContact(enemy, attack); if (!r) continue; hits++;
         if (r && !r.killed && P.stun > .55) stunEnemy(enemy, P.stun, 'heavy');
         // The blow throws them off the point of impact: the heavier the tier, the farther.
         if (r && !r.killed && !enemy.boss) { const from = attack.skill === 'brand' ? { x: cx, z: cz } : { x: ox, z: oz }, d = Math.hypot(enemy.x - from.x, enemy.z - from.z); push(enemy, Math.atan2(enemy.x - from.x, enemy.z - from.z), (T >= 3 ? .55 + 1.25 : .4 + .75) * (1 - Math.min(1, d / (P.radius + 1)) * .6)); }
@@ -813,9 +815,10 @@
       if (gate) gate.clamp(body, previousZ, radius);
     }
     function separateEnemies(enemy, dt) {
+      if (enemyUnderground(enemy)) return;
       let sx = 0, sz = 0;
       for (const other of enemies) {
-        if (other === enemy || other.dead || !other.active) continue;
+        if (other === enemy || other.dead || !other.active || enemyUnderground(other)) continue;
         const dx = enemy.x - other.x, dz = enemy.z - other.z, d = Math.hypot(dx, dz);
         const minD = enemy.radius + other.radius + .15;
         if (d > .01 && d < minD) { sx += dx / d * (minD - d) * 2.8; sz += dz / d * (minD - d) * 2.8; }
@@ -826,7 +829,7 @@
     function separateFromHero() {
       if (player.dead) return;
       for (const e of enemies) {
-        if (e.dead || !e.active || e.model.root.position.y > .3) continue;
+        if (e.dead || !e.active || enemyUnderground(e) || e.model.root.position.y > .3) continue;
         const dx = e.x - player.x, dz = e.z - player.z, d = Math.hypot(dx, dz), minD = e.radius + .42;
         if (d >= minD) continue;
         const nx = d > .001 ? dx / d : Math.sin(player.face + Math.PI), nz = d > .001 ? dz / d : Math.cos(player.face + Math.PI), gap = minD - d;
@@ -935,8 +938,9 @@
       }
     }
     function beginMove(enemy, move) {
+      const timingScale = game.difficulty === 'hard' ? 1 : game.difficulty === 'easy' ? 1.2 : 1.12;
       if(game.difficulty !== 'hard') {
-        const pace=game.difficulty==='easy'?1.2:1.12;
+        const pace=timingScale;
         move=Object.assign({},move,{duration:move.duration*pace,hits:(move.hits||[]).map(h=>Object.assign({},h,{at:h.at*pace,warn:h.warn*pace}))});
         if(move.movement) move.movement=Object.assign({},move.movement,{start:move.movement.start*pace,duration:move.movement.duration*pace});
         if(move.faceAt) move.faceAt=Object.assign({},move.faceAt,{t:move.faceAt.t*pace});
@@ -955,7 +959,7 @@
       if (move.feint && rand(enemy) < move.feint.chance) { a.feintAt = move.feint.at + shift; a.feintKind = move.feint.kind || 'stop'; }
       enemy.lastMove = move.id; enemy.picks++;
       const memory = enemy.moveHistory || (enemy.moveHistory = []); memory.push(move.id); if (memory.length > 5) memory.shift();
-      if (move.onBegin) move.onBegin(a);
+      if (move.onBegin) move.onBegin(a, { scale: timingScale, shift });
       let first = true;
       for (const hit of hits) {
         const o = hit.origin || enemy;
@@ -1549,8 +1553,12 @@
       const b = quests && quests.info && quests.info.benefits, value = b && b[key];
       return Number.isFinite(value) ? clamp(value, 0, max) : 0;
     }
+    function enemyUnderground(enemy) {
+      const action = enemy && enemy.action, burrow = action && action.burrow;
+      return !!(burrow && action.age >= burrow.from && action.age < burrow.to);
+    }
     function hurtEnemy(enemy, damage, heavy, attackFace, attack) {
-      if (enemy.dead || gate && gate.blocks(player.x, player.z, enemy.x, enemy.z, .15)) return null;
+      if (enemy.dead || enemyUnderground(enemy) || gate && gate.blocks(player.x, player.z, enemy.x, enemy.z, .15)) return null;
       // Roll once per committed attack, shared by its targets/ticks; equipment never displays decorative crit stats.
       if (attack && attack.critical === undefined) attack.critical = Math.random() < game.criticalChance;
       const critical = !!(attack && attack.critical);
@@ -2010,7 +2018,7 @@
       else fx('warCry', { x: player.x, y: .05, z: player.z, face: player.face, radius: ROAR.near, far: ROAR.far, tier: ROAR.tier });
       const cry = { skill: 'roar', line: 'roar', tier: ROAR.tier, heavy: true, combo: 0, age: 0, face: player.face, serial: ++attackSerial };
       for (const e of enemies) {
-        if (e.dead || !e.model.root.visible) continue;
+        if (e.dead || enemyUnderground(e) || !e.model.root.visible) continue;
         const d = distance(e, player), away = angleTo(player, e);
         if (d > ROAR.far) continue;
         e.hitAngle = angleDifference(angleTo(e, player), e.face);
@@ -2405,7 +2413,11 @@
       const posing = game.drawing !== false;
       if (posing) { hero.animate(dt + heroPoseAcc, hs); heroPoseAcc = 0; } else heroPoseAcc += dt;
       for (const enemy of enemies) {
-        const d = distance(enemy, player), visible = d < 45 && (!enemy.dead || enemy.deadAge < corpseLifetime);
+        const d = distance(enemy, player);
+        // A burrowing body stays below the floor through the committed attack
+        // window. Posing must not undo the chapter controller's hidden state.
+        const underground = !enemy.dead && enemyUnderground(enemy);
+        const visible = !underground && d < 45 && (!enemy.dead || enemy.deadAge < corpseLifetime);
         if (enemy.inView === false) {
           // Outside the camera's view (plus margin): no pose, no bar, no scene walk. Position stays current so nothing jumps on return.
           enemy.model.root.visible = visible; enemy.holder.visible = false; enemy.bar.root.visible = false;

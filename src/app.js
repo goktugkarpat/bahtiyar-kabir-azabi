@@ -513,6 +513,47 @@
     [/sıçray|çene|ayak/i,'Sürüngenin yere işaretlediği noktadan yana çık. Pençenin ikinci darbesini de bekle.'],
     [/kürek|son nefes|boğulma/i,'Boğulmuş küreğini kaldırınca savuruş yönünden çık. Çığlığın halkasının ortası güvenlidir.']
   ];
+  const RUINS_DEATH_TIPS = [
+    [/Sessiz Nova/i, 'Kral ile arana sağlam bir billur sütun koy. Sütun patlamayı yutar; ardından yeniden hareket et.'],
+    [/Rezonans · sütun/i, 'Nabız sırasında sütunların çevresi de patlar. Altın dairelerin dışına çık.'],
+    [/Oyukların Nabzı/i, 'Kızıl halkalar sırayla genişler. İç boşluğa veya işaretli kuşağın dışına geç.'],
+    [/Oyuğa Gömülüş|Oyuktan Fırlayan Taşlar/i, 'İlk daireden çık. Patlama geçince merkeze gir veya ardından gelen taş halkasının dışına kaç.'],
+    [/Kazıp Çıkış/i, 'Muhafız yere gömülünce eski konumunu işaretler. Kızıl daireden yana çık.'],
+    [/Billur Yıldızı/i, 'Çizgilerin kesiştiği noktadan uzaklaş. Yarıklar sırayla patlar; aralarındaki boşlukları kullan.'],
+    [/Tahtın Yarıkları|Muhafızın Hükmü|Kırılan Mezarlar|Kül Yolu/i, 'Yarık çizgilerinin arasına geç. Eski konumundaki kızıl daireye geri dönme.'],
+    [/Taht Hücumu/i, 'Kızıl hücum hattından yana çık. Son evrede ardından gelen savuruşu da bekle.'],
+    [/Soluk Küreler|Yemin Kürecikleri/i, 'Küreler seni takip eder. Yana yürüyerek mesafeni koru; sağlam sütunlar onları durdurur.'],
+    [/Yankı Hükmü/i, 'Yankıların dar yaylarından sırayla çık. Son savuruşu kralın kendisi yapar; seri bitince yaklaş.'],
+    [/Oyuktan Gelenler/i, 'Çağrı dairelerinden uzak dur. Çıkan düşmanları azaltmak kralla savaşırken sana alan açar.'],
+    [/Çöken Tavan/i, 'İlk düşüş eski konumuna gelir. Boş kalan aralığa ilerle; sonraki dairelerin üstüne basma.'],
+    [/Tahtın Biçişi/i, 'Kralın ilk savuruşundan sonra hemen yaklaşma. İlerleyen evrelerde dönüş darbesi ve tekme eklenir.'],
+    [/Kül Biçişi|Yemin Kesen/i, 'Bu savuruş iki darbedir. İlk yaydan çıkınca dönüş darbesini de bekle, sonra vur.'],
+    [/Yemin Dürtüşü|Kırık Kehanet/i, 'Dar çizgilerin yanına çık. Atışla aynı yönde geriye koşmak seni hattın içinde tutar.'],
+    [/Kemik Kuyruk/i, 'Kuyruk halkasının iç boşluğu ve dışı güvenlidir. İşaretli kuşakta bekleme.'],
+    [/Tavandan Sıçrayış/i, 'Çömelirken eski konumunu işaretler. İniş dairesinden yana çık, sonra karşılık ver.'],
+    [/Kemik Çenesi/i, 'Çenenin dar ön yayından yana çık. Isırık geçince arkasından vur.'],
+    [/Mezar Tokmağı|Taş Dirsek|Kırık Asa|Taş Topuk/i, 'Önündeki darbe yayından yana çık. Darbe geçince oluşan açıklıkta karşılık ver.']
+  ];
+  const FORGE_DEATH_TIPS = [
+    [/Ocağın Saati/i, 'Güvenli dilim her dalgada saat yönünde yer değiştirir. Son evrede yalnız bir dilim kalır; sonraki boşluğa geç.'],
+    [/Örs Sarsıntısı/i, 'İniş dairesinden çık. Ardından gelen iki halkanın arasındaki işaretsiz boşlukları kullan.'],
+    [/Lav Fışkırması|Kül Fışkırması|Kor Seli/i, 'Paralel yarıkların arasına geç. Patlama bitse de kor zemini birkaç saniye yakar.'],
+    [/Kor İzi Hücumu|Kül İzi Hücumu|Kor İzi/i, 'Hücum hattından yana çık. Arkasında kalan kor izine geri basma.'],
+    [/Cüruf Küresi|Cüruf Birikintisi/i, 'Küreyi yana yürüyerek dolaştır. Düştüğünde bıraktığı köz birikintisinden uzak kal.'],
+    [/Erimiş Zincir Kırbacı/i, 'Zincir ayrı yayları sırayla biçer. Vurulmuş yayın boşluğuna geç; sıradaki yayın içinde bekleme.'],
+    [/Demir Pistonlar/i, 'Piston hattının yanına çık. Peş peşe vuruşlar aynı dar koridoru tarar.'],
+    [/Kızıl Basınç/i, 'Halkaların iç boşluğu ve işaretli sınırın dışı güvenlidir. Genişleyen kızıl kuşağın içinde bekleme.'],
+    [/Kor Bacaları/i, 'Bacalar eski konumunun çevresinde açılır. Kızıl dairelerin arasındaki boşluğu kullan.'],
+    [/Ocağın Nefesi/i, 'Kızıl nefes yayının yanına çık. Yalnız geriye kaçmak seni menzilinde tutabilir.'],
+    [/Kor Biçişi|Kül Antlaşması/i, 'İki savuruşu da bekle. İlk darbeden sonra içeri girmek dönüş darbesine yakalatır.'],
+    [/Ocağın Çekici/i, 'Çekiç yayından çık. İlerleyen evrelerde eski konumuna artçı daire düşer; seri bitince vur.'],
+    [/Cüruf Çenesi/i, 'İki çene darbesi var. İlkinden sonra öne dönme; seriyi yandan aş.'],
+    [/Kor Sıçrayışı/i, 'Sıçrayış eski konumundaki kızıl daireye iner. Yana çıkıp inişten sonra karşılık ver.'],
+    [/Cüruf Kuyruğu/i, 'Kuyruk halkasının iç boşluğu ve dışı güvenlidir. İşaretli kuşakta bekleme.'],
+    [/Zincir Tezgâhı/i, 'Zincirler dar hatlardan sırayla geçer. Hatların arasına veya atış yönünün yanına çık.'],
+    [/Ocaktan Gelenler/i, 'Çağrı dairelerinden uzak dur. Çıkan düşmanları azaltmak ocak mekaniklerinde sana alan açar.'],
+    [/Döküm Çekici|Demir Omuz|Demir Topuk|Kızgın Tekme|Zincir Halkası/i, 'Yakın darbe yayının yanına çık. Darbe tamamlandıktan sonra karşılık ver.']
+  ];
   const GENERAL_TIPS = ['Darbe inmeden hemen önce yuvarlanarak kaçın.', 'Kaçınmanın koruması hareketin başındadır. Geç kalırsan hasar alırsın.', 'Canın azaldığında can iksiri kullan; saldırırken de içebilirsin.', 'Ağır saldırı kalkanlıların gardını kırar ama dayanıklılığını hızla tüketir.'];
   // Cruel omens shown under the death card, rotated by death count and picked by the killer's name.
   const DEATH_OMENS = {
@@ -531,7 +572,7 @@
     const enemy = d.enemy || game.lastDeath?.enemy, attack = d.attack || game.lastDeath?.attack;
     $('death-cause').textContent = enemy || 'Son darbeyi karanlık vurdu.';
     $('death-attack').textContent = attack || '';
-    const tip = (attack && (coastChapter ? COAST_DEATH_TIPS : DEATH_TIPS).find(([re]) => re.test(attack))) || null;
+    const tip = (attack && (forgeChapter ? FORGE_DEATH_TIPS : ruinsChapter ? RUINS_DEATH_TIPS : coastChapter ? COAST_DEATH_TIPS : DEATH_TIPS).find(([re]) => re.test(attack))) || null;
     $('death-tip').textContent = tip ? tip[1] : GENERAL_TIPS[(deaths - 1) % GENERAL_TIPS.length];
     const omens = DEATH_OMENS[enemy] || DEATH_OMENS_ANY;
     $('death-detail').textContent = 'Eşyaların, seviyen ve yeteneklerin korundu. ' + (game.checkpointIndex ? 'Son yemin taşından devam edeceksin.' : 'Bölümün girişinden devam edeceksin.');

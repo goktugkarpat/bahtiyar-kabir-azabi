@@ -316,6 +316,10 @@
       if (!selectedSlot && !visible.some(i => i.uid === selected)) selected = visible[0] && visible[0].uid;
       const stats = state.stats(), weapon = state.itemForSlot('weapon'), difficulty = getGame().difficulty;
       const damageScale = difficulty === 'normal' || difficulty === 'easy' ? 1.18 : 1;
+      const questReduction = getGame().quests && getGame().quests.benefits && getGame().quests.benefits.damageReduction;
+      const oathDefense = Number.isFinite(questReduction) ? Math.max(0, Math.min(.12, questReduction)) : 0;
+      const permanentDefense = oathDefense ? 1 - (1 - stats.defense) * (1 - oathDefense) : stats.defense;
+      const defenseTitle = 'Zırh ' + percent(stats.defense) + (oathDefense ? ' · Bu bölümün yemini ' + percent(oathDefense) + ' · Birlikte ' + percent(permanentDefense) : '');
       const attackProfile = typeof getGame().normalAttackProfile === 'function' ? getGame().normalAttackProfile() : null;
       const attackDamage = attackProfile && Array.isArray(attackProfile.damage) ? attackProfile.damage : [25, 29, 36];
       const equipment = B.Progression.slots.map(slot => {
@@ -334,8 +338,8 @@
       const filters = ['all', ...B.Progression.slots].map(slot => '<button class="char-filter' + (bagFilter === slot ? ' active' : '') + '" data-char="filter" data-filter="' + slot + '" aria-pressed="' + (bagFilter === slot) + '" title="' + (slot === 'all' ? 'Bütün eşyalar' : LABELS[slot]) + '" aria-label="' + (slot === 'all' ? 'Bütün eşyalar' : LABELS[slot] + ' eşyaları') + '">' + (slot === 'all' ? 'Tümü' : icon(slot)) + '</button>').join('');
       const preview = typeof options.onPreview === 'function' ? '<figure class="char-preview"><span class="char-preview-label">Bahtiyar</span><canvas id="character-preview" width="420" height="520" aria-label="Bahtiyar’ın kuşandığı silah ve zırhları gösteren canlı karakter görünümü"></canvas><div class="char-preview-turn"><button data-char="turn" data-direction="-1" aria-label="Karakteri sola çevir">‹</button><button data-char="turn" data-direction="1" aria-label="Karakteri sağa çevir">›</button></div><figcaption>' + escape(weapon ? (TYPE[weapon.type] || 'Silah') + ' · ' + weapon.name : 'Silah yuvası boş') + '</figcaption></figure>' : '';
       const gear = B.Progression.slots.reduce((sum, slot) => sum + (state.itemForSlot(slot)?.power || 0), 0);
-      const tile = (key, label, value) => '<span class="st-tile">' + statIcon(key) + '<span class="st-text"><small>' + label + '</small><strong style="color:' + STAT[key][0] + '">' + value + '</strong></span></span>';
-      const statGrid = '<div class="char-stat-grid">' + tile('hp', 'Can', stats.maxHp) + tile('hit', 'Normal vuruş', Math.round(Math.round(attackDamage[0] * stats.damage) * damageScale) + '–' + Math.round(Math.round(attackDamage[2] * stats.damage) * damageScale)) + tile('def', 'Hasar azaltma', percent(stats.defense)) + tile('crit', 'Kritik ihtimali', percent(stats.criticalChance)) + tile('critx', 'Kritik hasarı', '×' + stats.criticalMultiplier.toFixed(1)) + tile('power', 'Donanım gücü', gear) + '</div>';
+      const tile = (key, label, value, title = '') => '<span class="st-tile"' + (title ? ' title="' + escape(title) + '"' : '') + '>' + statIcon(key) + '<span class="st-text"><small>' + label + '</small><strong style="color:' + STAT[key][0] + '">' + value + '</strong></span></span>';
+      const statGrid = '<div class="char-stat-grid">' + tile('hp', 'Can', stats.maxHp) + tile('hit', 'Normal vuruş', Math.round(Math.round(attackDamage[0] * stats.damage) * damageScale) + '–' + Math.round(Math.round(attackDamage[2] * stats.damage) * damageScale)) + tile('def', 'Hasar azaltma', percent(permanentDefense), defenseTitle) + tile('crit', 'Kritik ihtimali', percent(stats.criticalChance)) + tile('critx', 'Kritik hasarı', '×' + stats.criticalMultiplier.toFixed(1)) + tile('power', 'Donanım gücü', gear) + '</div>';
       return '<div class="char-inventory-layout' + (preview ? ' has-preview' : '') + '"><section class="char-sheet"><h3>Donanım <small>Kuşandıkların</small></h3>' + (preview ? '<div class="char-doll">' + preview + equipment + '</div>' : equipment) + statGrid + '</section>' +
         '<section class="char-bag"><h3>Çanta <small>' + state.inventory.length + ' eşya</small></h3><div class="char-bag-toolbar">' + filters + '</div><div class="char-item-list char-bag-grid">' + (visible.length ? '' : '<p class="char-bag-empty">Bu türde eşyan yok.</p>') + list + '</div>' + pagination + '<p class="char-bag-help">Seç: incele · Çift tıkla veya iki kez dokun: kuşan / çıkar</p></section><section class="char-detail' + (def ? ' rarity-' + def.rarity : '') + '">' + itemDetail(state, entry, false) + '</section></div>';
     }
@@ -460,11 +464,12 @@
         inspectScroll = 0; if (opened && tab === 'inventory') detail?.scrollIntoView({ block: 'nearest' });
       }, lastPointerType === 'touch' || lastPointerType === 'pen' ? 420 : 600);
     }
-    function change(result, message) {
+    function change(result, message, separateFeedback = false) {
       if (!result) return;
       status.textContent = result.ok ? message || 'Değişiklik uygulandı.' : result.reason;
       if (result.ok && typeof options.onChange === 'function') options.onChange(getState());
       refresh(true);
+      if (!separateFeedback) showToast(result.ok ? 'equip' : 'deny', status.textContent, '', result.ok ? FXC.calm : '#e0705c');
     }
     // ---- Equip / unequip feedback: flight from cell to slot, flash ring, persistent frame, toast, portrait glow. ----
     const FXC = { common: '#c4c2b8', uncommon: '#6fd25a', rare: '#4da3ff', epic: '#b57bff', boss: '#ffa43a', calm: '#8fa6c0' };
@@ -513,7 +518,7 @@
       const state = getState(); if (!state) return;
       const entry = state.inventory.find(i => i.uid === uid), def = B.Progression.resolveItem(entry); if (!def) return;
       const from = artRect(source || bagCell(uid)), result = state.equip(uid);
-      change(result, 'Kuşanıldı: ' + def.name);
+      change(result, 'Kuşanıldı: ' + def.name, true);
       if (result.ok) feedback('equip', def, uid, from); else showToast('deny', result.reason, '', '#e0705c');
     }
     function doUnequip(slot, source) {
@@ -521,8 +526,8 @@
       const entry = state.inventory.find(i => i.uid === state.equipment[slot]), def = B.Progression.resolveItem(entry);
       if (!def) { status.textContent = 'Bu yuva zaten boş.'; return; }
       const from = artRect([...content.querySelectorAll('.char-equipment')].find(el => el.dataset.slot === slot) || source), result = state.unequip(slot);
-      change(result, 'Çıkarıldı: ' + def.name);
-      if (result.ok) feedback('unequip', def, entry.uid, from);
+      change(result, 'Çıkarıldı: ' + def.name, true);
+      if (result.ok) feedback('unequip', def, entry.uid, from); else showToast('deny', result.reason, '', '#e0705c');
     }
     function toggleEquipment(button) {
       const state = getState(); if (!state) return;
@@ -593,7 +598,7 @@
           break;
         }
         case 'assign': if (state) change(state.assign(Number(button.dataset.slot), button.dataset.skill || null)); break;
-        case 'unlock': if (state) change(state.unlock(button.dataset.skill)); break;
+        case 'unlock': if (state) learnSkill(button.dataset.skill); break;
       }
     });
     overlay.addEventListener('dblclick', event => {

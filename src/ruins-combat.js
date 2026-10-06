@@ -95,7 +95,7 @@
         if(!mini)hits.push(hit(warn+.6,warn+.6,'ring',6.4,17,'overhead',{origin:p,inner:2.9,arc:TAU,style:'quake',fill:'radial',beat:false,attack:'Oyuktan Fırlayan Taşlar'}));
         cd(e,mini?'wardenBurrow':'hollowBurrow',mini?13:22);
         return {id:mini?'wardenBurrow':'hollowBurrow',name:mini?'Kazıp Çıkış':'Oyuğa Gömülüş',duration:warn+(mini?1.0:1.5),pose:'crouch',
-          movement:{start:.55,duration:.45,fromX:e.x,fromZ:e.z,x:end.x,z:end.z},hits:hits,onBegin:function(a){a.burrow={from:.5,to:warn-.04,dived:false};}};
+          movement:{start:.55,duration:.45,fromX:e.x,fromZ:e.z,x:end.x,z:end.z},hits:hits,onBegin:function(a,timing){var scale=timing?timing.scale:1,shift=timing?timing.shift:0;a.burrow={from:shift+.5*scale,to:shift+(warn-.04)*scale,dived:false};}};
       }
       // Echoes (phase 3): shadow columns of the king step out around the hero and swing one after another, then the king himself.
       function echo(e){
