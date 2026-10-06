@@ -155,11 +155,11 @@
     karaRimDir: { value: new T.Vector3(0, .6, -.8) }, karaRimColor: { value: new T.Vector3(.4, .45, .6) },
     karaRimParams: { value: new T.Vector4(2.4, 1, .9, 0) }, karaFill: { value: new T.Vector3(.02, .02, .025) }
   };
-  var RIM_HEAD = 'uniform vec3 karaRimDir; uniform vec3 karaRimColor; uniform vec4 karaRimParams; uniform vec3 karaFill;\n#ifdef KARA_NO_HIT\nconst float vKaraHit = 0.0;\n#else\nvarying float vKaraHit;\n#endif\n';
+  var RIM_HEAD = 'uniform vec3 karaRimDir; uniform vec3 karaRimColor; uniform vec4 karaRimParams; uniform vec3 karaFill;\n#ifdef KARA_NO_HIT\nconst vec2 vKaraHit = vec2( 0.0 );\n#else\nvarying vec2 vKaraHit;\n#endif\n';
   // Hit flash (ajan:visual-dark): a struck enemy flares for a heartbeat. Materials are shared between enemies, so the per-enemy value
-  // rides in the spare last texel of that enemy's own bone texture (x = flash, y = HIT_MAGIC marks it as ours; no bone matrix holds it there).
+  // rides in the spare last texel of that enemy's own bone texture (x = flash, y = HIT_MAGIC marks it as ours; no bone matrix holds it there; z = corpse fade).
   var HIT_MAGIC = 4093;
-  var RIM_VERT = '#ifdef USE_SKINNING\n{ int kbs = textureSize( boneTexture, 0 ).x; vec4 kbt = texelFetch( boneTexture, ivec2( kbs - 1, kbs - 1 ), 0 ); vKaraHit = abs( kbt.y - ' + HIT_MAGIC + '.0 ) < 0.5 ? clamp( kbt.x, 0.0, 1.0 ) : 0.0; }\n#else\nvKaraHit = 0.0;\n#endif';
+  var RIM_VERT = '#ifdef USE_SKINNING\n{ int kbs = textureSize( boneTexture, 0 ).x; vec4 kbt = texelFetch( boneTexture, ivec2( kbs - 1, kbs - 1 ), 0 ); vKaraHit = abs( kbt.y - ' + HIT_MAGIC + '.0 ) < 0.5 ? clamp( kbt.xz, 0.0, 1.0 ) : vec2( 0.0 ); }\n#else\nvKaraHit = vec2( 0.0 );\n#endif';
   var RIM_BODY = [
     '{',
     '  float kNV = saturate( dot( normal, geometryViewDir ) );',
@@ -175,7 +175,10 @@
     // camera-side fill (characters only): faces toward the view stay readable, silhouettes keep their shape
     '  reflectedLight.indirectDiffuse += karaFill * material.diffuseColor * ( 0.3 + 0.7 * kNV );',
     // hit flash: hot white from the silhouette inward, over the body's own colour (reads on dark and pale foes alike)
-    '  if ( vKaraHit > 0.001 ) reflectedLight.directDiffuse += vec3( 1.0, 0.8, 0.66 ) * vKaraHit * ( 0.45 + 2.2 * kF ) * ( material.diffuseColor * 0.6 + 0.12 );',
+    '  if ( vKaraHit.x > 0.001 ) reflectedLight.directDiffuse += vec3( 1.0, 0.8, 0.66 ) * vKaraHit.x * ( 0.45 + 2.2 * kF ) * ( material.diffuseColor * 0.6 + 0.12 );',
+    // corpse fade: the dead lose their colour and sink toward the floor's value, so the living stay the brightest shapes on screen
+    '  if ( vKaraHit.y > 0.001 ) { float kd = vKaraHit.y; vec3 kq = reflectedLight.directDiffuse; reflectedLight.directDiffuse = mix( kq, vec3( dot( kq, vec3( 0.2126, 0.7152, 0.0722 ) ) ) * vec3( 0.9, 0.86, 0.84 ), kd * 0.7 ) * ( 1.0 - 0.45 * kd );',
+    '    reflectedLight.indirectDiffuse *= 1.0 - 0.45 * kd; reflectedLight.directSpecular *= 1.0 - 0.6 * kd; }',
     '}'].join('\n');
   function patchRim(m) {
     if (!m || m.userData.karaRim || !(m.isMeshStandardMaterial || m.isMeshPhysicalMaterial)) return;
@@ -186,7 +189,7 @@
       Object.keys(RIM).forEach(function (k) { sh.uniforms[k] = RIM[k]; });
       if (sh.fragmentShader.indexOf('#include <lights_fragment_end>') < 0) return;
       var hit = sh.vertexShader.indexOf('#include <skinning_vertex>') >= 0 && sh.vertexShader.indexOf('#include <common>') >= 0;
-      if (hit) sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying float vKaraHit;').replace('#include <skinning_vertex>', '#include <skinning_vertex>\n' + RIM_VERT);
+      if (hit) sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec2 vKaraHit;').replace('#include <skinning_vertex>', '#include <skinning_vertex>\n' + RIM_VERT);
       sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\n' + (hit ? '' : '#define KARA_NO_HIT\n') + RIM_HEAD)
         .replace('#include <lights_fragment_end>', '#include <lights_fragment_end>\n' + RIM_BODY);
     };
@@ -305,21 +308,26 @@
       }
       for (var j = 0; j < blood.mats.length; j++) { var mm = blood.mats[j]; mm.userData.grade.kBlood.value = mm.userData.karaBloodBase + blood.level * .7; }
     }
-    function hitFlash(game) {
+    function hitFlash(game, dt) {
       var enemies = game && game.enemies; if (!enemies) return;
       for (var i = 0; i < enemies.length; i++) {
         var e = enemies[i], m = e && e.model; if (!m || !m.root) continue;
-        var h = Number.isFinite(e.hurt) ? e.hurt : 0, v = e.dead || reducedMotion ? 0 : h > .62 ? Math.pow((h - .62) / .38, 1.6) : 0;
-        if (v === e.karaHitShown) continue;
+        // The flash runs on its own clock from the moment hurt rises (an idle foe's hurt value may not decay while it is inactive).
+        var h = Number.isFinite(e.hurt) ? e.hurt : 0;
+        if (h > (e.karaHurtPrev || 0) + .05) e.karaHitT = 0; else if (Number.isFinite(e.karaHitT)) e.karaHitT += dt;
+        e.karaHurtPrev = h;
+        var ht = Number.isFinite(e.karaHitT) ? e.karaHitT : 9, v = e.dead || reducedMotion || ht > .16 ? 0 : Math.round(Math.pow(1 - ht / .16, 1.6) * 40) / 40;
+        var dead = e.dead ? Math.round(smooth(((e.deadAge || 0) - 1.2) / 4) * 20) / 20 : 0;   // starts after the fall, 4 s, 5 % steps
+        if (v === e.karaHitShown && dead === e.karaDeadShown) continue;
         var sk = m.root.userData.karaSkeletons;
         if (!sk) { sk = []; m.root.traverse(function (o) { if (o.isSkinnedMesh && o.skeleton && sk.indexOf(o.skeleton) < 0) sk.push(o.skeleton); }); m.root.userData.karaSkeletons = sk; }
         var wrote = false;
         for (var j = 0; j < sk.length; j++) {
           var s = sk[j], a = s.boneMatrices, n = a ? a.length : 0;
           if (!s.boneTexture || s.bones.length * 16 > n - 4) continue;   // texture not built yet, or no spare texel: this one never flashes
-          a[n - 4] = v; a[n - 3] = HIT_MAGIC; s.boneTexture.needsUpdate = true; wrote = true;
+          a[n - 4] = v; a[n - 3] = HIT_MAGIC; a[n - 2] = dead; s.boneTexture.needsUpdate = true; wrote = true;
         }
-        if (wrote) e.karaHitShown = v;
+        if (wrote) { e.karaHitShown = v; e.karaDeadShown = dead; }
       }
     }
     function patchCharacters(game) {
@@ -755,7 +763,7 @@
         && L && L.deferShadowRefresh) L.deferShadowRefresh();
       var p = game.player, a = world.atmosphereAt(p.x, p.z);
       patchClock -= dt; if (patchClock <= 0) { patchClock = 1; patchCharacters(game); splitCharacters(game); }
-      hitFlash(game); battleBlood(game, dt);
+      hitFlash(game, dt); battleBlood(game, dt);
       directorStep(dt, time, game, a);
       corpseClock -= dt; if (corpseClock <= 0 && L && L.setCorpses) { corpseClock = .5; flyCorpses(game); }
       var k = ready ? 1 - Math.exp(-dt * 2.2) : 1; ready = true;
