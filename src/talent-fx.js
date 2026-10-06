@@ -8,7 +8,7 @@
 (function () {
   'use strict';
   const B = window.BABA = window.BABA || {};
-  const COLORS = { fire: [2.4, .75, .16], blood: [1.5, .08, .05], rot: [.55, 1.35, .32], dread: [.75, .3, 1.35], bone: [1.4, 1.3, 1.05] };
+  const COLORS = { fire: [1.45, .3, .04], blood: [1.5, .08, .05], rot: [.4, 1.0, .22], dread: [.55, .2, 1.0], bone: [1.4, 1.3, 1.05] };
   const ZONE_VS = 'varying vec2 vUv; void main(){ vUv = uv * 2.0 - 1.0; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }';
   // kind 0: seal (rune circle), 1: ring, 2: trail (uv.x along, uv.y across), 3: crescent (front arc)
   const ZONE_FS = [
@@ -20,32 +20,33 @@
     '  vec2 p = vUv; float r = length(p), a = atan(p.x, p.y), m = 0.0, core = 0.0;',
     '  float flick = fbm(p * 3.5 + vec2(0.0, -uTime * 1.6)), crack = smoothstep(.62, .7, fbm(p * 6.0 + uSeed));',
     '  if (uKind < .5) {',
-    '    float rim = smoothstep(.06, 0.0, abs(r - .92)) + .6 * smoothstep(.04, 0.0, abs(r - .74));',
-    '    float spokes = smoothstep(.06, 0.0, abs(sin(a * 4.0 + uTime * .4))) * step(.3, r) * step(r, .74);',
+    '    float rim = smoothstep(.05, 0.0, abs(r - .92)) + .6 * smoothstep(.035, 0.0, abs(r - .74));',
+    '    float spokes = smoothstep(.05, 0.0, abs(sin(a * 4.0 + uTime * .4))) * step(.3, r) * step(r, .74);',
     '    float runes = step(.78, r) * step(r, .88) * step(.55, fract(a * 5.09 + uTime * .15)) * step(fract(a * 20.3), .7);',
-    '    float tri = smoothstep(.035, 0.0, abs(r * cos(mod(a + uTime * .25, 2.094) - 1.047) - .38));',
-    '    m = rim + spokes * .8 + runes * .9 + tri * .9; core = (1.0 - smoothstep(.2, 1.0, r)) * (.35 + .65 * flick);',
+    '    float tri = smoothstep(.03, 0.0, abs(r * cos(mod(a + uTime * .25, 2.094) - 1.047) - .38));',
+    '    float embers = smoothstep(.52, .8, fbm(p * 7.0 + vec2(uTime * .3, -uTime * .5)));',
+    '    m = (rim * .9 + spokes * .5 + runes * .75 + tri * .7) * (.7 + .5 * flick); core = (1.0 - smoothstep(.1, 1.0, r)) * embers * .9 + (1.0 - smoothstep(0.0, .95, r)) * .05;',
     '    m *= step(r, 1.0); core *= step(r, 1.0);',
     '  } else if (uKind < 1.5) {',
-    '    float band = smoothstep(.3, 0.0, abs(r - .8)); m = band * (.6 + .8 * flick); core = band * flick * .8;',
-    '    m += smoothstep(.04, 0.0, abs(r - .96)) * .7;',
+    '    float band = smoothstep(.16, 0.0, abs(r - .84)); float lick = smoothstep(.4, .75, fbm(vec2(a * 3.0, r * 4.0 - uTime * 1.8)));',
+    '    m = band * lick * 1.1 + smoothstep(.025, 0.0, abs(r - .96)) * .45 * (.5 + flick); core = band * lick * .5;',
     '  } else if (uKind < 2.5) {',
     '    float edge = 1.0 - smoothstep(.55, 1.0, abs(p.y)); float along = 1.0 - smoothstep(.85, 1.0, abs(p.x));',
-    '    float f = fbm(vec2(p.x * 6.0 - uTime * .7, p.y * 2.0 - uTime * 1.3)); m = edge * along * (.35 + f * 1.1); core = edge * along * f;',
+    '    float f = smoothstep(.4, .8, fbm(vec2(p.x * 7.0 - uTime * .7, p.y * 2.5 - uTime * 1.3))); m = edge * along * (.1 + f * .9); core = edge * along * f * .5;',
     '  } else {',
     '    float d = abs(atan(sin(a), cos(a))); float arc = 1.0 - smoothstep(uArc * .78, uArc, d);',
-    '    float band = smoothstep(.45, .0, abs(r - .7)) * step(r, 1.0); m = arc * band * (.45 + flick); core = arc * band * flick;',
+    '    float band = smoothstep(.3, .0, abs(r - .72)) * step(r, 1.0); float f = smoothstep(.4, .8, fbm(p * 5.0 + vec2(0.0, -uTime * 1.4))); m = arc * band * (.12 + f); core = arc * band * f * .5;',
     '  }',
     '  float ash = crack * step(r, 1.0) * (uKind > 1.5 && uKind < 2.5 ? 0.0 : .6);',
-    '  vec3 hot = mix(uColor, vec3(2.6, 1.9, .9), clamp(core * .9, 0.0, 1.0));',
-    '  float alpha = clamp(m * .85 + core * .55 + ash * core, 0.0, 1.6) * uFade;',
+    '  vec3 hot = mix(uColor, vec3(1.7, .7, .2), clamp(core, 0.0, 1.0));',
+    '  float alpha = clamp(m * .55 + core * .5 + ash * core * .3, 0.0, 1.2) * uFade;',
     '  gl_FragColor = vec4(hot * alpha, alpha);',
     '}'].join('\n');
   const RING_FS = [
     'varying vec2 vUv; uniform float uK, uFade; uniform vec3 uColor;',
-    'void main(){ float r = length(vUv); float w = mix(.18, .05, uK); float band = smoothstep(w, 0.0, abs(r - mix(.25, .98, uK)));',
-    '  float inner = (1.0 - smoothstep(0.0, mix(.25, .98, uK), r)) * .18 * (1.0 - uK);',
-    '  float a = (band + inner) * uFade * step(r, 1.0); gl_FragColor = vec4(uColor * a, a); }'].join('\n');
+    'void main(){ float r = length(vUv); float w = mix(.16, .04, uK); float band = smoothstep(w, 0.0, abs(r - mix(.25, .98, uK)));',
+    '  float inner = (1.0 - smoothstep(0.0, mix(.25, .98, uK), r)) * .1 * (1.0 - uK);',
+    '  float a = (band + inner) * uFade * step(r, 1.0) * .55; gl_FragColor = vec4(uColor * a, a); }'].join('\n');
   const PT_VS = [
     'attribute float aSize; attribute vec4 aColor; varying vec4 vColor;',
     'void main(){ vColor = aColor; vec4 mv = modelViewMatrix * vec4(position, 1.0); gl_PointSize = aSize * (300.0 / -mv.z); gl_Position = projectionMatrix * mv; }'].join('\n');
@@ -226,7 +227,7 @@
         pos[i * 3] += vel[i * 3] * dt; pos[i * 3 + 1] += vel[i * 3 + 1] * dt; pos[i * 3 + 2] += vel[i * 3 + 2] * dt;
         const fade = k < .15 ? k / .15 : 1 - (k - .15) / .85;
         col[i * 4] = base[i * 4]; col[i * 4 + 1] = base[i * 4 + 1] * (1 - k * .4); col[i * 4 + 2] = base[i * 4 + 2] * (1 - k * .6); col[i * 4 + 3] = fade;
-        size[i] = size0[i] * (1 - k * .5) * 10;
+        size[i] = size0[i] * (1 - k * .5) * 6.5;
       }
       points.visible = liveCount > 0;
       if (points.visible) { geo.attributes.position.needsUpdate = true; geo.attributes.aColor.needsUpdate = true; geo.attributes.aSize.needsUpdate = true; }
