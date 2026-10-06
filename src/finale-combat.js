@@ -28,6 +28,8 @@
     create: function (api) {
       function hit(at, warn, shape, r, dmg, pose, more) { return Object.assign({ at: at, warn: warn, shape: shape, radius: r, dmg: dmg, pose: pose, style: BLOOD, fill: 'radial' }, more || {}); }
       function point() { return { x: api.player.x, z: api.player.z }; }
+      // landing flourish for the Qadi's heavy verdicts: pooled nova burst + camera impact (no new objects)
+      function boom(o, k) { return function () { api.fx('boss2Nova', { x: o.x, z: o.z, phase: 'release', forge: true }); api.emit('impact', { x: o.x, z: o.z, strength: k || .7, radius: 7 }); }; }
       function cone(id, name, r, arc, dmg, at, pose) { return { id: id, name: name, duration: at + .8, pose: pose, hits: [hit(at, at, 'cone', r, dmg, pose, { arc: arc, style: 'blade', fill: 'sweep' })] }; }
       function sweep(e, id, name, r, dmg) { var m = cone(id, name, r, 2.8, dmg, .9, 'sweep'); m.hits.push(hit(1.7, .8, 'cone', r + .2, dmg - 3, 'sweepBack', { arc: 2.5, face: e.face - .4, style: 'blade', fill: 'sweep', sweepDir: -1 })); m.duration = 2.5; return m; }
       function lanes(e, count, name, dmg) { var hits = []; for (var i = 0; i < count; i++) { var a = e.face + (i - (count - 1) / 2) * .26; hits.push(hit(1.1 + i * .26, 1, 'line', 0, dmg || 20, 'hookSwing', { face: a, width: .85, length: api.clipLine(e, a, 14), style: 'chain', fill: 'forward', beat: i === 0, knockback: 1.2 })); } return { id: 'verdictChains', name: name || KabirI18n.t('Zincir Hükmü'), duration: 1.9 + count * .26, pose: 'hookSwing', hits: hits }; }
@@ -42,15 +44,15 @@
       function seal(e) {
         track('kadiSeal'); var p = point();
         return { id: 'kadiSeal', name: KabirI18n.t('Kadı’nın Mührü'), duration: 3.2, pose: 'overhead', hits: [
-          hit(1.25, 1.25, 'circle', 2.5, 26, 'overhead', { origin: p, style: 'quake', fill: 'inward', unblockable: true, scar: true, attack: KabirI18n.t('Mühür Basışı') }),
+          hit(1.25, 1.25, 'circle', 2.5, 26, 'overhead', { origin: p, style: 'quake', fill: 'inward', unblockable: true, scar: true, attack: KabirI18n.t('Mühür Basışı'), onActive: boom(p, .9) }),
           hit(2.0, 1.0, 'ring', 6.6, 18, 'overhead', { origin: p, inner: 4.4, arc: TAU, style: 'quake', unblockable: true, beat: false, attack: KabirI18n.t('Mühür Basışı · halka') })] };
       }
       // The scales: two pans either side of the judge, they fall in turn (the heavier, bloodier one first).
       function scales(e) {
         track('scales'); var side = e.face + Math.PI / 2, a = { x: e.x + Math.sin(side) * 4.4, z: e.z + Math.cos(side) * 4.4 }, b = { x: e.x - Math.sin(side) * 4.4, z: e.z - Math.cos(side) * 4.4 }, p = point();
         var first = Math.hypot(p.x - a.x, p.z - a.z) < Math.hypot(p.x - b.x, p.z - b.z) ? a : b, second = first === a ? b : a, hits = [];
-        hits.push(hit(1.45, 1.45, 'circle', 4.1, 27, 'castHigh', { origin: first, style: 'quake', fill: 'inward', unblockable: true, attack: KabirI18n.t('Terazi · ağır kefe') }));
-        hits.push(hit(2.5, 1.0, 'circle', 4.1, 22, 'castHigh', { origin: second, style: 'quake', fill: 'inward', unblockable: true, beat: false, attack: KabirI18n.t('Terazi · hafif kefe') }));
+        hits.push(hit(1.45, 1.45, 'circle', 4.1, 27, 'castHigh', { origin: first, style: 'quake', fill: 'inward', unblockable: true, attack: KabirI18n.t('Terazi · ağır kefe'), onActive: boom(first, .8) }));
+        hits.push(hit(2.5, 1.0, 'circle', 4.1, 22, 'castHigh', { origin: second, style: 'quake', fill: 'inward', unblockable: true, beat: false, attack: KabirI18n.t('Terazi · hafif kefe'), onActive: boom(second, .6) }));
         if (e.phase >= 2) hits.push(hit(3.3, .8, 'ring', 9, 16, 'roar', { origin: { x: e.x, z: e.z }, inner: 6.6, arc: TAU, style: 'ember', unblockable: true, beat: false, attack: KabirI18n.t('Terazi · denge') }));
         return { id: 'scales', name: KabirI18n.t('Kanlı Terazi'), duration: e.phase >= 2 ? 4.1 : 3.3, pose: 'castHigh', hits: hits, cooldown: 1.6 };
       }
@@ -163,7 +165,7 @@
           if (B.Boss2.out && B.Boss2.out.emit) for (var q = 0; q < 90; q++) { var qa = q / 90 * TAU; B.Boss2.out.emit(e.x + Math.sin(qa) * 1.2, .5 + (q % 6) * .5, e.z + Math.cos(qa) * 1.2, 4, next === 3 ? (q % 2 ? [.6, .7, 2.6] : [2.8, .3, .15]) : [2.6, .5, .2], Math.sin(qa) * (3 + q % 3), 1 + (q % 5), Math.cos(qa) * (3 + q % 3), 1.0, .14); }
           if (B.Telegraphs && core && core.ext) api.emit('impact', { x: e.x, z: e.z, strength: 1, radius: 16 });
           api.bonus(e.x, e.z, 2); api.emit('warning', { x: e.x, z: e.z, text: next === 2 ? KabirI18n.t('EFENDİLERİN YANKISI') : KabirI18n.t('SON HÜKÜM') });
-          api.sound('bossPhase'); api.fx('bossPhase', { x: e.x, y: 1.8, z: e.z, phase: next }); if (B.Audio && B.Audio.say) B.Audio.say(next === 2 ? 'ch5Echo' : 'ch5LastVerdict'); api.emit('impact', { x: e.x, z: e.z, strength: 1, radius: 10 });
+          if (api.slow) api.slow(next === 3 ? .7 : .45); api.sound('bossPhase'); api.fx('bossPhase', { x: e.x, y: 1.8, z: e.z, phase: next }); if (B.Audio && B.Audio.say) B.Audio.say(next === 2 ? 'ch5Echo' : 'ch5LastVerdict'); api.emit('impact', { x: e.x, z: e.z, strength: 1, radius: 10 });
           api.beginMove(e, { id: 'roar', name: KabirI18n.t('Kadı’nın Hükmü'), duration: 2.3, pose: 'roar', hits: [hit(1.3, 1.3, 'ring', 5, 0, 'roar', { inner: 0, arc: TAU, harmless: true })] });
         }
       };
