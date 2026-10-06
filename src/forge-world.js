@@ -139,16 +139,16 @@
     // Floor detail for the forge (this chapter's own material instances only): glowing heat cracks in the black stone and iron
     // floor plates, a cell-noise network that breathes with the heat waves; no textures, same meshes.
     var forgeClock = { value: 0 }, forgeHeat = { value: .5 };
-    ['floor', 'iron', 'earth'].forEach(function (k) {
+    ['floor', 'iron', 'earth', 'wall', 'stone'].forEach(function (k) {
       var m = w.materials[k]; if (!m || !m.isMaterial || m.isShaderMaterial) return;
       var prev = m.onBeforeCompile, pk = m.customProgramCacheKey;
       m.onBeforeCompile = function (sh, r) {
         if (prev) prev.call(this, sh, r); sh.uniforms.fcT = forgeClock; sh.uniforms.fcHeat = forgeHeat;
         sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 fcW;').replace('#include <project_vertex>', '#include <project_vertex>\nfcW=(modelMatrix*vec4(transformed,1.)).xyz;');
         sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec3 fcW;uniform float fcT;uniform float fcHeat;vec2 fcH(vec2 p){p=vec2(dot(p,vec2(127.1,311.7)),dot(p,vec2(269.5,183.3)));return fract(sin(p)*43758.5453);}float fcC(vec2 p){vec2 i=floor(p),f=fract(p);float d1=8.,d2=8.;for(int y=-1;y<=1;y++)for(int x=-1;x<=1;x++){vec2 g=vec2(float(x),float(y));float d=length(g+fcH(i+g)-f);if(d<d1){d2=d1;d1=d;}else if(d<d2)d2=d;}return d2-d1;}')
-          .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n{float up=dot(normal,normalize((viewMatrix*vec4(0.,1.,0.,0.)).xyz));float fl=smoothstep(.75,.95,up)*(1.-smoothstep(.15,.6,fcW.y));float c1=1.-smoothstep(0.,.032,fcC(fcW.xz*.55));float c2=1.-smoothstep(0.,.035,fcC(fcW.xz*1.7+3.1));float msk=smoothstep(.4,.95,.5+.5*sin(fcW.x*.23+sin(fcW.z*.19)*2.3)*sin(fcW.z*.14+fcT*.04));float pul=.75+.25*sin(fcT*1.3+fcW.x*.4+fcW.z*.3);totalEmissiveRadiance+=vec3(1.,.26,.04)*(c1*1.1+c2*.25)*msk*fl*pul*(.5+fcHeat);diffuseColor.rgb*=1.-(c1*.5+c2*.2)*fl;}');
+          .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n{float up=dot(normal,normalize((viewMatrix*vec4(0.,1.,0.,0.)).xyz));float fl=smoothstep(.75,.95,up)*(1.-smoothstep(.15,.6,fcW.y));float c1=1.-smoothstep(0.,.032,fcC(fcW.xz*.55));float c2=1.-smoothstep(0.,.035,fcC(fcW.xz*1.7+3.1));float msk=smoothstep(.4,.95,.5+.5*sin(fcW.x*.23+sin(fcW.z*.19)*2.3)*sin(fcW.z*.14+fcT*.04));float pul=.75+.25*sin(fcT*1.3+fcW.x*.4+fcW.z*.3);totalEmissiveRadiance+=vec3(1.,.26,.04)*(c1*1.1+c2*.25)*msk*fl*pul*(.5+fcHeat);diffuseColor.rgb*=1.-(c1*.5+c2*.2)*fl;float vt=(1.-smoothstep(.25,.6,abs(up)))*(1.-smoothstep(.4,2.6,fcW.y));float c3=1.-smoothstep(0.,.028,fcC(vec2(fcW.x+fcW.z,fcW.y*1.6)*.8));totalEmissiveRadiance+=vec3(1.,.24,.035)*c3*vt*msk*pul*(.35+fcHeat)*1.1;totalEmissiveRadiance+=vec3(.5,.11,.02)*fl*msk*(.04+.05*fcHeat);}');
       };
-      m.customProgramCacheKey = function () { return (pk ? pk.call(this) : '') + '-forgecracks1'; }; m.needsUpdate = true;
+      m.customProgramCacheKey = function () { return (pk ? pk.call(this) : '') + '-forgecracks2'; }; m.needsUpdate = true;
     });
     var baseUpdate = w.update, baseDispose = w.dispose;
     w.update = function (dt, time, p) {

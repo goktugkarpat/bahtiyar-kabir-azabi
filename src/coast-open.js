@@ -301,7 +301,7 @@
       K.lightSources.push(pyreLight[pyreLight.length] = { x: x, y: 1.4, z: z, color: new T.Color(0xff7a30), intensity: 4.4, scatter: 1, glowRadius: 2.4, live: 1, group: 'coast', room: room });
       solid(x, z, 2.4, 3.4);
     }
-    anchor(0, 3.8, 6.9, 1, -.5); pyre(0, -8.4, 12.5, .3); pyre(0, -4.7, 6.7, -.25); K.lantern(0, 4.9, 2.7, 5.4, 'coast', true); K.lantern(0, -2.6, 2.6, -1.2, 'coast', true);
+    anchor(0, 3.8, 6.9, 1, -.5); pyre(0, -4.7, 6.7, -.25); galleon(0, 15.5, 2.5, -.2);   // the opening frame: a drowned galleon looms off the graveyard shore K.lantern(0, 4.9, 2.7, 5.4, 'coast', true); K.lantern(0, -2.6, 2.6, -1.2, 'coast', true);
     anchor(3, -9.4, -91.8, 1.25, .9); pyre(9, -23.5, 9.5, 1.2); pyre(13, -59.5, -99.5, .4);   // harbour plaza: a giant anchor dragged onto the pier
     for (q = 0; q < 6; q++) add(11, G.sphere, 'ember', -33 + (q - 2.5) * 2.1, R(.4, 1.6), -88.3 + R(-.6, .6), R(.25, .5), R(.2, .4), R(.25, .5));
     K.lightSources.push({ x: -33, y: 2.2, z: -88.3, color: new T.Color(0xff8040), intensity: 4, scatter: 1, glowRadius: 3, live: 1, group: 'coast', room: 11 });
@@ -419,7 +419,7 @@
     var ringT = new T.CanvasTexture(ringC); K.textures.push(ringT);
     M.surf = new T.MeshBasicMaterial({ map: ringT, transparent: true, opacity: .5, depthWrite: false, fog: true, color: 0x9fb7b5 });
     var surfG = geo(new T.PlaneGeometry(1, 1)); surfG.rotateX(-PI / 2); var surfs = [];
-    [[26, 2, 4.5], [33, -58, 5.5], [46, -100, 7], [30, -160, 4.5], [55, -40, 6], [52, -150, 8], [37, -28, 11], [41, -128, 11], [29.2, -86.4, 5.5], [33, -78.5, 5]].forEach(function (s, n) {
+    [[15.5, 2.5, 11], [26, 2, 4.5], [33, -58, 5.5], [46, -100, 7], [30, -160, 4.5], [55, -40, 6], [52, -150, 8], [37, -28, 11], [41, -128, 11], [29.2, -86.4, 5.5], [33, -78.5, 5]].forEach(function (s, n) {
       var m = new T.Mesh(surfG, M.surf); m.position.set(s[0], -.3, s[1]); m.scale.set(s[2] * 2, 1, s[2] * 2); m.rotation.y = n * 1.3; m.renderOrder = 2; m.name = 'coast-surf'; K.root.add(m); surfs.push({ m: m, s: s[2] * 2, p: n * 1.9 });
     });
     /* ---- living coast: light rain, lightning, crows over the shore, torn banners ---- */

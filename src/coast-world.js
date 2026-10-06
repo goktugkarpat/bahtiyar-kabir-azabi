@@ -86,10 +86,11 @@
             sh.fragmentShader=sh.fragmentShader.replace('uniform vec3 coastHero;','uniform vec3 coastHero;'+crackFn)
               .replace('#include <alphamap_fragment>','#include <alphamap_fragment>\nfloat gFlat=smoothstep(.55,.9,coastNormal.y)*(1.-smoothstep(.25,1.2,coastWorld.y));vec2 gN1=texture2D(coastGrime,coastWorld.xz*.11+.31).rg;vec2 gN2=texture2D(coastGrime,coastWorld.xz*.019+.77).rg;'+
                 'diffuseColor.rgb*=mix(.8,1.14,gN2.r)*mix(.93,1.05,gN1.g);'+
-                (key==='wood'?'float gMoss=0.;float gCr=0.;':'float gMoss=smoothstep(.56,.8,gN2.g)*gFlat*(1.-damp*.3);diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.13,.17,.09)*(.7+gN1.r*.6),gMoss*.62);'+
+                (key==='wood'?'float gMoss=0.;float gCr=0.;float gPeb=0.;float gSand=0.;':'float gSand=smoothstep(.38,.62,gN2.g+gN1.r*.3-.15)*gFlat;diffuseColor.rgb*=mix(vec3(.62,.6,.56),vec3(1.18,1.08,.88),gSand);float gMoss=smoothstep(.58,.78,gN1.g*.6+gN2.r*.6)*gFlat*(1.-gSand);diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.1,.13,.07)*(.6+gN1.r*.6),gMoss*.6);vec2 gq=coastWorld.xz*3.1;vec2 gcell=floor(gq);float gr=gh2(gcell).x;float gPeb=smoothstep(.26*gr+.04,.0,length(fract(gq)-.5-(gh2(gcell+7.).xy-.5)*.55))*step(.8,gr)*gFlat*(1.-gMoss)*smoothstep(.3,.7,gN1.g);float gShell=gPeb*step(.965,gr);diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*.55,gPeb*(1.-step(.94,gr)));diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.78,.74,.64),gShell);'+
                 'float gCr=(1.-smoothstep(.0,.05,gCrack(coastWorld.xz*.9)))*smoothstep(.45,.7,gN1.r)*gFlat;diffuseColor.rgb*=1.-gCr*.55;')+
                 'float gPud=smoothstep(.6,.68,texture2D(coastGrime,coastWorld.xz*.031+.13).r)*gFlat*(.35+.65*coastRain);diffuseColor.rgb*=mix(1.,.55,gPud);'+
                 'float gBlood=smoothstep(.86,.9,gN2.r)*smoothstep(.5,.8,gN1.r)*gFlat;diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.16,.025,.02),gBlood*.55);')
+              .replace('#include <normal_fragment_maps>','#include <normal_fragment_maps>\n{float gH=gPeb*.5-gCr*.8+gMoss*.15-gPud*.2;vec3 sx=dFdx(-vViewPosition),sy=dFdy(-vViewPosition);vec3 r1=cross(sy,normal),r2=cross(normal,sx);float det=dot(sx,r1);vec3 grd=sign(det)*(dFdx(gH)*r1+dFdy(gH)*r2);normal=normalize(abs(det)*normal-grd*1.2);}')
               .replace('#include <roughnessmap_fragment>','#include <roughnessmap_fragment>\nroughnessFactor=mix(roughnessFactor,.2,gPud);roughnessFactor*=mix(1.,.84,coastRain*gFlat);roughnessFactor=mix(roughnessFactor,1.,gCr*.5+gMoss*.2);');
           }
           if(key==='rock'){
@@ -101,7 +102,7 @@
               .replace('#include <normal_fragment_maps>','vec3 cnx=texture2D(normalMap,cx).xyz*2.-1.;vec3 cny=texture2D(normalMap,cy).xyz*2.-1.;vec3 cnz=texture2D(normalMap,cz).xyz*2.-1.;cnx.xy*=normalScale;cny.xy*=normalScale;cnz.xy*=normalScale;vec3 cbase=normalize(coastNormal);vec3 cbx=vec3(cbase.x,cnx.y+cbase.y,cnx.x*csign.x+cbase.z);vec3 cby=vec3(cny.x*csign.y+cbase.x,cbase.y,-cny.y+cbase.z);vec3 cbz=vec3(-cnz.x*csign.z+cbase.x,cnz.y+cbase.y,cbase.z);normal=normalize(mat3(viewMatrix)*(cbx*cw.x+cby*cw.y+cbz*cw.z));');
           }
         };
-        m.customProgramCacheKey=function(){return 'kara-coast-scans-86-'+key;};
+        m.customProgramCacheKey=function(){return 'kara-coast-scans-88-'+key;};
       }
       var strength=key==='sand'?.65:key==='wood'?.72:key==='char'?.82:key==='rock'?1.05:.9;
       m.normalScale.set(strength,strength);m.name='coast-'+key;materials[key]=m;return m;
