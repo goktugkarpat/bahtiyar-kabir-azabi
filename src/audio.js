@@ -1273,7 +1273,7 @@
     const t = ctx.currentTime, r = room();
     heartbeatStep(dt, st, t);
     const chapter = B.app && B.app.world.chapter;
-    if (chapter === 3 || chapter === 4) { campaignAmbience(t, r, st, chapter === 4); return; }
+    if (chapter >= 3) { campaignAmbience(t, r, st, chapter >= 4); return; }
     if (B.app && B.app.world.chapter === 2) { coastAmbience(t, r, st); return; }
     targetParam(A.wind.gain, r === 4 ? .075 : r === 6 ? .065 : .05, t, 2);
     if (!st.playing && !st.title) return;

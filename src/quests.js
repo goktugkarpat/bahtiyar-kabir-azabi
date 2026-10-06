@@ -104,7 +104,8 @@
   });
 
   function create(api) {
-    var world = api.world, chapter = Math.max(1, Math.min(4, api.chapter || 1));
+    var world = api.world, chapter = Math.max(1, Math.min(B.FINAL_CHAPTER || 5, api.chapter || 1));
+    if (!CHAPTERS[chapter]) chapter = 4;   // chapter V's verdicts are added by finale-quests.js
     var definition = CHAPTERS[chapter], nodes = [], geometry = [], states = [0, 0], choices = [null, null], disposed = false;
     var info = { chapter: chapter, title: definition.title, introduction: definition.introduction, entries: [], completed: 0, total: 2,
       ready: false, objective: '', prompt: null, markers: [], revision: 0, legacyComplete: false, pendingChoice: null,

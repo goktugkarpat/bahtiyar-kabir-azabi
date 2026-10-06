@@ -2,11 +2,11 @@
 (function () {
   'use strict';
   const B = window.BABA = window.BABA || {};
-  const TITLES = [KabirI18n.t('Kurban Tapınağı'), KabirI18n.t('Boğulmuş Kıyı'), KabirI18n.t('Sessiz Taht'), KabirI18n.t('Kızıl Ocak')];
+  const TITLES = [KabirI18n.t('Kurban Tapınağı'), KabirI18n.t('Boğulmuş Kıyı'), KabirI18n.t('Sessiz Taht'), KabirI18n.t('Kızıl Ocak'), KabirI18n.t('Son Mahkeme')];
   const STORAGE = 'kabir-azabi-atlas-v1';
   function node(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; }
   function create(options) {
-    const world = options.world, game = options.game, chapter = Math.max(1, Math.min(4, world.chapter || game.chapter || 1));
+    const world = options.world, game = options.game, chapter = Math.max(1, Math.min(TITLES.length, world.chapter || game.chapter || 1));
     const rooms = world.rooms || [], visited = new Set(), seenIds = new Set(rooms.map(r => String(r.id)));
     let opened = false, disposed = false, timer = 0, camera = { x: game.player.x, z: game.player.z, scale: 4 }, dragging = null;
     let campaign = null, lastReset = -1, version = 0, drawnVersion = -1, floorPath = null, reveals = null, previousFocus = null, lastLedger = null;

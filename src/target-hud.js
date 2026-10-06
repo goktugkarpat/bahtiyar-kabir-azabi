@@ -15,7 +15,8 @@
   });
   const chapterPortraits = {
     3: ['prisoner', 'ashbound', 'shardseer', 'cavefang', 'gravemason', 'ruinwarden', 'hollowking'],
-    4: ['prisoner', 'emberbound', 'chainseer', 'slagcrawler', 'forgesentinel', 'ashwarden', 'furnaceheart']
+    4: ['prisoner', 'emberbound', 'chainseer', 'slagcrawler', 'forgesentinel', 'ashwarden', 'furnaceheart'],
+    5: ['prisoner']   // chapter V creatures have no painted portrait yet (generic plate)
   };
   const bossPhases = {
     bell: ['', KabirI18n.t('BOĞULMUŞ ÇANLIK'), KabirI18n.t('DENİZİN YEMİNİ'), KabirI18n.t('MEZAR KÖKLERİ'), KabirI18n.t('SON ÇAN')],

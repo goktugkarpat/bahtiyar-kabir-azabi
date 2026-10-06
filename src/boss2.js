@@ -103,6 +103,7 @@
       ? [['drowned', KabirI18n.t('Çanın Boğulmuşu')], ['urchin', KabirI18n.t('Tuz Muhafızı')], ['rootborn', KabirI18n.t('Batık Kök')], ['lantern', KabirI18n.t('Çanın Fenercisi')]]
       : chapter === 3
       ? [['cavefang', KabirI18n.t('Oyuk Çenesi')], ['shardseer', KabirI18n.t('Taht Kehanetçisi')], ['ashbound', KabirI18n.t('Taht Yeminlisi')], ['shardseer', KabirI18n.t('Oyuk Kehanetçisi')]]
+      : chapter >= 5 && B.FinaleCombat ? B.FinaleCombat.reserve
       : [['slagcrawler', KabirI18n.t('Döküm Kölesi')], ['chainseer', 'Ocak Zincircisi'], ['emberbound', KabirI18n.t('Kor Kölesi')], ['chainseer', KabirI18n.t('Kül Zincircisi')]];
     defs.forEach(function (enc) {
       var boss = enc.spawns.find(function (s) { return s.boss; });
@@ -114,7 +115,7 @@
   /* ---------------------------------------------------------------- the per-game controller */
   Boss2.create = function (ext) {
     var chapter = ext.chapter, player = ext.player, enemies = ext.enemies, hazards = ext.hazards, game = ext.game, world = ext.world;
-    var forge = chapter === 4, core = { chapter: chapter, ext: ext, hooks: [], time: 0 };
+    var forge = chapter >= 4, core = { chapter: chapter, ext: ext, hooks: [], time: 0 };
     Boss2.current = core;
     var bossRoom = game.boss && game.boss.encounter.room;
     var room = (world.rooms || []).find(function (r) { return String(r.id) === String(bossRoom); }) || (world.rooms || [])[bossRoom] || (world.rooms || [])[13];
@@ -497,7 +498,7 @@
 
     /* ---------------- fight clock, aggression, frenzy ---------------- */
     var FRENZY_AT = forge ? 240 : 210;
-    function bossy(e) { return !e.dead && e.active && e.stats && (e.stats.ruins || e.stats.forge) && (e.boss || e.type === 'ruinwarden' || e.type === 'ashwarden'); }
+    function bossy(e) { return !e.dead && e.active && e.stats && (e.stats.ruins || e.stats.forge) && (e.boss || e.type === 'ruinwarden' || e.type === 'ashwarden' || e.type === 'verdictwarden'); }
     function fightTick(e, dt) {
       var b = e.b2 || (e.b2 = { t: 0, frenzy: false, base: 0 });
       b.t += dt;
@@ -505,7 +506,7 @@
         if (!Boss2.baseSpeed[e.type]) Boss2.baseSpeed[e.type] = e.stats.speed;
         if (!b.frenzy && b.t > FRENZY_AT) {
           b.frenzy = true;
-          ext.emit('warning', { x: e.x, z: e.z, text: forge ? KabirI18n.t('OCAK KIZIŞTI') : KabirI18n.t('TAHT SABRINI YİTİRDİ') }); ext.sound('bossPhase'); ext.fx('boss2Frenzy', { x: e.x, z: e.z, forge: forge });
+          ext.emit('warning', { x: e.x, z: e.z, text: chapter >= 5 ? KabirI18n.t('HÜKÜM SABRINI YİTİRDİ') : forge ? KabirI18n.t('OCAK KIZIŞTI') : KabirI18n.t('TAHT SABRINI YİTİRDİ') }); ext.sound('bossPhase'); ext.fx('boss2Frenzy', { x: e.x, z: e.z, forge: forge });
         }
         var tn = forge ? Boss2.tune4 : Boss2.tune;
         e.stats.speed = Boss2.baseSpeed[e.type] * tn.spd[clamp(e.phase - 1, 0, 2)] * (b.frenzy ? tn.spdFrenzy : 1);

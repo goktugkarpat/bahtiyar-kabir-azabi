@@ -712,7 +712,7 @@ void main(){ vec2 p = (vUv-.5)*2.*uMax; float r = length(p), a = r > 1e-6 ? atan
     // ------------------------------------------------------------------ chapter glow: hot iron breathes, grave crystal pulses, both flare with the attacker's tell
     let glowList = null;
     function glowPulse(dt, calm) {
-      if (!glowList) glowList = [].concat((B.RuinsModels && B.RuinsModels.glow) || [], (B.ForgeModels && B.ForgeModels.glow) || []);
+      if (!glowList) glowList = [].concat((B.RuinsModels && B.RuinsModels.glow) || [], (B.ForgeModels && B.ForgeModels.glow) || [], (B.FinaleModels && B.FinaleModels.glow) || []);
       for (let i = 0; i < glowList.length; i++) {
         const o = glowList[i], boost = Math.min(1, (typeTell[o.type] || 0) * 3.2), breath = calm ? 1 : .88 + .12 * Math.sin(clock * (o.type === 'hollowking' || o.type === 'furnaceheart' ? 1.6 : 2.3) + i * 1.7);
         o.mat.emissiveIntensity = o.base * breath * (1 + 1.1 * boost);
