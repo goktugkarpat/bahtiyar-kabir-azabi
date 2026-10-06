@@ -348,7 +348,7 @@
       const t = target(), p = game.player, now = performance.now();
       if (!t) { if (route) { route = null; routeVersion++; } routeKey = ''; return; }
       const key = (t.id || t.name) + '|' + Math.round(t.x) + ',' + Math.round(t.z);
-      if (!force && key === routeKey && route && now - routeAt < 1400 && Math.hypot(route.fromX - p.x, route.fromZ - p.z) < 2.5) return;
+      if (!force && key === routeKey && route && now - routeAt < (opened ? 1200 : 2400) && Math.hypot(route.fromX - p.x, route.fromZ - p.z) < (opened ? 2.5 : 3.5)) return;
       routeKey = key; routeAt = now;
       let points = null; const goal = walkableNear(t);
       if (Math.hypot(goal.x - p.x, goal.z - p.z) < 2) points = [];
