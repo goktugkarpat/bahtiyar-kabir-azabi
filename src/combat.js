@@ -1574,8 +1574,8 @@
       if (!enemy.stats.coast && !enemy.stats.ruins && !enemy.stats.forge && enemy.boss) { enemy.wrath = Math.max(0, enemy.wrath - dt * 12); if (enemy.wrath >= 70 && d < 3.2) { enemy.wrath = 0; if (beginMove(enemy, kickMove())) { advanceEnemyAction(enemy, dt); return; } } }
       if (enemy.cooldown <= 0 && enemy.fear <= 0 && openAttackSlots(enemy)) {
         let attacked = false;
-        if (enemy.stats.finale && finale) attacked = finale.attack(enemy, d);
         if (enemy.boss && director && director.attack(enemy, d)) attacked = true;
+        else if (enemy.stats.finale && finale) attacked = finale.attack(enemy, d);
         else if (enemy.stats.forge) attacked = forge.attack(enemy, d);
         else if (enemy.stats.ruins) attacked = ruins.attack(enemy, d);
         else if (enemy.stats.coast) attacked = coast.attack(enemy, d);

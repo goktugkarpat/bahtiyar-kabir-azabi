@@ -164,7 +164,7 @@
           e.forceMove = 'kadiCall'; if (next === 3) { e.overheat = true; api.fx('boss2Overheat', { x: e.x, z: e.z }); }
           if (B.Boss2.out && B.Boss2.out.emit) for (var q = 0; q < 90; q++) { var qa = q / 90 * TAU; B.Boss2.out.emit(e.x + Math.sin(qa) * 1.2, .5 + (q % 6) * .5, e.z + Math.cos(qa) * 1.2, 4, next === 3 ? (q % 2 ? [.6, .7, 2.6] : [2.8, .3, .15]) : [2.6, .5, .2], Math.sin(qa) * (3 + q % 3), 1 + (q % 5), Math.cos(qa) * (3 + q % 3), 1.0, .14); }
           if (B.Telegraphs && core && core.ext) api.emit('impact', { x: e.x, z: e.z, strength: 1, radius: 16 });
-          api.bonus(e.x, e.z, 2); api.emit('warning', { x: e.x, z: e.z, text: next === 2 ? KabirI18n.t('EFENDİLERİN YANKISI') : KabirI18n.t('SON HÜKÜM') });
+          api.bonus(e.x, e.z, 2); if (!(B.BossFramework && B.BossFramework.register)) api.emit('warning', { x: e.x, z: e.z, text: next === 2 ? KabirI18n.t('EFENDİLERİN YANKISI') : KabirI18n.t('SON HÜKÜM') });   // the director shows its own phase card
           if (api.slow) api.slow(next === 3 ? .7 : .45); api.sound('bossPhase'); api.fx('bossPhase', { x: e.x, y: 1.8, z: e.z, phase: next }); if (B.Audio && B.Audio.say) B.Audio.say(next === 2 ? 'ch5Echo' : 'ch5LastVerdict'); api.emit('impact', { x: e.x, z: e.z, strength: 1, radius: 10 });
           api.beginMove(e, { id: 'roar', name: KabirI18n.t('Kadı’nın Hükmü'), duration: 2.3, pose: 'roar', hits: [hit(1.3, 1.3, 'ring', 5, 0, 'roar', { inner: 0, arc: TAU, harmless: true })] });
         }

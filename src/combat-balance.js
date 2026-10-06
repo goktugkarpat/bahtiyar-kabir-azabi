@@ -51,7 +51,8 @@
     1: { level: 3, items: ['grave-sword', 'mourner-chest', 'orphan-hood', 'cold-prayer-gloves', 'gallows-boots'] },
     2: { level: 6, items: ['orphan-spear', 'empty-vow-chest', 'no-witness-helm', 'nameless-gauntlets', 'sunken-steps'] },
     3: { level: 9, items: ['sepulcher-axe', 'warden-chainmail', 'buried-prayer-hood', 'black-stone-gauntlets', 'buried-road-boots'] },
-    4: { level: 11, items: ['hollow-crown-blade', 'sunless-vow-chest', 'sealed-gaze-helm', 'blood-oath-wraps', 'buried-road-boots'] }
+    4: { level: 11, items: ['hollow-crown-blade', 'sunless-vow-chest', 'sealed-gaze-helm', 'blood-oath-wraps', 'buried-road-boots'] },
+    5: { level: 13, items: ['furnace-oath-axe', 'ash-warden-chest', 'sealed-furnace-helm', 'ash-warden-grasp', 'dead-forge-steps'] }
   };
   function hash(n) { n = (n ^ 61) ^ (n >>> 16); n = n + (n << 3); n ^= n >>> 4; n = Math.imul(n, 0x27d4eb2d); return ((n ^ (n >>> 15)) >>> 0) / 4294967296; }
   function inside(h, p, pad) {

@@ -333,6 +333,11 @@
     spear('furnace-mourning-spear', { top: 1.95, head: .5, finish: 'steel', headMat: 'black', width: t => .07 * Math.pow(Math.sin(t * PI), .7) * Math.pow(1 - t, .16), wings: [[.02, .02], [.14, .0], [.16, .08], [.12, .1], [.02, .07]], wingMat: 'black', runes: 'ember', runeCount: 5, ring: 'gold', tassel: ['crimson', .24, 6], seed: 25 });
     spear('last-coal-spear', { top: 2.0, head: .58, finish: 'rust', headMat: 'black', wavy: true, width: t => .045 * Math.pow(Math.sin(t * PI), .6) * Math.pow(1 - t, .12), runes: 'ember', runeCount: 6, ring: 'dark', wrap: 'hide', seed: 26,
       extra: (P, s) => { P.ember.push(G.sphere(.014, [0, s.hb - .015, 0], [1, 1.4, 1], 10, 8)); for (let k = 0; k < 6; k++) { const a = k / 6 * TAU; P.gold.push(G.tube([[Math.cos(a) * .012, s.hb - .04, Math.sin(a) * .012], [Math.cos(a) * .022, s.hb - .015, Math.sin(a) * .022], [Math.cos(a) * .01, s.hb + .01, Math.sin(a) * .01]], .0022, 4, 8, true)); } } });
+    // chapter V (ajan:chapter5): the Black Qadi's broken verdict blade, a jailer's axe fallen into the void, the chain court's spear
+    sword('last-verdict-blade', { top: 1.46, finish: 'dark', width: t => (.064 - .02 * t) * (t > .8 ? 1 - Math.pow((t - .8) / .2, 1.2) * .96 : 1), spine: t => .02, guard: 'crown', guardOpts: { width: .19 },
+      handle: .36, pommel: 'gem', pommelOpts: { trim: 'gold', gem: 'ember' }, gripOpts: { wrap: 'hide', ring: 'gold', wire: 'gold' }, runes: 'gore', runeCount: 9, seed: 31, tassel: ['crimson', .32, 7] });
+    axe('void-oath-axe', { top: 1.22, finish: 'dark', reach: .32, up: .26, down: .18, bulge: .05, back: 'spike', headMat: 'black', trim: 'gold', wrap: 'hide', ring: 'gold', runes: 'void', runeCount: 3, seed: 33, tassel: ['sable', .22, 5] });
+    spear('chain-court-spear', { top: 2.05, head: .55, finish: 'dark', headMat: 'black', width: t => .05 * Math.pow(Math.sin(t * PI), .55) * Math.pow(1 - t, .15), runes: 'gore', runeCount: 5, ring: 'gold', wrap: 'hide', seed: 35 });
     // drop empty / null entries before merging
     Object.values(out).forEach(w => Object.keys(w.parts).forEach(k => { w.parts[k] = w.parts[k].filter(Boolean); if (!w.parts[k].length) { delete w.parts[k]; if (w.materials) delete w.materials[k]; } }));
     return out;
