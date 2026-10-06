@@ -248,6 +248,7 @@ void main(){
       for (let i = 0; i < n; i++) { const a = i / n * TAU + R() * .3, r0 = .5 + R() * .2; emit(x + Math.sin(a) * r0, floor + .06, z + Math.cos(a) * r0, 2, pal.dust, Math.sin(a) * (1.5 + .5 * t), .25, Math.cos(a) * (1.5 + .5 * t), .5, .24); }
       const m = sc(10 + 6 * t);
       for (let i = 0; i < m; i++) { const a = R() * TAU, r0 = .9 + R() * (.9 + .4 * t); emit(x + Math.sin(a) * r0, floor + .1 + R() * .7, z + Math.cos(a) * r0, 4, i % 3 ? pal.ember : pal.emberHot, -Math.sin(a) * r0 / .14, .6, -Math.cos(a) * r0 / .14, .16 + R() * .06, .055); }
+      { const I = B.FxImpact && B.FxImpact.active; if (I) I.dome(x, z, { r: 1.8 + .5 * t, h: .5 + .2 * t, life: .14 + .04 * t, col: [null, [.45, .35, .28], [.95, .5, .12], [.45, .14, .75]][t], hot: [1.2, .9, .7], a: .4 + .1 * t, inward: true, style: [0, 0, 3, 1][t] }); }   // anticipation: the air drawn in before the rush (fx-impact.js)
       if (t === 3) {
         if (ringFx) ringFx(x, z, 5.5, .55, [.35, .06, .6]);
         for (let i = 0, k = sc(22); i < k; i++) { const a = i / k * TAU; particle(x + Math.sin(a) * .8, floor + .1, z + Math.cos(a) * .8, 2, pal.dust, 3.2, a, .5); }
