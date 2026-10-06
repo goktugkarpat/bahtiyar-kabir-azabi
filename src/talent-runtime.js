@@ -179,9 +179,9 @@
       if (F.frenzy && player.hp < 40) k *= 1.25;
       if (F.momentum && momentum > 0) k *= 1.2;
       const max = e.maxHp || e.hp || 1;
-      if (F.exec && e.hp / max < .4) k *= 1.35;
+      if (F.exec && e.hp / max < .4) k *= 1.25;
       let out = Math.round(damage * k);
-      if (F.exec && !e.boss && (e.hp - out) / max < .12 && e.hp - out > 0) { out = e.hp; if (look) look.execute(e); sound('talentExecute', { x: e.x, z: e.z }); }
+      if (F.exec && !e.boss && (e.hp - out) / max < .10 && e.hp - out > 0) { out = e.hp; if (look) look.execute(e); sound('talentExecute', { x: e.x, z: e.z }); }
       return out;
     }
     function onHit(e, damage, attack, killed) {
@@ -198,7 +198,7 @@
       const F = fx(), s = status.get(e), x = e.x, z = e.z;
       if (F.aftershock && e.stagger > 0) later.push({ at: clock + .08, fn() {
         if (look) look.burst(x, z, 2.8, 'stone'); sound('talentRot', { x, z, volume: .55 }); ctx.emit('impact', { x, z, strength: .6, radius: 2.8 });
-        for (const o of enemies) if (alive(o) && dist(o, x, z) < 2.8 + o.radius && ctx.canHit(o)) { const r = ctx.strike(o, 34, Math.atan2(o.x - x, o.z - z)); if (r && !r.killed) ctx.stun(o, .6); }
+        for (const o of enemies) if (alive(o) && dist(o, x, z) < 2.8 + o.radius && ctx.canHit(o)) { const r = ctx.strike(o, 24, Math.atan2(o.x - x, o.z - z)); if (r && !r.killed) ctx.stun(o, .35); }
       } });
       if (F.has.has('k-hunger') && look) look.souls(e, player);
       if (F.has.has('k-hunger')) player.stamina = Math.min(player.maxStamina, player.stamina + 30);
@@ -208,7 +208,7 @@
         const kseal = sealOf('knell');
         if (kseal && kseal.fx.drain) { heal(.05); player.stamina = Math.min(player.maxStamina, player.stamina + 10); if (look) look.drain(e, player); }
         later.push({ at: clock + .12, fn() { rotBurst(x, z, P.burst, P.burstRadius, !!(kseal && kseal.fx.spread)); } });
-      } else if (F.rotWorld) later.push({ at: clock + .12, fn() { rotBurst(x, z, 30, 3, true); } });
+      } else if (F.rotWorld) later.push({ at: clock + .12, fn() { rotBurst(x, z, 40, 3, true); } });
       if (F.ashfall && s && s.burn && s.burn.time > 0) later.push({ at: clock + .1, fn() {
         if (look) look.burst(x, z, 3.2, 'fire'); sound('talentIgnite', { x, z });
         for (const o of enemies) if (alive(o) && dist(o, x, z) < 3.2 + o.radius) burn(o, 26, 3);
@@ -276,7 +276,7 @@
         s.tick -= dt;
         if (s.tick <= 0) {
           s.tick += TICK;
-          const amount = ((s.bleed ? s.bleed.dps : 0) + (s.burn ? s.burn.dps : 0)) * TICK * (fx().plague && s.rot > 0 ? 1.4 : 1);
+          const amount = ((s.bleed ? s.bleed.dps : 0) + (s.burn ? s.burn.dps : 0)) * TICK * (fx().plague && s.rot > 0 ? 1.5 : 1);
           if (s.burn && fx().kindle && Math.random() < .3) {
             const next = enemies.find(o => o !== e && alive(o) && dist(o, e.x, e.z) < 3.2 && !(status.get(o) && status.get(o).burn));
             if (next) { burn(next, s.burn.dps * 2, 3); if (look) look.leap(e, next); }

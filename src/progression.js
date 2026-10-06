@@ -66,7 +66,7 @@
       params: { damage: 40, radius: 3.4, time: 5, dps: 14, burn: 24, reach: 2.4, burst: 0 },
       description: KabirI18n.t('Silahını yere vurup önüne kor bir mühür kaz. Mühür birkaç saniye yanar; içine giren düşmanlar tutuşur.'), delta: '' },
     { id: 'knell', name: KabirI18n.t('Ölüm Çanı'), line: 'knell', tier: 1, level: 4, requires: null, branch: 5, cost: 26, cooldown: 14,
-      params: { radius: 7, time: 8, amp: 1.25, burst: 38, burstRadius: 3.2, stun: 0, damage: 0 },
+      params: { radius: 7, time: 8, amp: 1.3, burst: 52, burstRadius: 3.2, stun: 0, damage: 0 },
       description: KabirI18n.t('Başının üstünde hayalet bir çan çalar. Çevredeki düşmanlar lanetlenir: daha çok hasar alır, ölünce çürüyüp patlar.'), delta: '' }
   ].map(s => Object.freeze(Object.assign({}, s, { params: Object.freeze(s.params), cost: s.cost }))));
   const skillIndex = Object.fromEntries(skills.map(s => [s.id, s]));
