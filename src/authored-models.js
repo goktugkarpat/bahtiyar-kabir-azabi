@@ -211,7 +211,7 @@
           ' if(bm>0.){float g=kGrey(w,vKara,.05,600.,.8);vec3 hc=mix(vec3(.05,.036,.03),vec3(.58,.56,.52),g)*(.65+.7*kN(vKara*900.));diffuseColor.rgb=mix(diffuseColor.rgb,hc,bm*.88);kSkinMask*=1.-bm*.95;}}}\n#endif\n')
         .replace('#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\n' +
           '#if KARA_CLASS == 1\nroughnessFactor*=.72+.56*kN(vKara*kScale*4.+vec3(5.));roughnessFactor=mix(roughnessFactor,.26,kEdgeMask);\n' +
-          '#elif KARA_CLASS == 4\nroughnessFactor=mix(roughnessFactor,.46+.2*kN(vKara*90.),kSkinMask);\n#endif\n' +
+          '#elif KARA_CLASS == 4\nroughnessFactor=mix(roughnessFactor,.36+.26*kN(vKara*90.)*kN(vKara*23.+vec3(4.)),kSkinMask);\n#endif\n' +
           'roughnessFactor=mix(roughnessFactor,1.,kCav*.35+kCut*.3+kRustMask*.6);roughnessFactor=mix(roughnessFactor,mix(.48,.2,kWet),kBloodMask);roughnessFactor=mix(roughnessFactor,.07,kGloss);')
         .replace('#include <metalnessmap_fragment>', '#include <metalnessmap_fragment>\n' +
           '#if KARA_CLASS == 1\nmetalnessFactor=mix(metalnessFactor,1.,kEdgeMask*.8);\n#endif\nmetalnessFactor=mix(metalnessFactor,0.,max(max(kBloodMask,kGloss),kRustMask));')
