@@ -137,6 +137,19 @@
         K.put(i, 'spike', 'rock', q.x + (rimR() - .5) * q.w * .3, -9.5, q.z + (rimR() - .5) * q.d * .3, q.w * .5, 11, q.d * .5, rimR() * 6, PI, 0, [.24, .22, .22], .2);
       });
     }
+    // Floor life: thin blood veins creep through the stone joints (molten seams, baked), carved rune inlays catch gold or void light.
+    function floorLife(nVein, nRune, runeCol) {
+      var RV = K.rng(i, 57);
+      for (var k = 0; k < nVein; k++) { var x = (RV() - .5) * (r.w - 6), z = (RV() - .5) * (r.d - 6), a = RV() * PI * 2;
+        for (var sgm = 0; sgm < 7; sgm++) { var L = .8 + RV() * 1.4, nx = x + Math.cos(a) * L, nz = z + Math.sin(a) * L; if (!inRoom(nx, nz, .8)) break;
+          K.put(i, 'box', 'hot', X((x + nx) / 2), .025, Z((z + nz) / 2), L + .05, .012, .045 + RV() * .04, -a, 0, 0, [.3 + RV() * .18, .022, .014], 0);
+          if (RV() < .35) { var b = a + (RV() < .5 ? 1 : -1) * (.6 + RV()), bl = .5 + RV() * .7; K.put(i, 'box', 'hot', X(nx + Math.cos(b) * bl / 2), .025, Z(nz + Math.sin(b) * bl / 2), bl, .012, .03, -b, 0, 0, [.26, .02, .012], 0); }
+          x = nx; z = nz; a += (RV() - .5) * 1.1; } }
+      for (var k = 0; k < nRune; k++) { var x = (RV() - .5) * (r.w - 8), z = (RV() - .5) * (r.d - 8); if (!inRoom(x, z, 2)) continue; var rr = .9 + RV() * .8;
+        K.put(i, 'inlay', 'hot', X(x), .03, Z(z), rr * 2, 1, rr * 2, 0, 0, 0, runeCol, 0); K.put(i, 'inlay', 'hot', X(x), .03, Z(z), rr * 1.4, 1, rr * 1.4, 0, 0, 0, [runeCol[0] * .7, runeCol[1] * .7, runeCol[2] * .7], 0);
+        for (var q = 0; q < 6; q++) { var qa = q / 6 * PI * 2 + RV(); K.put(i, 'box', 'hot', X(x + Math.cos(qa) * rr * .85), .03, Z(z + Math.sin(qa) * rr * .85), .16, .01, .05, -qa, 0, 0, runeCol, 0); }
+        K.spr(i, S.pool, X(x), .1, Z(z), rr * 3, rr * 3, [runeCol[0] * .25, runeCol[1] * .25, runeCol[2] * .25], .4, RV(), 1, 1); }
+    }
     // Floating debris around the platform (out in the void, never walkable).
     function debris(n, minD, maxD) {
       for (var k = 0; k < n; k++) {
@@ -373,6 +386,7 @@
     };
     ROOM[i]();
     voidLight();
+    floorLife(i === 13 ? 2 : 5, i === 11 || i === 13 ? 0 : 2, [5, 6, 8].indexOf(i) >= 0 ? [.35, .42, 1.3] : i % 3 === 0 ? [1.4, .95, .4] : [1.2, .16, .08]);
   }
   // Causeways across every gap: cut slabs, low kerbs, a hanging underside and chains dropping into the void.
   function bridges(K, info) {
