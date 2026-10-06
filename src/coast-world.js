@@ -34,7 +34,7 @@
     var rooms = ROOMS.map(function (r) { return Object.assign({}, r); });
     var colliders = [], occluders = [], textures = [], geometries = [], materials = {}, batches = {}, roomGroups = [];
     var animated = [], lightSources = [], lights = [], disposed = false, seed = 47291, quality = 'high';
-    var heroCut = { value: new T.Vector3(0,1.2,10) }, coastRain = { value: .5 };
+    var heroCut = { value: new T.Vector3(0,1.2,10) }, coastRain = { value: .5 }, coastDetail = { value: 1 };
     var clock = { value: 0 }, calm = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     var matrix = new T.Matrix4(), position = new T.Vector3(), scale = new T.Vector3(), rotation = new T.Quaternion(), euler = new T.Euler();
     function rnd() { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 4294967296; }
@@ -81,16 +81,16 @@
           // Ground detail (world-b): two-scale tone breakup, moss in hollows, hairline cracks, rain-dependent wetness with real
           // puddle gloss, the odd old blood stain; all world-space and procedural (no extra textures, same meshes).
           if(key==='stone'||key==='floor'||key==='sand'||key==='earth'||key==='wood'){
-            sh.uniforms.coastRain=coastRain;
-            var crackFn='uniform float coastRain;vec2 gh2(vec2 p){p=vec2(dot(p,vec2(127.1,311.7)),dot(p,vec2(269.5,183.3)));return fract(sin(p)*43758.5453);}float gCrack(vec2 p){vec2 i=floor(p),f=fract(p);float d1=8.,d2=8.;for(int y=-1;y<=1;y++)for(int x=-1;x<=1;x++){vec2 g=vec2(float(x),float(y));vec2 o=gh2(i+g);float d=length(g+o-f);if(d<d1){d2=d1;d1=d;}else if(d<d2)d2=d;}return d2-d1;}';
+            sh.uniforms.coastRain=coastRain;sh.uniforms.coastDetail=coastDetail;
+            var crackFn='uniform float coastRain;uniform float coastDetail;vec2 gh2(vec2 p){p=vec2(dot(p,vec2(127.1,311.7)),dot(p,vec2(269.5,183.3)));return fract(sin(p)*43758.5453);}float gCrack(vec2 p){vec2 i=floor(p),f=fract(p);float d1=8.,d2=8.;for(int y=-1;y<=1;y++)for(int x=-1;x<=1;x++){vec2 g=vec2(float(x),float(y));vec2 o=gh2(i+g);float d=length(g+o-f);if(d<d1){d2=d1;d1=d;}else if(d<d2)d2=d;}return d2-d1;}';
             sh.fragmentShader=sh.fragmentShader.replace('uniform vec3 coastHero;','uniform vec3 coastHero;'+crackFn)
               .replace('#include <alphamap_fragment>','#include <alphamap_fragment>\nfloat gFlat=smoothstep(.55,.9,coastNormal.y)*(1.-smoothstep(.25,1.2,coastWorld.y));vec2 gN1=texture2D(coastGrime,coastWorld.xz*.11+.31).rg;vec2 gN2=texture2D(coastGrime,coastWorld.xz*.019+.77).rg;'+
                 'diffuseColor.rgb*=mix(.8,1.14,gN2.r)*mix(.93,1.05,gN1.g);'+
                 (key==='wood'?'float gMoss=0.;float gCr=0.;float gPeb=0.;float gSand=0.;':'float gSand=smoothstep(.38,.62,gN2.g+gN1.r*.3-.15)*gFlat;diffuseColor.rgb*=mix(vec3(.62,.6,.56),vec3(1.18,1.08,.88),gSand);float gMoss=smoothstep(.58,.78,gN1.g*.6+gN2.r*.6)*gFlat*(1.-gSand);diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.1,.13,.07)*(.6+gN1.r*.6),gMoss*.6);vec2 gq=coastWorld.xz*3.1;vec2 gcell=floor(gq);float gr=gh2(gcell).x;float gPeb=smoothstep(.26*gr+.04,.0,length(fract(gq)-.5-(gh2(gcell+7.).xy-.5)*.55))*step(.8,gr)*gFlat*(1.-gMoss)*smoothstep(.3,.7,gN1.g);float gShell=gPeb*step(.965,gr);diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*.55,gPeb*(1.-step(.94,gr)));diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.78,.74,.64),gShell);'+
-                'float gCr=(1.-smoothstep(.0,.05,gCrack(coastWorld.xz*.9)))*smoothstep(.45,.7,gN1.r)*gFlat;diffuseColor.rgb*=1.-gCr*.55;')+
+                'float gCr=0.;if(coastDetail>.5)gCr=(1.-smoothstep(.0,.05,gCrack(coastWorld.xz*.9)))*smoothstep(.45,.7,gN1.r)*gFlat;diffuseColor.rgb*=1.-gCr*.55;')+
                 'float gPud=smoothstep(.6,.68,texture2D(coastGrime,coastWorld.xz*.031+.13).r)*gFlat*(.35+.65*coastRain);diffuseColor.rgb*=mix(1.,.55,gPud);'+
                 'float gBlood=smoothstep(.86,.9,gN2.r)*smoothstep(.5,.8,gN1.r)*gFlat;diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.16,.025,.02),gBlood*.55);')
-              .replace('#include <normal_fragment_maps>','#include <normal_fragment_maps>\n{float gH=gPeb*.5-gCr*.8+gMoss*.15-gPud*.2;vec3 sx=dFdx(-vViewPosition),sy=dFdy(-vViewPosition);vec3 r1=cross(sy,normal),r2=cross(normal,sx);float det=dot(sx,r1);vec3 grd=sign(det)*(dFdx(gH)*r1+dFdy(gH)*r2);normal=normalize(abs(det)*normal-grd*1.2);}')
+              .replace('#include <normal_fragment_maps>','#include <normal_fragment_maps>\nif(coastDetail>.5){float gH=gPeb*.5-gCr*.8+gMoss*.15-gPud*.2;vec3 sx=dFdx(-vViewPosition),sy=dFdy(-vViewPosition);vec3 r1=cross(sy,normal),r2=cross(normal,sx);float det=dot(sx,r1);vec3 grd=sign(det)*(dFdx(gH)*r1+dFdy(gH)*r2);normal=normalize(abs(det)*normal-grd*1.2);}')
               .replace('#include <roughnessmap_fragment>','#include <roughnessmap_fragment>\nroughnessFactor=mix(roughnessFactor,.2,gPud);roughnessFactor*=mix(1.,.84,coastRain*gFlat);roughnessFactor=mix(roughnessFactor,1.,gCr*.5+gMoss*.2);');
           }
           if(key==='rock'){
@@ -666,7 +666,7 @@
       pxGain += ((fxLight ? fxLight.gain || .5 : 0) - pxGain) * Math.min(1, dt * 14);
       px.position.set(p.x, 2.1, p.z); px.intensity = (quality === 'low' ? .7 : 1.1) + pxGain;
     }
-    function setQuality(cfg) { quality = typeof cfg === 'string' ? cfg : cfg.quality || cfg.preset || 'high'; ash.visible = quality !== 'low'; }
+    function setQuality(cfg) { quality = typeof cfg === 'string' ? cfg : cfg.quality || cfg.preset || 'high'; coastDetail.value = quality === 'low' ? 0 : 1; ash.visible = quality !== 'low'; }
     function dispose() { if (disposed) return; disposed = true; expansion.dispose(); scene.remove(root); root.traverse(function (n) { if (n.isInstancedMesh) n.dispose(); }); geometries.forEach(function (g) { g.dispose(); }); Object.keys(materials).forEach(function (k) { materials[k].dispose(); }); textures.forEach(function (t) { t.dispose(); }); root.clear(); }
     // Quest object sites in the open coast (read by src/quests.js); a site is kept only if it is clear ground.
     var questSites={};[['clapper',-35.5,-55.2],['grave-west',-37,-108.6],['grave-east',-26.8,-109.2],['bell-testimony',-25,-136.5],['c2.hunt',-28,-84.4],['c2.captive',-36.5,5.5],['c2.page1',-39.5,-19.5],['c2.page2',-60.5,-92.5],['c2.page3',-40,-145.5],['c2.altar',25.5,-89.6],['c2.chest',-25.5,-55.6],['c2.siege',-37,-28.5],['c2.hunt2',-68.5,-95],['c2.escape',27,-84],['c2.escape-goal',-4,-131],['c2.rescue-goal',3.5,-137]].forEach(function(q){for(var k=0;k<60;k++){var a=k*2.4,d=k?.45*Math.sqrt(k):0,x=q[1]+Math.cos(a)*d,z=q[2]+Math.sin(a)*d;if(isWalkable(x,z,1.3)&&pathTo({x:0,z:10},{x:x,z:z},.5).length){questSites[q[0]]={x:x,z:z};break;}}});
