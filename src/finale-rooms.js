@@ -402,7 +402,11 @@
       [-1, 1].forEach(function (s) {
         K.put(i, 'box', 'stone', b.x + s * (b.w / 2 + .2), .12, b.z, .55, .55, b.d + .4, 0, 0, 0, [.66, .6, .56], .3);
         K.put(i, 'box', 'rock', b.x + s * (b.w / 2 + .1), -.9, b.z, 1.2, 1.6, b.d + .6, 0, 0, 0, [.34, .31, .31], .4);
-        for (var k = 0; k < 2; k++) { var z = b.z + (k ? 1 : -1) * b.d * .3; K.put(i, 'box', 'stone', b.x + s * (b.w / 2 + .25), .9, z, .7, 1.8, .7, 0, 0, 0, [.7, .64, .6], .4); K.put(i, 'cone4', 'stone', b.x + s * (b.w / 2 + .25), 2.1, z, .9, .6, .9, PI / 4, 0, 0, [.7, .64, .6], .2); }
+        for (var k = 0; k < 2; k++) { var z = b.z + (k ? 1 : -1) * b.d * .3; K.put(i, 'box', 'stone', b.x + s * (b.w / 2 + .25), .9, z, .7, 1.8, .7, 0, 0, 0, [.7, .64, .6], .4); K.put(i, 'cone4', 'stone', b.x + s * (b.w / 2 + .25), 2.1, z, .9, .6, .9, PI / 4, 0, 0, [.7, .64, .6], .2);
+          // a cold void lantern hangs from every post: the route reads at a glance, and red is not the only light
+          var lx = b.x + s * (b.w / 2 - .25); K.bar(i, 'cyl', 'iron', b.x + s * (b.w / 2 + .25), 2.2, z, lx, 2.2, z, .03, [.5, .44, .42], .1); K.chain(i, lx, 2.15, z, .5, [.5, .44, .42]);
+          K.put(i, 'box', 'iron', lx, 1.42, z, .26, .34, .26, PI / 4, 0, 0, [.4, .36, .36], .2); K.put(i, 'box', 'hot', lx, 1.42, z, .16, .24, .16, PI / 4, 0, 0, [.3, .38, 1.4], 0);
+          K.spr(i, S.glow, lx, 1.42, z, .9, .9, [.18, .22, .7], .7, R(), 1, 1); K.spr(i, S.pool, lx, .1, z, 2.6, 2.6, [.1, .12, .4], .45, R(), 1, 1); }
         if (R() < .7) bigChain(K, i, b.x + s * (b.w / 2 + .3), -.2, b.z + (R() - .5) * b.d * .5, b.x + s * (b.w / 2 + 2.5), -14, b.z + (R() - .5) * 4, 1.3, [.4, .34, .32]);
         K.spr(i, S.glow, b.x + s * (b.w / 2 + 3), -7, b.z, 3.6, 3.6, [.28, .03, .015], .35, R(), .5, 1);
       });
