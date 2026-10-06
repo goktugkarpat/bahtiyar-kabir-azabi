@@ -25,6 +25,7 @@
     5: { name: 'void', bg: [8, 7, 13], bg2: [26, 19, 38], floor: [152, 142, 122], floor2: [118, 108, 92], grout: [96, 78, 104], wall: [238, 226, 204], hatch: [124, 96, 176], out: 'void', pattern: 'ledger', tile: 1.15,
       label: '#f1e6ca', side: '#cbbbe9', accent: '#b79cff', route: '#f3d98a', mist: [96, 84, 128], ink: '#0b0812', motif: 'ledger' }
   };
+  const FILTERS = typeof CanvasRenderingContext2D !== 'undefined' && 'filter' in CanvasRenderingContext2D.prototype; // older Safari: no canvas filters
   const KIND_COLOR = { main: '#e9c27a', hunt: '#e8644a', rescue: '#9cc6e6', lore: '#e6d6b0', altar: '#d2424e', chest: '#e8b85a', siege: '#ff9440', escape: '#6fd0c0', puzzle: '#b79cff', reward: '#ffe08a', gate: '#c9583c', boss: '#ff4a32', elite: '#ffb050', oath: '#b8d6a0' };
   function node(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; }
   function hash(i, j) { let h = Math.imul(i, 374761393) ^ Math.imul(j, 668265263); h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967296; }
@@ -433,7 +434,7 @@
       c.save(); c.translate(width / 2, height / 2); c.scale(s, s); c.translate(-camera.x, -camera.z);
       worldMotif(c, s);
       // Soft drop shadow lifts the painted plan off the background.
-      c.save(); c.globalAlpha = .55; c.filter = 'blur(' + Math.max(2, s * .6).toFixed(1) + 'px) brightness(0)'; c.drawImage(composed, bounds.x0 + .35, bounds.z0 + .7, TW / P, TH / P); c.restore();
+      if (FILTERS) { c.save(); c.globalAlpha = .55; c.filter = 'blur(' + Math.max(2, s * .6).toFixed(1) + 'px) brightness(0)'; c.drawImage(composed, bounds.x0 + .35, bounds.z0 + .7, TW / P, TH / P); c.restore(); }
       c.imageSmoothingEnabled = true; c.imageSmoothingQuality = 'high'; c.drawImage(composed, bounds.x0, bounds.z0, TW / P, TH / P);
       // Light of the hero's lantern on the paper.
       const warm = c.createRadialGradient(game.player.x, game.player.z, 0, game.player.x, game.player.z, 16); warm.addColorStop(0, 'rgba(255,214,140,.16)'); warm.addColorStop(1, 'rgba(255,214,140,0)'); c.fillStyle = warm; c.fillRect(game.player.x - 16, game.player.z - 16, 32, 32);
@@ -462,6 +463,10 @@
       // Off-screen tracked target: an arrow on the frame edge.
       if (t) { const x = toX(t.x), y = toY(t.z); if (x < 18 || y < 18 || x > width - 18 || y > height - 18) { const cx = width / 2, cy = height / 2, a = Math.atan2(y - cy, x - cx), k = Math.min((width / 2 - 30) / Math.abs(Math.cos(a) || 1e-6), (height / 2 - 30) / Math.abs(Math.sin(a) || 1e-6)); c.save(); c.translate(cx + Math.cos(a) * k, cy + Math.sin(a) * k); c.rotate(a); c.fillStyle = S.route; c.strokeStyle = '#000'; c.lineWidth = 2; c.beginPath(); c.moveTo(12, 0); c.lineTo(-6, -8); c.lineTo(-2, 0); c.lineTo(-6, 8); c.closePath(); c.stroke(); c.fill(); c.restore(); } }
       trackBadge.hidden = !t; if (t) { const d = Math.round(Math.hypot(t.x - game.player.x, t.z - game.player.z)); const text = (tracked ? tr('Takipte') : tr('En yakın hedef')) + ' · ' + (t.name || '') + ' · ' + d + ' m'; if (trackBadge.textContent !== text) trackBadge.textContent = text; }
+      // Scale bar, engraved like the rest of the plate.
+      { const metres = [5, 10, 20, 50, 100].find(m => m * s >= 55) || 100, len = metres * s, x0 = 22, y0 = height - 44; c.save(); c.strokeStyle = 'rgba(0,0,0,.8)'; c.lineWidth = 4; c.beginPath(); c.moveTo(x0, y0); c.lineTo(x0 + len, y0); c.stroke();
+        c.strokeStyle = S.label; c.globalAlpha = .75; c.lineWidth = 1.2; c.beginPath(); c.moveTo(x0, y0 - 4); c.lineTo(x0, y0); c.lineTo(x0 + len, y0); c.lineTo(x0 + len, y0 - 4); c.moveTo(x0 + len / 2, y0); c.lineTo(x0 + len / 2, y0 - 2.5); c.stroke();
+        c.font = '400 11px Georgia,serif'; c.textAlign = 'left'; c.textBaseline = 'bottom'; c.fillStyle = S.label; c.fillText(metres + ' m', x0 + len + 6, y0 + 4); c.restore(); }
       markers = placed;
       if (hover) { const h = placed.find(b => b.name && Math.hypot(b.x - hover.x, b.y - hover.y) < 15); if (h) tooltip(h); }
       ledger();
@@ -521,7 +526,7 @@
         goal(item && item.name || tr('Zafer emaneti'), tr('Efendi yenildi. Emanetine yaklaş.'), false, () => { if (Number.isFinite(reward.x)) { camera.x = reward.x; camera.z = reward.z; fitted = false; draw(); } }, true, 'reward');
       } else if (q && q.ready) goal(tr('Efendinin kapısı açık'), q.objective, false, choose({ type: 'gate' }), !!tracked && tracked.type === 'gate', 'gate');
       else (q && q.entries || []).forEach((entry, i) => goal(entry.name, entry.complete ? tr('Bağ çözüldü') : entry.objective, entry.complete, choose({ type: 'main', index: i }), !!tracked && tracked.type === 'main' && tracked.index === i, 'main'));
-      if (!reward) for (const e of sideEntries().filter(e => e.available && e.target && !e.complete).slice(0, 3)) { const on = !!tracked && tracked.type === 'side' && tracked.id === e.id; goal(e.name, e.objective, false, choose({ type: 'side', id: e.id }), on, e.kind, !on); }
+      if (!reward) for (const e of sideEntries().filter(e => e.available && e.target && !e.complete).sort((a, b) => (tracked && tracked.id === b.id) - (tracked && tracked.id === a.id) || !!b.urgent - !!a.urgent).slice(0, 2)) { const on = !!tracked && tracked.type === 'side' && tracked.id === e.id; goal(e.name, e.objective, false, choose({ type: 'side', id: e.id }), on, e.kind, !on); }
       const crowded = goals.children.length >= 3; landmarkHeading.hidden = landmarks.hidden = crowded;
       const nearby = rooms.filter(room => visited.has(String(room.id))).sort((a, b) => Math.hypot(a.x - game.player.x, a.z - game.player.z) - Math.hypot(b.x - game.player.x, b.z - game.player.z)).slice(0, 3); landmarks.replaceChildren();
       for (const room of nearby) { const b = node('button', '', room.name); b.type = 'button'; if (r === room) b.classList.add('here'); b.onclick = () => { camera.x = room.x; camera.z = room.z; camera.scale = Math.max(camera.scale, 4); fitted = false; draw(); }; landmarks.append(b); }
