@@ -52,7 +52,7 @@
     var seeds = [];
     rooms.forEach(function (r) {
       if (r.trail) { for (var z = 6; z >= -144; z -= 6) seeds.push([trailX(z), z]); return; }
-      if (r.mole) { [8, 13, 18, 23, 27, 29].forEach(function (x) { seeds.push([x, -86.4]); }); seeds.push([27, -82.5], [27, -90]); return; }
+      if (r.mole) { [3, 6, 8, 13, 18, 23, 26].forEach(function (x) { seeds.push([x, -86.4]); }); seeds.push([27, -82.5], [27, -90]); return; }
       if (r.hill) { seeds.push([r.x, r.z], [r.x + 4, r.z], [r.x - 4, r.z], [r.x, r.z + 4], [r.x, r.z - 4], [-56, -95.6], [-50, -95.6]); return; }
       [-7, 0, 7].forEach(function (dx) { [-6, 0, 6].forEach(function (dz) { seeds.push([r.x + dx, r.z + dz]); }); });
       seeds.push([r.x + r.w / 2 + 1, r.entryZ], [-10.5, r.entryZ], [r.x - r.w / 2 - 1, r.z]);
@@ -72,7 +72,7 @@
       }
       if (r.hill) {
         list.push({ id: 'coast-gallows', room: r.id, name: r.name, stage: 1.2, clearText: tr('Darağacı boşaldı. Tepeden kıyı görünüyor.'),
-          spawns: [{ type: 'lantern', x: r.x - 3, z: r.z + 3 }, { type: 'rootborn', x: r.x + 3, z: r.z + 2 }, { type: 'urchin', x: r.x, z: r.z - 4 },
+          spawns: [{ type: 'lantern', x: r.x - 3, z: r.z + 3 }, { type: 'rootborn', x: r.x + 3, z: r.z + 2 }, { type: 'urchin', x: r.x + 1, z: r.z - 2.5 },
             { type: 'drowned', x: r.x + 1, z: r.z + 5, elite: true, name: tr('Asılmışların Bekçisi') }] });
         return;
       }
@@ -176,7 +176,7 @@
     var terrain = new T.Mesh(tg, M.terrain); terrain.receiveShadow = true; terrain.castShadow = false; terrain.name = 'coast-open-terrain'; terrain.matrixAutoUpdate = false; K.root.add(terrain);
 
     // Ridge stones and exposed rock shelves along the slopes (the landscape keeps a hard skeleton).
-    for (var q = 0; q < 520; q++) {
+    for (var q = 0; q < 300; q++) {
       var x = R(-94, -2), z = R(-198, 22), d = H.outer(x, z); if (d < .8 || d > 14) continue;
       var big = d > 4 && rnd() < .35, s = big ? R(1.4, 3.4) : R(.35, 1.2);
       onGround(nearestRoom(x, z), G.rock, 'rock', x, -.15 * s, z, s * R(.8, 1.4), s * R(.45, .9), s * R(.8, 1.3), R(-.2, .2), R(0, 6), R(-.2, .2));
@@ -203,9 +203,9 @@
     grass.instanceMatrix.needsUpdate = true; grass.castShadow = false; grass.receiveShadow = true; grass.computeBoundingSphere(); grass.name = 'coast-open-grass'; grass.matrixAutoUpdate = false; K.root.add(grass);
 
     // Forest edge: charred trees on the slopes frame each area and the trail.
-    for (q = 0; q < 900; q++) {
-      x = R(-94, -12); z = R(-196, 20); d = H.outer(x, z); if (d < 2.2 || d > 18) continue;
-      if (rnd() < .45) continue;
+    for (q = 0, nt = 0; q < 900 && nt < 90; q++) {
+      x = R(-94, -12); z = R(-196, 20); d = H.outer(x, z); if (d < 2.2 || d > 12) continue;
+      if (rnd() < .45) continue; nt++;
       K.tree(nearestRoom(x, z), x, z, R(5, 11), R(.18, .42), R(-1.5, 1.5), gy(x, z) - .2);
     }
 
@@ -222,12 +222,45 @@
       onGround(15, G.cylinder, 'rust', x, 1.2, z, .07, 2.4, .07); onGround(15, G.box, 'rust', x - .35, 2.35, z, .8, .06, .06);
       K.lantern(15, x - .7, 2.0 + gy(x, z), z, 'coast', p[1] === 'warm');
     });
-    for (q = 0; q < 14; q++) { z = R(-140, 0); x = trailX(z) + R(-2, 2); K.skull(15, x, .09, z, R(0, 6)); add(15, G.cylinder, 'bone', x + R(-.6, .6), .05, z + R(-.6, .6), .04, R(.4, .7), .04, PI / 2, R(0, 6), 0); }
+    for (q = 0; q < 8; q++) { z = R(-140, 0); x = trailX(z) + R(-2, 2); K.skull(15, x, .09, z, R(0, 6)); add(15, G.cylinder, 'bone', x + R(-.6, .6), .05, z + R(-.6, .6), .04, R(.4, .7), .04, PI / 2, R(0, 6), 0); }
     // Way-shrine: a weathered stone niche with an offering bowl at the trail's mid-point.
     (function () { var z = -46, x = trailX(z) - 4.2; onGround(15, G.masonry, 'stone', x, .9, z, 1.4, 1.8, .9); onGround(15, G.masonry, 'stone', x, 1.95, z, 1.8, .3, 1.2); onGround(15, G.box, 'dark', x + .4, 1.0, z, .2, .9, .6); onGround(15, G.cylinder, 'rust', x + .65, .3, z, .25, .12, .25); onGround(15, G.sphere, 'oath', x + .65, .42, z, .08, .08, .08); })();
 
+    /* ---- ground detail and broken rim walls in every yard (the floor never reads as a flat plain) ---- */
+    L.rooms.forEach(function (r) {
+      if (r.trail || r.mole) return;
+      var A = r.hill ? 8 : r.w / 2, Bd = r.hill ? 8 : r.d / 2;
+      for (var k = 0; k < 70; k++) { var x = r.x + R(-A, A), z = r.z + R(-Bd, Bd); if (!L.floorTest(x, z, .3)) continue; var s = R(.05, .2); add(r.id, G.pebble, 'rock', x, .02, z, s, s * .45, s * .8, 0, R(0, 6), 0); }
+      for (k = 0; k < 7; k++) { x = r.x + R(-A * .8, A * .8); z = r.z + R(-Bd * .8, Bd * .8); if (!L.floorTest(x, z, 1)) continue; add(r.id, G.rock, 'puddle', x, -.045, z, R(.8, 2.2), .05, R(.6, 1.6), 0, R(0, 6), 0); }
+      for (k = 0; k < 5; k++) { var px = r.x + R(-A * .7, A * .7), pz = r.z + R(-Bd * .7, Bd * .7), n = 4 + Math.floor(rnd() * 8);
+        for (var q2 = 0; q2 < n; q2++) { x = px + R(-1.6, 1.6); z = pz + R(-1.6, 1.6); if (!L.floorTest(x, z, .2)) continue; add(r.id, K.G.paving[q2 % 3], 'funeralPaving', x, .006, z, R(.6, .95), .34, R(.6, .95), 0, R(0, 6), 0); } }
+      for (k = 0; k < 6; k++) { x = r.x + R(-A, A); z = r.z + R(-Bd, Bd); if (!L.floorTest(x, z, .5)) continue; add(r.id, G.plank, 'wood', x, .03, z, R(.8, 1.8), .06, R(.12, .22), 0, R(0, 6), R(-.05, .05)); }
+      if (r.hill) return;
+      // A few broken wall runs on the rim: ruins, not an enclosure.
+      for (k = 0; k < 5; k++) {
+        var a = R(0, PI * 2), ex = r.x + Math.cos(a) * (A + .8), ez = r.z + Math.sin(a) * (Bd + .8);
+        if (L.floorTest(ex, ez, -.6)) continue;
+        var len = R(2.5, 5.5), ang = -a + PI / 2, h0 = R(.6, 1.9);
+        for (var b = 0; b < Math.ceil(len / .95); b++) { var t = b * .95 - len / 2, bx = ex + Math.cos(ang) * t, bz = ez - Math.sin(ang) * t, hh = h0 * (1 - Math.abs(t / len) * .8) + R(-.2, .2); if (hh < .2) continue;
+          onGround(r.id, G.masonry, 'wall', bx, hh / 2 - .05, bz, .92, hh, .55, 0, ang, R(-.03, .03)); if (rnd() < .4) onGround(r.id, G.masonry, 'stone', bx + R(-.6, .6), .1, bz + R(-.6, .6), .4, .22, .35, R(-.3, .3), R(0, 6), 0); }
+      }
+    });
+
+    // Soften the straight west edges of the main road slabs: spilled paving, mud tongues, rubble and grass.
+    K.mainRooms.forEach(function (r, id) {
+      if (id === 6) return;
+      var ex = -r.w / 2;
+      for (var k = 0; k < r.d * 2.2; k++) {
+        var z = r.z - r.d / 2 + rnd() * r.d, x = ex + R(-1.6, 1.4);
+        if (rnd() < .45) add(id, K.G.paving[k % 3], 'funeralPaving', x, .012, z, R(.5, 1.0), .34, R(.5, 1.0), 0, R(0, 6), 0);
+        else if (rnd() < .5) add(id, G.rock, 'puddle', x - .4, -.04, z, R(.5, 1.3), .05, R(.4, .9), 0, R(0, 6), 0);
+        else { var s = R(.06, .22); add(id, G.pebble, 'rock', x, .02, z, s, s * .5, s * .8, 0, R(0, 6), 0); }
+      }
+      [r.z - r.d / 2, r.z + r.d / 2].forEach(function (ez) { for (var k = 0; k < 14; k++) { var x = R(-r.w / 2, -9), z = ez + R(-1, 1); add(id, K.G.paving[k % 3], 'funeralPaving', x, .012, z, R(.5, .9), .34, R(.5, .9), 0, R(0, 6), 0); } });
+    });
+
     /* ---- 9: ash fishers' houses ---- */
-    var r9 = { x: -30, z: 4 };
+    var nt;
     K.building(9, -40, 11, 5.4, 6, 3.2, .35); K.building(9, -21, 13.5, 4.6, 5, 2.8, -.12);
     fishRack(9, -38, -3, .2); fishRack(9, -23.5, -3.5, -.3); fishRack(9, -35.5, -6.5, .9);
     K.boat(9, -19.5, 9.2, 5.2, PI / 2 + .3, false, true); K.boat(9, -41.5, 1, 4.6, .4, false, true, true);
@@ -239,7 +272,7 @@
     for (q = 0; q < 7; q++) { var a = q / 7 * PI * 2 + .3, rx = r10.x + Math.cos(a) * 11.6, rz = r10.z + Math.sin(a) * 9.6; rootArch(10, rx, rz, a); }
     for (q = 0; q < 10; q++) { var a2 = q / 10 * PI * 2, gx = r10.x + Math.cos(a2) * 8.3, gz = r10.z + Math.sin(a2) * 6.6; K.grave(10, gx, gz, -a2 + PI / 2, q % 3 === 0); }
     stump(10, -42, -16.5, 1.25); stump(10, -24, -30, .9);
-    for (q = 0; q < 10; q++) K.skull(10, r10.x + R(-9, 9), .1, r10.z + R(-8, 8), R(0, 6));
+    for (q = 0; q < 5; q++) K.skull(10, r10.x + R(-9, 9), .1, r10.z + R(-8, 8), R(0, 6));
 
     /* ---- 7: drowned customs yard with the bell tower (landmark) ---- */
     bellTower(7, -39, -51.5);
@@ -250,7 +283,7 @@
     K.corpse(7, -27, -66, .4); K.cargo(7, -36.5, -55, .5);
 
     /* ---- 11: rotten shipyard with a ship skeleton (landmark) ---- */
-    shipSkeleton(11, -36.5, -84.5, .12);
+    shipSkeleton(11, -33, -88.3, .04);
     timberStack(11, -22, -75, .1); timberStack(11, -22.5, -88, -.2); barrels(11, -42, -76, 4);
     crane(11, -24.5, -81.5);
     for (q = 0; q < 4; q++) add(11, G.ring, 'rope', -27 + q * 1.1, .06, -73.5 + (q % 2) * .8, .35, .35, .9, PI / 2, 0, 0);
@@ -265,13 +298,13 @@
     /* ---- 12: the lightless refuge ---- */
     for (q = 0; q < 26; q++) { var a4 = PI * .5 + q / 25 * PI, px = -32 + Math.cos(a4) * 13.4, pz = -140 + Math.sin(a4) * 11.2; if (Math.abs(pz - -139) < 6.5 && px > -25) continue; if (Math.abs(pz + 140) < 4.4 && px < -40) continue; stake(12, px, pz, a4); }
     K.building(12, -39.5, -131, 4.8, 5.6, 3.1, .25); campfire(12, -27, -133); campfire(12, -38, -147);
-    for (q = 0; q < 5; q++) { add(12, G.box, 'cloth', -30 + q * 1.7, .06, -147.5, .9, .1, 2, 0, R(-.3, .3), 0); }
+    for (q = 0; q < 5; q++) { add(12, G.box, 'rope', -30 + q * 1.7, .05, -147.5, .8, .09, 1.9, 0, R(-.3, .3), 0); add(12, G.cylinder, 'rope', -30 + q * 1.7, .1, -146.6, .16, .7, .16, 0, 0, PI / 2); }
     crateStack(12, -22.5, -146, .4); barrels(12, -43, -138, 3);
 
     /* ---- 13: gallows hill ---- */
     var hx = -64, hz = -96;
     for (q = 0; q < 9; q++) { var a5 = q / 9 * PI * 2 + .2, mx = hx + Math.cos(a5) * 9.6, mz = hz + Math.sin(a5) * 9.6; if (Math.abs(a5 - PI) < .3 + 0 || (mx > -57 && Math.abs(mz - hz) < 4)) continue; onGround(13, G.masonry, 'stone', mx, 1.5, mz, 1.1, 3.4 + R(-.6, 1.2), .8, R(-.06, .06), -a5, R(-.08, .08)); }
-    gallows(13, hx - 1.5, hz - 3);
+    gallows(13, hx - 2, hz - 6);
     for (q = 0; q < 6; q++) K.skull(13, hx + R(-5, 5), .1, hz + R(-5, 5), R(0, 6));
     K.lantern(13, hx + 5.5, 2.3, hz + 4.5, 'coast');
 
@@ -299,7 +332,7 @@
       fragmentShader: 'varying float vA;void main(){vec2 c=gl_PointCoord-.5;float d=dot(c,c);float a=exp(-d*28.)*vA+exp(-d*7.)*.18*vA;gl_FragColor=vec4(vec3(.42,.95,.78)*a,a);}' });
     var wisps = new T.Points(wg, M.wisp); wisps.name = 'coast-open-wisps'; wisps.frustumCulled = false; K.root.add(wisps);
     var mt = mistTexture(); K.textures.push(mt);
-    M.mist = new T.MeshBasicMaterial({ map: mt, color: 0x8fa9a6, transparent: true, opacity: .55, depthWrite: false, fog: true });
+    M.mist = new T.MeshBasicMaterial({ map: mt, color: 0x6c8482, transparent: true, opacity: .22, depthWrite: false, fog: true });
     var mists = [], mistG = geo(new T.PlaneGeometry(1, 1)); mistG.rotateX(-PI / 2);
     [[-33, -23, 18], [-32, -112, 18], [-48, -70, 16], [-48, -10, 14], [-48, -128, 14], [-64, -96, 14], [-30, -59, 16], [-4, -112, 14], [-30, 4, 16], [-32, -140, 16], [-4, -24, 12], [-32, -81, 16]].forEach(function (m, n) {
       for (var l = 0; l < 2; l++) { var me = new T.Mesh(mistG, M.mist); me.position.set(m[0] + l * 3, .35 + l * .45, m[1] - l * 2); me.scale.set(m[2] * (1 - l * .2), 1, m[2] * .8); me.rotation.y = n + l; me.renderOrder = 3; me.name = 'coast-mist'; K.root.add(me); mists.push({ m: me, x: me.position.x, z: me.position.z, p: n * 1.7 + l }); }

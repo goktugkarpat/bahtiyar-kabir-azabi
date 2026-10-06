@@ -123,7 +123,7 @@
     var plank=geo(new T.BoxGeometry(1,1,1,8,1,2)), vp=plank.attributes.position;
     for(var j=0;j<vp.count;j++){var xx=vp.getX(j),yy=vp.getY(j),zz=vp.getZ(j);vp.setXYZ(j,xx+(Math.abs(xx)>.49?Math.sin(zz*31+yy*11)*.013:0),yy,zz+(Math.abs(zz)>.49?Math.sin(xx*22+yy*13)*.014:0));}plank.computeVertexNormals();
     var branch=geo(new T.CylinderGeometry(.62,1,1,14,4)),bv=branch.attributes.position;for(var j=0;j<bv.count;j++){var x=bv.getX(j),z=bv.getZ(j),a=Math.atan2(z,x),k=1+Math.sin(a*7+bv.getY(j)*3)*.035;bv.setXYZ(j,x*k,bv.getY(j),z*k);}branch.computeVertexNormals();
-    var rock = geo(new T.IcosahedronGeometry(1, 2)), rp = rock.attributes.position;
+    var pebble = geo(new T.IcosahedronGeometry(1, 0)), rock = geo(new T.IcosahedronGeometry(1, 2)), rp = rock.attributes.position;
     for (var i = 0; i < rp.count; i++) { var xx=rp.getX(i),yy=rp.getY(i),zz=rp.getZ(i),k=.96+Math.sin(xx*3.2+yy*2.1)*.075+Math.cos(zz*2.8-xx*1.7)*.09;rp.setXYZ(i,Math.max(-.75,Math.min(.88,xx*k)),Math.max(-.58,Math.min(.62,yy*k)),Math.max(-.79,Math.min(.84,zz*k))); }
     B.Gear.smoothNormals(rock,2.6);
     // Reusable chipped masonry and curved burnt-tree silhouettes. Prepared only at level load.
@@ -159,7 +159,7 @@
       var trunkPoints=[[0,-.035,0],[-bend*.4,.23,.018],[bend*.18,.57,-.015],[bend,.82,.035],[bend*.75,1,.05]];
       var trunkCurve=new T.CatmullRomCurve3(trunkPoints.map(function(p){return new T.Vector3().fromArray(p);}));
       treeTrunks.push(trunkCurve);
-      pieces.push(B.Gear.tube(trunkPoints,function(t){return .045*Math.pow(1-t,.62)+.007;},10,30,true));
+      pieces.push(B.Gear.tube(trunkPoints,function(t){return .045*Math.pow(1-t,.62)+.007;},8,22,true));
       for(var b=0;b<6;b++){
         // Find the real trunk centre at the branch height; an approximate x offset left upper branches floating.
         var a=b*2.399+variant*.8,yy=.28+b*.095,len=.20+(b%3)*.055,lo=0,hi=1;
@@ -167,12 +167,12 @@
         var t=(lo+hi)*.5,base=trunkCurve.getPointAt(t),tr=.045*Math.pow(1-t,.62)+.007;
         var direction=new T.Vector3(Math.cos(a),0,Math.sin(a)),rise=.11+(b%2)*.065;
         var branchPoints=[base.clone().add(new T.Vector3(0,-.009,0)),base.clone().addScaledVector(direction,len*.23).add(new T.Vector3(0,.015,0)),base.clone().add(new T.Vector3(Math.cos(a+.12)*len*.70,rise*.50,Math.sin(a+.12)*len*.70)),base.clone().add(new T.Vector3(Math.cos(a+.30)*len,rise,Math.sin(a+.30)*len))];
-        pieces.push(B.Gear.tube(branchPoints,function(t){return .016*Math.pow(1-t,.85)+.002;},8,14,true));
-        pieces.push(B.Gear.sphere(tr*1.05,[base.x,base.y,base.z],[1,1.15,1],10,6));
+        pieces.push(B.Gear.tube(branchPoints,function(t){return .016*Math.pow(1-t,.85)+.002;},6,10,true));
+        pieces.push(B.Gear.sphere(tr*1.05,[base.x,base.y,base.z],[1,1.15,1],8,5));
         treeJunctions.push({variant:variant,distance:branchPoints[0].distanceTo(base),radius:tr});
-        if(b%2===0){var forkCurve=new T.CatmullRomCurve3(branchPoints),fork=forkCurve.getPoint(.64);pieces.push(B.Gear.tube([fork,fork.clone().add(new T.Vector3(Math.cos(a-.6)*len*.18,.035,Math.sin(a-.6)*len*.18)),fork.clone().add(new T.Vector3(Math.cos(a-.9)*len*.42,.11,Math.sin(a-.9)*len*.42))],function(t){return .007*(1-t)+.0015;},6,9,true));}
+        if(b%2===0){var forkCurve=new T.CatmullRomCurve3(branchPoints),fork=forkCurve.getPoint(.64);pieces.push(B.Gear.tube([fork,fork.clone().add(new T.Vector3(Math.cos(a-.6)*len*.18,.035,Math.sin(a-.6)*len*.18)),fork.clone().add(new T.Vector3(Math.cos(a-.9)*len*.42,.11,Math.sin(a-.9)*len*.42))],function(t){return .007*(1-t)+.0015;},5,6,true));}
       }
-      for(var b=0;b<5;b++){var a=b*1.25+variant;pieces.push(B.Gear.tube([[0,.075,0],[Math.cos(a)*.10,.028,Math.sin(a)*.10],[Math.cos(a+.18)*.24,-.025,Math.sin(a+.18)*.24]],function(t){return .028*Math.pow(1-t,1.1)+.002;},7,12,true));}
+      for(var b=0;b<5;b++){var a=b*1.25+variant;pieces.push(B.Gear.tube([[0,.075,0],[Math.cos(a)*.10,.028,Math.sin(a)*.10],[Math.cos(a+.18)*.24,-.025,Math.sin(a+.18)*.24]],function(t){return .028*Math.pow(1-t,1.1)+.002;},6,8,true));}
       var treeGeo=geo(B.Gear.merge(pieces));treeGeo.userData.coastJunctions=treeJunctions.filter(function(j){return j.variant===variant;});treeShapes.push(treeGeo);
     }
     rooms.forEach(function (r) { var g = new T.Group(); g.name = r.name; root.add(g); roomGroups.push(g); });
@@ -512,7 +512,7 @@
     var allRooms=rooms.concat(open.rooms);
     var openFx=B.CoastOpen.dress({add:add,beam:beam,tree:tree,grave:grave,lantern:lantern,building:building,boat:boat,corpse:corpse,skull:skull,cargo:cargo,collision:collision,geo:geo,rootTube:rootTube,
       materials:materials,textures:textures,rnd:rnd,root:root,clock:clock,lightSources:lightSources,mainRooms:rooms,allRooms:function(){return allRooms;},
-      G:{box:box,sphere:sphere,cylinder:cylinder,cone:cone,ring:ring,headstone:headstone,plank:plank,branch:branch,rock:rock,masonry:masonry,archStone:archStone}},open,ground);
+      G:{box:box,sphere:sphere,cylinder:cylinder,cone:cone,ring:ring,headstone:headstone,plank:plank,branch:branch,rock:rock,masonry:masonry,archStone:archStone,paving:paving,pebble:pebble}},open,ground);
     // Static instances are assembled once. Detail lives in texture maps and silhouettes, not frame-time allocations.
     Object.keys(batches).forEach(function (key) {
       var b = batches[key], mesh = new T.InstancedMesh(b.geo, b.mat, b.matrices.length);
@@ -592,7 +592,7 @@
     function update(dt, time, player) {
       expansion.update(player);
       clock.value = calm ? 0 : time;if(B.CoastClothClock)B.CoastClothClock.value=clock.value; var p = player || { x: 0, z: 8 }; heroCut.value.set(p.x,1.2,p.z);
-      roomGroups.forEach(function (g, i) { var r = i < 7 ? rooms[i] : allRooms[i]; g.visible = Math.abs(r.z - p.z) < 58 + r.d * .5 && Math.abs((r.x || 0) - p.x) < 70 + r.w * .5; });if(openFx)openFx.update(time,p);
+      roomGroups.forEach(function (g, i) { var r = i < 7 ? rooms[i] : allRooms[i]; g.visible = Math.abs(r.z - p.z) < 42 + r.d * .5 && Math.abs((r.x || 0) - p.x) < 52 + r.w * .5; });if(openFx)openFx.update(time,p);
       animated.forEach(function (a) { if (calm) return; if (a.boat) {var wave=seaStateAt(a.object.position.x,a.object.position.z,time);a.object.position.y=a.y+wave.x*.45;a.object.rotation.z=a.roll+wave.y*.18;a.object.rotation.x=-wave.z*.18;} else if (a.foam){var wash=.5+.5*Math.sin(time*.85+a.phase);a.object.position.x=a.x+wash*.38;a.object.position.y=-.38+wash*.035;} });
       ash.position.x = calm ? 0 : Math.sin(time * .09) * .3;
       nearby.length = 0;
