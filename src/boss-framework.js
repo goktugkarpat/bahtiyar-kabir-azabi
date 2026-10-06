@@ -61,7 +61,7 @@
     css.textContent = '#bf-cine{position:fixed;inset:0;pointer-events:none;z-index:6}' +
       '#bf-cine .bar{position:absolute;left:0;right:0;height:0;background:#000;transition:height .9s cubic-bezier(.2,.8,.2,1)}#bf-cine .bar.t{top:0}#bf-cine .bar.b{bottom:0}' +
       '#bf-cine.on .bar{height:10.5vh}' +
-      '#bf-cine .card{position:absolute;left:50%;top:27%;transform:translateX(-50%);width:min(900px,86vw);text-align:center;opacity:0;transition:opacity .6s}' +
+      '#bf-cine .card{position:absolute;left:50%;top:27%;transform:translateX(-50%);width:min(900px,86vw);text-align:center;opacity:0;transition:opacity .6s,top .35s ease-out}' +
       '#bf-cine .card.show{opacity:1}' +
       '#bf-cine .card small{display:block;font-size:clamp(10px,1.15vw,14px);letter-spacing:.55em;color:#b79a73;text-transform:uppercase;margin-bottom:.6em}' +
       '#bf-cine .card strong{display:block;font-size:clamp(30px,4.6vw,64px);letter-spacing:.09em;color:#efe1c8;font-weight:600;text-shadow:0 0 28px rgba(0,0,0,.95),0 0 6px rgba(0,0,0,.9),0 0 46px var(--bf-glow,rgba(190,50,30,.55))}' +
@@ -85,22 +85,60 @@
       cardT: 0, barsT: 0, flashT: 0 };
     return cine;
   }
-  function showCard(sub, title, epithet, seconds, bars, phase, color) {
-    var c = overlay(), hex = '#' + ('00000' + (color || 0xb8452d).toString(16)).slice(-6);
-    c.sub.textContent = sub || ''; c.title.textContent = title || ''; c.epithet.textContent = epithet || '';
+  /* Text lanes: the card never sits on top of the narrator's subtitle, the level-up banner, the HUD announcement or the boss
+     instruction panel. place() tries a few vertical lanes and keeps the one with the least overlap; a card that would collide
+     waits (queue, at most 1.6 s) for a free lane; while shown it is re-laid every .25 s, so a subtitle that appears pushes it aside. */
+  var BLOCKERS = ['narration', 'level-up', 'announcement', 'boss-mechanic', 'tutorial'];
+  function blockers(intro) {
+    var out = [];
+    for (var i = 0; i < BLOCKERS.length; i++) {
+      if (intro && BLOCKERS[i] === 'boss-mechanic') continue;   // the intro card hides that panel itself
+      var el = document.getElementById(BLOCKERS[i]); if (!el) continue;
+      if (BLOCKERS[i] === 'narration' && (el.classList.contains('hidden') || !(el.textContent || '').trim())) continue;
+      if ((BLOCKERS[i] === 'level-up' || BLOCKERS[i] === 'announcement') && !el.classList.contains('show')) continue;
+      var cs = getComputedStyle(el); if (cs.display === 'none' || cs.visibility === 'hidden' || +cs.opacity < .05) continue;
+      var r = el.getBoundingClientRect(); if (r.height > 2 && r.width > 2) out.push(r);
+    }
+    return out;
+  }
+  function place(c, lanes) {
+    var H = window.innerHeight || 540, W = window.innerWidth || 960, h = c.card.offsetHeight || 110, bl = blockers(!c.isPhase), best = lanes[0] * H, bestO = 1e9;
+    for (var i = 0; i < lanes.length; i++) {
+      var top = lanes[i] * H, o = 0;
+      for (var j = 0; j < bl.length; j++) { var r = bl[j]; if (r.right < W * .2 || r.left > W * .8) continue; o += Math.max(0, Math.min(top + h, r.bottom + 6) - Math.max(top, r.top - 6)); }
+      if (o < bestO) { bestO = o; best = top; } if (o === 0) break;
+    }
+    c.card.style.top = Math.round(best) + 'px'; return bestO;
+  }
+  function showCard(sub, title, epithet, seconds, bars, phase, color, now) {
+    var c = overlay(); c.pending = { sub: sub, title: title, epithet: epithet, seconds: seconds, bars: bars, phase: phase, color: color, wait: 1.6 };
+    if (bars) { c.barsT = Math.max(c.barsT, bars); c.el.classList.add('on'); }
+    tryShow(c, now);
+  }
+  function tryShow(c, force) {
+    var q = c.pending; if (!q) return;
+    var hex = '#' + ('00000' + (q.color || 0xb8452d).toString(16)).slice(-6);
+    c.sub.textContent = q.sub || ''; c.title.textContent = q.title || ''; c.epithet.textContent = q.epithet || '';
+    c.card.className = 'card' + (q.phase ? ' phase' : ''); c.isPhase = !!q.phase;
+    c.lanes = q.phase ? [.6, .3, .45, .7] : [.27, .43, .6];
+    var o = place(c, c.lanes);
+    if (o > 0 && q.wait > 0 && !force) return;   // collides: stay queued a moment
+    c.pending = null;
     c.el.style.setProperty('--bf-line', hex); c.el.style.setProperty('--bf-glow', hex + '99');
-    c.card.className = 'card'; void c.card.offsetWidth; c.card.className = 'card show' + (phase ? ' phase' : '');
-    c.cardT = seconds; if (bars) { c.barsT = Math.max(c.barsT, bars); c.el.classList.add('on'); }
-    document.body.classList.toggle('bf-intro', !phase);
+    void c.card.offsetWidth; c.card.className = 'card show' + (q.phase ? ' phase' : '');
+    c.cardT = q.seconds; c.layoutT = .25;
+    document.body.classList.toggle('bf-intro', !q.phase);
   }
   function flash(text) { var c = overlay(); c.flash.textContent = text; c.flash.className = 'flash'; void c.flash.offsetWidth; c.flash.className = 'flash show'; c.flashT = 1.1; }
   function stepOverlay(dt) {
     if (!cine) return;
+    if (cine.pending) { cine.pending.wait -= dt; tryShow(cine, false); }
+    else if (cine.cardT > 0 && (cine.layoutT -= dt) <= 0) { cine.layoutT = .25; place(cine, cine.lanes); }
     if (cine.cardT > 0 && (cine.cardT -= dt) <= 0) { cine.card.className = 'card'; document.body.classList.remove('bf-intro'); }
     if (cine.barsT > 0 && (cine.barsT -= dt) <= 0) cine.el.classList.remove('on');
     if (cine.flashT > 0 && (cine.flashT -= dt) <= 0) cine.flash.className = 'flash';
   }
-  function hideOverlay() { if (!cine) return; cine.cardT = cine.barsT = cine.flashT = 0; cine.card.className = 'card'; cine.flash.className = 'flash'; cine.el.classList.remove('on'); document.body.classList.remove('bf-intro'); }
+  function hideOverlay() { if (!cine) return; cine.pending = null; cine.cardT = cine.barsT = cine.flashT = 0; cine.card.className = 'card'; cine.flash.className = 'flash'; cine.el.classList.remove('on'); document.body.classList.remove('bf-intro'); }
 
   /* ------------------------------------------------------------------ pooled meshes: boss aura + tether chain */
   var AURA_VS = 'varying vec2 vU; void main(){ vU = uv*2.-1.; gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.); }';
@@ -338,7 +376,7 @@
     // so this card fades on its own wall clock instead of the combat step).
     function slain(e) {
       var p = profileOf(e); if (!p || st.slain || !st.intro || e !== st.boss) return;
-      st.slain = true; showCard(tr('YENİLDİ'), p.title || e.name, p.epithet || '', 30, 30, true, p.color);
+      st.slain = true; showCard(tr('YENİLDİ'), p.title || e.name, p.epithet || '', 30, 30, true, p.color, true);
       if (api.slowMotion) api.slowMotion(.5);
       api.fx('glowBurst', { x: e.x, y: .05, z: e.z, radius: 8, color: p.color || 0xb8452d, duration: 1.6 });
       setTimeout(function () { if (cine) { cine.barsT = 0; cine.el.classList.remove('on'); } }, 2600);
