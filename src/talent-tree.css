@@ -148,5 +148,8 @@
 @media (max-width: 1050px), (max-height: 600px) {
   #character .tt-viewport { padding-left:34px; min-height:220px; }
   #character .tt-presets small, #character .tt-presets .tt-preinfo { display:none; }
+  #character .tt-presets { flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; }
+  #character .tt-presets button { white-space:nowrap; font-size:11px; padding:1px 6px; }
+  #character .tt-viewport[data-zoom="1"] .tt-passive .tt-name, #character .tt-viewport[data-zoom="1"] .tt-form .tt-name, #character .tt-viewport[data-zoom="1"] .tt-tier { display:none; }
 }
 @media (prefers-reduced-motion: reduce) { #character .tt-node.tt-key.skt-node::before, #character .tt-link.lit, #character .tt-node.just .tt-art, #character .tt-burst { animation:none !important; } }
