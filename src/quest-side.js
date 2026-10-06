@@ -888,7 +888,7 @@
             ['#victory .end-quote', '#chapter-fade .end-quote'].forEach(function (sel) { var el = document.querySelector(sel); if (el && el.textContent.indexOf(lw) < 0) { var q2 = document.createElement('span'); q2.className = 'qc-lastwords'; q2.textContent = '“' + lw + '”'; el.appendChild(q2); } });
             if (++tries < 40) setTimeout(stamp, 400);
           })(); }
-        if (chapter === 5) openFinale();
+        if (chapter === 5) setTimeout(openFinale, 4800);   // ajan:chapter5: the Qadi's fall (slow motion, light burst) plays before the last decision
       }
       updateBeacons(dt);
       timer -= dt; if (dirty || timer <= 0) { timer = .5; refresh();
