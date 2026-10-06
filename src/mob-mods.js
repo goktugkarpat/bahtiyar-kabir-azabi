@@ -218,14 +218,14 @@
         if (api.beginMove(e, mv)) c.snipeT = 6.5; else c.snipeT = 1;
       }
       function find(e) { if (!e || !e.champion) return null; for (var i = 0; i < champs.length; i++) if (champs[i].e === e) return champs[i]; return null; }
-      function hurt(e, damage, heavy, blocked) {
+      function hurt(e, damage, heavy, blocked, dot) {   // dot: a talent burn / bleed tick (talent-runtime.js) never trips the mirror
         var c = find(e); if (!c || damage <= 0) return damage;
         if (c.has('armored') && !heavy) { damage = Math.max(1, Math.round(damage * .62)); if (Math.random() < .5) api.fx('spark', { x: e.x, y: 1.2, z: e.z, face: Math.atan2(e.x - player.x, e.z - player.z), glance: true }); }
         if (c.has('warded') && c.ward > 0) {
           var take = Math.min(c.ward, damage); c.ward -= take; damage = Math.max(1, damage - take);
           if (c.ward <= 0) { c.wardCd = 9; api.fx('glowBurst', { x: e.x, y: .05, z: e.z, radius: 2.6, color: 0xf0c060, duration: .6 }); api.sound('guardBreak'); api.emit('toast', { text: tr('Mühür kırıldı.') }); }
         }
-        if (c.has('reflect') && c.shellOn > 0 && c.reflectCd <= 0 && api.hitPlayer) {
+        if (!dot && c.has('reflect') && c.shellOn > 0 && c.reflectCd <= 0 && api.hitPlayer) {
           c.reflectCd = .45;
           api.hitPlayer({ owner: e, enemy: e.name, x: e.x, z: e.z, damage: Math.max(2, Math.min(7, Math.round(damage * .18))), attack: tr('Aynalı Kalkan'), style: 'rune', unblockable: true });
           api.fx('glowBurst', { x: player.x, y: .05, z: player.z, radius: 1.1, color: 0xb066ff, duration: .35 });

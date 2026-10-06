@@ -836,7 +836,9 @@
       var dirty = false;
       // Flask capacity: permanent quest boons minus this chapter's blood debts.
       if (player.baseFlasks === undefined) player.baseFlasks = player.maxFlasks || 4;
-      var want = Math.max(1, Math.min(8, player.baseFlasks + (boons().flasks || 0) - local.flaskDebt));
+      // talent tree 3 (talent-tree.js): Fazla Matara +1, Kan Yemini carries none at all
+      var tp = prog(), tf = window.BABA.TalentTree && tp && tp.learned ? window.BABA.TalentTree.effects(tp.learned).flasks : 0;
+      var want = tf <= -50 ? 0 : Math.max(1, Math.min(8, player.baseFlasks + (boons().flasks || 0) - local.flaskDebt + tf));
       if (player.maxFlasks !== want) { if (want > player.maxFlasks) player.flasks = (player.flasks || 0) + (want - player.maxFlasks); player.maxFlasks = want; player.flasks = Math.min(player.flasks, want); }
       for (var i = 0; i < quests.length; i++) {
         var q = quests[i], s = state[q.def.id];

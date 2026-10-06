@@ -39,6 +39,8 @@
     for (var i = 0; i < 5; i++) { var a = baseRooms[i], b = baseRooms[i + 1]; rects.push({ x0: -9.5, x1: 5.5, z0: b.z + b.d / 2 - 1, z1: a.z - a.d / 2 + 1 }); }
     // Gallows hill path (two bends) and the broken mole into the sea with its beacon platform.
     rects.push({ x0: -58, x1: -46, z0: -97.6, z1: -93.6 }); rects.push({ x0: -60.5, x1: -55, z0: -99, z1: -92 });
+    // the strand along the whole shoreline (north of the pier and south of it); the pier itself is the bridge between them
+    rects.push({ x0: 7.5, x1: 11.4, z0: -66.5, z1: 14 }); rects.push({ x0: 7.5, x1: 11.4, z0: -149.4, z1: -95.5 });
     rects.push({ x0: 6, x1: 25, z0: -87.9, z1: -84.9 }); rects.push({ x0: 23, x1: 31, z0: -91, z1: -82 });
     function floorTest(x, z, r) {
       r = r || 0;
@@ -58,6 +60,7 @@
       seeds.push([r.x + r.w / 2 + 1, r.entryZ], [-10.5, r.entryZ], [r.x - r.w / 2 - 1, r.z]);
     });
     for (i = 0; i < 5; i++) { var za = baseRooms[i].z - baseRooms[i].d / 2 - 2; seeds.push([-6, za], [3, za]); }
+    for (var sz = 10; sz > -148; sz -= 7) if (sz > -66 || sz < -96) seeds.push([9.6, sz]);
     var paths = baseRooms.slice(1, 7).map(function (r, i) { return { a: baseRooms[i], b: r, width: 6.6 }; }).concat(rooms.filter(function (r) { return r.parent != null; }).map(function (r) { return { a: { x: -10, z: r.entryZ }, b: { x: r.x + r.w / 2 - 2, z: r.entryZ }, width: 8.6 }; }));
     return { rooms: rooms, floorTest: floorTest, seeds: seeds, paths: paths };
   }
@@ -177,7 +180,7 @@
       idx.push(a, c, b, b, c, e);
     }
     var tg = geo(new T.BufferGeometry()); tg.setAttribute('position', new T.BufferAttribute(pos, 3)); tg.setAttribute('color', new T.BufferAttribute(col, 3)); tg.setAttribute('uv', new T.BufferAttribute(uv, 2)); tg.setIndex(idx); tg.computeVertexNormals();
-    M.terrain = M.earth.clone(); M.terrain.vertexColors = true; M.terrain.name = 'coast-terrain'; M.terrain.onBeforeCompile = M.earth.onBeforeCompile; M.terrain.customProgramCacheKey = function () { return 'kara-coast-terrain-1'; };
+    M.terrain = M.earth.clone(); M.terrain.vertexColors = true; M.terrain.name = 'coast-terrain'; M.terrain.onBeforeCompile = function (sh) { M.earth.onBeforeCompile(sh); sh.fragmentShader = sh.fragmentShader.replace('#include <map_fragment>', 'float tMix=smoothstep(.3,.7,texture2D(coastGrime,coastWorld.xz*.011).r);vec2 tUv=mat2(.8,-.6,.6,.8)*vMapUv*.43+vec2(.37,.11);vec4 tA=texture2D(map,vMapUv);vec4 tB=texture2D(map,tUv);diffuseColor*=mix(tA,tB*vec4(.92,.95,.9,1.),tMix);'); }; M.terrain.customProgramCacheKey = function () { return 'kara-coast-terrain-2'; };
     var terrain = new T.Mesh(tg, M.terrain); terrain.receiveShadow = true; terrain.castShadow = false; terrain.name = 'coast-open-terrain'; terrain.matrixAutoUpdate = false; K.root.add(terrain);
 
     // Ridge stones and exposed rock shelves along the slopes (the landscape keeps a hard skeleton).
@@ -275,6 +278,16 @@
     for (var ch2 = 0; ch2 < 70; ch2++) { var chx = -32 + R(-12, 12), chz = -81 + R(-9, 9); if (!L.floorTest(chx, chz, .3)) continue; add(11, G.plank, 'wood', chx, .02, chz, R(.15, .5), .03, R(.05, .12), 0, R(0, 6), 0); }
     patches(10, -33, -23, 12, 9, 9, 'puddle', .045);
 
+    /* ---- the strand: driftwood, kelp, bones and sea-lanterns on posts along the shoreline walk ---- */
+    for (z = 12; z > -149; z -= R(5, 8)) {
+      if (z < -66 && z > -96) continue; var sr = nearestMain(z);
+      if (rnd() < .6) beam(sr, 'char', [R(8.4, 10.8), .06, z], [R(8.4, 11), .1, z + R(-1.6, 1.6)], R(.06, .12));
+      add(sr, G.plank, 'root', R(8, 11), .02, z + R(-2, 2), R(.6, 1.4), .025, R(.06, .12), 0, R(0, 6), 0);
+      if (rnd() < .35) K.skull(sr, R(8.5, 11), .09, z + R(-2, 2), R(0, 6));
+      add(sr, G.rock, 'puddle', R(9, 11), .006, z + R(-2, 2), R(.5, 1.2), .03, R(.4, .9), 0, R(0, 6), 0);
+    }
+    [6, -22, -48, -108, -136].forEach(function (z) { var sr = nearestMain(z); add(sr, G.cylinder, 'wood', 11.9, 1.3, z, .09, 2.6, .09); add(sr, G.box, 'wood', 11.6, 2.5, z, .7, .07, .07); K.lantern(sr, 11.3, 2.1, z, 'coast'); });
+
     /* ---- 6: the drowned bell court floor: flat detail only (the boss needs the whole disc) ---- */
     (function () {
       var cx = 0, cz = -174;
@@ -283,6 +296,8 @@
         for (var k = 0; k < n; k++) { var a = k / n * PI * 2, wear = B.Gear.hash(k, ring, 61); if (wear < .28) continue;
           add(6, K.G.paving[(k + ring) % 3], 'funeralPaving', cx + Math.cos(a) * rad, .046, cz + Math.sin(a) * rad, .95, .34, .7 + wear * .3, 0, -a, 0); }
       });
+      // the raised dry heart of the court: a worn kerb at the edge the Bellringer's rising tide never crosses
+      for (var kb = 0; kb < 44; kb++) { var ka = kb / 44 * PI * 2; if (B.Gear.hash(kb, 3, 9) < .12) continue; add(6, G.masonry, 'stone', cx + Math.cos(ka) * 9.7, .07, cz + Math.sin(ka) * 9.7, 1.3, .14, .42, 0, -ka + PI / 2, 0); }
       for (var k = 0; k < 12; k++) { var a = R(0, PI * 2), rr = R(2, 14); add(6, G.rock, 'puddle', cx + Math.cos(a) * rr, .012, cz + Math.sin(a) * rr, R(.9, 2.4), .05, R(.6, 1.6), 0, R(0, 6), 0); }
       for (k = 0; k < 40; k++) { a = R(0, PI * 2); rr = R(3, 16); add(6, G.plank, 'root', cx + Math.cos(a) * rr, .05, cz + Math.sin(a) * rr, R(.6, 1.6), .025, R(.05, .12), 0, R(0, 6), 0); }   // stranded kelp
       for (k = 0; k < 7; k++) { a = R(0, PI * 2); rr = R(13, 15.5); add(6, G.cone, 'rust', cx + Math.cos(a) * rr, .25, cz + Math.sin(a) * rr, R(.4, .8), R(.3, .6), R(.4, .8), R(1.2, 1.9), R(0, 6), R(-.3, .3)); }   // bell shards
@@ -377,12 +392,45 @@
     [[26, 2, 4.5], [33, -58, 5.5], [46, -100, 7], [30, -160, 4.5], [55, -40, 6], [52, -150, 8], [37, -28, 11], [41, -128, 11], [29.2, -86.4, 5.5], [33, -78.5, 5]].forEach(function (s, n) {
       var m = new T.Mesh(surfG, M.surf); m.position.set(s[0], -.3, s[1]); m.scale.set(s[2] * 2, 1, s[2] * 2); m.rotation.y = n * 1.3; m.renderOrder = 2; m.name = 'coast-surf'; K.root.add(m); surfs.push({ m: m, s: s[2] * 2, p: n * 1.9 });
     });
+    /* ---- living coast: light rain, lightning, crows over the shore, torn banners ---- */
+    var RN = 1100, rb = new Float32Array(RN * 2 * 3), rt = new Float32Array(RN * 2);
+    for (var ri = 0; ri < RN; ri++) { var bx = R(-22, 22), bz = R(-20, 14), by = R(0, 15); for (var tp = 0; tp < 2; tp++) { var o3 = (ri * 2 + tp) * 3; rb[o3] = bx; rb[o3 + 1] = by; rb[o3 + 2] = bz; rt[ri * 2 + tp] = tp; } }
+    var rg2 = geo(new T.BufferGeometry()); rg2.setAttribute('position', new T.BufferAttribute(rb, 3)); rg2.setAttribute('tip', new T.BufferAttribute(rt, 1));
+    M.rain = new T.ShaderMaterial({ uniforms: { time: K.clock, flash: { value: 0 } }, transparent: true, depthWrite: false, blending: T.AdditiveBlending, toneMapped: false,
+      vertexShader: 'attribute float tip;uniform float time;varying float vT;void main(){vec3 p=position;p.y=mod(p.y-time*13.,15.);p.y+=tip*.6;p.x+=tip*.16+p.y*.06;vT=tip;gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.);}',
+      fragmentShader: 'uniform float flash;varying float vT;void main(){gl_FragColor=vec4(vec3(.42,.5,.52)*(.10+.12*vT)*(1.+flash*3.),1.);}' });
+    var rain = new T.LineSegments(rg2, M.rain); rain.frustumCulled = false; rain.name = 'coast-rain'; rain.renderOrder = 4; K.root.add(rain);
+    // crows: three loose flocks wheeling over the graves, the shipyard and the bell court
+    var crowG = new T.BufferGeometry(); crowG.setAttribute('position', new T.Float32BufferAttribute([0, 0, .25, -.05, 0, -.2, .05, 0, -.2, 0, 0, .05, -.55, .08, -.05, 0, 0, -.12, 0, 0, .05, 0, 0, -.12, .55, .08, -.05], 3)); crowG.computeVertexNormals(); geo(crowG);
+    M.crow = new T.MeshBasicMaterial({ color: 0x07090a, side: T.DoubleSide, fog: true });
+    var CN = 27, crows = new T.InstancedMesh(crowG, M.crow, CN), flocks = [[-32, -112, 13], [-34, -84, 11], [0, -172, 15]], cm = new T.Matrix4(), cq = new T.Quaternion(), cs = new T.Vector3(), cp = new T.Vector3(), ce = new T.Euler();
+    crows.frustumCulled = false; crows.name = 'coast-crows'; K.root.add(crows); var crowPh = []; for (q = 0; q < CN; q++) crowPh.push([R(0, 6.28), R(4, 9), R(-1.5, 1.5), R(.25, .45)]);
+    // torn banners on poles, waving in the vertex shader
+    M.banner = M.cloth.clone(); M.banner.name = 'coast-banner'; M.banner.color.setHex(0x3c2a24);
+    M.banner.onBeforeCompile = function (sh) { sh.uniforms.bTime = K.clock; sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nuniform float bTime;').replace('#include <begin_vertex>', '#include <begin_vertex>\nfloat bw=clamp(-position.x/1.6,0.,1.);transformed.z+=sin(bTime*3.1+position.x*2.4+position.y*1.3)*.22*bw+bw*.25;transformed.y+=sin(bTime*2.3+position.x*3.)*.05*bw;'); };
+    M.banner.customProgramCacheKey = function () { return 'kara-coast-banner-1'; };
+    var bannerG = geo(new T.PlaneGeometry(1.6, .9, 8, 3)); bannerG.translate(-.8, 0, 0);
+    [[-33, 9.5, 9], [-22.5, -61, 12], [-43.5, -133.5, 12], [-62, -88, 15], [24.5, -82.5, 14]].forEach(function (b) {
+      onGround(b[2], G.cylinder, 'wood', b[0], 1.9, b[1], .07, 3.8, .07);
+      var bm = new T.Mesh(bannerG, M.banner); bm.position.set(b[0], 3.2 + gy(b[0], b[1]), b[1]); bm.rotation.y = R(0, 6); bm.castShadow = false; bm.name = 'coast-banner'; roomOf(b[2]).add(bm);
+    });
+    function roomOf(id) { return K.groups[id] || K.root; }
+    var flash = 0, nextBolt = 9, lastT = 0, api = { flash: 0 }, calmFx = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     function update(time, p) {
+      // lightning: a rare double flash; the world reads `flash` to lift the key light and exposure for a moment
+      if (!calmFx) { if (time > nextBolt) { nextBolt = time + 14 + rnd() * 22; flash = 1; } flash = Math.max(0, flash - Math.min(.1, Math.max(0, time - lastT)) * 2.6); } lastT = time;
+      var f2 = flash > .55 ? 1 : flash > .35 ? .25 : flash > .15 ? .8 : flash; api.flash = f2 * f2;
+      M.rain.uniforms.flash.value = api.flash; rain.position.set(p.x, 0, p.z);
+      for (var c = 0; c < CN; c++) { var ph = crowPh[c], fl = flocks[c % 3], a = time * ph[3] + ph[0], r2 = ph[1];
+        cp.set(fl[0] + Math.cos(a) * r2, fl[2] + ph[2] + Math.sin(time * .7 + c) * .4, fl[1] + Math.sin(a) * r2 * .8);
+        cq.setFromEuler(ce.set(0, -a + (ph[3] > 0 ? 0 : PI), Math.sin(a) * .25)); var flap = .55 + .45 * Math.abs(Math.sin(time * 7 + c * 1.3)); cs.set(1.3 * flap, 1.3 + (1 - flap) * 2, 1.3);
+        crows.setMatrixAt(c, cm.compose(cp, cq, cs)); }
+      crows.instanceMatrix.needsUpdate = true;
       for (var u = 0; u < surfs.length; u++) { var o2 = surfs[u], w2 = .5 + .5 * Math.sin(time * .9 + o2.p); o2.m.scale.set(o2.s * (1 + w2 * .12), 1, o2.s * (1 + w2 * .12)); o2.m.visible = Math.abs(o2.m.position.z - p.z) < 50; }
       M.surf.opacity = .38 + .14 * Math.sin(time * .9);
-      for (var i = 0; i < mists.length; i++) { var o = mists[i]; o.m.position.x = o.x + Math.sin(time * .05 + o.p) * 2.2; o.m.position.z = o.z + Math.cos(time * .04 + o.p) * 1.6; o.m.rotation.y += .0004; o.m.visible = Math.abs(o.z - p.z) < 46; }
+      for (var i = 0; i < mists.length; i++) { var o = mists[i]; o.m.position.x = o.x + Math.sin(time * .05 + o.p) * 2.2; o.m.position.z = o.z + Math.cos(time * .04 + o.p) * 1.6; o.m.rotation.y += .0004; o.m.visible = o.z < p.z + 18 && o.z > p.z - 34 && Math.abs(o.x - p.x) < 36; }
     }
-    return { update: update };
+    api.update = update; return api;
 
     /* ---- prop builders ---- */
     function fishRack(room, x, z, a) {
