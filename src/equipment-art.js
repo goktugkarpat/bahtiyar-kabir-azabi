@@ -86,7 +86,7 @@
   };
   // Extra gear surfaces (gear-* sets): tarnished grave gold, blackened iron, horn, dyed cloth, gems.
   Object.assign(spec,{
-    gold:['metal',0xd9b066,.46,.72], bronze:['metal',0x9a7448,.6,.92], black:['metal',0x4a4d52,.58,.9], silver:['metal',0xc9cfd4,.42,.96],
+    gold:['metal',0xd9b066,.46,.72], bronze:['metal',0x7f8a5c,.58,.85], black:['metal',0x4a4d52,.58,.9], silver:['metal',0xc9cfd4,.42,.96],
     horn:['bone',0x5e4c3c,.62,0], fur:['leather',0x6b5641,1,0], crimson:['cloth',0x8a2a22,1,0], sable:['cloth',0x302b27,1,0], hide:['leather',0xa98a6c,.9,0],
     gem:['metal',0x8a1018,.18,.25], bright:['metal',0xb4bec6,.48,.96]
   });

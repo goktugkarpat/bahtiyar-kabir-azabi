@@ -17,7 +17,12 @@
     return item.finish === 'blood' ? 'gore' : item.finish === 'brine' ? 'frost' : item.finish === 'ash' ? 'ember' : 'void';
   }
   const SIG = () => new Set(Object.values(B.Progression.bossSignatures || {}).flat());
-  const trimOf = (item, unique) => unique ? 'gold' : item.finish === 'bone' ? 'bone' : item.finish === 'blood' ? 'black' : item.finish === 'brine' ? 'bronze' : 'brass';
+  // Visual families: every theme speaks one metal/cloth language across head, chest, hands and boots.
+  //   ember = foundry (black iron, ember), frost = sea sentinel (green bronze), holy = barrow king (gold), gore = executioner/mourning (black, crimson),
+  //   void = bone rite (bone, violet light). Unique pieces always carry gold.
+  const FAMILY = { ember: ['black', 'sable'], frost: ['bronze', 'sable'], holy: ['gold', 'crimson'], gore: ['black', 'crimson'], void: ['bone', 'sable'] };
+  const trimOf = (item, unique) => unique ? 'gold' : (FAMILY[theme(item)] || ['brass'])[0];
+  const clothOf = item => (FAMILY[theme(item)] || [0, 'sable'])[1];
   const MASKS = new Set(['sealed-mask', 'furnace-mask']);
   // gear-*: lighter tessellation for hidden-until-equipped parts (iPad memory); silhouettes keep their shape.
   const lodGear = (S, k) => Object.assign({}, S, {
@@ -187,9 +192,9 @@
             if (/barrow|king/.test(item.id)) { const sp = []; for (let i = 0; i < 11; i++) { const a = i / 11 * TAU, h = i % 2 ? .07 : .12, b = [hc.x + Math.sin(a) * (rx + .012), hc.y + ry * .44, hc.z + Math.cos(a) * (rz + .012)]; sp.push(G.spike(.013, b, [b[0] + Math.sin(a) * .02, b[1] + h, b[2] + Math.cos(a) * .02], 5)); if (!(i % 2)) sp.push(G.sphere(.008, [b[0] + Math.sin(a) * .022, b[1] + h + .004, b[2] + Math.cos(a) * .022], null, 8, 6)); } emit('head', id, 'gold', sp, 'head'); part('head', id, 'gold', G.shell(44, 3, (u, v) => { const a = u * TAU; return [hc.x + Math.sin(a) * (rx + .016), hc.y + ry * (.36 + v * .1), hc.z + Math.cos(a) * (rz + .016)]; }, .004, true), 'head'); }
             else if (/breath|gaze/.test(item.id)) horns(id, 'bone', trim, .15, 'fwd');
             else if (k === 0) { crest(id, 'black', 7, .08); aventail(id, .25); }
-            else if (k === 1) { aventail(id, .35); plume(id, 'crimson'); }
+            else if (k === 1) { aventail(id, .35); plume(id, clothOf(item)); }
             else if (k === 2) { horns(id, 'horn', trim, .16, 'down'); aventail(id, .2, 'mail'); }
-            else { crest(id, 'black', 5, .11); plume(id, 'sable'); }
+            else { crest(id, 'black', 5, .11); plume(id, clothOf(item)); }
           } else if (rank === 2) aventail(id, .15);
         } else if (item.slot === 'chest') {
           if (rank >= 1) riveted(id, rank >= 2 ? trim : 'dark');
@@ -198,7 +203,7 @@
             const k = item.id.length % 3;
             if (/hollow|sunless/.test(item.id)) { sigil(id, 'bone', glow, 'skull'); trophySkulls(id); }
             else if (k === 0) { spikedPauldron(id, 'dark', trim, 3, .085, false); sigil(id, trim, glow, 'diamond'); }
-            else if (k === 1) { sigil(id, trim, glow, 'sun'); halfCape(id, 'sable', .42); }
+            else if (k === 1) { sigil(id, trim, glow, 'sun'); halfCape(id, clothOf(item), .42); }
             else { spikedPauldron(id, 'black', trim, 2, .1, false); sigil(id, trim, glow, 'diamond'); }
           }
         } else if (item.slot === 'hands') {
