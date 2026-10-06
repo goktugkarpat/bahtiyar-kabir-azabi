@@ -108,7 +108,7 @@
       fragmentShader: ['varying vec3 vP;varying vec3 vE;varying vec2 vUv;uniform float clock;uniform sampler2D norm;uniform sampler2D grain;',
         'void main(){vec2 p=vP.xz;vec2 fl=vec2(0.,-clock*.07);vec3 a=texture2D(norm,p*.11+fl*.4).rgb;vec3 b=texture2D(norm,p*.23-fl*.6+(a.rg-.5)*.7).rgb;',
         ' float f=.5+(a.r-.5)*2.4+(b.g-.5)*1.5;float crust=smoothstep(.5,.64,f);vec2 e=min(vUv,1.-vUv)*vE.xy*2.;float bank=1.-smoothstep(0.,.45,min(e.x,e.y));crust=clamp(crust+bank*.85,0.,1.);',
-        ' float pulse=.55+.45*sin(clock*1.1+p.y*.7+a.g*7.);vec3 molten=mix(vec3(.5,.03,.02),vec3(.95,.16,.05),pulse*.6+b.g*.4);vec3 crustCol=vec3(.025,.012,.012);',
+        ' float pulse=.55+.45*sin(clock*1.1+p.y*.7+a.g*7.);vec3 molten=mix(vec3(.2,.012,.008),vec3(.48,.06,.02),pulse*.6+b.g*.4);vec3 crustCol=vec3(.025,.012,.012);',
         ' gl_FragColor=vec4(mix(molten,crustCol,smoothstep(.2,.7,crust)),1.);}'].join('\n') });
     var abyssMat = new T.ShaderMaterial({ uniforms: { clock: clock, norm: { value: flowNormal } }, depthWrite: false, toneMapped: false, transparent: false, fog: false,
       vertexShader: 'varying vec3 vP;void main(){vP=(modelMatrix*vec4(position,1.)).xyz;gl_Position=projectionMatrix*viewMatrix*vec4(vP,1.);}',
