@@ -55,7 +55,7 @@
     const spent = learned.length;
     const rows = T.rows.map(r => {
       const need = r.row === 3 ? 3 : r.row === 4 ? 4 : r.row === 5 ? 7 : r.row === 6 ? 6 : r.row === 2 ? 1 : 0, open = spent >= need;
-      return '<div class="tt-row' + (open ? ' open' : '') + '" style="top:' + ROW_Y[r.row] + '%"><b>' + esc(r.name) + '</b><small>' + esc(r.hint) + '</small></div>';
+      return '<div class="tt-row' + (open ? ' open' : '') + '" style="top:' + ROW_Y[r.row] + '%"><b>' + (() => { const k = r.name.indexOf(' · '); return k > 0 ? '<span class="tt-roman">' + esc(r.name.slice(0, k)) + '</span><span class="tt-rowword"> · ' + esc(r.name.slice(k + 3)) + '</span>' : esc(r.name); })() + '</b><small>' + esc(r.hint) + '</small></div>';
     }).join('');
     const heads = T.cols.map((c, i) => {
       const count = nodes.filter(n => n.col === i && learned.includes(n.id)).length;
@@ -81,7 +81,7 @@
       '<span class="tt-identity">' + esc(t('Yolun:')) + ' ' + identity + '</span>' +
       '<button class="tt-respec" data-char="respec" title="' + esc(respecWhy) + '" ' + (!learned.length || inCombat ? 'disabled' : '') + '>' + esc(t('Yolu sıfırla')) + '</button></div>';
     const board = '<div class="tt-board"><svg class="tt-links" viewBox="0 0 1000 1000" preserveAspectRatio="none" aria-hidden="true">' + links.join('') + '</svg>' + rows + heads + html + '</div>';
-    const note = '<p class="skt-note tt-note">' + esc(t('Çift tıkla: öğren · Her aktif yeteneğe yalnız bir mühür · Tek kilit taşı · 13. seviyede 12 puan, ağaçta 48 düğüm: her şeyi alamazsın.')) + '</p>';
+    const note = '<p class="skt-note tt-note">' + esc(t('Çift tıkla: öğren · Her yeteneğe tek mühür · Tek kilit taşı · 12 puan, 48 düğüm')) + '</p>';
     // ---- inspect
     const a = T.access(state, sel.id), col = colOf(sel), known = a.known;
     let facts = '';

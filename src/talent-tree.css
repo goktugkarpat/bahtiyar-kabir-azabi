@@ -42,8 +42,9 @@
 #character .tt-glyph { width:62%; height:62%; fill:currentColor; filter:drop-shadow(0 0 3px #000); }
 #character .tt-name { font:400 clamp(9px,2.6cqh,12px)/1.05 Georgia,serif; color:#9c8d77; white-space:nowrap; text-shadow:0 1px 2px #000, 0 0 6px #000; max-width:calc(100cqw / 6.2); overflow:hidden; text-overflow:ellipsis; }
 #character .tt-active .tt-name { margin-top:6px; }
-#character .tt-tier { position:absolute; top:-4px; right:-8px; font:italic 400 10px Georgia,serif; color:#e9c98d; text-shadow:0 0 4px #000; }
-#character .tt-cap { position:absolute; bottom:calc(100% - 4px); left:50%; transform:translateX(-50%); font:400 9px Georgia,serif; color:#f6e5c2; background:#5d2a17; border:1px solid #d29a57; padding:0 3px; white-space:nowrap; z-index:2; }
+#character .tt-tier { position:absolute; top:-6px; left:calc(50% + var(--s) / 2); right:auto; font:italic 400 10px Georgia,serif; color:#e9c98d; text-shadow:0 0 4px #000; }
+#character .tt-inspect .skt-kicker { padding-left:14px; }
+#character .tt-cap { position:absolute; top:-7px; left:-10px; font:400 9px Georgia,serif; color:#f6e5c2; background:#5d2a17; border:1px solid #d29a57; padding:0 3px; white-space:nowrap; z-index:2; }
 #character .tt-cap svg { width:9px; height:9px; }
 /* states */
 #character .tt-node.locked .tt-art { filter:grayscale(1) brightness(.38); }
@@ -80,7 +81,9 @@
 @media (max-width: 1050px), (max-height: 600px) {
   #character .tt-board { margin-left:64px; min-height:240px; }
   #character .tt-row { left:-64px; width:60px; }
-  #character .tt-row small { display:none; }
+  #character .tt-row small, #character .tt-rowword { display:none; }
+  #character .tt-row b { font-size:13px; }
+  #character .tt-board { margin-left:34px; } #character .tt-row { left:-34px; width:28px; }
   #character .tt-head { gap:8px; padding-bottom:3px; }
   #character .tt-budget b { font-size:20px; }
   #character .tt-note { display:none; }
@@ -90,3 +93,5 @@
 #character .tt-node.skt-node::before, #character .tt-node.skt-node::after { display:none; content:none; }
 #character .tt-node.skt-node:hover, #character .tt-node.skt-node:focus-visible, #character .tt-node.skt-node.selected { background:none; border:0; outline:none; }
 @media (prefers-reduced-motion: reduce) { #character .tt-node .tt-art, #character .tt-link.ready { animation:none !important; } }
+
+#character .tt-inspect { overflow-y:auto; overflow-x:hidden; scrollbar-width:thin; }
