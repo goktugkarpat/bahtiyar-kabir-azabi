@@ -518,24 +518,24 @@
       labelPool.push(l); freeLabels.push(l); return l;
     }
     function releaseLabel(l) { l.m.visible = false; l.target = null; freeLabels.push(l); }
-    function number(value, x, y, z, player, heavy, kill, boss, target = null, tint = null) {
+    function number(value, x, y, z, player, heavy, kill, boss, target = null, tint = null, style = '') {
       if (!Number.isFinite(value) || value <= 0) return;
       // Very fast hits on the same actor show their real sum once; separate actors are never guessed from proximity.
       const merged = target ? labels.find(o => o.target === target && o.player === !!player && o.time < .12 && !o.kill) : null;
-      if (merged) { value += merged.value; heavy = heavy || merged.heavy; kill = kill || merged.kill; boss = boss || merged.boss; }
+      if (merged) { value += merged.value; heavy = heavy || merged.heavy; kill = kill || merged.kill; boss = boss || merged.boss; if (merged.style === 'crit') style = 'crit'; }
       let lift = merged ? merged.lift : 0, side = merged ? merged.offset : 0;
       // Eighteen live labels was already the limit; reuse the oldest sprite instead of replacing its GPU resources.
       if (!merged && !freeLabels.length) { if (labelPool.length < 18) makeLabel(); else releaseLabel(labels.shift()); }
       const l = merged || freeLabels.pop(), m = l.m;
       // Engraved numerals come from the HUD (src/hud.js); the plain fallback keeps effects.js standalone.
-      const c = B.HUD && B.HUD.damageCanvas ? B.HUD.damageCanvas(value, player, heavy, l.canvas) : (() => {
+      const c = B.HUD && B.HUD.damageCanvas ? B.HUD.damageCanvas(value, player, heavy, l.canvas, style) : (() => {
         const c = l.canvas; c.width = 128; c.height = 72; const ctx = c.getContext('2d');
         ctx.font = (heavy ? '800 47px' : '700 40px') + ' "Source Sans 3", Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineWidth = 6; ctx.strokeStyle = '#170b0c'; ctx.strokeText(String(value), 64, 36);
         ctx.fillStyle = player ? '#e58c78' : heavy ? '#e9bd78' : '#dad2c2'; ctx.fillText(String(value), 64, 36); return c; })();
       m.material.map.image = c; m.material.map.needsUpdate = true; m.material.opacity = 1; m.material.color.setRGB(1, 1, 1);
       // Bigger numbers for bigger blows, a hot tint on the killing blow, and a nudge so numbers from a flurry do not stack on each other.
-      const k = player ? 1 : clamp(.82 + value / 130, .82, 1.3) * (kill ? 1.18 : 1) * (boss ? 1.08 : 1), bw = (heavy ? 1.45 : 1.2) * k, bh = (heavy ? .82 : .68) * k;
-      if (kill && !player) m.material.color.setRGB(1.5, 1.12, .75); else if (heavy && !player) m.material.color.setRGB(1.2, 1.08, .9);
+      const k = player ? 1 : clamp(.82 + value / 130, .82, 1.3) * (kill ? 1.18 : 1) * (boss ? 1.08 : 1) * (style === 'crit' ? 1.16 : 1), bw = (heavy ? 1.45 : 1.2) * k, bh = (heavy ? .82 : .68) * k;
+      if (style === 'crit' && !player) m.material.color.setRGB(1.35, 1.2, 1); else if (kill && !player) m.material.color.setRGB(1.5, 1.12, .75); else if (heavy && !player) m.material.color.setRGB(1.2, 1.08, .9);
       if (tint) m.material.color.setRGB(tint[0], tint[1], tint[2]);   // talent damage over time: burn / bleed / rot
       if (!merged) {
         for (const o of labels) if (o.time < .5 && Math.abs(o.x0 - x) < 1.1 && Math.abs(o.z0 - z) < 1.1) {
@@ -545,7 +545,7 @@
       m.position.set(x + side, y + lift, z); m.scale.set(bw, bh, 1); m.visible = true;
       l.time = 0; l.vx = reduced.matches ? 0 : rnd(-.25, .25) + side * .3; l.bw = bw; l.bh = bh; l.x0 = x; l.z0 = z;
       l.side = side || (Math.random() < .5 ? 1 : -1); l.life = kill ? 1.1 : .9; l.lift = lift; l.offset = side;
-      l.target = target; l.value = value; l.player = !!player; l.heavy = !!heavy; l.kill = !!kill; l.boss = !!boss;
+      l.target = target; l.value = value; l.style = style; l.player = !!player; l.heavy = !!heavy; l.kill = !!kill; l.boss = !!boss;
       if (!merged) labels.push(l);
     }
     // ------------------------------------------------------------ "Kor ve Kül" tells (src/telegraphs.js; optional)
@@ -689,6 +689,7 @@
       scar(x,z,0,{shape:'circle',radius:1.15,life:1.15,heat:.16});
       fragments(x,floorAt(x,z,.3)+.07,z,{count:calm?4:8,spread:.8,speed:1.7,lift:1.5,size:.065});
       flash(x,1.1,z,.72,new T.Color('#b78556'),.07,0,softMap);
+      if(impactFx)impactFx.dome(x,z,{r:V*1.05,h:1.5,life:.5,col:[.55,.3,.14],hot:[1.2,.8,.5],a:.42,style:0});   // a low wall of heat and grit carries the cry outward
       const ringDust=scaleCount(14);for(let i=0;i<ringDust;i++){const a=i/ringDust*Math.PI*2;particle(x+Math.sin(a)*.8,.08,z+Math.cos(a)*.8,2,DUST,1.2,a,.20);}
       for(let i=0;i<(calm?4:scaleCount(12));i++){const a=Math.random()*Math.PI*2;streak(x+Math.sin(a)*.8,.12+Math.random()*.15,z+Math.cos(a)*.8,Math.sin(a)*(2.3+Math.random()*1.5),.45+Math.random()*.7,Math.cos(a)*(2.3+Math.random()*1.5),.22+Math.random()*.15,.028,[.85,.40,.13]);}
       roarSpiral.on=!calm;roarSpiral.t=0;roarSpiral.x=x;roarSpiral.z=z;roarSpiral.R=Math.min(2.3,V*.6);
@@ -945,6 +946,7 @@
     function whirlTick(d) {
       const x = d.x, z = d.z, R = d.radius || 3.6, last = d.last, calm = reduced.matches, tier = d.tier || 1, W = WT[tier] || WT[1];
       if(last)chRing(x,z,R*1.05,.5,W.ringLast);
+      if(last&&impactFx){const c=W.ringLast,h=W.ember[0];impactFx.dome(x,z,{r:R*1.1,h:1.2+.4*tier,life:.5+.05*tier,col:[c[0]*.8,c[1]*.8,c[2]*.8],hot:[Math.min(1.9,h[0]*.55),Math.min(1.6,h[1]*.55),Math.min(1.6,h[2]*.75)],a:.55+.12*tier});if(tier===3)impactFx.plume(x,z,{n:12,r:R*.35,col:[.045,.032,.05],up:2.2,size:.55});}   // the last turn throws a wall of air and grit outward (fx-impact.js)
       if (tier === 3 && !last && (d.n % 2 === 0) && B.Charge && B.Charge.punch) B.Charge.punch({ vig: .1, push: .007, dur: .3 });
       if (last) { flash(x, .9, z, tier === 3 ? 2.2 : 1.2, new T.Color(tier === 3 ? '#efe6ff' : '#d87840'), tier === 3 ? .2 : .16, 0, softMap); chCrack(x, z, R * (tier === 3 ? 1.15 : 1), tier); scar(x, z, 0, { shape: 'circle', radius: R * .75, heat: tier === 3 ? .35 : .3 }); }
       if (last && tier === 3) {   // Son Hüküm: the final slam, a second wide ring, a pulse through the whole screen
@@ -1131,7 +1133,8 @@
       return { m, mat, time: 1, life: .56 };
     });
     // Level-up (src/levelup.js): restrained ground echoes and small GPU-animated reward motes. All materials are created here, at build time, and warmed in warm().
-    const chargeFx = B.Charge && B.Charge.createWorld ? B.Charge.createWorld({ T, root, getGame, getSettings, scaleCount, emit, particle, flash, fragments, scar, ring: chRing }) : null;   // src/charge.js
+    const impactFx = B.FxImpact && B.FxImpact.createWorld ? B.FxImpact.createWorld({ T, root, getGame, emit, scaleCount }) : null;   // src/fx-impact.js (shock walls, light blades, body flashes)
+    const chargeFx = B.Charge && B.Charge.createWorld ?B.Charge.createWorld({ T, root, getGame, getSettings, scaleCount, emit, particle, flash, fragments, scar, ring: chRing }) : null;   // src/charge.js
     const levelFx = B.LevelUp && B.LevelUp.createWorld ? B.LevelUp.createWorld({ T, root, getGame, getSettings, scaleCount, emit, particle, flash }) : null;
     const skillFx = B.SkillFx && B.SkillFx.createWorld ? B.SkillFx.createWorld({ T, root, getGame, getSettings, scaleCount, emit, particle, flash, fragments, streak, scar, tells: () => tells, streakOn: () => { skMesh.visible = true; } }) : null;   // src/skill-fx.js (strike / shout tiers II-III)
     function signatureStep(dt) {
@@ -1139,6 +1142,7 @@
       if (levelFx) levelFx.step(dt);
       if (chargeFx) chargeFx.step(dt);
       if (skillFx) skillFx.step(dt);
+      if (impactFx) impactFx.step(dt);
     }
     // ------------------------------------------------------------ bursts
     const RED = [.17, .008, .014], DARK = [.09, .004, .008], SPARK = [4.5, 2.65, .9], STEEL = [3.2, 3.0, 2.6], DUST = [.10, .08, .065];
@@ -1195,6 +1199,7 @@
         if (d.skill === 'cleave') {
           const o = skillCrescents.find(q => !q.m.visible) || skillCrescents[0]; o.time = 0; o.mat.uniforms.uK.value = 0; o.mat.uniforms.uFace.value = face; o.mat.uniforms.uArc.value = d.arc || 3.65;
           o.m.position.set(x, .95, z); o.m.scale.set(r * 2.4, r * 2.4, 1); o.m.visible = true;
+          if (impactFx) { impactFx.dome(x + sx * r * .35, z + sz * r * .35, { r: r * .8, h: .55, life: .34, col: [.85, .2, .07], hot: [1.6, .8, .4], a: .45 }); impactFx.plume(x + sx * r * .6, z + sz * r * .6, { n: 5, r: .7, col: [.06, .045, .035], up: 1.6, size: .4 }); }   // the cleaver's wind slaps the floor (fx-impact.js)
           for (let i = 0; i < count; i++) { const a = face + (i / Math.max(1, count - 1) - .5) * (d.arc || 3.65);
             emit(x + Math.sin(a) * r, .5 + Math.sin(i / count * Math.PI) * .9, z + Math.cos(a) * r, 4, [3.8, .32, .11], Math.sin(a) * 2, .25, Math.cos(a) * 2, .55, .09); }
           return;
@@ -1272,9 +1277,20 @@
         const S = clamp(((d.player ? .55 : heavy ? 1.05 : .7) + (d.kill ? .6 : 0) + (d.boss ? .3 : 0)) * clamp(.85 + (d.damage || 0) / 120, .85, 1.3), .3, 2.2);
         goreHit(x, y, z, spray, S, { kill: !!d.kill, heavy, boss: !!d.boss, player: !!d.player, foe: d.labelTarget || (d.player ? game.player : nearestFoe(x, z, 1.6, true)) });
         if (!d.player && name === 'blood') gearHit(d.kill ? .3 : heavy ? .16 : .08); else if (d.player) gearHit(.06);
-        if (d.damage > 0) number(Math.round(d.damage), x, 2.5, z, d.player, d.heavy || d.critical, d.kill, d.boss, d.labelTarget || null);
+        if (impactFx && !d.player && d.labelTarget) {   // the struck body flares in the colour of the skill that hit it (fx-impact.js)
+          const pl = game.player, sk = pl && (pl.attack && pl.attack.skill || (pl.roar ? 'roar' : '')), tint = sk && impactFx.skillTint(sk);
+          // the combo finisher / a heavy blow without a skill of its own: a small slap of air and grit at the foe's feet
+          // a heavy blow that does not kill shoves the foe back: its heels plough a short drag mark and kick grit along the push
+          if ((heavy || tint) && !d.kill && !d.boss) { const f = d.labelTarget, sa = Math.sin(spray), ca = Math.cos(spray);
+            scar(f.x, f.z, spray, { shape: 'line', width: .1, length: tint ? 1.2 : .9, heat: .03, life: 2.5 });
+            for (let i = 0; i < scaleCount(8); i++) emit(f.x + rnd(-.25, .25), .08, f.z + rnd(-.25, .25), 2, DUST, sa * rnd(1.2, 2.6), rnd(.2, .6), ca * rnd(1.2, 2.6), rnd(.4, .7), rnd(.16, .26)); }
+          if (!tint && (heavy || d.kill)) { const f = d.labelTarget; impactFx.dome(f.x, f.z, { r: d.kill ? 1.5 : 1.2, h: .45, life: .26, col: [.6, .3, .16], hot: [1.1, .8, .55], a: d.kill ? .3 : .24 }); }
+          impactFx.hitFlash(d.labelTarget, { col: tint || (d.critical ? [1.25, .95, .6] : [.95, .8, .66]), a: d.kill ? .95 : tint ? .8 : heavy || d.critical ? .7 : .48, life: d.kill ? .26 : tint || heavy ? .2 : .14 });
+        }
+        if (d.damage > 0) number(Math.round(d.damage), x, 2.5, z, d.player, d.heavy || d.critical, d.kill, d.boss, d.labelTarget || null, null, d.player ? '' : d.critical ? 'crit' : d.rage ? 'rage' : '');
         // Blows struck in fury leave burning embers in the wound.
         if (d.rage && !d.player) for (let i = 0; i < scaleCount(heavy ? 18 : 10); i++) emit(x, y, z, 4, i % 2 ? [2.6, .6, .12] : [2.2, .25, .08], Math.sin(spray) * rnd(.6, 2.2) + rnd(-.5, .5), rnd(.4, 1.6), Math.cos(spray) * rnd(.6, 2.2) + rnd(-.5, .5), rnd(.4, .8), .045);
+        if (name === 'death' && impactFx) { const pl = game.player, sk = pl && (pl.attack && pl.attack.skill || (pl.roar ? 'roar' : '')); impactFx.deathAsh(x, z, !!large, sk ? impactFx.skillTint(sk) : null); }
         if (name === 'death') goreKill(x, Math.max(.7, y), z, performance.now() - lastDir.t < 400 ? lastDir.a : Math.random() * 6.28, !!large, null, !!d.boss);
         return;
       }
@@ -1351,6 +1367,9 @@
         // Roll afterimages exactly while the i-frames last.
         const p = game.player, iframe = !!(p && p.invulnerable && p.dodge > 0 && !p.dead);
         if (iframe && !frozen) { ghostClock -= dt; if (ghostClock <= 0 || !wasIframe) { spawnGhost(p.model, .17, .2); ghostClock = .065; } }
+        if (wasIframe && !iframe && p && !p.dead) {   // the roll ends: the body comes down on its feet in a low puff of grit
+          const fy = floorAt(p.x, p.z, .4); for (let i = 0; i < scaleCount(10); i++) { const a = Math.random() * Math.PI * 2; emit(p.x + Math.sin(a) * .3, fy + .06, p.z + Math.cos(a) * .3, 2, [.09, .075, .06], Math.sin(a) * rnd(.6, 1.4), rnd(.1, .35), Math.cos(a) * rnd(.6, 1.4), rnd(.45, .7), rnd(.18, .28)); }
+        }
         wasIframe = iframe;
         actorTrail(game.player, dt, frozen); for (const e of game.enemies) if (e.model.root.visible || trails.get(e)?.active) actorTrail(e, dt, frozen);
       }
@@ -1370,7 +1389,7 @@
       for (const tr of trails.values()) { while (tr.samples.length) tr.free.push(tr.samples.pop()); tr.active = false; tr.mesh.visible = false; tr.mesh.geometry.setDrawRange(0, 0); }
       for (const g of ghosts) { g.active = false; g.group.visible = false; }
       for (const s of scars) releaseScar(s); scars.length = 0;
-      for (const o of skillCrescents) o.m.visible = false; if (levelFx) levelFx.clear(); if (chargeFx) chargeFx.clear(); if (skillFx) skillFx.clear();
+      for (const o of skillCrescents) o.m.visible = false; if (levelFx) levelFx.clear(); if (chargeFx) chargeFx.clear(); if (skillFx) skillFx.clear(); if (impactFx) impactFx.clear();
       if (tells) tells.clear(); chainClear();
       fragmentsClear(); goreClear(); gearBlood = 0; gearApply();
     }
@@ -1418,6 +1437,7 @@
       add(new T.Sprite(new T.SpriteMaterial({ map: softMap, transparent: true, depthWrite: false, depthTest: false, blending: T.AdditiveBlending, fog: false })));
       for (const o of skillCrescents) add(new T.Mesh(plane, o.mat)); if (levelFx) for (const part of levelFx.parts) add(part.points ? new T.Points(part.geo, part.mat) : new T.Mesh(part.geo, part.mat)); if (chargeFx) for (const part of chargeFx.parts) add(new T.Mesh(part.geo, part.mat));
       if (skillFx) for (const obj of skillFx.warmObjects()) add(obj);
+      if (impactFx) for (const obj of impactFx.warmObjects()) add(obj);
       for (const pool of chipPools) { const mesh = new T.InstancedMesh(chipGeo, pool.mat, 1); mesh.setColorAt(0, chipTint.setRGB(.3, .27, .23)); mesh.receiveShadow = true; add(mesh); }
       add(new T.InstancedMesh(gdGeo, gdMat, 1)); add(new T.Mesh(bsGeo, bsMat)); add(new T.InstancedMesh(chGeoG, gcMat, 1));
     }

@@ -11,16 +11,20 @@
     ashbound: 'assets/ui/target-ashbound.webp', shardseer: 'assets/ui/target-shardseer.webp', cavefang: 'assets/ui/target-cavefang.webp',
     gravemason: 'assets/ui/target-gravemason.webp', ruinwarden: 'assets/ui/target-ruinwarden.webp', hollowking: 'assets/ui/target-hollowking.webp',
     emberbound: 'assets/ui/target-emberbound.webp', chainseer: 'assets/ui/target-chainseer.webp', slagcrawler: 'assets/ui/target-slagcrawler.webp',
-    forgesentinel: 'assets/ui/target-forgesentinel.webp', ashwarden: 'assets/ui/target-ashwarden.webp', furnaceheart: 'assets/ui/target-furnaceheart.webp'
+    forgesentinel: 'assets/ui/target-forgesentinel.webp', ashwarden: 'assets/ui/target-ashwarden.webp', furnaceheart: 'assets/ui/target-furnaceheart.webp',
+    damned: 'assets/ui/target-damned.webp', verdictseer: 'assets/ui/target-verdictseer.webp', voidcrawler: 'assets/ui/target-voidcrawler.webp',
+    chainjailer: 'assets/ui/target-chainjailer.webp', verdictwarden: 'assets/ui/target-verdictwarden.webp', lastjudge: 'assets/ui/target-lastjudge.webp'
   });
   const chapterPortraits = {
     3: ['prisoner', 'ashbound', 'shardseer', 'cavefang', 'gravemason', 'ruinwarden', 'hollowking'],
-    4: ['prisoner', 'emberbound', 'chainseer', 'slagcrawler', 'forgesentinel', 'ashwarden', 'furnaceheart']
+    4: ['prisoner', 'emberbound', 'chainseer', 'slagcrawler', 'forgesentinel', 'ashwarden', 'furnaceheart'],
+    5: ['prisoner', 'damned', 'verdictseer', 'voidcrawler', 'chainjailer', 'verdictwarden', 'lastjudge']   // chapter V busts: rendered from the live models (tools: see ASSET-LICENSES)
   };
   const bossPhases = {
     bell: ['', KabirI18n.t('BOĞULMUŞ ÇANLIK'), KabirI18n.t('DENİZİN YEMİNİ'), KabirI18n.t('MEZAR KÖKLERİ'), KabirI18n.t('SON ÇAN')],
     hollowking: ['', KabirI18n.t('SESSİZ TAHT'), KabirI18n.t('TAŞ TAHT ÇÖKÜYOR'), KabirI18n.t('OYUKLAR AÇILDI')],
-    furnaceheart: ['', 'KIZIL OCAK', KabirI18n.t('OCAK BASINCI YÜKSELİYOR'), KabirI18n.t('SON DÖKÜM')]
+    furnaceheart: ['', 'KIZIL OCAK', KabirI18n.t('OCAK BASINCI YÜKSELİYOR'), KabirI18n.t('SON DÖKÜM')],
+    lastjudge: ['', KabirI18n.t('SON MAHKEME'), KabirI18n.t('EFENDİLERİN YANKISI'), KabirI18n.t('SON HÜKÜM')]
   };
   // Keep the small portrait images ready before the loading cover is removed.
   // Failed artwork does not prevent the player or health bar from appearing.
@@ -63,7 +67,7 @@
         '<div class="target-details' + (boss ? ' boss-target phase2' : '') + KabirI18n.t('" style="flex:1 1 60%"><div class="target-title"><strong class="target-name">Zincir Celladı 0123456789</strong><small class="target-phase">ZİNCİRLER KIRILDI</small></div>') +
         '<div class="target-health"><i class="target-fill" style="transform:scaleX(.6)"></i><b class="target-count">1234 / 5678</b><i class="target-notch" style="display:block"></i></div></div>';
       let html = '';
-      for (const type of preparedImages.keys()) if (!failedImages.has(type)) html += bar(type, type === 'boss' || type === 'hollowking' || type === 'furnaceheart');
+      for (const type of preparedImages.keys()) if (!failedImages.has(type)) html += bar(type, type === 'boss' || type === 'hollowking' || type === 'furnaceheart' || type === 'lastjudge');
       // The skill slots' attack sweep (conic gradient + brightness) also first appears at the first attack.
       const slot = cls => '<div class="action ' + cls + '" style="position:relative;width:calc(90px * var(--k, 1));height:calc(90px * var(--k, 1));--progress:.4"><i class="skill light"></i></div>';
       html += slot('pressed') + slot('unavailable') + slot('action-rage burning');

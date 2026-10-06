@@ -192,17 +192,20 @@
   function reset(p) { if (!ensure()) return; for (const k in orbs) { const o = orbs[k].st; o.fill = o.trail = o.target = 1; o.flash = o.heal = o.low = o.trailHold = 0; } if (p) vitals(p); render(); }
 
   /* ───────────── Damage numerals (drawn into a sprite canvas by effects.js) ───────────── */
-  function damageCanvas(value, player, heavy, canvas) {
+  // style: '' plain, 'crit' (critical / opening blow: larger, molten gold with a bright core), 'rage' (blood-fury blows: ember red-orange).
+  function damageCanvas(value, player, heavy, canvas, style) {
     const c = canvas || document.createElement('canvas'); c.width = 256; c.height = 144;
-    const x = c.getContext('2d', B.uiBitmapOptions), text = String(value), size = heavy ? 104 : player ? 88 : 84;
+    const crit = style === 'crit' && !player, rage = style === 'rage' && !player;
+    const x = c.getContext('2d', B.uiBitmapOptions), text = String(value), size = crit ? 116 : heavy ? 104 : player ? 88 : 84;
     x.textAlign = 'center'; x.textBaseline = 'middle';
     x.font = `800 ${size}px 'Source Sans 3', 'Segoe UI', sans-serif`;
     x.save(); x.translate(128, 74);
     // soft dark halo keeps numbers readable on bright floors and torches
     x.shadowColor = 'rgba(0,0,0,.9)'; x.shadowBlur = 16; x.lineJoin = 'round';
     x.lineWidth = 16; x.strokeStyle = '#0d0506'; x.strokeText(text, 0, 0); x.shadowBlur = 0;
-    x.lineWidth = 7; x.strokeStyle = player ? '#3a0508' : heavy ? '#3b1b06' : '#1d1414'; x.strokeText(text, 0, 0);
-    x.fillStyle = player ? '#ff9d87' : heavy ? '#ffe0a0' : '#f5eddf';
+    x.lineWidth = 7; x.strokeStyle = player ? '#3a0508' : crit ? '#4a2400' : rage ? '#3a0a02' : heavy ? '#3b1b06' : '#1d1414'; x.strokeText(text, 0, 0);
+    if (crit) { const g = x.createLinearGradient(0, -size * .45, 0, size * .45); g.addColorStop(0, '#fff6c8'); g.addColorStop(.45, '#ffcf4a'); g.addColorStop(1, '#e07a12'); x.fillStyle = g; }
+    else x.fillStyle = player ? '#ff9d87' : rage ? '#ff8a4a' : heavy ? '#ffe0a0' : '#f5eddf';
     x.fillText(text, 0, 0); x.restore();
     return c;
   }
@@ -215,8 +218,8 @@
     const run = () => {
       try {
         // Use the same raster policy as live labels, including software bitmaps on NVIDIA/D3D11.
-        for (const [pl, hv] of [[false, false], [true, false], [false, true]]) for (const v of [12345, 67890]) {
-          const c = damageCanvas(v, pl, hv); c.getContext('2d').getImageData(128, 72, 1, 1);   // read back = finish drawing now
+        for (const [pl, hv, st] of [[false, false], [true, false], [false, true], [false, true, 'crit'], [false, false, 'rage']]) for (const v of [12345, 67890]) {
+          const c = damageCanvas(v, pl, hv, null, st); c.getContext('2d').getImageData(128, 72, 1, 1);   // read back = finish drawing now
         }
       } catch (e) { /* warm-up only */ }
     };
@@ -330,7 +333,10 @@
       } else if (key === 'heal') {
         f = clamp((p.drink || 0) / .34, 0, 1);
       } else if (key === 'dodge') {
-        f = p.dodge > 0 ? clamp(p.dodge / .48, 0, 1) : 0; dim = st < SLOT_COST.dodge;
+        // Chained rolls cost more (combat-tuning.js): the corner number shows the price of the next roll.
+        const dc = p.dodgeCost || SLOT_COST.dodge, shownDc = Math.round(dc);
+        f = p.dodge > 0 ? clamp(p.dodge / .48, 0, 1) : 0; dim = st < dc;
+        if (sl.cost && sl.dc !== shownDc) { sl.dc = shownDc; sl.cost.textContent = shownDc; sl.cost.style.color = dc > SLOT_COST.dodge + .5 ? '#ff8a5c' : ''; }
       } else if (SLOT_COST[key]) dim = st < SLOT_COST[key];
       setCd(sl, f, text);
       sl.el.classList.toggle('short', dim);

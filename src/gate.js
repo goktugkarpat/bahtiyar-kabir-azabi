@@ -129,7 +129,7 @@
       for (k = 0; k < 3; k++) leaf.box('rust', 2 * hw - .2, .22, .08, 0, .6 + k * 1.1, .2);
       leaf.chain('rust', -hw + .25, H - .3, hw - .25, .45, .26, .11, .2); leaf.chain('rust', hw - .25, H - .3, -hw + .25, .45, .26, .11, .2);
       leaf.box('rust', .7, .7, .12, 0, 1.75, .27);
-    } else if (chapter === 3) {
+    } else if (chapter === 3 || chapter === 5) {   // V: the same rune-sealed slabs, burning blood-red (the court's lamp)
       // Sessiz Taht: two slabs of cut stone shut with a ring of glowing runes.
       for (k = -1; k <= 1; k += 2) frame.box('stone', .85, H + .8, 1.1, k * (hw - .3), (H + .8) / 2, 0);
       frame.box('stone', 2 * hw, .8, 1.1, 0, H + .4, 0);

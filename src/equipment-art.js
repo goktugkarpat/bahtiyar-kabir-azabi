@@ -84,17 +84,49 @@
     leather:['leather',0xe0d3c5,.92,0], strap:['leather',0x817063,.95,0], cloth:['cloth',0x655b4e,1,0],
     rag:['cloth',0xe4caae,1,0], mail:['chain',0x8f979a,.74,.82], wood:['wood',0x65482c,1,0], bone:['bone',0xb9b09a,1,0]
   };
+  // Extra gear surfaces (gear-* sets): tarnished grave gold, blackened iron, horn, dyed cloth, gems.
+  Object.assign(spec,{
+    gold:['metal',0xd9b066,.46,.72], bronze:['metal',0x9a7448,.6,.92], black:['metal',0x4a4d52,.58,.9], silver:['metal',0xc9cfd4,.42,.96],
+    horn:['bone',0x5e4c3c,.62,0], fur:['leather',0x6b5641,1,0], crimson:['cloth',0x8a2a22,1,0], sable:['cloth',0x302b27,1,0], hide:['leather',0xa98a6c,.9,0],
+    gem:['metal',0x8a1018,.18,.25], bright:['metal',0xb4bec6,.48,.96]
+  });
+  // Emissive inlays: rune channels, ember cracks, frost, venom, void and holy light. Unlit cores, bloom-friendly.
+  const GLOW={ember:[0xff5a12,0x2a0d04,3.2], frost:[0x8fdcff,0x0c1a24,2.6], venom:[0x7dff3c,0x0b1a06,2.5], void:[0xa86bff,0x120a1c,2.9], holy:[0xffd27a,0x241a08,2.7], gore:[0xff1c10,0x200302,2.6]};
+  // The shared character grade (edge wear, cavities, grime, rust, blood, micro relief) per surface kind.
+  const GRADE={metal:{cls:'metal',grime:.28,rust:.05,blood:.06,wear:1.05,scale:7},chain:{cls:'metal',grime:.35,rust:.12,wear:.8,scale:9},
+    leather:{cls:'leather',grime:.32,blood:.04},cloth:{cls:'cloth',grime:.42,blood:.05},bone:{cls:'bone',grime:.34,scale:9},wood:{cls:'wood',grime:.3}};
+  const FINISH_GRADE={ash:{grime:.62},rust:{rust:.42,grime:.4},brine:{rust:.18,grime:.38},blood:{blood:.55,grime:.36},bone:{grime:.3}};
+  function gradeOf(key,kind,extra){
+    const g=Object.assign({},GRADE[kind]||GRADE.metal,extra||{});
+    if(key==='rust')g.rust=.32;if(key==='bright')Object.assign(g,{rust:0,grime:.14,wear:.7});if(key==='edge')Object.assign(g,{wear:.45,blood:.22,grime:.1});if(key==='gold'||key==='brass'||key==='bronze')Object.assign(g,{grime:key==='gold'?.18:.4,wear:.75,rust:0});
+    if(key==='dark'||key==='black')Object.assign(g,{rust:.1,wear:.85});if(key==='rag')g.blood=.25;return g;
+  }
+  function applyGrade(m,key,kind,extra){
+    if(!(B.Models&&B.Models.grade)||/[?&]nogeargrade/.test(location.search))return m;
+    const g=gradeOf(key,kind,extra);B.Models.grade(m,g);m.userData.gearGrade={key,kind,extra:extra||null};return m;
+  }
   function material(key) {
-    if(palette[key])return palette[key];const s=spec[key]||spec.steel;
-    const m=new T.MeshStandardMaterial({...(key==='edge'?surface(s[0]):scanned[s[0]]||surface(s[0])),color:s[1],roughness:s[2],metalness:s[3],normalScale:new T.Vector2(s[0]==='metal'?.16:s[0]==='leather'?.42:s[0]==='cloth'?.25:.60,s[0]==='metal'?.16:s[0]==='leather'?.42:s[0]==='cloth'?.25:.60)});
-    m.name='kara-equipment-'+key;m.userData.equipmentKind=s[0];return palette[key]=m;
+    if(palette[key])return palette[key];
+    if(GLOW[key]){
+      const g=GLOW[key],m=new T.MeshStandardMaterial({color:g[1],emissive:g[0],emissiveIntensity:g[2],roughness:.35,metalness:0,toneMapped:true});
+      m.name='kara-equipment-'+key;m.userData.equipmentGlow=key;
+      // Living inlays: embers flicker, frost and void breathe slowly, holy light swells. Shared material, one scalar per frame.
+      const base=g[2],rate={ember:7.3,gore:3.1,frost:1.3,void:.9,venom:2.2,holy:1.1}[key]||1.5,ember=key==='ember'||key==='gore';
+      m.onBeforeRender=function(){const t=performance.now()*.001*rate;this.emissiveIntensity=base*(ember?.78+.16*Math.sin(t)+.1*Math.sin(t*2.7+1.3)+.06*Math.sin(t*6.1):.8+.22*Math.sin(t));};
+      return palette[key]=m;
+    }
+    const s=spec[key]||spec.steel;
+    const m=new T.MeshStandardMaterial({...(key==='edge'||key==='gold'||key==='silver'||key==='gem'?surface(s[0]):scanned[s[0]]||surface(s[0])),color:s[1],roughness:s[2],metalness:s[3],normalScale:new T.Vector2(s[0]==='metal'?.16:s[0]==='leather'?.42:s[0]==='cloth'?.25:.60,s[0]==='metal'?.16:s[0]==='leather'?.42:s[0]==='cloth'?.25:.60)});
+    m.name='kara-equipment-'+key;m.userData.equipmentKind=s[0];applyGrade(m,key,s[0]);return palette[key]=m;
   }
   function finish(source,name) {
-    if(!name||!source.userData.equipmentKind||/-(edge|brass|dark|strap|bone)$/.test(source.name))return source;
+    if(!name||!source.userData.equipmentKind||/-(edge|brass|dark|strap|bone|gold|bronze|silver|gem|horn|crimson|sable|black)$/.test(source.name))return source;
     const tones={ash:0x79818b,rust:0x9b7760,brine:0x7b9998,blood:0x86534b,bone:0xb0a187};if(!tones[name])return source;
     const key=source.name+':'+name;if(finishes[key])return finishes[key];
     const m=source.clone();m.color.lerp(new T.Color(tones[name]),source.userData.equipmentKind==='metal'?.26:.26);m.name=source.name+'-'+name;
-    m.roughness=clamp(source.roughness+(name==='rust'?.08:0),0,1);return finishes[key]=m;
+    m.roughness=clamp(source.roughness+(name==='rust'?.08:0),0,1);
+    const gg=source.userData.gearGrade;if(gg)applyGrade(m,gg.key,gg.kind,Object.assign({},gg.extra||{},FINISH_GRADE[name]||{}));
+    return finishes[key]=m;
   }
   function build({A,part,sleeve,equipmentWeapon,rayRadius}) {
     // A mail underlayer replaces the existing cloth group in plate sets. All
@@ -726,6 +758,7 @@
       }
     });
 
+    if(B.GearArmor&&!/[?&]oldgear/.test(location.search)){try{B.GearArmor.build({A,part,sleeve,chest,hc,rx,ry,rz,facingAngle,modelOf:item=>({'no-witness-helm':'sealed-mask','forgotten-face-helm':'sealed-mask','sealed-furnace-helm':'furnace-mask','no-dawn-helm':'furnace-mask'})[item.id]||(/hood/.test(item.id)?'cloth-hood':item.modelId)});}catch(error){console.warn('gear-armor',error);}}
     const weapons={};
     const baseParts=()=>({steel:[],edge:[],dark:[],brass:[],leather:[],wood:[],bone:[]});
     function grip(P,length=.29,y=-.28) {
@@ -831,6 +864,7 @@
       if(k===5)for(const s of[-1,1])P.dark.push(G.extrude([[s*.02,top-head+.015],[s*.09,top-head+.06],[s*.085,top-head+.18],[s*.054,top-head+.11],[s*.021,top-head+.07]],.018,.003));
       weapons[id]=equipmentWeapon({parts:P,tip:new T.Vector3(0,top,0)},id,'spear',k===1?'salt':k===5?'dark':'steel');
     });
+    if(B.GearWeapons&&!/[?&]oldgear/.test(location.search)){try{Object.assign(weapons,B.GearWeapons.build({equipmentWeapon}));}catch(error){console.warn('gear-weapons',error);}}
     return weapons;
   }
   B.EquipmentArt={material,finish,build,finishes,prepare,uniqueWeapons:new Set(['dull-sword', 'grave-sword', 'widow-sword', 'black-tide-sword', 'slag-edge-sword', 'hollow-crown-blade', 'ruin-lament-sword', 'cave-verdict-sword', 'black-forge-sword', 'rust-axe', 'executioner-axe', 'mourning-axe', 'furnace-oath-axe', 'sepulcher-axe', 'broken-throne-axe', 'ember-vow-axe', 'bone-spear', 'bell-spear', 'orphan-spear', 'starved-spear', 'furnace-mourning-spear', 'last-coal-spear'])};
