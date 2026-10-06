@@ -1743,7 +1743,7 @@
     }
     return { room: scoreRoom, danger, combat,
       boss: !!boss && !boss.dead && !!(boss.active || boss.activated) && g.state === 'playing',
-      bossPhase: boss && boss.phase >= 2 ? 2 : 1, dead: g.state === 'dead', won: g.state === 'won', paused: false };
+      bossPhase: boss && boss.phase >= 2 ? 2 : 1, bossFinal: !!(boss && boss.phase >= 3 && B.ActiveChapter === 5), dead: g.state === 'dead', won: g.state === 'won', paused: false };
   }
   function update(dt, raw = {}) {
     if (suspended) return;
