@@ -13,9 +13,9 @@
   const DIFFICULTY = Object.freeze({
     easy: Object.freeze({ enemyHp: .70, enemyDmg: .48, eliteHp: 1, eliteDmg: 1, playerDmg: 1.18, pace: 1.22, rest: 1.30, attackers: 2, melee: 1,
       iframe: .44, dodgeStep: .15, regenDelay: .25, regen: 1.15, flasks: 5, flaskHeal: 1.15, perfectWindow: .26 }),
-    normal: Object.freeze({ enemyHp: .95, enemyDmg: .86, eliteHp: 1.12, eliteDmg: 1.08, playerDmg: 1.12, pace: 1.10, rest: 1.08, attackers: 3, melee: 2,
+    normal: Object.freeze({ enemyHp: .95, enemyDmg: .86, eliteHp: 1.10, eliteDmg: 1.08, playerDmg: 1.12, pace: 1.10, rest: 1.08, attackers: 3, melee: 2,
       iframe: .38, dodgeStep: .30, regenDelay: .40, regen: 1, flasks: 4, flaskHeal: 1, perfectWindow: .22 }),
-    hard: Object.freeze({ enemyHp: 1.15, enemyDmg: 1.32, eliteHp: 1.40, eliteDmg: 1.25, playerDmg: 1, pace: 1, rest: .82, attackers: 3, melee: 2,
+    hard: Object.freeze({ enemyHp: 1.15, enemyDmg: 1.32, eliteHp: 1.25, eliteDmg: 1.25, playerDmg: 1, pace: 1, rest: .82, attackers: 3, melee: 2,
       iframe: .32, dodgeStep: .40, regenDelay: .50, regen: 1, flasks: 3, flaskHeal: .85, perfectWindow: .18 })
   });
   // Stamina economy shared by all difficulties.
@@ -72,4 +72,7 @@
                    A 263 (0/0)     A 156 (0/1)     A 697 (0/3)     A 995 (1/11)
    Easy novice     A 212 (0/0)     A 150           A 225           A 321 (0/1)
    Old Hard let a skilled roller lose 35 % over all of chapter I; the spam roller now loses 3-6x what a timed roller loses on Normal.
+   Long Hard fights (> 100 s, the 150 s timeouts of the first pass): the elite wardens (ashwarden / ruinwarden, already mini-boss health)
+   took the profile's elite bonus on top: ch IV hall #9 measured 100-111 s on Hard, 88 % of it the warden alone (kills at 13-26 s, warden at 79-88 s),
+   vs 18 s on Normal. Hard eliteHp 1.40 -> 1.25 (and Normal 1.12 -> 1.10); stamina from landed blows (ECONOMY.HIT) also keeps a rolling hero swinging.
    Chapter II common foes were raised again after this table (dmg 2.0 -> 2.15; 2.3 measured 311 / 610 / 301 for normal avg / hard avg / hard skilled, a touch above chapter III). */

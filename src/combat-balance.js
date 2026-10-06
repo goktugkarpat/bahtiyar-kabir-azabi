@@ -1,10 +1,41 @@
-/* KABİR AZABI — combat balance bench (QA only; never runs by itself).
-   BABA.Balance.run(options) drives the hero with a scripted bot through chosen encounters of the loaded chapter,
-   straight through game.update() (no rendering), and returns numbers: clear time, health lost, flasks, deaths, rolls.
-     options: { difficulty: 'easy'|'normal'|'hard', level, gear: 'none'|'expected', bot: 'average'|'skilled'|'spam'|'novice',
-                encounters: [index...] | 'all' | 'boss', limit: seconds per encounter, seed }
-   Bots: reaction = how long a tell must be on the floor before the bot sees it; miss = chance the bot ignores a tell;
-   spam = rolls whenever a foe is close and stamina allows (the "I just dodge everything" player). */
+/* KABİR AZABI — combat balance bench (QA only; never runs by itself, costs nothing until called).
+
+   WHAT IT DOES
+   BABA.Balance.run(options) drives the hero with a scripted bot through chosen encounters of the loaded chapter, straight through
+   game.update() at 60 Hz (no rendering: a 12-fight chapter takes ~15-40 s of real time), and returns numbers per fight and in total.
+   Every fight starts fresh: game.respawn(), all other foes hidden (flagged dead, no XP / loot), the hero placed ~8 m from the group
+   on the side he arrives from, full health and flasks. XP is switched off during the run (no levelling mid-measurement).
+   A boss is stopped at 10 % health (its real death would end the chapter / leave the page); its time is scaled by 1 / .9.
+
+   CALL
+     BABA.Balance.run({
+       difficulty: 'easy' | 'normal' | 'hard',          // game.setDifficulty() before the run
+       level: 0,                                         // 0 = the chapter's expected level (GEAR[ch].level: 3 / 6 / 9 / 11)
+       gear: 'expected' | 'none',                        // GEAR[ch].items equipped (weapon + 4 armour pieces a player would wear there)
+       bot: 'novice' | 'average' | 'skilled' | 'spam',   // see BOTS; or tune: { reaction, miss, lead, flaskAt, skills, spam } to override
+       encounters: 'all' | 'boss' | [index, ...],        // group index = order of first appearance in game.enemies (the boss of ch I/II is #5, ch III/IV #12)
+       limit: 150,                                       // seconds per fight before it counts as a timeout
+       seed: 3 })                                        // which tells a bot "misses" (deterministic per hazard serial); crits stay random
+   -> { chapter, difficulty, bot, profile: { level, dmg, hp, def, loadout },
+        total: { fights, deaths, timeouts, time, hpLost, flasks, rolls, hitsTaken, denied, perfect },
+        results: [{ index, name, boss, types, foes, died, cleared, timeout, time, fightTime, hpLost, endHp, flasks, rolls,
+                    hitsTaken, biggestHit, kills: [seconds of each kill], denied, perfect }] }
+   hpLost is in % of the hero's health (100 = one full bar); summed over fights it can exceed 100. denied = frames (1/60 s) the bot wanted
+   to roll from a tell but lacked stamina (the stamina economy biting); perfect = last-moment rolls (combat-tuning.js ECONOMY.PERFECT).
+
+   BOTS (per-hazard decisions):  reaction = s a tell must be on the floor before the bot sees it; miss = chance it never sees one;
+   lead = how early before contact it rolls (<= ECONOMY perfect window means it lands "last-moment" rolls); flaskAt = drinks below this
+   fraction; skills = uses its four slots (war cry / whirl with 2+ foes or a boss, charge at range, heavy skill in reach); spam = rolls at
+   once (lead .9) plus random rolls near foes: the "I just roll through everything" player.
+
+   RENDERED CAPTURE: BABA.Balance.attach(foeList, botName) makes the bot drive app.js input while BABA.app.step() keeps drawing
+   (screenshots / frame series); .detach() gives control back. setupProfile / groups / approach are exported for such scripts.
+
+   RUNNER (Python, Playwright): scratchpad combat/bal.py  <chapters> <difficulties> <bots> [encounters] [level]
+     e.g.  python bal.py 1,2,3,4 easy,normal,hard novice,average,skilled,spam
+   Run one chapter per process if the machine is busy (a chapter page can take > 120 s to load under load).
+   Reading results: compare the same bot across chapters (curve) and bots within a difficulty (skill must pay, spam must not).
+   Expect +-30 % noise between runs on the same numbers (critical hits are random). The reference tables are in combat-tuning.js. */
 (function () {
   'use strict';
   const B = window.BABA = window.BABA || {};
