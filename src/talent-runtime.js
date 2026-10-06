@@ -126,7 +126,7 @@
       if (!near.length) return;
       if (look) look.chains(player, near, true);
       sound('talentChain', { volume: .8 });
-      for (const e of near) ctx.strike(e, 42, Math.atan2(e.x - player.x, e.z - player.z));
+      for (const e of near) ctx.strike(e, 32, Math.atan2(e.x - player.x, e.z - player.z));
     }
     function onCast(skill) {
       const seal = sealOf(skill.line), P = skill.params, face = player.face, F0 = fx();

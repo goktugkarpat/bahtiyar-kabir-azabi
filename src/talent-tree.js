@@ -45,7 +45,7 @@
   mod('roar-blood', 1, 0, 'Kan Bedeli', 'Nida dayanıklılık yerine canının %10’unu yer. Karşılığında öfkedeyken can çalman iki buçuk katına çıkar.', 'drop', { bloodCost: .10, steal: 2.5 });
   mod('roar-dread', 1, 1, 'Dehşet', 'Korkutma %70 uzar. Yakındaki düşmanlar dehşete düşer: 6 saniye %20 fazla hasar alır.', 'eye', { fear: 1.7, dread: 6 });
   mod('roar-ember', 1, 2, 'Kor Nefesi', 'Şok dalgası kor taşır: yakındaki bütün düşmanları tutuşturur.', 'flame', { igniteNear: 34 });
-  mod('whirl-hook', 2, 0, 'Kanca Zincir', 'Zincirlere kanca takılır: çekiş çok güçlenir, çember %15 genişler.', 'hook', { pull: 2.5, radius: 1.15 });
+  mod('whirl-hook', 2, 0, 'Kanca Zincir', 'Zincirlere kanca takılır: çekiş güçlenir, çember %10 genişler.', 'hook', { pull: 1.8, radius: 1.1 });
   mod('whirl-bleed', 2, 1, 'Paslı Zincir', 'Her dönüş kanatır: her vuruşun %35’i 4 saniyede akar ve üst üste biner.', 'drop', { bleed: .35 });
   mod('whirl-ash', 2, 2, 'Kül Fırtınası', 'Kasırga bitince ayağının dibinde 4 saniye yanan bir kül çemberi kalır.', 'flame', { zone: 'ring' });
   mod('charge-trail', 3, 0, 'Kor İzi', 'Atıldığın yol 3,5 saniye yanar; içinde kalan düşmanlar tutuşur.', 'flame', { zone: 'trail' }, 6);
@@ -67,7 +67,7 @@
   // ---- row 3.5: one stranger, archetype-defining passive per column (round 2) ---------------------------------
   passive('p-aftershock', 0, 3.5, 'Artçı Sarsıntı', 'Sersemlemiş bir düşman ölünce yer sarsılır: çevresindekilere hasar verir ve onları sersemletir.', 'burst', { aftershock: 24 });
   passive('p-frenzy', 1, 3.5, 'Kan Çılgınlığı', 'Canın %40’ın altındayken %25 fazla hasar verir, %15 daha hızlı dayanıklılık toplarsın.', 'heart', { frenzy: true });
-  passive('p-lash', 2, 3.5, 'Zincir Kırbacı', 'Kasırga bitince ya da hücum vardığında zincir savrulur: 7 metredeki en yakın üç düşmana çarpar.', 'chain', { lash: 42 });
+  passive('p-lash', 2, 3.5, 'Zincir Kırbacı', 'Kasırga bitince ya da hücum vardığında zincir savrulur: 7 metredeki en yakın üç düşmana çarpar.', 'chain', { lash: 32 });
   passive('p-momentum', 3, 3.5, 'Hız Kazanımı', 'Kaçındıktan ya da hücum ettikten sonra 3 saniye vuruşların %20 daha ağır iner.', 'wing', { momentum: true });
   passive('p-kindle', 4, 3.5, 'Alev Saçağı', 'Yanan düşmanların alevi yanındakine sıçrar: her yanma vuruşunda yakındaki bir düşman tutuşabilir.', 'spread', { kindle: true });
   passive('p-plague', 5, 3.5, 'Kara Veba', 'Lanetli düşmanların kanaması ve yanması %50 daha çok acıtır.', 'skull', { plague: true });
