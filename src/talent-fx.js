@@ -208,6 +208,10 @@
     // ---- frame
     let time = 0;
     let auraOf = null, auraAcc = 0;
+    // a faint rune ring under the hero in the colour of his path (reads well from the top-down camera)
+    const heroMat = new T.ShaderMaterial(Object.assign({ vertexShader: ZONE_VS, fragmentShader: ZONE_FS, uniforms: { uTime: { value: 0 }, uFade: { value: 0 }, uKind: { value: 0 }, uArc: { value: 1 }, uSeed: { value: 11 }, uColor: { value: new T.Vector3(1, 1, 1) } } }, blend));
+    const heroRing = new T.Mesh(quad, heroMat); heroRing.visible = false; heroRing.frustumCulled = false; heroRing.renderOrder = 3; group.add(heroRing);
+    const AURA_COL = { fire: [1.3, .3, .05], rot: [.3, .85, .16], blood: [1.2, .06, .05], chain: [.55, .6, .7], gold: [1.1, .8, .3], stone: [.8, .6, .4] };
     function update(dt, status, hearthPlayer, aura) {
       auraOf = aura || null;
       time += dt;
@@ -273,6 +277,10 @@
       }
       links.count = li; if (li) links.instanceMatrix.needsUpdate = true;
       // build aura on the hero (talent-runtime passes the dominant path)
+      if (auraOf && auraOf.player && !auraOf.player.dead && AURA_COL[auraOf.kind]) {
+        const p = auraOf.player; heroRing.visible = true; heroRing.position.set(p.x, gy(p.x, p.z) + .03, p.z); heroRing.scale.set(1.15, 1, 1.15); heroRing.rotation.y = -time * .35;
+        heroMat.uniforms.uColor.value.set(...AURA_COL[auraOf.kind]); heroMat.uniforms.uTime.value = time; heroMat.uniforms.uFade.value = .32 + .08 * Math.sin(time * 2.2);
+      } else heroRing.visible = false;
       if (auraOf && auraOf.player && !auraOf.player.dead) {
         const p = auraOf.player, g0 = gy(p.x, p.z), kind = auraOf.kind, moving = auraOf.moving;
         // the weapon carries the path: sparks / rot / blood run along the blade (hand bone -> model.weaponTip)
