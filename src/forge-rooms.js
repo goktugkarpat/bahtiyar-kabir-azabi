@@ -701,8 +701,8 @@
         if (DOORS[i] === s && Math.abs(zz - r.z) < DOOR_HW + 1.5) zz += 3;
         K.put(i, 'box', 'iron', U(17.4), 4.2, zz, .7, 8.4, .7, 0, 0, 0, IRONT, .5, 3); K.solid(U(17.4), zz, .8, .8);
         for (b = 0; b < 3; b++) K.put(i, 'box', 'iron', U(17.4), 1.4 + b * 2.4, zz, .9, .18, .9, 0, 0, 0, [.8, .74, .7], .2);
-        K.bar(i, 'box', 'iron', U(17.4), 8.2, zz, U(.3), 7.2, zz, .22, IRONT, .1); K.bar(i, 'box', 'iron', U(17.4), 6.6, zz, U(13), 8.1, zz, .1, IRONT, .1);
-        K.chain(i, U(RR(5, 12)), 7.6, zz, RR(2, 4.5), [.55, .5, .48]);
+        K.bar(i, 'box', 'iron', U(17.4), 8.2, zz, U(14.2), 7.9, zz, .2, IRONT, .1); K.bar(i, 'box', 'iron', U(17.4), 6.6, zz, U(14.6), 7.9, zz, .08, IRONT, .1);
+        K.chain(i, U(14.5), 7.7, zz, RR(2, 4.5), [.55, .5, .48]);
         K.spr(i, S.glow, U(17.4), 6.8, zz, 1.4, 1.4, [.8, .3, .06], .4, RW(), 1, 1);
       }
       // coal heaps and ingot stacks along the inner side
@@ -720,11 +720,11 @@
     function bellows(x, z, s, big) {
       var k = big ? 1.35 : 1;
       K.put(i, 'box', 'wall', x + s * 3.2 * k, 1.1 * k, z, 2.6 * k, 2.2 * k, 3.4 * k, 0, 0, 0, [.3, .27, .26], .5);   // furnace block it feeds
-      K.put(i, 'box', 'hot', x + s * 1.88 * k, .9 * k, z, .06, .9 * k, 1.6 * k, 0, 0, 0, [1.7, .62, .16], 0); K.spr(i, S.glow, x + s * 1.4 * k, .9 * k, z, 2.2, 2.2, [.9, .3, .06], .7, RW(), 1, 1);
+      K.put(i, 'box', 'hot', x + s * 1.88 * k, .9 * k, z, .06, .9 * k, 1.6 * k, 0, 0, 0, [1.05, .34, .07], 0); K.spr(i, S.glow, x + s * 1.4 * k, .9 * k, z, 2.2, 2.2, [.9, .3, .06], .7, RW(), 1, 1);
       // the bellows: two hinged iron-shod boards and the creased leather between them
-      K.put(i, 'box', 'wood', x - s * 1.4 * k, 1.9 * k, z, 4.2 * k, .16, 2.6 * k, 0, 0, s * .12, [.42, .34, .28], .4);
-      K.put(i, 'box', 'wood', x - s * 1.4 * k, .5 * k, z, 4.2 * k, .16, 2.6 * k, 0, 0, -s * .04, [.42, .34, .28], .4);
-      for (var f = 0; f < 5; f++) { var t = f / 4, hh = (1.25 - t * .6) * k; K.put(i, 'box', 'earth', x - s * (3.2 - f * .9) * k, (.6 + hh / 2) * k, z, .55 * k, hh, 2.5 * k * (f % 2 ? .92 : 1), 0, 0, 0, [.22, .16, .13], .3); }
+      K.put(i, 'box', 'wood', x - s * 1.6 * k, 1.75 * k, z, 3.8 * k, .14, 1.9 * k, 0, 0, -s * .3, [.36, .28, .22], .4); for (var rb = -1; rb <= 1; rb += 2) K.put(i, 'box', 'iron', x - s * 1.6 * k, 1.78 * k, z + rb * .9 * k, 3.9 * k, .1, .1, 0, 0, -s * .3, IRONT, .2);
+      K.put(i, 'box', 'wood', x - s * 1.6 * k, .45 * k, z, 3.8 * k, .14, 1.9 * k, 0, 0, 0, [.36, .28, .22], .4); for (var lg = -1; lg <= 1; lg += 2) K.put(i, 'box', 'iron', x - s * (1.6 + lg * 1.4) * k, .2 * k, z, .3, .4 * k, 1.7 * k, 0, 0, 0, IRONT, .4);
+      for (var f = 0; f < 6; f++) { var t = f / 5, hh = (2.05 - t * 1.45) * k; K.put(i, 'box', 'earth', x - s * (3.3 - f * .62) * k, .5 * k + hh / 2, z, .34 * k, hh, (f % 2 ? 1.7 : 2.05) * k, 0, 0, 0, [.2, .14, .11], .3); }
       K.bar(i, 'cyl', 'iron', x + s * .7 * k, 1.1 * k, z, x + s * 1.9 * k, 1.0 * k, z, .2 * k, IRONT, .3);
       K.put(i, 'box', 'iron', x - s * 3.4 * k, 4.2 * k, z, .3, 4.4 * k, .3, 0, 0, 0, IRONT, .3); K.bar(i, 'cyl', 'iron', x - s * 3.4 * k, 4.3 * k, z, x - s * 1.2 * k, 2.1 * k, z, .08, IRONT, .3);
       K.chain(i, x - s * 3.4 * k, 4.2 * k, z + .3, 2.2 * k, [.55, .5, .48]);
