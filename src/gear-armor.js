@@ -194,6 +194,7 @@
       if (item.slot === 'weapon') continue;
       const unique = item.rarity === 'boss' || sig.has(item.id), id = 'variant@' + item.id, glowKey = theme(item), trim = trimOf(item, unique), rank = { common: 0, uncommon: 1, rare: 2, epic: 3, boss: 4 }[item.rarity] || 0, core = modelOf(item);
       const glow = rank >= 3 ? glowKey : null;
+      const plate = { frost: 'bronze', void: 'bone', lamellar: 'steel', barbarian: 'hide', iron: 'dark', gore: 'rust', holy: 'black', ember: 'black' }[family(item)] || 'black';
       try {
         if (item.slot === 'head') {
           if (/hood/.test(core)) { if (rank >= 2) tatters(id, rank >= 3 ? 'sable' : 'rag', trim === 'brass' ? 'bone' : trim, glow); continue; }
@@ -215,9 +216,9 @@
           else if (rank >= 3) {
             const k = item.id.length % 3;
             if (/hollow|sunless/.test(item.id)) { sigil(id, 'bone', glow, 'skull'); trophySkulls(id); }
-            else if (k === 0) { spikedPauldron(id, 'dark', trim, 3, .085, false); sigil(id, trim, glow, 'diamond'); }
+            else if (k === 0) { spikedPauldron(id, plate, trim, 3, .085, false); sigil(id, trim, glow, 'diamond'); }
             else if (k === 1) { sigil(id, trim, glow, 'sun'); halfCape(id, clothOf(item), .42); }
-            else { spikedPauldron(id, 'black', trim, 2, .1, false); sigil(id, trim, glow, 'diamond'); }
+            else { spikedPauldron(id, plate, trim, 2, .1, false); sigil(id, trim, glow, 'diamond'); }
           }
         } else if (item.slot === 'hands') {
           if (rank >= 2 && !/wrap/.test(item.id)) cuff(id, rank >= 3 ? 'black' : 'dark', trim, rank >= 3 ? .03 : .018);
