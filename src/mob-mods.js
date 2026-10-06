@@ -220,6 +220,7 @@
       }
       function kill(e) {
         var c = find(e); if (!c) return;
+        api.fx('glowBurst', { x: e.x, y: .05, z: e.z, radius: 3.4, color: 0xd9a441, duration: .9 });   // a champion falls: a gold flare marks the richer drop
         if (c.has('volatile')) api.addHazard({ owner: e, enemy: e.name, x: e.x, z: e.z, radius: 3.0, warn: 1.6, duration: .24, damage: 24, unblockable: true, persistent: true,
           attack: tr('Patlayan Ceset'), style: 'quake', fill: 'inward', burst: true, near: false });
       }
