@@ -187,7 +187,7 @@
       [-1, 1].forEach(function (s) { var x0 = B.WorldARuins && B.WorldARuins.wide && B.WorldARuins.wide[i] ? 8.2 : 5.6; /* ajan:world-a: broad cave passages */ for (var q = 0; q < 4; q++) K.put(i, 'crag', 'rock', s * (x0 + q * 3.3), 2.0, zg + (R() - .5) * 1.2, 4.4, 4.0 + R() * 2, 4.2, R() * 6, .1, 0, [.55, .62, .66], .5, 3); });
     }
     function caveRoom(o) { caveGap();
-      K.patches(i, r, { n: o.patches || 46, tint: o.tint ? [o.tint[0] * .8, o.tint[1] * .8, o.tint[2] * .8] : [.8, .8, .8], min: 1.2, max: 3.2 });   /* ajan:world-a: plates blend into the cave floor */
+      K.patches(i, r, { n: Math.round((o.patches || 46) * .6), tint: o.tint ? [o.tint[0] * .8, o.tint[1] * .8, o.tint[2] * .8] : [.8, .8, .8], min: 1.7, max: 3.8 });   /* ajan:world-a: plates blend into the cave floor */
       [-1, 1].forEach(function (s) {
         for (var q = 0; q < 4; q++) K.stalactite(i, X(s * (11.2 + R() * 1.6)), 6.1 + R() * .6, Z((q - 1.5) * 5.2 + (R() - .5) * 2), .5 + R() * .5, 1.6 + R() * 2, o.tint);
       });
