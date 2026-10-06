@@ -20,7 +20,7 @@
   const T = {
     sideHead: L('Yan Görevler ve Gizli Yollar', 'Side Tasks and Hidden Paths'),
     mainHead: L('Ana Hikâye · Efendinin kapısını açar', 'Main Story · Opens the master’s gate'),
-    hiddenLeft: L(' gizli şey hâlâ bulunmayı bekliyor.', ' hidden thing still waits to be found.'),
+    hiddenLeft: L('Bulunmayı bekleyen gizli şey: ', 'Hidden things still waiting to be found: '),
     pages: L('Okunan sayfalar', 'Pages read'), unread: L('Henüz bulunmadı', 'Not yet found'),
     reward: L('Ödül', 'Reward'), choose: L('KARARINI VER', 'MAKE YOUR CHOICE'), done: L('TAMAMLANDI', 'COMPLETE'), steps: L(' ADIM', ' STEPS'),
     finaleState: L('SON KARAR', 'FINAL CHOICE'), metres: L(' m', ' m'), compass: L('Hedef', 'Target')
@@ -106,7 +106,7 @@
       if (entry.pages) {
         pageList = document.createElement('ol'); pageList.className = 'journal-pages';
         const capt = document.createElement('h4'); capt.textContent = T.pages; card.append(capt, pageList);
-        entry.pages.forEach(() => { const li = document.createElement('li'); const b = document.createElement('b'); const pTxt = document.createElement('p'); li.append(b, pTxt); pageList.append(li); });
+        entry.pages.forEach((pg, pi) => { const li = document.createElement('li'); li.onclick = () => { const cur = entry.pages[pi]; if (cur.found && B.QuestCinema) B.QuestCinema.reader({ title: cur.name, text: cur.text }); }; const b = document.createElement('b'); const pTxt = document.createElement('p'); li.append(b, pTxt); pageList.append(li); });
       }
       if (def.verdict) {
         choiceBox = document.createElement('section'); choiceBox.className = 'journal-verdict';
@@ -205,7 +205,7 @@
         if (c.pageList) e.pages.forEach((pg, i) => { const li = c.pageList.children[i]; li.classList.toggle('found', pg.found); li.firstChild.textContent = pg.found ? pg.name : '· · ·'; li.lastChild.textContent = pg.found ? pg.text : T.unread; });
         if (c.choiceBox) { c.choiceBox.hidden = !pending; c.choiceButtons.forEach(b => b.disabled = !pending); }
       });
-      hiddenNote.hidden = !hiddenLeft; hiddenNote.textContent = hiddenLeft + T.hiddenLeft;
+      hiddenNote.hidden = !hiddenLeft; hiddenNote.textContent = T.hiddenLeft + hiddenLeft;
       const fin = q.pendingChoice && q.pendingChoice.finale ? q.pendingChoice : null;
       finale.hidden = !fin && !q.finale;
       if (fin || q.finale) {
