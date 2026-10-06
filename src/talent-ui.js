@@ -30,7 +30,9 @@
     skull: '<path d="M12 2c5 0 9 3.5 9 8.5 0 3-1.5 4.5-3 5.5v3h-3v-2h-2v2h-2v-2H9v2H6v-3c-1.5-1-3-2.5-3-5.5C3 5.5 7 2 12 2zM8 9a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm8 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4z"/>'
   };
   const glyph = (name, color) => '<svg class="tt-glyph" viewBox="0 0 24 24" aria-hidden="true" style="color:' + color + '">' + (GLYPH[name] || GLYPH.circle) + '</svg>';
-  const ROW_Y = { 1: 7.5, 2: 25, 3: 43, 4: 59, 5: 75, 6: 92 };
+  const ROW_Y = { 1: 6.5, 2: 21.5, 3: 36, 3.5: 48.5, 4: 61, 5: 75, 6: 90.5 };
+  // view state that survives re-renders: zoom, scroll, recommended-build preview, last learned list (learn animation)
+  let zoom = 1, scrollX = 0, scrollY = 0, preview = '', seen = null;
   const KIND = { active: t('Aktif yetenek'), form: t('Dönüşüm'), mod: t('Mühür'), passive: t('Beden'), key: t('Kilit taşı') };
   function pos(n) {
     const colW = 100 / 6; let x = (n.col + .5) * colW, y = ROW_Y[n.row];
@@ -49,12 +51,12 @@
     for (const n of nodes) {
       if (!n.requires) continue; const p = T.get(n.requires); if (!p) continue;
       const lit = learned.includes(n.id) && learned.includes(p.id), ready = !lit && learned.includes(p.id) && T.access(state, n.id).canLearn;
-      line(p, n, lit ? 'lit' : ready ? 'ready' : '');
+      line(p, n, (lit ? 'lit' : ready ? 'ready' : '') + (lit && seen && !seen.includes(n.id) ? ' just' : ''));
     }
     // ---- gates (row labels with the points they ask for)
     const spent = learned.length;
     const rows = T.rows.map(r => {
-      const need = r.row === 3 ? 3 : r.row === 4 ? 4 : r.row === 5 ? 7 : r.row === 6 ? 6 : r.row === 2 ? 1 : 0, open = spent >= need;
+      if (!r.name) return ''; const need = r.row === 3 ? 3 : r.row === 4 ? 4 : r.row === 5 ? 7 : r.row === 6 ? 6 : r.row === 2 ? 1 : 0, open = spent >= need;
       return '<div class="tt-row' + (open ? ' open' : '') + '" style="top:' + ROW_Y[r.row] + '%"><b>' + (() => { const k = r.name.indexOf(' · '); return k > 0 ? '<span class="tt-roman">' + esc(r.name.slice(0, k)) + '</span><span class="tt-rowword"> · ' + esc(r.name.slice(k + 3)) + '</span>' : esc(r.name); })() + '</b><small>' + esc(r.hint) + '</small></div>';
     }).join('');
     const heads = T.cols.map((c, i) => {
@@ -62,26 +64,32 @@
       return '<div class="tt-colhead" style="left:' + ((i + .5) * 100 / 6) + '%;--c:' + c.color + '"><b>' + esc(c.name) + '</b>' + (count ? '<i>' + count + '</i>' : '') + '</div>';
     }).join('');
     const slotOf = id => state.loadout.indexOf(id);
+    const fresh = seen ? learned.filter(id => !seen.includes(id)) : []; seen = learned.slice();
+    const pre = preview ? T.presets.find(x => x.id === preview) : null;
     const html = nodes.map(n => {
       const a = T.access(state, n.id), known = a.known, slot = slotOf(n.id), p = pos(n), c = colOf(n).color;
       const superseded = known && n.skill && slot < 0 && nodes.some(o => o.requires === n.id && o.skill && learned.includes(o.id));
-      const cls = 'tt-node skt-node tt-' + n.kind + (known ? ' learned' : a.exclusive ? ' excluded' : a.canLearn ? ' available' : a.blocked ? ' locked' : ' pending') + (superseded ? ' superseded' : '') + (slot >= 0 ? ' slotted' : '') + (n.id === sel.id ? ' selected' : '');
-      const art = n.skill ? h.icon(n.id) : glyph(n.glyph, c);
+      const cls = 'tt-node skt-node tt-' + n.kind + (known ? ' learned' : a.exclusive ? ' excluded' : a.canLearn ? ' available' : a.blocked ? ' locked' : ' pending') + (superseded ? ' superseded' : '') + (slot >= 0 ? ' slotted' : '') + (n.id === sel.id ? ' selected' : '') + (fresh.includes(n.id) ? ' just' : '') + (pre && pre.nodes.includes(n.id) ? ' preview' : '');
+      const art = n.skill ? h.icon(n.id) : '<img class="tt-ico" src="assets/ui/talents/' + n.id + '.png" alt="" draggable="false" onerror="this.remove()">' + glyph(n.glyph, c);
       const title = n.name + ' · ' + KIND[n.kind] + (known ? '' : ' · ' + a.reason);
       return '<button data-char="skill" data-skill="' + n.id + '" class="' + cls + '" style="left:' + p.x.toFixed(2) + '%;top:' + p.y.toFixed(2) + '%;--c:' + c + '" aria-pressed="' + (n.id === sel.id) + '" title="' + esc(title) + '">' +
-        '<span class="tt-art">' + art + '</span>' + (n.kind === 'form' ? '<em class="tt-tier">' + (n.skill.tier === 2 ? 'II' : 'III') + '</em>' : '') +
+        '<span class="tt-art">' + art + '</span>' + (fresh.includes(n.id) ? '<i class="tt-burst" aria-hidden="true"></i>' : '') + (n.kind === 'form' ? '<em class="tt-tier">' + (n.skill.tier === 2 ? 'II' : 'III') + '</em>' : '') +
         (slot >= 0 ? '<span class="tt-cap">' + h.capHtml(h.keys[slot]) + '</span>' : '') + (n.kind !== 'mod' ? '<span class="tt-name">' + esc(n.name) + '</span>' : '') + '</button>';
     }).join('');
     // ---- build identity: the two columns with most points
     const weight = T.cols.map((c, i) => ({ c, n: nodes.filter(n => n.col === i && learned.includes(n.id)).length })).filter(o => o.n).sort((a, b) => b.n - a.n);
     const keystone = nodes.find(n => n.kind === 'key' && learned.includes(n.id));
-    const identity = weight.length ? weight.slice(0, 2).map(o => '<b style="color:' + o.c.color + '">' + esc(o.c.name) + '</b>').join(' + ') + (keystone ? ' · <b class="tt-keyname">' + esc(keystone.name) + '</b>' : '') : '<i>' + esc(t('Henüz bir yol seçmedin')) + '</i>';
+    const title = weight.length > 1 ? T.archetype(T.cols.indexOf(weight[0].c) >= 0 ? weight[0].c.line : '', weight[1].c.line) : '';
+    const identity = weight.length ? (title ? '<b class="tt-arch">' + esc(title) + '</b> · ' : '') + weight.slice(0, 2).map(o => '<b style="color:' + o.c.color + '">' + esc(o.c.name) + '</b>').join(' + ') + (keystone ? ' · <b class="tt-keyname">' + esc(keystone.name) + '</b>' : '') : '<i>' + esc(t('Henüz bir yol seçmedin')) + '</i>';
     const respecWhy = !learned.length ? t('Geri alınacak puan yok.') : inCombat ? t('Savaşın ortasında yol değiştirilemez.') : t('Bütün puanlar ücretsiz geri verilir (savaş dışında).');
     const head = '<div class="tt-head"><span class="tt-budget"><b>' + state.points + '</b> ' + esc(t('puan')) + ' <small>' + spent + ' / ' + T.MAX_POINTS + ' ' + esc(t('harcandı')) + ' · ' + T.nodes().length + ' ' + esc(t('düğüm')) + '</small></span>' +
       '<span class="tt-identity">' + esc(t('Yolun:')) + ' ' + identity + '</span>' +
+      '<span class="tt-zoom"><button data-char="talent" data-act="zoom" data-dir="-1" aria-label="' + esc(t('Uzaklaştır')) + '">−</button><button data-char="talent" data-act="zoom" data-dir="0" aria-label="' + esc(t('Sığdır')) + '">' + Math.round(zoom * 100) + '%</button><button data-char="talent" data-act="zoom" data-dir="1" aria-label="' + esc(t('Yakınlaştır')) + '">+</button></span>' +
       '<button class="tt-respec" data-char="respec" title="' + esc(respecWhy) + '" ' + (!learned.length || inCombat ? 'disabled' : '') + '>' + esc(t('Yolu sıfırla')) + '</button></div>';
-    const board = '<div class="tt-board"><svg class="tt-links" viewBox="0 0 1000 1000" preserveAspectRatio="none" aria-hidden="true">' + links.join('') + '</svg>' + rows + heads + html + '</div>';
-    const note = '<p class="skt-note tt-note">' + esc(t('Çift tıkla: öğren · Her yeteneğe tek mühür · Tek kilit taşı · 12 puan, 48 düğüm')) + '</p>';
+    const presets = '<div class="tt-presets"><small>' + esc(t('Önerilen yollar')) + '</small>' + T.presets.map(x => '<button data-char="talent" data-act="preview" data-preset="' + x.id + '" class="' + (x.id === preview ? 'on' : '') + '" title="' + esc(x.hint) + '">' + esc(x.name) + '</button>').join('') +
+      (pre ? '<span class="tt-preinfo">' + esc(pre.hint) + '</span><button class="tt-apply" data-char="talent" data-act="apply" data-preset="' + pre.id + '" ' + (inCombat ? 'disabled' : '') + '>' + esc(t('Bu yolu uygula')) + '</button>' : '') + '</div>';
+    const board = '<div class="tt-viewport" data-zoom="' + zoom + '"><div class="tt-board" style="--z:' + zoom + '"><svg class="tt-links" viewBox="0 0 1000 1000" preserveAspectRatio="none" aria-hidden="true">' + links.join('') + '</svg>' + rows + heads + html + '</div></div>';
+    const note = '<p class="skt-note tt-note">' + esc(t('Çift tıkla: öğren · Her yeteneğe tek mühür · Tek kilit taşı') + ' · ' + T.MAX_POINTS + ' / ' + nodes.length) + '</p>';
     // ---- inspect
     const a = T.access(state, sel.id), col = colOf(sel), known = a.known;
     let facts = '';
@@ -112,8 +120,43 @@
       return '<div class="skt-slot' + (s ? '' : ' empty') + '"><span class="skt-cap">' + h.capHtml(label) + '</span><button data-char="skill" data-skill="' + (id || sel.id) + '" title="' + esc(s ? s.name : t('Yetenek öğren ve ata')) + '" aria-label="' + esc((s ? s.name : t('Boş yetenek yuvası')) + ' · ' + label) + '">' + (s ? h.icon(s.id) : '') + '</button>' + (s ? '<button class="skt-remove" data-char="assign" data-slot="' + slot + '" data-skill="" aria-label="' + esc(s.name) + '">×</button>' : '') + '</div>';
     }).join('');
     const top = '<div class="skt-top"><div class="skt-loadout"><h4>' + esc(t('Donanılan yetenekler')) + '</h4><div class="skt-slots">' + loadout + '</div></div></div>';
-    return '<div class="skt-wrap tt-wrap">' + top + '<div class="skt-workspace"><div class="skt-tree tt-tree">' + head + board + note + '</div>' + inspect + '</div></div>';
+    return '<div class="skt-wrap tt-wrap">' + top + '<div class="skt-workspace"><div class="skt-tree tt-tree">' + head + presets + board + note + '</div>' + inspect + '</div></div>';
   }
+  // Actions from the board (character-ui.js forwards data-char="talent"): zoom, preview a recommended build, apply it.
+  function action(button, state, game) {
+    const act = button.dataset.act, T = B.TalentTree;
+    if (act === 'zoom') { const d = Number(button.dataset.dir); zoom = d === 0 ? 1 : Math.max(1, Math.min(2, +(zoom + d * .25).toFixed(2))); return { ok: true, quiet: true }; }
+    if (act === 'preview') { preview = preview === button.dataset.preset ? '' : button.dataset.preset; return { ok: true, quiet: true }; }
+    if (act === 'apply') {
+      const pre = T.presets.find(x => x.id === button.dataset.preset); if (!pre || !state) return { ok: false, reason: t('Böyle bir yol yok.') };
+      if (game && game.talents && game.talents.inCombat()) return { ok: false, reason: t('Savaşın ortasında yol değiştirilemez.') };
+      if (state.learned.length) state.respec();
+      const order = T.validate(pre.nodes, state.level);
+      for (const id of order) state.unlock(id);
+      // put the build's actives into the slots in the preset's order (later forms replace their roots)
+      const actives = order.filter(id => B.Progression.skills.some(k => k.id === id)), top = [];
+      for (const id of actives) { const sk = B.Progression.skills.find(k => k.id === id); const i = top.findIndex(o => B.Progression.skills.find(k => k.id === o).line === sk.line); if (i >= 0) top[i] = id; else top.push(id); }
+      top.slice(0, 4).forEach((id, n) => state.assign(n, id));
+      preview = '';
+      return { ok: true, message: (KabirI18n.lang === 'en' ? 'Path chosen: ' : 'Yol seçildi: ') + pre.name + ' (' + order.length + '/' + pre.nodes.length + ')' };
+    }
+    return { ok: false, reason: '' };
+  }
+  // Ctrl + wheel zooms, a drag on the empty board pans; scroll position survives re-renders.
+  document.addEventListener('wheel', e => {
+    const vp = e.target.closest && e.target.closest('.tt-viewport'); if (!vp || !e.ctrlKey) return;
+    e.preventDefault(); zoom = Math.max(1, Math.min(2, +(zoom + (e.deltaY < 0 ? .1 : -.1)).toFixed(2)));
+    const bd = vp.querySelector('.tt-board'); if (bd) bd.style.setProperty('--z', zoom);
+    const label = document.querySelector('.tt-zoom [data-dir="0"]'); if (label) label.textContent = Math.round(zoom * 100) + '%';
+  }, { passive: false, capture: true });
+  document.addEventListener('scroll', e => { const vp = e.target; if (vp && vp.classList && vp.classList.contains('tt-viewport')) { scrollX = vp.scrollLeft; scrollY = vp.scrollTop; } }, true);
+  let drag = null;
+  document.addEventListener('pointerdown', e => { const vp = e.target.closest && e.target.closest('.tt-viewport'); if (!vp || e.target.closest('.tt-node') || zoom <= 1) return; drag = { vp, x: e.clientX, y: e.clientY, l: vp.scrollLeft, t: vp.scrollTop }; vp.classList.add('panning'); }, true);
+  document.addEventListener('pointermove', e => { if (!drag) return; drag.vp.scrollLeft = drag.l - (e.clientX - drag.x); drag.vp.scrollTop = drag.t - (e.clientY - drag.y); }, true);
+  document.addEventListener('pointerup', () => { if (drag) { drag.vp.classList.remove('panning'); drag = null; } }, true);
+  // After character-ui puts the html in place: restore the scroll of the zoomed board.
+  const observer = typeof MutationObserver === 'function' ? new MutationObserver(() => { const vp = document.querySelector('.tt-viewport'); if (vp && !vp.dataset.restored) { vp.dataset.restored = '1'; vp.scrollLeft = scrollX; vp.scrollTop = scrollY; } }) : null;
+  if (observer) { const start = () => observer.observe(document.body, { childList: true, subtree: true }); if (document.body) start(); else document.addEventListener('DOMContentLoaded', start); }
   // Hover card next to the node (mouse only): name, kind, text, price and why it is locked. The inspect panel stays the click target.
   let tip = null, tipFor = null, lastState = null;
   function hoverCard(event) {
@@ -138,5 +181,5 @@
   document.addEventListener('keydown', e => { if (e.code === 'Escape' || e.code === 'KeyT' || e.code === 'KeyI') hideCard(); }, true);
   const renderBase = render;
   function renderTracked(state, h) { lastState = state; hideCard(); return renderBase(state, h); }
-  B.TalentTreeUI = Object.freeze({ render: renderTracked });
+  B.TalentTreeUI = Object.freeze({ render: renderTracked, action, glyphs: GLYPH });
 }());

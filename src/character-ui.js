@@ -629,6 +629,7 @@
         }
         case 'assign': if (state) change(state.assign(Number(button.dataset.slot), button.dataset.skill || null)); break;
         case 'unlock': if (state) learnSkill(button.dataset.skill); break;
+        case 'talent': if (state && B.TalentTreeUI && B.TalentTreeUI.action) { const r = B.TalentTreeUI.action(button, state, getGame()); if (r.quiet) refresh(true); else change(r, r.message); } break;
         case 'refund': if (state && state.refund) change(state.refund(button.dataset.skill), KabirI18n.t('Puan geri alındı.')); break;
         case 'respec': if (state && state.respec && (!getGame().talents || !getGame().talents.inCombat())) change(state.respec(), KabirI18n.t('Yol sıfırlandı: bütün puanlar geri verildi.')); break;
       }

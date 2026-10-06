@@ -30,9 +30,9 @@
   border:2px solid #4b3a29; box-shadow:0 0 0 1px #000, inset 0 0 10px #000; }
 #character .tt-node .tt-art img { width:100%; height:100%; object-fit:cover; display:block; }
 #character .tt-active { --s:clamp(34px,11.5cqh,58px); }
-#character .tt-form { --s:clamp(28px,9.5cqh,48px); }
+#character .tt-form { --s:clamp(26px,8.6cqh,44px); }
 #character .tt-mod { --s:clamp(20px,6.6cqh,32px); }
-#character .tt-passive { --s:clamp(22px,7.6cqh,36px); }
+#character .tt-passive { --s:clamp(20px,6.6cqh,32px); }
 #character .tt-key { --s:clamp(30px,10cqh,50px); }
 #character .tt-active .tt-art, #character .tt-form .tt-art { transform:rotate(45deg); border-radius:4px; }
 #character .tt-active .tt-art img, #character .tt-form .tt-art img { transform:rotate(-45deg) scale(1.42); }
@@ -104,3 +104,49 @@
 .tt-tip em { display:block; font-style:normal; font-size:11.5px; padding-top:5px; border-top:1px solid #6b513155; }
 .tt-tip em.ok { color:#9fc27a; } .tt-tip em.go { color:#f0c070; } .tt-tip em.no { color:#c47a64; }
 #character .tt-inspect { overflow-y:auto; overflow-x:hidden; scrollbar-width:thin; }
+/* ---- round 2: viewport + zoom, recommended builds, learn animation, ornate keystones, painted node icons ---- */
+#character .tt-viewport { position:relative; flex:1 1 auto; min-height:300px; overflow:hidden; padding:14px 0 0 84px; box-sizing:border-box; }
+#character .tt-viewport[data-zoom]:not([data-zoom="1"]) { overflow:auto; cursor:grab; scrollbar-width:thin; }
+#character .tt-viewport.panning { cursor:grabbing; }
+#character .tt-viewport .tt-board { margin-left:0; width:calc(100% * var(--z,1)); height:calc(100% * var(--z,1)); min-height:0; }
+#character .tt-viewport[data-zoom]:not([data-zoom="1"]) .tt-row { left:2px; width:auto; text-align:left; transform:translate(0,-140%); opacity:.7; }
+#character .tt-zoom { display:inline-flex; gap:2px; }
+#character .tt-zoom button { min-width:26px; padding:3px 6px; font:400 12px Georgia,serif; color:#e3d2b0; background:#1a0f0dcc; border:1px solid #6d5232; cursor:pointer; }
+#character .tt-zoom button:hover { border-color:#d2a463; }
+#character .tt-presets { display:flex; flex-wrap:wrap; align-items:center; gap:4px 6px; flex:0 0 auto; font:400 11.5px Georgia,serif; }
+#character .tt-presets small { color:#8f7d62; letter-spacing:.08em; text-transform:uppercase; font-size:10px; margin-right:2px; }
+#character .tt-presets button { padding:2px 8px; font:italic 400 12px Georgia,serif; color:#cdb991; background:#1b100dcc; border:1px solid #5d4630; border-radius:10px; cursor:pointer; }
+#character .tt-presets button.on, #character .tt-presets button:hover { color:#ffe3ad; border-color:#d39b52; box-shadow:0 0 8px #d38a3a66; }
+#character .tt-presets .tt-preinfo { flex:1 1 220px; color:#a99a80; font-style:italic; }
+#character .tt-presets .tt-apply { font-style:normal; color:#fff0d0; background:linear-gradient(#6a2a17,#2b100b); border-color:#d9a05a; border-radius:2px; }
+#character .tt-node.preview .tt-art { outline:2px dashed #ffd27a; outline-offset:3px; }
+#character .tt-node.preview:not(.learned) .tt-art { filter:none; }
+#character .tt-arch { color:#ffdca0; font-style:italic; letter-spacing:.02em; text-shadow:0 0 10px #d77a2a88; }
+#character .tt-ico { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:1; }
+#character .tt-ico + .tt-glyph { display:none; }
+#character .tt-mod .tt-ico { border-radius:50%; }
+/* learn: the node flares and a ring bursts out; the new link draws itself */
+#character .tt-node.just .tt-art { animation:tt-learn .7s cubic-bezier(.2,.9,.3,1.3) both; }
+#character .tt-active.just .tt-art, #character .tt-form.just .tt-art { animation-name:tt-learn-r; }
+#character .tt-burst { position:absolute; left:50%; top:calc(var(--s) / 2); width:var(--s); height:var(--s); margin:calc(var(--s) / -2) 0 0 calc(var(--s) / -2); border-radius:50%; pointer-events:none; z-index:4;
+  border:3px solid var(--c); box-shadow:0 0 18px var(--c), inset 0 0 12px var(--c); animation:tt-ring .8s ease-out both; }
+#character .tt-link.just { stroke-dasharray:400; stroke-dashoffset:400; animation:tt-draw .6s ease-out .1s forwards; }
+@keyframes tt-learn { 0% { transform:scale(.6); filter:brightness(3); } 60% { transform:scale(1.18); filter:brightness(1.6); } 100% { transform:scale(1); filter:none; } }
+@keyframes tt-learn-r { 0% { transform:rotate(45deg) scale(.6); filter:brightness(3); } 60% { transform:rotate(45deg) scale(1.18); filter:brightness(1.6); } 100% { transform:rotate(45deg) scale(1); filter:none; } }
+@keyframes tt-ring { from { transform:scale(.8); opacity:1; } to { transform:scale(2.6); opacity:0; } }
+@keyframes tt-draw { to { stroke-dashoffset:0; } }
+/* keystones: bigger, double frame and a slowly turning rune halo */
+#character .tt-key { --s:clamp(36px,12cqh,62px); }
+#character .tt-node.tt-key.skt-node::before { display:block; content:''; position:absolute; left:50%; top:calc(var(--s) / 2); width:calc(var(--s) + 16px); height:calc(var(--s) + 16px); margin:calc(var(--s) / -2 - 8px) 0 0 calc(var(--s) / -2 - 8px); border-radius:50%; pointer-events:none; z-index:0;
+  background:repeating-conic-gradient(from 0deg, #b48a4e55 0 4deg, transparent 4deg 15deg); -webkit-mask:radial-gradient(circle, transparent 58%, #000 60% 70%, transparent 72%); mask:radial-gradient(circle, transparent 58%, #000 60% 70%, transparent 72%); animation:tt-spin 30s linear infinite; }
+#character .tt-node.tt-key.learned.skt-node::before { background:repeating-conic-gradient(from 0deg, var(--c) 0 4deg, transparent 4deg 15deg); filter:drop-shadow(0 0 4px var(--c)); animation-duration:9s; }
+#character .tt-key .tt-art { box-shadow:0 0 0 2px #000, 0 0 0 4px #6d5232, 0 0 0 5px #000, inset 0 0 14px #000; }
+#character .tt-key.learned .tt-art { box-shadow:0 0 0 2px #000, 0 0 0 4px var(--c), 0 0 0 5px #000, 0 0 22px var(--c); }
+@keyframes tt-spin { to { transform:rotate(360deg); } }
+#character .tt-link.lit { animation:tt-glow 2.6s ease-in-out infinite; }
+@keyframes tt-glow { 50% { stroke:#ffd38a; filter:drop-shadow(0 0 7px #ffae4a); } }
+@media (max-width: 1050px), (max-height: 600px) {
+  #character .tt-viewport { padding-left:34px; min-height:220px; }
+  #character .tt-presets small, #character .tt-presets .tt-preinfo { display:none; }
+}
+@media (prefers-reduced-motion: reduce) { #character .tt-node.tt-key.skt-node::before, #character .tt-link.lit, #character .tt-node.just .tt-art, #character .tt-burst { animation:none !important; } }
