@@ -1164,7 +1164,7 @@
     var sm = new T.Matrix4().makeBasis(new T.Vector3(-1, 0, 0), new T.Vector3(0, 0, 1), new T.Vector3(0, 1, 0)); sm.setPosition(mid.x, mid.y + .085, mid.z + .02);
     place(A, shield, sm, 'lowerarm_l', .78);
     return { weapon: G.falchion(), materials: {
-      skin: bodyMaterial(A.srcMaterial('SuperHero_Male', bases.ubc), 'guard-skin', { cls: 'skin', skin: 1, sat: .5, tint: 0xb8a898, grime: .4 }),
+      skin: bodyMaterial(A.srcMaterial('SuperHero_Male', bases.ubc), 'guard-skin', { cls: 'skin', skin: 1, sat: .44, tint: 0xa89888, contrast: 1.15, grime: .58, blood: .22 }),
       hands: bodyMaterial(A.srcMaterial('Male_Ranger_Arms', bases.ranger, 1), 'guard-hands', { cls: 'skin', skin: .8, sat: .5, tint: 0xb0a090, grime: .5, blood: .25 }),
       gambeson: bodyMaterial(A.srcMaterial('Male_Ranger_Body', bases.ranger), 'guard-gambeson', { cls: 'cloth', sat: .12, tint: 0x8a7a6e, contrast: 1.1, grime: .5, blood: .18 }),
       boots: bodyMaterial(A.srcMaterial('Male_Peasant_Feet', bases.peasant), 'guard-boots', { cls: 'leather', sat: .4, tint: 0x6a5a4c, grime: .6 })
@@ -1337,7 +1337,7 @@
       A.transfer('rope', G.tube([[vx, .96, vz], [vx * .98, 1.0, vz * .96], [vx * .96, 1.02, vz * .92]], .003, 4, 8, true), ['skin'], vb);
     }
     return { materials: {
-      skin: bodyMaterial(A.srcMaterial('Exec_mesh', bases.executioner), 'carrier-skin', { cls: 'skin', skin: 1, skinMap: true, scatter: [.7, .4, .2], sat: .22, tint: 0xb4c498, contrast: .95, grime: .55, blood: .15, scale: 8 })
+      skin: bodyMaterial(A.srcMaterial('Exec_mesh', bases.executioner), 'carrier-skin', { cls: 'skin', skin: 1, skinMap: true, scatter: [.7, .4, .2], sat: .22, tint: 0xa0b088, contrast: 1.08, grime: .65, blood: .15, scale: 8 })
     } };
   };
   // Zincir Celladı — towering executioner: banded iron face grille (eyes glint behind it), layered spiked pauldrons with
