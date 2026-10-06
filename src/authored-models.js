@@ -452,6 +452,17 @@
       return finishGear(g, key, function (v) { var s = pinned || nearest(v.x, v.y, v.z, keys, allow); if (!s) return [[0, 1]]; return s.j.map(function (j, k) { return [j, s.w[k]]; }).filter(function (e) { return e[1] > 0; }); });
     };
     A.weighted = function (key, g, fn) { return finishGear(g, key, fn); };
+    // (ajan:models) A new helper bone under parentName at bind-space point pos (world axes, no rotation): hanging chains, shrouds
+    // and trophies are skinned to it and create() swings it as a damped pendulum (enemy-dread.js). Returns the bone index.
+    A.addBone = function (name, parentName, pos) {
+      var jp = index[parentName]; if (jp === undefined) throw Error('Kemik yok: ' + parentName);
+      if (index[name] !== undefined) return index[name];
+      var b = new T.Bone(); b.name = name;
+      var local = new T.Matrix4().multiplyMatrices(inverses[jp], new T.Matrix4().makeTranslation(pos.x, pos.y, pos.z));
+      local.decompose(b.position, b.quaternion, b.scale); bones[jp].add(b); b.updateMatrixWorld(true);
+      bones.push(b); inverses.push(new T.Matrix4().makeTranslation(-pos.x, -pos.y, -pos.z)); index[name] = bones.length - 1;
+      return index[name];
+    };
     // Rigid geometry positioned in a bone frame: origin at the bone head (+offset along the bone), +Y along the bone,
     // +Z toward the character's front (or hint). Returns the placed geometry.
     A.frame = function (name, along, zHint, originOffset) {
@@ -495,7 +506,7 @@
       var proxies = [], groups = {};
       meshes.forEach(function (mesh) {
         var m = mesh.material, key = mesh.name;
-        if (!mesh.castShadow || !m || Array.isArray(m) || m.transparent || m.alphaTest > 0 || m.alphaMap || m.displacementMap || m.visible === false || /^(equipment:|hero-trinket-)/.test(key)) return;
+        if (!mesh.castShadow || !m || Array.isArray(m) || m.transparent || m.alphaTest > 0 || m.alphaMap || m.displacementMap || m.visible === false || /^(equipment:|hero-trinket-|phase-)/.test(key)) return;
         if (A.base === 'barbarian' && (PROXY_FLARE[key] || key === 'iron' || key === 'base-straps' || key === 'mantle-brooch')) return;   // whirlwind-flared fur / cloth / beard and the swappable chest iron stay real casters
         var side = m.shadowSide !== null && m.shadowSide !== undefined ? 'x' + m.shadowSide : 's' + m.side;
         (groups[side] = groups[side] || []).push(mesh);
@@ -1448,9 +1459,11 @@
   function blueprint(type) {
     if (blueprints[type]) return blueprints[type];
     var cfg = TYPES[type], A = Assembly(cfg.base); A.srcMaterial = srcMaterialFinder(A);
+    if (type !== 'hero' && B.EnemyDread) B.EnemyDread.pre(type, A);   // (ajan:models) enemy-dread.js: proportions before any body or gear is fitted
     var recipe = R[type](A);
     if (type !== 'hero' && B.EnemyHorror) B.EnemyHorror.apply(type, A, recipe);
     if (type === 'hero' && B.HeroDetail) B.HeroDetail.apply(A, recipe, { sleeve: sleeve, gearMaterial: gearMaterial, place: place, onBody: onBody, frameFrom: frameFrom });   // (ajan:visual-dark) hero-detail.js   // (ajan:visual-dark) silhouette growths, enemy-horror.js
+    var dread = type !== 'hero' && B.EnemyDread ? B.EnemyDread.apply(type, A, recipe) : null;   // (ajan:models) swinging chains/shrouds, signature growths, boss phase parts
     var built = A.build(recipe.materials || {});
     // body height from body parts only (helmets, horns and crowns may rise above it)
     var box = new T.Box3(); built.meshes.forEach(function (m) { if (A.parts.some(function (p) { return p.body && p.key === m.name; })) { m.geometry.computeBoundingBox(); box.union(m.geometry.boundingBox); } });
@@ -1483,7 +1496,7 @@
     }
     var bp = { type: type, scene: built.scene, scale: scale, yOffset: -box.min.y * scale,
       weapon: equipmentWeapons ? equipmentWeapons['dull-sword'] : recipe.weapon ? { art: weaponGroup(recipe.weapon, true), tip: recipe.weapon.tip } : null,
-      equipmentWeapons: equipmentWeapons, anchors: anchors, recipe: recipe };
+      equipmentWeapons: equipmentWeapons, anchors: anchors, recipe: recipe, dread: dread };
     blueprints[type] = bp; return bp;
   }
   // Character maps are resized once, before their first upload: Düşük halves them (2048 -> 1024, 1024 -> 512) and
@@ -1785,6 +1798,7 @@
     var motion = B.AuthoredMotion.create({ root: root, modelScene: scene, type: cfg.motionType || type, style: type, bones: native, weapon: weapon, weaponTip: marker, scale: bp.scale });
     var aliases = motion.bones; aliases.weapon = weapon;
     var detailMotion = cfg.detailMotion ? cfg.detailMotion(native, scene, bp.scale) : null;
+    if (bp.dread && B.EnemyDread) B.EnemyDread.attach(bp.dread, { root: root, scene: scene, native: native, extras: extras, scale: bp.scale });   // (ajan:models) pendulum bones, posture, phase parts
     // 'staticTree': nothing moves the nodes below the root after authored-motion's pose (no detail motion, no dragged chain), so combat.js may
     // trust the world matrices that animate() just computed instead of walking the tree again in the render pass.
     root.userData.authoredMotion.staticTree = !detailMotion && !bp.anchors.drag;
@@ -1870,5 +1884,6 @@
     };
   }
   B.Models = { register: function (type, cfg, recipe) { if (prepared) throw Error(KabirI18n.t('Karakter kaydı hazırlıktan önce yapılmalı.')); TYPES[type] = cfg; R[type] = function (A) { return recipe(A, { bases: bases, bodyMaterial: bodyMaterial, gearMaterial: gearMaterial, clothWeights: clothWeights, sleeve: sleeve, whiteMap: function () { return NO_WHITE ? null : whiteMap(); }, forgedBlock: forgedBlock, forgedBlade: forgedBlade, forgedGrip: forgedGrip }); }; }, create: create, prepare: prepare, templates: bases, blueprints: blueprints, types: TYPES };
+  B.Models.gearMaterial = gearMaterial;   // (ajan:models) enemy-dread.js: shared fallback materials for phase parts
   B.Models.grade = grade;   // gear-*: equipment surfaces share the character grade (edge wear, cavities, rust, blood)
 })();
