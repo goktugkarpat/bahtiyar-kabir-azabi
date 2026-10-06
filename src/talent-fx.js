@@ -44,8 +44,8 @@
     '}'].join('\n');
   const RING_FS = [
     'varying vec2 vUv; uniform float uK, uFade; uniform vec3 uColor;',
-    'void main(){ float r = length(vUv); float w = mix(.16, .04, uK); float band = smoothstep(w, 0.0, abs(r - mix(.25, .98, uK)));',
-    '  float inner = (1.0 - smoothstep(0.0, mix(.25, .98, uK), r)) * .1 * (1.0 - uK);',
+    'void main(){ float r = length(vUv); float w = mix(.08, .03, uK); float band = smoothstep(w, 0.0, abs(r - mix(.25, .98, uK)));',
+    '  float inner = (1.0 - smoothstep(0.0, mix(.25, .98, uK), r)) * .035 * (1.0 - uK);',
     '  float a = (band + inner) * uFade * step(r, 1.0) * .55; gl_FragColor = vec4(uColor * a, a); }'].join('\n');
   const PT_VS = [
     'attribute float aSize; attribute vec4 aColor; varying vec4 vColor;',
