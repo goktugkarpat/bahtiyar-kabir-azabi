@@ -177,7 +177,7 @@
       idx.push(a, c, b, b, c, e);
     }
     var tg = geo(new T.BufferGeometry()); tg.setAttribute('position', new T.BufferAttribute(pos, 3)); tg.setAttribute('color', new T.BufferAttribute(col, 3)); tg.setAttribute('uv', new T.BufferAttribute(uv, 2)); tg.setIndex(idx); tg.computeVertexNormals();
-    M.terrain = M.earth.clone(); M.terrain.vertexColors = true; M.terrain.name = 'coast-terrain'; M.terrain.onBeforeCompile = M.earth.onBeforeCompile; M.terrain.customProgramCacheKey = function () { return 'kara-coast-terrain-1'; };
+    M.terrain = M.earth.clone(); M.terrain.vertexColors = true; M.terrain.name = 'coast-terrain'; M.terrain.onBeforeCompile = function (sh) { M.earth.onBeforeCompile(sh); sh.fragmentShader = sh.fragmentShader.replace('#include <map_fragment>', 'float tMix=smoothstep(.3,.7,texture2D(coastGrime,coastWorld.xz*.011).r);vec2 tUv=mat2(.8,-.6,.6,.8)*vMapUv*.43+vec2(.37,.11);vec4 tA=texture2D(map,vMapUv);vec4 tB=texture2D(map,tUv);diffuseColor*=mix(tA,tB*vec4(.92,.95,.9,1.),tMix);'); }; M.terrain.customProgramCacheKey = function () { return 'kara-coast-terrain-2'; };
     var terrain = new T.Mesh(tg, M.terrain); terrain.receiveShadow = true; terrain.castShadow = false; terrain.name = 'coast-open-terrain'; terrain.matrixAutoUpdate = false; K.root.add(terrain);
 
     // Ridge stones and exposed rock shelves along the slopes (the landscape keeps a hard skeleton).
