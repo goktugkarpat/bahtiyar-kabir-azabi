@@ -163,6 +163,7 @@
     // Each room's own composition.
     var info={rooms:rooms,forge:forge,names:forge?FORGE_NAMES:NAMES};
     rooms.forEach(function(r,i){Script.dress(K,r,i,info);});
+    /* ajan:world-a */ if(!forge&&B.WorldARuins&&B.WorldARuins.active)B.WorldARuins.dress(K,rooms,{solid:solid,floors:floors,paths:paths,colliders:colliders}); /* /ajan:world-a */
     var meshes=K.finish().concat(K.finishFx());
     var gearSpin=K.spinners;
     // Broad phase bounds prevent collision cost from growing with the art detail.
@@ -227,7 +228,7 @@
     }
     root.updateMatrixWorld(true);
     B.RuinsWorld.lastBuildMs=Math.round(performance.now()-buildT0);
-    return {chapter:chapter,name:forge?KabirI18n.t('Kızıl Ocak'):KabirI18n.t('Sessiz Taht'),root:root,rooms:rooms,paths:paths,encounters:encounters,colliders:colliders,occluders:[],materials:materials,spawn:{x:0,z:14},checkpoint:{x:0,z:rooms[11].z},bossSpawn:{x:0,z:rooms[13].z-1},
+    return {chapter:chapter,name:forge?KabirI18n.t('Kızıl Ocak'):KabirI18n.t('Sessiz Taht'),root:root,rooms:rooms,paths:paths,encounters:encounters,colliders:colliders,occluders:[],materials:materials,questSites:!forge&&B.WorldARuins&&B.WorldARuins.active?Object.assign({},B.WorldARuins.sites):undefined,spawn:{x:0,z:14},checkpoint:{x:0,z:rooms[11].z},bossSpawn:{x:0,z:rooms[13].z-1},
       isWalkable:isWalkable,move:move,hasClearPath:hasClearPath,pathTo:pathTo,roomAt:roomAt,update:update,atmosphereAt:atmosphereAt,effectHeightAt:function(){return .065;},
       setQuality:function(cfg){quality=typeof cfg==='string'?cfg:cfg.quality||cfg.preset||'high';},
       lighting:{sources:sources,flames:flames,shafts:[],moods:[live],groupGain:groupGain,prepareTextures:function(){return textures;},setGroup:function(k,v){groupGain[k]=v;},setGroupTint:function(){},setCorpses:function(){},setOathGlow:function(v,lit){oath=!!lit;},setPlayerLightFx:function(){},wantsShadows:function(){return false;}},

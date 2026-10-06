@@ -486,9 +486,10 @@
       var decorationBatches = [];
       var allBatches = [];
       var occluders = [];
+      var chunkBias = 0; // ajan:world-a: side crypts get their own batches (culled apart from the main hall beside them)
       function put(geo, mat, x, y, z, sx, sy, sz, rx, ry, rz, level, color) {
         level = level || 0;
-        var chunk = level ? coarseChunk(z) : chunkOf(z), key = geo + ':' + mat + ':' + level + ':' + chunk;
+        var chunk = (level ? coarseChunk(z) : chunkOf(z)) + chunkBias, key = geo + ':' + mat + ':' + level + ':' + chunk;
         if (!batches[key]) batches[key] = { geo: geo, mat: mat, level: level, transforms: [], colors: [] };
         tmp.position.set(x, y, z);
         tmp.rotation.set(rx || 0, ry || 0, rz || 0);
@@ -508,7 +509,7 @@
         tmp.quaternion.setFromUnitVectors(new T.Vector3(0, 1, 0), delta.clone().normalize());
         tmp.scale.set(radius, delta.length(), radius);
         tmp.updateMatrix();
-        var key = 'pole:' + mat + ':' + (level || 0) + ':' + (level ? coarseChunk(tmp.position.z) : chunkOf(tmp.position.z));
+        var key = 'pole:' + mat + ':' + (level || 0) + ':' + ((level ? coarseChunk(tmp.position.z) : chunkOf(tmp.position.z)) + chunkBias);
         if (!batches[key]) batches[key] = { geo: 'pole', mat: mat, level: level || 0, transforms: [], colors: [] };
         batches[key].transforms.push(tmp.matrix.clone());
         batches[key].colors.push(null);
@@ -522,7 +523,7 @@
         dust: linear(.22, .2, .16), cold: linear(.35, .45, .7), warm: linear(.9, .6, .28), sick: linear(.35, .45, .12), redGlow: linear(.7, .12, .04)
       };
       function decal(type, cell, x, y, z, sx, sz, yaw, color, level, wall) {
-        var chunk = coarseChunk(z), key = type + ':' + chunk + ':' + (level || 0);
+        var chunk = coarseChunk(z) + chunkBias, key = type + ':' + chunk + ':' + (level || 0);
         if (!decalBatches[key]) decalBatches[key] = { type: type, level: level || 0, transforms: [], colors: [], cells: [] };
         tmp.position.set(x, y, z);
         if (wall == null) tmp.rotation.set(-Math.PI / 2, 0, yaw || 0); else tmp.rotation.set(0, wall, yaw || 0);
@@ -1692,6 +1693,14 @@
       for (var rc = 0; rc < 7; rc++) { var ra = rc / 7 * Math.PI * 2 + .22; candleRing(Math.sin(ra) * 6.75, -74 + Math.cos(ra) * 6.75, 3, 'ritualCandles'); }
       // The oath stone's own light: a faint call before it is sworn, a golden flood afterwards.
       lightSource(0, .75, -128, '#ffc066', 16, 9, .15, { kind: 'special', group: 'oath', phase: 5, scatter: 1.4, glowRadius: 1.8 });
+      /* ajan:world-a — side crypts and extra dressing are composed in worlda-temple.js with this file's own kit. */
+      if (BABA.WorldATemple && BABA.WorldATemple.active) BABA.WorldATemple.dress({ T: T, put: put, box: box, rod: rod, solid: solid, wallRun: wallRun, pillar: pillar,
+        floorDecal: floorDecal, wallDecal: wallDecal, decal: decal, CELL: CELL, COL: COL, linear: linear, geometries: geometries, materials: materials, rooms: rooms,
+        skull: skull, boneScatter: boneScatter, ribCage: ribCage, rubble: rubble, slab: slab, cage: cage, chain: chain, candleCluster: candleCluster, alcove: alcove,
+        vaultRib: vaultRib, funeraryEffigy: funeraryEffigy, censer: censer, hangingIron: hangingIron, hangedBody: hangedBody, shroudedRemains: shroudedRemains,
+        puddle: puddle, banner: banner, torch: torch, sconce: sconce, flame: flame, lightSource: lightSource, emberSources: emberSources, smokeSources: smokeSources,
+        part: part, hangerGroup: hangerGroup, swinging: swinging, floorRing: floorRing, ritualPavement: ritualPavement, architectureMesh: architectureMesh, spot: spot, setChunkBias: function (b) { chunkBias = b || 0; } });
+      /* /ajan:world-a */
 
       // ---- light shafts and particles ----------------------------------------------------------------------
       // [top xyz, floor xyz, top width, floor width, colour, strength, cookie, gain group]
@@ -2879,6 +2888,7 @@
       return {
         root: root, spawn: spawn, checkpoint: checkpoint, bossSpawn: bossSpawn,
         rooms: allRooms, paths: expansion.paths, encounters: encounters, colliders: colliders,
+        questSites: BABA.WorldATemple && BABA.WorldATemple.active ? Object.assign({}, BABA.WorldATemple.sites) : undefined, /* ajan:world-a */
         move: move, isWalkable: isWalkable, hasClearPath: hasClearPath, pathTo: pathTo, roomAt: roomAt,
         update: update, dispose: dispose, setQuality: setQuality,
         atmosphereAt: atmosphereAt,
