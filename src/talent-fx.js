@@ -160,9 +160,10 @@
       const y0 = gy(p.x, p.z) + 1;
       for (const e of foes) {
         const d = Math.hypot(e.x - p.x, e.z - p.z), n = Math.min(26, Math.ceil(d * 4));
-        for (let i = 0; i <= n; i++) { const u = i / n; spark(p.x + (e.x - p.x) * u, y0 + Math.sin(u * Math.PI) * .35, p.z + (e.z - p.z) * u, (p.x - e.x) * .9, 0, (p.z - e.z) * .9, i % 2 ? [1.1, 1.15, 1.25] : [1.6, .35, .2], .28, .11, 0); }
+        for (let i = 0; i <= n; i++) { const u = i / n; spark(p.x + (e.x - p.x) * u, y0 + Math.sin(u * Math.PI) * .35, p.z + (e.z - p.z) * u, (p.x - e.x) * .9, 0, (p.z - e.z) * .9, i % 2 ? [1.1, 1.15, 1.25] : [1.6, .35, .2], .5, .13, 0); }
+        burst(e.x, e.z, 1.1, 'blood');
       }
-      ring(p.x, p.z, 5, [1.2, 1.25, 1.4], .4);
+      ring(p.x, p.z, 7, [.7, .72, .8], .4);
     }
     function drain(e, p) {
       const y = (e.model && e.model.root.position.y) || 0;

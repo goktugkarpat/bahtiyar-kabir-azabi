@@ -71,7 +71,7 @@
   // ---- row 6 keystones: exactly one per run ---------------------------------------------------------------------
   key('k-exec', 0, 'Cellat', 'Canı %40’ın altına düşen düşmanlara %35 fazla hasar verirsin. Canı %12’nin altına inen sıradan düşmanlar tek vuruşta ölür.', 'Bedeli: en yüksek canın %20 azalır.', 'axe', { exec: true, hpMul: .8 });
   key('k-blood', 1, 'Kan Yemini', 'Verdiğin bütün hasarın %5’i can olarak sana döner.', 'Bedeli: şifa matarası taşıyamazsın.', 'drop', { leech: .05, noFlask: true });
-  key('k-chains', 2, 'Zincirli Kader', 'Kaçınma dayanıklılık harcamaz; her kaçınmada zincirler 5 metredeki düşmanları yanına çeker ve sersemletir.', 'Bedeli: iki kaçınma arasında 2 saniye beklersin.', 'chain', { chainDodge: true });
+  key('k-chains', 2, 'Zincirli Kader', 'Kaçınma dayanıklılık harcamaz; her kaçınmada zincirler 7 metredeki düşmanları yanına çeker ve sersemletir.', 'Bedeli: iki kaçınma arasında 2 saniye beklersin.', 'chain', { chainDodge: true });
   key('k-hunger', 3, 'Ölü Açlığı', 'Her vuruş 3, her öldürme 30 dayanıklılık verir.', 'Bedeli: dayanıklılığın 20’nin üstüne kendiliğinden çıkmaz.', 'skull', { hunger: true });
   key('k-pyre', 4, 'Yanan Beden', 'Bütün vuruşların tutuşturur ve yanma %30 daha çok hasar verir.', 'Bedeli: aldığın hasar %15 artar.', 'flame', { allBurn: true, burnMul: 1.3, taken: 1.15 });
   key('k-rot', 5, 'Çürüyen Dünya', 'Öldürdüğün her düşman çürüyerek patlar: çevresine hasar verir ve onları lanetler.', 'Bedeli: şifa mataraları %40 daha az iyileştirir.', 'skull', { rotWorld: true, flaskHeal: .6 });

@@ -207,11 +207,11 @@
     function onDodge() {
       if (!fx().chainDodge) return;
       dodgeRest = 2;
-      // Lands .3 s later, where the roll ends: the chains whip out and drag every foe within 5 m in.
+      // Lands .3 s later, where the roll ends: the chains whip out and drag every foe within 7 m in.
       later.push({ at: clock + .3, fn() {
         const pulled = [];
         for (const e of enemies) {
-          if (!alive(e) || e.boss || dist(e, player.x, player.z) > 5 + e.radius || dist(e, player.x, player.z) < 1.3 || !ctx.canHit(e)) continue;
+          if (!alive(e) || e.boss || dist(e, player.x, player.z) > 7 + e.radius || dist(e, player.x, player.z) < 1.3 || !ctx.canHit(e)) continue;
           pulled.push(e); ctx.yank(e, player.x, player.z, 1.2); ctx.stun(e, .8);
         }
         if (look) look.chains(player, pulled); sound(pulled.length ? 'talentChain' : 'talentChainMiss');
