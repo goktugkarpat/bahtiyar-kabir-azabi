@@ -16,7 +16,7 @@
     const status = new Map();   // enemy -> { bleed:{dps,time}, burn:{dps,time}, rot:time, rotAmp, dread:time, tick }
     const zones = [];           // { kind, x, z, r, x2, z2, w, time, life, dps, burn, tick, owner, burst }
     const later = [];           // { at, fn }
-    let clock = 0, dodgeRest = 0, refundNote = !!progression.talentRefunded, hearth = false, regenHold = 0;
+    let clock = 0, dodgeRest = 0, refundNote = 0, hearth = false, regenHold = 0;
     const fx = () => tree.effects(progression.learned);
     const has = id => progression.learned.includes(id);
     const sealOf = line => fx().seal[line] || null;
@@ -220,7 +220,7 @@
     // ---- per-frame ------------------------------------------------------------------------------------------
     function update(dt) {
       clock += dt; dodgeRest = Math.max(0, dodgeRest - dt);
-      if (refundNote && clock > 1.2) { refundNote = false; progression.talentRefunded = false; ctx.emit('toast', { text: KabirI18n.t('Yetenek ağacı yenilendi: bütün puanların iade edildi. T ile yeni yolunu seç.') }); }
+      if (progression.talentRefunded && ctx.game.state === 'playing' && (refundNote = refundNote + dt) > 6) { refundNote = 0; progression.talentRefunded = false; ctx.emit('toast', { text: KabirI18n.t('Yetenek ağacı yenilendi: bütün puanların iade edildi. T ile yeni yolunu seç.') }); }
       ctx.game.criticalChance = .08 + fx().crit;
       for (let i = later.length - 1; i >= 0; i--) {
         const job = later[i]; if (clock < job.at) continue;

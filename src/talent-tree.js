@@ -121,7 +121,7 @@
   function validate(ids, level) {
     build();
     const want = (Array.isArray(ids) ? ids : []).filter((id, n, all) => typeof id === 'string' && index[id] && all.indexOf(id) === n);
-    const budget = Math.max(0, Math.min(12, level - 1)), out = [];
+    const budget = Math.max(0, Math.min(B.Progression ? B.Progression.MAX_LEVEL - 1 : 12, level - 1)), out = [];
     let grew = true;
     while (grew && out.length < budget) {
       grew = false;
@@ -190,5 +190,5 @@
     s = Object.freeze(Object.assign({}, skill, { cost, cooldown, params: Object.freeze(p), seal: seal ? seal.id : null }));
     if (effCache.size > 128) effCache.clear(); effCache.set(k, s); return s;
   }
-  B.TalentTree = Object.freeze({ cols: COLS, rows: ROWS, nodes, get, access, validate, canRefund, effects, effective, MAX_POINTS: 12 });
+  B.TalentTree = Object.freeze({ cols: COLS, rows: ROWS, nodes, get, access, validate, canRefund, effects, effective, get MAX_POINTS() { return B.Progression ? B.Progression.MAX_LEVEL - 1 : 12; } });
 }());
