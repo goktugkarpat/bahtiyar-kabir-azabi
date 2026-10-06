@@ -72,8 +72,8 @@
         } else if (k === 'crown') {
           // a crown of iron thorns around the skull: the seers and judges read as a jagged circle from above
           var thorns = [], cy = top - .045 * sc, rr = .1 * sc;
-          for (var t = 0; t < 9; t++) { var a = t / 9 * Math.PI * 2, x = Math.sin(a) * rr, z = hp.z + Math.cos(a) * rr * .95, len = (t % 2 ? .07 : .13) * sc;
-            thorns.push(G.spike(.016 * sc, V(x, cy, z), V(x * 1.35, cy + len, hp.z + (z - hp.z) * 1.35), 5)); }
+          for (var t = 0; t < 9; t++) { var a = t / 9 * Math.PI * 2, x = Math.sin(a) * rr, z = hp.z + Math.cos(a) * rr * .95, len = (t % 2 ? .1 : .22) * sc;
+            thorns.push(G.spike(.024 * sc, V(x, cy, z), V(x * 1.35, cy + len, hp.z + (z - hp.z) * 1.35), 5)); }
           thorns.push(G.tube([V(-rr, cy, hp.z), V(0, cy, hp.z + rr * .95), V(rr, cy, hp.z), V(0, cy, hp.z - rr * .95), V(-rr, cy, hp.z)], .011 * sc, 5, 24, false));
           A.rigid(ironKey, G.merge(thorns), head);
         } else if (k === 'shoulders') {
@@ -89,7 +89,7 @@
           var c = A.P(s3), strips = [];
           [-.13, -.05, .04, .12].forEach(function (x, j) {
             var bz = surf(c.y + .05 * sc, -1, .16 * sc); if (bz === null) return;
-            var len = (.42 + .12 * ((j * 7) % 3)) * sc, w = .07 * sc, xx = x * sc;
+            var len = (.6 + .15 * ((j * 7) % 3)) * sc, w = .11 * sc, xx = x * sc;
             var g = G.sheet(3, 9, function (u, v) { return [xx + (u - .5) * w * (1 - v * .45), c.y + .09 * sc - v * len, bz - .035 * sc - v * .06 * sc + Math.sin(v * 7 + j) * .012 * sc]; }, false);
             if (G.wear) G.wear(g, { edge: 0, cavity: 0, border: 0, curv: 0, tear: { amount: .5, width: .03, bottom: .25, base: .02 } });
             strips.push(g);
