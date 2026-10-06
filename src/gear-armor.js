@@ -57,6 +57,20 @@
       for (const s of [-1, 1]) { const xc = s * (.0125 + w / 2), z = hc.z + rz + .015 - .085 * Math.pow(xc / rx, 2) - .007; const g = G.box(w, .016, .003, [0, 0, 0]); g.rotateY(Math.atan(.17 * xc / (rx * rx))); g.translate(hc.x + xc, eyeY, z); out.push(g); }
       emit('head', id, glow, out, 'head');
     }
+    function tatters(id, mat, trim, glow) {
+      // Tattered mourning mantle: ragged strips falling from the hood's shoulder cape, beads at the tips.
+      const strips = [], beads = [];
+      for (let i = 0; i < 18; i++) {
+        const a = mix(.5, TAU - .5, i / 17), L = .16 + .1 * G.hash(i, 2, 7), r0 = .2, w = .03;
+        const strip = (u, v) => { const r = r0 + v * .06, aa = a + (u - .5) * w / r0; return [hc.x + Math.sin(aa) * r, hc.y - ry * .56 - .1 - v * L, hc.z + Math.cos(aa) * r * .8 + .01 * Math.sin(v * 5 + i)]; };
+        strips.push(G.shell(2, 6, strip, .002, false));
+        if (i % 3 === 0) beads.push(G.sphere(.008, strip(.5, 1.04), null, 8, 6));
+      }
+      emit('head', id, mat, strips, 'spine03'); emit('head', id, trim, beads, 'spine03');
+      const pin = [hc.x, hc.y - ry * .62, hc.z + .085];
+      part('head', id, trim, G.lathe([[0, -.012], [.02, -.008], [.022, .004], [0, .01]], 14).rotateX(PI / 2).translate(...pin), 'spine03');
+      if (glow) part('head', id, glow, G.sphere(.007, [pin[0], pin[1], pin[2] + .012], null, 8, 6), 'spine03');
+    }
     function browBand(id, trim, glow) {
       const band = (u, v) => { const a = mix(-1.25, 1.25, u); return [hc.x + Math.sin(a) * (rx + .014), hc.y + ry * (.3 + v * .12), hc.z + Math.cos(a) * (rz + .014)]; };
       part('head', id, trim, G.shell(28, 3, band, .004, false), 'head');
@@ -146,7 +160,7 @@
       const glow = rank >= 3 ? glowKey : null;
       try {
         if (item.slot === 'head') {
-          if (/hood/.test(core)) { if (rank >= 3) browBand(id, trim, glow); continue; }
+          if (/hood/.test(core)) { if (rank >= 2) tatters(id, rank >= 3 ? 'sable' : 'rag', trim === 'brass' ? 'bone' : trim, glow); continue; }
           if (rank >= 1) browBand(id, rank >= 2 ? trim : 'dark', glow);
           if (MASKS.has(core) && rank >= 2) visorGlow(id, glow || 'ember');
           if (unique) horns(id, 'horn', 'gold', .24, 'up');
