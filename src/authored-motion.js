@@ -157,7 +157,8 @@
   var HUNCH = { prisoner: .34, stalker: .5, carrier: .24, cultist: .06, boss: .08 };
   function create(options) {
     var root = options.root, model = options.modelScene || root, type = options.type || 'hero', style = options.style || type, supplied = options.bones || {};
-    var weapon = options.weapon, all = Object.create(null), mapping = [], nativeRest = [], targetRef = [], targetPos = [], originalLocal = [];
+    var weapon = options.weapon, bladeTip = options.weaponTip, all = Object.create(null), mapping = [], nativeRest = [], targetRef = [], targetPos = [], originalLocal = [];
+    var bladeFloorV = new T.Vector3(), bladeFloorTarget = new T.Vector3(), bladeFloorQ = new T.Quaternion();
     var armed = type === 'hero' || type === 'boss' || type === 'guard', boss = type === 'boss', hero = type === 'hero';
     var qRoot = new T.Quaternion(), invRoot = new T.Quaternion(), qParent = new T.Quaternion(), qa = new T.Quaternion(), qb = new T.Quaternion();
     var qDesired = new T.Quaternion(), qTurn = new T.Quaternion(), qBlade = new T.Quaternion().setFromAxisAngle(new T.Vector3(1, 0, 0), PI / 2);
@@ -907,6 +908,30 @@
       if (weapon && mapping[13]) {
         qDesired.copy(qRoot).multiply(output.q[13]).multiply(qBlade);
         wquat(weapon.parent, qParent).invert(); weapon.quaternion.copy(qParent.multiply(qDesired)); weapon.updateWorldMatrix(false, true);
+        // Resolve only a grounded attacking wrist: long blades share the authored cut,
+        // but their actual striking end must stop above the floor rather than disappear
+        // through it. The soft boundary has zero slope at entry; no pelvis, footplant,
+        // weapon scale, anticipation/contact clock or ordinary spear thrust is changed.
+        if (hero && bladeTip && (swinging || charging) && !leap && !dodge && !stagger && !state.dead) {
+          wpos(bladeTip, va); wpos(mapping[13], vb);
+          var floorGap = floorReference + .04 - va.y;
+          if (floorGap > 0) {
+            bladeFloorV.copy(va).sub(vb);
+            var bladeLen = bladeFloorV.length(), horizontal = Math.hypot(bladeFloorV.x, bladeFloorV.z),
+              tipRise = floorGap * floorGap / (floorGap + .02), tipY = bladeFloorV.y + tipRise;
+            if (bladeLen > .1 && horizontal > .001 && Math.abs(tipY) < bladeLen) {
+              var horizontalScale = Math.sqrt(Math.max(0, bladeLen * bladeLen - tipY * tipY)) / horizontal;
+              bladeFloorTarget.set(bladeFloorV.x * horizontalScale, tipY, bladeFloorV.z * horizontalScale);
+              bladeFloorQ.setFromUnitVectors(bladeFloorV.normalize(), bladeFloorTarget.normalize());
+              qa.copy(invRoot).multiply(bladeFloorQ).multiply(qRoot); rotateSubtree(output, 13, qa);
+              wquat(mapping[13], qDesired).premultiply(bladeFloorQ);
+              wquat(mapping[13].parent, qParent).invert(); mapping[13].quaternion.copy(qParent.multiply(qDesired)).normalize();
+              mapping[13].updateWorldMatrix(false, true);
+              qDesired.copy(qRoot).multiply(output.q[13]).multiply(qBlade);
+              wquat(weapon.parent, qParent).invert(); weapon.quaternion.copy(qParent.multiply(qDesired)); weapon.updateWorldMatrix(false, true);
+            }
+          }
+        }
       }
       if (initialized && dt > 0 && !teleported) {
         if (canPlant && Math.floor(oldGait * 2) !== Math.floor(gait * 2)) {

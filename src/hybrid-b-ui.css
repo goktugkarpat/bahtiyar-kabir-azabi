@@ -107,7 +107,7 @@
  #character .skt-inspect>.skt-delta {font-size:10px;padding:3px;}
  #character .skt-fact {font-size:11px;padding:2px 0;} #character .skt-fact b {font-size:12px;}
  #character .skt-learn {font-size:14px;min-height:30px;}
- #character .skt-note {font-size:9px;margin-top:5px;}
+ #character .skt-note {font-size:11px;margin-top:5px;}
  #settings .settings-workspace {grid-template-columns:130px minmax(0,1fr);gap:12px;}
  #settings .settings-nav button {font-size:14px;min-height:54px;padding:7px 5px;}
  #settings .settings-nav small {font-size:10px;}

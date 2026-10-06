@@ -385,7 +385,7 @@
       const line = lineOf(chosen.line);
       return '<div class="skt-wrap"><div class="skt-top"><div class="skt-loadout"><h4>Donanılan yetenekler <small>' + capHtml(keys[0]) + ' · ' + escape(keys[1]) + ' · ' + escape(keys[2]) + ' · ' + escape(keys[3]) + '</small></h4><div class="skt-slots">' + loadout + '</div></div>' +
         '<span class="skt-points"><b>' + state.points + '</b> yetenek puanı</span></div>' +
-        '<div class="skt-workspace"><div class="skt-tree"><div class="skt-cols">' + columns + '</div><p class="skt-note">Çift tıkla veya iki kez dokun: yeteneği öğren. Yeni aşama aynı tuşta öncekinin yerini alır. Dört yolu birden kullanabilirsin; normal vuruş her zaman açıktır.</p></div>' +
+        '<div class="skt-workspace"><div class="skt-tree"><div class="skt-cols">' + columns + '</div><p class="skt-note">Çift tıkla veya iki kez dokun: öğren. Yeni aşama aynı tuştaki yeteneğin yerini alır. Dört yuva birlikte kullanılabilir.</p></div>' +
         '<aside class="skt-inspect" data-line="' + chosen.line + '" style="--line:' + line.color + '"><small class="skt-kicker"><span class="skt-tiernum" data-tier="' + chosen.tier + '">' + ROMAN[chosen.tier] + '. AŞAMA</span> ' + escape(line.name) + ' · seviye ' + chosen.level + '</small>' +
         '<header>' + icon(chosen.id) + '<h3>' + escape(chosen.name) + '</h3></header><p>' + escape(chosen.description) + '</p>' +
         (chosen.delta ? '<p class="skt-delta" title="' + escape(chosen.delta) + '"><b>▲ ' + ROMAN[chosen.tier] + '. aşama:</b> Önceki aşamaya göre güçlendi.</p>' : '') +

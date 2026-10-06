@@ -449,7 +449,8 @@
     if (fromTitle && !reducedMotion.matches) { introBlend = 0; introStart = performance.now(); introFrom.copy(cameraPos); introLook.copy(look); }   // swoop from the title shot down to the play camera
     else { introBlend = 1; cameraPos.set(game.player.x, 16, game.player.z + 13); look.set(game.player.x, .7, game.player.z); }
     announce(chapterNames[chapter-1],'BÖLÜM '+chapterNumbers[chapter-1],'chapter');
-    if (B.Audio.say && !game.checkpointIndex) B.Audio.say(forgeChapter ? 'forgeIntro' : ruinsChapter ? 'ruinsIntro' : coastChapter ? 'coastIntro' : 'intro');
+    // A carried profile enters a fresh chapter at zero; a resumed journey has already lived this opening.
+    if (B.Audio.say && !game.checkpointIndex && game.elapsed === 0 && game.kills === 0) B.Audio.say(forgeChapter ? 'forgeIntro' : ruinsChapter ? 'ruinsIntro' : coastChapter ? 'coastIntro' : 'intro');
   }
   const questVoices = { 'lost-names': 'questNames', 'blood-verdict': 'questVerdict', 'last-voice': 'questBell', 'root-memory': 'questMemory', 'kings-name': 'questKing', 'cave-breath': 'questEcho', 'last-prisoner': 'questPrisoner', 'heart-feeds': 'questHeart' };
   function event(name, d = {}) {
@@ -1239,6 +1240,11 @@
   // HUD elements looked up once (re-looked up only if one is replaced).
   const hudEls = {};
   function hq(sel) { let el = hudEls[sel]; if (!el || !el.isConnected) el = hudEls[sel] = document.querySelector(sel); return el; }
+  function hudOrbLabel(kind, name) {
+    const orb = hq('.' + kind + '-orb');
+    const label = name + ' ' + hq('#' + kind + '-number').textContent + ' ' + hq('#' + kind + '-max').textContent;
+    if (orb.getAttribute('aria-label') !== label) orb.setAttribute('aria-label', label);
+  }
   let padButtons = null;
   function padList() {
     if (!padButtons || padButtons.some(b => !b.el.isConnected)) padButtons = Array.from(document.querySelectorAll('.combat-pad .action'), el => ({ el, key: el.dataset.action || el.dataset.hold, progress: '' }));
@@ -1448,6 +1454,7 @@
     const actualMaxHp = Number.isFinite(p.effectiveMaxHp) && p.effectiveMaxHp > 0 ? p.effectiveMaxHp : p.maxHp;
     hudText('health-number', Math.min(Math.round(actualMaxHp), hp > 0 ? Math.max(1, Math.ceil(hp * actualMaxHp - Number.EPSILON * actualMaxHp * 4)) : 0)); hudText('health-max', '/ ' + Math.round(actualMaxHp));
     if (B.HUD) B.HUD.vitals(p, dt);   // liquid health and stamina orbs (src/hud.js)
+    hudOrbLabel('health', 'Can'); hudOrbLabel('stamina', 'Dayanıklılık');
     const orb = hq('.health-orb');
     orb.classList.toggle('low', hp < .3); document.body.classList.toggle('low-hp', hp < .3 && !p.dead);
     if (lastHp !== null && p.hp < lastHp - .5) tap(orb);
