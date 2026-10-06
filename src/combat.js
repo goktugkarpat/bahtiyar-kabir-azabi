@@ -132,7 +132,7 @@
     function propContact(x, z, radius, units, face = 0, arc = Math.PI * 2, ox = x, oz = z) {
       if (mech && game.state === 'playing' && !player.dead) propContacts.push({ x, z, radius, units, face, arc, ox, oz });
     }
-    let hazardSerial = 0, mech = null, boss2 = null, director = null, mobMods = null;   // director: boss-framework.js (intros, pursuit, perfect dodge, signatures); mobMods: mob-mods.js (champions)   // boss2: chapter III / IV boss machinery (boss2.js);   // mech: boss-mech.js (round 7 orbs / ritual anchors / fight clock), built next to the executioner's moves
+    let hazardSerial = 0, mech = null, boss2 = null, director = null, mobMods = null, mobAbil = null;   // director: boss-framework.js (intros, pursuit, perfect dodge, signatures); mobMods: mob-mods.js (champions)   // boss2: chapter III / IV boss machinery (boss2.js);   // mech: boss-mech.js (round 7 orbs / ritual anchors / fight clock), built next to the executioner's moves
     const globes = BABA.Globes ? BABA.Globes.create(root, world, { player, fx, sound, emit }) : null;   // health globes dropped by dead foes (globes.js)
     const encounterDefs = (world.encounters || []).map((encounter, index) => ({
       id: String(encounter.id == null ? index : encounter.id), room: encounter.room, stage: encounter.stage,
@@ -731,7 +731,7 @@
     function resetToSnapshot(snapshot) {
       cancelPlayerCharge();
       clearHazards(); shudder(false); game.resetSerial++;
-      if (director) director.reset(); if (mobMods) mobMods.reset();
+      if (director) director.reset(); if (mobMods) mobMods.reset(); if (mobAbil) mobAbil.reset();
       if (!progression.restore(snapshot.progression || initialProfile)) progression.reset();
       syncProgression(true);
       game.campaignCompleted = !!snapshot.completed;
@@ -1353,6 +1353,7 @@
       groundY: (x, z) => world.effectHeightAt ? world.effectHeightAt(x, z, .6) : .06 };
     if (BABA.BossFramework) director = BABA.BossFramework.create(bfApi);
     if (BABA.MobMods) mobMods = BABA.MobMods.create(bfApi);
+    if (BABA.MobAbilities) mobAbil = BABA.MobAbilities.create(bfApi);   // innate role abilities of ordinary foes (mob-abilities.js)
     function bossAttack(e, d) {
       if (d > 14.5) return false;
       const m = mech, ph = e.phase === 2 ? (e.enraged ? 3 : 2) : 1, hpf = e.hp / e.maxHp, last = e.lastMove;
@@ -1666,6 +1667,7 @@
       }
       if (mobMods && !blocked) damage = mobMods.hurt(enemy, damage, heavy || !!(attack && (attack.whirl || attack.rage)), blocked);
       if (director && enemy.boss) damage = director.hurt(enemy, damage);
+      if (mobAbil && !blocked) damage = mobAbil.hurt(enemy, damage, attackFace);
       enemy.hp = Math.max(0, enemy.hp - damage); if (enemy.boss && !enemy.action) enemy.wrath += damage;
       if (player.rageTime > 0 && !blocked && player.hp > 0) player.hp = Math.min(player.maxHp, player.hp + damage * ROAR.steal * (1 + questBenefit('healingBonus', .20)) * 100 / player.effectiveMaxHp);   // blood fury: a little of every blow comes back
       const killed = enemy.hp <= 0;
@@ -2622,6 +2624,7 @@
       if (mech) mech.step(dt);
       if (director) director.update(dt);
       if (mobMods) mobMods.update(dt);
+      if (mobAbil) mobAbil.update(dt);
       if (game.state === 'playing') activateCheckpoint();
       updateSceneState(dt);
       if (boss2) boss2.tick(dt);
@@ -2696,7 +2699,7 @@
       if (groundLoot) groundLoot.dispose();
       hero.dispose(); enemies.forEach(enemy => { enemy.model.dispose(); disposeObject(enemy.bar.root); });
       disposeObject(targetRing); disposeObject(moveMark); if (boss2) boss2.dispose();
-      if (director) director.dispose(); if (mobMods) mobMods.dispose();
+      if (director) director.dispose(); if (mobMods) mobMods.dispose(); if (mobAbil) mobAbil.dispose();
       seals.forEach(seal => disposeObject(seal.group));
       if (quests) quests.dispose();
       if (gate) gate.dispose();
