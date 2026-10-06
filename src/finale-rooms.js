@@ -423,5 +423,24 @@
       K.dec(i, 6, b.x, b.z, Math.min(4, b.w * .45), Math.min(4, b.w * .45), R() * 6, [.5, .06, .04], .05, 'glow');
     });
   }
-  B.FinaleRooms = { dress: dress, bridges: bridges, moodBase: moodBase, moodSpecs: moodSpecs };
+  // Hidden platforms: cracked judgement stone on a hanging basalt fang, a stepping-stone causeway, a gold shaft that catches the eye from the route.
+  function secrets(K, info) {
+    var S = K.SPR;
+    info.secrets.forEach(function (q, n) {
+      var i = q.room, R = K.rng(i, 91 + n), cols = 4, rows = 4, cw = q.w / cols, ch = q.d / rows;
+      for (var gz = 0; gz < rows; gz++) for (var gx = 0; gx < cols; gx++) { var b = .9 + R() * .2; K.put(i, 'tile', 'floor', q.x - q.w / 2 + (gx + .5) * cw, -.07 + (R() - .5) * .02, q.z - q.d / 2 + (gz + .5) * ch, cw - .06, .2, ch - .06, (R() - .5) * .04, 0, 0, [.82 * b, .77 * b, .74 * b], 0); }
+      for (var k = 0; k < 16; k++) { var a = k / 16 * Math.PI * 2, ex = q.x + Math.sin(a) * (q.w / 2 + .2), ez = q.z + Math.cos(a) * (q.d / 2 + .2);
+        if (Math.abs(ez - q.bridge.z) < 2 && Math.abs(ex - q.bridge.x) < q.bridge.w / 2 + 1.5) continue;
+        K.put(i, 'block', 'rock', ex, -.35, ez, 1.6, 1, 1.4, a, 0, 0, [.42, .39, .38], .3); if (k % 2) K.put(i, 'crag', 'rock', ex, -1.8, ez, 2.4, 2.4, 2.4, R() * 6, 0, 0, [.34, .31, .31], .5); }
+      K.put(i, 'crag', 'rock', q.x, -3.4, q.z, q.w * .86, 5, q.d * .86, R() * 6, 0, 0, [.28, .26, .26], .4); K.put(i, 'spike', 'rock', q.x, -10, q.z, q.w * .55, 12, q.d * .55, R() * 6, Math.PI, 0, [.24, .22, .22], .2);
+      var br = q.bridge, steps = Math.round(br.w / 1.5);
+      for (var t = 0; t < steps; t++) { var sx = br.x - br.w / 2 + (t + .5) * br.w / steps; K.put(i, 'tile', 'stone', sx, -.08 + Math.sin(t * 1.7) * .03, br.z + (R() - .5) * .2, br.w / steps - .25, .22, br.d - .2, (R() - .5) * .08, 0, 0, [.7, .66, .62], 0);
+        K.put(i, 'crag', 'rock', sx, -1.1, br.z, 1.1, 1.6, 2, R() * 6, 0, 0, [.3, .28, .28], .4); K.spr(i, S.glow, sx, -2.5, br.z, 1.6, 1.6, [.12, .14, .5], .5, R(), .6, 1); }
+      K.spr(i, S.beam, q.x, 0, q.z, 2.4, 15, [.5, .38, .16], .55, R(), 1, 1); K.spr(i, S.pool, q.x, .1, q.z, 5, 5, [.45, .32, .12], .45, R(), 1, 1);
+      for (var m = 0; m < 18; m++) K.spr(i, S.mote, q.x + (R() - .5) * 4, 1 + R() * 6, q.z + (R() - .5) * 4, .04, .04, [1.6, 1.2, .6], .9, R(), .3 + R() * .3, 2);
+      K.brazier(i, q.x + (q.cx < 0 ? -3.6 : 3.6), q.z - 3, { s: .9, col: [1.7, .32, .14], lightColor: 0xff5a3a, intensity: 24, tint: [.78, .73, .68] });
+      K.statue(i, q.x + (q.cx < 0 ? -4 : 4), q.z + 3, q.cx < 0 ? Math.PI / 2 : -Math.PI / 2, { key: 'stone', tint: [.78, .73, .68], pose: 1, s: .85 }); K.solid(q.x + (q.cx < 0 ? -4 : 4), q.z + 3, 1.2, 1.2);
+    });
+  }
+  B.FinaleRooms = { dress: dress, bridges: bridges, secrets: secrets, moodBase: moodBase, moodSpecs: moodSpecs };
 }());

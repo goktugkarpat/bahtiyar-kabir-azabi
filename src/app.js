@@ -268,7 +268,7 @@
   let fpsStart = 0, fpsFrames = 0;
   const performanceMeter = B.Performance.create();
   let graphicsAdapter = null, multiDraw = false, worldSubmission = null;
-  let introBlend = 1, introStart = 0, deaths = 0, lastHp = null, lastFlasks = null;
+  let introMs = 1100, introArc = 0, introBlend = 1, introStart = 0, deaths = 0, lastHp = null, lastFlasks = null;
   const buffUI = B.Buffs.create($('timed-effects'));
   const chapterBuffUI = B.Buffs.createChapter($('chapter-buffs'));
   const targetUI = B.TargetHUD.create($('target-hud'));
@@ -447,9 +447,12 @@
     deathShown = wonShown = false; roomId = -1; firstHint = showBasics ? 25 : 0; lastHp = lastFlasks = null;
     $('tutorial').classList.toggle('hidden', !showBasics);
     show('playing'); hud(0);
+    introMs = 1100; introArc = 0;
     if (fromTitle && !reducedMotion.matches) { introBlend = 0; introStart = performance.now(); introFrom.copy(cameraPos); introLook.copy(look); }   // swoop from the title shot down to the play camera
+    // Chapter V opening: the camera rises out of the void beside the first platform, over the chains, and settles on Bahtiyar (6.5 s).
+    if (finaleChapter && !reducedMotion.matches && !game.checkpointIndex && game.elapsed === 0 && game.kills === 0) { const p = game.player; introBlend = 0; introStart = performance.now(); introMs = 6500; introArc = 9; introFrom.set(p.x + 24, 5, p.z + 2); introLook.set(p.x - 6, 1, p.z - 30); }
     else { introBlend = 1; cameraPos.set(game.player.x, 16, game.player.z + 13); look.set(game.player.x, .7, game.player.z); }
-    announce(chapterNames[chapter-1],KabirI18n.t('BÖLÜM ')+chapterNumbers[chapter-1],'chapter');
+    if (!(finaleChapter && B.QuestCinema && B.QuestSide)) announce(chapterNames[chapter-1],KabirI18n.t('BÖLÜM ')+chapterNumbers[chapter-1],'chapter');   // V: the opening letterbox carries the chapter card
     // A carried profile enters a fresh chapter at zero; a resumed journey has already lived this opening.
     if (B.Audio.say && !game.checkpointIndex && game.elapsed === 0 && game.kills === 0) B.Audio.say(finaleChapter ? 'ch5Intro' : forgeChapter ? 'forgeIntro' : ruinsChapter ? 'ruinsIntro' : coastChapter ? 'coastIntro' : 'intro');
   }
@@ -1557,9 +1560,10 @@
       lookTarget.set(p.x + cameraLead.x, .7, p.z - .8 + cameraLead.z);
       if (introBlend < 1) {
         // Time-based (not frame-based) so the swoop always ends 1.1 s after the start, even at low frame rates.
-        introBlend = clamp((performance.now() - introStart) / 1100, 0, 1);
+        introBlend = clamp((performance.now() - introStart) / introMs, 0, 1);
         const e = introBlend * introBlend * (3 - 2 * introBlend);
         cameraPos.lerpVectors(introFrom, target, e); look.lerpVectors(introLook, lookTarget, e);
+        if (introArc) cameraPos.y += Math.sin(e * Math.PI) * introArc;
       } else {
         cameraPos.lerp(target, 1 - Math.exp(-dt * 10)); look.lerp(lookTarget, 1 - Math.exp(-dt * 12));
       }

@@ -102,6 +102,11 @@
               for (; shown < 2; shown++) core.fans[shown].visible = false; on = true; }
           }
           if (!on && core.fans[0] && core.fans[0].visible) core.fanHide();
+          // the Qadi's fall: a long slow motion, the verdict light bursts out of him in gold, blood and void, the court shakes
+          for (var di = 0; di < list.length; di++) { var dd = list[di]; if (!dd.boss || !dd.dead || dd.finFall) continue; dd.finFall = true;
+            if (api.slow) api.slow(1.8); api.emit('impact', { x: dd.x, z: dd.z, strength: 1, radius: 18 }); api.fx('bossPhase', { x: dd.x, y: 2.4, z: dd.z, phase: 3 }); api.fx('boss2Nova', { x: dd.x, z: dd.z, phase: 'release', forge: true });
+            if (B.Boss2.out && B.Boss2.out.emit) for (var q = 0; q < 160; q++) { var qa = q / 160 * TAU * 3, up = 1 + (q % 9); B.Boss2.out.emit(dd.x + Math.sin(qa) * .6, .4 + (q % 7) * .55, dd.z + Math.cos(qa) * .6, 4, q % 3 === 0 ? [2.8, 2.0, .9] : q % 3 === 1 ? [2.8, .3, .15] : [.7, .8, 2.8], Math.sin(qa) * (2 + q % 5), up, Math.cos(qa) * (2 + q % 5), 1.6, .16); }
+            if (B.FinaleWorld) B.FinaleWorld.fallAt = performance.now(); }
           for (var bi = 0; bi < list.length; bi++) { var bb = list[bi]; if (!bb.boss || bb.dead || !bb.active || bb.finIntro) continue; bb.finIntro = true;
             api.fx('bossPhase', { x: bb.x, y: 2, z: bb.z, phase: 1 }); api.emit('impact', { x: bb.x, z: bb.z, strength: 1, radius: 12 });
             if (B.Boss2.out && B.Boss2.out.emit) for (var q = 0; q < 70; q++) { var qa = q / 70 * TAU, qr = 2 + (q % 5) * 1.6; B.Boss2.out.emit(bb.x + Math.sin(qa) * qr, .2, bb.z + Math.cos(qa) * qr, 4, q % 3 ? [2.6, .3, .15] : [.6, .7, 2.4], Math.sin(qa) * 1.5, 2 + (q % 4), Math.cos(qa) * 1.5, 1.2, .12); } }

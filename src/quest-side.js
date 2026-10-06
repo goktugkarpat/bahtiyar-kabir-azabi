@@ -875,7 +875,7 @@
       if (beats && !(local.beats & 1) && beatClock > 40) { local.beats |= 1; say(beats.start); }
       var gm = B.app && B.app.game;
       if (!(local.beats & 4) && beatClock > 4.5 && gm && gm.state === 'playing' && !gm.checkpointIndex && (gm.elapsed || 0) < 20) {
-        local.beats |= 4; if (cinema()) cinema().letterbox({ eyebrow: L('Bölüm ', 'Chapter ') + ['I', 'II', 'III', 'IV', 'V'][chapter - 1], title: info.title, text: info.introduction, seconds: 11 });
+        local.beats |= 4; if (cinema()) cinema().letterbox({ eyebrow: L('Bölüm ', 'Chapter ') + ['I', 'II', 'III', 'IV', 'V'][chapter - 1] + (chapter === 5 ? ' · ' + info.title : ''), title: chapter === 5 ? L('Son Mahkeme', 'The Last Court') : info.title, text: info.introduction, seconds: chapter === 5 ? 13 : 11 });   // V: one name (ajan:chapter5); the quest arc is the subtitle
       }
       if (!(local.beats & 8) && beatClock > 95 && chapter >= 2) { var tl = tally().lean; if (tl) { local.beats |= 8; say(tl === 'mercy' ? 'leanMercy' : 'leanWrath'); } }
       var g = B.app && B.app.game, boss = g && (g.boss || (g.enemies || []).find(function (e) { return e.boss; }));
