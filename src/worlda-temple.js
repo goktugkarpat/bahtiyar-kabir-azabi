@@ -452,6 +452,11 @@
       THEMES[r.theme](r, S, holes);
       floorLife(r, holes);
     });
+    // Main halls: grit and stray bones on the floor, fallen vault stones heaped into the dark corners (no colliders: walls already bound them).
+    K.rooms.forEach(function (r) {
+      floorLife({ x: r.x, z: r.z, w: r.w - 2, d: r.d - 2, theme: 'oaths' }, []);
+      [[-1, -1], [1, -1]].forEach(function (c) { if (r.id === 6 || r.id === 3) return; pile(r.x + c[0] * (r.w / 2 - 1.3), r.z + c[1] * (r.d / 2 - 1.3), 1.0, 9); });
+    });
     function inHole(holes, x, z, m) { for (var i = 0; i < holes.length; i++) { var o = holes[i]; if (Math.abs(x - o.x) < o.w / 2 + m && Math.abs(z - o.z) < o.d / 2 + m) return true; } return false; }
     // Lived-in floor: grit, chips of fallen vault, stray bones, stains that run under the furniture.
     function floorLife(r, holes) {
@@ -471,5 +476,14 @@
       }
     }
   }
-  B.WorldATemple = { active: true, rooms: ROOMS, dress: dress };
+  // Quest anchors (STORY.md: world.questSites) — open, reachable spots that match each relic's story.
+  var SITES = {
+    'names': { x: -27.2, z: -28.8 },          // ossuary: under the skull niches of the north wall
+    'c1.hunt': { x: 32, z: -106.4 },          // shroud hall: between the two looms
+    'c1.captive': { x: -34.6, z: -52.6 },     // lost-flesh infirmary: beside a mortuary table
+    'c1.page1': { x: 22, z: 7.6 },            // nameless graves: at the foot of a grave marker
+    'c1.page2': { x: -41.6, z: -122.4 },      // broken oaths: the far corner by the fallen stones
+    'c1.chest': { x: -30, z: -129.4 }         // broken oaths: before the split altar's dais
+  };
+  B.WorldATemple = { active: true, rooms: ROOMS, dress: dress, sites: SITES };
 }());

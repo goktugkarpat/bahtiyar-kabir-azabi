@@ -2887,6 +2887,7 @@
       return {
         root: root, spawn: spawn, checkpoint: checkpoint, bossSpawn: bossSpawn,
         rooms: allRooms, paths: expansion.paths, encounters: encounters, colliders: colliders,
+        questSites: BABA.WorldATemple && BABA.WorldATemple.active ? Object.assign({}, BABA.WorldATemple.sites) : undefined, /* ajan:world-a */
         move: move, isWalkable: isWalkable, hasClearPath: hasClearPath, pathTo: pathTo, roomAt: roomAt,
         update: update, dispose: dispose, setQuality: setQuality,
         atmosphereAt: atmosphereAt,
