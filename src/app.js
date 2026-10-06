@@ -486,7 +486,7 @@
     else if (name === 'encounter') { if (d.name) announce(d.name, KabirI18n.t('KARŞILAŞMA')); }
     else if (name === 'gateOpen') { announce(KabirI18n.t('Kapı açıldı'), 'BOSS KAPISI', 'seal'); }
     else if (name === 'encounterCleared') { announce(KabirI18n.t('Mühür açıldı'), d.roomName || d.name || KabirI18n.t('SALON TEMİZLENDİ'), 'seal'); }
-    else if (name === 'boss') { if (d.active !== false) { announce(d.name || KabirI18n.t('Zincir Celladı'), finaleChapter ? KabirI18n.t('SON MAHKEME') : forgeChapter ? KabirI18n.t('SON DÖKÜM') : ruinsChapter ? KabirI18n.t('SESSİZ TAHT') : coastChapter ? KabirI18n.t('BOĞULMUŞ ÇANLIK') : 'KURBAN SALONU', 'boss'); if (B.Audio.saySequence) B.Audio.saySequence(finaleChapter ? ['ch5Boss'] : forgeChapter ? ['forgeBoss'] : ruinsChapter ? ['ruinsBoss'] : coastChapter ? ['coastBoss'] : ['boss', 'cellat']); else if (B.Audio.say) B.Audio.say(finaleChapter ? 'ch5Boss' : forgeChapter ? 'forgeBoss' : ruinsChapter ? 'ruinsBoss' : coastChapter ? 'coastBoss' : 'boss'); } }
+    else if (name === 'boss') { if (d.active !== false) { announce(d.name || KabirI18n.t('Zincir Celladı'), finaleChapter ? KabirI18n.t('SON MAHKEME') : forgeChapter ? KabirI18n.t('SON DÖKÜM') : ruinsChapter ? KabirI18n.t('SESSİZ TAHT') : coastChapter ? KabirI18n.t('BOĞULMUŞ ÇANLIK') : 'KURBAN SALONU', 'boss'); if (B.Audio.saySequence) B.Audio.saySequence(finaleChapter ? ['ch5Boss', 'ch5Kadi'] : forgeChapter ? ['forgeBoss'] : ruinsChapter ? ['ruinsBoss'] : coastChapter ? ['coastBoss'] : ['boss', 'cellat']); else if (B.Audio.say) B.Audio.say(finaleChapter ? 'ch5Boss' : forgeChapter ? 'forgeBoss' : ruinsChapter ? 'ruinsBoss' : coastChapter ? 'coastBoss' : 'boss'); } }
     else if (name === 'death') death(d);
     else if (name === 'win') victory(d);
     else if (name === 'toast') notify(d.text);
@@ -591,7 +591,13 @@
     const t = d.time ?? game.elapsed ?? elapsed, k = d.kills ?? game.kills ?? 0;
     const stat = (icon, value, label) => `<div><svg class="icon" aria-hidden="true"><use href="#${icon}"/></svg><b>${value}</b><small>${label}</small></div>`;
     $('victory-stats').innerHTML = stat('i-hourglass', timeText(t), KabirI18n.t('SÜRE')) + stat('i-cross', Math.round(k), KabirI18n.t('ALT EDİLEN')) + stat('i-skull', deaths, KabirI18n.t('ÖLÜM'));
-    setTimeout(() => { if (game.state === 'won') show('victory'); }, 1500);
+    // Chapter V: when the quest module offers the last decision (game.quests.finale), the ending waits until it is made and shows its outcome.
+    const finale = () => game.quests && game.quests.finale && typeof game.quests.finale === 'object' ? game.quests.finale : null;
+    const pending = () => { const f = finale(); return !!f && !(f.done || f.complete || f.chosen || f.choice); };
+    const reveal = () => { if (game.state !== 'won') return; if (pending()) { setTimeout(reveal, 400); return; }
+      const f = finale(), text = f && (f.outcome || f.story || f.text); if (text) document.querySelector('#victory .end-quote').textContent = text;
+      show('victory'); };
+    setTimeout(reveal, 1500);
   }
   // Chapters I-IV: the boss reward has been collected (combat.js win()) and the next chapter's save is written.
   // Fade to the chapter card while the closing narration plays, then load the next chapter's world (its loading cover
