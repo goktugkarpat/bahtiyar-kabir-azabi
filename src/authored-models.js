@@ -925,13 +925,24 @@
     piece.materials = mats; piece.id = id; piece.type = type; return piece;
   }
   function heroEquipment(A) {
+    var plateSpines = ['spine01','spine02','spine03'].map(function (name) { return [A.index[name], A.P(name).y]; });
     var data = { armor: {}, weapons: {}, materials: {} }, BODY = ['skin', 'leather'], TORSO = ['pelvis', 'spine01', 'spine02', 'spine03', 'shoulderL', 'shoulderR'];
     function part(slot, id, material, geometry, bone, opts) {
       var key = 'equipment:' + slot + ':' + id + ':' + material;
       KEY_CLASS[key] = material === 'cloth' || material === 'rag' ? 'cloth' : material === 'leather' || material === 'strap' ? 'leather' : 'metal';
       data.materials[key] = equipmentMaterial(material); data.armor[key] = { slot: slot, id: id };
       if (!geometry.attributes.kwear) G.wear(geometry, material === 'rag' ? { edge: .3, tear: { amount: .6, width: .04, bottom: .25, base: .04 } } : { edge: material === 'cloth' ? .3 : .85 });
-      if (bone) A.rigid(key, geometry, bone); else A.transfer(key, geometry, BODY, opts || { bones: TORSO });
+      if (bone) A.rigid(key, geometry, bone);
+      else if (opts && opts.rigidWeights) {
+        var uniformWeights = opts.rigidWeights.filter(function (b) { return b[1] > 0; }).map(function (b) { return [A.index[b[0]], b[1]]; });
+        A.weighted(key, geometry, function () { return uniformWeights; });
+      } else if (opts && opts.spineWeights) {
+        A.weighted(key, geometry, function (v) {
+          var low = v.y < plateSpines[1][1] ? 0 : 1, a = plateSpines[low], b = plateSpines[low + 1];
+          var w = Math.max(0, Math.min(1, (v.y - a[1]) / Math.max(.001, b[1] - a[1])));
+          return [[a[0], 1-w], [b[0], w]];
+        });
+      } else A.transfer(key, geometry, BODY, opts || { bones: TORSO });
       A.parts[A.parts.length - 1].equipment = true;
     }
     data.weapons = B.EquipmentArt.build({ A: A, part: part, sleeve: sleeve, equipmentWeapon: equipmentWeapon, rayRadius: rayRadius });

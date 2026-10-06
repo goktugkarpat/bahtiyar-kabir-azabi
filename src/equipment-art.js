@@ -117,8 +117,8 @@
       for(let i=0;i<p.count;i+=3)split(vertex(i),vertex(i+1),vertex(i+2),0);
       const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(pos,3));g.setAttribute('uv',new T.Float32BufferAttribute(tex,2));source.dispose();return g;
     }
-    function piping(slot,id,mat,fn,bone,r=.003) {part(slot,id,mat,G.tube(line(fn),r,6,64,true),bone);}
-    function studs(slot,id,fn,count,bone,mat='brass',radius=.0034) {const out=[];for(let i=0;i<count;i++){const p=fn((i+.5)/count),n=v3(p).sub(new T.Vector3(0,p[1],cz)).normalize();out.push(G.stud(radius,p,n));}emit(slot,id,mat,out,bone);}
+    function piping(slot,id,mat,fn,bone,r=.003,opts) {part(slot,id,mat,G.tube(line(fn),r,6,64,true),bone,opts);}
+    function studs(slot,id,fn,count,bone,mat='brass',radius=.0034,opts) {const out=[];for(let i=0;i<count;i++){const p=fn((i+.5)/count),n=v3(p).sub(new T.Vector3(0,p[1],cz)).normalize();out.push(G.stud(radius,p,n));}emit(slot,id,mat,out,bone,opts);}
     function shoulder(id,s,mat) {
       const bone='upper_arm'+s, bc=A.box(A.cloud([bone],['skin'],.38)), c=bc.getCenter(new T.Vector3()), sz=bc.getSize(new T.Vector3()), sign=s==='L'?1:-1;
       c.y=bc.max.y-.028;
@@ -353,14 +353,26 @@
       if([1,2,4,6,7,8].includes(k))armUnderlayer(id,k);
       if(k===0||k===3||k===5){tailoredChest(id,k===0?0:k===3?1:2);warSkirt(id,k===3?'dark':'leather',k===3);return;}
       const plate=[1,2,7,8].includes(k), mat=plate?(k===2?'salt':'steel'):k===6?'dark':'leather';
-      part('chest',id,mat,G.shell(64,32,(u,v)=>plate?cuirass(u,v,.027):chest(u,v,.027,false),plate?.009:.006,true));
-      [0,1].forEach(v=>piping('chest',id,plate?'brass':'strap',u=>plate?cuirass(u,v,.034):chest(u,v,.032,false),null,plate?.0035:.0025));
+      part('chest',id,mat,G.shell(64,32,(u,v)=>plate?cuirass(u,v,.027):chest(u,v,.027,false),plate?.009:.006,true),null,plate?{spineWeights:true}:undefined);
+      [0,1].forEach(v=>piping('chest',id,plate?'brass':'strap',u=>plate?cuirass(u,v,.034):chest(u,v,.032,false),null,plate?.0035:.0025,plate?{spineWeights:true}:undefined));
       ['L','R'].forEach(s=>shoulder(id,s,k===2?'salt':k===8?'dark':'steel'));
-      if(k===4){const scales=[],riv=[];for(let row=0;row<9;row++)for(let col=0;col<28;col++){
-        const u=(col+(row%2)*.5)/28,v=.03+row*.103;
-        scales.push(G.shell(5,4,(x,y)=>chest(u+(x-.5)*.034,v+y*.113,.034+.004*Math.sin(y*PI),true),.004,false));
-        for(const du of[-.009,.009]){const p=chest(u+du,v+.08,.040,true);riv.push(G.stud(.0024,p,new T.Vector3(Math.sin(u*TAU),0,Math.cos(u*TAU))));}
-      }emit('chest',id,'steel',scales);emit('chest',id,'brass',riv);}
+      if(k===4){
+        const scales=[],rivets=[],cells=[],spines=['spine01','spine02','spine03'];
+        for(let row=0;row<9;row++)for(let col=0;col<28;col++){
+          const u=(col+(row%2)*.5)/28,v=.03+row*.103;
+          const scale=G.shell(5,4,(x,y)=>chest(u+(x-.5)*.034,v+y*.113,.034+.004*Math.sin(y*PI),true),.004,false),riv=[];
+          for(const du of[-.009,.009]){const p=chest(u+du,v+.08,.040,true);riv.push(G.stud(.0024,p,new T.Vector3(Math.sin(u*TAU),0,Math.cos(u*TAU))));}
+          const height=chest(u,v+.0565)[1],lower=height<A.P(spines[1]).y?0:1,lo=A.P(spines[lower]).y,hi=A.P(spines[lower+1]).y,blend=clamp((height-lo)/Math.max(.001,hi-lo),0,1);
+          scales.push(scale);rivets.push(...riv);cells.push({scale,riv,weights:[[spines[lower],1-blend],[spines[lower+1],blend]]});
+        }
+        // Preserve the original merged wear field; only the plate attachment changes.
+        for(const pieces of[scales,rivets]){
+          const merged=G.merge(pieces);G.wear(merged,{edge:.85});let offset=0;
+          for(const piece of pieces){const count=piece.attributes.position.count;piece.setAttribute('kwear',new T.BufferAttribute(merged.attributes.kwear.array.slice(offset*4,(offset+count)*4),4));offset+=count;}
+          merged.dispose();
+        }
+        for(const cell of cells){part('chest',id,'steel',cell.scale,null,{rigidWeights:cell.weights});emit('chest',id,'brass',cell.riv,null,{rigidWeights:cell.weights});}
+      }
       if(k===6){const rings=[];for(let row=0;row<32;row++)for(let col=0;col<72;col++){const u=(col+(row%2)*.5)/72,v=.015+row*.03,p=chest(u,v,.036);const g=G.ring(.007,.00155,null,null,4,10);g.rotateX(PI/2);g.rotateY(u*TAU+(row%2?.35:-.35));g.translate(...p);rings.push(g);}emit('chest',id,'steel',rings);}
       if(plate){for(let l=0;l<3;l++){part('chest',id,mat,G.shell(48,5,(u,v)=>{const p=chest(u,.09,.027+l*.006,true);p[1]-=.02+l*.034+v*.043;return p;},.006,true),null,{bones:['pelvis','spine01']});}}
       if(plate){
@@ -368,7 +380,7 @@
         for(const side of[-1,1])for(let n=0;n<3;n++){
           channels.push(G.tube(line(t=>chest(side*(.018+n*.023+t*.025),.23+t*.61,.038,true),24),.00165,5,32,true));
         }
-        emit('chest',id,'dark',channels);
+        emit('chest',id,'dark',channels,null,{spineWeights:true});
         const relief=[],emboss=[];
         for(const side of[-1,1]){
           for(let rib=0;rib<3;rib++){
@@ -378,18 +390,18 @@
           const scroll=line(t=>{const a=t*TAU*1.25,r=.017*(1-t*.65);return chest(side*(.086+Math.sin(a)*r),.78+Math.cos(a)*r*3,.052,true);},40);
           emboss.push(G.tube(scroll,.0025,6,40,true));
         }
-        emit('chest',id,mat,relief);emit('chest',id,'brass',emboss);
+        emit('chest',id,mat,relief,null,{spineWeights:true});emit('chest',id,'brass',emboss,null,{spineWeights:true});
         // An embossed bronze escutcheon is seated on the breastplate, with a steel inset.
         const p=chest(0,.72,.039,true),crest=G.extrude([[-.025,.029],[0,.041],[.025,.029],[.019,-.013],[0,-.035],[-.019,-.013]],.007,.0025);
-        crest.translate(...p);part('chest',id,'brass',crest,'spine03');
-        const inset=G.extrude([[-.017,.019],[0,.027],[.017,.019],[.012,-.008],[0,-.024],[-.012,-.008]],.006,.0015);inset.translate(p[0],p[1],p[2]+.005);part('chest',id,'dark',inset,'spine03');
-        for(const u of[.14,.86])studs('chest',id,t=>chest(u,.09+t*.74,.035,true),17,null,'brass',.0032);
+        crest.translate(...p);part('chest',id,'brass',crest,null,{spineWeights:true});
+        const inset=G.extrude([[-.017,.019],[0,.027],[.017,.019],[.012,-.008],[0,-.024],[-.012,-.008]],.006,.0015);inset.translate(p[0],p[1],p[2]+.005);part('chest',id,'dark',inset,null,{spineWeights:true});
+        for(const u of[.14,.86])studs('chest',id,t=>chest(u,.09+t*.74,.035,true),17,null,'brass',.0032,{spineWeights:true});
       }
       if(k===7||k===8){const ornaments=[];for(let side of[-1,1])for(let row=0;row<5;row++){
         const u=side>0?.035:.965,v=.29+row*.12;const path=line(t=>chest(u+side*t*.105,v+.035*Math.sin(t*PI)-t*.04,.043,true),16);
         ornaments.push(G.tube(path,t=>.0025+.006*Math.sin(t*PI),8,24,true));
-      }emit('chest',id,k===8?'bone':'brass',ornaments);
-        const keel=line(v=>chest(0,.15+v*.7,.046,true),32);part('chest',id,'dark',G.tube(keel,.0025,6,36,true));
+      }emit('chest',id,k===8?'bone':'brass',ornaments,null,{spineWeights:true});
+        const keel=line(v=>chest(0,.15+v*.7,.046,true),32);part('chest',id,'dark',G.tube(keel,.0025,6,36,true),null,{spineWeights:true});
       }
       warSkirt(id,plate?mat:k===6?'dark':'leather',plate||k===6);
       // A broad leather belt, with a bevelled buckle and punched fastening holes.

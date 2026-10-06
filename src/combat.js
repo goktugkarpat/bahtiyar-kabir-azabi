@@ -146,6 +146,11 @@
       player, enemies, hazards, state: 'ready', checkpointIndex: 0,
       elapsed: 0, kills: 0, totalKills: 0, lastDeath: null, hasSave: false,
       currentRoom: null, activeEncounter: '', boss: null, attackTarget: null,
+      get pendingBossReward() {
+        if (disposed || endAnnounced || !game.boss || !game.boss.dead) return null;
+        const drop = pendingFinalBossReward(game.boss);
+        return drop && Number.isFinite(drop.x) && Number.isFinite(drop.z) ? Object.freeze({ x: drop.x, z: drop.z, uid: drop.uid, id: drop.id }) : null;
+      },
       start, update, restart, newCampaign: restart, respawn, interact, dispose, setQuality, setDifficulty, difficulty: 'normal', toTitle, beginRenderTraversal, endRenderTraversal, prepareGraphics, propTargets: () => mech && mech.pickTargets ? mech.pickTargets() : noPropTargets
     };
     const skillKeys = ['heavy', 'special', 'rage', 'fourth'];   // right mouse, key 1, key 2, key 3 (slot index = loadout index)
@@ -1562,7 +1567,7 @@
         if (groundLoot && drop) {
           clearHazards();
           emit('boss', {name:enemy.name,active:false});
-          emit('toast', {text:'Boss yenildi. Bıraktığı eşyaya yaklaş; otomatik toplanacak.'});
+          emit('toast', {text:'Efendi yenildi. Emanetine yaklaş; kendiliğinden toplanır.'});
         } else win();
       }
       saveProfileChoices();

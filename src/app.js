@@ -1371,7 +1371,7 @@
     const p = game.player, total = game.totalKills || game.enemies.length;
     let kills = 0; for (const e of game.enemies) if (e.dead && !e.reserve) kills++;
     const story = game.quests;
-    hudText('kill-progress', story ? story.completed + ' / 2 bağ çözüldü' : kills + ' / ' + total);
+    hudText('kill-progress', game.pendingBossReward ? 'Emaneti alarak ilerle' : story ? story.completed + ' / 2 bağ çözüldü' : kills + ' / ' + total);
     if (questUI) questUI.update();
 
     hq('.hero-card').classList.toggle('sealed', !!game.checkpointIndex);
@@ -1402,6 +1402,7 @@
     return null;
   }
   function chapterObjective(room) {
+    if (game.pendingBossReward) return 'Efendi yenildi. Emanetine yaklaş.';
     const gateText = gateObjective(room); if (gateText) return gateText;
     if(chapter < 3 && room && room.id >= 7){const n=game.enemies.filter(e=>!e.dead&&e.encounter.room===room.id).length;return n?'Bu yan alanda '+n+' düşman var.':'Alan temizlendi. Ana yola geri dön.';}
     if(forgeChapter){if(game.state==='won')return 'Ocak söndü. Zincirlerin kaynağı yok oldu.';if(!room)return 'Dökümhanenin içinden kuzeye ilerle.';if(room.id===11)return game.checkpointIndex?'Köz Yemini mühürlendi. Son Döküm’e ilerle.':'Köz Yemini taşına yaklaş ve '+capName(binds.interact[0])+' ile dokun.';if(room.id===13)return 'Ocağın Kalbi’ni yen. Kızgın halkalardaki boşlukları kullan.';const n=game.enemies.filter(e=>!e.dead&&e.encounter.room===room.id).length;return n?'Bu alanda '+n+' düşman var.':'Kuzeydeki döküm salonuna ilerle.';}

@@ -27,7 +27,7 @@
     map.append(canvas, controls, compass, instructions);
     const aside = node('aside', 'atlas-ledger'), hereHeading = node('h3', '', 'Bulunduğun yer'), here = node('p', 'atlas-here'), knowledge = node('small', 'atlas-knowledge');
     const goalHeading = node('h3', '', 'İzlenen yeminler'), goals = node('div', 'atlas-goals');
-    const landmarkHeading = node('h3', '', 'Keşfedilen duraklar'), landmarks = node('div', 'atlas-landmarks');
+    const landmarkHeading = node('h3', '', 'Yakındaki duraklar'), landmarks = node('div', 'atlas-landmarks');
     const legend = node('div', 'atlas-legend'); legend.innerHTML = '<span><i class="atlas-symbol hero"></i>Bahtiyar</span><span><i class="atlas-symbol oath"></i>Yemin taşı</span><span><i class="atlas-symbol quest"></i>Görev izi</span>';
     aside.append(hereHeading, here, knowledge, goalHeading, goals, landmarkHeading, landmarks, legend); workspace.append(map, aside);
     const footer = node('footer'), note = node('p', 'atlas-note', 'Yalnızca gördüğün yollar ve tanıdığın yerler işlenir.');
@@ -137,17 +137,25 @@
       context.restore();
     }
     function ledger() {
-      const r = world.roomAt && world.roomAt(game.player.x, game.player.z); const key = String(r && r.id) + ':' + version + ':' + (game.quests ? game.quests.revision : -1); if (key === lastLedger) return;lastLedger=key; here.textContent = r ? r.name : TITLES[chapter - 1]; knowledge.textContent = visited.size + ' keşfedilen durak';
+      const reward = game.pendingBossReward || null, r = world.roomAt && world.roomAt(game.player.x, game.player.z); const key = String(r && r.id) + ':' + version + ':' + (game.quests ? game.quests.revision : -1) + ':' + (reward ? reward.uid : ''); if (key === lastLedger) return;lastLedger=key; here.textContent = r ? r.name : TITLES[chapter - 1]; knowledge.textContent = visited.size + ' keşfedilen durak';
       goals.replaceChildren();
       const quests = game.quests;
-      goalHeading.textContent = quests && quests.ready ? 'Sonraki hedef' : 'İzlenen yeminler';
-      function goal(name, objective, complete) {
-        const block = node(typeof options.onJournal === 'function' ? 'button' : 'div', 'atlas-goal');
+      goalHeading.textContent = reward ? 'Zafer emaneti' : quests && quests.ready ? 'Sonraki hedef' : 'İzlenen yeminler';
+      function goal(name, objective, complete, onMap) {
+        const block = node(typeof onMap === 'function' || typeof options.onJournal === 'function' ? 'button' : 'div', 'atlas-goal');
         if (complete) block.classList.add('complete');
-        if (typeof options.onJournal === 'function') { block.type = 'button'; block.onclick = () => { close(false); options.onJournal(); }; block.setAttribute('aria-label', name + ' · Görev günlüğünü aç'); }
+        if (typeof onMap === 'function') { block.type = 'button'; block.onclick = onMap; block.setAttribute('aria-label', name + ' · Emanete odaklan'); }
+        else if (typeof options.onJournal === 'function') { block.type = 'button'; block.onclick = () => { close(false); options.onJournal(); }; block.setAttribute('aria-label', name + ' · Görev günlüğünü aç'); }
         block.append(node('strong', '', name), node('p', '', objective)); goals.append(block);
       }
-      if (quests && quests.ready) goal('Efendinin kapısı açık', quests.objective, false);
+      if (reward) {
+        const item = B.Progression && Array.isArray(B.Progression.items) && B.Progression.items.find(def => def.id === reward.id);
+        const rewardRoom = Number.isFinite(reward.x) && Number.isFinite(reward.z) && world.roomAt && world.roomAt(reward.x, reward.z);
+        goal(item && item.name || 'Zafer emaneti', 'Efendi yenildi. Emanetine yaklaş.', false, () => {
+          if (!rewardRoom || !visited.has(String(rewardRoom.id))) return;
+          camera.x = reward.x; camera.z = reward.z; fitted = false; draw(); canvas.focus({preventScroll:true});
+        });
+      } else if (quests && quests.ready) goal('Efendinin kapısı açık', quests.objective, false);
       else for (const entry of quests && quests.entries || []) goal(entry.name, entry.complete ? 'Bağ çözüldü' : entry.objective, entry.complete);
       const nearby = rooms.filter(room => visited.has(String(room.id))).sort((a, b) => Math.hypot(a.x-game.player.x,a.z-game.player.z)-Math.hypot(b.x-game.player.x,b.z-game.player.z)).slice(0, 6); landmarks.replaceChildren();
       for (const room of nearby) { const b = node('button', '', room.name); b.type = 'button'; if (r === room) b.classList.add('here'); b.onclick = () => { camera.x = room.x; camera.z = room.z; camera.scale = Math.max(camera.scale, 4); fitted = false; draw(); }; landmarks.append(b); }
@@ -177,6 +185,8 @@
       if(world.checkpoint){const cr=world.roomAt&&world.roomAt(world.checkpoint.x,world.checkpoint.z);if(cr&&visited.has(String(cr.id)))mark(world.checkpoint.x,world.checkpoint.z,'oath');}
       const questMarkers=game.quests&&Array.isArray(game.quests.markers)?game.quests.markers.filter(marker=>marker.active&&!marker.complete):(game.quests&&game.quests.entries||[]).map((entry,quest)=>entry.target&&Object.assign({quest},entry.target)).filter(Boolean);
       for(const target of questMarkers){const r=world.roomAt&&world.roomAt(target.x,target.z);if(r&&visited.has(String(r.id)))mark(target.x,target.z,'quest',target.quest?'II':'I');}
+      const reward=game.pendingBossReward;
+      if(reward&&Number.isFinite(reward.x)&&Number.isFinite(reward.z)){const r=world.roomAt&&world.roomAt(reward.x,reward.z);if(r&&visited.has(String(r.id)))mark(reward.x,reward.z,'quest','★');}
       mark(game.player.x,game.player.z,'hero');
       const vignette=context.createRadialGradient(width/2,height/2,Math.min(width,height)*.30,width/2,height/2,Math.max(width,height)*.72);vignette.addColorStop(0,'#08090800');vignette.addColorStop(1,'#080908cc');context.fillStyle=vignette;context.fillRect(0,0,width,height);
       ledger();
@@ -197,8 +207,8 @@
     const observer=new ResizeObserver(resize);observer.observe(map);
     function open() { if(disposed)return;if(opened){explore();draw();return;}const openStart=performance.now();explore();element.classList.remove('hidden');opened=true;previousFocus=document.activeElement;resize();if(!fitOnce)fit(true);else draw();canvas.focus({preventScroll:true});window.addEventListener('keydown',keydown,true);element.dataset.openMs=(performance.now()-openStart).toFixed(1); }
     function close(restore=true) {if(dragging){try{canvas.releasePointerCapture(dragging.id);}catch(_){}dragging=null;canvas.classList.remove('dragging');}opened=false;element.classList.add('hidden');window.removeEventListener('keydown',keydown,true);if(restore&&previousFocus&&previousFocus.isConnected&&previousFocus.getClientRects().length)previousFocus.focus({preventScroll:true});previousFocus=null;}
-    function update(dt=0) {if(disposed)return;timer-=Math.max(0,dt);if(timer>0)return;timer=.45;const before=version;explore();if(opened&&(before!==version||game.quests&&game.quests.revision!==lastQuest)){lastQuest=game.quests?game.quests.revision:-1;draw();}}
-    let lastQuest=-1;
+    function update(dt=0) {if(disposed)return;timer-=Math.max(0,dt);if(timer>0)return;timer=.45;const before=version,reward=game.pendingBossReward,rewardUid=reward?reward.uid:'';explore();if(opened&&(before!==version||game.quests&&game.quests.revision!==lastQuest||rewardUid!==lastReward)){lastQuest=game.quests?game.quests.revision:-1;lastReward=rewardUid;draw();}}
+    let lastQuest=-1,lastReward='';
     function clear(){visited.clear();record.chapters[chapter]=[];version++;fitOnce=false;persist();explore();if(opened)fit(true);}
     function dispose(){if(disposed)return;close(false);disposed=true;observer.disconnect();element.remove();footprint=roomIndex=reveals=floorPath=null;}
     explore();
