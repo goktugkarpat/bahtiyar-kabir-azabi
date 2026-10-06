@@ -129,6 +129,7 @@
     return finishes[key]=m;
   }
   function build({A,part,sleeve,equipmentWeapon,rayRadius}) {
+    const buildT0=performance.now();
     // A mail underlayer replaces the existing cloth group in plate sets. All
     // torso and limb pieces keep their old grouping and native skin bindings.
     const sourcePart=part,mailSets=new Set(['grave-chest','lamellar-chest','warden-chest','chainmail-chest']);
@@ -758,7 +759,9 @@
       }
     });
 
+    const gearT0=performance.now();
     if(B.GearArmor&&!/[?&]oldgear/.test(location.search)){try{B.GearArmor.build({A,part,sleeve,chest,hc,rx,ry,rz,facingAngle,modelOf:item=>({'no-witness-helm':'sealed-mask','forgotten-face-helm':'sealed-mask','sealed-furnace-helm':'furnace-mask','no-dawn-helm':'furnace-mask'})[item.id]||(/hood/.test(item.id)?'cloth-hood':item.modelId)});}catch(error){console.warn('gear-armor',error);}}
+    const gearT1=performance.now();
     const weapons={};
     const baseParts=()=>({steel:[],edge:[],dark:[],brass:[],leather:[],wood:[],bone:[]});
     function grip(P,length=.29,y=-.28) {
@@ -865,6 +868,7 @@
       weapons[id]=equipmentWeapon({parts:P,tip:new T.Vector3(0,top,0)},id,'spear',k===1?'salt':k===5?'dark':'steel');
     });
     if(B.GearWeapons&&!/[?&]oldgear/.test(location.search)){try{Object.assign(weapons,B.GearWeapons.build({equipmentWeapon}));}catch(error){console.warn('gear-weapons',error);}}
+    B.GearTiming={armor:gearT1-gearT0,weapons:performance.now()-gearT1,total:performance.now()-buildT0};
     return weapons;
   }
   B.EquipmentArt={material,finish,build,finishes,prepare,uniqueWeapons:new Set(['dull-sword', 'grave-sword', 'widow-sword', 'black-tide-sword', 'slag-edge-sword', 'hollow-crown-blade', 'ruin-lament-sword', 'cave-verdict-sword', 'black-forge-sword', 'rust-axe', 'executioner-axe', 'mourning-axe', 'furnace-oath-axe', 'sepulcher-axe', 'broken-throne-axe', 'ember-vow-axe', 'bone-spear', 'bell-spear', 'orphan-spear', 'starved-spear', 'furnace-mourning-spear', 'last-coal-spear'])};
