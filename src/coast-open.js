@@ -276,12 +276,12 @@
       [3.2, 6.4, 9.6, 12.8, 15.6].forEach(function (rad, ring) {
         var n = Math.round(rad * 2 * PI / 1.05);
         for (var k = 0; k < n; k++) { var a = k / n * PI * 2, wear = B.Gear.hash(k, ring, 61); if (wear < .28) continue;
-          add(6, K.G.paving[(k + ring) % 3], 'funeralPaving', cx + Math.cos(a) * rad, .012, cz + Math.sin(a) * rad, .95, .34, .7 + wear * .3, 0, -a, 0); }
+          add(6, K.G.paving[(k + ring) % 3], 'funeralPaving', cx + Math.cos(a) * rad, .046, cz + Math.sin(a) * rad, .95, .34, .7 + wear * .3, 0, -a, 0); }
       });
-      for (var k = 0; k < 12; k++) { var a = R(0, PI * 2), rr = R(2, 14); add(6, G.rock, 'puddle', cx + Math.cos(a) * rr, -.04, cz + Math.sin(a) * rr, R(.9, 2.4), .05, R(.6, 1.6), 0, R(0, 6), 0); }
-      for (k = 0; k < 40; k++) { a = R(0, PI * 2); rr = R(3, 16); add(6, G.plank, 'root', cx + Math.cos(a) * rr, .02, cz + Math.sin(a) * rr, R(.6, 1.6), .025, R(.05, .12), 0, R(0, 6), 0); }   // stranded kelp
+      for (var k = 0; k < 12; k++) { var a = R(0, PI * 2), rr = R(2, 14); add(6, G.rock, 'puddle', cx + Math.cos(a) * rr, .012, cz + Math.sin(a) * rr, R(.9, 2.4), .05, R(.6, 1.6), 0, R(0, 6), 0); }
+      for (k = 0; k < 40; k++) { a = R(0, PI * 2); rr = R(3, 16); add(6, G.plank, 'root', cx + Math.cos(a) * rr, .05, cz + Math.sin(a) * rr, R(.6, 1.6), .025, R(.05, .12), 0, R(0, 6), 0); }   // stranded kelp
       for (k = 0; k < 7; k++) { a = R(0, PI * 2); rr = R(13, 15.5); add(6, G.cone, 'rust', cx + Math.cos(a) * rr, .25, cz + Math.sin(a) * rr, R(.4, .8), R(.3, .6), R(.4, .8), R(1.2, 1.9), R(0, 6), R(-.3, .3)); }   // bell shards
-      for (k = 0; k < 18; k++) { a = R(0, PI * 2); rr = R(1, 16); var ps = R(.06, .18); add(6, G.pebble, 'bone', cx + Math.cos(a) * rr, .03, cz + Math.sin(a) * rr, ps, ps * .4, ps * 1.6, 0, R(0, 6), 0); }
+      for (k = 0; k < 18; k++) { a = R(0, PI * 2); rr = R(1, 16); var ps = R(.06, .18); add(6, G.pebble, 'bone', cx + Math.cos(a) * rr, .06, cz + Math.sin(a) * rr, ps, ps * .4, ps * 1.6, 0, R(0, 6), 0); }
     }());
 
     /* ---- 9: ash fishers' houses ---- */
