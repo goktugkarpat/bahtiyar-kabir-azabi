@@ -945,6 +945,7 @@
     function whirlTick(d) {
       const x = d.x, z = d.z, R = d.radius || 3.6, last = d.last, calm = reduced.matches, tier = d.tier || 1, W = WT[tier] || WT[1];
       if(last)chRing(x,z,R*1.05,.5,W.ringLast);
+      if(last&&impactFx){const c=W.ringLast,h=W.ember[0];impactFx.dome(x,z,{r:R*1.1,h:1.2+.4*tier,life:.5+.05*tier,col:[c[0]*.8,c[1]*.8,c[2]*.8],hot:[Math.min(1.9,h[0]*.55),Math.min(1.6,h[1]*.55),Math.min(1.6,h[2]*.75)],a:.55+.12*tier});if(tier===3)impactFx.plume(x,z,{n:12,r:R*.35,col:[.045,.032,.05],up:2.2,size:.55});}   // the last turn throws a wall of air and grit outward (fx-impact.js)
       if (tier === 3 && !last && (d.n % 2 === 0) && B.Charge && B.Charge.punch) B.Charge.punch({ vig: .1, push: .007, dur: .3 });
       if (last) { flash(x, .9, z, tier === 3 ? 2.2 : 1.2, new T.Color(tier === 3 ? '#efe6ff' : '#d87840'), tier === 3 ? .2 : .16, 0, softMap); chCrack(x, z, R * (tier === 3 ? 1.15 : 1), tier); scar(x, z, 0, { shape: 'circle', radius: R * .75, heat: tier === 3 ? .35 : .3 }); }
       if (last && tier === 3) {   // Son Hüküm: the final slam, a second wide ring, a pulse through the whole screen
@@ -1196,6 +1197,7 @@
         if (d.skill === 'cleave') {
           const o = skillCrescents.find(q => !q.m.visible) || skillCrescents[0]; o.time = 0; o.mat.uniforms.uK.value = 0; o.mat.uniforms.uFace.value = face; o.mat.uniforms.uArc.value = d.arc || 3.65;
           o.m.position.set(x, .95, z); o.m.scale.set(r * 2.4, r * 2.4, 1); o.m.visible = true;
+          if (impactFx) { impactFx.dome(x + sx * r * .35, z + sz * r * .35, { r: r * .8, h: .55, life: .34, col: [.85, .2, .07], hot: [1.6, .8, .4], a: .45 }); impactFx.plume(x + sx * r * .6, z + sz * r * .6, { n: 5, r: .7, col: [.06, .045, .035], up: 1.6, size: .4 }); }   // the cleaver's wind slaps the floor (fx-impact.js)
           for (let i = 0; i < count; i++) { const a = face + (i / Math.max(1, count - 1) - .5) * (d.arc || 3.65);
             emit(x + Math.sin(a) * r, .5 + Math.sin(i / count * Math.PI) * .9, z + Math.cos(a) * r, 4, [3.8, .32, .11], Math.sin(a) * 2, .25, Math.cos(a) * 2, .55, .09); }
           return;
@@ -1275,6 +1277,8 @@
         if (!d.player && name === 'blood') gearHit(d.kill ? .3 : heavy ? .16 : .08); else if (d.player) gearHit(.06);
         if (impactFx && !d.player && d.labelTarget) {   // the struck body flares in the colour of the skill that hit it (fx-impact.js)
           const pl = game.player, sk = pl && (pl.attack && pl.attack.skill || (pl.roar ? 'roar' : '')), tint = sk && impactFx.skillTint(sk);
+          // the combo finisher / a heavy blow without a skill of its own: a small slap of air and grit at the foe's feet
+          if (!tint && (heavy || d.kill)) { const f = d.labelTarget; impactFx.dome(f.x, f.z, { r: d.kill ? 1.9 : 1.4, h: .55, life: .28, col: [.7, .26, .1], hot: [1.4, .9, .55], a: d.kill ? .5 : .38 }); }
           impactFx.hitFlash(d.labelTarget, { col: tint || (d.critical ? [1.25, .95, .6] : [.95, .8, .66]), a: d.kill ? .95 : tint ? .8 : heavy || d.critical ? .7 : .48, life: d.kill ? .26 : tint || heavy ? .2 : .14 });
         }
         if (d.damage > 0) number(Math.round(d.damage), x, 2.5, z, d.player, d.heavy || d.critical, d.kill, d.boss, d.labelTarget || null);

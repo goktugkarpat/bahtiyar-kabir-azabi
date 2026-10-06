@@ -45,7 +45,7 @@
     const wallGeo = new T.CylinderGeometry(1, 1, 1, 56, 1, true).translate(0, .5, 0);
     const wallBase = new T.ShaderMaterial({ transparent: true, depthWrite: false, side: T.DoubleSide, blending: T.AdditiveBlending, fog: false,
       uniforms: { uK: { value: 1 }, uA: { value: 1 }, uSeed: { value: 0 }, uCol: { value: new T.Vector3(1, .4, .1) }, uHot: { value: new T.Vector3(2, 1.6, 1.2) } }, vertexShader: VS, fragmentShader: WALL_FS });
-    const walls = Array.from({ length: 6 }, () => { const mat = wallBase.clone(), m = new T.Mesh(wallGeo, mat); m.frustumCulled = false; m.visible = false; m.renderOrder = 4; root.add(m); return { m, mat, t: 9, life: 1, r: 1, h: 1 }; });
+    const walls = Array.from({ length: 10 },() => { const mat = wallBase.clone(), m = new T.Mesh(wallGeo, mat); m.frustumCulled = false; m.visible = false; m.renderOrder = 4; root.add(m); return { m, mat, t: 9, life: 1, r: 1, h: 1 }; });
     function dome(x, z, d) {
       const w = walls.find(q => q.t >= q.life && !q.m.visible) || walls.reduce((a, b) => (b.t / b.life > a.t / a.life ? b : a));
       const u = w.mat.uniforms, k = calm() ? .5 : 1, col = d.col || [1, .4, .1], hot = d.hot || [2, 1.6, 1.2];
@@ -112,7 +112,7 @@
     function releaseSlot(s) { if (s.ov) { for (const it of s.ov.list) it.c.visible = false; s.ov.slot = null; } s.ov = null; s.t = 9; s.mat.opacity = 0; }
     // Identity colours for the body flash (and the default edge of their impact walls).
     const TINT = { cleave: [1.05, .45, .2], brand: [1.25, .3, .2], temper: [.85, .32, 1.15], roar: [1.1, .55, .22], quake: [1.05, .9, .7], chainstorm: [1.1, .4, .45],
-      whirl: [1.05, .6, .28], reap: [.6, .75, 1.35], rend: [.85, .42, 1.35], charge: [1.25, .55, .2], grasp: [1.25, .78, .3], havoc: [.8, .38, 1.35] };
+      whirl: [1.05, .5, .2], reap: [1.2, .86, .36], rend: [.85, .42, 1.35], charge: [1.25, .55, .2], grasp: [1.25, .78, .3], havoc: [.8, .38, 1.35] };
     const skillTint = id => TINT[id] || null;
     // ---------------------------------------------------------------- per frame
     function step(dt) {

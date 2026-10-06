@@ -889,6 +889,8 @@
     ring(t + .004, { f: 330, partials: [1, 2.76, 5.4, 8.9], decay: 1.5, vol: .075 * k, send: .45 }); sample('hitClang', { vol: .6 * k, at, rate: .78, delay: .006, send: .3 });
     sample('bone', { vol: .7 * k, at, rate: .8, delay: .02 }); burst(t + .01, .35, .24 * k, 380, { q: .5, f1: 110, send: .3 }); sample('debris', { vol: .5 * k, at, delay: .06, rate: .9 });
     for (let i = 0; i < 2; i++) ring(t + .17 + i * .05, { f: 230, partials: [1, 2.4], decay: .5, vol: .02 * k, send: .4 });   // the aftershock ring
+    // fx-impact.js layers: the falling blade of light (a dark steel shing pitched down) and the torn air of the shock wall rushing outward
+    sample('shing', { vol: .32 * k, at, rate: .6, send: .35 }); whoosh(t + .01, { dur: .5, peak: .14, f0: 1100, f1: 320, f2: 120, q: .7, vol: .34 * k, low: 180, send: .25 });
   };
   H.strikeHit3 = (o, k) => {
     const t = now(), at = { x: o.x, z: o.z };
@@ -899,6 +901,8 @@
     for (const [f, d] of [[65.4, 0], [98, .05], [130.8, .1]]) tone(t + .08 + d, f, 2.2, .05 * k, { type: 'sawtooth', lp: 520, attack: .35, send: .5 });   // low open-fifth choir
     ring(t + .03, { f: 110, partials: [1, 2.4, 3.9], decay: 2.2, vol: .05 * k, send: .55 });
     burst(t + .35, 1.1, .1 * k, 160, { q: .6, attack: .2, bus: 'amb', send: .3, buf: N.brown });
+    whoosh(t + .02, { dur: .75, peak: .12, f0: 760, f1: 220, f2: 90, q: .6, vol: .42 * k, low: 150, send: .3 });   // the grave wall rushing outward
+    sample('chain', { vol: .28 * k, at, rate: .5, delay: .14 });
     duck(N.musicDuck, .5, .5, .5);
   };
   // Tier II shout "Ölüm Çığlığı": a high wail rises over the roar (sawtooth bending upward through a formant), bright bone-like ring, hiss of air.
@@ -911,6 +915,7 @@
     thud(t + r, { f0: 84, f1: 26, dur: .9, vol: 1 * k, send: .35 }); burst(t + r, .8, .2 * k, 2400, { q: .5, f1: 500, send: .4 });
     ring(t + r + .01, { f: 587, partials: [1, 2.4, 3.9, 5.4], decay: 1.7, vol: .06 * k, send: .55 });
     for (let i = 0; i < 3; i++) ring(t + r + .12 + i * .14, { f: 440 - i * 40, partials: [1, 2.76], decay: .7, vol: .025 * k, send: .5 });   // the spreading rings
+    whoosh(t + r + .01, { dur: .7, peak: .1, f0: 1500, f1: 480, f2: 180, q: .6, vol: .3 * k, low: 200, send: .3 });   // the pressure wall (fx-impact.js)
     duck(N.musicDuck, .45, .7, .4); duck(N.ambDuck, .5, .7, .4); stinger('rage', .25);
   };
   // Tier III shout "Kıyamet Narası": stage 1 = very low roar + sub-boom + choir fifth + rumble; stage 2 (+.34 s) a second blast; the third ring (+.68 s) closes with a stone crack.
@@ -926,6 +931,7 @@
     thud(t + r + .34, { f0: 70, f1: 24, dur: .9, vol: 1.1 * k, send: .3 }); sample('roar', { vol: .7 * k, rate: .58, delay: r + .34, send: .5, prio: 1 }); burst(t + r + .34, .3, .2 * k, 1400, { q: .5, f1: 300, send: .3 });
     thud(t + r + .68, { f0: 76, f1: 28, dur: .8, vol: 1 * k, send: .3 }); sample('debris', { vol: .7 * k, rate: .6, delay: r + .68 }); sample('stomp', { vol: .6 * k, rate: .55, delay: r + .68 });
     burst(t + r + .1, 1.6, .12 * k, 150, { q: .6, attack: .25, bus: 'amb', send: .3, buf: N.brown });
+    whoosh(t + r + .01, { dur: .85, peak: .1, f0: 1100, f1: 300, f2: 110, q: .55, vol: .38 * k, low: 160, send: .35 });   // the bone-white wall (fx-impact.js)
     for (let i = 0; i < 4; i++) thud(t + r + 1.1 + i * .42, { f0: 60, f1: 38, dur: .2, vol: .4 * k });   // the heart
     duck(N.musicDuck, .4, .9, .5); duck(N.ambDuck, .45, .9, .5); stinger('rage', .25);
   };
