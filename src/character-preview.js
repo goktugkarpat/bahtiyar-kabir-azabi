@@ -9,15 +9,16 @@
     // at most portrait angles; no second environment render or texture allocation is needed.
     function syncEnvironment() {
       if (worldScene && scene.environment !== worldScene.environment) scene.environment = worldScene.environment;
-      scene.environmentIntensity = 1.0;
+      scene.environmentIntensity = .6;
     }
     syncEnvironment();
     model.root.rotation.y = -.22;
-    scene.add(new T.HemisphereLight(0xd7deea, 0x332322, 1.35));
-    const key = new T.DirectionalLight(0xffe0b8, 2.15); key.position.set(-3, 4, 5); scene.add(key);
+    // (ajan:visual-dark) low fill, warm key from the upper left and a cold back rim: the figure is modelled by light, not flat-lit.
+    scene.add(new T.HemisphereLight(0xc9d2e0, 0x2a1d1a, .62));
+    const key = new T.DirectionalLight(0xffd9ae, 2.7); key.position.set(-3.4, 4.2, 3.6); scene.add(key);
     // The resting blade tilts down; the existing fill reveals its metal from below eye level.
-    const rim = new T.DirectionalLight(0x8fabc7, .85); rim.position.set(3, .3, 4); scene.add(rim);
-    const backLight = new T.DirectionalLight(0xb8c9df, .9); backLight.position.set(2, 3, -4); scene.add(backLight);
+    const rim = new T.DirectionalLight(0x8fabc7, .6); rim.position.set(3, .3, 4); scene.add(rim);
+    const backLight = new T.DirectionalLight(0xb8c9df, 2.3); backLight.position.set(2.6, 3, -3.6); scene.add(backLight);
     const owned = [], stageGeometry = [], stageMaterials = [];
     const stone = new T.MeshStandardMaterial({ ...B.CoastMaterials.createSurface('crypt', owned), color: 0x373b3a, roughness: .94, metalness: 0, normalScale: new T.Vector2(.6, .6) });
     stageMaterials.push(stone);
