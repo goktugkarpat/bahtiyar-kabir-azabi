@@ -190,6 +190,14 @@
       wallLite(cx, r.z - 3.35, clen + .2, 'x', 2.6, 1);
       wallLite(cx, r.z + 3.35, clen + .2, 'x', 1.0, -1);
       K.floorDecal('matte', CELL.mould, cx, r.z, clen + 1, 4.4, 0, COL.grime, 0);
+      // solid masonry between the two halls on either side of the passage (no dark slot between the walls)
+      var mainHalf = main.d / 2, fillLen = Math.max(r.d / 2, mainHalf) - 3.35;
+      [-1, 1].forEach(function (k) {
+        var h = k < 0 ? 4.25 : 1.0, fz = r.z + k * (3.35 + fillLen / 2), fw = Math.max(.1, clen - .75);
+        box('dark', cx, h / 2, fz, fw, h, fillLen);
+        for (var q = 0; q < Math.ceil(fillLen / 1.4); q++) put('box', 'stone', cx, h + .045, r.z + k * (3.35 + (q + .5) * fillLen / Math.ceil(fillLen / 1.4)), fw + .2, .19, fillLen / Math.ceil(fillLen / 1.4) - .04, 0, 0, 0, 0, new T.Color().setScalar(.62 + q % 3 * .06));
+        solid(cx, fz, fw, fillLen);
+      });
       // doorway frame: two heavy jambs and a lintel with hanging chain
       [-1, 1].forEach(function (k) {
         put('slab2', 'dark', edge, 1.6, r.z + k * 3.25, 1.2, 3.2, .9, 0, 0, 0);
