@@ -233,7 +233,7 @@
       const stats = progression.stats();
       const wasMax = player.effectiveMaxHp || stats.maxHp, woundHp = player.hp * wasMax / 100;
       player.maxHp = 100; player.effectiveMaxHp = stats.maxHp;
-      if (talents) { player.maxFlasks = talents.maxFlasks(4); player.flasks = Math.min(player.flasks, player.maxFlasks); }
+      if (talents && !BABA.QuestSide) { player.maxFlasks = talents.maxFlasks(4); player.flasks = Math.min(player.flasks, player.maxFlasks); }   // with quest-side.js the flask capacity is set there (it adds the talent delta)
       player.damageMultiplier = stats.damageMultiplier; player.defense = stats.defense;
       // Preserve the original effective wounds and growth: 100 is the health unit, not a loss of gear strength.
       const levelHeal = progression.level > appliedLevel ? Math.max(0, stats.maxHp - wasMax) : 0;
