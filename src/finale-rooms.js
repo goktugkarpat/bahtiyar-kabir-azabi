@@ -84,7 +84,22 @@
     // Blood-fire brazier (the kit's brazier with a crimson flame and light).
     function pyre(x, z, s, inten, opt) { K.brazier(i, X(x), Z(z), Object.assign({ s: s || 1, col: [1.7, .32, .14], lightColor: 0xff5a3a, intensity: inten == null ? 30 : inten, tint: PALE }, opt || {})); }
     function candleCluster(x, z, n) { for (var k = 0; k < n; k++) { var a = R() * 6.28, d = R() * .55, h = .2 + R() * .45, cx = X(x) + Math.cos(a) * d, cz = Z(z) + Math.sin(a) * d; K.put(i, 'cyl', 'stone', cx, h / 2, cz, .09, h, .09, 0, 0, 0, BONE, .2); K.spr(i, S.flame, cx, h + .09, cz, .05, .1, [1.6, .55, .2], 1, R(), 1.4, 1); } K.spr(i, S.pool, X(x), .1, Z(z), 1.8, 1.8, [.6, .2, .06], .5, R(), 1, 1); }
-    function statueL(x, z, rot, pose, s, tint) { K.put(i, 'box', 'stone', X(x), .25, Z(z), 1.6 * (s || 1), .5, 1.6 * (s || 1), rot, 0, 0, PALE, .5); K.statue(i, X(x), Z(z), rot, { key: 'stone', tint: tint || PALE, pose: pose || 0, s: s || 1 }); solidL(x, z, 1.4 * (s || 1), 1.4 * (s || 1)); }
+    // Hooded stone witnesses of the court (robed, faceless, two embers under the hood); pose 1 kneels.
+    function statueL(x, z, rot, pose, s, tint) {
+      s = s || 1; tint = tint || PALE; var kneel = pose === 1, h = kneel ? 1.55 : 2.6, c = Math.cos(rot), sn = Math.sin(rot), fx = Math.sin(rot), fz = Math.cos(rot);
+      function P(kind, key, lx, y, lz, w, hh, d, rx, tt, ao) { K.put(i, kind, key, X(x) + (lx * c + lz * sn) * s, y * s, Z(z) + (-lx * sn + lz * c) * s, w * s, hh * s, d * s, rot, rx || 0, 0, tt || tint, ao == null ? .4 : ao); }
+      P('box', 'stone', 0, .2, 0, 1.7, .4, 1.7, 0, [tint[0] * .8, tint[1] * .8, tint[2] * .8], .5);
+      P('tooth', 'stone', 0, .4 + h * .5, 0, 1.25, h, 1.05, 0, tint, .55);
+      P('urn', 'stone', 0, .4 + h * .92, -.04, 1.0, .5, .78, 0, tint, .3);
+      P('urn', 'stone', 0, .4 + h * 1.04, .02, .62, .66, .6, 0, [tint[0] * .9, tint[1] * .9, tint[2] * .9], .3);
+      P('spike', 'stone', 0, .4 + h * 1.04 + .48, -.12, .6, .55, .55, -.35, [tint[0] * .9, tint[1] * .9, tint[2] * .9], .2);
+      P('box', 'rock', 0, .4 + h * 1.0, .27, .34, .3, .06, 0, [.05, .04, .04], 0);
+      K.put(i, 'box', 'hot', X(x) + (-.08 * c + .3 * sn) * s, (.4 + h * 1.02) * s, Z(z) + (.08 * sn + .3 * c) * s, .05 * s, .025 * s, .02, rot, 0, 0, [1.6, .12, .06], 0);
+      K.put(i, 'box', 'hot', X(x) + (.08 * c + .3 * sn) * s, (.4 + h * 1.02) * s, Z(z) + (-.08 * sn + .3 * c) * s, .05 * s, .025 * s, .02, rot, 0, 0, [1.6, .12, .06], 0);
+      if (!kneel) { P('box', 'stone', 0, .4 + h * .62, .4, .62, .34, .3, .2, tint, .3); K.bar(i, 'cyl', 'iron', X(x) + (.2 * c + .55 * sn) * s, (.4 + h * .6) * s, Z(z) + (-.2 * sn + .55 * c) * s, X(x) + (.2 * c + .62 * sn) * s, .1, Z(z) + (-.2 * sn + .62 * c) * s, .03 * s, RUST, .1); }
+      else P('box', 'stone', 0, .4 + h * .7, .36, .5, .3, .26, .4, tint, .3);
+      solidL(x, z, 1.4 * s, 1.4 * s);
+    }
     function obelisk(x, z, h, rot) {
       BX('box', 'stone', x, .3, z, 1.9, .6, 1.9, rot, PALE, .5); BX('box', 'rock', x, h / 2 + .5, z, 1.0, h, 1.0, rot, BASALT, .6); BX('cone4', 'rock', x, h + .5 + .6, z, 1.4, 1.2, 1.4, rot + PI / 4, BASALT, .2);
       for (var q = 0; q < 4; q++) HOT(x + Math.sin(rot) * .51, 1.2 + q * h * .2, z + Math.cos(rot) * .51, .5, .06, .04, BLOOD, rot);
