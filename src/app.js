@@ -333,10 +333,12 @@
       $('new').classList.toggle('hidden', !game || !game.hasSave);
     }
     if (next === 'pause') fillPause();
+    // Restore the atlas opener before the destination panel establishes its own focus.
+    if (atlasUI && next !== 'atlas') atlasUI.close(true);
     if (next === 'journal' && questUI) questUI.open();
     if (next !== 'journal' && questUI) questUI.close();
     if (characterUI && next !== 'character') characterUI.close(true);
-    if (atlasUI) { if (next === 'atlas') atlasUI.open(); else atlasUI.close(true); }
+    if (atlasUI && next === 'atlas') atlasUI.open();
     if (next === 'character' && ['atlas', 'journal'].includes(previousView) && characterUI && !characterUI.isOpen) characterUI.open(characterUI.activeTab || 'inventory');
     if (next !== previousView && keyboardMenus.has(next)) focusMenu(next);
     return next;

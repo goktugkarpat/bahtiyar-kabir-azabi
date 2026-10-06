@@ -477,7 +477,7 @@
       if (!e) return null;
       var face = Math.atan2(player.x - x, player.z - z);
       e.x = x; e.z = z; e.spawnX = x; e.spawnZ = z; e.face = face; e.hp = e.maxHp; e.dead = false; e.deadAge = 0; e.active = true; e.activated = true; e.returning = false;
-      var tn = forge ? Boss2.tune4 : Boss2.tune, fh = Math.round(e.b2full.hp * tn.addHp); e.maxHp = e.baseMaxHp = fh; e.hp = fh; e.campaignDamage = e.b2full.dmg * tn.addDmg;
+      var tn = forge ? Boss2.tune4 : Boss2.tune, fh = Math.round(e.b2full.hp * tn.addHp); e.baseMaxHp = fh; e.maxHp = Math.round(fh * (game.difficulty === 'easy' ? .72 : 1)); e.hp = e.maxHp; e.campaignDamage = e.b2full.dmg * tn.addDmg;
       e.action = null; e.stagger = 0; e.hurt = 0; e.cooldown = 2.0; e.faceLocked = false; e.push = null; e.navigation = null; e.spWait = 1; e.summoned = true; e.used = true;
       e.model.root.visible = true; e.holder.visible = true; e.model.root.position.set(x, 0, z); e.model.root.rotation.y = face;
       e.model.animate(0, { reset: true, time: 0, move: 0, attack: 0, dead: false, phase: 'idle', face: face });

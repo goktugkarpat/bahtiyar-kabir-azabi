@@ -409,7 +409,7 @@
     function rememberFocus() {
       const active = document.activeElement;
       if (!overlay.contains(active) || !active.dataset.char) return null;
-      const keys = ['char','uid','slot','skill','tab','filter','direction'], token = {};
+      const keys = ['char','uid','slot','skill','line','tier','tab','filter','direction'], token = {};
       for (const key of keys) if (active.dataset[key] != null) token[key] = active.dataset[key];
       return token;
     }
@@ -418,9 +418,9 @@
       const controls = [...overlay.querySelectorAll('[data-char]:not(:disabled)')].filter(el => !el.hidden && !el.closest('.hidden,[hidden],[inert]') && el.getClientRects().length);
       let next = controls.find(el => Object.keys(token).every(key => el.dataset[key] === token[key]));
       if (!next && token.uid) next = controls.find(el => el.dataset.char === 'select' && el.dataset.uid === token.uid);
-      if (!next && token.skill) next = controls.find(el => el.dataset.char === 'skill' && el.dataset.skill === token.skill);
+      if (!next && token.skill) next = controls.find(el => el.classList.contains('skt-node') && el.dataset.skill === token.skill) || controls.find(el => el.dataset.char === 'skill' && el.dataset.skill === token.skill);
       if (!next && token.slot) next = controls.find(el => el.dataset.char === 'select' && el.dataset.slot === token.slot);
-      if (!next && token.char === 'assign') next = controls.find(el => el.dataset.char === 'skill' && el.dataset.skill === selectedSkill);
+      if (!next && token.char === 'assign') next = controls.find(el => el.classList.contains('skt-node') && el.dataset.skill === selectedSkill) || controls.find(el => el.dataset.char === 'skill' && el.dataset.skill === selectedSkill);
       if (!next && token.char === 'bag-page') next = controls.find(el => el.dataset.char === 'bag-page') || controls.find(el => el.dataset.char === 'filter');
       if (!next) next = controls[0];
       if (next) next.focus({ preventScroll: true });
@@ -553,6 +553,8 @@
       // Empty slots inspect the current selection, not the skill cached at the last full render.
       content.querySelectorAll('.skt-slot.empty [data-char="skill"]').forEach(node => { node.dataset.skill = selectedSkill; });
       content.querySelectorAll('[data-char="skill"]').forEach(node => {
+        // Loadout controls inspect skills; only the actual tree nodes represent a selected toggle.
+        if (!node.classList.contains('skt-node')) { node.classList.remove('selected'); node.removeAttribute('aria-pressed'); return; }
         const selected = node.dataset.skill === selectedSkill;
         node.classList.toggle('selected', selected); node.setAttribute('aria-pressed', String(selected));
       });

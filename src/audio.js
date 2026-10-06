@@ -1510,7 +1510,8 @@
       const d = Math.hypot(e.x - p.x, e.z - p.z);
       if (ff && ff.serial !== s.serial) {
         s.serial = ff.serial; s.n++;
-        if (e.active && (d < 15 || e.boss && d < 32) && enemySteps < 3) { enemySteps++; enemyStep(e, s.n, ff.kind); }
+        const a = e.action, burrow = a && a.burrow, underground = burrow && a.age >= burrow.from && a.age < burrow.to;
+        if (e.active && !underground && (d < 15 || e.boss && d < 32) && enemySteps < 3) { enemySteps++; enemyStep(e, s.n, ff.kind); }
       }
       if (e.active && !e.action && d < 13 && t > idleNext && chance(dt * .35)) {
         idleNext = t + rand(1.6, 3.2); idleVocal(e);
@@ -1530,6 +1531,18 @@
       case 'carrier': sample('wetStep', { vol: .45, at, rate: rand(.75, .9) }); break;
       case 'prisoner': sample('step', { vol: .22, at, rate: rand(1, 1.15), lp: 3500 }); if (n % 4 === 0) sample('chain', { vol: .12, at, rate: rand(1.1, 1.3) }); break;
       case 'cultist': if (n % 2) sample('step', { vol: .16, at, rate: 1.1, lp: 3000 }); break;
+      case 'ashbound': sample('step', {vol:.18,at,rate:.88,lp:4000}); if(n%4===0) sample('gear',{vol:.07,at,rate:.88}); break;
+      case 'shardseer': sample('step',{vol:.14,at,rate:.94,lp:3400}); if(n%2===0) sample('bone',{vol:.06,at,rate:1.2}); break;
+      case 'cavefang': sample('scuff',{vol:.13,at,rate:1.12}); sample('bone',{vol:.07,at,rate:1.18}); break;
+      case 'gravemason': sample('armorStep',{vol:.26,at,rate:.77}); if(n%2===0) sample('debris',{vol:.08,at,rate:.82}); break;
+      case 'ruinwarden': sample('armorStep',{vol:.28,at,rate:.72}); if(n%3===0) sample('chain',{vol:.08,at,rate:.8}); break;
+      case 'hollowking': sample('stomp',{vol:.46,at,rate:.76,send:.20}); thud(now(),{f0:49,f1:29,dur:.25,vol:.24*spatial(e.x,e.z).gain,pan:spatial(e.x,e.z).pan}); if(n%3===0) sample('bone',{vol:.08,at,rate:.76}); break;
+      case 'emberbound': sample('armorStep',{vol:.19,at,rate:.9}); if(n%3===0) sample('metal',{vol:.07,at,rate:.93}); break;
+      case 'chainseer': sample('step',{vol:.14,at,rate:.82,lp:3200}); if(n%2===0) sample('chain',{vol:.09,at,rate:1.12}); break;
+      case 'slagcrawler': sample('scuff',{vol:.18,at,rate:.72}); sample('metal',{vol:.07,at,rate:1.13}); break;
+      case 'forgesentinel': sample('armorStep',{vol:.30,at,rate:.67}); if(n%2===0) sample('metal',{vol:.10,at,rate:.72}); break;
+      case 'ashwarden': sample('armorStep',{vol:.28,at,rate:.74}); if(n%3===0) sample('chain',{vol:.09,at,rate:.68}); break;
+      case 'furnaceheart': sample('stomp',{vol:.50,at,rate:.68,send:.22}); thud(now(),{f0:44,f1:25,dur:.28,vol:.26*spatial(e.x,e.z).gain,pan:spatial(e.x,e.z).pan}); if(n%3===0) sample('chain',{vol:.12,at,rate:.65}); break;
       default: break;   // pusucu sessiz yürür
     }
   }

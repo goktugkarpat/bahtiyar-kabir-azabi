@@ -77,7 +77,9 @@ void main(){
   float dash = 1.;
   float flick = uCalm > .5 ? 1. : .94+.06*sin(uTime*3.);
   float ember = 1.;
-  float inner = exp(-pow(sd/max(.055,px*1.5),2.)), outer = exp(-pow(sd/.18,2.));
+  // The restrained burrow mark keeps the same SDF boundary, with a tighter light halo.
+  float innerWidth=uE.w<.06?.036:.055,haloWidth=uE.w<.06?.10:.18;
+  float inner = exp(-pow(sd/max(innerWidth,px*1.5),2.)), outer = exp(-pow(sd/haloWidth,2.));
   float coordT = (uShape==0||uShape==3) ? (uFill==3 ? -r : r) : (uShape==2 ? fwd : r);
   float chev = (uShape==1||uShape==2) ? abs(side)*.55 : 0.;
   float mv = uCalm > .5 ? 0. : uTime*.5*(uFill==3 ? -1. : 1.);
@@ -299,6 +301,9 @@ void main(){ vec2 p = (vUv-.5)*2.*uMax; float r = length(p), a = r > 1e-6 ? atan
     function place(t, h) {
       const u = t.mat.uniforms, shape = SHAPE[h.shape] != null ? SHAPE[h.shape] : 0, style = styleOf(h);
       const liquid = style === 12 || style === 13, unb = !!h.unblockable && !liquid, pal = unb ? CRIMSON : GOLD;
+      // Capture this once: recovery must not brighten if the owner's action finishes first.
+      t.burrow = !!(h.owner && h.owner.action && h.owner.action.burrow &&
+        (h.shape === 'circle' || h.shape === 'ring') && (h.style === 'fall' || h.style === 'quake'));
       u.uOrigin.value.set(h.x, h.z); u.uFace.value = h.face || 0; u.uShape.value = shape; u.uStyle.value = style;
       if (shape === 0) u.uDim.value.set(h.radius, 0, 0, 0); else if (shape === 1) u.uDim.value.set(h.radius, h.arc, 0, 0);
       else if (shape === 2) u.uDim.value.set(h.width, h.length, 0, 0); else u.uDim.value.set(h.inner || 0, h.radius, h.arc || TAU, 0);
@@ -340,7 +345,7 @@ void main(){ vec2 p = (vUv-.5)*2.*uMax; float r = length(p), a = r > 1e-6 ? atan
       if (liquid) fade *= clamp((h.warn + h.duration - h.age) / .6, 0, 1);
       u.uActive.value = h.active ? 1 : 0; u.uSafeReady.value = h.warn-h.age <= 1 ? 1 : 0;
       u.uU.value = liquid ? 1 : s.u; u.uFlare.value = liquid ? 0 : s.flare; u.uHit.value = liquid ? 0 : s.hit; u.uFade.value = fade;
-      u.uGain.value = (liquid ? (h.poolGain || .55) : (h.tellGain || 1)) * (cfg.tellGain || 1) * (u.uStyle.value === 5 && u.uShape.value !== 0 ? .4 : 1);   // narrow 'shadow' lanes (shard volleys, pulses) would bloom to white: keep their light well under the bloom knee
+      u.uGain.value = (liquid ? (h.poolGain || .55) : (h.tellGain || 1)) * (cfg.tellGain || 1) * (u.uStyle.value === 5 && u.uShape.value !== 0 ? .4 : 1) * (t.burrow ? (u.uUnblock.value > .5 ? .64 : .42) : 1);   // narrow 'shadow' lanes (shard volleys, pulses) would bloom to white: keep their light well under the bloom knee
       // Big areas (boss sweeps, rings) cover a lot of screen: their interior light is scaled down so it never reads as paint.
       const R = h.shape === 'line' ? Math.max(h.width, h.length * .35) : h.radius, big = clamp(2.8 / Math.max(.5, R), .38, 1);
       const open = h.owner && h.owner.boss && R > 8 ? .48 : 1;
@@ -348,7 +353,8 @@ void main(){ vec2 p = (vUv-.5)*2.*uMax; float r = length(p), a = r > 1e-6 ? atan
       // Gold edges read from the first moments of the warning; in the executioner's second phase (red court) the gold
       // edge and the pale unblockable hairline are lifted further so "gold = ordinary, crimson = severe" still holds.
       const unbT = u.uUnblock.value > .5, rs = h.owner && h.owner.boss && B.app && B.app.rig && B.app.rig.state, p2 = rs ? rs.phase2 || 0 : 0;
-      u.uE.value.set(unbT ? .85 : .8, (unbT ? .9 : .9) * (1 + (unbT ? .25 : .6) * p2), 1.6, .07);
+      u.uE.value.set(unbT ? .85 : .8, (unbT ? .9 : .9) * (1 + (unbT ? .25 : .6) * p2), 1.6, t.burrow ? .045 : .07);
+      u.uCk.value = t.burrow ? .24 : .8;
       u.uHl.value.set((unbT ? .4 : .08) * (1 + 1.6 * p2), .5 * (1 + p2), 1); u.uDetail.value = DETAIL[cfg.quality] || 3; u.uTime.value = clock; u.uCalm.value = calm ? 1 : 0;
       t.mesh.visible = fade > .001; t.fade = fade; t.last = s;
       if (h.active && !h.harmless) t.struck = true;

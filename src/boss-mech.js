@@ -356,18 +356,27 @@
       }
 
       // ---------------------------------------------------------------- hero blows (an attack that reaches an anchor or an orb)
-      function blow(x, z, reach, units) {
+      function blow(x, z, reach, units, footprint) {
+        var f = footprint || { x: x, z: z, face: 0, arc: TAU, ox: x, oz: z };
+        function reaches(target, margin) {
+          var dx = target.x - x, dz = target.z - z;
+          if (hypot(dx, dz) > reach + margin) return false;
+          if (f.arc < TAU && Math.abs(Math.atan2(Math.sin(Math.atan2(dx, dz) - f.face), Math.cos(Math.atan2(dx, dz) - f.face))) > f.arc / 2) return false;
+          return !api.clearStrike || api.clearStrike({ x: f.ox, z: f.oz }, target);
+        }
         var k;
-        if (rite) for (k = 0; k < MAX_ANCHOR; k++) { var an = anchors[k]; if (an.live && an.lit && hypot(an.x - x, an.z - z) <= reach + .6) hitAnchor(an, units); }
-        for (k = 0; k < MAX_ORB; k++) { var o = orbs[k]; if (o.live && o.state < 2 && hypot(o.x - x, o.z - z) <= reach * .85 + .4) { api.sound('boss1Pop', { x: o.x, z: o.z }); killOrb(o, 1); } }
+        if (rite) for (k = 0; k < MAX_ANCHOR; k++) { var an = anchors[k]; if (an.live && an.lit && reaches(an, .6)) hitAnchor(an, units); }
+        for (k = 0; k < MAX_ORB; k++) { var o = orbs[k]; if (o.live && o.state < 2 && reaches(o, .4)) { api.sound('boss1Pop', { x: o.x, z: o.z }); killOrb(o, 1); } }
       }
       function heroBlows() {
-        var a = player.attack;
-        if (player.roar && player.roar.released && !player.roar.b1) { player.roar.b1 = 1; blow(player.x, player.z, 5, 1); }
-        if (!a) return;
-        if (a.line === 'charge') { var h = player.chargeHandle; if (h && h.impacted && !a.b1) { a.b1 = 1; blow(h.impactX, h.impactZ, 3.4, 3); } return; }
-        if (a.whirl) { if (a.b1t !== a.ticks) { a.b1t = a.ticks; if (a.ticks) blow(player.x, player.z, a.radius || 3.4, 1); } return; }
-        if (a.hit && !a.b1) { a.b1 = 1; blow(player.x, player.z, a.radius > 0 ? a.radius : 4.2, a.skill ? 3 : a.heavy ? 2 : 1); }
+        // Contacts originate where combat actually released them; no inference from animation/frame-end state.
+        var contacts = api.propContacts;
+        if (!contacts) return;
+        if (api.game.state !== 'playing' || player.dead || api.game.boss && api.game.boss.dead) { contacts.length = 0; return; }
+        for (var k = 0; k < contacts.length; k++) {
+          var f = contacts[k]; blow(f.x, f.z, f.radius, f.units, f);
+        }
+        contacts.length = 0;
       }
 
       // ---------------------------------------------------------------- fight clock, frenzy, cool-downs
@@ -384,6 +393,7 @@
         state: function () { return { anchors: anchors.filter(function (a) { return a.live && a.lit; }).map(function (a) { return { x: a.x, z: a.z }; }), orbs: orbs.filter(function (o) { return o.live; }).map(function (o) { return { x: o.x, z: o.z, state: o.state }; }), fight: fightT }; },   // QA only
         riteLit: litCount, riteActive: function () { return !!rite; }, time: function () { return time; }, fightTime: function () { return fightT; },
         clear: function () {
+          if (api.propContacts) api.propContacts.length = 0;
           time = 0; fightT = 0; say('','','',0,0); for (var k in last) delete last[k]; for (k in counts) delete counts[k];
           for (var q = 0; q < MAX_ORB; q++) { orbs[q].live = false; orbs[q].hazard = null; showOrb(orbs[q], false); }
           endRite(); for (q = 0; q < MAX_ANCHOR; q++) { anchors[q].live = false; anchors[q].g.visible = false; anchors[q].chain.visible = false; }

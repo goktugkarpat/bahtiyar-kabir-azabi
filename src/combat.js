@@ -128,6 +128,10 @@
       hurt: 0, stagger: 0, status: '', invulnerable: false, target: null
     };
     const enemies = [], hazards = [], seals = [];
+    const propContacts = [];   // Authored contact footprints, consumed once by the boss machinery in this frame.
+    function propContact(x, z, radius, units, face = 0, arc = Math.PI * 2, ox = x, oz = z) {
+      if (mech && game.state === 'playing' && !player.dead) propContacts.push({ x, z, radius, units, face, arc, ox, oz });
+    }
     let hazardSerial = 0, mech = null, boss2 = null;   // boss2: chapter III / IV boss machinery (boss2.js);   // mech: boss-mech.js (round 7 orbs / ritual anchors / fight clock), built next to the executioner's moves
     const globes = BABA.Globes ? BABA.Globes.create(root, world, { player, fx, sound, emit }) : null;   // health globes dropped by dead foes (globes.js)
     const encounterDefs = (world.encounters || []).map((encounter, index) => ({
@@ -238,7 +242,10 @@
     function chargeContext(skill, target, attack) {
       const P = skill.params;
       return {
-        player, game, world: chargeWorld, enemies, tier: skill.tier, params: P, skill: skill.id, target, fx, sound, emit, now: simTime,
+        player, game, world: chargeWorld, enemies, tier: skill.tier, params: P, skill: skill.id, target, fx, sound, emit(name, data) {
+          if (name === 'impact') propContact(data.x, data.z, data.radius, 3);
+          emit(name, data);
+        }, now: simTime,
         stats: { range: P.range, dashTime: P.range / (P.speed || 20), damage: P.damage, ringDamageMul: P.ringMul, impactRadius: P.radius, stunSeconds: P.stun, pathDamage: P.pathDamage, second: P.impacts > 1,
           pathWidth: P.width || 1.5, pathShove: P.shove || 0, knock: P.knock || 2.6, hitStop: P.hitStop || .07, secondDamage: P.damage2 || 0, secondRadius: P.radius2 || P.radius, cost: skill.cost, cooldown: skill.cooldown },
         damage(enemy, amount, opts) {
@@ -390,6 +397,7 @@
       // Kemik Kıran blasts the ground ahead of the stand; Kabir Balyozu pounds where the leap landed (the cone starts there).
       const P = attack.params, T = attack.tier, sx = Math.sin(attack.face), sz = Math.cos(attack.face), pound = attack.skill === 'temper', ox = pound ? player.x : attack.originX, oz = pound ? player.z : attack.originZ;
       const reach = attack.skill === 'brand' ? P.reach : 2.4, cx = ox + sx * reach, cz = oz + sz * reach;
+      propContact(attack.skill === 'brand' ? cx : ox, attack.skill === 'brand' ? cz : oz, P.radius, 3, attack.face, attack.skill === 'brand' ? Math.PI * 2 : P.arc, ox, oz);
       let hits = 0; const shudder = [];
       for (const enemy of enemies) {
         if (enemy.dead || !clearStrike({ x: ox, z: oz }, enemy)) continue;
@@ -565,7 +573,7 @@
     function cancelHidden(owner) {
       for (let i = hazards.length - 1; i >= 0; i--) { const h = hazards[i]; if (h.owner === owner && h.age < 0 && !h.persistent) removeHazard(i); }
     }
-    function clearHazards() { hazards.length = 0; if (mech) mech.clear(); }
+    function clearHazards() { hazards.length = 0; propContacts.length = 0; if (mech) mech.clear(); }
     // Soft pooled light on the floor (checkpoint, seals, heals, buffs, parries). Drawn by effects.js.
     function flashRing(x, z, radius, color, duration) { fx('glowBurst', { x, y: .05, z, radius, color, duration: duration || .32 }); }
     // Per-enemy move memory (also restored on every checkpoint reset so a respawn replays identically).
@@ -663,7 +671,12 @@
         const validIds = new Set(enemies.map(e => e.id));
         if (!Array.isArray(saved.dead) || saved.dead.some(id => !validIds.has(id))) return null;
         const dead = Array.from(new Set(saved.dead));
-        return { chapter, index: saved.index, x: saved.index ? checkpoint.x : spawn.x, z: saved.index ? checkpoint.z : spawn.z, ongoing:!!saved.ongoing, dead, kills: dead.length,
+        // Dormant reserve markers describe the pool, not defeated foes. Preserve
+        // an exact saved tally (summons can be defeated more than once); legacy
+        // fallback counts ordinary bodies and chapter-local reserve reward claims.
+        const claims = new Set(Array.isArray(saved.progression.rewards) ? saved.progression.rewards : []), deadIds = new Set(dead);
+        const kills = Number.isSafeInteger(saved.kills) && saved.kills >= 0 ? saved.kills : enemies.filter(e => e.reserve ? claims.has(chapter + ':' + e.id) : deadIds.has(e.id)).length;
+        return { chapter, index: saved.index, x: saved.index ? checkpoint.x : spawn.x, z: saved.index ? checkpoint.z : spawn.z, ongoing:!!saved.ongoing, dead, kills,
           elapsed: clamp(Number(saved.elapsed) || 0, 0, 86400), progression: saved.progression, quests: saved.quests || null };
       } catch (_) { return null; }
     }
@@ -1223,7 +1236,7 @@
       if (!seal || seal.open) return true;
       return owner.z < seal.z ? z + radius <= seal.z : z - radius >= seal.z;
     }
-    mech = BABA.BossMech ? BABA.BossMech.create({ root, player, game, hazards, addHazard, cancelHazards, walkable, anchorWalkable, emit, sound, fx,
+    mech = BABA.BossMech ? BABA.BossMech.create({ root, player, game, hazards, addHazard, cancelHazards, walkable, anchorWalkable, propContacts, clearStrike, emit, sound, fx,
       groundY: (x, z) => world.effectHeightAt ? world.effectHeightAt(x, z, .6) : .06 }) : null;
     const PACE = () => game.difficulty === 'hard' ? 1 : game.difficulty === 'easy' ? 1.2 : 1.12;   // beginMove stretches every move by this; timers that run outside a move follow it
     // Zincir Çekişi (gravity pull, then the slam on the spot where you land): a gold ring drags everything inside it to the executioner, a crimson circle under him
@@ -1622,6 +1635,7 @@
       cancelPlayerCharge();
       player.dead = true; player.hp = 0; player.attack = null; player.dodge = 0; player.healing = 0; order = null; showTargetRing(null); clearMoveMark();
       buffer = {}; pendingDodge = null; player.pendingAction = null; player.lack = null; game.attackTarget = null;
+      propContacts.length = 0;
       game.state = 'dead'; game.lastDeath = { enemy: enemyName, attack: attackName };
       sound('death'); emit('death', game.lastDeath);
     }
@@ -1856,6 +1870,7 @@
     }
     function specialStrike(attack, n) {
       const whirlTier = SPECIAL.tier || 1, R = SPECIAL.radius * ((SPECIAL.grow || 1) < 1 ? SPECIAL.grow + (1 - SPECIAL.grow) * clamp((n - 1) / Math.max(1, SPECIAL.ticks - 1), 0, 1) : 1), last = n === SPECIAL.ticks, shudder = [], keepFace = attack.face;   // tier III: the circle widens tick by tick
+      propContact(player.x, player.z, R, 1);
       let hits = 0, kills = 0;
       for (const e of enemies) {
         if (e.dead || !e.model.root.visible) continue;
@@ -1961,6 +1976,7 @@
       attack.hit = true;
       // The blow ends up on the foe it was aimed at (it may have shuffled a little since the swing began), so hits and gore point at it.
       if (attack.foe && !attack.foe.dead && !attack.stand && distance(player, attack.foe) < 6) attack.face = angleTo(player, attack.foe);
+      propContact(player.x, player.z, attack.radius, attack.skill ? 3 : attack.heavy ? 2 : 1, attack.face, attack.arc);
       let hits = 0, blocks = 0, kills = 0, breaks = 0, metalContacts = 0;
       const shudder = [], finisher = !attack.heavy && attack.combo === 2, H = FEEL.hitstop;
       for (const enemy of enemies) {
@@ -2011,6 +2027,7 @@
     // The roar goes out: a shockwave through the floor staggers the nearest foes (their unfired tells break),
     // cows the rest for a moment and the executioner flinches. The camera sells the impact without pausing combat.
     function releaseWarCry() {
+      propContact(player.x, player.z, ROAR.near, 1);
       player.rageTime = ROAR.time; player.rageMax = ROAR.time; player.rageFlash = 1;
       emit('rage', { x: player.x, z: player.z, face: player.face });
       emit('impact', { x: player.x, z: player.z, strength: [.85, 1.15, 1.55][ROAR.tier - 1] || .85, radius: ROAR.near });
@@ -2505,7 +2522,7 @@
       openingGrace = Math.max(0, openingGrace - dt);
       game.currentRoom = world.roomAt ? world.roomAt(player.x, player.z) : null;
       updatePlayer(dt, input);
-      if (game.state !== 'playing') { updateSceneState(dt); return; }
+      if (game.state !== 'playing') { propContacts.length = 0; updateSceneState(dt); return; }
       activateEncounters();
       // Previously engaged enemies reactivate when approached again.
       enemies.forEach(enemy => { if (!enemy.dead && enemy.activated && !enemy.active && !enemy.returning && distance(enemy, player) < 10) enemy.active = true; });
@@ -2549,7 +2566,7 @@
         groundLoot.update(dt);
         if (game.boss && game.boss.dead && !endAnnounced && !progression.groundLoot.some(i => i.boss && i.chapter===chapter)) { win(); }
       }
-      if (game.state !== 'playing') { const visualDt = Math.min(dt, .033); updateSceneState(visualDt); animateAll(visualDt); return; }
+      if (game.state !== 'playing') { propContacts.length = 0; const visualDt = Math.min(dt, .033); updateSceneState(visualDt); animateAll(visualDt); return; }
       // Fixed upper bound prevents fast dodge movement from tunneling on occasional slow frames.
       let remaining = dt, first = true, poseDt = 0;
       while (remaining > .00001 && game.state === 'playing') {

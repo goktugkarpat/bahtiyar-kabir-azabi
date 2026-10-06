@@ -17,6 +17,65 @@
   }
   // Soft dirty-metal wear on a hand-built plate: broad scuffs, not a bare-steel patch on every edge.
   function plateWear(g,edge){return G.wear(g,{edge:edge==null?.42:edge,border:.35,curv:.006,cavity:.02});}
+  // Mineral and cinder plates follow measured skin clouds. The contact rig stays unchanged.
+  function creatureCarapace(A,C,key,head,spine,handL,handR,fitted,forge){
+    var hp=A.cloud([head],['skin'],.35),hb=A.box(hp),hc=hb.getCenter(new T.Vector3()),hs=hb.getSize(new T.Vector3());
+    if(!hp.length)return;
+    var h=Math.max(.16,hs.y),rx=Math.max(.065,hs.x*.52),rz=Math.max(.065,hs.z*.53);
+    function headSurface(a,y,pad){
+      var best=0,nearest=0,score=Infinity;
+      for(var i=0;i<hp.length;i++){var p=hp[i],dx=p.x-hc.x,dz=p.z-hc.z,r=Math.hypot(dx,dz),da=Math.abs(Math.atan2(Math.sin(Math.atan2(dx,dz)-a),Math.cos(Math.atan2(dx,dz)-a))),dy=Math.abs(p.y-y);if(dy<h*.16&&da<.32)best=Math.max(best,r);var sc=dy*3+da*.12;if(sc<score){score=sc;nearest=r;}}
+      var r=(best||nearest||Math.min(rx,rz))+(pad||.01);return [hc.x+Math.sin(a)*r,y,hc.z+Math.cos(a)*r];
+    }
+    // Broken supraorbital and temple growths leave the face and eyes visible.
+    var brows=[];for(var side=-1;side<=1;side+=2)(function(side){
+      brows.push(G.shell(10,4,function(u,v){var a=side*(.14+u*.74),y=hb.min.y+h*(.78-v*.19)+Math.sin(u*Math.PI)*h*.024;return headSurface(a,y,.014+.014*Math.sin(v*Math.PI));},.008,false,true));
+      brows.push(G.shell(8,4,function(u,v){var a=side*(.94+u*.88),y=hb.min.y+h*(.80-v*(side<0?.40:.29))+.006*Math.sin(u*9)*v;return headSurface(a,y,.013+.010*Math.sin(v*Math.PI));},.008,false,true));
+    })(side);var crown=G.merge(brows);G.uvScale(crown,1.1,.8);plateWear(crown,.16);A.rigid(key,crown,head);
+    // Split jaw cheeks leave an actual face opening; teeth grow from the face, never the neck pivot.
+    var cheeks=[];
+    for(var side=-1;side<=1;side+=2)(function(side){
+      cheeks.push(G.shell(10,5,function(u,v){var a=side*(.22+u*1.10),y=hb.min.y+h*(.46-v*.33)+Math.sin(u*Math.PI)*h*.025;return headSurface(a,y,.016+.009*Math.sin(v*Math.PI));},.008,false,true));
+    })(side);
+    for(var i=0;i<6;i++){var a=(i-2.5)*.105,y=hb.min.y+h*(.24+Math.abs(i-2.5)*.022),q=V.apply(null,headSurface(a,y,.019)),tip=q.clone().add(V(Math.sin(a)*.009,h*(.11+(i%2)*.025),.018));
+      cheeks.push(G.tube([q,q.clone().lerp(tip,.5).add(V(0,0,.007)),tip],function(t){return .0075*(1-t)+.0008;},5,8,true));
+    }
+    for(var side=-1;side<=1;side+=2){var hinge=V.apply(null,headSurface(side*.82,hb.min.y+h*.34,.016)),tip=hinge.clone().add(V(side*.012,-h*.15,.047));cheeks.push(G.tube([hinge,hinge.clone().lerp(tip,.5).add(V(0,0,.016)),tip],function(t){return .010*Math.pow(1-t,1.4)+.001;},6,10,true));}
+    var crest=[];for(var k=0;k<4;k++){var a=Math.PI+(k-1.5)*.43,q=V.apply(null,headSurface(a,hb.min.y+h*(.69+(k%2)*.05),.014)),tip=q.clone().add(V(Math.sin(a)*.020,h*(.14+(k%2)*.04),Math.cos(a)*.031));crest.push(G.tube([q,q.clone().lerp(tip,.5).add(V(0,h*.05,0)),tip],function(t){return .012*Math.pow(1-t,1.3)+.001;},6,10,true));}A.rigid(key,G.merge(crest),head);
+    var jaw=G.merge(cheeks);G.uvScale(jaw,1.1,.8);plateWear(jaw,.16);A.rigid(key,jaw,head);
+    // Short hooked talons align to the imported palm direction, with a skin-sized knuckle base.
+    [handL,handR].forEach(function(hand){
+      var fore=hand==='hand_l'?'lowerarm_l':'lowerarm_r',origin=A.P(hand),axis=origin.clone().sub(A.P(fore)).normalize(),normal=V(0,0,1),side=normal.clone().cross(axis).normalize();
+      if(side.lengthSq()<.01)side.set(1,0,0);normal=axis.clone().cross(side).normalize();if(normal.z<0)normal.negate();
+      var cloud=A.cloud([hand],['skin'],.3),end=.1,span=.065;for(var j=0;j<cloud.length;j++){var d=cloud[j].clone().sub(origin);end=Math.max(end,d.dot(axis));span=Math.max(span,Math.abs(d.dot(side)));}
+      var parts=[];
+      for(var k=0;k<4;k++){var q=origin.clone().addScaledVector(axis,end*.82).addScaledVector(side,(k-1.5)*span*.46).addScaledVector(normal,.006),mid=q.clone().addScaledVector(axis,.065).addScaledVector(normal,.012),tip=q.clone().addScaledVector(axis,.11).addScaledVector(normal,.055);
+        parts.push(G.sphere(.016,arr(q),[.75,1,1],7,5),G.tube([q,mid,tip],function(t){return .0125*Math.pow(1-t,1.25)+.001;},6,10,true));
+      }
+      var claws=G.merge(parts);plateWear(claws,.12);A.rigid(key,claws,hand);
+    });
+    // Broken overlapping chest and back plates skin to the existing spine influences.
+    var fb=fitted.box,height=fb.max.y-fb.min.y,panels=[];
+    for(var row=0;row<4;row++)for(var side=-1;side<=1;side+=2)(function(row,side){
+      var center=side*(forge?.70:.68),width=.59-row*.045,top=fb.max.y-.028-row*height*.18;
+      panels.push(G.shell(9,4,function(u,v){var a=center+(u-.5)*width,y=top-v*height*.185+Math.sin(u*Math.PI)*.012-.006*Math.sin(u*13+row)*v*v;return fitted.at(a,y,.017+.019*Math.sin(v*Math.PI)+.006*Math.sin(u*11+row)*v);},.009,false,true));
+      panels.push(G.shell(9,4,function(u,v){var a=Math.PI+side*.46+(u-.5)*.62,y=top-v*height*.18+.008*Math.sin(u*9+row)*v*v;return fitted.at(a,y,.015+.024*Math.sin(v*Math.PI));},.009,false,true));
+    })(row,side);
+    var shell=G.merge(panels);G.uvScale(shell,1.4,1.3);plateWear(shell,.18);fitted.attach(key,shell);
+    // A few organic outer limb scales interrupt the exposed humanoid outline without covering a joint.
+    [['lowerarm_l','hand_l',-1],['lowerarm_r','hand_r',1],['thigh_l','calf_l',-1],['thigh_r','calf_r',1]].forEach(function(entry){
+      var from=entry[0],to=entry[1],q=C.sleeve(A,from,to,.18,.87,.013,.006,['skin'],0,{u:12,v:4}),desired=V(entry[2]*.7,0,.7),bestAngle=0,best=-Infinity;
+      for(var j=0;j<12;j++){var a=j/12*TAU,score=q.at(a,.45,0)[1].dot(desired);if(score>best){best=score;bestAngle=a;}}
+      var scales=[];for(var row=0;row<(forge?3:2);row++)(function(row){scales.push(G.shell(9,4,function(u,v){var angle=bestAngle+(u-.5)*1.65*(1-.58*v),t=.20+row*.21+v*.22,point=q.at(angle,t,.003+.012*Math.sin(v*Math.PI))[0];return arr(point);},.006,false,true));})(row);
+      q.geometry.dispose();var g=G.merge(scales);G.uvScale(g,.9,.9);plateWear(g,.18);A.transfer(key,g,['skin'],{bones:[from,to]});
+    });
+    // Sparse asymmetric hip growths follow the existing pelvis and leave the skin outline visible.
+    var hip=A.P('pelvis'),cloud=A.cloud(['pelvis','thigh_l','thigh_r'],['skin'],.35),near=cloud.filter(function(q){return q.y>hip.y-.19&&q.y<hip.y+.08;}),box=A.box(near.length?near:cloud),cx=(box.min.x+box.max.x)*.5,cz=(box.min.z+box.max.z)*.5;
+    function scuteAt(a,y,pad){var best=0,fallback=.19,score=Infinity;for(var j=0;j<cloud.length;j++){var q=cloud[j],dx=q.x-cx,dz=q.z-cz,r=Math.hypot(dx,dz),df=Math.abs(Math.atan2(Math.sin(Math.atan2(dx,dz)-a),Math.cos(Math.atan2(dx,dz)-a))),dy=Math.abs(q.y-y);if(dy<.055&&df<.30)best=Math.max(best,r);var sc=dy*4+df*.15;if(sc<score){score=sc;fallback=r;}}var r=(best||fallback)+pad;return[cx+Math.sin(a)*r,y,cz+Math.cos(a)*r];}
+    var scutes=[];[-1.30,1.43,Math.PI-.76].forEach(function(a,i){scutes.push(G.shell(7,4,function(u,v){var angle=a+(u-.5)*.53*(1-.58*v),y=hip.y+.03-v*(i===1?.17:.12)+.009*Math.sin(u*Math.PI)*v;return scuteAt(angle,y,.015+.012*Math.sin(v*Math.PI));},.007,false,true));});
+    var pelvisShell=G.merge(scutes);G.uvScale(pelvisShell,1.2,.8);plateWear(pelvisShell,.15);A.weighted(key,pelvisShell,C.clothWeights(A,'pelvis','thigh_l','thigh_r',hip.y+.065,hip.y-.195,.14));
+    return {center:hc,box:hb,height:h,surface:headSurface};
+  }
   var GLOW=[];   // emissive materials the telegraph layer breathes (see telegraphs.js glowPulse)
   function make(type,cfg){cfg.chapter=3;B.Models.register(type,cfg,function(A,C){
     var exec=cfg.base==='executioner',head=exec?'head':'Head',spine=exec?'spine03':'spine_03',handL=exec?'handL':'hand_l',handR=exec?'handR':'hand_r',armL=exec?'upper_armL':'upperarm_l',armR=exec?'upper_armR':'upperarm_r',thighL=exec?'thighL':'thigh_l',thighR=exec?'thighR':'thigh_r';
@@ -25,13 +84,13 @@
     var p=A.P(head),chest=A.P(spine),hip=A.P('pelvis'),stone=type==='gravemason'||type==='ruinwarden'||type==='hollowking';
     var fitted=torsoFit(A,exec,chest),fb=fitted.box,bw=Math.max(.34,fb.max.x-fb.min.x);
     // Ash-grey, dirty palettes: no clean cloth, no bare-steel patches. The linen scan is indigo, so it is desaturated first.
-    var tint=type==='ashbound'?[1.02,.76,.60]:type==='shardseer'?[.82,.80,.94]:type==='cavefang'?[.84,.78,.70]:[1.12,.95,.78];
+    var tint=type==='ashbound'?[1.02,.76,.60]:type==='shardseer'?[.82,.80,.94]:type==='cavefang'?[.52,.63,.67]:[1.12,.95,.78];
     var clothTint=type==='shardseer'?[.13,.10,.22]:type==='hollowking'?[.13,.025,.028]:type==='ruinwarden'?[.09,.026,.026]:type==='gravemason'?[.19,.15,.12]:type==='cavefang'?[.2,.18,.15]:[.22,.15,.10];
-    var materials={skin:C.bodyMaterial(A.srcMaterial(exec?'Exec_mesh':'SuperHero_Male',C.bases[cfg.base]),'ruins-'+type+'-skin',{cls:'skin',skin:1,skinMap:exec,sat:.5,tint:tint,grime:.42,blood:type==='cavefang'?.45:.2,scale:8,fresh:true},{roughness:.7}),
+    var materials={skin:C.bodyMaterial(A.srcMaterial(exec?'Exec_mesh':'SuperHero_Male',C.bases[cfg.base]),'ruins-'+type+'-skin',{cls:'skin',skin:1,skinMap:exec,sat:type==='cavefang'?.30:.5,tint:tint,grime:type==='cavefang'?.56:.42,blood:type==='cavefang'?.26:.2,scale:8,fresh:true},{roughness:.7}),
       iron:C.bodyMaterial(C.gearMaterial('iron'),'ruins-'+type+'-iron',{cls:'metal',tint:[1.02,.9,.78],rust:.34,grime:.4,wear:.5,scale:8},{roughness:.66}),
       leather:C.bodyMaterial(C.gearMaterial('leather'),'ruins-'+type+'-leather',{cls:'leather',tint:stone?[.74,.52,.36]:type==='shardseer'?[.30,.25,.34]:[.62,.31,.16],grime:.32,blood:.12,scale:7},{roughness:.86}),
       rag:C.bodyMaterial(C.gearMaterial('rag'),'ruins-'+type+'-linen',{cls:'cloth',tear:true,sat:.3,tint:clothTint,grime:.32,blood:.2,scale:7},{roughness:.92,side:T.DoubleSide}),
-      bone:C.bodyMaterial(C.gearMaterial('bone'),'ruins-'+type+'-bone',{cls:'bone',tint:type==='hollowking'?[.74,.66,.54]:[1.1,1.0,.78],grime:type==='hollowking'?.5:.34,blood:.15,scale:9},{roughness:.76}),
+      bone:C.bodyMaterial(C.gearMaterial('bone'),'ruins-'+type+'-bone',{cls:'bone',tint:type==='cavefang'?[.43,.42,.37]:type==='hollowking'?[.74,.66,.54]:[1.1,1.0,.78],grime:type==='cavefang'?.56:type==='hollowking'?.5:.34,blood:.15,scale:9},{roughness:.76}),
       glow:new T.MeshStandardMaterial({color:0x302a48,emissive:0x7552b4,emissiveIntensity:type==='hollowking'?1.1:.78,roughness:.48,metalness:.15}),
       ash:C.bodyMaterial(C.gearMaterial('ash'),'ruins-'+type+'-ash',{cls:'bone',tint:[.5,.48,.46],grime:.75,scale:6},{roughness:.92})};
     GLOW.push({mat:materials.glow,base:materials.glow.emissiveIntensity,type:type});
@@ -137,12 +196,10 @@
     }
     if(type==='cavefang'){
       safe('cavefang',function(){
-        var claws=[];[handL,handR].forEach(function(b){var parts=[],h=A.P(b);for(var i=0;i<4;i++){var q=h.clone().add(V((i-1.5)*.035,-.08,.02));parts.push(G.tube([arr(q),arr(q.clone().add(V(0,-.13,.07))),arr(q.clone().add(V(0,-.15,.19)))],.016,6,12,true));}A.rigid('bone',G.merge(parts),b);});
-        var ribs=[];for(var j=0;j<5;j++)ribs.push(G.tube([[chest.x-.15,chest.y+.1-j*.08,chest.z-.07],[chest.x,chest.y+.13-j*.08,chest.z-.24],[chest.x+.15,chest.y+.1-j*.08,chest.z-.07]],.018,7,16,true));A.rigid('bone',G.merge(ribs),spine);
+        creatureCarapace(A,C,'bone',head,spine,handL,handR,fitted,false);
         // Bone ridge down the spine, shrinking toward the tail: reads as a creature, not a thin man, from above.
         var ridge=[];for(var k=0;k<9;k++){var y=chest.y+.20-k*.065,z=fb.min.z-.01-Math.sin(k/8*3)*.02,base=V(chest.x,y,z),h2=.13-k*.01;ridge.push(G.spike(.032-k*.0018,base,base.clone().add(V(0,h2*.5,-h2))));}A.rigid('bone',G.merge(ridge),spine);
-        // Jaw plates strapped over a wrenched, too-wide mouth.
-        A.rigid('bone',G.merge([G.sphere(.075,[p.x,p.y-.06,p.z+.07],[1.2,.45,.9],10,6),G.spike(.014,V(p.x-.05,p.y-.07,p.z+.1),V(p.x-.06,p.y-.15,p.z+.13)),G.spike(.014,V(p.x+.05,p.y-.07,p.z+.1),V(p.x+.06,p.y-.15,p.z+.13))]),head);
+
       });
     }
     if(type==='gravemason'){

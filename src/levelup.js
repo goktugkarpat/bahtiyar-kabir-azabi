@@ -167,9 +167,9 @@ body:has(#lu-banner.lu-on) #announcement{opacity:0!important}   /* the arena / r
   function ensureDom() {
     if (el || typeof document === 'undefined' || !document.body) return el;
     const st = document.createElement('style'); st.id = 'lu-style'; st.textContent = CSS; document.head.appendChild(st);
-    el = document.createElement('div'); el.id = 'lu-banner'; el.setAttribute('role', 'status'); el.setAttribute('aria-live', 'polite');
-    el.innerHTML = '<i class="lu-flare" aria-hidden="true"></i><h2 class="lu-title"></h2><i class="lu-rule" aria-hidden="true"></i>' +
-      '<div class="lu-lv"><em>SEVİYE</em><b class="lu-num"><s></s><u></u></b></div><p class="lu-note"></p><p class="lu-skill"></p>';
+    el = document.createElement('div'); el.id = 'lu-banner'; el.setAttribute('role', 'status'); el.setAttribute('aria-live', 'off'); el.setAttribute('aria-hidden', 'true'); el.setAttribute('aria-atomic', 'true');
+    el.innerHTML = '<i class="lu-flare" aria-hidden="true"></i><h2 class="lu-title" aria-label="Seviye atladın"></h2><i class="lu-rule" aria-hidden="true"></i>' +
+      '<div class="lu-lv"><em>SEVİYE</em><b class="lu-num"><s aria-hidden="true"></s><u></u></b></div><p class="lu-note"></p><p class="lu-skill"></p>';
     elTitle = el.querySelector('.lu-title'); elOld = el.querySelector('.lu-num s'); elNew = el.querySelector('.lu-num u'); elNote = el.querySelector('.lu-note'); elSkill = el.querySelector('.lu-skill');
     fillTitle(elTitle);
     const host = document.getElementById('hud') || document.body; host.appendChild(el);
@@ -178,7 +178,7 @@ body:has(#lu-banner.lu-on) #announcement{opacity:0!important}   /* the arena / r
   // The headline: one <i> per letter (staggered reveal). Solid warm gold with small text shadows: no CSS filter, no background-clip, no large blurs (first-use raster cost).
   function fillTitle(title) {
     title.textContent = '';
-    for (let i = 0; i < TITLE.length; i++) { const c = document.createElement('i'); c.style.setProperty('--n', String(i)); if (TITLE[i] === ' ') c.className = 'sp'; c.textContent = TITLE[i] === ' ' ? ' ' : TITLE[i]; title.appendChild(c); }
+    for (let i = 0; i < TITLE.length; i++) { const c = document.createElement('i'); c.setAttribute('aria-hidden', 'true'); c.style.setProperty('--n', String(i)); if (TITLE[i] === ' ') c.className = 'sp'; c.textContent = TITLE[i] === ' ' ? ' ' : TITLE[i]; title.appendChild(c); }
   }
   const S = { on: false, t: 99, calm: false, level: 1, old: 1, hx: 0, hz: 0 };
   const FX = { spin: 0, spinAt: { x: 0, z: 0 }, chroma: 0, flash: 0, sat: 0, vig: 0, ring: { x: 0, z: 0, r: 1, w: .6, t: 0 } };
@@ -198,16 +198,17 @@ body:has(#lu-banner.lu-on) #announcement{opacity:0!important}   /* the arena / r
     elNote.innerHTML = '+' + levels + ' YETENEK PUANI' + (pts > levels ? ' (<b>' + pts + '</b>)' : '') + ' · <b>T</b>';
     const sk = skillsGained(old, level);
     elSkill.textContent = sk.length ? (sk.length > 1 ? 'YENİ YETENEKLER: ' : 'YENİ YETENEK: ') + sk.join(' · ') : '';
+    el.setAttribute('aria-live', 'polite'); el.setAttribute('aria-hidden', 'false');
     el.classList.toggle('lu-calm', S.calm);
     el.classList.remove('lu-on', 'lu-paint'); void el.offsetWidth; el.classList.add('lu-on');
   }
-  function cancel() { S.on = false; S.t = 99; if (el) el.classList.remove('lu-on', 'lu-paint'); }
+  function cancel() { S.on = false; S.t = 99; if (el) { el.setAttribute('aria-hidden', 'true'); el.setAttribute('aria-live', 'off'); el.classList.remove('lu-on', 'lu-paint'); } }
   /* Her kare, gerçek dt ile (app.js frameStep). Kapalıyken maliyeti sıfıra yakındır. */
   function step(dt) {
     if (!S.on) return;
     const t = S.t += dt, app = B.app, post = app && app.post, p = app && app.game && app.game.player;
     if (p) { S.hx = p.x; S.hz = p.z; }
-    if (t > TOTAL) { S.on = false; if (el) el.classList.remove('lu-on'); return; }
+    if (t > TOTAL) { S.on = false; if (el) { el.setAttribute('aria-hidden', 'true'); el.setAttribute('aria-live', 'off'); el.classList.remove('lu-on'); } return; }
     if (post && post.setAbilityFx && t < 1.4) {
       const calm = S.calm;
       FX.flash = .15 * Math.exp(-t * 8.5) * clamp(t / .012, 0, 1);
