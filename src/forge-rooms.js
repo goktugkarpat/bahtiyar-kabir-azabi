@@ -677,8 +677,8 @@
       } else if (W.kind === 'river') {
         var rz = zc + (i % 2 ? 4 : -4), bx = U(i % 2 ? 6 : 12);
         lavaRiver(W.x, rz, 18, 2.6);
-        K.solid((U(0) + bx - s * 2) / 2, rz, Math.abs(bx - s * 2 - U(0)), 2.2); K.solid((bx + s * 2 + U(18)) / 2, rz, Math.abs(U(18) - bx - s * 2), 2.2);
-        K.put(i, 'box', 'iron', bx, .16, rz, 3.6, .2, 3.6, 0, 0, 0, [.5, .46, .44], .3); [-1, 1].forEach(function (q) { for (var pp = -1; pp <= 1; pp++) K.put(i, 'cyl6', 'iron', bx + q * 1.75, .6, rz + pp * 1.6, .08, 1.0, .08, 0, 0, 0, IRONT, .2); K.bar(i, 'cyl', 'iron', bx + q * 1.75, 1.1, rz - 1.7, bx + q * 1.75, 1.1, rz + 1.7, .05, [.6, .56, .54], .2); });
+        K.solid((U(0) + bx - s * 2.6) / 2, rz, Math.abs(bx - s * 2.6 - U(0)), 2.2); K.solid((bx + s * 2.6 + U(18)) / 2, rz, Math.abs(U(18) - bx - s * 2.6), 2.2);
+        K.put(i, 'box', 'iron', bx, .16, rz, 5.2, .2, 3.6, 0, 0, 0, [.5, .46, .44], .3); [-1, 1].forEach(function (q) { for (var pp = -1; pp <= 1; pp++) K.put(i, 'cyl6', 'iron', bx + q * 2.5, .6, rz + pp * 1.6, .08, 1.0, .08, 0, 0, 0, IRONT, .2); K.bar(i, 'cyl', 'iron', bx + q * 2.5, 1.1, rz - 1.7, bx + q * 2.5, 1.1, rz + 1.7, .05, [.6, .56, .54], .2); });
         if (mid) chainWell(U(10), zc - (i % 2 ? 5 : -5)); else { cage(U(12), zc + (i % 2 ? -5 : 5), 1.6); slagHeap(U(5), zc + (i % 2 ? -7 : 7), 1.1, true); }
       } else {
         for (var p2 = 0; p2 < 3; p2++) scrapPile(U(RR(5, 14)), zA + (p2 + .5) * L / 3 + RR(-2, 2), RR(1.2, 1.9));

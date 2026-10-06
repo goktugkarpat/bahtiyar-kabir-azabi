@@ -49,6 +49,7 @@
     function seed(x, z) { if (isWalkable(x, z, 1.05)) nodes.push({ x: x, z: z, edges: [] }); }
     rooms.forEach(function (r) { [-6, 0, 6].forEach(function (x) { [-7, 0, 7].forEach(function (z) { seed(x, r.z + z); }); }); });
     WINGS.forEach(function (W) { for (var z = W.z1 - 3; z > W.z0; z -= 6) [4, 9, 14].forEach(function (t) { seed(W.side * (21 + t), z); }); });
+    WINGS.forEach(function (W) { if (W.kind !== 'river') return; W.hosts.forEach(function (h) { var r = rooms[h], rz = r.z + (h % 2 ? 4 : -4), bx = W.side * (21 + (h % 2 ? 6 : 12)); seed(bx, rz - 2.8); seed(bx, rz); seed(bx, rz + 2.8); }); });
     Object.keys(DOORS).forEach(function (k) { var r = rooms[+k], s = DOORS[k], wallX = r.x + s * r.w / 2; seed(wallX - s * 3, r.z); seed(wallX + s * .8, r.z); seed(s * 22.5, r.z); seed((wallX + s * 21) / 2, r.z); });
     for (var i = 0; i < nodes.length; i++) for (var j = i + 1; j < nodes.length; j++) if (Math.hypot(nodes[i].x - nodes[j].x, nodes[i].z - nodes[j].z) < 30 && hasClearPath(nodes[i].x, nodes[i].z, nodes[j].x, nodes[j].z, 1.05)) { nodes[i].edges.push(j); nodes[j].edges.push(i); }
     var dist = new Float64Array(nodes.length), prev = new Int16Array(nodes.length), used = new Uint8Array(nodes.length);
@@ -70,6 +71,8 @@
       list = list.filter(function (s) { return isWalkable(s.x, s.z, .6); });
       if (list.length) w.encounters.push({ id: 'forge-wing-' + W.id, room: W.id, name: KabirI18n.t(W.name), clearText: KabirI18n.t('Dökümhanenin bu kanadı sustu. Ana yola dön.'), stage: 1.1 + W.hosts[1] * .016, spawns: list });
     });
+    var sites = {}; [['c4.page1', -30, -10], ['c4.page2', 31, -152], ['c4.page3', -26, -210], ['c4.altar', -35, -230], ['c4.chest', 33, -262], ['c4.hunt', 28, -100]].forEach(function (q) { for (var k = 0; k < 60; k++) { var a = k * 2.4, d = k ? .45 * Math.sqrt(k) : 0, x = q[1] + Math.cos(a) * d, z = q[2] + Math.sin(a) * d; if (isWalkable(x, z, 1.3) && pathTo({ x: 0, z: 12 }, { x: x, z: z }, .5).length) { sites[q[0]] = { x: x, z: z }; break; } } });
+    w.questSites = Object.assign(w.questSites || {}, sites);
     w.rooms = rooms.concat(wingRooms); w.colliders = colliders;
     w.isWalkable = isWalkable; w.move = move; w.hasClearPath = hasClearPath; w.pathTo = pathTo; w.roomAt = roomAt;
     return w;
