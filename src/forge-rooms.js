@@ -52,11 +52,11 @@
     ' vec2 e=min(vUv,1.-vUv)*vE.xy*2.;float bank=1.-smoothstep(0.,.45,min(e.x,e.y));',
     ' crust=clamp(crust+bank*.85,0.,1.);',
     ' float pulse=.55+.45*sin(clock*1.2+p.y*.7+a.g*7.);',
-    ' vec3 molten=mix(vec3(.26,.025,.003),vec3(.52,.11,.012),pulse*.55+c.g*.45);',
+    ' vec3 molten=mix(vec3(.46,.022,.002),vec3(.92,.115,.006),pulse*.55+c.g*.45);',
     ' float seam=smoothstep(0.,.1,crust)*(1.-smoothstep(.1,.35,crust));',
     ' vec3 crustCol=vec3(.03,.017,.013)+vec3(.20,.045,.008)*smoothstep(.85,.4,crust);',
     ' vec3 col=mix(molten,crustCol,smoothstep(.2,.7,crust));',
-    ' col+=vec3(.8,.22,.03)*seam*.3;',
+    ' col+=vec3(.95,.2,.012)*seam*.35;',
     ' gl_FragColor=vec4(col,1.);}'].join('\n');
   function setupOnce(K) {
     if (K.forgeSetup) return; K.forgeSetup = true;
@@ -631,6 +631,8 @@
     // Beyond the walls on the sides without a wing: a glowing abyss with crags, hanging chains and far furnace light (never walkable).
     function abyss(s) {
       var wx = r.x + s * (r.w / 2 + 1);
+      // the molten river that runs beside the whole forge and links the open wings (seen over the wall tops)
+      var rx = s * 43.5; if (Math.abs(rx - wx) > 6) { lavaRiver(rx, r.z, 8.4, 26.2); for (var b2 = 0; b2 < 3; b2++) K.put(i, 'rock', 'rock', s * RR(39, 40), RR(.1, .3), r.z + (b2 - 1) * 8 + RR(-2, 2), RR(1, 2), RR(.5, .9), RR(1.2, 2.4), RR(0, 6), 0, 0, [.24, .22, .21], .5); K.heat(rx, 1.2, r.z, 7, 2.2, .6); }
       for (var k = 0; k < 5; k++) { var z = r.z - 11 + k * 5.5 + RR(-1, 1), h = RR(3, 7); K.put(i, 'crag', 'rock', wx + s * RR(7, 15), h * .3 - 4.2, z, RR(4, 7), h, RR(4, 6), RR(0, 6), 0, s * .1, [.2, .18, .17], .6); }
       for (k = 0; k < 3; k++) { var cz = r.z + (k - 1) * 8 + RR(-1, 1); K.chain(i, wx + s * RR(3, 7), 12, cz, RR(10, 15), [.45, .4, .38]); }
       for (k = 0; k < 4; k++) K.spr(i, S.glow, wx + s * RR(6, 12), -2.5, r.z + RR(-10, 10), 5, 4, [.6, .16, .03], .16, RW(), 1, 1);
@@ -658,7 +660,8 @@
         var xx = (xi + wallX) / 2 + RR(-1, 1), h = RR(1.2, 3.8); K.put(i, 'crag', 'rock', xx, h * .3, zz, gap * .8, h, 3.6, RR(0, 6), 0, 0, [.26, .24, .23], .5);
       }
       // the outer molten river, its iron curb and the cavern cliffs beyond (no walls: the wing opens onto a glowing chasm)
-      lavaRiver(s * 43.5, zc, 8.4, L + .2);
+      for (var hz = zA + 2; hz < zB; hz += 4.5) K.dec(i, 15, s * 37.6, hz, 3.4, 4.6, RR(0, 6), [.55, .14, .025], .4, 'glow');   // the river's heat glancing off the iron floor
+      lavaRiver(s * 43.5, zc, 8.4, L + .2); K.heat(s * 43.5, 1.2, zc - L / 4, 7, 2.4, .8); K.heat(s * 43.5, 1.2, zc + L / 4, 7, 2.4, .8);
       for (zz = zA; zz < zB; zz += 2.6) { if (RW() < .25) continue; K.put(i, 'rock', 'rock', s * RR(39.2, 39.8), RR(.1, .3), zz + RR(-.5, .5), RR(.8, 1.6), RR(.4, .8), RR(1, 2), RR(0, 6), 0, 0, [.24, .22, .21], .5); }
       for (zz = zA + 1; zz < zB; zz += RR(3.5, 5.5)) { var ch = RR(5, 15); K.put(i, 'crag', 'rock', s * RR(50, 56), ch * .42, zz, RR(6, 9), ch, RR(5, 8), RR(0, 6), 0, s * .08, [.22, .2, .19], .6); K.spr(i, S.glow, s * 48.2, .6, zz, 4, 2, [.8, .26, .05], .45, RW(), 1, 1); }
       for (var e = 0; e < 26; e++) K.spr(i, S.ember, s * RR(40, 47), .3, RR(zA, zB), .05, .05, [2.2, .85, .22], 1, RW(), .12 + RW() * .2, 7);

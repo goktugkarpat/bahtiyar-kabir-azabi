@@ -42,9 +42,9 @@
   // Per-chapter correction for common foes (not bosses), on top of the campaign ramp in combat.js. Measured with the average bot on Normal
   // (hero at the expected level/gear of the chapter: L3 / L6 / L9 / L11), health lost per hall without -> with this table:
   // ch I 23.6 -> ~20 %, ch II 12.3 (the hero's level-6 jump outran the shore foes) -> ~19 %, ch III 33 -> ~26 %, ch IV 42 -> ~34 %.
-  const CHAPTER = Object.freeze({ 1: { hp: 1, dmg: .85 }, 2: { hp: 1.12, dmg: 2.15 }, 3: { hp: 1, dmg: .88 }, 4: { hp: 1, dmg: .8 } });
+  const CHAPTER = Object.freeze({ 1: { hp: 1, dmg: .85 }, 2: { hp: 1.12, dmg: 2.15 }, 3: { hp: 1, dmg: .88 }, 4: { hp: 1, dmg: .8 }, 5: { hp: 1, dmg: .5 } });   // V: ajan:chapter5 (measured, see tools/combat_balance.py 5)
   // Chapter bosses (their own blows only; adds follow CHAPTER): the forge heart hit softer than the hollow king it follows.
-  const BOSS = Object.freeze({ 1: { dmg: 1 }, 2: { dmg: 1 }, 3: { dmg: 1 }, 4: { dmg: 1.3 } });
+  const BOSS = Object.freeze({ 1: { dmg: 1 }, 2: { dmg: 1 }, 3: { dmg: 1 }, 4: { dmg: 1.3 }, 5: { dmg: .8 } });
   function profile(level) { return DIFFICULTY[level] || DIFFICULTY.normal; }
   // Text for the settings screen (Turkish source, translated through KabirI18n; English in i18n.js block "ajan:combat").
   function describe(level) {
