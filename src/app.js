@@ -2121,6 +2121,7 @@
     if (document.fonts && document.fonts.load) safe(() => { document.fonts.load('800 40px "Source Sans 3"'); });
     // The shadow pass clones ONE depth material per source material and then reuses it for skinned, instanced and plain casters alike,
     // so it switched programs on every change of caster type. Give each (material, caster type) pair its own depth material instead.
+    safe(() => { if (B.Perf && B.Perf.optimize) B.Perf.optimize(world, scene); });   // ajan:perf: post-build static merge (?noopt disables)
     safe(() => assignDepthMaterials(scene));
     ready = true; applySettings();
     B.app = { scene, camera, renderer, world, game, post, rig, scaler, resetPerformance, settings: cfg, input, get view() { return view; }, begin, show, fx, applySettings, clearFX, warmShaders,
