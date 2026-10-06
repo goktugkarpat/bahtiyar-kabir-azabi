@@ -7,13 +7,13 @@
   let atlas = null, atlasTask = null;
   function prepare() {
     if (atlasTask) return atlasTask;
-    const columns = 8, cell = 128, rows = Math.ceil(B.Progression.items.length / columns);
+    const columns = 8, cell = 192, rows = Math.ceil(B.Progression.items.length / columns);
     const canvas = document.createElement('canvas'); canvas.width = columns * cell; canvas.height = rows * cell;
     const ctx = canvas.getContext('2d'), cells = new Map();
     atlasTask = Promise.all(B.Progression.items.map((def, index) => new Promise((resolve, reject) => {
       cells.set(def.id,index);
       const image = new Image();
-      image.onload = () => { ctx.drawImage(image,(index%columns)*cell+8,Math.floor(index/columns)*cell+8,cell-16,cell-16); resolve(); };
+      image.onload = () => { ctx.drawImage(image,(index%columns)*cell+6,Math.floor(index/columns)*cell+6,cell-12,cell-12); resolve(); };
       // World symbols require transparent model renders; the opaque UI cards remain in the menus.
       const rendered = B.GroundEquipmentThumbnails && B.GroundEquipmentThumbnails[def.id];
       const hasRender = typeof rendered === 'string' && rendered.indexOf('data:image/') === 0;
@@ -29,7 +29,7 @@
       image.src = hasRender ? rendered : svgFallback();
     }))).then(() => {
       const texture = new T.CanvasTexture(canvas); texture.colorSpace = T.SRGBColorSpace;
-      atlas = {texture,cells,columns,rows}; return true;
+      atlas = {texture,cells,columns,rows,cell}; return true;
     });
     return atlasTask;
   }
@@ -47,18 +47,27 @@
     // All painted equipment symbols share one prepared atlas and one draw call.
     const art = atlas || {texture:new T.Texture(),cells:new Map(),columns:8,rows:11};
     if (!atlas) owned.push(art.texture); // Isolated combat fixtures do not decode browser images.
-    const symbolGeometry = new T.PlaneGeometry(.58,.58), cells = new Float32Array(CAPACITY);
+    const symbolGeometry = new T.PlaneGeometry(.8,.8), cells = new Float32Array(CAPACITY);
     symbolGeometry.setAttribute('aCell',new T.InstancedBufferAttribute(cells,1).setUsage(T.DynamicDrawUsage));
     const symbolMaterial = new T.ShaderMaterial({transparent:true,depthWrite:false,toneMapped:false,
-      uniforms:{atlas:{value:art.texture},grid:{value:new T.Vector2(art.columns,art.rows)}},
-      vertexShader:`attribute float aCell;uniform vec2 grid;varying vec2 vUv;void main(){
+      uniforms:{atlas:{value:art.texture},grid:{value:new T.Vector2(art.columns,art.rows)},texel:{value:new T.Vector2(1/(art.columns*(art.cell||128)),1/(art.rows*(art.cell||128)))}},
+      vertexShader:`attribute float aCell;uniform vec2 grid;varying vec2 vUv;varying vec3 vTint;void main(){
         vUv=vec2((mod(aCell,grid.x)+uv.x)/grid.x,1.-(floor(aCell/grid.x)+1.-uv.y)/grid.y);
+        #ifdef USE_INSTANCING_COLOR
+        vTint=instanceColor;
+        #else
+        vTint=vec3(1.);
+        #endif
         gl_Position=projectionMatrix*modelViewMatrix*instanceMatrix*vec4(position,1.);}`,
-      fragmentShader:`uniform sampler2D atlas;varying vec2 vUv;void main(){vec4 c=texture2D(atlas,vUv);if(c.a<.04)discard;gl_FragColor=vec4(c.rgb*1.05,c.a);
+      // gear-*: dark iron reads on dark stone: brightened model plus a rarity-coloured silhouette rim.
+      fragmentShader:`uniform sampler2D atlas;uniform vec2 texel;varying vec2 vUv;varying vec3 vTint;void main(){vec4 c=texture2D(atlas,vUv);float o=0.;
+        for(int i=0;i<8;i++){float a=float(i)*.785398;o=max(o,texture2D(atlas,vUv+vec2(cos(a),sin(a))*texel*2.6).a);}
+        float rim=clamp(o-c.a,0.,1.),alpha=max(c.a,rim*.95);if(alpha<.04)discard;
+        vec3 body=c.rgb*1.45+vTint*.06,edge=vTint*1.35+.08;gl_FragColor=vec4(mix(edge,body,c.a/max(alpha,.001)),alpha);
       #include <colorspace_fragment>
       }`});
     owned.push(symbolMaterial);
-    const symbol = mesh(symbolGeometry,symbolMaterial); symbol.name='GroundLootEquipmentSymbols';
+    const symbol = mesh(symbolGeometry,symbolMaterial,true); symbol.name='GroundLootEquipmentSymbols';
     // A soft circular pool makes rarity readable without a square sprite edge or extra lights.
     const glowCanvas = document.createElement('canvas'); glowCanvas.width = glowCanvas.height = 64;
     const glowContext = glowCanvas.getContext('2d'), glowGradient = glowContext.createRadialGradient(32,32,0,32,32,32);
@@ -96,11 +105,11 @@
         }
         if (count>=CAPACITY || !m.flying && distance>28) continue;
         color.set(quality.color);
-        object.position.set(x,y+.17,z);
+        object.position.set(x,y+.27,z);
         const camera = B.app && B.app.camera;
         if (camera) object.quaternion.copy(camera.quaternion); else object.rotation.set(0,0,0);
         object.scale.setScalar(scale); object.updateMatrix(); symbol.setMatrixAt(count,object.matrix);
-        cells[count]=art.cells.get(drop.id)||0;
+        cells[count]=art.cells.get(drop.id)||0; symbol.setColorAt(count,color);
         object.position.set(x,base+.018,z); object.rotation.set(-Math.PI/2,0,0); object.scale.setScalar(m.flying?0:scale); object.updateMatrix();
         groundGlow.setMatrixAt(count,object.matrix); groundGlow.setColorAt(count,color);
         count++;

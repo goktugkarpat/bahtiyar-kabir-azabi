@@ -50,7 +50,7 @@
           // Straight strokes: densify so the Catmull-Rom tube keeps sharp corners.
           const dense = []; for (let k = 0; k < pts.length - 1; k++) for (let t = 0; t < 1; t += .34) dense.push(pts[k].map((v, d) => mix(v, pts[k + 1][d], t)));
           dense.push(pts[pts.length - 1]);
-          list[key].push(G.tube(dense, r || .0011, 4, dense.length * 2, true));
+          list[key].push(G.tube(dense, r || .0011, 3, dense.length, true));
         }
       }
     }
@@ -72,7 +72,7 @@
       if (o.wire) { // twisted wire laid in the grooves between leather turns
         const turns = o.wraps || 12, pts = [];
         for (let i = 0; i <= turns * 14; i++) { const t = i / (turns * 14), a = t * turns * TAU + PI / turns; pts.push([Math.cos(a) * r * 1.13, y0 + .012 + t * (len - .024), Math.sin(a) * r * 1.13]); }
-        P[o.wire].push(G.tube(pts, r * .085, 4, pts.length, true));
+        P[o.wire].push(G.tube(pts, r * .085, 3, Math.ceil(pts.length * .6), true));
       }
     }
     // ----------------------------------------------------------------- pommels

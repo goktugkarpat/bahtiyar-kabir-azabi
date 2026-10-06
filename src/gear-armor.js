@@ -95,7 +95,7 @@
     }
     function trophySkulls(id) {
       const out = { bone: [], black: [] };
-      for (const u of [.08, .92, .2]) { const p = chest(u, .13, .075), sk = G.skull(.065, true); sk.parts.bone.forEach(q => { q.rotateY(u * TAU); q.translate(p[0], p[1] - .05, p[2]); out.bone.push(q); }); sk.parts.void.forEach(q => { q.rotateY(u * TAU); q.translate(p[0], p[1] - .05, p[2]); out.black.push(q); }); }
+      for (const u of [.09, .91]) { const p = chest(u, .13, .075), sk = G.skull(.065, true); sk.parts.bone.forEach(q => { q.rotateY(u * TAU); q.translate(p[0], p[1] - .05, p[2]); out.bone.push(q); }); sk.parts.void.forEach(q => { q.rotateY(u * TAU); q.translate(p[0], p[1] - .05, p[2]); out.black.push(q); }); }
       emit('chest', id, 'bone', out.bone, 'pelvis'); emit('chest', id, 'black', out.black, 'pelvis');
     }
     function riveted(id, trim) { // rare: two riveted chest straps
