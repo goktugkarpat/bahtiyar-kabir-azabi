@@ -340,6 +340,7 @@
         for (var m = 0; m < 5; m++) put('pole', 'wax', ax + U(-1.6, 1.6), .55, S.north + 2.25, .06, U(.4, 1), .04, .05, 0, 0, 2);
         K.candleCluster(ax - .8, S.north + 3.0, 6); K.candleCluster(ax + 1.3, S.north + 2.9, 4);
         K.sconce(S.back + S.s * .44, r.z, 2.5, S.s * PI / 2, false);
+        niches(r, true, S.north + .39, r.x - S.s * 1, r.x - S.s * 1, 0, 'saint');
         urnRow(r.x - S.s * 8.4, S.north + 1.1, 5, S.s * .7, 0);
         // a heap of fallen lanterns swept against the south-west wall, one still smouldering
         var hx = r.x + S.s * 8.6, hz = r.z + 3.2;
@@ -388,6 +389,7 @@
         K.torch(holes[0].x + 4.4, holes[0].z + 1.5, 2.0, false);
         for (var g = 0; g < 10; g++) K.floorDecal('matte', g % 2 ? CELL.mould : CELL.ashPile, r.x + U(-11, 11), r.z + U(-8, 8), U(1.6, 3), U(1.6, 3), null, g % 2 ? COL.mould : COL.dust, 1);
         bloodTrail(holes[0].x + 2.5, holes[0].z + 2, r.x + 1, r.z + 6);
+        niches(r, false, S.back + S.s * .39, r.z - 1.3, r.z + 1.3, S.s * PI / 2, 'urns');
         urnRow(S.back + S.s * 1.2, r.z - 7.2, 4, 0, .75);
         K.hangingIron(r.x - 2, r.z + 2.5, 5, true);
       },
@@ -424,6 +426,8 @@
           solid(bx, S.north + .7, 3.2, 1);
         });
         K.ribCage(r.x + S.s * 9.5, r.z + .4, 1.2);
+        for (var sh = 0; sh < 4; sh++) { var shz = r.z - 4.5 + sh * 3; put('link', 'rust', S.back + S.s * .45, 1.9, shz, .22, .3, .22, 0, PI / 2, 0, 1); K.chain(S.back + S.s * .5, 1.75, shz, 1.2, 'y', 1); put('link', 'iron', S.back + S.s * .5, .5, shz, .26, .26, .18, 0, PI / 2, 0, 1);
+          K.wallDecal('wet', CELL.bloodDrip, S.back + S.s * .4, 1.2, shz, .9, 1.6, S.s * PI / 2, COL.oldBlood, 1); }
         skulls(S.back + S.s * 1.6, r.z - 1.2, .8, 8);
         K.sconce(S.edge - S.s * .44, r.z - 7.5, 2.4, -S.s * PI / 2, true);
         K.sconce(S.back + S.s * .44, r.z + 1.6, 2.4, S.s * PI / 2, true);
@@ -496,6 +500,7 @@
           K.floorDecal('matte', CELL.claws, x, z + 1.2, 1.5, 1.5, null, COL.crack, 1);
         });
         // kneeling penitents: effigies facing the altar
+        if (K.banner) { K.banner(r.x - 3.4, S.north + .62, .9); K.banner(r.x + 3.4, S.north + .62, .9); }
         K.funeraryEffigy(r.x - 6, dz + .4, .5, .72); K.funeraryEffigy(r.x + 6, dz + .4, -.5, .72);
         solid(r.x - 6, dz + .5, 1.2, 1.2); solid(r.x + 6, dz + .5, 1.2, 1.2);
         K.torch(r.x - 4.2, dz + 2.6, 2.1, true); K.torch(r.x + 4.2, dz + 2.6, 2.1, false);

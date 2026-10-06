@@ -1698,7 +1698,7 @@
         floorDecal: floorDecal, wallDecal: wallDecal, decal: decal, CELL: CELL, COL: COL, linear: linear, geometries: geometries, materials: materials, rooms: rooms,
         skull: skull, boneScatter: boneScatter, ribCage: ribCage, rubble: rubble, slab: slab, cage: cage, chain: chain, candleCluster: candleCluster, alcove: alcove,
         vaultRib: vaultRib, funeraryEffigy: funeraryEffigy, censer: censer, hangingIron: hangingIron, hangedBody: hangedBody, shroudedRemains: shroudedRemains,
-        puddle: puddle, torch: torch, sconce: sconce, flame: flame, lightSource: lightSource, emberSources: emberSources, smokeSources: smokeSources,
+        puddle: puddle, banner: banner, torch: torch, sconce: sconce, flame: flame, lightSource: lightSource, emberSources: emberSources, smokeSources: smokeSources,
         part: part, hangerGroup: hangerGroup, swinging: swinging, floorRing: floorRing, ritualPavement: ritualPavement, architectureMesh: architectureMesh, spot: spot, setChunkBias: function (b) { chunkBias = b || 0; } });
       /* /ajan:world-a */
 
