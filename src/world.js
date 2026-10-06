@@ -633,7 +633,7 @@
         }
       }
       // ajan:world-a: some halls open into each other through a wide breach instead of a 7 m arch (BREACH[i]: between room i and i+1).
-      var BREACH = BABA.WorldATemple && BABA.WorldATemple.active ? { 1: 1, 2: 1, 3: 1, 4: 1 } : {}, BREACH_HALF = 6;
+      var BREACH = BABA.WorldATemple && BABA.WorldATemple.active ? { 1: 1, 2: 1, 3: 1, 4: 1, 5: 1 } : {}, BREACH_HALF = 6;
       function portalHalf(i) { return BABA.WorldATemple && BABA.WorldATemple.active && i < 5 ? 4.6 : 3; }   // side-crypt doorway half-width
       function endWall(room, z, entrance, front, half) {
         var xmin = room.x - room.w / 2, xmax = room.x + room.w / 2; half = half || 3.45;
