@@ -42,7 +42,7 @@
       var urn = new T.LatheGeometry([new T.Vector2(0, -.5), new T.Vector2(.28, -.5), new T.Vector2(.42, -.25), new T.Vector2(.5, .05), new T.Vector2(.36, .32), new T.Vector2(.22, .4), new T.Vector2(.27, .5), new T.Vector2(0, .5)], 10);
       G['wa-urn'] = urn;
     }
-    if (!K.materials['wa-linen']) { var lin = K.materials.shroud.clone(); lin.vertexColors = false; lin.color.copy(K.linear(.42, .38, .31)); K.materials['wa-linen'] = lin; }
+    if (!K.materials['wa-linen']) { var lin = K.materials.shroud.clone(); lin.vertexColors = false; lin.color.copy(K.linear(.55, .47, .34)); lin.roughness = 1; K.materials['wa-linen'] = lin; }
     var put = K.put, box = K.box, rod = K.rod, solid = K.solid;
     function rock(mat, x, y, z, s, sy) { put('wa-rock', mat, x, y, z, s * U(.8, 1.25), (sy || s) * U(.7, 1.1), s * U(.8, 1.25), U(-.4, .4), R() * 6.28, U(-.4, .4), 1); }
     function pile(x, z, r, n, mat) {
@@ -452,7 +452,12 @@
         K.candleCluster(r.x - S.s * 3, r.z + 6.4, 5);
         K.sconce(S.edge - S.s * .44, r.z - 7.5, 2.4, -S.s * PI / 2, false);
         K.sconce(S.back + S.s * .44, r.z - 6, 2.4, S.s * PI / 2, false);
-        lamp(r.x + 1.4, r.z - 1.5, 5.1, false);
+        lamp(r.x + 1.4, r.z - 1.5, 5.1, false); lamp(r.x - S.s * 6, r.z + 3.5, 5.0, false);
+        // folded and dumped shrouds: soft linen mounds along the walls, some stained
+        for (var md = 0; md < 9; md++) { var mx = r.x + (md % 2 ? 1 : -1) * U(8.2, 10.6), mz = r.z + U(-8, 8);
+          put('wa-rock', 'wa-linen', mx, .12, mz, U(.9, 1.6), U(.25, .45), U(.7, 1.2), 0, R() * 6, 0, 1);
+          if (md % 3 === 0) K.floorDecal('wet', CELL.bloodDrip, mx, mz, 1.1, 1.1, null, COL.oldBlood, 1); }
+        candleStand(r.x - 4.2, r.z - 4.6, 1.2, true); candleStand(r.x + 4.4, r.z + 5.2, 1.2, true);
         K.ribCage(r.x - S.s * 8.6, r.z + 3.6, -1.1);
         for (var f = 0; f < 10; f++) K.floorDecal('matte', f % 2 ? CELL.specks : CELL.ashPile, r.x + U(-11, 11), r.z + U(-9, 9), U(1.4, 2.6), U(1.4, 2.6), null, COL.dust, 1);
         K.floorDecal('wet', CELL.bloodDrip, r.x - 6.6, r.z - 5.6, 1.2, 1.8, 0, COL.oldBlood, 1);
