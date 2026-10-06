@@ -106,7 +106,7 @@
     'uniform vec4 uPulse;',   // war cry shockwave: xy = centre (uv), z = ring radius (height units), w = strength (0 = off)
     // Cinematic layer over every room grade (ajan:visual-dark): x shadow desaturation, y shadow range (linear luma), z toe (black crush),
     // w highlight warmth; uCineTint = hue the drained shadows sink toward. uSharp = adaptive detail (SHARP variant only).
-    'uniform vec4 uCine; uniform vec3 uCineTint; uniform float uSharp;',
+    'uniform vec4 uCine; uniform vec3 uCineTint; uniform float uSharp, uPunch;',
     // Hero focus (ajan:visual-dark): xy = hero centre (uv), z = radius (height units), w = strength. The hero carries a soft pool of
     // exposure with him and the frame falls away into darkness around it, so a darker world never swallows the player.
     'uniform vec4 uFocus;',
@@ -233,7 +233,8 @@
     '  c = max(mix(vec3(luma(c)), c, sat), 0.);',
     // Cinematic layer: shadows drain toward a cold, nearly colourless tone (painted-realism, not cartoon colour), the toe sinks so
     // darkness reads as darkness, and lit highlights warm a touch (fire against cold stone).
-    '  { float lc = luma(c), shd = 1. - smoothstep(0., uCine.y, lc);',
+    // uPunch: log-space contrast around mid grey (.18) — weight in the image without touching the room grade's own S-curve.
+    '  { float lc = luma(c); c *= pow(max(lc, 1e-4) / .18, uPunch) ; lc = luma(c); float shd = 1. - smoothstep(0., uCine.y, lc);',
     '    c = mix(c, vec3(lc) * uCineTint, shd * shd * uCine.x);',
     '    c *= (lc + uCine.z * .25) / (lc + uCine.z);',
     '    c *= mix(vec3(1.), vec3(1.05, 1., .93), smoothstep(.3, .9, lc) * uCine.w); }',
@@ -385,7 +386,7 @@
       uLift: { value: new T.Vector3() }, uGain: { value: new T.Vector3(1, 1, 1) }, uShadowTint: { value: new T.Vector3(1, 1, 1) },
       uHighTint: { value: new T.Vector3(1, 1, 1) }, uVigColor: { value: new T.Vector3(0, 0, 0) }, uBloomTint: { value: new T.Vector3(1, 1, 1) },
       uHeat: { value: heat }, uPulse: { value: new T.Vector4(.5, .5, 0, 0) },
-      uCine: { value: new T.Vector4(.38, .12, .006, .5) }, uCineTint: { value: new T.Vector3(.9, 1, 1.08) }, uSharp: { value: .55 }, uFocus: { value: new T.Vector4(.5, .5, .5, 0) },
+      uCine: { value: new T.Vector4(.38, .12, .006, .5) }, uCineTint: { value: new T.Vector3(.9, 1, 1.08) }, uSharp: { value: .55 }, uPunch: { value: .08 }, uFocus: { value: new T.Vector4(.5, .5, .5, 0) },
       uOvl: { value: new T.Vector4() }, uCss: { value: new T.Vector2(typeof innerWidth === 'number' ? innerWidth : 1280, typeof innerHeight === 'number' ? innerHeight : 800) },
       uAbA: { value: new T.Vector4() }, uAbB: { value: new T.Vector4() }, uAbC: { value: new T.Vector4(.5, .5, 0, .1) }, uAbD: { value: new T.Vector4(.5, .5, 1, 0) }
     };
