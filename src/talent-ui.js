@@ -54,7 +54,7 @@
       line(p, n, (lit ? 'lit' : ready ? 'ready' : '') + (lit && seen && !seen.includes(n.id) ? ' just' : ''));
     }
     // ---- gates (row labels with the points they ask for)
-    const spent = learned.length;
+    const spent = learned.length, bonus = state.boons ? (state.boons().points || 0) : 0;
     const rows = T.rows.map(r => {
       if (!r.name) return ''; const need = r.row === 3 ? 3 : r.row === 4 ? 4 : r.row === 5 ? 7 : r.row === 6 ? 6 : r.row === 2 ? 1 : 0, open = spent >= need;
       return '<div class="tt-row' + (open ? ' open' : '') + '" style="top:' + ROW_Y[r.row] + '%"><b>' + (() => { const k = r.name.indexOf(' · '); return k > 0 ? '<span class="tt-roman">' + esc(r.name.slice(0, k)) + '</span><span class="tt-rowword"> · ' + esc(r.name.slice(k + 3)) + '</span>' : esc(r.name); })() + '</b><small>' + esc(r.hint) + '</small></div>';
@@ -82,14 +82,14 @@
     const title = weight.length > 1 ? T.archetype(T.cols.indexOf(weight[0].c) >= 0 ? weight[0].c.line : '', weight[1].c.line) : '';
     const identity = weight.length ? (title ? '<b class="tt-arch">' + esc(title) + '</b> · ' : '') + weight.slice(0, 2).map(o => '<b style="color:' + o.c.color + '">' + esc(o.c.name) + '</b>').join(' + ') + (keystone ? ' · <b class="tt-keyname">' + esc(keystone.name) + '</b>' : '') : '<i>' + esc(t('Henüz bir yol seçmedin')) + '</i>';
     const respecWhy = !learned.length ? t('Geri alınacak puan yok.') : inCombat ? t('Savaşın ortasında yol değiştirilemez.') : t('Bütün puanlar ücretsiz geri verilir (savaş dışında).');
-    const head = '<div class="tt-head"><span class="tt-budget"><b>' + state.points + '</b> ' + esc(t('puan')) + ' <small>' + spent + ' / ' + T.MAX_POINTS + ' ' + esc(t('harcandı')) + ' · ' + T.nodes().length + ' ' + esc(t('düğüm')) + '</small></span>' +
+    const head = '<div class="tt-head"><span class="tt-budget"><b>' + state.points + '</b> ' + esc(t('puan')) + ' <small>' + spent + ' / ' + (T.MAX_POINTS + bonus) + ' ' + esc(t('harcandı')) + ' · ' + T.nodes().length + ' ' + esc(t('düğüm')) + '</small></span>' +
       '<span class="tt-identity">' + esc(t('Yolun:')) + ' ' + identity + '</span>' +
       '<span class="tt-zoom"><button data-char="talent" data-act="zoom" data-dir="-1" aria-label="' + esc(t('Uzaklaştır')) + '">−</button><button data-char="talent" data-act="zoom" data-dir="0" aria-label="' + esc(t('Sığdır')) + '">' + Math.round(zoom * 100) + '%</button><button data-char="talent" data-act="zoom" data-dir="1" aria-label="' + esc(t('Yakınlaştır')) + '">+</button></span>' +
       '<button class="tt-respec" data-char="respec" title="' + esc(respecWhy) + '" ' + (!learned.length || inCombat ? 'disabled' : '') + '>' + esc(t('Yolu sıfırla')) + '</button></div>';
     const presets = '<div class="tt-presets"><small>' + esc(t('Önerilen yollar')) + '</small>' + T.presets.map(x => '<button data-char="talent" data-act="preview" data-preset="' + x.id + '" class="' + (x.id === preview ? 'on' : '') + '" title="' + esc(x.hint) + '">' + esc(x.name) + '</button>').join('') +
       (pre ? '<span class="tt-preinfo">' + esc(pre.hint) + '</span><button class="tt-apply" data-char="talent" data-act="apply" data-preset="' + pre.id + '" ' + (inCombat ? 'disabled' : '') + '>' + esc(t('Bu yolu uygula')) + '</button>' : '') + '</div>';
     const board = '<div class="tt-viewport" data-zoom="' + zoom + '"><div class="tt-board" style="--z:' + zoom + '"><svg class="tt-links" viewBox="0 0 1000 1000" preserveAspectRatio="none" aria-hidden="true">' + links.join('') + '</svg>' + rows + heads + html + '</div></div>';
-    const note = '<p class="skt-note tt-note">' + esc(t('Çift tıkla: öğren · Her yeteneğe tek mühür · Tek kilit taşı') + ' · ' + T.MAX_POINTS + ' / ' + nodes.length) + '</p>';
+    const note = '<p class="skt-note tt-note">' + esc(t('Çift tıkla: öğren · Her yeteneğe tek mühür · Tek kilit taşı') + ' · ' + (T.MAX_POINTS + bonus) + ' / ' + nodes.length) + '</p>';
     // ---- inspect
     const a = T.access(state, sel.id), col = colOf(sel), known = a.known;
     let facts = '';
@@ -104,7 +104,7 @@
     } else if (sel.kind === 'key') {
       extra = '<p class="tt-price">' + esc(sel.price) + '</p><p class="tt-rule excl">✕ ' + esc(t('Bir yolculukta yalnız bir kilit taşı seçilir.')) + '</p>';
     } else if (sel.kind === 'form') extra = '<p class="tt-rule">' + esc(en() ? 'Replaces ' + T.get(sel.requires).name + ' in its slot.' : T.get(sel.requires).name + ' yerine aynı yuvaya geçer.') + '</p>';
-    const canRefund = known && T.canRefund(learned, sel.id, state.level);
+    const canRefund = known && T.canRefund(learned, sel.id, state.level, bonus);
     const refund = known ? '<button class="tt-refund" data-char="refund" data-skill="' + sel.id + '" ' + (!canRefund || inCombat ? 'disabled' : '') + ' title="' + esc(inCombat ? t('Savaşın ortasında yol değiştirilemez.') : !canRefund ? t('Bu düğüme ya da harcanan puan sayısına bağlı başka düğümler var; önce onları geri al.') : t('Puanı ücretsiz geri al')) + '">' + esc(t('Puanı geri al')) + '</button>' : '';
     const assignment = known && sel.skill ? '<div class="skt-assign"><small>' + esc(t('Hangi yuvaya konsun?')) + '</small><div>' + [0, 1, 2, 3].map(slot => {
       const here = state.loadout[slot] === sel.id, other = P.skills.find(s => s.id === state.loadout[slot]);
@@ -131,7 +131,7 @@
       const pre = T.presets.find(x => x.id === button.dataset.preset); if (!pre || !state) return { ok: false, reason: t('Böyle bir yol yok.') };
       if (game && game.talents && game.talents.inCombat()) return { ok: false, reason: t('Savaşın ortasında yol değiştirilemez.') };
       if (state.learned.length) state.respec();
-      const order = T.validate(pre.nodes, state.level);
+      const order = T.validate(pre.nodes, state.level, state.boons ? state.boons().points || 0 : 0);
       for (const id of order) state.unlock(id);
       // put the build's actives into the slots in the preset's order (later forms replace their roots)
       const actives = order.filter(id => B.Progression.skills.some(k => k.id === id)), top = [];

@@ -39,7 +39,7 @@ def run_chapter(pw, base, ch, diffs, bots, enc, level, out):
         enc_js = json.dumps(enc if enc in ('all', 'boss') else [int(x) for x in enc.split(',')])
         for d in diffs:
             for b in bots:
-                r = json.loads(page.evaluate(f"JSON.stringify(BABA.Balance.run({{difficulty:'{d}', bot:'{b}', encounters:{enc_js}, level:{level}, seed:3}}))"))
+                r = json.loads(page.evaluate(f"JSON.stringify(BABA.Balance.run({{difficulty:'{d}', bot:'{b}', encounters:{enc_js}, level:{level}, seed:3, build:{json.dumps(BUILD)}}}))"))
                 out.append(r); T, P = r['total'], r['profile']
                 print(f"ch{ch} {d:6} {b:8} L{P['level']} dmg{P['dmg']} hp{P['hp']} def{P['def']} | fights {T['fights']} deaths {T['deaths']} timeouts {T['timeouts']} "
                       f"time {T['time']}s hpLost {T['hpLost']} flasks {T['flasks']} rolls {T['rolls']} hits {T['hitsTaken']} denied {T['denied']} perfect {T['perfect']}", flush=True)
@@ -51,8 +51,13 @@ def run_chapter(pw, base, ch, diffs, bots, enc, level, out):
         browser.close()
 
 
+BUILD = None   # --build <preset id> (talent tree 3, src/talent-tree.js presets)
+
+
 def main():
-    args = [a for a in sys.argv[1:] if not a.startswith('--')]
+    global BUILD
+    BUILD = sys.argv[sys.argv.index('--build') + 1] if '--build' in sys.argv else None
+    args = [a for a in sys.argv[1:] if not a.startswith('--') and a != BUILD]
     out_path = sys.argv[sys.argv.index('--json') + 1] if '--json' in sys.argv else None
     if out_path in args: args.remove(out_path)
     chapters = [int(c) for c in (args[0] if args else '1').split(',')]

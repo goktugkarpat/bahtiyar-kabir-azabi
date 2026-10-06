@@ -113,7 +113,7 @@
       cell(1, function () {
         var a = r() * 6.28, x = 20, y = 128 + (r() - .5) * 40, pts = [];
         for (var k = 0; k < 22; k++) { a += (r() - .5) * .55; x += 10 + r() * 3; y += Math.sin(a) * 9; pts.push([x, y]); }
-        [[16, 'rgba(210,200,185,.20)'], [9, 'rgba(0,0,0,.55)'], [4.5, 'rgba(0,0,0,.95)']].forEach(function (p) { g.lineWidth = p[0]; g.strokeStyle = p[1]; g.beginPath(); pts.forEach(function (q, i) { i ? g.lineTo(q[0], q[1]) : g.moveTo(q[0], q[1]); }); g.stroke(); });
+        [[18, 'rgba(14,11,9,.16)'], [9, 'rgba(0,0,0,.5)'], [4.5, 'rgba(0,0,0,.95)']]   /* (visual-dark) soot edge, not a pale outline */.forEach(function (p) { g.lineWidth = p[0]; g.strokeStyle = p[1]; g.beginPath(); pts.forEach(function (q, i) { i ? g.lineTo(q[0], q[1]) : g.moveTo(q[0], q[1]); }); g.stroke(); });
         g.strokeStyle = 'rgba(5,4,3,.9)'; for (var k = 3; k < pts.length - 3; k += 4) crack(pts[k][0], pts[k][1], r() * 6.28, 55, 2, 1);
       });
       cell(2, function () {

@@ -47,7 +47,7 @@
     // All painted equipment symbols share one prepared atlas and one draw call.
     const art = atlas || {texture:new T.Texture(),cells:new Map(),columns:8,rows:11};
     if (!atlas) owned.push(art.texture); // Isolated combat fixtures do not decode browser images.
-    const symbolGeometry = new T.PlaneGeometry(.8,.8), cells = new Float32Array(CAPACITY);
+    const symbolGeometry = new T.PlaneGeometry(.98,.98), cells = new Float32Array(CAPACITY);
     symbolGeometry.setAttribute('aCell',new T.InstancedBufferAttribute(cells,1).setUsage(T.DynamicDrawUsage));
     const symbolMaterial = new T.ShaderMaterial({transparent:true,depthWrite:false,toneMapped:false,
       uniforms:{atlas:{value:art.texture},grid:{value:new T.Vector2(art.columns,art.rows)},texel:{value:new T.Vector2(1/(art.columns*(art.cell||128)),1/(art.rows*(art.cell||128)))}},
@@ -105,7 +105,7 @@
         }
         if (count>=CAPACITY || !m.flying && distance>28) continue;
         color.set(quality.color);
-        object.position.set(x,y+.27,z);
+        object.position.set(x,y+.34,z);
         const camera = B.app && B.app.camera;
         if (camera) object.quaternion.copy(camera.quaternion); else object.rotation.set(0,0,0);
         object.scale.setScalar(scale); object.updateMatrix(); symbol.setMatrixAt(count,object.matrix);
