@@ -303,7 +303,7 @@
       // Sönmüş Kandiller — a forest of dead hanging lamps, a fallen chandelier, rows of guttered candles.
       lamps: function (r, S) {
         var deadParts = { iron: [], wax: [], x0: null };
-        for (var i = 0; i < 16; i++) {
+        for (var i = 0; i < 12; i++) {
           var lx = r.x + U(-r.w / 2 + 2.5, r.w / 2 - 2.5), lz = r.z + U(-r.d / 2 + 2.5, r.d / 2 - 2.5);
           if (i < 3) lamp(lx, lz, 5.2, false); else deadLamp(lx, lz, U(4.6, 5.6), Math.floor(U(4, 12)), deadParts, r);
         }
@@ -321,7 +321,7 @@
         // rows of candle stands along the walls, most dead
         for (var k = 0; k < 7; k++) {
           var z = r.z - r.d / 2 + 2.6 + k * (r.d - 5.2) / 6;
-          candleStand(S.back + S.s * 1.6, z, U(1, 1.4), k % 3 === 1);
+          candleStand(S.back + S.s * 1.6, z, U(1, 1.4), k % 2 === 0);
         }
         for (var n = 0; n < 6; n++) candleStand(r.x + (n - 2.5) * 3.3, S.north + 2.4, U(1.1, 1.5), n % 2 === 0);
         // wax-buried altar against the north wall
@@ -333,6 +333,16 @@
         K.candleCluster(ax - .8, S.north + 3.0, 6); K.candleCluster(ax + 1.3, S.north + 2.9, 4);
         K.sconce(S.back + S.s * .44, r.z, 2.5, S.s * PI / 2, false);
         urnRow(r.x - S.s * 8.4, S.north + 1.1, 5, S.s * .7, 0);
+        // a heap of fallen lanterns swept against the south-west wall, one still smouldering
+        var hx = r.x + S.s * 8.6, hz = r.z + 3.2;
+        for (var lh = 0; lh < 14; lh++) { var la = R() * 6.28, ld = Math.sqrt(R()) * 1.3, ly = (1 - ld / 1.3) * .5;
+          put('cone', 'iron', hx + Math.cos(la) * ld, .12 + ly, hz + Math.sin(la) * ld, .2, .16, .2, U(-1.4, 1.4), R() * 6, U(-1.4, 1.4), 1);
+          put('octagon', lh % 3 ? 'iron' : 'rust', hx + Math.cos(la + 1) * ld, .05 + ly * .8, hz + Math.sin(la + 1) * ld, .18, .04, .18, U(-1, 1), 0, U(-1, 1), 1); }
+        solid(hx, hz, 2.2, 2.2);
+        K.flame(hx + .2, .55, hz - .2, .16, .3, 'fire', true, true); K.lightSource(hx, .9, hz, '#ff7a30', 10, 7, 1, { kind: 'candle' });
+        K.decal('glow', CELL.glow, hx, .02, hz, 3.2, 3.2, 0, K.linear(.06, .022, .006), 1);
+        K.candleCluster(r.x + S.s * 4.2, r.z + 7.6, 6); K.candleCluster(r.x - S.s * 3.6, r.z + 7.9, 5);
+        for (var wr = 0; wr < 6; wr++) K.floorDecal('matte', CELL.wax, r.x + S.s * (3 + wr * .9), S.north + 3.2 + wr * .5, .9, 1.4, U(-.4, .4), COL.wax, 1);
         pile(r.x + S.s * 7.5, r.z + 7.6, 1.4, 12);
         brokenColumn(r.x - S.s * 8, r.z + 7, 1.6, false);
         for (var d = 0; d < 9; d++) K.floorDecal('matte', CELL.wax, r.x + U(-9, 9), r.z + U(-8, 8), U(.6, 1.2), U(.6, 1.2), null, COL.wax, 1);
@@ -341,6 +351,10 @@
       // İsimsizlerin Mezarı — rows of sunken sarcophagi, toppled grave monuments, an open mass grave.
       graves: function (r, S, holes) {
         pit(holes[0], 2.4, null);
+        // mourners' candles along the rim of the open grave; a cold glow from the bodies below
+        for (var mc = 0; mc < 4; mc++) K.candleCluster(holes[0].x - 3 + mc * 2, holes[0].z + 2.2, 3);
+        K.decal('glow', CELL.glow, holes[0].x, -2.5, holes[0].z, 7, 3.2, 0, K.linear(.03, .04, .06), 0);
+        K.lightSource(holes[0].x, -.6, holes[0].z, '#8aa6d8', 8, 6, .2, { kind: 'special', scatter: .6, glowRadius: 1.2 });
         if (K.ritualPavement) { K.ritualPavement(r.x, r.z + 2.5, 3.2, true); K.floorRing(r.x, r.z + 2.5, 3.28, .1, 'dark~p'); }
         // bodies in the mass grave: shrouded shapes half-buried
         for (var b = 0; b < 4; b++) put('wa-drum', 'wa-linen', holes[0].x - 2.4 + b * 1.6, -2.35, holes[0].z + U(-.6, .6), .55, 1.7, .5, PI / 2, U(-.3, .3), 0, 1);
