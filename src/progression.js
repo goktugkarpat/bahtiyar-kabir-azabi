@@ -363,7 +363,7 @@
     }
     // Talent tree 3: give one node back (when the rest of the tree stays legal) or every node at once. The caller decides when (out of combat).
     function refund(id) {
-      if (!B.TalentTree || !B.TalentTree.canRefund(state.learned, id, state.level)) return result(false, KabirI18n.t('Bu düğüme bağlı başka düğümler var; önce onları geri al.'));
+      if (!B.TalentTree || !B.TalentTree.canRefund(state.learned, id, state.level)) return result(false, KabirI18n.t('Bu düğüme ya da harcanan puan sayısına bağlı başka düğümler var; önce onları geri al.'));
       const skill = skillIndex[id];
       state.learned = state.learned.filter(x => x !== id); recalculate();
       state.loadout = state.loadout.map(o => o !== id ? o : skill && skill.requires && state.learned.includes(skill.requires) ? skill.requires : null);
