@@ -457,6 +457,31 @@
       }
     }
 
+    // Promote the named prey (also retried later if the foes were not yet spawned when the quest was built).
+    function promote(q) {
+      var def = q.def;
+      var at = q.huntAt, best = null, bestD = Infinity;
+      (api.enemies || []).forEach(function (e) {
+        if (e.boss || e.reserve || e.huntQuest || e.type === 'ruinwarden' || e.type === 'ashwarden') return;
+        // The named prey keeps its kind when one lives within ~45 m of its den; otherwise the nearest foe takes the name.
+        var raw = Math.hypot(e.x - at.x, e.z - at.z), match = !def.target.types.length || def.target.types.indexOf(e.type) >= 0;
+        var d = (match && raw < 45 ? raw : raw + 1000) * (e.elite ? .85 : 1);
+        if (d < bestD) { bestD = d; best = e; }
+      });
+      if (!best) return false;
+      best.huntQuest = def.id; best.name = def.target.name; best.elite = true;
+      best.baseMaxHp = Math.round((best.baseMaxHp || best.maxHp) * def.target.scale); best.maxHp = Math.round(best.maxHp * def.target.scale); best.hp = best.maxHp;
+      best.campaignDamage = (best.campaignDamage || 1) * 1.22; best.radius = (best.radius || .6) * 1.08;
+      if (best.model && best.model.root) {
+        best.model.root.scale.multiplyScalar(def.after ? 1.22 : 1.16);
+        // A thin smouldering brand above the named prey: visible across a hall, never a light source.
+        var mt = kit.materials || {}, brand = [], bg = new T.Group(), hgt = (best.model.height || 2.1) / 1.16 + .28;
+        kit.ring(brand, mt.ember || mt.hot || mt.lava || mt.lamp || kit.glow, .3, .022, 0, hgt, 0, PI / 2);
+        for (var sp2 = 0; sp2 < 6; sp2++) { var an2 = sp2 * PI / 3; kit.put(brand, mt.ember || mt.hot || mt.lava || mt.lamp || kit.glow, new T.ConeGeometry(.035, .16, 5), Math.sin(an2) * .3, hgt + .07, Math.cos(an2) * .3); }
+        kit.merge(brand, bg); bg.name = 'hunt-brand'; best.model.root.add(bg); q.brand = bg;
+      }
+      q.enemy = best; return true;
+    }
     // ---- build quests
     defs.forEach(function (def, qi) {
       var q = { def: def, index: qi, nodes: [], entry: null };
@@ -466,27 +491,7 @@
       q.entry = entry; quests.push(q); state[def.id] = { stage: 0, bits: 0, choice: null, done: false, discovered: !def.hidden };
       try {
         if (def.kind === 'hunt') {
-          var at = spot(def.site, def.fallback), best = null, bestD = Infinity;
-          (api.enemies || []).forEach(function (e) {
-            if (e.boss || e.reserve || e.huntQuest || e.type === 'ruinwarden' || e.type === 'ashwarden') return;
-            // The named prey keeps its kind when one lives within ~45 m of its den; otherwise the nearest foe takes the name.
-            var raw = Math.hypot(e.x - at.x, e.z - at.z), match = !def.target.types.length || def.target.types.indexOf(e.type) >= 0;
-            var d = (match && raw < 45 ? raw : raw + 1000) * (e.elite ? .85 : 1);
-            if (d < bestD) { bestD = d; best = e; }
-          });
-          if (!best) { q.disabled = true; return; }
-          best.huntQuest = def.id; best.name = def.target.name; best.elite = true;
-          best.baseMaxHp = Math.round((best.baseMaxHp || best.maxHp) * def.target.scale); best.maxHp = Math.round(best.maxHp * def.target.scale); best.hp = best.maxHp;
-          best.campaignDamage = (best.campaignDamage || 1) * 1.22; best.radius = (best.radius || .6) * 1.08;
-          if (best.model && best.model.root) {
-            best.model.root.scale.multiplyScalar(def.after ? 1.22 : 1.16);
-            // A thin smouldering brand above the named prey: visible across a hall, never a light source.
-            var mt = kit.materials || {}, brand = [], bg = new T.Group(), hgt = (best.model.height || 2.1) / 1.16 + .28;
-            kit.ring(brand, mt.ember || mt.hot || mt.lava || mt.lamp || kit.glow, .3, .022, 0, hgt, 0, PI / 2);
-            for (var sp2 = 0; sp2 < 6; sp2++) { var an2 = sp2 * PI / 3; kit.put(brand, mt.ember || mt.hot || mt.lava || mt.lamp || kit.glow, new T.ConeGeometry(.035, .16, 5), Math.sin(an2) * .3, hgt + .07, Math.cos(an2) * .3); }
-            kit.merge(brand, bg); bg.name = 'hunt-brand'; best.model.root.add(bg); q.brand = bg;
-          }
-          q.enemy = best;
+          q.huntAt = spot(def.site, def.fallback); promote(q);
         } else if (def.kind === 'rescue') {
           q.captive = node(q, 'post', def.site, def.fallback, { verb: L('Zincirini çöz', 'Break the chain'), role: 'captive' });
           q.actor = makeActor(def); q.actor.x = q.captive.x + .55; q.actor.z = q.captive.z + .35; q.actor.face = 0;
@@ -536,7 +541,7 @@
         e.objective = s.done ? W.done : d.kind === 'escape' && s.stage >= 1 ? W.run + Math.max(0, Math.ceil(q.left || 0)) + W.secs + ' · ' + d.objective : d.kind === 'puzzle' && s.stage >= 1 ? L('Gizli dolap açıldı. İçindekini al.', 'The hidden cabinet is open. Take what lies inside.') : d.kind === 'puzzle' && e.discovered ? d.objective + ' ' + d.riddle : d.kind === 'siege' && s.stage >= 1 ? W.wave + s.stage + ' / ' + d.waves.length + W.survive : d.kind === 'rescue' && s.stage >= 1 ? d.follow : d.kind === 'chest' && !keyOwned(q) ? W.locked : d.objective;
         e.available = !s.done && e.discovered && !(d.requiresMain != null && !mainDone(d.requiresMain));
         e.outcome = s.done ? (d.kind === 'altar' && s.choice ? (d.verdict.options.find(function (x) { return x.id === s.choice; }) || {}).story || '' : d.story) : '';
-        e.target = null;
+        e.target = null; e.urgent = (d.kind === 'escape' || d.kind === 'siege') && s.stage >= 1 && !s.done ? (d.kind === 'escape' ? W.run + Math.max(0, Math.ceil(q.left || 0)) + W.secs : W.wave + s.stage + ' / ' + d.waves.length) : '';
         q.nodes.forEach(function (n) {
           if (d.kind === 'rescue') n.done = s.stage >= 1 || s.done;
           if (d.kind === 'altar' || d.kind === 'chest') n.done = s.done;
@@ -743,6 +748,7 @@
       if (player.maxFlasks !== want) { if (want > player.maxFlasks) player.flasks = (player.flasks || 0) + (want - player.maxFlasks); player.maxFlasks = want; player.flasks = Math.min(player.flasks, want); }
       for (var i = 0; i < quests.length; i++) {
         var q = quests[i], s = state[q.def.id];
+        if (q.def.kind === 'hunt' && !q.enemy && !s.done) { q.retry = (q.retry || 0) - dt; if (q.retry <= 0) { q.retry = 2; if (promote(q)) { q.marker = { id: q.def.id, side: q.def.id, kind: 'hunt', name: q.def.target.name, x: q.enemy.x, z: q.enemy.z, active: false, complete: false, moving: true }; info.sideMarkers.push(q.marker); dirty = true; } } }
         if (q.def.kind === 'hunt' && q.enemy) {
           if (q.marker && !q.enemy.dead) { q.marker.x = q.enemy.x; q.marker.z = q.enemy.z; }
           if (!s.done && s.discovered && !q.sighted && !q.enemy.dead && Math.hypot(q.enemy.x - player.x, q.enemy.z - player.z) < 16) { q.sighted = true; api.emit('toast', { text: W.hunt + ': ' + q.def.target.name + L(' yakında. Ondan kaçma.', ' is near. Do not run from it.') }); }

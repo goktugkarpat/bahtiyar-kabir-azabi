@@ -131,12 +131,23 @@
     function target() {
       const p = game.player; let best = null, bestScore = Infinity;
       const consider = (m, weight) => { if (!m || !m.active || m.complete || !Number.isFinite(m.x)) return; const d = Math.hypot(m.x - p.x, m.z - p.z) * weight; if (d < bestScore) { bestScore = d; best = m; } };
+      const urgent = side.find(e => e.urgent && e.target); if (urgent) return urgent.target;
       (q.markers || []).forEach(m => consider(m, .8));
       if (!q.ready) side.forEach(e => { if (e.available && e.target) consider(e.target, 1); });
       else side.forEach(e => { if (e.available && e.target) consider(e.target, 1.4); });
       return best;
     }
+    // Urgent banner (escape countdown, survival wave): large, centred, only while a rite or run is live.
+    const urgentBox = document.createElement('div'); urgentBox.className = 'quest-urgent'; urgentBox.hidden = true;
+    urgentBox.innerHTML = '<small></small><b></b>'; (document.getElementById('hud') || document.body).append(urgentBox);
+    let urgentKey = '';
+    function updateUrgent() {
+      const e = game.state === 'playing' ? side.find(x => x.urgent) : null, key = e ? e.id + e.urgent : '';
+      if (key === urgentKey) return; urgentKey = key; urgentBox.hidden = !e;
+      if (e) { urgentBox.dataset.kind = e.kind; urgentBox.firstChild.textContent = e.name; urgentBox.lastChild.textContent = e.urgent; }
+    }
     function updateCompass() {
+      updateUrgent();
       const p = game.player, t = target();
       if (!t || game.state !== 'playing') { if (!compass.hidden) compass.hidden = true; return; }
       const dx = t.x - p.x, dz = t.z - p.z, dist = Math.hypot(dx, dz);
@@ -174,7 +185,8 @@
       }
       let hiddenLeft = 0, shown = 0;
       // Threads already under way (a wave, a follower, half the pages) take the three tracker lines first.
-      const ranked = sideRows.slice().sort((a, b) => (b.entry.progress > 0) - (a.entry.progress > 0));
+      const rank = e => (e.urgent ? 2 : 0) + (e.progress > 0 ? 1 : 0);
+      const ranked = sideRows.slice().sort((a, b) => rank(b.entry) - rank(a.entry));
       const showSet = new Set();
       for (const r of ranked) { const e = r.entry; if (showSet.size < 3 && e.discovered && !e.complete && !(e.available === false && e.kind !== 'chest' && e.kind !== 'hunt')) showSet.add(r); }
       sideRows.forEach(r => {

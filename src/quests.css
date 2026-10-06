@@ -114,3 +114,10 @@
 #quest-notice[data-kind="siege"] { border-left-color: #d0743c }
 #quest-notice[data-kind="rescue"] { border-left-color: #8fb39c }
 @media (max-width: 800px) { .quest-track-row.side span { font-size: 10px } .quest-compass { font-size: 10px } }
+
+.quest-urgent { position: absolute; left: 50%; top: 13%; transform: translateX(-50%); text-align: center; pointer-events: none; padding: 8px 26px 10px; background: radial-gradient(ellipse at center, #1a0907d9 0%, #1a090700 72%); text-shadow: 0 2px 8px #000 }
+.quest-urgent[hidden] { display: none }
+.quest-urgent small { display: block; color: #d9a46a; font: 500 11px/1.3 var(--text); letter-spacing: .24em; text-transform: uppercase }
+.quest-urgent b { display: block; color: #ffd9a0; font: 600 calc(30px * var(--k, 1))/1.15 var(--display); letter-spacing: .06em }
+.quest-urgent[data-kind="escape"] b { color: #ffcf7a }
+.quest-urgent[data-kind="siege"] b { color: #ff9f7a }
