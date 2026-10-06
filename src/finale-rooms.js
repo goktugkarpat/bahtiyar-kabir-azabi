@@ -310,6 +310,15 @@
       for (var k = 0; k < 3; k++) BX('box', 'stone', 0, .3 + k * .6, pz + .6 - k * .4, 10 - k * 1.8, .6, 3.0 - k * .5, 0, [.6 - k * .04, .55 - k * .04, .52], .4);
       BX('box', 'rock', 0, 3.6, pz - .6, 3.4, 3.6, 1.2, 0, BASALT, .5); BX('box', 'stone', 0, 5.6, pz - .6, 4.2, .4, 1.6, 0, PALE, .2);
       HOT(0, 3.6, pz - .0, 2.4, .06, .04, BLOOD); HOT(0, 2.6, pz - .0, 1.6, .06, .04, BLOOD);
+      // the pulpit's dressing: the open Black Ledger on a lectern, tall candles on every step, braziers and hanging verdict banners
+      BX('box', 'stone', 0, 2.25, pz + .9, 1.2, 1.3, .8, 0, PALE, .4); BX('box', 'bone', 0, 2.98, pz + .9, 1.9, .12, 1.2, 0, [.16, .1, .1], .2, -.32, 0);
+      BX('box', 'stone', -.48, 3.08, pz + .92, .82, .05, 1.0, 0, BONE, .1, -.32, .05); BX('box', 'stone', .48, 3.08, pz + .92, .82, .05, 1.0, 0, BONE, .1, -.32, -.05);
+      for (var l = 0; l < 5; l++) { HOT(-.48, 3.13, pz + .62 + l * .13, .55 - (l % 2) * .15, .01, .02, [1.2, .1, .05], 0); HOT(.48, 3.13, pz + .62 + l * .13, .5 - (l % 3) * .1, .01, .02, [1.2, .1, .05], 0); }
+      SP(S.glow, 0, 3.3, pz + .9, 1.4, 1.0, [.6, .06, .03], .6, 1, 1);
+      for (var k = 0; k < 3; k++) { candleCluster(-4.4 + k * .6, pz + 1.6 - k * .4, 3); candleCluster(4.4 - k * .6, pz + 1.6 - k * .4, 3); }
+      pyre(-7, pz + 1.2, 1.2, 30); pyre(7, pz + 1.2, 1.2, 30);
+      K.banner(i, X(-3.2), 6.2, Z(pz - 1.3), 1.4, 4.4, 0, [.36, .04, .04]); K.banner(i, X(3.2), 6.2, Z(pz - 1.3), 1.4, 4.4, 0, [.36, .04, .04]);
+      for (var k = 0; k < 4; k++) BX('rock', 'stone', -2 + k * 1.3, .9 + (k % 2) * .15, pz + 2.6, .5, .25, .4, R() * 6, BONE, .2);
       // the broken halo standing in the void behind the pulpit
       BX('halo', 'stone', 0, 9, pz - 4.5, 22, 22, 22, 0, PALE, .2);
       for (var q = 0; q < 14; q++) { var a = q / 14 * PI * 2; if (q === 3 || q === 4 || q === 10) continue; BX('block', 'stone', Math.cos(a) * 10.6, 9 + Math.sin(a) * 10.6, pz - 4.5, 1.4, 1.0, 1.4, 0, PALE, .2, 0, a - PI / 2); }
