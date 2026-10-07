@@ -476,6 +476,14 @@
     M.sparks = new T.ShaderMaterial({ uniforms: { time: K.clock }, transparent: true, depthWrite: false, blending: T.AdditiveBlending, toneMapped: false,
       vertexShader: 'attribute float seed;uniform float time;varying float vA;void main(){float k=fract(time*(.35+seed*.3)+seed*7.);vec3 p=position;p.y=.3+k*(2.5+seed*2.);p.x+=sin(time*2.+seed*30.)*.25*k;p.z+=cos(time*1.7+seed*20.)*.25*k;vA=(1.-k)*(.6+.4*sin(time*20.+seed*50.));vec4 mv=modelViewMatrix*vec4(p,1.);gl_PointSize=clamp(40./max(1.,-mv.z),1.,3.);gl_Position=projectionMatrix*mv;}',
       fragmentShader: 'varying float vA;void main(){vec2 c=gl_PointCoord-.5;float a=exp(-dot(c,c)*20.)*vA;gl_FragColor=vec4(vec3(1.,.5,.15)*a,a);}' });
+    // slow smoke columns over every fire (soft dark sprites, normal blending, one draw)
+    var SMK = pyreSpots.length * 14, smP = new Float32Array(Math.max(1, SMK) * 3), smS = new Float32Array(Math.max(1, SMK));
+    pyreSpots.forEach(function (s, n) { for (var k = 0; k < 14; k++) { var o = (n * 14 + k) * 3; smP[o] = s[0]; smP[o + 1] = 0; smP[o + 2] = s[1]; smS[n * 14 + k] = k / 14 + rnd() * .05; } });
+    var smG = geo(new T.BufferGeometry()); smG.setAttribute('position', new T.BufferAttribute(smP, 3)); smG.setAttribute('seed', new T.BufferAttribute(smS, 1));
+    M.smoke = new T.ShaderMaterial({ uniforms: { time: K.clock }, transparent: true, depthWrite: false,
+      vertexShader: 'attribute float seed;uniform float time;varying float vA;void main(){float k=fract(time*.07+seed);vec3 p=position;p.y=1.+k*7.;p.x+=k*k*3.+sin(time*.4+seed*20.)*.4*k;p.z+=sin(time*.3+seed*13.)*.5*k;vA=sin(k*3.1416)*.32;vec4 mv=modelViewMatrix*vec4(p,1.);gl_PointSize=clamp((1.+k*3.5)*520./max(1.,-mv.z),4.,220.);gl_Position=projectionMatrix*mv;}',
+      fragmentShader: 'varying float vA;void main(){vec2 c=gl_PointCoord-.5;float a=smoothstep(.5,.0,length(c))*vA;gl_FragColor=vec4(vec3(.07,.075,.08),a);}' });
+    var smokePts = new T.Points(smG, M.smoke); smokePts.frustumCulled = false; smokePts.renderOrder = 5; smokePts.name = 'coast-pyre-smoke'; K.root.add(smokePts);
     var sparkPts = new T.Points(spG2, M.sparks); sparkPts.frustumCulled = false; sparkPts.name = 'coast-pyre-sparks'; K.root.add(sparkPts);
     var flash = 0, nextBolt = 9, lastT = 0, api = { flash: 0 }, calmFx = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     function update(time, p) {
