@@ -961,7 +961,7 @@
     function whirlHit(d) {
       const a = d.face || 0, W = WT[d.tier || 1] || WT[1], tier = d.tier || 1;
       streakBurst(d.x, d.y || 1, d.z, reduced.matches ? 3 : d.last ? 14 + 6 * (tier - 1) : 7 + 3 * (tier - 1), a, 1.6, d.last ? 10 : 7, tier > 1 ? W.hot : undefined);
-      flash(d.x, d.y || 1, d.z, d.last ? 1.2 : .8, new T.Color(W.hit), .1, 0, softMap);
+      flash(d.x, d.y || 1, d.z, d.last ? .9 : .5, new T.Color(W.hit), .08, 0, softMap);   // smaller: every tick on every foe added a glowing orb that hid the bodies
     }
     function rageEnd(d) {
       const x = d.x, z = d.z;
@@ -1285,7 +1285,9 @@
             scar(f.x, f.z, spray, { shape: 'line', width: .1, length: tint ? 1.2 : .9, heat: .03, life: 2.5 });
             for (let i = 0; i < scaleCount(8); i++) emit(f.x + rnd(-.25, .25), .08, f.z + rnd(-.25, .25), 2, DUST, sa * rnd(1.2, 2.6), rnd(.2, .6), ca * rnd(1.2, 2.6), rnd(.4, .7), rnd(.16, .26)); }
           if (!tint && (heavy || d.kill)) { const f = d.labelTarget; impactFx.dome(f.x, f.z, { r: d.kill ? 1.5 : 1.2, h: .45, life: .26, col: [.6, .3, .16], hot: [1.1, .8, .55], a: d.kill ? .3 : .24 }); }
-          impactFx.hitFlash(d.labelTarget, { col: tint || (d.critical ? [1.25, .95, .6] : [.95, .8, .66]), a: d.kill ? .95 : tint ? .8 : heavy || d.critical ? .7 : .48, life: d.kill ? .26 : tint || heavy ? .2 : .14 });
+          // multi-tick spins (Zincir line) hit every .28 s: a full flash each tick kept foes almost solid white, so ticks flash softer and shorter
+          if (sk === 'whirl' || sk === 'reap' || sk === 'rend') { impactFx.hitFlash(d.labelTarget, { col: tint, a: d.kill ? .8 : .38, life: d.kill ? .22 : .1 }); }
+          else impactFx.hitFlash(d.labelTarget, { col: tint || (d.critical ? [1.25, .95, .6] : [.95, .8, .66]), a: d.kill ? .95 : tint ? .8 : heavy || d.critical ? .7 : .48, life: d.kill ? .26 : tint || heavy ? .2 : .14 });
         }
         if (d.damage > 0) number(Math.round(d.damage), x, 2.5, z, d.player, d.heavy || d.critical, d.kill, d.boss, d.labelTarget || null, null, d.player ? '' : d.critical ? 'crit' : d.rage ? 'rage' : '');
         // Blows struck in fury leave burning embers in the wound.
