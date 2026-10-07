@@ -239,6 +239,7 @@
         const base=world.effectHeightAt?world.effectHeightAt(drop.x,drop.z,.4):.06;
         const lift = a<FALL+.3 ? hop(a)*HOP_K[quality.rank] : 0; if (lift>hopMax) hopMax=lift;
         let x=drop.x,z=drop.z,y=base+.16+(a<FALL+.3?0:Math.sin(clock*2.7+i)*.02)+lift,scale=a<.14?.5+.65*(a/.14):a<.3?1.15-.15*((a-.14)/.16):1;
+        if (reward) scale*=1.4;   // loot3: the boss's reward is the one drop the story waits for, so it is drawn larger than any other
         if (m.flying) {
           m.flight+=dt; const u=Math.min(1,m.flight/FLIGHT),k=u*u*(3-2*u);
           x=drop.x+(player.x-drop.x)*k; z=drop.z+(player.z-drop.z)*k;
