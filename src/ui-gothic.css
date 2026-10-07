@@ -1,0 +1,112 @@
+/* ajan:ui — gotik arayüz cilası (en son yüklenir). Yalnız transform/opacity animasyonları; oyun sırasında ağır filtre yok. */
+:root { --ui-gold: #dcc08a; --ui-gold-d: #8c6b3c; --ui-bone: #efe3c8; --ui-blood: #6e1010; --ui-blood-l: #a9241b; --ui-iron: #120f0d }
+
+/* ───────── 1. Bildirim yerleşimi: menüler açıkken sahne yazıları görünmez ───────── */
+body:not([data-view="playing"]) .qc-bars,
+body:not([data-view="playing"]) #bf-cine,
+body:not([data-view="playing"]) #lu-banner { opacity: 0 !important; visibility: hidden !important; transition: none !important }
+/* öncelik: boss kartı > seviye afişi > bölge duyurusu */
+body.bf-intro #announcement.show, body:has(#lu-banner.lu-on) #announcement.show { opacity: 0 !important }
+body.bf-intro .qc-caption { opacity: 0 !important; transition: opacity .3s !important }
+/* görev bildirimi seviye afişi/boss kartı sırasında soluklaşır, sonra kendiliğinden geri gelir */
+body:has(#lu-banner.lu-on) #quest-notice.show, body.bf-intro #quest-notice.show { opacity: .25 }
+
+/* ───────── 2. Başlık ekranı ───────── */
+#title .title-shade { animation: ui-breathe 9s ease-in-out infinite alternate }
+@keyframes ui-breathe { from { opacity: .92 } to { opacity: 1 } }
+#title .wordmark {
+  color: transparent; letter-spacing: .07em;
+  background: linear-gradient(180deg, #fbf3df 0%, #e9d6a8 34%, #b28a52 52%, #6b4a28 62%, #c9a56a 78%, #f0dfb4 100%);
+  -webkit-background-clip: text; background-clip: text;
+  text-shadow: none; filter: drop-shadow(0 3px 2px #000) drop-shadow(0 0 22px #5a0f0a88);
+}
+#title .logo-wrap { margin-bottom: 4px }
+#title .title-copy .logo-wrap::before, #title .title-copy .logo-wrap::after { top: -12px; width: 18%; height: 14px; border-color: #b8925a88 }
+.ui-logo-sub { display: block; margin: 2px 0 0; color: #b99868; font: 600 clamp(12px, 1.25vw, 16px)/1.2 var(--text); letter-spacing: .62em; padding-left: .62em; text-transform: uppercase; text-shadow: 0 2px 3px #000; animation: fade-in 1.2s .7s both }
+html[lang=tr] .ui-logo-sub::before, html:not([lang]) .ui-logo-sub::before { content: 'Grave Torment' }
+html[lang=en] .ui-logo-sub::before { content: 'Kabir Azabı' }
+#title .title-divider { margin-top: 22px }
+/* düğmeler: kararmış demir + kan kırmızısı, altın kenar; üstüne gelince ışık süzülür */
+#title .title-actions .btn {
+  position: relative; overflow: hidden; border-image: none; border: 1px solid #6d5434; border-radius: 2px;
+  background: linear-gradient(180deg, #221b17f2, #110d0bf5 55%, #0b0908f7); color: #e6d6b6;
+  box-shadow: inset 0 1px 0 #ffffff12, inset 0 -2px 6px #000c, 0 4px 14px #000a;
+  font-family: var(--text); font-weight: 650; letter-spacing: .06em; transition: border-color .2s, color .2s, transform .15s;
+}
+#title .title-actions .btn:not(.primary) { background: linear-gradient(180deg, #1d1715f0, #0f0c0bf4 60%, #090707f6) }
+#title .title-actions .btn.primary { border-color: #b88a4e; background: linear-gradient(180deg, #7a1c15f2, #4c0f0cf4 52%, #2a0807f6); color: #fbefd7; box-shadow: inset 0 1px 0 #ffd9a033, inset 0 -3px 8px #0009, 0 0 0 1px #000, 0 6px 22px #4a0b0899 }
+#title .title-actions .btn::before, #title .title-actions .btn::after { content: ''; position: absolute; top: 50%; width: 7px; height: 7px; margin-top: -4px; transform: rotate(45deg); border: 1px solid #b88a4e; background: #1a120d; pointer-events: none }
+#title .title-actions .btn::before { left: 9px } #title .title-actions .btn::after { right: 9px }
+#title .title-actions .btn > span, #title .title-actions .btn > .icon { position: relative; z-index: 1 }
+#title .title-actions .btn .ui-sheen { position: absolute; inset: 0 auto 0 0; width: 40%; background: linear-gradient(100deg, transparent, #ffe3b022, transparent); transform: translateX(-120%) skewX(-18deg); pointer-events: none }
+#title .title-actions .btn:hover .ui-sheen, #title .title-actions .btn:focus-visible .ui-sheen { transform: translateX(330%) skewX(-18deg); transition: transform .75s cubic-bezier(.3,.6,.3,1) }
+#title .title-actions .btn:hover, #title .title-actions .btn:focus-visible { border-color: #e2bd7c; color: #fff4dc }
+#title .title-actions .btn:active { transform: translateY(1px) scale(.995) }
+#title .title-actions .btn:hover::before, #title .title-actions .btn:hover::after, #title .title-actions .btn:focus-visible::before, #title .title-actions .btn:focus-visible::after { background: #b3261e; border-color: #f0cf8c }
+#title .title-actions .btn.primary .icon { color: #f4c27a }
+#title .title-actions > .btn { animation: ui-rise .7s cubic-bezier(.2,.7,.2,1) both }
+#title .title-actions > .btn:nth-child(1) { animation-delay: .45s } #title .title-actions > .btn:nth-child(2) { animation-delay: .55s }
+#title .title-actions > .btn:nth-child(3) { animation-delay: .63s } #title .title-actions > .btn:nth-child(4) { animation-delay: .71s }
+@keyframes ui-rise { from { opacity: 0; transform: translateY(10px) } to { opacity: 1; transform: none } }
+#title .language-choice button { border-radius: 2px }
+#title .language-choice button[aria-pressed="true"], #title .language-choice button.active { border-color: #c79a5c; background: linear-gradient(#5a1611, #2c0908); color: #fff0d6 }
+.ui-build { color: #8c7c66; font: 500 12px/1.3 var(--text); letter-spacing: .08em }
+
+/* ───────── 3. Ölüm ekranı: kırmızı vinyet nabzı, ağır giriş ───────── */
+#death::before { content: ''; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(ellipse 75% 70% at 50% 50%, transparent 38%, #5a0606aa 78%, #2a0000f0 100%); opacity: 0; animation: ui-death-veil 1.8s ease-out .1s forwards, ui-death-pulse 3.6s ease-in-out 1.9s infinite }
+@keyframes ui-death-veil { from { opacity: 0 } to { opacity: 1 } }
+@keyframes ui-death-pulse { 0%, 100% { opacity: 1 } 50% { opacity: .72 } }
+#death::after { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 30%; pointer-events: none; background: linear-gradient(#000c, transparent); }
+#death .end-copy { position: relative; z-index: 1 }
+#death .eyebrow { animation: fade-in 1.4s .5s both; color: #c98a6a; letter-spacing: .34em }
+#death .end-title { animation: ui-death-title 2.2s cubic-bezier(.16,.8,.2,1) .15s both }
+@keyframes ui-death-title { from { opacity: 0; transform: scale(1.14) translateY(-6px) } 60% { opacity: 1 } to { opacity: 1; transform: none } }
+#death .divider { animation: ui-wipe 1.2s ease-out 1s both }
+@keyframes ui-wipe { from { opacity: 0; transform: scaleX(.1) } to { opacity: 1; transform: none } }
+#death .death-card { animation: ui-rise .9s cubic-bezier(.2,.7,.2,1) 1.2s both }
+#death .end-tip, #death #death-detail { animation: fade-in 1s 1.6s both }
+#death .end-actions { animation: ui-rise .8s cubic-bezier(.2,.7,.2,1) 1.8s both }
+#death .death-card .icon { color: #d8c7a8; filter: drop-shadow(0 0 8px #8a1a12) }
+#death .end-tip:not(:empty) { max-width: min(560px, 88vw); margin-left: auto; margin-right: auto; padding: 8px 14px; border-left: 2px solid #a9241b; background: linear-gradient(90deg, #1b0807d9, #0000); color: #e8d4b8; text-align: left }
+
+/* ───────── 4. Zafer ekranı ───────── */
+#victory .end-title { animation: ui-death-title 1.8s cubic-bezier(.16,.8,.2,1) .2s both }
+#victory .end-quote, #victory #victory-stats { animation: fade-in 1.2s 1s both }
+#victory .end-actions { animation: ui-rise .8s cubic-bezier(.2,.7,.2,1) 1.4s both }
+
+/* ───────── 5. Seviye atlama: arkada dönen altın ışık, puan vurgusu ───────── */
+#lu-banner::before { content: ''; position: absolute; left: 50%; top: 42%; width: min(620px, 70vw); aspect-ratio: 1; margin-left: calc(min(620px, 70vw) / -2); margin-top: calc(min(620px, 70vw) / -2); z-index: -1; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle, #ffd98a40 0%, #d0904018 30%, transparent 62%), repeating-conic-gradient(from 0deg, #ffdb9a1c 0deg 3deg, transparent 3deg 15deg);
+  -webkit-mask: radial-gradient(circle, #000 18%, transparent 66%); mask: radial-gradient(circle, #000 18%, transparent 66%); opacity: 0; transform: scale(.4) rotate(0deg) }
+#lu-banner.lu-on::before { animation: ui-lu-burst 2.6s cubic-bezier(.12,.75,.2,1) both }
+@keyframes ui-lu-burst { 0% { opacity: 0; transform: scale(.35) rotate(0deg) } 12% { opacity: 1 } 70% { opacity: .75 } 100% { opacity: 0; transform: scale(1.12) rotate(24deg) } }
+#lu-banner.lu-calm::before { animation: none }
+#lu-banner .lu-note b { color: #ffcf7e }
+#lu-banner.lu-on .lu-note { animation: ui-lu-note 2.6s ease-out both }
+@keyframes ui-lu-note { 0%, 30% { transform: scale(1) } 40% { transform: scale(1.08) } 52%, 100% { transform: scale(1) } }
+
+/* ───────── 6. Bölge duyurusu ve sinema altyazısı: okunur, gotik ───────── */
+#announcement small { letter-spacing: .38em }
+.qc-caption .qc-eyebrow { color: #c79a5c; letter-spacing: .42em }
+.qc-caption .qc-title { color: #f1dfb8; text-shadow: 0 2px 3px #000, 0 0 24px #6a0f0a66 }
+.qc-caption .qc-text { max-width: 760px; margin: 0 auto; color: #e6d7bd }
+
+/* ───────── 7. Görev bildirimi ve eşya bildirimi ───────── */
+#quest-notice { border: 1px solid #5d4729; border-left: 3px solid #b28b4f; background: linear-gradient(100deg, #15100ef2, #0b0a0cf0 70%); box-shadow: 0 10px 30px #000a, inset 0 1px 0 #ffffff0d }
+#quest-notice.show { animation: ui-slide-in .45s cubic-bezier(.2,.7,.2,1) both }
+@keyframes ui-slide-in { from { transform: translateX(-14px) } to { transform: none } }
+#quest-notice strong { overflow-wrap: anywhere }
+#hud #toasts .toast { border-left: 2px solid #9c7a48; background: linear-gradient(90deg, #120e0cf0, #0d0b0bd9 80%, #0000); box-shadow: 0 6px 18px #0008; animation: ui-slide-in .35s cubic-bezier(.2,.7,.2,1) both }
+#hud #toasts .toast.out { opacity: 0; transition: opacity .5s }
+
+/* ───────── 8. Yükleme ekranı ───────── */
+#loading .load-bar { position: relative; border: 1px solid #5b4428; box-shadow: 0 0 0 1px #000, inset 0 1px 3px #000 }
+#loading .load-bar::before, #loading .load-bar::after { content: ''; position: absolute; top: 50%; width: 7px; height: 7px; margin-top: -4px; transform: rotate(45deg); border: 1px solid #b88a4e; background: #1a120d }
+#loading .load-bar::before { left: -12px } #loading .load-bar::after { right: -12px }
+#loading #load-fill { background: linear-gradient(90deg, #5c0f0b, #b3261e 70%, #f0b26a) }
+
+@media (prefers-reduced-motion: reduce) {
+  #title .title-shade, #death::before, #lu-banner.lu-on::before, #lu-banner.lu-on .lu-note, #title .title-actions > .btn { animation: none }
+  #death::before { opacity: 1 }
+}
+/* /ajan:ui */
