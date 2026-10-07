@@ -80,6 +80,7 @@
       '#bf-cine .card.show i{width:62%}' +
       '#bf-cine .card.show strong{animation:bf-in 1.5s cubic-bezier(.2,.8,.2,1) both}' +
       '#bf-cine .card.phase{top:63%}#bf-cine .card.phase strong{font-size:clamp(24px,3.4vw,46px)}' +
+      '.bf-notched .target-notch{display:none!important}.bf-notch{position:absolute;top:-2px;bottom:-2px;width:2px;background:#f1d29a;box-shadow:0 0 4px #000;pointer-events:none;transition:opacity .4s}.bf-notch.done{opacity:.22}' +
       'body.bf-intro #announcement,body.bf-intro #boss-mechanic{visibility:hidden}' +
       '#bf-cine .flash{position:absolute;left:50%;top:73%;transform:translateX(-50%);font-size:clamp(15px,1.7vw,24px);font-weight:600;letter-spacing:.42em;color:#ffdc8f;opacity:0;text-shadow:0 0 14px rgba(240,170,60,.75),0 0 4px #000;transition:opacity .25s}' +
       '#bf-cine .flash.show{opacity:1;animation:bf-pop .5s cubic-bezier(.2,.8,.2,1) both}' +
@@ -98,12 +99,12 @@
   /* Text lanes: the card never sits on top of the narrator's subtitle, the level-up banner, the HUD announcement or the boss
      instruction panel. place() tries a few vertical lanes and keeps the one with the least overlap; a card that would collide
      waits (queue, at most 1.6 s) for a free lane; while shown it is re-laid every .25 s, so a subtitle that appears pushes it aside. */
-  var BLOCKERS = ['narration', 'level-up', 'announcement', 'boss-mechanic', 'tutorial', 'chapter-fade'];
+  var BLOCKERS = ['narration', 'level-up', 'announcement', 'boss-mechanic', 'tutorial', 'chapter-fade', '.qc-bars.show .qc-caption'];
   function blockers(intro) {
     var out = [];
     for (var i = 0; i < BLOCKERS.length; i++) {
       if (intro && BLOCKERS[i] === 'boss-mechanic') continue;   // the intro card hides that panel itself
-      var el = document.getElementById(BLOCKERS[i]); if (!el) continue;
+      var el = BLOCKERS[i].charAt(0) === '.' ? document.querySelector(BLOCKERS[i]) : BLOCKERS[i] === 'chapter-fade' ? document.querySelector('#chapter-fade:not(.hidden) .cf-copy') : document.getElementById(BLOCKERS[i]); if (!el) continue;
       if (BLOCKERS[i] === 'narration' && (el.classList.contains('hidden') || !(el.textContent || '').trim())) continue;
       if ((BLOCKERS[i] === 'level-up' || BLOCKERS[i] === 'announcement') && !el.classList.contains('show')) continue;
       var cs = getComputedStyle(el); if (cs.display === 'none' || cs.visibility === 'hidden' || +cs.opacity < .05) continue;
@@ -386,6 +387,18 @@
       cam.x += (tx - cam.x) * a; cam.z += (tz - cam.z) * a; cam.zoom += (tzoom - cam.zoom) * a;
     }
     BF.camera = function () { return BF.current === dir && !reduced.matches ? cam : null; };
+    // Phase thresholds on the boss health bar (profile.thresholds = health fractions); passed ones dim.
+    var notchT = 0, notchKey = '';
+    function notches(e, p, dt) {
+      if ((notchT -= dt) > 0) return; notchT = .4;
+      var th = p.thresholds; if (!th) return;
+      var bar = document.querySelector('.boss-target .target-health'); if (!bar) return;
+      var f = e.hp / e.maxHp, key = e.type + ':' + th.map(function (t) { return f <= t ? 1 : 0; }).join('');
+      if (key === notchKey && bar.querySelector('.bf-notch')) return; notchKey = key;
+      var old = bar.querySelectorAll('.bf-notch'); for (var i = 0; i < old.length; i++) old[i].remove();
+      bar.parentNode.classList.add('bf-notched');
+      th.forEach(function (t) { var n = document.createElement('i'); n.className = 'bf-notch' + (f <= t ? ' done' : ''); n.style.left = (t * 100).toFixed(1) + '%'; bar.appendChild(n); });
+    }
     function update(dt) {
       time += dt; stepOverlay(dt); trackRolls(dt); camStep(dt);
       var e = game.boss, p = profileOf(e);
@@ -414,7 +427,7 @@
         api.fx('glowBurst', { x: e.x, y: .05, z: e.z, radius: 5.5, color: p.color || 0xb8452d, duration: 1.4 });
       }
       if (!e.active) { aura.visible = false; return; }
-      body(e, p, dt);
+      body(e, p, dt); notches(e, p, dt);
       var key = e.phase + (e.enraged ? 'e' : '');
       if (key !== st.phaseKey) {
         var label = e.enraged && p.enraged ? p.enraged : p.phases && p.phases[e.phase] || '';
@@ -500,6 +513,7 @@
   // Arena features (one per boss; each boss's room plays differently): profile.arena = { phase, first, every:[per phase], build(e, arena, n, kit, api) }.
   // build() places owner-less hazards through BF.env(e, hazard); return false to retry soon.
   BF.register('boss', {
+    thresholds: [.52, .25],
     // Celladın Hükmü (enraged): three chain lines fan out one after another toward the hero, then the axe falls where he stands.
     signature3: { id: 'verdict', late: true, cd: [20], range: 12, hint: tr('Üç zincir sırayla iner, sonra balta durduğun yere düşer. Çizgilerin arasından geç, sonra daireden çık.'),
       build: function (e, d, k, api) { var p = api.player, a0 = Math.atan2(p.x - e.x, p.z - e.z), name = tr('Celladın Hükmü'), hits = [];
@@ -541,6 +555,7 @@
       } }
   });
   BF.register('bell', {
+    thresholds: [.72, .48, .24],
     // Batık Çanlar Sarmalı (phase III+): drowned bells fall one after another along a spiral that unwinds from the bell toward the hero.
     signature3: { id: 'bellSpiral', late: true, cd: [20], range: 15, hint: tr('Çanlar sarmal çizerek sırayla düşer. Sarmalın ilerlediği yönün tersine yürü.'),
       build: function (e, d, k, api) { var p = api.player, a0 = Math.atan2(p.x - e.x, p.z - e.z), name = tr('Batık Çanlar Sarmalı'), hits = [], dir = (e.picks || 0) % 2 ? 1 : -1;
@@ -568,6 +583,7 @@
         return { id: 'drownWell', name: name, duration: 3.9, pose: 'castHigh', cooldown: .9, hits: k.prison(e, o, name, 'tide', 'brine', 5, 30) }; } }
   });
   BF.register('hollowking', {
+    thresholds: [.62, .26],
     // Billur Haç (phase III): a cross of crystal lines through the hero's spot, then the diagonal cross a beat later — step from one to the other.
     signature3: { id: 'crystalCross', late: true, cd: [18], range: 16, hint: tr('Önce artı, sonra çarpı biçiminde billur çizgiler. İlk çizgiler patlarken çaprazlardan uzak dur, sonra düz çizgilerin üstüne geç.'),
       build: function (e, d, k, api) { var p = api.player, c = { x: p.x, z: p.z }, name = tr('Billur Haç'), hits = [];
@@ -598,6 +614,7 @@
         return { id: 'crystalPrison', name: name, duration: 3.9, pose: 'castHigh', cooldown: .9, hits: k.prison(e, o, name, 'rune', '', 5, 30) }; } }
   });
   BF.register('furnaceheart', {
+    thresholds: [.60, .25],
     // Kızgın Örs (phase III): three anvil-falls, each placed where the hero stands when the previous lands (.85 s tells): keep moving.
     signature3: { id: 'anvilChase', late: true, cd: [18], range: 16, hint: tr('Örs üç kez düşer; her biri durduğun yere. Durma, yürümeye devam et.'),
       build: function (e, d, k, api) { var p = api.player, name = tr('Kızgın Örs');
