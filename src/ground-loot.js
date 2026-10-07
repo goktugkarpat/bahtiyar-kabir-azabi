@@ -114,7 +114,7 @@
         for(int i=0;i<8;i++){float a=float(i)*.785398;o=max(o,texture2D(atlas,at(vL)+vec2(cos(a),sin(a))*texel*3.).a);}
         float fx=clamp(vFx,0.,1.5),rim=clamp(o-c.a,0.,1.);
         float alpha=max(c.a,rim*(.45+.5*min(fx,1.)));if(alpha<.04)discard;
-        vec3 body=c.rgb*(1.32+.45*fx)+vTint*(.04+.10*fx);
+        vec3 body=c.rgb*(1.6+.5*fx)+vTint*(.07+.12*fx);
         vec3 edge=mix(vec3(.015),vTint*1.5+.12,min(fx,1.));
         gl_FragColor=vec4(mix(edge,body,c.a/max(alpha,.001)),alpha);
       #include <colorspace_fragment>
@@ -157,8 +157,9 @@
     const SPARKS = [0,0,2,3,4];
     const sparkle = (function(){ const g = new T.PlaneGeometry(.12,.12); geometries.push(g); const m = new T.InstancedMesh(g,sparkMaterial,CAPACITY*4);
       m.frustumCulled=false; m.castShadow=m.receiveShadow=false; for(let n=0;n<CAPACITY*4;n++)m.setColorAt(n,new T.Color(0xffffff)); m.count=0; m.renderOrder=7; m.name='GroundLootSparkles'; group.add(m); return m; }());
-    const PILLAR = { epic: 1.5, boss: 2.0 }, pillarGold = new T.Color(.9, .62, .2);
-    const tint2 = new T.Color(), object = new T.Object3D(); object.rotation.order = 'YXZ'; const SIZE = {weapon:.7,chest:.62,head:.55,hands:.5,boots:.5};
+    const PILLAR = { rare: .85, epic: 1.5, boss: 2.0 }, HOP_K = [.72, .88, 1, 1.18, 1.4]   // loot3: rare gets a short shaft; better drops bounce higher
+    , pillarGold = new T.Color(.9, .62, .2);
+    const tint2 = new T.Color(), object = new T.Object3D(); object.rotation.order = 'YXZ'; const SIZE = {weapon:.76,chest:.68,head:.6,hands:.55,boots:.55};
     const hashOf = s => { let h = 7; for (let k = 0; k < s.length; k++) h = (h * 31 + s.charCodeAt(k)) | 0; return h; };
     const  color = new T.Color(), tint = new T.Color(), motion = new Map(), v3 = new T.Vector3();
     const vis = new Array(CAPACITY).fill(null), cand = new Int16Array(CAPACITY), prio = new Float32Array(CAPACITY);
@@ -236,7 +237,7 @@
         }
         const target = (drop.uid===hoverUid ? 1 : 0); m.hl += (target-m.hl)*Math.min(1,dt*16);
         const base=world.effectHeightAt?world.effectHeightAt(drop.x,drop.z,.4):.06;
-        const lift = a<FALL+.3 ? hop(a) : 0; if (lift>hopMax) hopMax=lift;
+        const lift = a<FALL+.3 ? hop(a)*HOP_K[quality.rank] : 0; if (lift>hopMax) hopMax=lift;
         let x=drop.x,z=drop.z,y=base+.16+(a<FALL+.3?0:Math.sin(clock*2.7+i)*.02)+lift,scale=a<.14?.5+.65*(a/.14):a<.3?1.15-.15*((a-.14)/.16):1;
         if (m.flying) {
           m.flight+=dt; const u=Math.min(1,m.flight/FLIGHT),k=u*u*(3-2*u);

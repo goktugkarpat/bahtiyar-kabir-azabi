@@ -84,3 +84,6 @@ Object.assign(window.KabirI18n.dictionary,{"GAZAP":"WRATH","VEBA":"PLAGUE","KÜL
 /* ajan:panelnames */
 Object.assign(window.KabirI18n.dictionary,{"KANAMA":"BLEED","ÖFKE":"RAGE","DEMİR":"IRON"});
 /* /ajan:panelnames */
+/* ajan:loot3 */
+Object.assign(window.KabirI18n.dictionary,{"Eşya alındı:":"Item acquired:","Giydiğin: ":"Wearing: ","Çanta dolu. Yer açmadan bu eşyayı alamazsın.":"Bag full. Make room before you can take this item.","Çanta dolu":"Bag full"});
+/* /ajan:loot3 */

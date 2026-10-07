@@ -1038,6 +1038,12 @@
     sample(cloth?'cloth':'gear',{vol:(cloth?.19:.22)*k,rate:cloth?.88:1.03,send:.04});
     if(o.weaponType)sample('metal',{vol:.12*k,rate:o.weaponType==='axe'?.82:1.13,lp:4200,delay:.025,send:.06});
     if(o.rarity==='epic'||o.rarity==='boss'||o.signature)sample('hitRingA',{vol:.085*k,rate:.70,lp:2500,delay:.035,send:.18});
+    // loot3: a soft rising chime per rarity so a good pickup is heard, not only seen (common stays silent beyond the handling sound).
+    const t = now();
+    if (o.rarity === 'uncommon') tone(t + .05, 1319, .30, .020 * k, { type: 'sine', attack: .006, send: .22 });
+    else if (o.rarity === 'rare') { tone(t + .05, 988, .34, .026 * k, { type: 'sine', attack: .006, send: .3 }); tone(t + .13, 1480, .5, .022 * k, { type: 'sine', attack: .006, send: .35 }); }
+    else if (o.rarity === 'epic') { tone(t + .05, 740, .4, .03 * k, { type: 'sine', attack: .006, send: .4 }); tone(t + .14, 1109, .5, .026 * k, { type: 'sine', attack: .006, send: .45 }); tone(t + .24, 1480, .8, .022 * k, { type: 'sine', attack: .006, send: .5 }); }
+    else if (o.rarity === 'boss' || o.signature) { tone(t + .05, 587, .6, .034 * k, { type: 'sine', attack: .008, send: .5 }); tone(t + .17, 880, .7, .028 * k, { type: 'sine', attack: .008, send: .55 }); tone(t + .3, 1175, 1.1, .024 * k, { type: 'sine', attack: .008, send: .6 }); }
   };
   // An ordinary drop landing: a soft thud, plus a faint ring that grows with rarity (common stays modest). Unique drops use gearUniqueDrop.
   H.lootDrop = (o, k) => {

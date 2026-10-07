@@ -377,7 +377,7 @@
     levelUpTimer = 0; pendingLevel = null; $('level-up').classList.remove('show'); if (B.LevelUp) B.LevelUp.cancel(); if (B.Charge && B.Charge.cancel) B.Charge.cancel();
     buffUI.clear(); chapterBuffUI.clear(); if (questUI) questUI.clear();
     targetUI.clear();
-    $('toasts').replaceChildren();
+    $('toasts').replaceChildren(); if (B.LootFeed) B.LootFeed.clear();
     for (const w of warnings) w.el.remove(); warnings.length = 0;
     flash = shake = hitPause = ragePush = 0;
     cameraKick.x = cameraKick.z = cameraKick.vx = cameraKick.vz = 0; cameraLead.set(0, 0, 0); lastFootfall = 0;
@@ -485,7 +485,7 @@
     if (name === 'questChoice') { if (game && ['playing','pause'].includes(view)) open('journal'); if (questUI) questUI.open(); return; }
     if (name === 'quest') { if (questUI) questUI.event(d); if (d.complete && questVoices[d.id] && B.Audio.sayQuest) B.Audio.sayQuest(questVoices[d.id]); return; }
     if (name === 'progression') { if (d.levels > 0) { B.Audio.play('levelUp'); fx('heroSkill', { skill: 'level', phase: 'release', x: game.player.x, z: game.player.z }); queueLevelUp(d); } if (characterUI) characterUI.refresh(); return; }
-    if (name === 'loot') { for (const item of d.items || []) { const def = B.Progression.catalog[item.id]; if (def) notify(B.Progression.qualities[def.rarity].name + KabirI18n.t(' ganimet · ') + def.name + KabirI18n.t(' · Çantaya eklendi [I]'), 'rarity-' + def.rarity); } return; }
+    if (name === 'loot') { for (const item of d.items || []) { const def = B.Progression.catalog[item.id]; if (!def) continue; if (B.LootFeed) B.LootFeed.show(def); if (!B.LootFeed || def.rarity === 'boss' || d.boss) notify(B.Progression.qualities[def.rarity].name + KabirI18n.t(' ganimet · ') + def.name + KabirI18n.t(' · Çantaya eklendi [I]'), 'rarity-' + def.rarity); } return; }
     if (name === 'hit') {
       // combat.js sizes the hit-stop itself (d.hitstop is set) and reports how hard the contact was (d.impact 0..1),
       // so here the camera only recoils; unclassified heavy hits retain the same short 8 ms limit.
