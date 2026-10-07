@@ -1420,6 +1420,7 @@
       const game = getGame();
       if (game && game.player && game.player.model) {
         prepareGhosts(game.player.model);
+        if (impactFx) impactFx.prepare(game.enemies.slice().sort((a, b) => Math.hypot(a.x - game.player.x, a.z - game.player.z) - Math.hypot(b.x - game.player.x, b.z - game.player.z)));   // body-flash copies of the nearest foes, drawn once while loading
         const R = B.app && B.app.renderer;
         if (R && R.initTexture) for (const g of ghosts) { if (g.model !== game.player.model) continue; snapshot(g); for (const sk of g.skeletons.values()) if (sk.boneTexture) R.initTexture(sk.boneTexture); }
         const actors = new Set([game.player, ...game.enemies]);

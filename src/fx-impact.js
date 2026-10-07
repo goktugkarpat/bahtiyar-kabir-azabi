@@ -123,6 +123,15 @@
       const left = s.t < s.life ? s.a * Math.pow(1 - s.t / s.life, 2) : 0;
       s.t = 0; s.life = (d && d.life) || .16; s.a = Math.max(a, left); s.mat.color.setRGB(col[0], col[1], col[2]); s.mat.opacity = s.a;
     }
+    // Loading-time priming: build every foe's flash copies and draw them invisibly for a couple of frames,
+    // so the first real hit does not pay for object setup and vertex-array binding (measured ~15 ms on the first big cast).
+    const primed = []; let primeFrames = 0;
+    function prepare(actors) {
+      for (const e of (actors || []).slice(0, 24)) { if (!e || !e.model || !e.model.root || overlays.has(e.model)) continue; const ov = overlayOf(e.model);
+        for (const it of ov.list) { it.c.material = primeMat; it.c.matrix.copy(it.src.matrixWorld); it.c.visible = true; primed.push(it.c); } }
+      if (primed.length) primeFrames = 3;
+    }
+    const primeMat = new T.MeshMatcapMaterial({ matcap: rimMap, color: 0x000000, transparent: true, opacity: 0, depthWrite: false, blending: T.AdditiveBlending, fog: false });
     function releaseSlot(s) { if (s.ov) { for (const it of s.ov.list) it.c.visible = false; s.ov.slot = null; } s.ov = null; s.t = 9; s.mat.opacity = 0; }
     // Identity colours for the body flash (and the default edge of their impact walls).
     const TINT = { cleave: [1.05, .45, .2], brand: [1.25, .3, .2], temper: [.85, .32, 1.15], roar: [1.1, .55, .22], quake: [1.05, .9, .7], chainstorm: [1.1, .4, .45],
@@ -140,6 +149,7 @@
         if (p.t >= p.life) continue; p.t += dt; if (p.t < 0) continue;
         const k = clamp(p.t / p.life, 0, 1); p.m.visible = k < 1; p.mat.uniforms.uK.value = k; p.mat.uniforms.uDrop.value = clamp(p.t / p.drop, 0, 1);
       }
+      if (primeFrames > 0 && --primeFrames === 0) { for (const c of primed) if (c.material === primeMat) c.visible = false; primed.length = 0; }
       for (const s of flashSlots) {
         if (!s.ov) continue; s.t += dt; const k = s.t / s.life;
         const e = s.ov.model.root, dead = !e.parent;
@@ -161,11 +171,11 @@
     }
     function dispose() {
       clear(); for (const w of walls) { w.m.removeFromParent(); w.mat.dispose(); } for (const p of blades) { p.m.removeFromParent(); p.mat.dispose(); }
-      wallBase.dispose(); bladeBase.dispose(); wallGeo.dispose(); bladeGeo.dispose(); for (const s of flashSlots) s.mat.dispose(); rimMap.dispose();
+      wallBase.dispose(); bladeBase.dispose(); wallGeo.dispose(); bladeGeo.dispose(); for (const s of flashSlots) s.mat.dispose(); primeMat.dispose(); rimMap.dispose();
       const drop = []; root.traverse(n => { if (n.name === 'fx_hitflash') drop.push(n); }); for (const n of drop) n.removeFromParent();
       if (B.FxImpact.active === inst) B.FxImpact.active = null;
     }
-    const inst = { dome, pillar, plume, deathAsh, hitFlash, skillTint, step, clear, warmObjects, dispose };
+    const inst = { dome, pillar, plume, deathAsh, hitFlash, prepare, skillTint, step, clear, warmObjects, dispose };
     B.FxImpact.active = inst;
     return inst;
   }
