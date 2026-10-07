@@ -110,6 +110,7 @@
     T.wetV = gainNode(volume.ambient, T.verb); T.wetF = gainNode(volume.sfx, T.verb);
     T.gate = 1; T.player = null; T.resetSerial = null; T.until = 0; T.recent = [];
     try { tortTask = bakeTort(); } catch (e) { tortTask = null; console.warn('Audio torture', e); }
+    /* ajan:audio */ if (B.AudioPlus) try { B.AudioPlus.build(CORE); } catch (e) { console.warn('AudioPlus', e); } /* /ajan:audio */
   }
   const busOf = name => name === 'music' ? [N.music, N.wetMusic] : name === 'amb' ? [N.amb, N.wetAmb] : name === 'tort' ? [T.busV, T.wetV] : name === 'tortf' ? [T.busF, T.wetF] : [N.sfx, N.wetSfx];
 
@@ -1097,6 +1098,7 @@
     try {
       const h = H[name] || (B.TalentAudio && B.TalentAudio.has(name) ? (o, k2) => { const [bus, wet] = busOf(); B.TalentAudio.play(name, ctx, bus, wet, now(), k2, o, N); } : null) || (/slam|explosion/.test(name) ? H.slam : null);   // talent tree 3 sounds: src/talent-audio.js
       if (h) h(opts, k, name);
+      /* ajan:audio */ if (B.AudioPlus) B.AudioPlus.after(name, opts, k); /* /ajan:audio */
     } catch (e) { console.warn('Audio', name, e); }
   }
 
@@ -1730,7 +1732,7 @@
   // State for BABA.Music: room id, danger 0..1 (awake + close enemies), combat, boss + phase, dead/won, title = muffled Kül Eşiği bed.
   function musicState() {
     const a = B.app, g = game();
-    if (!g || !g.player || (a && a.view === 'title')) return { room: 0, paused: true };
+    if (!g || !g.player || (a && a.view === 'title')) return { room: 5, paused: true, title: !!(a && a.view === 'title') };   // ajan:audio: title theme = the chapel bed + src/music-chapters.js
     const P = g.player, scoreRoom = room(), list = g.enemies || [];
     const boss = g.boss || list.find(e => e.boss);
     let danger = 0, combat = false;
@@ -1743,7 +1745,8 @@
     }
     return { room: scoreRoom, danger, combat,
       boss: !!boss && !boss.dead && !!(boss.active || boss.activated) && g.state === 'playing',
-      bossPhase: boss && boss.phase >= 2 ? 2 : 1, dead: g.state === 'dead', won: g.state === 'won', paused: false };
+      bossPhase: boss && boss.phase >= 2 ? 2 : 1, dead: g.state === 'dead', won: g.state === 'won', paused: false,
+      bossPhaseRaw: boss && boss.phase || 1, bossHp: boss && boss.maxHp ? clamp(boss.hp / boss.maxHp, 0, 1) : 1, heroHp: P.maxHp ? clamp(P.hp / P.maxHp, 0, 1) : 1 };   // ajan:audio
   }
   function update(dt, raw = {}) {
     if (suspended) return;
@@ -1754,6 +1757,7 @@
     try {
       if (extMusic) B.Music.update(dt, musicState()); else musicStep(dt, st);
       ambienceStep(dt, st); tortureStep(dt, st); enemiesStep(dt, st);
+      /* ajan:audio */ if (B.AudioPlus) B.AudioPlus.update(dt, st); /* /ajan:audio */
       if (st.combat && A.calm > 8 && st.playing) stinger('encounter', 0);
       A.calm = st.combat ? 0 : A.calm + dt;
       const t = ctx.currentTime;
@@ -1911,6 +1915,11 @@
     return { context: ctx ? ctx.state : 'none', sampleRate: ctx ? ctx.sampleRate : null,
       baseLatency: ctx ? ctx.baseLatency ?? null : null, outputLatency: ctx ? ctx.outputLatency ?? null : null };
   }
+  /* ajan:audio — src/audio-plus.js (BABA.AudioPlus) adds chapter ambience beds, surface footsteps, hero breath, UI cues; this is its window into the engine. */
+  const CORE = { gainNode, filter, panner, sample, burst, thud, ring, tone, swell, whoosh, growl, noiseSrc, busOf, track, throttle, spatial, room, player, game, rand, chance, clamp,
+    get ctx() { return ctx; }, get N() { return N; }, get volume() { return volume; }, get offline() { return offline; }, get voices() { return voices; },
+    get narrating() { return !!current; }, get bank() { return bank; } };
+  /* /ajan:audio */
   B.Audio = {
     say, saySequence, sayQuest, prepare: prepareAudio, onCaption(fn) { caption = fn; },
     resetNarration() { queue = []; heard.clear(); },   // yeni yolculukta bekleyenleri at; mevcut cümle bitsin

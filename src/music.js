@@ -862,7 +862,8 @@
     if (!combatOn && S.combatOn) combatExit(t);
     S.combatOn = combatOn;
     const dg = clamp(+s.danger || 0, 0, 1); S.danger += (dg - S.danger) * (1 - Math.exp(-dt / (dg > S.danger ? .7 : 3)));
-    if (!!s.paused !== S.paused) { S.paused = !!s.paused; setP(N.muffle.frequency, S.paused ? 650 : 20000, t, .2); setP(N.duck.gain, S.paused ? .45 : 1, t, .25); }
+    /* ajan:audio */ S.raw = s; const pk = (s.paused ? 1 : 0) + (s.title ? 2 : 0); /* /ajan:audio */
+    if (!!s.paused !== S.paused || pk !== S.pk) { S.pk = pk; S.title = !!s.title; S.paused = !!s.paused; setP(N.muffle.frequency, S.paused ? (S.title ? 2600 : 650) : 20000, t, .2); setP(N.duck.gain, S.paused ? (S.title ? .8 : .45) : 1, t, .25); }   // ajan:audio: the title theme is only veiled
     if (S.wonAt >= 0 && !won && t > S.wonAt + 60) S.wonAt = -1;
     const quiet = dead || won || t < S.quietUntil || S.wonAt >= 0, duck = t < S.duckUntil ? S.duckAmt : 1;
     for (let i = 0; i < 7; i++) { const p = SCP[i]; setPart(p, !quiet && !boss && room === i ? (combatOn ? .55 : 1) * duck : 0, quiet ? .3 : 2.2, dt); sceneLife(p, i, t); }
@@ -876,10 +877,12 @@
     transport(t, until);
     for (let i = 0; i < 7; i++) { const p = SCP[i]; if (p.target > 0) { runPads(p, roomScore(i), t, until); runGens(p, roomScore(i), t, until); } }
     tensionRun(PT, t, until); runLater(until);
+    /* ajan:audio */ if (B.MusicColor) try { B.MusicColor.update(EXT, dt, t, until); } catch (e) { console.warn('MusicColor', e); } /* /ajan:audio */
   }
   function onStep(st, t) {
     for (let i = 0; i < 7; i++) { const p = SCP[i], sc = roomScore(i); if (sc.steps && p.target > 0) sc.steps(p, st, t); }
     combatStep(PC, st, t); bossStep(PB, st, t);
+    /* ajan:audio */ if (B.MusicColor) try { B.MusicColor.step(EXT, st, t); } catch (e) { console.warn('MusicColor', e); } /* /ajan:audio */
   }
   function sting(name) {
     if (!ready || halted) return false;
@@ -935,6 +938,12 @@
     for (const k of Object.keys(BUF)) delete BUF[k]; for (const k of Object.keys(I)) delete I[k]; for (const k of Object.keys(N)) delete N[k];
     VOICES.clear(); SHOTS.clear(); SHOT_META.clear(); LATER.length = 0; queue = []; irStep = null; ctx = out = null; ready = false; live = 0;
   }
+  /* ajan:audio — chapter colour layers and the title theme live in src/music-chapters.js (BABA.MusicColor); this is its window into the score. */
+  const EXT = { playBuf, dest, choirNote, stringNote, brassNote, vowel, toll, phrase, noiseSwell, later, rr, chance, pick, semi, S, T, BS, CB,
+    get ctx() { return ctx; }, get parts() { return { PC, PB, PS, PT, SCP }; }, get lite() { return LITE; }, get offline() { return offline; },
+    stepDur: () => 60 / T.bpm / 4, chapter: () => B.ActiveChapter || 1,
+    notes: { D1, G1, Ab1, A1, Bb1, C2, D2, Eb2, F2, G2, Ab2, A2, Bb2, C3, Cs3, D3, Eb3, E3, F3 }, GATE };
+  /* /ajan:audio */
   B.Music = {
     init, update, sting, prepare, dispose,
     stop() {
