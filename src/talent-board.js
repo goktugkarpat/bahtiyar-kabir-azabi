@@ -74,6 +74,14 @@
     // The plaques follow the order of the panel's lines: the left column's archetype plaque stands left, the right column's right.
     const lineRank = (p, pair) => { const arch = pair.list[0] && pair.list[0].arch, i = p.lines.findIndex(l => archOfLine(l) === arch); return i < 0 ? 9 : i; };
     panels.forEach(p => p.pairs.sort((a, b) => lineRank(p, a) - lineRank(p, b)));
+    // Inside a plaque the rival that belongs to one of this panel's columns stands on that column's side (the other rival opposite).
+    panels.forEach(p => p.pairs.forEach(pair => {
+      if (pair.list.length !== 2) return;
+      const i0 = p.lines.indexOf(pair.list[0].line), i1 = p.lines.indexOf(pair.list[1].line);
+      let leftFirst = null;
+      if (i0 >= 0 && i1 < 0) leftFirst = i0 === 0; else if (i1 >= 0 && i0 < 0) leftFirst = i1 !== 0; else if (i0 >= 0 && i1 >= 0 && i0 !== i1) leftFirst = i0 < i1;
+      if (leftFirst === false) pair.list.reverse();
+    }));
     panels.forEach((p, i) => {
       const cells = p.pairs.reduce((s, o) => s + o.list.length, 0); let m = 0;
       const sz = SIZE.passive; p.tight = cells > 2;
