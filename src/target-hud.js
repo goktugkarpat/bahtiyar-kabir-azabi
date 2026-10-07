@@ -82,6 +82,9 @@
     let shown = false, previousId = null, previousType = null, previousName = '', previousHealth = '', previousScale = '';
     let previousMax = -1, previousHp = -1, previousPhase = '', wasBoss = false, wasPhase2 = false;
     let previousArt = null;
+    // ajan:ui — gecikmeli "yenen can" izi (Diablo tarzı) ve şampiyon ayrımı; yalnız değer değişince yazılır
+    const trail = document.createElement('i'); trail.className = 'target-trail'; trail.setAttribute('aria-hidden', 'true'); health.insertBefore(trail, fill);
+    let wasChampion = false;
     function setPortrait(type) {
       const art = !failedImages.has(type) ? type : !failedImages.has('prisoner') ? 'prisoner' : null;
       if (art !== previousArt) {
@@ -103,7 +106,8 @@
       if (warmEl) unwarm();
       if (!enemy || enemy.dead || !Number.isFinite(enemy.hp) || !Number.isFinite(enemy.maxHp) || !(enemy.maxHp > 0) || !(enemy.hp > 0)) { clear(); return; }
       if (!shown) { root.classList.remove('hidden'); shown = true; }
-      if (previousId !== enemy.id) { root.setAttribute('data-enemy-id', enemy.id); previousId = enemy.id; }
+      const changed = previousId !== enemy.id;
+      if (changed) { root.setAttribute('data-enemy-id', enemy.id); previousId = enemy.id; }
       const type = Object.prototype.hasOwnProperty.call(portraits, enemy.type) ? enemy.type : 'prisoner';
       if (previousType !== type || previousArt && failedImages.has(previousArt)) { previousType = type; setPortrait(type); }
       const label = enemy.name || KabirI18n.t('Düşman');
@@ -114,12 +118,14 @@
       if (max !== previousMax) { health.setAttribute('aria-valuemax', max); previousMax = max; }
       if (hp !== previousHp) { health.setAttribute('aria-valuenow', hp); previousHp = hp; }
       const scale = 'scaleX(' + Math.max(0, Math.min(1, enemy.hp / enemy.maxHp)) + ')';
-      if (scale !== previousScale) { fill.style.transform = scale; previousScale = scale; }
+      if (scale !== previousScale) { const snap = changed || !previousScale; fill.style.transform = scale; trail.classList.toggle('snap', snap); trail.style.transform = scale; previousScale = scale; }
       const boss = !!enemy.boss, phase2 = boss && enemy.phase >= 2;
       if (boss !== wasBoss) { root.classList.toggle('boss-target', boss); wasBoss = boss; }
       if (phase2 !== wasPhase2) { root.classList.toggle('phase2', phase2); wasPhase2 = phase2; }
+      const champion = !boss && !!(enemy.champion || enemy.elite);
+      if (champion !== wasChampion) { root.classList.toggle('champion-target', champion); wasChampion = champion; }
       const phases = bossPhases[enemy.type];
-      const phaseText = phases ? phases[enemy.phase] || '' : boss ? phase2 ? KabirI18n.t('ZİNCİRLER KIRILDI') : KabirI18n.t('KURBAN SALONU') : '';
+      const phaseText = phases ? phases[enemy.phase] || '' : boss ? phase2 ? KabirI18n.t('ZİNCİRLER KIRILDI') : KabirI18n.t('KURBAN SALONU') : champion ? KabirI18n.t('ŞAMPİYON') : '';
       if (phaseText !== previousPhase) { phase.textContent = phaseText; previousPhase = phaseText; }
     }
     return { update, clear };

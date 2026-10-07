@@ -1,0 +1,280 @@
+/* ajan:ui — gotik arayüz cilası (en son yüklenir). Yalnız transform/opacity animasyonları; oyun sırasında ağır filtre yok. */
+:root { --ui-gold: #dcc08a; --ui-gold-d: #8c6b3c; --ui-bone: #efe3c8; --ui-blood: #6e1010; --ui-blood-l: #a9241b; --ui-iron: #120f0d }
+
+/* ───────── 1. Bildirim yerleşimi: menüler açıkken sahne yazıları görünmez ───────── */
+body:not([data-view="playing"]) .qc-bars,
+body:not([data-view="playing"]) #bf-cine,
+body:not([data-view="playing"]) #lu-banner { opacity: 0 !important; visibility: hidden !important; transition: none !important }
+/* öncelik: boss kartı > seviye afişi > bölge duyurusu */
+body.bf-intro #announcement.show, body:has(#lu-banner.lu-on) #announcement.show { opacity: 0 !important }
+body.bf-intro .qc-caption { opacity: 0 !important; transition: opacity .3s !important }
+/* savaş başlarsa sinema bantları çekilir, altyazı söner: alt çubuk/küreler ve hedef çubuğu asla örtülmez */
+body.in-combat .qc-bars .qc-bar.top { transform: translateY(-100%) } body.in-combat .qc-bars .qc-bar.bottom { transform: translateY(100%) }
+body.in-combat.qc-cinema #hud .hero-card, body.in-combat.qc-cinema #hud .quest.story-quest { opacity: 1 }
+body.in-combat .qc-caption { opacity: 0 !important; transition: opacity .4s !important }
+/* hedef/boss çubuğu (ve boss mekanik paneli) açıkken seviye afişi onların altına iner */
+body:has(#target-hud:not(.hidden)) #lu-banner { top: max(24%, 172px) }
+body:has(#target-hud:not(.hidden) #boss-mechanic:not(.hidden)) #lu-banner { top: max(31%, 228px) }
+/* kuşatma/kaçış sayacı (.quest-urgent, üst orta %13): hedef çubuğunun altına iner; duyuru ve seviye afişi de sayacın altına */
+body:has(#target-hud:not(.hidden)) .quest-urgent { top: max(17%, 124px) }
+body:has(#target-hud:not(.hidden) #boss-mechanic:not(.hidden)) .quest-urgent { top: max(25%, 182px) }
+body:has(.quest-urgent:not([hidden])) #announcement { top: max(25%, 180px) }
+body:has(.quest-urgent:not([hidden])) #lu-banner { top: max(31%, 228px) }
+/* görev bildirimi seviye afişi/boss kartı sırasında soluklaşır, sonra kendiliğinden geri gelir */
+body:has(#lu-banner.lu-on) #quest-notice.show, body.bf-intro #quest-notice.show { opacity: .25 }
+/* bölge duyurusu (orta üst, geniş) görev bildirimiyle aynı yükseklikte: duyuru sürerken (4 sn) bildirim bekler */
+body:has(#announcement.show) #hud #quest-notice.show { opacity: 0; transition: opacity .3s }
+
+/* ───────── 2. Başlık ekranı ───────── */
+#title .title-shade { animation: ui-breathe 9s ease-in-out infinite alternate }
+@keyframes ui-breathe { from { opacity: .92 } to { opacity: 1 } }
+#title .wordmark {
+  color: transparent; letter-spacing: .07em;
+  background: linear-gradient(180deg, #fbf3df 0%, #e9d6a8 34%, #b28a52 52%, #6b4a28 62%, #c9a56a 78%, #f0dfb4 100%);
+  -webkit-background-clip: text; background-clip: text;
+  text-shadow: none; filter: drop-shadow(0 3px 2px #000) drop-shadow(0 0 22px #5a0f0a88);
+}
+#title .logo-wrap { margin-bottom: 4px }
+#title .title-copy .logo-wrap::before, #title .title-copy .logo-wrap::after { top: -12px; width: 18%; height: 14px; border-color: #b8925a88 }
+.ui-logo-sub { display: block; margin: 2px 0 0; color: #b99868; font: 600 clamp(12px, 1.25vw, 16px)/1.2 var(--text); letter-spacing: .62em; padding-left: .62em; text-transform: uppercase; text-shadow: 0 2px 3px #000; animation: fade-in 1.2s .7s both }
+html[lang=tr] .ui-logo-sub::before, html:not([lang]) .ui-logo-sub::before { content: 'GRAVE TORMENT' }
+html[lang=en] .ui-logo-sub::before { content: 'KABİR AZABI' }
+#title .title-divider { margin-top: 22px }
+/* düğmeler: kararmış demir + kan kırmızısı, altın kenar; üstüne gelince ışık süzülür */
+#title .title-actions .btn {
+  position: relative; overflow: hidden; border-image: none; border: 1px solid #6d5434; border-radius: 2px;
+  background: linear-gradient(180deg, #221b17f2, #110d0bf5 55%, #0b0908f7); color: #e6d6b6;
+  box-shadow: inset 0 1px 0 #ffffff12, inset 0 -2px 6px #000c, 0 4px 14px #000a;
+  font-family: var(--text); font-weight: 650; letter-spacing: .06em; transition: border-color .2s, color .2s, transform .15s;
+}
+#title .title-actions .btn:not(.primary) { background: linear-gradient(180deg, #1d1715f0, #0f0c0bf4 60%, #090707f6) }
+#title .title-actions .btn.primary { border-color: #b88a4e; background: linear-gradient(180deg, #7a1c15f2, #4c0f0cf4 52%, #2a0807f6); color: #fbefd7; box-shadow: inset 0 1px 0 #ffd9a033, inset 0 -3px 8px #0009, 0 0 0 1px #000, 0 6px 22px #4a0b0899 }
+#title .title-actions .btn::before, #title .title-actions .btn::after { content: ''; position: absolute; top: 50%; width: 7px; height: 7px; margin-top: -4px; transform: rotate(45deg); border: 1px solid #b88a4e; background: #1a120d; pointer-events: none }
+#title .title-actions .btn::before { left: 9px } #title .title-actions .btn::after { right: 9px }
+#title .title-actions .btn > span, #title .title-actions .btn > .icon { position: relative; z-index: 1 }
+#title .title-actions .btn .ui-sheen { position: absolute; inset: 0 auto 0 0; width: 40%; background: linear-gradient(100deg, transparent, #ffe3b022, transparent); transform: translateX(-120%) skewX(-18deg); pointer-events: none }
+#title .title-actions .btn:hover .ui-sheen, #title .title-actions .btn:focus-visible .ui-sheen { transform: translateX(330%) skewX(-18deg); transition: transform .75s cubic-bezier(.3,.6,.3,1) }
+#title .title-actions .btn:hover, #title .title-actions .btn:focus-visible { border-color: #e2bd7c; color: #fff4dc }
+#title .title-actions .btn:active { transform: translateY(1px) scale(.995) }
+#title .title-actions .btn:hover::before, #title .title-actions .btn:hover::after, #title .title-actions .btn:focus-visible::before, #title .title-actions .btn:focus-visible::after { background: #b3261e; border-color: #f0cf8c }
+#title .title-actions .btn.primary .icon { color: #f4c27a }
+#title .title-actions > .btn { animation: ui-rise .7s cubic-bezier(.2,.7,.2,1) both }
+#title .title-actions > .btn:nth-child(1) { animation-delay: .45s } #title .title-actions > .btn:nth-child(2) { animation-delay: .55s }
+#title .title-actions > .btn:nth-child(3) { animation-delay: .63s } #title .title-actions > .btn:nth-child(4) { animation-delay: .71s }
+@keyframes ui-rise { from { opacity: 0; transform: translateY(10px) } to { opacity: 1; transform: none } }
+#title .language-choice button { border-radius: 2px }
+#title .language-choice button[aria-pressed="true"], #title .language-choice button.active { border-color: #c79a5c; background: linear-gradient(#5a1611, #2c0908); color: #fff0d6 }
+.ui-build { color: #8c7c66; font: 500 12px/1.3 var(--text); letter-spacing: .08em }
+
+/* ───────── 3. Ölüm ekranı: kırmızı vinyet nabzı, ağır giriş ───────── */
+body.ui-dying::after { content: ''; position: fixed; inset: 0; z-index: 9; pointer-events: none; background: radial-gradient(ellipse 70% 62% at 50% 50%, transparent 30%, #6a0505b3 75%, #1a0000f2 100%); animation: ui-death-veil .7s ease-out both }
+#death::before { content: ''; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(ellipse 75% 70% at 50% 50%, transparent 38%, #5a0606aa 78%, #2a0000f0 100%); opacity: 0; animation: ui-death-veil 1.8s ease-out .1s forwards, ui-death-pulse 3.6s ease-in-out 1.9s infinite }
+@keyframes ui-death-veil { from { opacity: 0 } to { opacity: 1 } }
+@keyframes ui-death-pulse { 0%, 100% { opacity: 1 } 50% { opacity: .72 } }
+#death::after { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 30%; pointer-events: none; background: linear-gradient(#000c, transparent); }
+#death .end-copy { position: relative; z-index: 1 }
+#death .eyebrow { animation: fade-in 1.4s .5s both; color: #c98a6a; letter-spacing: .34em }
+#death .end-title { animation: ui-death-title 2.2s cubic-bezier(.16,.8,.2,1) .15s both }
+@keyframes ui-death-title { from { opacity: 0; transform: scale(1.14) translateY(-6px) } 60% { opacity: 1 } to { opacity: 1; transform: none } }
+#death .divider { animation: ui-wipe 1.2s ease-out 1s both }
+@keyframes ui-wipe { from { opacity: 0; transform: scaleX(.1) } to { opacity: 1; transform: none } }
+#death .death-card { animation: ui-rise .9s cubic-bezier(.2,.7,.2,1) 1.2s both }
+#death .end-tip, #death #death-detail { animation: fade-in 1s 1.6s both }
+#death .end-actions { animation: ui-rise .8s cubic-bezier(.2,.7,.2,1) 1.8s both }
+#death .death-card .icon { color: #d8c7a8; filter: drop-shadow(0 0 8px #8a1a12) }
+#death .end-tip:not(:empty) { max-width: min(560px, 88vw); margin-left: auto; margin-right: auto; padding: 8px 14px; border-left: 2px solid #a9241b; background: linear-gradient(90deg, #1b0807d9, #0000); color: #e8d4b8; text-align: left }
+
+@media (max-height: 780px) and (min-width: 700px) { html:not([lang=en]) #death .end-title { width: min(540px, 80vw) } #death .end-tip:not(:empty) { margin-top: 6px; margin-bottom: 6px } }
+/* ───────── 4. Zafer ekranı ───────── */
+#victory .end-title { animation: ui-death-title 1.8s cubic-bezier(.16,.8,.2,1) .2s both }
+#victory .end-quote, #victory #victory-stats { animation: fade-in 1.2s 1s both }
+#victory .end-actions { animation: ui-rise .8s cubic-bezier(.2,.7,.2,1) 1.4s both }
+
+/* ───────── 5. Seviye atlama: arkada dönen altın ışık, puan vurgusu ───────── */
+#lu-banner::before { content: ''; position: absolute; left: 50%; top: 42%; width: min(620px, 70vw); aspect-ratio: 1; margin-left: calc(min(620px, 70vw) / -2); margin-top: calc(min(620px, 70vw) / -2); z-index: -1; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle, #ffe0a066 0%, #d0904028 30%, transparent 62%), repeating-conic-gradient(from 0deg, #ffdb9a30 0deg 3deg, transparent 3deg 15deg);
+  -webkit-mask: radial-gradient(circle, #000 18%, transparent 66%); mask: radial-gradient(circle, #000 18%, transparent 66%); opacity: 0; transform: scale(.4) rotate(0deg) }
+#lu-banner.lu-on::before { animation: ui-lu-burst 2.6s cubic-bezier(.12,.75,.2,1) both }
+@keyframes ui-lu-burst { 0% { opacity: 0; transform: scale(.35) rotate(0deg) } 12% { opacity: 1 } 70% { opacity: .75 } 100% { opacity: 0; transform: scale(1.12) rotate(24deg) } }
+#lu-banner.lu-calm::before { animation: none }
+#lu-banner .lu-note b { color: #ffcf7e }
+/* yeni yetenek puanı: sol alttaki "T Yetenekler" ipucu afiş boyunca nabız atar */
+body:has(#lu-banner.lu-on) #key-hints span:nth-child(2) { color: #ffd894; transform-origin: left center; animation: ui-key-pulse .9s ease-in-out 3 }
+body:has(#lu-banner.lu-on) #key-hints span:nth-child(2) kbd { border-color: #f0c070; box-shadow: 0 0 10px #e0a04a99 }
+@keyframes ui-key-pulse { 0%, 100% { transform: none } 50% { transform: scale(1.12) } }
+#lu-banner.lu-on .lu-note { animation: ui-lu-note 2.6s ease-out both }
+@keyframes ui-lu-note { 0%, 30% { transform: scale(1) } 40% { transform: scale(1.08) } 52%, 100% { transform: scale(1) } }
+
+/* ───────── 6. Bölge duyurusu ve sinema altyazısı: okunur, gotik ───────── */
+#announcement small { letter-spacing: .38em }
+.qc-caption .qc-eyebrow { color: #c79a5c; letter-spacing: .42em }
+.qc-caption .qc-title { color: #f1dfb8; text-shadow: 0 2px 3px #000, 0 0 24px #6a0f0a66 }
+.qc-caption .qc-text { max-width: 760px; margin: 0 auto; color: #e6d7bd }
+
+/* anlatıcı satırı: eski fade-up animasyonu translateX(-50%)'yi siliyordu, kutu her yeni satırda sağdan kayarak geliyordu */
+#hud #narration.tap { animation: ui-narr-in .5s ease-out }
+@keyframes ui-narr-in { from { opacity: 0; transform: translate(-50%, 10px) } to { opacity: 1; transform: translateX(-50%) } }
+
+/* dar/orta pencerelerde (≤1279 px) ortalı anlatıcı kutusu sağdaki görev panelinin altına giriyordu:
+   sola yaslanır ve görev panelinin soluna kadar uzanır (eğitim kutusu açıkken eski yerinde kalır) */
+@media (max-width: 1279px) and (min-width: 701px) {
+  body:not(.touch):not(:has(#tutorial:not(.hidden))) #hud #narration { left: calc(var(--pad) + 6px); transform: none; max-width: 720px;
+    width: calc(100vw - 2 * var(--pad) - min(calc(355px * var(--k, 1)), 34vw) - 30px) }
+  body:not(.touch):not(:has(#tutorial:not(.hidden))) #hud #narration.tap { animation-name: ui-narr-in-l }
+}
+@keyframes ui-narr-in-l { from { opacity: 0; transform: translateY(10px) } to { opacity: 1; transform: none } }
+
+/* karakter/çanta ekranı kısa pencerelerde (≤600 px yükseklik) sığmıyordu: oda paneli sanal olarak büyütülüp küçültülür */
+@media (min-height: 601px) and (min-width: 700px) and (max-width: 1199px) {
+  #character .character-panel { zoom: .8; width: calc(min(96vw, calc(94dvh * 1586 / 992)) / .8); height: calc(94dvh / .8); max-height: none; max-width: none }
+}
+@media (max-height: 600px) and (min-width: 700px) {
+  #character .character-panel { zoom: .56; width: calc(96vw / .56); height: calc(96dvh / .56); max-height: none; max-width: none }
+}
+
+/* ───────── 7. Görev bildirimi ve eşya bildirimi ───────── */
+/* --left tanımsızdı (bildirim ekran kenarına yapışıyordu); üstte, kahraman kartının altında dursun ki sol alttaki eşya bildirimleriyle çakışmasın */
+#hud #quest-notice { left: calc(var(--pad) + 4px); top: max(19%, 132px) }
+#quest-notice { border: 1px solid #5d4729; border-left: 3px solid #b28b4f; background: linear-gradient(100deg, #15100ef2, #0b0a0cf0 70%); box-shadow: 0 10px 30px #000a, inset 0 1px 0 #ffffff0d }
+#quest-notice.show { animation: ui-slide-in .45s cubic-bezier(.2,.7,.2,1) both }
+@keyframes ui-slide-in { from { transform: translateX(-14px) } to { transform: none } }
+#quest-notice strong { overflow-wrap: anywhere }
+#hud #toasts .toast { border-left: 2px solid #9c7a48; background: linear-gradient(90deg, #120e0cf0, #0d0b0bd9 80%, #0000); box-shadow: 0 6px 18px #0008; animation: ui-slide-in .35s cubic-bezier(.2,.7,.2,1) both }
+#hud #toasts .toast[class*="rarity-"] { font-weight: 600; padding-left: 14px }
+#hud #toasts .toast.rarity-uncommon { border-left-color: #7fa86a } #hud #toasts .toast.rarity-rare { border-left-color: #5d8fc4; box-shadow: 0 6px 18px #0008, -6px 0 16px -8px #5d8fc4 }
+#hud #toasts .toast.rarity-epic { border-left-color: #9a6ad0; box-shadow: 0 6px 18px #0008, -6px 0 18px -8px #9a6ad0 }
+#hud #toasts .toast.rarity-boss { border-left-color: #e0a64e; box-shadow: 0 6px 18px #0008, -6px 0 20px -6px #e0a64e; background: linear-gradient(90deg, #2a1a0cf0, #120d0ad9 80%, #0000) }
+#hud #toasts .toast.out { opacity: 0; transition: opacity .5s }
+
+/* HUD'daki son soğuk (lacivert/gri) tonlar sıcak demir-altına çekilir: tek görsel dil */
+#hud .hero-info { background: linear-gradient(90deg, transparent, #1a0f0b5c 40%, transparent) }
+#hud .hero-info #hero-subtitle { color: #cbb78f }
+#hud .quest { background: linear-gradient(90deg, transparent, #120c0ac7) }
+#hud .action kbd { background: linear-gradient(#2c211beb, #120d0b); border-color: #a4875a66; color: #efe0c2 }
+
+/* ───────── 8. Yükleme ekranı ───────── */
+#loading .load-bar { position: relative; border: 1px solid #5b4428; box-shadow: 0 0 0 1px #000, inset 0 1px 3px #000 }
+#loading .load-bar::before, #loading .load-bar::after { content: ''; position: absolute; top: 50%; width: 7px; height: 7px; margin-top: -4px; transform: rotate(45deg); border: 1px solid #b88a4e; background: #1a120d }
+#loading .load-bar::before { left: -12px } #loading .load-bar::after { right: -12px }
+#loading #load-fill { background: linear-gradient(90deg, #5c0f0b, #b3261e 70%, #f0b26a) }
+
+/* ───────── 9. Kontroller (H) ve tuş atama: soğuk mavi panel yerine mola/ayarlarla aynı taş-demir dil ───────── */
+#controls .controls-panel, #keybinds .keybinds-panel {
+  background: radial-gradient(ellipse 90% 60% at 50% 0%, #2a0e0b55, transparent 70%), linear-gradient(180deg, #17120fFA, #0d0a09FA 60%, #090706FC);
+  border: 1px solid #6a4f2e; box-shadow: 0 0 0 1px #000, 0 0 0 5px #15100c, 0 0 0 6px #4f3a22, 0 24px 60px #000d, inset 0 1px 0 #ffffff0d, inset 0 0 80px #00000080 }
+#controls .panel-head h2, #keybinds .panel-head h2 { font-family: Georgia, 'Times New Roman', serif; font-weight: 400; color: #ecd9b0; letter-spacing: .03em; text-shadow: 0 2px 3px #000 }
+#controls .panel-head .eyebrow, #keybinds .panel-head .eyebrow { color: #c08a55; letter-spacing: .3em }
+#controls .panel-head, #keybinds .panel-head { border-bottom-color: #6a4f2e88 }
+#controls .control-grid > div { border-color: #c9a46a1c }
+#controls .control-grid p b { color: #ecdcbc }
+#controls .control-grid p span { color: #b2a48f }
+#controls .ctl-icon { border-color: #6a4f2e }
+/* geniş ekranda: karakter/ayarlar/günlük ile aynı oymalı oda (assets/ui/hybrid-b-chamber.png) */
+@media (min-width: 900px) and (min-height: 600px) {
+  #controls { background: #080708 }
+  #controls .controls-panel.ui-chamber { width: min(96vw, calc(94dvh * 1586 / 992)); height: 94dvh; max-height: 1040px; max-width: 1663px; padding: 0; border: 0; border-radius: 0; box-shadow: 0 12px 65px #000b; position: relative; overflow: hidden;
+    background: url(../assets/ui/hybrid-b-chamber.png) center / 100% 100% no-repeat }
+  #controls .ui-chamber::before, #controls .ui-chamber::after { display: none }
+  #controls .ui-chamber .panel-head { position: absolute; top: 2.3%; left: 6.5%; width: 87%; padding: 0; margin: 0; border: 0; display: flex; justify-content: center; text-align: center }
+  #controls .ui-chamber .panel-head .eyebrow { font-size: 0; letter-spacing: 0 }
+  #controls .ui-chamber .panel-head .eyebrow::before { content: 'KABİR AZABI'; font: 400 clamp(26px, 2.65vw, 44px)/1.05 Georgia, serif; letter-spacing: .075em; color: #f0e3c9; text-shadow: 0 2px 3px #000 }
+  html[lang=en] #controls .ui-chamber .panel-head .eyebrow::before { content: 'GRAVE TORMENT' }
+  #controls .ui-chamber .panel-head h2 { font: 400 18px/1.15 Georgia, serif; letter-spacing: .06em; color: #e6d7b9; margin-top: 4px }
+  #controls .ui-chamber .panel-head .close { position: absolute; top: 0; right: 0; width: 32px; height: 32px; min-height: 32px; background: #0c0908d9; border: 1px solid #ba9864; color: #e6d6b6 }
+  #controls .ui-chamber .ui-scroll { -webkit-mask: linear-gradient(#000 calc(100% - 28px), transparent); mask: linear-gradient(#000 calc(100% - 28px), transparent); position: absolute; top: 15.5%; bottom: 11.5%; left: 13.5%; right: 13.5%; overflow: auto; padding-right: 8px; scrollbar-width: thin; scrollbar-color: #997849 #100d0b }
+  #controls .ui-chamber .control-grid { gap: 0 22px }
+  #controls .ui-chamber .control-grid p b { font-family: Georgia, serif; font-weight: 400; font-size: 16px }
+}
+/* tuş atamaları: soğuk lacivert kutular yerine is kararmış demir + soluk altın */
+#keybinds .settings-cols section { border: 1px solid #6a4f2e66; background: linear-gradient(160deg, #1d1612d9, #0f0b0ae6); box-shadow: inset 0 1px 0 #ffffff0a, inset 0 0 40px #0008 }
+#keybinds .settings-cols h3 { color: #e6d2a8; font-family: Georgia, serif; font-weight: 400 }
+#keybinds .bind-slot { border-color: #8a6a3f66; background: linear-gradient(#2a201ae6, #120d0b); color: #ecdcbc; box-shadow: inset 0 1px 0 #ffe7b80f, inset 0 -2px 4px #0008 }
+#keybinds .bind-slot:hover { border-color: #d7b072 }
+#keybinds .bind-slot.listening { border-color: #e0b46e; background: #5a160f66; color: #fff0d2; box-shadow: 0 0 12px #b3261e66 }
+#keybinds .bind-pad { color: #b2a48f }
+#keybinds footer { border-top-color: #6a4f2e66 }
+#keybinds .panel-head .close, #controls .panel-head .close { background: linear-gradient(#2a1d17, #120d0b); border-color: #b88a4e; color: #ecd9b0 }
+#keybinds .bind-card { border-color: #b88a4e; background: linear-gradient(#1f1713, #0c0908); box-shadow: 0 20px 60px #000c, 0 0 0 4px #15100c, 0 0 0 5px #4f3a22 }
+/* okuma sırası: hareket ve savaş temelleri önce, yetenek yuvaları sırayla (sağ tık, 1, 2, 3) en sonda */
+#controls .control-grid > :nth-child(1) { order: 1 } #controls .control-grid > :nth-child(2) { order: 2 }
+#controls .control-grid > :nth-child(5) { order: 3 } #controls .control-grid > :nth-child(6) { order: 4 }
+#controls .control-grid > :nth-child(4) { order: 5 } #controls .control-grid > :nth-child(10) { order: 6 }
+#controls .control-grid > :nth-child(3) { order: 7 } #controls .control-grid > :nth-child(9) { order: 8 }
+#controls .control-grid > :nth-child(7) { order: 9 } #controls .control-grid > :nth-child(8) { order: 10 }
+
+/* ───────── 10. İngilizce ölüm/zafer başlığı: Türkçe oyma altın görsele yakın, ortalı ───────── */
+html[lang=en] #death .end-title, html[lang=en] #victory .end-title {
+  display: block; margin-left: calc((100% - min(740px, 92vw)) / 2); margin-right: calc((100% - min(740px, 92vw)) / 2); text-align: center; text-transform: uppercase;
+  font: 400 clamp(34px, 5.2vw, 70px)/1.08 Georgia, 'Times New Roman', serif; letter-spacing: .045em; color: transparent;
+  background: linear-gradient(180deg, #fff1c9 0%, #f0c873 30%, #a8712c 55%, #6a3f16 64%, #d9a654 80%, #f7dc9a 100%);
+  -webkit-background-clip: text; background-clip: text; text-shadow: none; filter: drop-shadow(0 3px 1px #000) drop-shadow(0 0 16px #3a0a0699) }
+html[lang=en] #death .end-title { background: linear-gradient(180deg, #ffe9c4 0%, #e8b46a 30%, #9a5c26 55%, #5a2a10 64%, #c98a48 80%, #f0cf96 100%); -webkit-background-clip: text; background-clip: text }
+
+/* ───────── 11. Hedef çubuğu: yenen can izi, şampiyon (altın) ve boss (büyük, oymalı) ayrımı ───────── */
+#hud .target-fill { transition: transform .12s ease-out }
+#hud .target-trail { position: absolute; inset: 0; transform-origin: left; background: linear-gradient(#ffe9b8, #e3a95c 40%, #a8642a); opacity: .85; transition: transform .55s cubic-bezier(.3,.6,.3,1) .32s; will-change: transform }
+#hud .target-trail.snap { transition: none }
+#hud .target-count, #hud .target-notch { z-index: 1 }
+#hud .champion-target .target-health { border-color: #d7ad5e; box-shadow: 0 0 0 1px #000, 0 0 12px #c08a3a66 }
+#hud .champion-target .target-name { color: #f3cf86; max-width: 100%; font-size: max(14px, calc(17px * var(--k))) }
+#hud .champion-target .target-title { flex-direction: column-reverse; align-items: flex-start; gap: 1px }
+#hud .champion-target .target-phase { color: #f0c26e; letter-spacing: .22em }
+#hud .champion-target .target-portrait::after { content: ''; position: absolute; inset: 9%; border-radius: 50%; box-shadow: 0 0 0 2px #d7ad5e, 0 0 14px #e0a2466e; pointer-events: none }
+#hud .boss-target .target-title { flex-direction: column; align-items: flex-start; gap: 2px }
+#hud .boss-target .target-name { max-width: 100%; font-family: Georgia, 'Times New Roman', serif; font-weight: 400; font-size: max(16px, calc(19px * var(--k))); text-transform: uppercase; letter-spacing: .06em; color: #f1dcae }
+#hud .boss-target .target-phase { letter-spacing: .2em; color: #d99a6a }
+#hud .boss-target .target-health { height: calc(34px * var(--k)); border-color: #a77a44; box-shadow: 0 0 0 1px #000, 0 0 0 4px #1a110c, 0 0 0 5px #6a4a28, 0 6px 18px #000c }
+#hud .boss-target .target-fill { background: linear-gradient(#ff8a5e, #c22a1f 26%, #7a0b10 70%, #3a0206) }
+#hud .boss-target .target-health::before, #hud .boss-target .target-health::after { content: ''; position: absolute; top: 50%; z-index: 2; width: 9px; height: 9px; margin-top: -5px; transform: rotate(45deg); border: 1px solid #e0b46e; background: #3a0a08 }
+#hud .boss-target .target-health::before { left: 4px } #hud .boss-target .target-health::after { right: 4px }
+
+#loading .wordmark { color: transparent; letter-spacing: .07em; background: linear-gradient(180deg, #fbf3df 0%, #e9d6a8 34%, #b28a52 52%, #6b4a28 62%, #c9a56a 78%, #f0dfb4 100%); -webkit-background-clip: text; background-clip: text; text-shadow: none; filter: drop-shadow(0 3px 2px #000) drop-shadow(0 0 22px #5a0f0a88) }
+#loading .load-art { gap: 6px; margin-bottom: 18px }
+#loading .load-tip { min-height: 3em }
+#loading .load-tip.ui-tip-in { animation: fade-in .9s ease-out both }
+#loading .load-tip.ui-quote { font-family: Georgia, 'Times New Roman', serif; font-style: italic; color: #d9c7a4 }
+/* bölüme özel perde rengi: kor, deniz, toz, ocak, hüküm */
+#loading[data-chapter="2"] { background: radial-gradient(ellipse 60% 50% at 50% 44%, #0f2a2a 0%, #081414 40%, #030505 100%) }
+#loading[data-chapter="3"] { background: radial-gradient(ellipse 60% 50% at 50% 44%, #33260f 0%, #161008 40%, #050404 100%) }
+#loading[data-chapter="4"] { background: radial-gradient(ellipse 60% 50% at 50% 44%, #45180a 0%, #1c0904 40%, #050303 100%) }
+#loading[data-chapter="5"] { background: radial-gradient(ellipse 60% 50% at 50% 44%, #22102e 0%, #0e0714 40%, #040305 100%) }
+
+/* ───────── 12. Bölüm geçiş kartı ───────── */
+#chapter-fade::before { content: ''; position: absolute; inset: -6%; pointer-events: none; background: radial-gradient(ellipse 45% 35% at 50% 46%, #6a170f33, transparent 70%), url(../assets/ui/stone.webp) 0 0 / 320px; opacity: .12; mix-blend-mode: screen; -webkit-mask: radial-gradient(ellipse at center, #000 20%, transparent 75%); mask: radial-gradient(ellipse at center, #000 20%, transparent 75%); transform: scale(1); }
+#chapter-fade.show::before { animation: ui-cf-drift 14s linear both }
+@keyframes ui-cf-drift { from { transform: scale(1) } to { transform: scale(1.08) } }
+#chapter-fade .cf-copy { position: relative }
+#chapter-fade .eyebrow { letter-spacing: .4em; color: #c08a55 }
+#chapter-fade .cf-title { text-transform: uppercase; font: 400 clamp(32px, 5vw, 62px)/1.1 Georgia, 'Times New Roman', serif; letter-spacing: .05em; color: transparent;
+  background: linear-gradient(180deg, #fff1c9 0%, #f0c873 30%, #a8712c 55%, #6a3f16 64%, #d9a654 80%, #f7dc9a 100%); -webkit-background-clip: text; background-clip: text; text-shadow: none; filter: drop-shadow(0 3px 1px #000) }
+#chapter-fade .end-quote { font-family: Georgia, 'Times New Roman', serif; font-style: italic; color: #d8c8aa }
+#chapter-fade .next { display: inline-flex; align-items: center; gap: 14px }
+#chapter-fade .next::before, #chapter-fade .next::after { content: ''; width: 46px; height: 1px; background: linear-gradient(90deg, transparent, #c79a5c) }
+#chapter-fade .next::after { transform: scaleX(-1) }
+
+/* ───────── 13. Hata perdesi ───────── */
+#fatal:not(.hidden) { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 6vh 6vw }
+#fatal h2 { margin: 0; font: 400 clamp(26px, 3.6vw, 44px)/1.15 Georgia, 'Times New Roman', serif; text-transform: uppercase; letter-spacing: .05em; color: transparent;
+  background: linear-gradient(180deg, #ffe9c4 0%, #e8b46a 32%, #9a5c26 56%, #c98a48 80%, #f0cf96 100%); -webkit-background-clip: text; background-clip: text; filter: drop-shadow(0 3px 1px #000) }
+#fatal h2::after { content: ''; display: block; width: min(360px, 60vw); height: 1px; margin: 18px auto 0; background: linear-gradient(90deg, transparent, #a9241b, transparent) }
+#fatal p { max-width: min(720px, 88vw); max-height: 40vh; overflow: auto; margin: 22px auto; padding: 12px 16px; text-align: left; border: 1px solid #4a3620; border-left: 2px solid #a9241b; background: #0b0807d9; color: #cdbfa6; font: 12px/1.5 ui-monospace, Consolas, Menlo, monospace }
+#fatal p:empty { display: none }
+
+/* ───────── 14. Boss giriş/evre kartı (boss-framework): oyma altın başlık; sinema bantları HUD'un altında kalır ───────── */
+body #bf-cine { z-index: 2 }
+body #hud #key-hints { z-index: 3 }
+body #bf-cine .card { width: min(860px, 64vw) }
+body #bf-cine .card strong { font-family: Georgia, 'Times New Roman', serif; font-weight: 400; font-size: clamp(24px, 3.3vw, 50px); line-height: 1.12; text-transform: uppercase; letter-spacing: .07em; color: #f3dfb4;
+  text-shadow: 0 3px 2px #000, 0 0 18px #000, 0 0 46px var(--bf-glow, rgba(190,50,30,.55)) }
+body #bf-cine .card small { color: #c58e5a; text-shadow: 0 1px 2px #000 }
+body #bf-cine .card em { font-family: Georgia, 'Times New Roman', serif; font-style: italic; letter-spacing: .12em; color: #d6c09a }
+body #bf-cine .card i { height: 2px; box-shadow: 0 0 10px var(--bf-glow, #b8452d99) }
+body #bf-cine .card::before { content: ''; position: absolute; left: 50%; top: 50%; width: 120%; height: 190%; transform: translate(-50%, -50%); z-index: -1; pointer-events: none; background: radial-gradient(ellipse at center, #000b 0%, #0006 40%, transparent 70%) }
+
+@media (prefers-reduced-motion: reduce) {
+  #title .title-shade, #death::before, #lu-banner.lu-on::before, #lu-banner.lu-on .lu-note, #title .title-actions > .btn { animation: none }
+  #hud .target-trail { transition: none }
+  #chapter-fade.show::before, #hud #narration.tap { animation: none }
+  #death::before { opacity: 1 }
+}
+/* /ajan:ui */

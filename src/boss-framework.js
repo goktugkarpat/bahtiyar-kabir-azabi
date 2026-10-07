@@ -97,7 +97,7 @@
   /* Text lanes: the card never sits on top of the narrator's subtitle, the level-up banner, the HUD announcement or the boss
      instruction panel. place() tries a few vertical lanes and keeps the one with the least overlap; a card that would collide
      waits (queue, at most 1.6 s) for a free lane; while shown it is re-laid every .25 s, so a subtitle that appears pushes it aside. */
-  var BLOCKERS = ['narration', 'level-up', 'announcement', 'boss-mechanic', 'tutorial'];
+  var BLOCKERS = ['narration', 'level-up', 'lu-banner', 'announcement', 'boss-mechanic', 'tutorial'];
   function blockers(intro) {
     var out = [];
     for (var i = 0; i < BLOCKERS.length; i++) {
@@ -105,6 +105,7 @@
       var el = document.getElementById(BLOCKERS[i]); if (!el) continue;
       if (BLOCKERS[i] === 'narration' && (el.classList.contains('hidden') || !(el.textContent || '').trim())) continue;
       if ((BLOCKERS[i] === 'level-up' || BLOCKERS[i] === 'announcement') && !el.classList.contains('show')) continue;
+      if (BLOCKERS[i] === 'lu-banner' && !el.classList.contains('lu-on')) continue;   // ajan:ui — levelup.js afişi
       var cs = getComputedStyle(el); if (cs.display === 'none' || cs.visibility === 'hidden' || +cs.opacity < .05) continue;
       var r = el.getBoundingClientRect(); if (r.height > 2 && r.width > 2) out.push(r);
     }
