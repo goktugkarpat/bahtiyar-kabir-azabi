@@ -9,7 +9,7 @@
   // id -> [power name, description]
   const TEXT = {
     'executioner-axe': ['Cellat Yarığı', 'Her 4. vuruş bir kanama yarığı açar: vuruşun yarısı kadar kan 4 saniyede akar.'],
-    'bell-spear': ['Derin Çan', 'Vuruşların %15 ihtimalle çan çalar: yakındaki düşmanlar sersemler ve hasar alır.'],
+    'bell-spear': ['Derin Çan', 'Vuruşların %8 ihtimalle çan çalar: yakındaki düşmanlar sersemler ve hasar alır.'],
     'hollow-crown-blade': ['Tahtsız Taç', 'Her öldürme 4 saniyeliğine %8 hasar verir; 3 kez birikir.'],
     'furnace-oath-axe': ['Ocak Yemini', 'Her 5. vuruş yerden kor fışkırtır: çevredeki düşmanlar yanar.'],
     'last-verdict-blade': ['Son Hükmün Kırığı', 'Bosslara ve muhafızlara %18 fazla hasar.'],
@@ -43,6 +43,7 @@
     let worn = new Set(), wornRev = -1, hits = 0, clock = 0, crown = [], primed = false, chainReady = 0, soulAt = 0;
     const dots = new Map(), trails = [], NONE = new Map(), procs = {}, P = id => { procs[id] = (procs[id] || 0) + 1; };
     function has(id) {
+      if (B.GearPowers && B.GearPowers.off && B.GearPowers.off.has(id)) return false;   // balance bench A/B switch (combat-balance.js powersOff)
       const rev = progression.revision !== undefined ? progression.revision : -2;
       if (rev !== wornRev || rev === -2) { wornRev = rev; worn = new Set(); for (const s of ['weapon', 'head', 'chest', 'hands', 'boots']) { const it = progression.itemForSlot && progression.itemForSlot(s); if (it) worn.add(it.id); } }
       return worn.has(id);
@@ -73,7 +74,7 @@
         hits++;
         const face = Math.atan2(e.x - player.x, e.z - player.z);
         if (has('executioner-axe') && hits % 4 === 0 && !killed) { P('executioner-axe'); dot(e, damage * .5, 4, 'bleed'); if (look) look.burst(e.x, e.z, 1.4, 'blood'); sound('talentBlood', { x: e.x, z: e.z, volume: .7 }); }
-        if (has('bell-spear') && Math.random() < .15) { P('bell-spear'); sound('talentKnell', { x: e.x, z: e.z, volume: .6 }); burstHit(e.x, e.z, 2.6, 16, 'chain', o => stunEnemy(o, .6, 'heavy')); }
+        if (has('bell-spear') && Math.random() < .08) { P('bell-spear'); sound('talentKnell', { x: e.x, z: e.z, volume: .6 }); burstHit(e.x, e.z, 2.6, 16, 'chain', o => stunEnemy(o, .4, 'heavy')); }   // combat bench: 15 % / .6 s stun cut fights by 56 % (A/B), now 8 % / .4 s
         if (has('furnace-oath-axe') && hits % 5 === 0) { P('furnace-oath-axe'); sound('talentBurst', { x: e.x, z: e.z }); ctx.emit && ctx.emit('impact', { x: e.x, z: e.z, strength: .6, radius: 2.6 }); burstHit(e.x, e.z, 2.6, 24, 'fire', o => dot(o, 18, 3, 'burn')); }
         if (has('ash-warden-grasp') && hits % 3 === 0 && !killed) { P('ash-warden-grasp'); dot(e, Math.max(10, damage * .35), 3, 'burn'); if (look) look.mark(e, 'burn'); sound('talentIgnite', { x: e.x, z: e.z, volume: .5 }); }
         if (primed && has('hearth-forged-gauntlets')) { P('hearth-forged-gauntlets'); primed = false; sound('talentBurst', { x: e.x, z: e.z }); burstHit(e.x, e.z, 2.4, 28, 'fire'); }

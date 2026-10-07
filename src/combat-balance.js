@@ -79,8 +79,11 @@
     if (h.shape === 'ring') return { x: -dx / d, z: -dz / d };
     return { x: dx / d, z: dz / d };
   }
-  function setupProfile(game, chapter, level, gear, build) {
-    const P = B.Progression, prog = game.progression, kit = GEAR[chapter] || GEAR[1];
+  function setupProfile(game, chapter, level, gear, build, items) {
+    const P = B.Progression, prog = game.progression, base = GEAR[chapter] || GEAR[1];
+    // items: catalog ids that replace the kit piece of the same slot (unique-power A/B tests).
+    const extra = (items || []).filter(id => P.catalog[id]), slotsTaken = new Set(extra.map(id => P.catalog[id].slot));
+    const kit = { level: base.level, items: base.items.filter(id => !P.catalog[id] || !slotsTaken.has(P.catalog[id].slot)).concat(extra) };
     const lvl = Math.max(1, Math.min(P.MAX_LEVEL, level || kit.level));
     const inv = [], eq = {};
     if (gear !== 'none') kit.items.forEach((id, i) => { const def = P.catalog[id]; if (def && def.level <= lvl) { inv.push({ uid: 'bal-' + i, id, roll: 0 }); eq[def.slot] = 'bal-' + i; } });
@@ -129,7 +132,9 @@
     const bot = Object.assign({}, BOTS[o.bot] || BOTS.average, o.tune || {});
     if (game.state !== 'playing') game.start();
     game.setDifficulty(o.difficulty);
-    const profile = setupProfile(game, chapter, o.level, o.gear, o.build);
+    // powersOff: unique item powers (gear-powers.js) switched off for this run, true = all or a list of ids.
+    if (B.GearPowers) B.GearPowers.off = o.powersOff ? new Set(o.powersOff === true ? Object.keys(B.GearPowers.text) : o.powersOff) : null;
+    const profile = setupProfile(game, chapter, o.level, o.gear, o.build, o.items);
     game.saveProfileChoices();
     const prog = game.progression, grant = prog.grantEnemy;
     prog.grantEnemy = () => ({ xp: 0, levels: 0, items: [], duplicate: true });   // no levelling inside a measurement
@@ -201,7 +206,7 @@
     p.x = at.x; p.z = at.z; game.player.face = Math.atan2(at.cx - at.x, at.cz - at.z);
     if (g.boss) for (const e of g.list) { e.active = e.activated = true; e.encounter.activated = true; }
     const startHp = p.hp, startFlasks = p.flasks, seen = new Map();
-    const stat = { denied: 0 }; let perfect0 = game.perfectDodges || 0, bossStop = false, t = 0, rolls = 0, hits = 0, lastHp = p.hp, damageTaken = 0, biggest = 0, killTimes = [], alive = g.list.filter(e => !e.dead).length, firstContact = -1;
+    const stat = { denied: 0 }; let drunk = 0, lastFlasks = p.flasks, perfect0 = game.perfectDodges || 0, bossStop = false, t = 0, rolls = 0, hits = 0, lastHp = p.hp, damageTaken = 0, biggest = 0, killTimes = [], alive = g.list.filter(e => !e.dead).length, firstContact = -1;
     const counter = n => { rolls += n; };
     const dt = o.dt;
     while (t < o.limit) {
@@ -215,12 +220,14 @@
       if (input.dodge) counter(1);
       game.update(dt, input);
       t += dt;
+      if (p.flasks < lastFlasks) drunk += lastFlasks - p.flasks;   // count drinks, not the difference: kills / talents can refill flasks mid-fight
+      lastFlasks = p.flasks;
       if (p.hp < lastHp - .01) { hits++; damageTaken += lastHp - p.hp; biggest = Math.max(biggest, lastHp - p.hp); }
       lastHp = p.hp;
     }
     const died = game.state === 'dead' ? 1 : 0, cleared = bossStop || g.list.every(e => e.dead);
     if (bossStop) { t /= .9; for (const e of g.list) if (e.boss) { e.hp = e.maxHp; e.active = false; } }
-    const flasksUsed = startFlasks - p.flasks;
+    const flasksUsed = drunk;
     return { index: g.index, name: g.enc.name, boss: g.boss, types: g.list.map(e => e.type + (e.elite ? '*' : '')).join(','), foes: g.list.length,
       died, cleared: cleared ? 1 : 0, timeout: !died && !cleared ? 1 : 0, time: +t.toFixed(1), fightTime: +(t - Math.max(0, firstContact)).toFixed(1),
       hpLost: Math.round(damageTaken), endHp: Math.round(p.hp), flasks: flasksUsed, rolls, hitsTaken: hits, biggestHit: Math.round(biggest), kills: killTimes, denied: stat.denied, perfect: (game.perfectDodges || 0) - perfect0 };
