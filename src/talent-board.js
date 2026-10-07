@@ -71,6 +71,9 @@
         let pair = p.pairs.find(o => o.id === key); if (!pair) p.pairs.push(pair = { id: key, list: [] }); pair.list.push(n);
       }
     }
+    // The plaques follow the order of the panel's lines: the left column's archetype plaque stands left, the right column's right.
+    const lineRank = (p, pair) => { const arch = pair.list[0] && pair.list[0].arch, i = p.lines.findIndex(l => archOfLine(l) === arch); return i < 0 ? 9 : i; };
+    panels.forEach(p => p.pairs.sort((a, b) => lineRank(p, a) - lineRank(p, b)));
     panels.forEach((p, i) => {
       const cells = p.pairs.reduce((s, o) => s + o.list.length, 0); let m = 0;
       const sz = SIZE.passive; p.tight = cells > 2;
