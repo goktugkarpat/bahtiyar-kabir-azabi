@@ -29,7 +29,7 @@
   //   row III the panel's archetype passive pair(s) on a plaque ("ya da" between the rivals),
   //   row IV  the panel's keystone in a big diamond at the bottom (one keystone per run, the others get the red cross).
   // Positions come from the data (line / slot / group / arch), nothing here knows the node ids.
-  const W = 800, H = 410, GUT = 44, GAP = 8;
+  const W = 800, H = 410, GUT = 62, GAP = 8;
   const PW = (W - GUT - 4 - GAP * 2) / 3;
   const ROW_Y = { 1: 80, 2: 150, 3: 226, 4: 334 };
   const HEAD = 40;

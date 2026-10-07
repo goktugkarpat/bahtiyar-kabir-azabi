@@ -1,0 +1,100 @@
+/* KABİR AZABI — legibility pass (ajan:yazi). Loaded LAST: lifts thin / pale / tiny text across the whole UI and brightens item icons.
+   Rules are surgical (one selector per offender found by a DOM scan); layout boxes are not changed. */
+:root {
+  --leg-sans: 'Source Sans 3', 'Segoe UI', system-ui, sans-serif;
+  --leg-ink: #efe6d2;        /* bright cream for body text */
+  --leg-soft: #d3c8b2;       /* secondary text (was grey ~#8d7d66 / #a5afb5) */
+  --leg-label: #e2c995;      /* gold labels */
+  --leg-shadow: 0 1px 2px #000, 0 0 5px #000c;
+}
+
+/* ---------------- HUD ---------------- */
+#key-hints span { color:#e4d8bd; font-size:max(12px, calc(11.5px * var(--k, 1))); text-shadow:var(--leg-shadow); }
+#key-hints kbd { font-size:max(12px, calc(11px * var(--k, 1))); }
+#hud .quest-compass b { font-size:max(12px, calc(11.5px * var(--k, 1))); color:#ecd9ae; text-shadow:var(--leg-shadow); }
+#hud .quest-bottom #kill-progress { font-size:max(12px, calc(12px * var(--k, 1))); font-weight:600; color:#dccdab; text-shadow:var(--leg-shadow); }
+#hud .quest-track-row b { color:#ecd9ae; }
+#health-max, #stamina-max { font-size:max(12px, calc(11.5px * var(--k, 1))); color:#e6dcc8; }
+#actionbar kbd { font-size:max(12px, calc(11.5px * var(--k, 1))); }
+#actionbar em.cost { font-size:max(11.5px, calc(11px * var(--k, 1))); font-weight:800; color:#ff8a72; text-shadow:var(--leg-shadow); }
+#pause-button kbd { font-size:11.5px; }
+
+/* ---------------- Character & inventory ---------------- */
+/* item icons: thumbnails now have a transparent backdrop -> lit slate cell, rarity glow, light rim around dark gear */
+#character .char-item-art { border-radius:3px;
+  background:radial-gradient(circle at 50% 46%, color-mix(in srgb, var(--rarity, #8d9aa4) 20%, #45434a) 0%, color-mix(in srgb, var(--rarity, #8d9aa4) 8%, #232227) 58%, #141317 100%);
+  box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--rarity, #8d9aa4) 50%, transparent), inset 0 0 16px color-mix(in srgb, var(--rarity, #8d9aa4) 32%, transparent); }
+#character .char-model-thumbnail { filter:drop-shadow(0 0 1px #f6e9cdd0) drop-shadow(0 0 6px color-mix(in srgb, var(--rarity, #c9b48a) 60%, transparent)) contrast(1.06) saturate(1.08); }
+#character .char-gear-icon:not(.char-model-thumbnail) { filter:brightness(1.3) contrast(1.1) saturate(1.1) drop-shadow(0 0 1px #f6e9cd99); }
+#character .char-item.rarity-common, #character .char-equipment.worn.rarity-common { border-color:#9aa4ab88; }
+#character .char-item:is(.rarity-uncommon,.rarity-rare,.rarity-epic,.rarity-boss), #character .char-equipment.worn:is(.rarity-uncommon,.rarity-rare,.rarity-epic,.rarity-boss) {
+  border-color:color-mix(in srgb, var(--rarity) 85%, #fff); box-shadow:inset 0 0 14px color-mix(in srgb, var(--rarity) 35%, transparent), 0 0 8px color-mix(in srgb, var(--rarity) 35%, transparent); }
+/* empty equipment slots: clearer outline icon */
+#character .char-equipment.empty .char-item-art { background:radial-gradient(circle at 50% 45%, #33414f 0%, #18212a 70%); }
+#character .char-equipment.empty .char-icon { color:#b4c4d0; opacity:1; stroke-width:2.2; filter:drop-shadow(0 1px 1px #000); }
+/* text */
+#character .char-equipment .eq-label { font-size:11px; font-weight:700; letter-spacing:.06em; color:#e9e2cf; text-shadow:var(--leg-shadow); }
+#character .char-equipment.worn .eq-label { color:color-mix(in srgb, var(--rarity, #b9c6ce) 45%, #f1ead8); }
+#character .char-equipment.empty .eq-label { color:#d2dbe0; }
+#character .char-equipment .eq-name { font-size:12px; line-height:13px; font-weight:700; color:#f6efde; text-shadow:var(--leg-shadow); }
+#character .char-equipment.empty .eq-name { color:#aebac2; font-weight:600; }
+@media (max-height:850px) and (min-width:1000px) {
+  #character .char-equipment .eq-label { font-size:10.5px; letter-spacing:.03em; }
+  #character .char-equipment .eq-name { font-size:11.5px; line-height:12px; }
+}
+#character .char-sheet > h3 small, #character .char-bag > h3 small { font:600 13px/1.3 var(--leg-sans); color:#d8dee0; }
+#character .char-preview-label { font:700 12.5px/1.2 var(--leg-sans); color:var(--leg-label); }
+#character .char-preview figcaption { font:600 12.5px/1.3 var(--leg-sans); color:#e4e7e4; }
+#character .st-text small { font:600 12px/1.2 var(--leg-sans); color:#cfd6da; }
+#character .char-filter { font-size:12.5px; font-weight:600; color:#dce2e4; }
+#character .char-item-name { font-size:11.5px; font-weight:700; text-shadow:var(--leg-shadow); }
+#character .char-item-level { font-size:12px; font-weight:700; color:#f3ecdb; }
+#character .bag-pagination span { font:600 12.5px/1.3 var(--leg-sans); color:#ddd5c4; }
+#character .char-bag-help { font:500 13px/1.45 var(--leg-sans); color:#cfc8b9; }
+#character .char-footer .char-progress > div > span { font:600 12.5px/1.3 var(--leg-sans); color:#d8ccb0; }
+#character .cd-sub { font-size:12px; font-weight:700; }
+#character .cd-plabel { font-size:12px; font-weight:700; color:#cfd6da; }
+#character .cd-source em { font-size:12px; font-weight:600; color:#cdbf9f; }
+#character .cd-up-label { font-size:11.5px; font-weight:700; }
+#character .cd-unique-power p { font-size:13px; }
+#character .cd-note { font:500 13px/1.4 var(--leg-sans); color:#c9d0d3; }
+#character .cd-lore { font-weight:500; color:#c3cbce; }
+#character .cd-chip { font-size:12px; font-weight:600; color:#e2e6e6; }
+#character .cd-hint { font-size:12.5px; font-weight:600; color:#cfd6da; }
+#character .char-empty-detail p { color:#c6ced2; font-weight:500; }
+#character .char-tabs button:not(.active) { color:#d6c6a4; }
+
+/* ---------------- Journal (L) ---------------- */
+#journal-intro { color:#d8ceba; font-weight:500; }
+#journal .journal-section { font-size:12px; font-weight:700; color:#d9c6a0; }
+#journal .journal-quest header small { font:700 12px/1.25 var(--leg-sans); color:#d8c9a6; }
+#journal .journal-steps p { font-weight:500; color:#ddd5c4; }
+#journal .journal-opt-line { font-weight:500; color:#ddd5c4; }
+#journal .journal-opt-reward { font-weight:600; color:#d7c49c; }
+#journal-gate-text { font-weight:500; color:#ddd2bb; }
+
+/* ---------------- Map (M) ---------------- */
+#atlas .atlas-compass span { font-size:12.5px; font-weight:700; color:#eedbb0; }
+#atlas .atlas-instructions { font:600 12px/1.35 var(--leg-sans); color:#ddd3bd; text-shadow:var(--leg-shadow); }
+#atlas .atlas-track { font-size:12px; font-weight:600; }
+#atlas .atlas-knowledge { font:600 12px/1.35 var(--leg-sans); color:#d3c7ae; }
+#atlas .atlas-goal strong { font-size:12.5px; font-weight:700; color:#efe2c4; }
+#atlas .atlas-goal strong em { font-size:11.5px; font-weight:700; color:#e2c995; }
+#atlas .atlas-goal p { font:500 12px/1.35 var(--leg-sans); color:#d4cbb8; }
+#atlas .atlas-note { font:500 12px/1.4 var(--leg-sans); color:#d3c9b4; }
+#atlas .atlas-ledger h3 { color:#e5d3ad; }
+#atlas .atlas-legend span { font:600 11.5px/1.3 var(--leg-sans); color:#d6ccb8; }
+
+/* ---------------- Settings (O) ---------------- */
+#settings .setting small, #settings small[id$="-note"] { font:500 12px/1.35 var(--leg-sans); color:#d1c8b6; }
+#settings .settings-nav button > span > small { font-weight:500; color:#cfc5b2; }
+#settings .settings-nav button > span { color:#e4d6b8; }
+#settings-reset { color:#e0cfa8; }
+
+/* ---------------- Controls (H) ---------------- */
+#controls .control-grid p > span { font:500 12.5px/1.4 var(--leg-sans); color:#ddd4c2; }
+#controls .panel-head .eyebrow { color:#d9c39a; }
+
+/* ---------------- shared modal chrome ---------------- */
+:is(#character, #journal, #atlas, #settings, #controls) .panel-head h2 { color:#efe1c0; }
+

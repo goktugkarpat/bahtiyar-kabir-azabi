@@ -256,3 +256,80 @@
 #character .tb-node.excluded .tb-x { opacity:.6; }
 #character .tb-key.excluded .tb-x { inset:8px; }
 #character .tb-assign button { padding:4px 2px; font-size:9px; }
+/* ---------- readability pass (ajan:yazi): bigger, bolder, brighter text; the board scales, its text does not shrink below ~11px ---------- */
+#character .tb-fit { --inv:max(1, calc(1 / var(--s, 1))); }
+#character .tb-wrap { --sans:'Source Sans 3','Segoe UI',system-ui,sans-serif; }
+/* top bar */
+#character .tb-points b { color:#b8a585; }
+#character .tb-points span { font:700 12px/1.15 var(--sans); letter-spacing:.16em; color:#e6c88f; }
+#character .tb-points small { font:600 12px/1.2 var(--sans); letter-spacing:.02em; color:#cdb994; }
+#character .tb-spent small { font:600 12px/1.2 var(--sans); color:#cdb994; }
+/* board text: font-size × --inv keeps the on-screen size readable when the board is scaled down */
+#character .tb-ptitle b { font-size:max(14px, calc(12.5px * var(--inv))); }
+#character .tb-ptitle small { font:600 calc(11.5px * var(--inv))/1.2 var(--sans); color:#d2bf9a; }
+#character .tb-paths { gap:2px; }
+#character .tb-paths i { font:700 calc(12px * var(--inv))/1.05 var(--sans); letter-spacing:.05em; filter:brightness(1.3) saturate(1.1); text-shadow:0 1px 1px #000, 0 0 4px #000; }
+#character .tb-keycap { font:700 calc(11.5px * var(--inv))/1 var(--sans); letter-spacing:.12em; color:#dcc396; text-shadow:0 1px 1px #000, 0 0 4px #000; }
+#character .tb-or, #character .tb-plaque.tight .tb-or { font:600 calc(11.5px * var(--inv))/1.05 var(--sans); font-style:normal; color:#e2cfa8; padding:0 4px; border-color:#5d4730; }
+#character .tb-plaque.tight .tb-or { padding:0 2px; }
+#character .tb-plaque > b { top:2px; font:700 calc(11.5px * var(--inv))/1 var(--sans); letter-spacing:.05em; filter:brightness(1.3); text-shadow:0 1px 1px #000, 0 0 4px #000; }
+#character .tb-row { width:58px; left:2px; }
+#character .tb-row b { font-size:max(16px, calc(14px * var(--inv))); color:#e2bf7e; }
+#character .tb-row span { font:700 calc(11px * var(--inv))/1.05 var(--sans); letter-spacing:0; color:#d4bd92; overflow-wrap:normal; word-break:normal; }
+#character .tb-gate { font:700 calc(12px * var(--inv))/1 var(--sans); font-style:normal; }
+#character .tb-row.open .tb-gate { color:#c9b78f; }
+#character .tb-rank { font:700 calc(11.5px * var(--inv))/1 var(--sans); padding:1px 3px; color:#e6f0b4; border-color:#6b5638; }
+#character .tb-tier { font:800 calc(11.5px * var(--inv))/1 var(--sans); font-style:normal; color:#ffe1a0; }
+#character .tb-cap { font:700 calc(11.5px * var(--inv))/1.1 var(--sans); }
+#character .tb-lvl { font:700 calc(11.5px * var(--inv))/1 var(--sans); color:#ffc4aa; bottom:-8px; }
+#character .tb-lvl svg { width:calc(8px * var(--inv)); height:calc(8px * var(--inv)); }
+#character .tb-ord { width:calc(15px * var(--inv)); height:calc(15px * var(--inv)); font:800 calc(11.5px * var(--inv))/1 var(--sans); }
+/* side panel */
+#character .tb-side .tb-kicker { font:700 11.5px/1.25 var(--sans); letter-spacing:.1em; color:#d6b884; }
+#character .tb-side .tb-desc { font-size:13px; color:#e2d7c0; }
+#character .tb-side .tb-rule, #character .tb-side .tb-delta { font-size:12.5px; color:#c8b898; }
+#character .tb-side .tb-rule.excl { color:#e08c72; }
+#character .tb-side .tb-archnote { font:400 12.5px/1.35 var(--sans); color:#cbbb9c; }
+#character .tb-facts dt { font:600 12.5px/1.3 var(--sans); color:#c4b394; }
+#character .tb-facts dd { font:700 12.5px/1.3 var(--sans); color:#f6e7c6; }
+#character .tb-learn:disabled { color:#c2b291; background:#221a15; border-color:#5d4730; }
+#character .tb-assign small { font:700 11px/1 var(--sans); color:#d6b884; }
+#character .tb-assign button { font:700 12px/1 var(--sans); padding:5px 3px; }
+/* bottom bar: big slot icons and labels, plain readable help text */
+#character .tb-ident { font:400 13px/1.3 Georgia,serif; color:#d8c8a8; }
+#character .tb-ident span { font-size:12.5px; }
+#character .tb-slots { gap:12px; padding:5px 12px 9px; }
+#character .tb-slot { width:clamp(60px, 4vw, 76px); height:clamp(60px, 4vw, 76px); }
+#character .tb-slot-btn { border-radius:5px; }
+#character .tb-slot-btn i { font:400 28px/1 Georgia,serif; color:#9a7d55; }
+#character .tb-slot.empty .tb-slot-btn { border-color:#7a6040; background:#14100c; }
+#character .tb-slotcap { bottom:-10px; gap:3px; padding:2px 7px; font:700 clamp(13.5px, .8vw, 16px)/1.1 var(--sans); letter-spacing:.04em; color:#fff0c8; background:#1d130b; border:1px solid #c99a50; border-radius:3px; box-shadow:0 1px 4px #000; }
+#character .tb-slotcap svg { width:9px; height:13px; }
+#character .tb-slot-x { width:18px; height:18px; right:-7px; top:-7px; font-size:14px; }
+#character .tb-help { font:600 clamp(13.5px, .78vw, 15px)/1.4 var(--sans); font-style:normal; color:#eadfc6; text-shadow:0 1px 2px #000, 0 0 6px #000; }
+/* hover card */
+.tb-tip { font-size:13px; }
+.tb-tip small { font:700 11px/1.2 'Source Sans 3','Segoe UI',sans-serif; color:#d6b884; }
+.tb-tip p { color:#e2d7c0; }
+.tb-tip dt { font:600 12px/1.3 'Source Sans 3','Segoe UI',sans-serif; color:#c4b394; } .tb-tip dd { font:700 12px/1.3 'Source Sans 3','Segoe UI',sans-serif; }
+.tb-tip .tb-tip-hint { font:600 12px/1.3 'Source Sans 3','Segoe UI',sans-serif; color:#c4b394; }
+.tb-tip em { font-size:12.5px; }
+.tb-tip .tb-archnote, .tb-tip .tb-archnote b { font-size:12px; } .tb-tip .tb-archnote { color:#cbbb9c; }
+@media (max-height:620px), (max-width:1000px) {
+  #character .tb-points small, #character .tb-spent small { font-size:11px; }
+  #character .tb-side .tb-desc { font-size:12px; }
+  #character .tb-side .tb-kicker { font-size:11px; }
+  #character .tb-facts dt, #character .tb-facts dd { font-size:11.5px; }
+  #character .tb-learn, #character .tb-refund { font-size:11.5px; }
+  #character .tb-slot { width:50px; height:50px; }
+  #character .tb-slots { gap:9px; padding:4px 10px 8px; }
+  #character .tb-slotcap { font-size:12px; padding:1px 5px; bottom:-9px; }
+  #character .tb-ident { font-size:12px; } #character .tb-help { font-size:12px; }
+}
+/* /ajan:yazi */
+#character .tb-plaque { margin-top:-9px; padding-top:9px; }
+#character .tb-plaque.tight > b { font-size:calc(11px * var(--inv)); letter-spacing:0; padding:0 1px; }
+/* /ajan:yazi plaque */
+#character .tb-plaque.tight .tb-or { display:none; }
+#character .tb-facts { gap:2px 8px; }
+#character .tb-facts dt, #character .tb-facts dd { font-size:12px; }
