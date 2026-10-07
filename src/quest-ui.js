@@ -132,6 +132,7 @@
       const p = game.player; let best = null, bestScore = Infinity;
       const consider = (m, weight) => { if (!m || !m.active || m.complete || !Number.isFinite(m.x)) return; const d = Math.hypot(m.x - p.x, m.z - p.z) * weight; if (d < bestScore) { bestScore = d; best = m; } };
       const urgent = side.find(e => e.urgent && e.target); if (urgent) return urgent.target;
+      const pin = B.app && B.app.atlasUI && B.app.atlasUI.pinned; if (pin) return pin; // ajan:map — a goal tracked on the atlas steers the compass too
       (q.markers || []).forEach(m => consider(m, .8));
       if (!q.ready) side.forEach(e => { if (e.available && e.target) consider(e.target, 1); });
       else side.forEach(e => { if (e.available && e.target) consider(e.target, 1.4); });

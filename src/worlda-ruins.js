@@ -15,7 +15,7 @@
   // Side nooks off the ruined city's halls (room index -> wall side): a doorway in the arcade wall opens into a small shrine.
   var NOOK = { 0: 1, 1: -1, 5: 1 };
   // Open courts: the north facade of these halls is broken wide (half-width in metres) and the 7 m corridor becomes a broad forecourt.
-  var OPEN = { 1: 8.6, 3: 8.6, 4: 8.6 };
+  var OPEN = { 1: 8.6, 2: 6.6, 3: 8.6, 4: 8.6 };
 
   function dress(K, rooms, env) {
     var S = K.SPR || {}, solid = env.solid, floors = env.floors;
@@ -76,7 +76,6 @@
         K.brazier(i, s * 3.6, mid, { s: .8, col: [1.4, .66, .26], intensity: 18 });
       });
       K.dec(i, 10, 0, mid, half * 1.6, d + 3, 0, [.7, .72, .78], .8); K.dec(i, 0, (R() - .5) * 4, mid, 6, 5, R() * 6, [1, 1, 1], .8);
-      if (i === 4) [-1, 1].forEach(function (s) { solid(s * 4.75, r.z - r.d / 2 - .35, 1.7, 1.9); });   // the old gate now stands free in the forecourt
       if (i === 3) [-1, 1].forEach(function (s) { [4.3, 7.4].forEach(function (cx) { solid(s * cx, r.z - 11.1, 1.25, 1.25); }); });   // the portico's columns now stand in the way
     });
     // ---- landmarks seen from afar: a colossal fallen king outside the ruined city, a moon shaft on his head ----
@@ -107,6 +106,71 @@
       K.spr(i, S.beam, x, 0, z, 3, 22, [.2, .8, .9], .25, .2, 1, 1);
       K.light(i, x - 6, 4, z, 0x58d6e0, 20, 14, { scatter: .6, glow: 1.6, flicker: .05 });
     }());
+    // ---- first screen: the kings' road. A colossal fallen head, broken drums of giant columns, ground mist, a far moon shaft ----
+    (function () {
+      var i = 0, r = rooms[0], R = K.rng(0, 61), t = [.78, .82, .92];
+      var hx = -10.2, hz = r.z + 8.4;
+      K.put(i, 'urn', 'stone', hx, 1.1, hz, 2.6, 2.4, 2.4, .4, .15, .35, t, .5, 3);                 // the head, face-up in the dust
+      K.put(i, 'box', 'stone', hx + .9, 1.45, hz + .7, 1.2, .5, .5, .4, .2, .3, t, .2);               // brow ridge
+      K.put(i, 'cone4', 'stone', hx - .2, 2.6, hz - .3, .9, 1.3, .9, .4, .3, .2, t, .2);             // a crown spike, snapped
+      K.solid(hx, hz, 2.8, 2.6);
+      [[9.6, r.z + 7.2, 2.4], [10.8, r.z + 4.4, 1.6]].forEach(function (d) {
+        K.put(i, 'column', 'stone', d[0], .7, d[1], 1.9, d[2], 1.9, R() * 3, PI / 2, 0, t, .5, 2.4); K.solid(d[0], d[1], 2.2, d[2] + .4); });
+      for (var m = 0; m < 10; m++) K.spr(i, S.smoke, (R() - .5) * 20, .25, r.z + 2 + R() * 9, 3.4, 3.4, [.32, .38, .48], .12, R(), .05, 1.2);
+      K.spr(i, S.beam, 2.5, 0, r.z - 7, 2.6, 16, [.5, .66, 1.05], .22, .5, 1, 1);
+      K.spr(i, S.pool, 2.5, .12, r.z - 7, 5, 5, [.2, .26, .4], .5, .5, 1, 1);
+    }());
+    // ---- the throne's staging: a gold shaft from the broken dome, dust turning in it, the dais lit from below ----
+    (function () {
+      var i = 13, r = rooms[13], R = K.rng(13, 62);
+      K.spr(i, S.beam, 0, 0, r.z - 9.4, 3.4, 18, [1.0, .78, .4], .3, .2, 1, 1);
+      K.spr(i, S.pool, 0, .6, r.z - 8, 7, 7, [.6, .42, .16], .5, .2, 1, 1);
+      for (var m = 0; m < 40; m++) K.spr(i, S.mote, (R() - .5) * 5, .5 + R() * 7, r.z - 9 + (R() - .5) * 5, .04, .04, [1.3, 1.05, .6], .7, R(), .2 + R() * .3, 1.6);
+      [-1, 1].forEach(function (s) { K.light(i, s * 3, .8, r.z - 7.6, 0xffb060, 12, 8, { scatter: .7, glow: 1.2, flicker: .15 }); });
+      // spilled royal gold before the steps
+      for (var gp = 0; gp < 3; gp++) { var gx = (gp - 1) * 4.2, gz = r.z - 6.4; for (var c = 0; c < 9; c++) K.put(i, 'rock', 'crystalA', gx + (R() - .5) * 1.4, .05 + R() * .12, gz + (R() - .5) * 1.0, .32, .14, .26, R() * 6, 0, 0, [1.2, .85, .4], 0); }
+    }());
+    // ---- tombs of the kings / oathbreakers' court: gold heaps at the sarcophagi, a burning offering bowl ----
+    [3, 4].forEach(function (i) { var r = rooms[i], R = K.rng(i, 63);
+      [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(function (c) { var gx = r.x + c[0] * 8 + c[0] * -1.6, gz = r.z + c[1] * 4 + 2.1;
+        for (var k = 0; k < 7; k++) K.put(i, 'rock', 'crystalA', gx + (R() - .5) * 1.1, .04 + R() * .1, gz + (R() - .5) * .8, .26, .12, .22, R() * 6, 0, 0, [1.15, .8, .38], 0);
+        K.put(i, 'vat', 'iron', gx + .6, .16, gz - .2, .26, .32, .26, R(), PI / 2, 0, [1.3, 1, .55], .2); });
+      K.brazier(i, r.x + (i === 3 ? 0 : -3), r.z + 8.6, { s: .7, col: [1.5, .6, .2], intensity: 14, solid: true }); });
+    // ---- caves: glowing moss and mushroom clusters along the walls, standing water ----
+    [6, 7, 8, 9].forEach(function (i) { var r = rooms[i], R = K.rng(i, 64), glowC = [[.2, .9, .6], [.2, .8, 1], [.6, .35, 1], [.3, 1, .4]][i - 6];
+      for (var k = 0; k < 6; k++) { var s = k % 2 ? 1 : -1, mx = r.x + s * (8.6 + R() * 2), mz = r.z + (R() - .5) * (r.d - 5);
+        K.dec(i, 12, mx, mz, 2.4, 2.4, R() * 6, [glowC[0] * .5, glowC[1] * .5, glowC[2] * .5], .6, 'glow');
+        for (var q = 0; q < 5; q++) { var px = mx + (R() - .5) * 1.2, pz = mz + (R() - .5) * 1.2, h = .12 + R() * .2;
+          K.put(i, 'cyl', 'stone', px, h / 2, pz, .05, h, .05, 0, 0, 0, [1.1, 1.05, .95], 0);
+          K.put(i, 'urn', i === 8 ? 'crystalV' : 'crystal', px, h, pz, .18, .08, .18, 0, 0, 0, null, 0); }
+        K.spr(i, S.glow, mx, .5, mz, .9, .9, [glowC[0] * .3, glowC[1] * .3, glowC[2] * .3], .7, R(), 1, 1); }
+      for (var w = 0; w < 2; w++) K.dec(i, 9, r.x + (R() - .5) * 12, r.z + (R() - .5) * 12, 3.5, 2.6, R() * 6, [1, 1, 1], .95, 'wet'); });
+    // ---- the cave mouth: the roof fell in. A rock shelf (upper gallery) rises on the east side with a broken rail and side steps;
+    //      daylight-blue falls through the hole onto the scree it left ----
+    (function () {
+      var i = 6, r = rooms[6], R = K.rng(6, 71), t = [.6, .68, .74], x0 = r.x + 7, x1 = r.x + 11.6, z0 = r.z - 3, z1 = r.z + 5.5, cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
+      K.put(i, 'crag', 'rock', cx + .6, .9, cz, x1 - x0 + 1.6, 2.2, z1 - z0 + 1.2, R() * .3, 0, 0, t, .5, 3);
+      for (var gx = 0; gx < 2; gx++) for (var gz = 0; gz < 4; gz++) K.put(i, 'tile', 'floor', x0 + 1.1 + gx * 2.2, 2.0, z0 + 1.05 + gz * 2.1, 2.1, .2, 2.0, (R() - .5) * .06, 0, 0, [.62, .68, .74], .3);
+      for (var st = 0; st < 4; st++) K.put(i, 'block', 'stone', x0 - .5 - st * .02, .25 + st * .45, z1 + .4 + (3 - st) * .55, 1.6, .5, .6, 0, 0, 0, [.7, .74, .8], .4);   // side steps
+      for (var p = 0; p < 5; p++) { var pz = z0 + .4 + p * (z1 - z0 - .8) / 4; if (p === 2) continue; K.put(i, 'cyl', 'stone', x0 + .2, 2.55, pz, .14, .9, .14, 0, 0, 0, [.8, .82, .88], .3); }
+      K.put(i, 'box', 'stone', x0 + .2, 3.0, (z0 + z1) / 2 - 1, .2, .14, (z1 - z0) * .45, 0, 0, .06, [.8, .82, .88], .2);
+      K.rubble(i, x0 + .4, z0 + (z1 - z0) * .55, .8, 6, .4, 'stone', t, R);                       // the rail's broken gap
+      K.statue(i, cx + .6, cz, -PI / 2, { tint: [.66, .72, .78], pose: 2, s: .7 });
+      K.solid(cx + .2, cz + .6, x1 - x0 + .8, z1 - z0 + 2.6);
+      // the fallen roof
+      var fx = r.x + 1.5, fz = r.z - 7.6;
+      K.rubble(i, fx, fz, 1.6, 22, 1.5, 'rock', t, R); K.solid(fx, fz, 2.2, 2.2);
+      K.spr(i, S.beam, fx, 0, fz, 3.2, 20, [.5, .7, .95], .3, .4, 1, 1); K.spr(i, S.pool, fx, .12, fz, 6, 6, [.22, .3, .42], .55, .4, 1, 1);
+      for (var m = 0; m < 24; m++) K.spr(i, S.mote, fx + (R() - .5) * 3, .5 + R() * 7, fz + (R() - .5) * 3, .04, .04, [.9, 1, 1.2], .7, R(), .2 + R() * .3, 1.4);
+      K.light(i, fx, 4, fz, 0x9ac0ff, 14, 12, { scatter: .6, glow: 1.4, flicker: .03 });
+    }());
+    // ---- falling drops and their rings in the caves (one GPU-animated instanced draw) ----
+    if (env.root && B.WorldADrips) { var dp = []; [6, 7, 8, 9].forEach(function (i) { var r = rooms[i], R = K.rng(i, 72); for (var k = 0; k < 7; k++) dp.push([r.x + (R() - .5) * (r.w - 6), 5.6 + R() * 1.2, r.z + (R() - .5) * (r.d - 6)]); });
+      B.WorldADrips.create(window.THREE, env.root, dp, [.55, .8, 1.0]); }
+    // ---- bats in the caverns and over the ruined city; mineral motes drifting through the crystal light ----
+    if (env.root && B.WorldABats) B.WorldABats.create(window.THREE, env.root, [[0, 7, 8], [-4, 7.5, -18], [-3, 6.5, -148], [4, 6.5, -174], [-4, 6.5, -200], [5, 6.5, -226]], 30);
+    [6, 7, 8, 9].forEach(function (i) { var r = rooms[i], R = K.rng(i, 31);
+      for (var k = 0; k < 16; k++) K.spr(i, S.mote, r.x + (R() - .5) * (r.w - 4), .5 + R() * 4, r.z + (R() - .5) * (r.d - 4), .045, .045, [.4, 1.1, 1.2], .7, R(), .3 + R() * .4, 2.2); });
     // ---- side nooks: open the wall collider, add the nook's floor, walls and shrine ----
     Object.keys(NOOK).forEach(function (key) {
       var i = +key, r = rooms[i], s = NOOK[i], R = K.rng(i, 909), wx = r.x + s * r.w / 2, t = [.86, .88, .94];

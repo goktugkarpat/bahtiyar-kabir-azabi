@@ -163,7 +163,7 @@
     // Each room's own composition.
     var info={rooms:rooms,forge:forge,names:forge?FORGE_NAMES:NAMES};
     rooms.forEach(function(r,i){Script.dress(K,r,i,info);});
-    /* ajan:world-a */ if(!forge&&B.WorldARuins&&B.WorldARuins.active)B.WorldARuins.dress(K,rooms,{solid:solid,floors:floors,paths:paths,colliders:colliders}); /* /ajan:world-a */
+    /* ajan:world-a */ if(!forge&&B.WorldARuins&&B.WorldARuins.active)B.WorldARuins.dress(K,rooms,{solid:solid,floors:floors,paths:paths,colliders:colliders,root:root}); /* /ajan:world-a */
     var meshes=K.finish().concat(K.finishFx());
     var gearSpin=K.spinners;
     // Broad phase bounds prevent collision cost from growing with the art detail.
