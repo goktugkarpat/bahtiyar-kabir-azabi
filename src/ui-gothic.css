@@ -15,6 +15,11 @@ body.in-combat .qc-caption { opacity: 0 !important; transition: opacity .4s !imp
 /* hedef/boss çubuğu (ve boss mekanik paneli) açıkken seviye afişi onların altına iner */
 body:has(#target-hud:not(.hidden)) #lu-banner { top: max(24%, 172px) }
 body:has(#target-hud:not(.hidden) #boss-mechanic:not(.hidden)) #lu-banner { top: max(31%, 228px) }
+/* kuşatma/kaçış sayacı (.quest-urgent, üst orta %13): hedef çubuğunun altına iner; duyuru ve seviye afişi de sayacın altına */
+body:has(#target-hud:not(.hidden)) .quest-urgent { top: max(17%, 124px) }
+body:has(#target-hud:not(.hidden) #boss-mechanic:not(.hidden)) .quest-urgent { top: max(25%, 182px) }
+body:has(.quest-urgent:not([hidden])) #announcement { top: max(25%, 180px) }
+body:has(.quest-urgent:not([hidden])) #lu-banner { top: max(31%, 228px) }
 /* görev bildirimi seviye afişi/boss kartı sırasında soluklaşır, sonra kendiliğinden geri gelir */
 body:has(#lu-banner.lu-on) #quest-notice.show, body.bf-intro #quest-notice.show { opacity: .25 }
 /* bölge duyurusu (orta üst, geniş) görev bildirimiyle aynı yükseklikte: duyuru sürerken (4 sn) bildirim bekler */
