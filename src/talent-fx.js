@@ -160,10 +160,10 @@
     function burst(x, z, r, kind) {
       const c = COLORS[kind] || COLORS.fire, y = gy(x, z);
       ring(x, z, r, c, kind === 'dread' ? .7 : .45);
-      if (kind === 'fire' || kind === 'rot') ring(x, z, r * .6, kind === 'fire' ? [2.8, 1.6, .5] : [1, 1.6, .6], .3);
-      const n = kind === 'blood' ? 26 : 40;
+      if (kind === 'fire' || kind === 'rot') ring(x, z, r * .6, kind === 'fire' ? [1.6, .75, .2] : [.6, .85, .35], .3);   // skillfx: the white-hot inner ring + bone sparks stacked into a white blob on every proc
+      const n = kind === 'blood' ? 22 : 28;
       for (let i = 0; i < n; i++) { const a = Math.random() * 6.283, s = rnd(1.5, 4.5) * Math.min(1.6, r / 2.5);
-        spark(x + Math.sin(a) * .4, y + rnd(.2, 1.1), z + Math.cos(a) * .4, Math.sin(a) * s, rnd(.6, kind === 'rot' ? 2.4 : 4), Math.cos(a) * s, i % 4 ? c : COLORS.bone, rnd(.4, .9), rnd(.1, kind === 'rot' ? .26 : .18), kind === 'blood' ? -9 : kind === 'fire' ? -3 : -.5); }
+        spark(x + Math.sin(a) * .4, y + rnd(.2, 1.1), z + Math.cos(a) * .4, Math.sin(a) * s, rnd(.6, kind === 'rot' ? 2.4 : 4), Math.cos(a) * s, i % 6 ? c : COLORS.bone, rnd(.4, .9), rnd(.1, kind === 'rot' ? .26 : .18), kind === 'blood' ? -9 : kind === 'fire' ? -3 : -.5); }
     }
     function bellAt(p, radius) {
       bellT = 0; bellOwner = p; bellR = radius; bell.visible = true;
