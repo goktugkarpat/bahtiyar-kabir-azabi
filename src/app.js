@@ -320,6 +320,7 @@
     $('hud').classList.toggle('hidden', next === 'title' || !game);
     document.body.dataset.view = next;
     if (next !== 'playing' && B.HUD && B.HUD.dismissTips) B.HUD.dismissTips();
+    if (['victory', 'death', 'title'].includes(next) && B.QuestCinema && B.QuestCinema.hideReader) B.QuestCinema.hideReader();   // qa: a lore page left open sat on top of the end screens
     paused = next !== 'playing';
     clearInput();
     // Settings keep the sound running so volume changes can be heard; the pause menu itself is silent.

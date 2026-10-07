@@ -630,6 +630,8 @@
           if (d.kind === 'escape') n.done = s.done || s.stage >= 1;
           if (d.kind === 'puzzle') n.done = s.done || (n.role === 'seal' ? !!(s.bits & (1 << n.seal)) || s.stage >= 1 : s.stage < 1);
           n.marker.complete = n.done; n.marker.active = e.available && !n.done && !(d.kind === 'chest' && !keyOwned(q));
+          // qa: the tracker/beacon must not lead the player onto a wrong seal (wrong order costs health): only the next seal of the riddle's order is marked.
+          if (d.kind === 'puzzle' && n.role === 'seal' && n.marker.active && d.order) { var litN = 0; for (var b4 = 0; b4 < 3; b4++) if (s.bits & (1 << b4)) litN++; if (d.order[litN] !== n.seal) n.marker.active = false; }
           if (!e.target && n.marker.active) e.target = n.marker;
           var pr = n.parts; if (!pr) return;
           if (pr.glow) pr.glow.visible = n.marker.active || (d.kind === 'altar' && !s.done) || (d.kind === 'siege' && s.stage >= 1 && !s.done);
