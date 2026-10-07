@@ -127,7 +127,10 @@
     ROOM[2] = function () {
       var t = ASH; K.floor(i, r, { tint: [.86, .86, .9], vary: .15, cols: 10, rows: 8, zone: function (x, z) { return Math.abs(x) < 3.5 && z < -3 ? [.8, .78, .78] : null; } });
       arcade(t, { ruin: .25 }); facade(t, { h: 7, spring: 3.2 });
-      [-1, 1].forEach(function (s) { K.put(i, 'box', 'wall', X(s * 9.6), 3.7, Z(-12.4), 5.0, 7.4, 3.6, 0, 0, 0, t, .5, 4); K.put(i, 'box', 'stone', X(s * 9.6), 7.6, Z(-12.4), 5.6, .6, 4.2, 0, 0, 0, t, .2); for (var q = 0; q < 5; q++) K.put(i, 'box', 'stone', X(s * 9.6 + (q - 2) * 1.1), 8.1, Z(-12.4), .6, .6, 4.2, 0, 0, 0, t, 0); });
+      var TX = B.WorldARuins && B.WorldARuins.open && B.WorldARuins.open[i] ? 13.4 : 9.6;   // ajan:world-a: towers step aside for the open forecourt
+      [-1, 1].forEach(function (s) { if (TX > 10) K.solid(X(s * TX), Z(-12.4), 5, 3.6); var TH = TX > 10 ? .5 : 1;   // opened: the towers have fallen to half their height, rubble at their feet
+        K.put(i, 'box', 'wall', X(s * TX), 3.7 * TH, Z(-12.4), 5.0, 7.4 * TH, 3.6, 0, 0, 0, t, .5, 4); if (TH < 1) { K.rubble(i, X(s * TX - s * 1.6), Z(-10.6), 1.8, 14, 1.2, 'stone', t, R); K.put(i, 'crag', 'stone', X(s * TX), 3.9, Z(-12.4), 5.2, 1.0, 3.8, R() * 3, 0, 0, t, .3); }
+        else { K.put(i, 'box', 'stone', X(s * TX), 7.6, Z(-12.4), 5.6, .6, 4.2, 0, 0, 0, t, .2); for (var q = 0; q < 5; q++) K.put(i, 'box', 'stone', X(s * TX + (q - 2) * 1.1), 8.1, Z(-12.4), .6, .6, 4.2, 0, 0, 0, t, 0); } });
       if (!(B.WorldARuins && B.WorldARuins.open && B.WorldARuins.open[i])) for (var q = -3; q <= 3; q++) { K.put(i, 'cyl', 'iron', q * .95, 5.2, Z(-12.2), .16, 2.2, .16, 0, 0, 0, [.7, .68, .66], .1); K.put(i, 'cone4', 'iron', q * .95, 3.95, Z(-12.2), .24, .5, .24, PI / 4, PI, 0, [.7, .68, .66], .1); }
       if (!(B.WorldARuins && B.WorldARuins.open && B.WorldARuins.open[i])) K.put(i, 'box', 'iron', 0, 6.4, Z(-12.2), 7, .2, .24, 0, 0, 0, [.7, .68, .66], .1); if (!(B.WorldARuins && B.WorldARuins.open && B.WorldARuins.open[i])) K.put(i, 'box', 'iron', 0, 4.6, Z(-12.2), 7, .14, .2, 0, 0, 0, [.7, .68, .66], .1);
       slot(1, -1, 'statue', t, { pose: 3 }); slot(-1, -1, 'statue', t, { pose: 3 }); slot(1, 1, 'rubble', t); slot(-1, 1, 'rubble', t);
