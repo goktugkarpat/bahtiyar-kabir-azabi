@@ -148,6 +148,18 @@
       else if (kind === 'p') { var pl = G.box(.06 * sc, .07 * sc, .025 * sc, [ch.end.x, ch.end.y - .04 * sc, ch.end.z]); A.rigid(ironKey, G.merge([pl, G.ring(.022 * sc, .006 * sc, [ch.end.x, ch.end.y, ch.end.z], [0, 0, 0], 5, 10)]), j); }
       else if (kind === 'g') { var sg = G.sphere(.045 * sc, [ch.end.x, ch.end.y - .04 * sc, ch.end.z], [1, 1, .45], 10, 6); A.rigid(glowKey, sg, j); }
     }
+    // de-cartoon grade: darker, dirtier, harder-contrast skin and bone, grimier cloth (each material once, shared ones included)
+    try {
+      var seen = []; Object.keys(keys).forEach(function (k) {
+        var m = mats[k]; if (!m) { try { m = /^(phase-|hero-)/.test(k) ? null : B.Models.gearMaterial(k); } catch (e) { m = null; } }
+        if (!m || seen.indexOf(m) >= 0 || m.userData.dreadGraded) return; seen.push(m); m.userData.dreadGraded = true;
+        var u = m.userData.grade; if (!u || !u.kTint) return;
+        var cls = /skin|flesh/.test(k) ? 'skin' : /bone|ash/.test(k) ? 'bone' : /rag|burlap|robe|bandage|tabard|sash|linen|rope|vestment/.test(k) ? 'cloth' : '';
+        if (cls === 'skin') { u.kTint.value.multiplyScalar(.8); u.kGrime.value = Math.max(u.kGrime.value, .62); u.kContrast.value = Math.max(u.kContrast.value, 1.16); u.kSat.value *= .85; u.kBlood.value = Math.min(1, u.kBlood.value + .1); }
+        else if (cls === 'bone') { u.kTint.value.multiplyScalar(.74); u.kGrime.value = Math.max(u.kGrime.value, .5); u.kContrast.value = Math.max(u.kContrast.value, 1.1); }
+        else if (cls === 'cloth') { u.kTint.value.multiplyScalar(.86); u.kGrime.value = Math.max(u.kGrime.value, .62); }
+      });
+    } catch (e) { if (window.console) console.warn('dread grade ' + type + ': ' + (e && e.message)); }
     (KIT[type] || []).forEach(function (k) { try { add(k[0], k[1], k[2], k[3], k[4]); } catch (e) { if (window.console) console.warn('dread ' + type + ' ' + k[0] + ': ' + (e && e.message)); } });
     try { signature(SIGNATURE[type]); } catch (e) { if (window.console) console.warn('dread signature ' + type + ': ' + (e && e.message)); }
     if (BOSS[type]) try { bossParts(); } catch (e) { if (window.console) console.warn('dread boss ' + type + ': ' + (e && e.message)); }
@@ -232,7 +244,13 @@
     });
     if (info.phases) root.traverse(function (n) { if (n.isMesh && /^phase-[23]/.test(n.name)) { n.visible = false; n.userData.dreadPhase = +n.name.charAt(6); } });
     if (info.phases) phaseVisual(root, 1, false);
-    if (!post.length && !list.length) return;
+    // corpse variety: every foe falls its own way — arms flung or tucked, legs apart, the head lolled (world-up deltas on the death pose,
+    // eased in over the fall; they keep the limbs at their height, so nothing sinks into the floor)
+    var sprawl = [], deadT = 0, debrisDone = false;
+    if (!info.phases) [['armL', 1.1], ['armR', 1.1], ['foreL', .7], ['foreR', .7], ['thighL', .38], ['thighR', .38], ['head', .9]].forEach(function (e) {
+      var b = native[R[e[0]]]; if (b) sprawl.push({ b: b, a: (Math.random() * 2 - 1) * e[1], base: new T.Quaternion(), written: new T.Quaternion(0, 0, 0, 0) });
+    });
+    if (!post.length && !list.length && !sprawl.length) return;
     ctx.extras.push(function (dt, state) {
       dt = Math.min(Math.max(Number.isFinite(dt) ? dt : 0, 0), 1 / 20); time += dt;
       if (post.length && !(state && state.dead)) {
@@ -246,6 +264,19 @@
           b.quaternion.premultiply(qa); post[i].written.copy(b.quaternion); b.updateMatrixWorld(true);
         }
       }
+      if (state && state.dead) {
+        deadT += dt;
+        if (!debrisDone && deadT > .35) { debrisDone = true; scatterDebris(root, info); }
+        if (sprawl.length) {
+          var e = Math.min(1, deadT / .8); e = e * e * (3 - 2 * e);
+          for (var j = 0; j < sprawl.length; j++) {
+            var sp = sprawl[j], sb = sp.b, spar = sb.parent; if (!spar) continue;
+            if (sb.quaternion.equals(sp.written)) sb.quaternion.copy(sp.base); sp.base.copy(sb.quaternion);
+            spar.matrixWorld.decompose(vs, qp, vb); qa.setFromAxisAngle(vc.set(0, 1, 0).applyQuaternion(qb.copy(qp).invert()), sp.a * e);
+            sb.quaternion.premultiply(qa); sp.written.copy(sb.quaternion); sb.updateMatrixWorld(true);
+          }
+        }
+      } else { deadT = 0; debrisDone = false; }
       for (var k = 0; k < list.length; k++) {
         var it = list[k], b2 = it.b, par2 = b2.parent, s = it.s; if (!par2) continue;
         b2.quaternion.copy(it.restQ); b2.updateMatrixWorld(false);
@@ -272,6 +303,40 @@
         qb.copy(qp).invert(); qa.premultiply(qb).multiply(qp);                          // parent-space delta
         b2.quaternion.copy(it.restQ).premultiply(qa); b2.updateMatrixWorld(true);
       }
+    });
+  }
+
+  // ---------------------------------------------------------------- floor debris round corpses
+  // Three shared InstancedMeshes for the whole game (bone shards, broken chain links, burnt shroud scraps): a fixed ring of
+  // instances, so the floor of a long fight fills up without a single extra draw call per corpse. ?nodread turns it off.
+  var POOLS = null, CAP = 160;
+  function pools() {
+    if (POOLS) return POOLS;
+    var G = B.Gear, gm = B.Models && B.Models.gearMaterial; if (!G || !gm) return null;
+    function mk(geo, matKey, name) { G.wear(geo, matKey === 'rag' ? { edge: 0, cavity: 0, border: 0, curv: 0, tear: { amount: .6, width: .03, bottom: .3, base: .03 } } : { edge: .5 });
+      var m = new T.InstancedMesh(geo, gm(matKey), CAP); m.name = name; m.count = 0; m.frustumCulled = false; m.castShadow = false; m.receiveShadow = true; m.userData.cursor = 0; return m; }
+    var bone = G.merge([G.cyl(.012, .016, .16, 6, [0, 0, 0], [0, 0, Math.PI / 2]), G.sphere(.022, [-.085, 0, 0], [1, .8, .9], 6, 4), G.sphere(.02, [.085, 0, .006], [1, .8, .9], 6, 4)]);
+    var link = G.link(.05); link.rotateX(Math.PI / 2);
+    var scrap = G.sheet(3, 3, function (u, v) { return [(u - .5) * .2, .004 + Math.sin(u * 5 + v * 3) * .006, (v - .5) * .16]; }, false);
+    POOLS = [mk(bone, 'bone', 'dread-debris-bone'), mk(link, 'dark', 'dread-debris-chain'), mk(scrap, 'rag', 'dread-debris-shroud')];
+    return POOLS;
+  }
+  var dm = new T.Matrix4(), dq = new T.Quaternion(), dp = new T.Vector3(), ds = new T.Vector3(), de = new T.Euler();
+  function scatterDebris(root, info) {
+    if (OFF) return; var ps = pools(), host = root.parent; if (!ps || !host) return;
+    // host = the combat group (world-aligned): the debris stays when the corpse is removed
+    ps.forEach(function (m) { if (m.parent !== host) { host.add(m); m.count = 0; m.userData.cursor = 0; } });   // a new level: start empty
+    root.updateWorldMatrix(true, false); dp.setFromMatrixPosition(root.matrixWorld); host.updateWorldMatrix(true, false);
+    var inv = new T.Matrix4().copy(host.matrixWorld).invert(), big = BOSS[info.type] ? 2.2 : 1, counts = [3 + (Math.random() * 3 | 0), 2 + (Math.random() * 4 | 0), 1 + (Math.random() * 3 | 0)];
+    ps.forEach(function (m, k) {
+      for (var i = 0; i < counts[k] * big; i++) {
+        var a = Math.random() * TAU, r = (.25 + Math.random() * .9) * big;
+        de.set(k === 2 ? 0 : (Math.random() - .5) * .5, Math.random() * TAU, k === 2 ? 0 : (Math.random() - .5) * .3); dq.setFromEuler(de);
+        var s = (.75 + Math.random() * .6) * (k === 2 ? 1.3 : 1); ds.set(s, s, s);
+        dm.compose(new T.Vector3(dp.x + Math.cos(a) * r, .015, dp.z + Math.sin(a) * r), dq, ds).premultiply(inv);
+        var c = m.userData.cursor++ % CAP; m.setMatrixAt(c, dm); m.count = Math.min(CAP, Math.max(m.count, c + 1));
+      }
+      m.instanceMatrix.needsUpdate = true;
     });
   }
 
