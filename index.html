@@ -3,7 +3,7 @@
 <head>
 <meta name="application-release" content="overnight-225">
 <meta charset="utf-8">
-<script src="src/i18n.js?v=301"></script>
+<script src="src/i18n.js?v=305"></script>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0c0a0b">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -15,14 +15,14 @@
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="stylesheet" href="src/ui.css?v=300"><link rel="stylesheet" href="src/quests.css?v=300">
-<link rel="stylesheet" href="src/character-ui.css?v=300">
-<link rel="stylesheet" href="src/ui-polish.css?v=300">
-<link rel="stylesheet" href="src/sepulchral-ui.css?v=300">
-<link rel="stylesheet" href="src/reference-ui.css?v=300">
-<link rel="stylesheet" href="src/hybrid-b-ui.css?v=300">
-<link rel="stylesheet" href="src/atlas.css?v=300">
-<link rel="stylesheet" href="src/i18n.css?v=300"><link rel="stylesheet" href="src/talent-tree.css?v=301"><link rel="stylesheet" href="src/ui-gothic.css?v=300">
+<link rel="stylesheet" href="src/ui.css?v=305"><link rel="stylesheet" href="src/quests.css?v=305">
+<link rel="stylesheet" href="src/character-ui.css?v=305">
+<link rel="stylesheet" href="src/ui-polish.css?v=305">
+<link rel="stylesheet" href="src/sepulchral-ui.css?v=305">
+<link rel="stylesheet" href="src/reference-ui.css?v=305">
+<link rel="stylesheet" href="src/hybrid-b-ui.css?v=309">
+<link rel="stylesheet" href="src/atlas.css?v=305">
+<link rel="stylesheet" href="src/i18n.css?v=305"><link rel="stylesheet" href="src/talent-tree.css?v=305"><link rel="stylesheet" href="src/ui-gothic.css?v=306">
 </head>
 <body>
 <svg class="icon-library" aria-hidden="true"><defs>
@@ -81,7 +81,7 @@ if(window.KabirI18n&&KabirI18n.lang==='en'){var KG_W=document.createTreeWalker(d
 </main>
 
 <div id="hud" class="hidden">
-  <div id="key-hints" aria-hidden="true"><span><kbd>I</kbd> Karakter</span><span><kbd>T</kbd> Yetenekler</span><span><kbd>M</kbd> Harita</span><span><kbd data-bind="dodge">SPACE</kbd> Kaçın</span><span><kbd>ESC</kbd> Mola</span></div>
+  <div id="key-hints" aria-hidden="true"><span><kbd>I</kbd> Karakter</span><span><kbd>T</kbd> Yetenekler</span><span><kbd>M</kbd> Harita</span><span><kbd>L</kbd> Görev günlüğü</span></div>
   <section class="hero-card">
     <div class="portrait"><canvas id="hero-portrait" width="160" height="160"></canvas><i class="portrait-frame" aria-hidden="true"></i><span class="portrait-seal" aria-hidden="true">1</span></div>
     <div class="hero-info"><strong>Bahtiyar</strong><span id="hero-subtitle">Seviye 1</span></div>
@@ -91,7 +91,7 @@ if(window.KabirI18n&&KabirI18n.lang==='en'){var KG_W=document.createTreeWalker(d
     <div class="minimap"><canvas id="minimap" width="384" height="384"></canvas><i class="minimap-frame" aria-hidden="true"></i></div>
     <button id="pause-button" class="medal-button" aria-label="Mola ve ayarlar"><svg class="icon" aria-hidden="true"><use href="#i-pause"/></svg><kbd>ESC</kbd></button>
     <div class="zone-plate"><span id="location">Kül Eşiği</span></div>
-    <div class="quest story-quest"><div id="quest-tracker" aria-label="Hikâye görevleri"></div><span id="objective">Tapınağın derinlerine in.</span><div class="quest-bottom"><small id="kill-progress">0 / 2 bağ çözüldü</small><button id="hud-atlas" aria-label="Haritayı aç · M">Harita</button><button id="hud-journal" aria-label="Görev günlüğünü aç">Görev günlüğü</button></div></div>
+    <div class="quest story-quest"><div id="quest-tracker" aria-label="Hikâye görevleri"></div><span id="objective">Tapınağın derinlerine in.</span><div class="quest-bottom"><small id="kill-progress">0 / 2 bağ çözüldü</small></div></div>
   </div>
   <aside id="quest-notice" aria-live="polite"><small id="quest-notice-state"></small><strong id="quest-notice-title"></strong><p id="quest-notice-text"></p></aside>
   <section id="target-hud" class="hidden" aria-label="Saldırılan düşman">
@@ -130,7 +130,7 @@ if(window.KabirI18n&&KabirI18n.lang==='en'){var KG_W=document.createTreeWalker(d
 
 <div id="pause" class="screen modal hidden" role="dialog" aria-modal="true" aria-label="Mola"><div class="panel compact sepulchral-pause">
   <header class="mourning-head"><span class="mourning-title">KABİR AZABI</span><h2>Mola</h2></header>
-  <div class="pause-stats"><div><small>Bulunduğun yer</small><b id="pause-room">Kül Eşiği</b></div><div><small>Süre</small><b id="pause-time">0:00</b></div><div><small>Alt edilen</small><b id="pause-kills">0 / 31</b></div></div>
+  <div class="pause-stats"><div><small>Bulunduğun yer</small><b id="pause-room">Kül Eşiği</b></div></div>
   <nav class="menu-stack" aria-label="Mola menüsü">
     <div class="funeral-menu-grid">
       <button id="pause-character" class="btn funeral-card card-character"><span><strong class="pause-card-title">Karakter <kbd>I</kbd></strong><small>Kuşanılanlar ve çanta</small></span></button>
@@ -138,9 +138,9 @@ if(window.KabirI18n&&KabirI18n.lang==='en'){var KG_W=document.createTreeWalker(d
       <button id="pause-journal" class="btn funeral-card card-journal"><span><strong class="pause-card-title">Görevler <kbd>L</kbd></strong><small>Yeminler ve tanıklıklar</small></span></button>
       <button id="pause-settings" class="btn funeral-card card-settings"><span><strong class="pause-card-title">Ayarlar <kbd>O</kbd></strong><small>Görüntü, ses ve kontroller</small></span></button>
     </div>
-    <div class="pause-resume-row"><button id="resume" class="btn primary"><span>Yolculuğa devam <kbd>ESC</kbd></span></button><p class="funeral-quote"><span class="banner-inscription">Her nefis ölümü tadacaktır</span><small>Sonra bize döndürüleceksiniz</small></p></div>
+    <div class="pause-resume-row"><button id="resume" class="btn primary"><span>Yolculuğa devam <kbd>ESC</kbd></span></button><button id="pause-atlas" class="btn pause-map-btn"><span>Harita <kbd>M</kbd></span></button><p class="funeral-quote"><span class="banner-inscription">Her nefis ölümü tadacaktır</span><small>Sonra bize döndürüleceksiniz</small></p></div>
   </nav>
-  <footer class="pause-footer"><small id="pause-difficulty">Zorluk: Normal</small><div class="pause-secondary"><button id="pause-atlas" class="text-button">Harita <kbd>M</kbd></button><button id="pause-controls" class="text-button">Kontroller</button><button id="restart" class="text-button">Baştan başla</button><button id="return-title" class="text-button">Ana menü</button></div><small class="pause-escape">ESC · Oyuna dön</small></footer>
+  <footer class="pause-footer"><small id="pause-difficulty">Zorluk: Normal</small><div class="pause-secondary"><button id="pause-controls" class="text-button">Kontroller</button><button id="restart" class="text-button">Baştan başla</button><button id="return-title" class="text-button">Ana menü</button></div><small class="pause-escape">ESC · Oyuna dön</small></footer>
 </div></div>
 
 <div id="journal" class="screen modal hidden" role="dialog" aria-modal="true" aria-labelledby="journal-title"><div class="panel journal-panel">
@@ -183,7 +183,10 @@ if(window.KabirI18n&&KabirI18n.lang==='en'){var KG_W=document.createTreeWalker(d
     <div><span class="ctl-icon"><i class="skill rage"></i></span><p><b>Yetenek · 2 tuşu</b><span>Yetenek ağacından bu yuvaya atadığın güç. Örneğin Kan Nidası düşmanları sarsar; kısa süre daha sert vurmanı ve can kazanmanı sağlar.</span></p><span class="caps" data-caps="rage"></span></div>
     <div><span class="ctl-icon"><i class="skill heavy"></i></span><p><b>Yetenek · 3 tuşu</b><span>Yetenek ağacından atadığın dördüncü güç. Dört yolun dördünü de aynı anda takabilirsin: sağ tık, 1, 2 ve 3.</span></p><span class="caps" data-caps="fourth"></span></div>
     <div><span class="ctl-icon"><i class="skill special"></i></span><p><b>Yetenek · 1 tuşu</b><span>Yetenek ağacından atadığın ikinci güç. Normal saldırı (sol tık) ve dört aktif yetenek (sağ tık, 1, 2, 3) kullanılır. Karakter ekranı: I · yetenek ağacı: T.</span></p><span class="caps" data-caps="special"></span></div>
+    <div><span class="ctl-icon glyph"><svg class="icon" aria-hidden="true"><use href="#i-seal"/></svg></span><p><b>Eşya adları</b><span>Basılı tutunca yerdeki bütün eşyaların adı görünür · eşyaya tıkla: yürür ve alır · E: yakındakini al</span></p><span class="caps" data-caps="labels"></span></div>
     <div><span class="ctl-icon glyph"><svg class="icon" aria-hidden="true"><use href="#i-seal"/></svg></span><p><b>Etkileşim · Mola</b><span>Yemin taşı · menü</span></p><span class="caps" data-caps="interact"></span><kbd>ESC</kbd></div>
+    <div><span class="ctl-icon glyph"><svg class="icon" aria-hidden="true"><use href="#i-eye"/></svg></span><p><b>Harita</b><span>Gezdiğin yerleri gösterir · mola menüsünden de açılır</span></p><span class="caps"><kbd>M</kbd></span></div>
+    <div><span class="ctl-icon glyph"><svg class="icon" aria-hidden="true"><use href="#i-chain"/></svg></span><p><b>Görev günlüğü</b><span>Sıradaki adımı ve yeminleri gösterir · mola menüsünden de açılır</span></p><span class="caps"><kbd>L</kbd></span></div>
   </div>
   <div class="warning-legend"><span><i class="chip amber"></i>Altın kenar: sıradan darbe</span><span><i class="chip red"></i>Kızıl kenar: ağır darbe, mutlaka kaç</span><span>Işık dolduğunda darbe iner · yuvarlanmanın başında korunursun</span></div>
   <p class="muted pad-note kb-only"><b>Tuşlar</b> Tuşları ve fare düğmelerini değiştirebilirsin. <button id="controls-keys" class="text-button">Tuş atamaları</button></p>
@@ -242,17 +245,17 @@ if(window.KabirI18n&&KabirI18n.lang==='en'){var KG_W=document.createTreeWalker(d
 
 <div id="warming" class="hidden" role="status" aria-live="polite"><span>Grafik hazırlanıyor…</span><div class="load-bar"><i id="warm-fill"></i></div><small>Yeni ayar için gölgeler ve ışıklar derleniyor.</small></div>
 <div id="fps" class="hidden"><div id="fps-values"></div></div><div id="fatal" class="hidden"><h2>Tapınağın kapısı açılmadı.</h2><p></p><button class="btn primary" onclick="location.reload()"><span>Yeniden dene</span></button></div>
-<script src="vendor/three.js?v=300"></script><script src="vendor/gltf-loader.js?v=300"></script><script>window.BABA={};KG_LOAD(.06,'Taşlar yerine oturuyor…');</script>
-<script src="src/materials.js?v=300"></script><script>KG_LOAD(.09);</script>
-<script src="assets/coast/surfaces.js?v=300"></script><script src="assets/ruins/surfaces.js?v=300"></script><script src="src/coast-materials.js?v=300"></script><script src="src/chapter-expansion.js?v=300"></script><script src="src/worlda-temple.js?v=300"></script><script src="src/world.js?v=300"></script><script src="src/coast-open.js?v=300"></script><script src="src/coast-world.js?v=300"></script><script src="src/ruins-kit.js?v=300"></script><script src="src/ruins-rooms.js?v=300"></script><script src="src/worlda-ruins.js?v=300"></script><script src="src/forge-rooms.js?v=300"></script><script src="src/ruins-world.js?v=300"></script><script src="src/forge-world.js?v=300"></script><script src="src/finale-rooms.js?v=300"></script><script src="src/finale-world.js?v=300"></script><script src="src/motion.js?v=300"></script><script src="src/models.js?v=300"></script><script>KG_LOAD(.12,'Zincirler çözülüyor…');</script>
-<script src="assets/characters/characters.js?v=300"></script><script>KG_LOAD(.14,'Ölüler uyanıyor…');</script>
-<script src="assets/characters/authored-clips.js?v=300"></script>
-<script src="src/authored-motion.js?v=300"></script><script src="assets/equipment/material-scans.js?v=300"></script><script src="src/equipment-art.js?v=300"></script><script src="src/gear-weapons.js?v=300"></script><script src="src/gear-armor.js?v=300"></script><script src="src/enemy-horror.js?v=300"></script><script src="src/enemy-dread.js?v=300"></script><script src="src/hero-detail.js?v=300"></script><script src="src/gear-powers.js?v=300"></script><script src="src/authored-models.js?v=300&amp;surface=1"></script><script src="src/coast-models.js?v=300"></script><script src="src/ruins-models.js?v=300"></script><script src="src/forge-models.js?v=300"></script><script src="src/finale-models.js?v=300"></script><script src="src/limbs.js?v=300"></script><script src="src/globes.js?v=300"></script><script src="src/coast-combat.js?v=300"></script><script src="src/ruins-combat.js?v=300"></script><script src="src/forge-combat.js?v=300"></script><script src="src/quest-side.js?v=300"></script><script src="src/finale-combat.js?v=300"></script><script src="src/progression.js?v=301"></script><script src="src/talent-tree.js?v=301"></script><script src="src/talent-runtime.js?v=300"></script><script src="src/talent-fx.js?v=300"></script><script src="src/talent-audio.js?v=300"></script><script src="src/boss-mech.js?v=300"></script><script src="src/boss-framework.js?v=300"></script><script src="src/finale-boss.js?v=300"></script><script src="src/mob-mods.js?v=300"></script><script src="src/mob-abilities.js?v=300"></script><script src="src/boss-sound.js?v=300"></script>
-<script src="src/ground-loot.js?v=300"></script><script src="src/quests.js?v=301"></script><script src="src/finale-quests.js?v=300"></script><script src="src/gate.js?v=300"></script><script src="src/combat-tuning.js?v=301"></script><script src="src/combat.js?v=300&amp;energy=12"></script><script src="src/combat-balance.js?v=300"></script><script>KG_LOAD(.16);</script>
-<script src="src/narration.js?v=300"></script><script src="src/narration-en.js?v=300"></script><script src="src/narration-quests.js?v=300"></script><script src="src/narration-finale.js?v=300"></script><script src="src/music.js?v=300"></script><script src="src/audio.js?v=300"></script><script src="src/music-chapters.js?v=300"></script><script src="src/audio-plus.js?v=300"></script><script src="src/telegraphs.js?v=300"></script><script src="src/fx-impact.js?v=300"></script><script src="src/effects.js?v=300"></script><script src="src/coast-effects.js?v=300"></script><script src="src/ruins-effects.js?v=300"></script><script src="src/forge-effects.js?v=300"></script><script src="src/boss2.js?v=300"></script><script src="src/skill-art.js?v=300"></script><script src="src/hud.js?v=300"></script><script src="src/buffs.js?v=300"></script><script src="src/target-hud.js?v=300"></script><script src="src/contact-shadows.js?v=300"></script><script src="src/ambient-motes.js?v=300"></script><script src="src/lighting.js?v=300"></script><script src="src/display.js?v=300"></script><script src="src/pacing.js?v=300"></script><script src="src/performance.js?v=300"></script><script src="src/smaa.js?v=300"></script><script src="src/post.js?v=300&amp;surface=1"></script><script src="src/levelup.js?v=300"></script><script src="src/charge.js?v=300"></script><script src="src/skill-fx.js?v=300"></script>
-<script src="src/character-preview.js?v=300"></script>
-<script src="assets/equipment/thumbnails.js?v=300"></script>
-<script src="src/character-ui.js?v=300&amp;learn=1"></script><script src="src/talent-ui.js?v=301"></script>
-<script src="src/warmup.js?v=301"></script><script src="src/controller.js?v=300"></script>
-<script src="src/quest-ui.js?v=300"></script><script src="src/quest-cinema.js?v=300"></script><script src="src/ui-lanes.js?v=300"></script><script src="src/atlas.js?v=301"></script><script src="src/perf-merge.js?v=300"></script><script src="src/app.js?v=300"></script><script>KG_LOAD(.18,'Karanlık yol hazırlanıyor…');</script>
+<script src="vendor/three.js?v=305"></script><script src="vendor/gltf-loader.js?v=305"></script><script>window.BABA={};KG_LOAD(.06,'Taşlar yerine oturuyor…');</script>
+<script src="src/materials.js?v=305"></script><script>KG_LOAD(.09);</script>
+<script src="assets/coast/surfaces.js?v=305"></script><script src="assets/ruins/surfaces.js?v=305"></script><script src="src/coast-materials.js?v=305"></script><script src="src/chapter-expansion.js?v=305"></script><script src="src/worlda-temple.js?v=305"></script><script src="src/world.js?v=305"></script><script src="src/coast-open.js?v=305"></script><script src="src/coast-world.js?v=305"></script><script src="src/ruins-kit.js?v=305"></script><script src="src/ruins-rooms.js?v=305"></script><script src="src/worlda-ruins.js?v=305"></script><script src="src/forge-rooms.js?v=305"></script><script src="src/ruins-world.js?v=305"></script><script src="src/forge-world.js?v=305"></script><script src="src/finale-rooms.js?v=305"></script><script src="src/finale-world.js?v=305"></script><script src="src/motion.js?v=305"></script><script src="src/models.js?v=305"></script><script>KG_LOAD(.12,'Zincirler çözülüyor…');</script>
+<script src="assets/characters/characters.js?v=305"></script><script>KG_LOAD(.14,'Ölüler uyanıyor…');</script>
+<script src="assets/characters/authored-clips.js?v=305"></script>
+<script src="src/authored-motion.js?v=305"></script><script src="assets/equipment/material-scans.js?v=305"></script><script src="src/equipment-art.js?v=305"></script><script src="src/gear-weapons.js?v=305"></script><script src="src/secondary-motion.js?v=305"></script><script src="src/gear-armor.js?v=305"></script><script src="src/gear-metal.js?v=305"></script><script src="src/enemy-horror.js?v=305"></script><script src="src/enemy-dread.js?v=305"></script><script src="src/hero-detail.js?v=305"></script><script src="src/gear-powers.js?v=305"></script><script src="src/authored-models.js?v=305&amp;surface=1"></script><script src="src/coast-models.js?v=305"></script><script src="src/ruins-models.js?v=305"></script><script src="src/forge-models.js?v=305"></script><script src="src/finale-models.js?v=305"></script><script src="src/limbs.js?v=305"></script><script src="src/globes.js?v=305"></script><script src="src/coast-combat.js?v=305"></script><script src="src/ruins-combat.js?v=305"></script><script src="src/forge-combat.js?v=305"></script><script src="src/quest-side.js?v=305"></script><script src="src/boss-loot.js?v=305"></script><script src="src/finale-combat.js?v=305"></script><script src="src/progression.js?v=305"></script><script src="src/talent-tree.js?v=305"></script><script src="src/talent-runtime.js?v=306"></script><script src="src/talent-fx.js?v=305"></script><script src="src/talent-audio.js?v=305"></script><script src="src/boss-mech.js?v=305"></script><script src="src/boss-framework.js?v=305"></script><script src="src/finale-boss.js?v=305"></script><script src="src/mob-mods.js?v=305"></script><script src="src/mob-abilities.js?v=305"></script><script src="src/boss-sound.js?v=305"></script>
+<script src="src/ground-loot.js?v=307"></script><script src="src/quests.js?v=305"></script><script src="src/finale-quests.js?v=305"></script><script src="src/gate.js?v=305"></script><script src="src/combat-tuning.js?v=305"></script><script src="src/combat.js?v=305&amp;energy=12"></script><script src="src/combat-balance.js?v=305"></script><script>KG_LOAD(.16);</script>
+<script src="src/narration.js?v=305"></script><script src="src/narration-en.js?v=305"></script><script src="src/narration-quests.js?v=305"></script><script src="src/narration-finale.js?v=305"></script><script src="src/music.js?v=305"></script><script src="src/audio.js?v=305"></script><script src="src/music-chapters.js?v=305"></script><script src="src/audio-plus.js?v=305"></script><script src="src/telegraphs.js?v=305"></script><script src="src/fx-impact.js?v=305"></script><script src="src/effects.js?v=305"></script><script src="src/coast-effects.js?v=305"></script><script src="src/ruins-effects.js?v=305"></script><script src="src/forge-effects.js?v=305"></script><script src="src/boss2.js?v=305"></script><script src="src/skill-art.js?v=305"></script><script src="src/hud.js?v=305"></script><script src="src/buffs.js?v=305"></script><script src="src/target-hud.js?v=305"></script><script src="src/contact-shadows.js?v=305"></script><script src="src/ambient-motes.js?v=305"></script><script src="src/lighting.js?v=305"></script><script src="src/display.js?v=305"></script><script src="src/pacing.js?v=305"></script><script src="src/performance.js?v=305"></script><script src="src/smaa.js?v=305"></script><script src="src/post.js?v=305&amp;surface=1"></script><script src="src/levelup.js?v=305"></script><script src="src/charge.js?v=305"></script><script src="src/skill-fx.js?v=305"></script>
+<script src="src/character-preview.js?v=305"></script>
+<script src="assets/equipment/thumbnails.js?v=305"></script><script src="assets/equipment/boss-thumbnails.js?v=305"></script>
+<script src="src/character-ui.js?v=305&amp;learn=1"></script><script src="src/talent-ui.js?v=305"></script>
+<script src="src/warmup.js?v=305"></script><script src="src/controller.js?v=305"></script>
+<script src="src/quest-ui.js?v=305"></script><script src="src/quest-cinema.js?v=305"></script><script src="src/ui-lanes.js?v=305"></script><script src="src/atlas.js?v=305"></script><script src="src/perf-merge.js?v=305"></script><script src="src/app.js?v=305"></script><script>KG_LOAD(.18,'Karanlık yol hazırlanıyor…');</script>
 </body></html>

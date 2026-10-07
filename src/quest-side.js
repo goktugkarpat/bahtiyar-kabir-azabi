@@ -2,8 +2,8 @@
    Loaded BEFORE progression.js (it publishes BABA.QuestItemSpecs, the quest-only unique items) and before quests.js,
    which calls BABA.QuestSide.create(...) and owns persistence, prompts and the shared prop kit.
    Every visible string is registered in both languages through L(tr, en) into KabirI18n.dictionary.
-   Kinds: hunt (named mini-boss promoted from an existing foe), rescue (living captive follows you to the oath stone),
-   lore (three Ledger pages per chapter), altar (hidden blood-price choice), chest (opened with the hunt's key).
+   Kinds (three optional threads per chapter): hunt (named mini-boss promoted from an existing foe), rescue (living captive follows you to the oath stone),
+   lore (three Ledger pages per chapter). Older saves may still list removed threads (altar, siege, escape, puzzle, chest, hunt2): restore() ignores unknown ids.
    Site ids follow STORY.md: world.questSites['c1.hunt'] = {x, z} overrides the room fallback. */
 (function () {
   'use strict';
@@ -38,15 +38,12 @@
 
   // ---------------------------------------------------------------- common UI words
   var W = {
-    hunt: L('Ad Avı', 'Named Hunt'), rescue: L('Kurtarma', 'Rescue'), lore: L('Kâtibin Sayfaları', 'The Scribe’s Pages'), altar: L('Kan Bedeli', 'Blood Price'), siege: L('Hayatta Kal', 'Survive'), wave: L('Dalga ', 'Wave '), escape: L('Kaçış', 'Escape'), puzzle: L('Gizli Oda', 'Hidden Chamber'), run: L('Kaç! ', 'Run! '), secs: L(' sn', ' s'),
-    escapeFail: L('Geç kaldın. Emanet elinden kaydı ve yerine döndü; bedeli kanınla ödedin.', 'Too late. The relic slipped from your grasp and returned to its place; you paid in blood.'),
-    wrongSeal: L('Yanlış mühür. Taş kanını istiyor ve diğerleri sönüyor.', 'The wrong seal. The stone takes your blood and the others go dark.'),
-    chainFound: L('Yeni bir ad avı açıldı', 'A new hunt has opened'), survive: L(' · hayatta kal', ' · survive'), chest: L('Zincirli Sandık', 'Chained Chest'), main: L('Ana Hikâye', 'Main Story'),
-    reward: L('Ödül: ', 'Reward: '), done: L('Tamamlandı', 'Complete'), secret: L('Gizli', 'Hidden'),
-    guarded: L('Önce etraftaki ölüleri sustur', 'First silence the dead around you'), locked: L('Zincirli. Anahtarı bu bölümün av hedefi taşıyor.', 'Chained shut. This chapter’s hunted foe carries the key.'),
+    hunt: L('Ad Avı', 'Named Hunt'), rescue: L('Kurtarma', 'Rescue'), lore: L('Kâtibin Sayfaları', 'The Scribe’s Pages'), main: L('Ana Hikâye', 'Main Story'),
+    reward: L('Ödül: ', 'Reward: '), done: L('Tamamlandı', 'Complete'),
+    guarded: L('Önce etraftaki ölüleri sustur', 'First silence the dead around you'),
     follow: L('Seni izliyor. Onu yemin taşına götür.', 'Following you. Lead them to the oath stone.'), waiting: L('Yakında düşman var; kurtardığın kişi siniyor.', 'Enemies are near; the one you freed cowers.'),
     point: L('+1 yetenek puanı', '+1 skill point'), flask: L('Kalıcı +1 şifa matarası', 'Permanent +1 healing flask'), hp: L('Kalıcı +6 can', 'Permanent +6 health'), dmg: L('Kalıcı +%3 hasar', 'Permanent +3% damage'),
-    found: L('Gizli bir şey buldun', 'You found something hidden'), keyGot: L('Bir anahtar düştü', 'A key fell'), read: L('Sayfa okundu', 'Page read')
+    read: L('Sayfa okundu', 'Page read')
   };
   B.QuestWords = W;
 
@@ -58,8 +55,8 @@
         name: L('Kefen Dokuyucu', 'The Shroud Weaver'), target: { name: L('Kefen Dokuyucu', 'The Shroud Weaver'), types: ['guard'], scale: 2.4 },
         description: L('Kefen Dokuma Odası’nda biri hâlâ kefen dokuyor; ama ölüler için değil. Onu bul ve dokuduğu son kefeni ona giydir.', 'In the Shroud Weaving Room someone still weaves shrouds, but not for the dead. Find her and dress her in the last one.'),
         objective: L('Kefen Dokuma Odası’nda Kefen Dokuyucu’yu avla.', 'Hunt the Shroud Weaver in the Shroud Weaving Room.'),
-        story: L('Kefen Dokuyucu düştü. Tezgâhında yarım kalmış bir kefen var; yakasına senin adın işlenmiş. Göğsünden paslı bir anahtar kaydı.', 'The Shroud Weaver has fallen. On her loom lies an unfinished shroud with your name stitched at the collar. A rusted key slips from her chest.'),
-        reward: { item: 'shroud-needle-grasp', xp: 60 }, rewardText: L('Kefen Dokuyucunun İğneleri (Eşsiz eldiven) ve Kırık Yeminler’deki sandığın anahtarı', 'The Shroud Weaver’s Needles (Unique gloves) and the key to the chest in Broken Oaths') },
+        story: L('Kefen Dokuyucu düştü. Tezgâhında yarım kalmış bir kefen var; yakasına senin adın işlenmiş.', 'The Shroud Weaver has fallen. On her loom lies an unfinished shroud with your name stitched at the collar.'),
+        reward: { item: 'shroud-needle-grasp', xp: 60 }, rewardText: L('Kefen Dokuyucunun İğneleri (Eşsiz eldiven)', 'The Shroud Weaver’s Needles (Unique gloves)') },
       { id: 'c1-rescue', kind: 'rescue', site: 'c1.captive', goal: 'c1.rescue-goal', fallback: { room: 10, dx: 3, dz: -2 }, voice: 'rescue1',
         name: L('Son Nefesteki Derviş', 'The Dying Dervish'), npc: L('Derviş Ömer', 'Dervish Ömer'),
         description: L('Yitik Etler Reviri’nde zincirli bir adam hâlâ nefes alıyor. Zincirini çöz ve onu Sessiz Şapel’in yemin taşına götür.', 'In the Ward of Lost Flesh a chained man still breathes. Break his chain and lead him to the oath stone of the Silent Chapel.'),
@@ -77,38 +74,7 @@
           page('c1.page1', L('Sayfa: Hüküm Kâtibi', 'Page: The Scribe of Sentences'), L('“Yirminci yılımda kalemim titremeyi bıraktı. Her sabah Kadı’nın mührü gelir, ben adları yazarım. Ad yazıldığında zincir kendiliğinden dövülür. Ben yalnızca yazarım.” — B.', '“In my twentieth year my pen stopped trembling. Each morning the Judge’s seal arrives, and I write the names. Once written, the chain forges itself. I only write.” — B.')),
           page('c1.page2', L('Sayfa: Cellat’ın Payı', 'Page: The Executioner’s Share'), L('“Cellat bugün yine meyhanede bekledi. ‘Sen yazmasan ben kesmem,’ dedi. Güldük. O gece ellerimi üç kez yıkadım.” — B.', '“The executioner waited at the tavern again today. ‘If you didn’t write, I wouldn’t cut,’ he said. We laughed. That night I washed my hands three times.” — B.')),
           page('c1.page3', L('Sayfa: Yeni Ad', 'Page: A New Name'), L('“Mühür geldi. Altında tek bir ad var. Kalemi tuttum ve bekledim. Mürekkep kâğıda damladı. Ad: Selvi.” Sayfanın kenarı yırtılmış.', '“The seal came. Beneath it, a single name. I held the pen and waited. Ink dripped onto the paper. The name: Selvi.” The edge of the page is torn away.'))
-        ], fallbacks: [{ room: 9, dx: 4, dz: 3 }, { room: 12, dx: -4, dz: 2 }, { room: 1, dx: -6, dz: -5 }] },
-      { id: 'c1-altar', kind: 'altar', site: 'c1.altar', fallback: { room: 4, dx: 5.5, dz: 4 }, hidden: true, voice: 'altar1',
-        name: L('Kan Sunağı', 'The Blood Altar'), description: L('Kemik Geçidi’nin kenarında hâlâ sıcak bir sunak. Kan isteyen her şey gibi bedel bekliyor.', 'At the edge of the Bone Passage, an altar still warm. Like everything that thirsts, it waits for a price.'),
-        objective: L('Kan Sunağı’na dokun ve bedeli seç.', 'Touch the Blood Altar and choose the price.'),
-        verdict: { title: L('Kanın bedeli', 'The price of blood'), question: L('Sunak bu bölüm boyunca bir şifa matarasını istiyor. Karşılığında kanla bilenmiş bir kılıç verecek.', 'For the rest of this chapter the altar demands one of your healing flasks. In return it offers a blade honed in blood.'), options: [
-          { id: 'pay', name: L('Kanını sun', 'Offer your blood'), effect: L('Bu bölümde 1 şifa matarası eksik. Kazanç: Kan Bedeli (Eşsiz kılıç).', 'One less healing flask this chapter. Gain: Blood Price (Unique sword).'), story: L('Avucunu sunağa bastırıyorsun. Taş kanını içiyor ve içinden ince, kızıl bir kılıç yükseliyor.', 'You press your palm to the altar. The stone drinks your blood and a thin crimson blade rises from it.'), cost: { flaskDebt: 1 }, reward: { item: 'blood-price-blade' } },
-          { id: 'refuse', name: L('Sunağı reddet', 'Refuse the altar'), effect: L('Bedel yok, ödül yok. Sunak soğuyor.', 'No price, no reward. The altar cools.'), story: L('Elini geri çekiyorsun. Yirmi yıl başkalarının kanını yazdın; bu kez kendi kanın sende kalıyor.', 'You draw your hand back. For twenty years you wrote other men’s blood; this time yours stays with you.'), reward: { xp: 30 } }
-        ] } },
-      { id: 'c1-siege', kind: 'siege', site: 'c1.siege', fallback: { room: 9, dx: -6, dz: -4 }, waves: [3, 3, 4], verbTr: 'Mangalı yak',
-        name: L('Kül Rahiplerinin Ayini', 'The Ash Priests’ Rite'), verb: L('Mangalı yak', 'Light the brazier'),
-        description: L('İsimsizlerin Mezarı’nda sönmüş bir mangal duruyor. Yakarsan, tapınağın rahipleri ayinlerini bölen kâtibi cezalandırmaya gelir.', 'In the Grave of the Nameless stands a cold brazier. Light it, and the temple’s priests will come to punish the scribe who broke their rite.'),
-        objective: L('Mangalı yak ve üç dalga boyunca hayatta kal.', 'Light the brazier and survive three waves.'),
-        story: L('Son rahip mangalın küllerine düşüyor. Ateş artık kimseyi çağırmıyor; yalnızca seni ısıtıyor.', 'The last priest falls into the brazier’s ashes. The fire calls no one now; it only warms you.'),
-        reward: { hp: 6, xp: 80 }, rewardText: L('Kalıcı +6 can', 'Permanent +6 health') },
-      { id: 'c1-hunt2', kind: 'hunt', after: 'c1-hunt', hidden: true, site: 'c1.hunt2', fallback: { room: 10, dx: -5, dz: 4 },
-        name: L('Dokuyucunun Çırağı', 'The Weaver’s Apprentice'), target: { name: L('Dokuyucunun Çırağı', 'The Weaver’s Apprentice'), types: ['cultist', 'carrier'], scale: 2.9 },
-        description: L('Kefen Dokuyucu düşünce çırağı kaçtı. Ustasının iplerini hâlâ canlıların boynuna dolamaya çalışıyor.', 'When the Shroud Weaver fell, her apprentice fled. She still tries to wind her mistress’s thread around living throats.'),
-        objective: L('Kaçan çırağı Yitik Etler Reviri’nde bul ve avla.', 'Find the fleeing apprentice in the Ward of Lost Flesh and hunt her.'),
-        story: L('Çırak düşerken ipliği bırakıyor. İpliğin ucu yine senin adına bağlı; birisi seni hâlâ dokuyor.', 'As the apprentice falls she lets the thread go. Its end is tied to your name again; someone is still weaving you.'),
-        reward: { item: 'weaver-apprentice-wraps', xp: 90 }, rewardText: L('Çırağın Kanlı Makarası (Eşsiz sargı)', 'The Apprentice’s Bloody Spool (Unique wraps)') },
-      { id: 'c1-puzzle', kind: 'puzzle', sites: ['c1.seal1', 'c1.seal2', 'c1.seal3'], fallbacks: [{ room: 7, dx: -6, dz: -5 }, { room: 7, dx: 0, dz: -6 }, { room: 7, dx: 6, dz: -5 }], order: [2, 0, 1], hidden: true,
-        name: L('Mühürlü Mahzen', 'The Sealed Crypt'),
-        description: L('Unutulanların Mahzeni’nin dibinde üç mühür taşı var. Kâtiplerin gizli yolu ancak doğru sırayla açılır.', 'At the back of the Crypt of the Forgotten stand three seal stones. The scribes’ hidden road opens only in the right order.'),
-        objective: L('Mühür taşlarını doğru sırayla uyandır. Çentikleri say.', 'Wake the seal stones in the right order. Count their notches.'),
-        riddle: L('“Üç yara ilk kanar, tek yara onu izler, iki yara kapıyı kapatır.”', '“Three wounds bleed first, one wound follows, two wounds close the door.”'),
-        story: L('Taşlar birbirine kenetleniyor ve zemin açılıyor. Kâtiplerin gizli dolabı hâlâ yerinde.', 'The stones lock together and the floor opens. The scribes’ hidden cabinet is still there.'),
-        reward: { item: 'crypt-walker-boots', xp: 80 }, rewardText: L('Mühürlü Mahzenin Adımları (Eşsiz çizme)', 'Steps of the Sealed Crypt (Unique boots)') },
-      { id: 'c1-chest', kind: 'chest', site: 'c1.chest', fallback: { room: 12, dx: 5, dz: -3 }, key: 'c1-hunt', voice: null,
-        name: L('Kâtiplerin Zincirli Sandığı', 'The Scribes’ Chained Chest'), description: L('Kırık Yeminler salonunda zincirle bağlanmış bir sandık. Anahtarı Kefen Dokuyucu taşıyor.', 'A chest bound in chains in the hall of Broken Oaths. The Shroud Weaver carries its key.'),
-        objective: L('Kefen Dokuyucu’nun anahtarıyla Kırık Yeminler’deki sandığı aç.', 'Open the chest in Broken Oaths with the Shroud Weaver’s key.'),
-        story: L('Sandıkta mahkeme kâtiplerinin başlığı var. Astarına işlenen yüzlerce adın arasında seninki yok; onun için ayrı bir yer bırakılmış.', 'Inside lies the hood of the court scribes. Among the hundreds of names in its lining yours is missing; a space has been left for it.'),
-        reward: { item: 'scribe-clasp-helm', xp: 40 }, rewardText: L('Kâtibin Mühürlü Başlığı (Eşsiz başlık)', 'The Scribe’s Sealed Hood (Unique hood)') }
+        ], fallbacks: [{ room: 9, dx: 4, dz: 3 }, { room: 12, dx: -4, dz: 2 }, { room: 1, dx: -6, dz: -5 }] }
     ],
     2: [
       { id: 'c2-hunt', kind: 'hunt', site: 'c2.hunt', fallback: { room: 11, dx: 0, dz: 0 }, voice: 'hunt2',
@@ -116,7 +82,7 @@
         description: L('Çürümüş Tersane’de Çancı’ya yemin etmiş bir nöbetçi dolaşıyor. Tuz onu çürütmemiş; korumuş.', 'In the Rotten Shipyard walks a sentry sworn to the Bellringer. The salt did not rot him; it preserved him.'),
         objective: L('Çürümüş Tersane’de Tuz İçindeki Yeminli’yi avla.', 'Hunt the Salt-Sworn in the Rotten Shipyard.'),
         story: L('Yeminli düştü. Tuz kabuğu çatlarken içinden paslı bir anahtar ve bir tekne kaydı çıkıyor: “Bir kız. Adı defterde var. Krala.”', 'The Salt-Sworn has fallen. As his crust of salt cracks, a rusted key and a boat log spill out: “One girl. Her name is in the Ledger. For the King.”'),
-        reward: { item: 'salt-oath-steps', xp: 90 }, rewardText: L('Tuz Yeminlisinin Adımları (Eşsiz çizme) ve batık sandığın anahtarı', 'Steps of the Salt-Sworn (Unique boots) and the key to the sunken chest') },
+        reward: { item: 'salt-oath-steps', xp: 90 }, rewardText: L('Tuz Yeminlisinin Adımları (Eşsiz çizme)', 'Steps of the Salt-Sworn (Unique boots)') },
       { id: 'c2-rescue', kind: 'rescue', site: 'c2.captive', goal: 'c2.rescue-goal', fallback: { room: 9, dx: -3, dz: 3 }, voice: 'rescue2',
         name: L('Fenercinin Oğlu', 'The Keeper’s Son'), npc: L('Kerem', 'Kerem'),
         description: L('Kül Balıkçılarının Evleri’nde bir genç, tuza gömülmüş halde nefes alıyor. Babası Son Fener’in bekçisiydi.', 'In the Ash Fishers’ Houses a young man breathes, half buried in salt. His father kept the Last Lantern.'),
@@ -134,45 +100,15 @@
           page('c2.page1', L('Sayfa: Borç Ödendi', 'Page: Debt Paid'), L('“Kıyıdan yüz yirmi ad. Fenerci çanı çaldı, tekneler döndü ama içleri boştu. Deftere yazdım: borç ödendi.” — B.', '“One hundred and twenty names from the shore. The keeper rang the bell; the boats came back empty. I wrote in the Ledger: debt paid.” — B.')),
           page('c2.page2', L('Sayfa: Çancı’nın Mektubu', 'Page: The Bellringer’s Letter'), L('“Kâtip, Kral daha fazlasını istiyor. Kıyı boşaldı. Bana ad gönder; ben de sana ölü göndereyim.” Mühür: bir çan.', '“Scribe, the King wants more. The shore is empty. Send me names, and I will send you the dead.” Seal: a bell.')),
           page('c2.page3', L('Sayfa: Selvi', 'Page: Selvi'), L('“Abi, adımı sen yazma. Başkası yazsın, ama sen yazma. Ellerini tanırım.” Kâğıdın altında kurumuş bir gözyaşı izi ve senin imzan.', '“Brother, don’t you write my name. Let someone else write it, but not you. I know your hands.” Below, a dried tear stain, and your signature.'))
-        ], fallbacks: [{ room: 10, dx: 5, dz: 3 }, { room: 3, dx: -6, dz: 5 }, { room: 12, dx: 5, dz: -4 }] },
-      { id: 'c2-altar', kind: 'altar', site: 'c2.altar', fallback: { room: 3, dx: 6, dz: -6 }, hidden: true, voice: 'altar2',
-        name: L('Dönmeyenlerin Pazarlığı', 'The Bargain of the Unreturned'), description: L('Çürük İskele’nin ucunda deniz bir sunak bırakmış. Dönmeyenler pazarlık istiyor.', 'At the end of the Rotten Pier the sea has left an altar. The unreturned want to bargain.'),
-        objective: L('Deniz sunağına dokun ve pazarlığı yap ya da reddet.', 'Touch the sea altar and make the bargain or refuse it.'),
-        verdict: { title: L('Denizin pazarlığı', 'The sea’s bargain'), question: L('Deniz kalıcı olarak canından bir parça istiyor. Karşılığında boğulanların mızrağını verecek.', 'The sea asks for a piece of your life, forever. In return it will give you the spear of the drowned.'), options: [
-          { id: 'pay', name: L('Canından ver', 'Give of your life'), effect: L('Kalıcı -8 can. Kazanç: Dönmeyenlerin Pazarlığı (Eşsiz mızrak).', 'Permanent -8 health. Gain: The Bargain of the Unreturned (Unique spear).'), story: L('Dalgalar bileklerine dolanıyor ve bir şey çekip alıyor. Sudan, ucunda son bir nefes asılı bir mızrak yükseliyor.', 'The waves wrap your wrists and pull something away. From the water rises a spear with a last breath hanging on its point.'), cost: { hp: -8 }, reward: { item: 'drowned-bargain-spear' } },
-          { id: 'refuse', name: L('Denize sırtını dön', 'Turn your back on the sea'), effect: L('Bedel yok. Dönmeyenler fısıldamaya devam ediyor.', 'No price. The unreturned keep whispering.'), story: L('Denize sırtını dönüyorsun. Arkandan yüz yirmi ses aynı anda adını söylüyor.', 'You turn your back on the sea. Behind you a hundred and twenty voices speak your name at once.'), reward: { xp: 50 } }
-        ] } },
-      { id: 'c2-siege', kind: 'siege', site: 'c2.siege', fallback: { room: 10, dx: -6, dz: -5 }, waves: [3, 3, 4], verbTr: 'Gelgit çanını çal',
-        name: L('Gelgit Çanı', 'The Tide Bell'), verb: L('Gelgit çanını çal', 'Ring the tide bell'),
-        description: L('Köksüzlerin Çukuru’nda yarı gömülü bir şamandıra çanı var. Çalarsan, deniz boğduklarını geri yollar.', 'In the Rootless Pit lies a half-buried buoy bell. Ring it and the sea sends back the ones it drowned.'),
-        objective: L('Gelgit çanını çal ve boğulanların üç dalgasına dayan.', 'Ring the tide bell and withstand three waves of the drowned.'),
-        story: L('Son boğulmuş tuza dönüşüyor. Çanın dili kırıldı; gelgit bu kıyıya bir daha ölü getirmeyecek.', 'The last of the drowned crumbles into salt. The bell’s tongue is broken; the tide will bring no more dead to this shore.'),
-        reward: { damage: .03, xp: 140 }, rewardText: L('Kalıcı +%3 hasar', 'Permanent +3% damage') },
-      { id: 'c2-hunt2', kind: 'hunt', after: 'c2-hunt', hidden: true, site: 'c2.hunt2', fallback: { room: 7, dx: -4, dz: 4 },
-        name: L('Yeminlinin Dul Karısı', 'The Salt-Sworn’s Widow'), target: { name: L('Yeminlinin Dul Karısı', 'The Salt-Sworn’s Widow'), types: ['drowned', 'lantern'], scale: 2.9 },
-        description: L('Yeminli düşünce karısı denizden çıktı. Batık Gümrük’te kocasının katilini arıyor.', 'When the Salt-Sworn fell, his wife rose from the sea. She hunts her husband’s killer in the Sunken Customs.'),
-        objective: L('Batık Gümrük Avlusu’nda Yeminlinin dul karısını bul.', 'Find the Salt-Sworn’s widow in the Sunken Customs Yard.'),
-        story: L('Dul kadın tuza dönüşürken gülümsüyor: “Onu ben de defterden silemedim. Sen sil.”', 'The widow smiles as she turns to salt: “I could not erase him from the Ledger either. You do it.”'),
-        reward: { item: 'tide-widow-helm', xp: 140 }, rewardText: L('Dul Gelgitin Yüzü (Eşsiz miğfer)', 'Face of the Widowed Tide (Unique helm)') },
-      { id: 'c2-escape', kind: 'escape', site: 'c2.escape', fallback: { room: 3, dx: 0, dz: -8 }, goal: 'c2.escape-goal', goalFallback: { room: 4, dx: 0, dz: 6 },
-        name: L('Gelgit Basıyor', 'The Tide Comes In'), verb: L('Seyir defterini al', 'Take the log'),
-        description: L('Çürük İskele’nin ucunda boğulmuş bir kaptanın seyir defteri var. Alırsan gelgit iskeleyi yutar.', 'At the end of the Rotten Pier lies a drowned captain’s log. Take it and the tide will swallow the pier.'),
-        objective: L('Seyir defterini al ve gelgit yetişmeden Kara Kök Meydanı’na kaç.', 'Take the log and flee to the Black Root Square before the tide catches you.'),
-        story: L('Meydana nefes nefese varıyorsun. Seyir defterinin son sayfasında bir varış yazıyor: “Kâtibin kız kardeşi. Taht için.”', 'You reach the square gasping. The log’s last page records an arrival: “The scribe’s sister. For the throne.”'),
-        reward: { xp: 160, hp: 4 }, rewardText: L('+160 tecrübe ve kalıcı +4 can', '+160 experience and permanent +4 health') },
-      { id: 'c2-chest', kind: 'chest', site: 'c2.chest', fallback: { room: 7, dx: 5, dz: -4 }, key: 'c2-hunt',
-        name: L('Batık Gümrük Sandığı', 'The Sunken Customs Chest'), description: L('Batık Gümrük Avlusu’nda zincirle bağlı bir sandık. Anahtarı Tuz İçindeki Yeminli taşıyor.', 'A chained chest in the Sunken Customs Yard. The Salt-Sworn carries its key.'),
-        objective: L('Yeminli’nin anahtarıyla Batık Gümrük’teki sandığı aç.', 'Open the chest in the Sunken Customs with the Salt-Sworn’s key.'),
-        story: L('Sandıkta fenercinin kaftanı var. Cebindeki kayıtta Selvi’nin adı ve bir varış yeri: “Harabelerin altındaki taht.”', 'Inside is the lantern keeper’s coat. The log in its pocket holds Selvi’s name and a destination: “The throne beneath the ruins.”'),
-        reward: { item: 'keeper-salt-coat', xp: 60 }, rewardText: L('Fenercinin Tuzlu Kaftanı (Eşsiz zırh)', 'The Keeper’s Salted Coat (Unique armor)') }
+        ], fallbacks: [{ room: 10, dx: 5, dz: 3 }, { room: 3, dx: -6, dz: 5 }, { room: 12, dx: 5, dz: -4 }] }
     ],
     3: [
       { id: 'c3-hunt', kind: 'hunt', site: 'c3.hunt', fallback: { room: 8, dx: 0, dz: 0 }, voice: 'hunt3',
         name: L('Taht Kehanetçisi Ulvi', 'Ulvi, Seer of the Throne'), target: { name: L('Taht Kehanetçisi Ulvi', 'Ulvi, Seer of the Throne'), types: ['shardseer'], scale: 2.6 },
         description: L('Fısıltı Geçidi’nde kralın kör kehanetçisi dolaşıyor. Her kehaneti bir adın Defter’e yazılmasıyla bitmiş.', 'In the Whispering Pass walks the king’s blind seer. Every prophecy he spoke ended with a name written in the Ledger.'),
         objective: L('Fısıltı Geçidi’nde Taht Kehanetçisi Ulvi’yi avla.', 'Hunt Ulvi, Seer of the Throne, in the Whispering Pass.'),
-        story: L('Ulvi diz çökerken gülüyor: “Son kehanetim senin için, kâtip: kendi adını kendi elinle yazacaksın.” Elinden kraliyet mühürlü bir anahtar düşüyor.', 'Ulvi laughs as he kneels: “My last prophecy is yours, scribe: you will write your own name with your own hand.” A key with the royal seal falls from his fingers.'),
-        reward: { item: 'blind-seer-gaze', xp: 140 }, rewardText: L('Kör Kehanetin Gözü (Eşsiz miğfer) ve kraliyet sandığının anahtarı', 'Eye of the Blind Prophecy (Unique helm) and the key to the royal chest') },
+        story: L('Ulvi diz çökerken gülüyor: “Son kehanetim senin için, kâtip: kendi adını kendi elinle yazacaksın.”', 'Ulvi laughs as he kneels: “My last prophecy is yours, scribe: you will write your own name with your own hand.”'),
+        reward: { item: 'blind-seer-gaze', xp: 140 }, rewardText: L('Kör Kehanetin Gözü (Eşsiz miğfer)', 'Eye of the Blind Prophecy (Unique helm)') },
       { id: 'c3-rescue', kind: 'rescue', site: 'c3.captive', goal: 'c3.rescue-goal', fallback: { room: 4, dx: 4, dz: 3 }, voice: 'rescue3',
         name: L('Kör Taşçı', 'The Blind Mason'), npc: L('Hıdır', 'Hıdır'),
         description: L('Yemin Bozan Avlu’da gözleri oyulmuş bir taşçı zincirli. Defter’e yazılan adları mezar taşlarına o kazırdı.', 'In the Oathbreaker Court a mason with gouged eyes sits in chains. He carved every name from the Ledger onto gravestones.'),
@@ -190,52 +126,15 @@
           page('c3.page1', L('Sayfa: Kralın Pazarlığı', 'Page: The King’s Bargain'), L('“Kral tahtı için adını sattı. Kadı adı aldı, Defter’in ilk satırına yazdı. O günden beri her kral bir mahkûm, her mahkûm bir halka.”', '“The king sold his name for the throne. The Judge took it and wrote it on the Ledger’s first line. Since that day every king is a prisoner, every prisoner a link.”')),
           page('c3.page2', L('Sayfa: Kâtibin Atanması', 'Page: The Scribe Appointed'), L('“Bahtiyar, oğlum. Kalemin temiz, aklın sessiz. Bundan sonra Defter senin elinde.” Altında kralın silik imzası.', '“Bahtiyar, my son. Your pen is clean, your mind quiet. From now on the Ledger is in your hand.” Beneath, the king’s faded signature.')),
           page('c3.page3', L('Sayfa: Kadı’nın Emri', 'Page: The Judge’s Order'), L('“Kâtip ad yazmayı reddederse, son satıra kendi adı yazılsın. Cellat onu diri gömsün; Defter beklemeyi bilir.” Mühür: kara bir göz.', '“Should the scribe refuse to write, let his own name fill the last line. Let the executioner bury him alive; the Ledger knows how to wait.” Seal: a black eye.'))
-        ], fallbacks: [{ room: 1, dx: -7, dz: 4 }, { room: 6, dx: 7, dz: -3 }, { room: 10, dx: 6, dz: 4 }] },
-      { id: 'c3-altar', kind: 'altar', site: 'c3.altar', fallback: { room: 2, dx: -7, dz: -4 }, hidden: true, voice: 'altar3',
-        name: L('Kralın Kadehi', 'The King’s Cup'), description: L('Kül Kapısı’nın bir köşesinde hiç boşalmayan bir kadeh duruyor. İçen her kral tahta zincirlenmiş.', 'In a corner of the Ash Gate stands a cup that never empties. Every king who drank was chained to the throne.'),
-        objective: L('Kralın Kadehi’ne dokun: iç ya da dök.', 'Touch the King’s Cup: drink or pour it out.'),
-        verdict: { title: L('Kralların içkisi', 'The drink of kings'), question: L('Kadehi içersen kalıcı güç kazanırsın ama canından bir parça tahta kalır. Dökersen sarayın son yasını tutarsın.', 'Drink, and you gain lasting strength while a piece of your life stays with the throne. Pour it out, and you mourn the palace’s last.'), options: [
-          { id: 'pay', name: L('Kadehi iç', 'Drink the cup'), effect: L('Kalıcı -8 can, kalıcı +%5 hasar. Kazanç: Kralın Kadehi (Eşsiz balta).', 'Permanent -8 health, permanent +5% damage. Gain: The King’s Cup (Unique axe).'), story: L('İçki demir tadında. Damarlarında bir kralın susuzluğu uyanıyor ve kadeh elinde bir baltaya dönüşüyor.', 'The drink tastes of iron. A king’s thirst wakes in your veins, and the cup becomes an axe in your hand.'), cost: { hp: -8 }, reward: { item: 'kings-cup-axe', damage: .05 } },
-          { id: 'refuse', name: L('Kadehi yere dök', 'Pour the cup out'), effect: L('Kalıcı +6 can. Saray bir kral daha kaybetmez.', 'Permanent +6 health. The palace loses no more kings.'), story: L('Kadehi taşa döküyorsun. İçki kana dönüşüyor ve toprağa çekiliyor. Bir yerde bir zincir gevşiyor.', 'You pour the cup onto the stone. The drink turns to blood and sinks into the earth. Somewhere a chain loosens.'), reward: { hp: 6 } }
-        ] } },
-      { id: 'c3-siege', kind: 'siege', site: 'c3.siege', fallback: { room: 6, dx: -7, dz: 4 }, waves: [3, 3, 4], verbTr: 'Yemin taşını kır',
-        name: L('Muhafızların Son Yemini', 'The Wardens’ Last Oath'), verb: L('Yemin taşını kır', 'Shatter the oath stone'),
-        description: L('Mağaranın Ağzı’nda kırık bir yemin taşı var. Kırarsan, tahta yemin etmiş ölüler yeminlerini bozanı aramaya çıkar.', 'At the Cave Mouth lies a cracked oath stone. Shatter it and the dead sworn to the throne will rise to hunt the oathbreaker.'),
-        objective: L('Yemin taşını kır ve üç dalga boyunca hayatta kal.', 'Shatter the oath stone and survive three waves.'),
-        story: L('Son yeminli diz çöküyor. Yemin taşının parçalarında artık hiçbir ad yazmıyor.', 'The last oath-bound kneels. No name remains on the shards of the oath stone.'),
-        reward: { hp: 6, xp: 220 }, rewardText: L('Kalıcı +6 can', 'Permanent +6 health') },
-      { id: 'c3-hunt2', kind: 'hunt', after: 'c3-hunt', hidden: true, site: 'c3.hunt2', fallback: { room: 10, dx: 5, dz: -4 },
-        name: L('Ulvi’nin Öğrencisi', 'Ulvi’s Pupil'), target: { name: L('Ulvi’nin Öğrencisi', 'Ulvi’s Pupil'), types: ['shardseer', 'ashbound'], scale: 2.9 },
-        description: L('Ulvi ölünce öğrencisi son kehaneti tamamlamaya yemin etti. Yutulan Saray’da seni bekliyor.', 'When Ulvi died his pupil swore to fulfil the last prophecy. He waits for you in the Swallowed Palace.'),
-        objective: L('Yutulan Saray’da Ulvi’nin öğrencisini avla.', 'Hunt Ulvi’s pupil in the Swallowed Palace.'),
-        story: L('Öğrenci düşüyor. Kehanet tamamlanmadı; yalnızca ertelendi.', 'The pupil falls. The prophecy is not fulfilled, only postponed.'),
-        reward: { item: 'seer-echo-spear', xp: 220 }, rewardText: L('Kehanetin Yankısı (Eşsiz mızrak)', 'Echo of the Prophecy (Unique spear)') },
-      { id: 'c3-escape', kind: 'escape', site: 'c3.escape', fallback: { room: 9, dx: 6, dz: -4 }, goal: 'c3.escape-goal', goalFallback: { room: 11, dx: -6, dz: 4 },
-        name: L('Göçük', 'The Collapse'), verb: L('Mezarcının anahtarını al', 'Take the mason’s key'),
-        description: L('Taşın İçindeki Ölüler’de bir mezarcının mumyalanmış eli bir anahtar tutuyor. Elden alırsan mağara çöker.', 'In the Dead Within the Stone a mason’s mummified hand grips a key. Take it and the cave comes down.'),
-        objective: L('Anahtarı al ve göçük seni gömmeden Son Yemin taşına koş.', 'Take the key and run to the Last Oath stone before the collapse buries you.'),
-        story: L('Arkanda mağara kapanıyor. Bir kez daha diri gömülmedin; bu kez taş seni bekleyemedi.', 'The cave seals behind you. Once more you were not buried alive; this time the stone could not wait.'),
-        reward: { xp: 240, hp: 5 }, rewardText: L('+240 tecrübe ve kalıcı +5 can', '+240 experience and permanent +5 health') },
-      { id: 'c3-puzzle', kind: 'puzzle', sites: ['c3.seal1', 'c3.seal2', 'c3.seal3'], fallbacks: [{ room: 10, dx: -7, dz: -5 }, { room: 10, dx: 0, dz: 6 }, { room: 10, dx: 7, dz: -5 }], order: [1, 2, 0], hidden: true,
-        name: L('Kralın Gizli Odası', 'The King’s Hidden Chamber'),
-        description: L('Yutulan Saray’da üç mühür taşı kralın gizli odasını saklıyor.', 'In the Swallowed Palace three seal stones hide the king’s secret chamber.'),
-        objective: L('Mühür taşlarını doğru sırayla uyandır. Çentikleri say.', 'Wake the seal stones in the right order. Count their notches.'),
-        riddle: L('“Önce iki yemin, sonra üç ihanet, en son tek bir ad.”', '“First two oaths, then three betrayals, last a single name.”'),
-        story: L('Duvar geri çekiliyor. Kralın gizli odasında, adı kazınmış bir zırh asılı.', 'The wall slides back. In the king’s hidden chamber hangs armor with its name scraped away.'),
-        reward: { item: 'hidden-throne-chest', xp: 200 }, rewardText: L('Gizli Tahtın Kefeni (Eşsiz zırh)', 'Shroud of the Hidden Throne (Unique armor)') },
-      { id: 'c3-chest', kind: 'chest', site: 'c3.chest', fallback: { room: 12, dx: -6, dz: 3 }, key: 'c3-hunt',
-        name: L('Kraliyet Sandığı', 'The Royal Chest'), description: L('Tahtın Nöbeti’nde kraliyet mührüyle kilitli bir sandık. Anahtarı Ulvi taşıyor.', 'A chest locked with the royal seal at the Throne’s Watch. Ulvi carries its key.'),
-        objective: L('Ulvi’nin anahtarıyla Tahtın Nöbeti’ndeki kraliyet sandığını aç.', 'Open the royal chest at the Throne’s Watch with Ulvi’s key.'),
-        story: L('Sandıkta saray kâtibinin eldivenleri var; senin eldivenlerin. Kral onları saklamış. Bir notta: “Geri dönerse ver. Dönmezse yak.”', 'Inside are the court scribe’s gauntlets: your gauntlets. The king kept them. A note: “If he returns, give them back. If not, burn them.”'),
-        reward: { item: 'royal-scribe-gauntlets', xp: 120 }, rewardText: L('Saray Kâtibinin Eldivenleri (Eşsiz eldiven)', 'Gauntlets of the Court Scribe (Unique gauntlets)') }
+        ], fallbacks: [{ room: 1, dx: -7, dz: 4 }, { room: 6, dx: 7, dz: -3 }, { room: 10, dx: 6, dz: 4 }] }
     ],
     4: [
       { id: 'c4-hunt', kind: 'hunt', site: 'c4.hunt', fallback: { room: 4, dx: 0, dz: 0 }, voice: 'hunt4',
         name: L('Kül Veziri', 'The Ash Vizier'), target: { name: L('Kül Veziri', 'The Ash Vizier'), types: ['chainseer', 'emberbound'], scale: 2.6 },
         description: L('Kül Vezirinin Avlusu’nda ocağın hesabını tutan vezir hâlâ halka sayıyor. Kadı’ya giden yolu o biliyor.', 'In the Ash Vizier’s Court the vizier who keeps the furnace’s accounts still counts links. He knows the road to the Judge.'),
         objective: L('Kül Vezirinin Avlusu’nda Kül Veziri’ni avla.', 'Hunt the Ash Vizier in his court.'),
-        story: L('Vezir düşüyor; cübbesinin astarına dikilmiş harita ocağın ardını gösteriyor: mürekkepten bir nehir ve sonsuz raflar. Kemerinden kızgın bir anahtar sarkıyor.', 'The vizier falls; the map stitched into his robe shows what lies beyond the furnace: a river of ink and endless shelves. A glowing key hangs from his belt.'),
-        reward: { item: 'ash-vizier-robe', xp: 180 }, rewardText: L('Kül Vezirinin Cübbesi (Eşsiz zırh) ve Kızıl Fırınlar’daki sandığın anahtarı', 'Robe of the Ash Vizier (Unique armor) and the key to the chest in the Crimson Kilns') },
+        story: L('Vezir düşüyor; cübbesinin astarına dikilmiş harita ocağın ardını gösteriyor: mürekkepten bir nehir ve sonsuz raflar.', 'The vizier falls; the map stitched into his robe shows what lies beyond the furnace: a river of ink and endless shelves.'),
+        reward: { item: 'ash-vizier-robe', xp: 180 }, rewardText: L('Kül Vezirinin Cübbesi (Eşsiz zırh)', 'Robe of the Ash Vizier (Unique armor)') },
       { id: 'c4-rescue', kind: 'rescue', site: 'c4.captive', goal: 'c4.rescue-goal', fallback: { room: 3, dx: -4, dz: 3 }, voice: 'rescue4',
         name: L('Demirci Çırağı', 'The Smith’s Apprentice'), npc: L('Yusuf', 'Yusuf'),
         description: L('Kızgın Nakliye’de halka döven bir çırak hâlâ yaşıyor. Elleri zincire, zinciri örse bağlı.', 'In the Scorching Haul an apprentice who forges links is still alive. His hands are chained to the chain, the chain to the anvil.'),
@@ -253,37 +152,7 @@
           page('c4.page1', L('Sayfa: Halka Hesabı', 'Page: The Link Account'), L('“Her ad bir halka, her halka bir gün ateş. Bu ay on bin halka. Kâtip yazmaya devam ettikçe ocak sönmez.”', '“Each name a link, each link a day of fire. Ten thousand links this month. As long as the scribe keeps writing, the furnace never dies.”')),
           page('c4.page2', L('Sayfa: Selvi’nin Halkası', 'Page: Selvi’s Link'), L('“Selvi adlı halka ocağa gelmedi. Kadı onu istedi: ‘Bu kız kâtibin el yazısını tanır. Yeni kâtibim o olacak.’”', '“The link named Selvi never reached the furnace. The Judge asked for her: ‘This girl knows the scribe’s handwriting. She will be my new scribe.’”')),
           page('c4.page3', L('Sayfa: Yanmış İtiraf', 'Page: A Burned Confession'), L('“Korktum. Mühür geldi, adını yazdım. Sonra Defter’i yakmaya kalktım; ama ad bir kere yazılmıştı.” Gerisi kül.', '“I was afraid. The seal came and I wrote her name. Then I tried to burn the Ledger, but the name was already written.” The rest is ash.'))
-        ], fallbacks: [{ room: 1, dx: 7, dz: 4 }, { room: 6, dx: -7, dz: -3 }, { room: 8, dx: 6, dz: 4 }] },
-      { id: 'c4-altar', kind: 'altar', site: 'c4.altar', fallback: { room: 9, dx: -7, dz: -4 }, hidden: true, voice: 'altar4',
-        name: L('Kanlı Örs', 'The Bloody Anvil'), description: L('Cüruf Meydanı’nın kıyısında, hâlâ kızgın bir örs. Demirci kanı olmadan soğumuyor.', 'At the edge of the Slag Square, an anvil still glowing. It will not cool without a smith’s blood.'),
-        objective: L('Kanlı Örs’e dokun ve bedeli seç.', 'Touch the Bloody Anvil and choose the price.'),
-        verdict: { title: L('Örsün bedeli', 'The anvil’s price'), question: L('Örs çeliği senin kanınla soğutmak istiyor: kalıcı can kaybı karşılığında ocağın en keskin kılıcı.', 'The anvil wants to quench steel in your blood: a lasting loss of health for the furnace’s sharpest blade.'), options: [
-          { id: 'pay', name: L('Kanınla soğut', 'Quench it in your blood'), effect: L('Kalıcı -10 can. Kazanç: Kanlı Örsün Kılıcı (Eşsiz kılıç).', 'Permanent -10 health. Gain: Sword of the Bloody Anvil (Unique sword).'), story: L('Kolunu kızgın çeliğin üstüne tutuyorsun. Buhar çığlık gibi yükseliyor; çelik sana ait bir kılıca dönüşüyor.', 'You hold your arm over the glowing steel. Steam rises like a scream; the steel becomes a blade that is yours.'), cost: { hp: -10 }, reward: { item: 'bloody-anvil-sword' } },
-          { id: 'refuse', name: L('Örsü suya göm', 'Drown the anvil'), effect: L('Bedel yok. Ocak bir ağız daha kaybediyor.', 'No price. The furnace loses one more mouth.'), story: L('Örsü soğutma havuzuna itiyorsun. Ocak acıyla homurdanıyor; bir halka daha dövülmeyecek.', 'You push the anvil into the quenching pool. The furnace groans; one more link will never be forged.'), reward: { xp: 120 } }
-        ] } },
-      { id: 'c4-siege', kind: 'siege', site: 'c4.siege', fallback: { room: 6, dx: 7, dz: 4 }, waves: [3, 3, 4], verbTr: 'Körük zincirlerini kır',
-        name: L('Körük Ayaklanması', 'The Bellows Uprising'), verb: L('Körük zincirlerini kır', 'Break the bellows chains'),
-        description: L('Demirin Duası’nda körükler hâlâ zincirli kölelerle bağlı. Zincirleri kırarsan, ocağın bekçileri isyanı bastırmaya gelir.', 'In the Prayer of Iron the bellows are still bound to chained slaves. Break the chains and the furnace’s keepers will come to crush the uprising.'),
-        objective: L('Körük zincirlerini kır ve üç dalga boyunca hayatta kal.', 'Break the bellows chains and survive three waves.'),
-        story: L('Son bekçi körüğün altında eziliyor. Köleler ilk kez kendi soluklarıyla nefes alıyor.', 'The last keeper is crushed beneath the bellows. For the first time, the slaves breathe with their own breath.'),
-        reward: { damage: .03, xp: 260 }, rewardText: L('Kalıcı +%3 hasar', 'Permanent +3% damage') },
-      { id: 'c4-hunt2', kind: 'hunt', after: 'c4-hunt', hidden: true, site: 'c4.hunt2', fallback: { room: 5, dx: 5, dz: 4 },
-        name: L('Vezirin Hesap Kâtibi', 'The Vizier’s Tally Clerk'), target: { name: L('Vezirin Hesap Kâtibi', 'The Vizier’s Tally Clerk'), types: ['chainseer', 'forgesentinel'], scale: 2.9 },
-        description: L('Vezir düşünce hesap kâtibi defterleri kaçırmaya kalktı. Sönen Dökümhane’de sayıyor.', 'When the vizier fell his tally clerk tried to smuggle out the ledgers. He counts in the Dying Foundry.'),
-        objective: L('Sönen Dökümhane’de vezirin hesap kâtibini avla.', 'Hunt the vizier’s tally clerk in the Dying Foundry.'),
-        story: L('Kâtip düşüyor. Elindeki defterde son satır: “Kardeş kâtip yolda. Kadı bekliyor.” Sen gibi bir kâtipti.', 'The clerk falls. The ledger in his hand reads: “The brother scribe is on his way. The Judge waits.” He was a scribe, like you.'),
-        reward: { item: 'vizier-clerk-grasp', xp: 260 }, rewardText: L('Hesap Kâtibinin Pençesi (Eşsiz eldiven)', 'The Tally Clerk’s Grasp (Unique gauntlets)') },
-      { id: 'c4-escape', kind: 'escape', site: 'c4.escape', fallback: { room: 8, dx: -6, dz: 4 }, goal: 'c4.escape-goal', goalFallback: { room: 9, dx: 6, dz: -4 },
-        name: L('Döküm Taşıyor', 'The Pour Overflows'), verb: L('Kalıbı kır', 'Break the mould'),
-        description: L('Yutulan Çarklar’da bir döküm kalıbında son halka soğuyor. Kalıbı kırarsan erimiş demir taşar.', 'In the Swallowed Gears the last link cools in a casting mould. Break the mould and molten iron spills.'),
-        objective: L('Kalıbı kır ve demir yetişmeden Cüruf Meydanı’na kaç.', 'Break the mould and flee to the Slag Square before the iron reaches you.'),
-        story: L('Demir arkanda soğuyor. Kalıptan kurtardığın halkada bir ad var: senin adın. Henüz dövülmemiş.', 'The iron cools behind you. The link you saved from the mould bears a name: yours. Not yet forged.'),
-        reward: { xp: 300, hp: 5 }, rewardText: L('+300 tecrübe ve kalıcı +5 can', '+300 experience and permanent +5 health') },
-      { id: 'c4-chest', kind: 'chest', site: 'c4.chest', fallback: { room: 10, dx: 6, dz: -3 }, key: 'c4-hunt',
-        name: L('Selvi’nin Emanet Sandığı', 'Selvi’s Keepsake Chest'), description: L('Kızıl Fırınlar’da, halkaların arasında küçük bir sandık. Anahtarı Kül Veziri taşıyor.', 'In the Crimson Kilns, a small chest among the links. The Ash Vizier carries its key.'),
-        objective: L('Vezirin anahtarıyla Kızıl Fırınlar’daki emanet sandığını aç.', 'Open the keepsake chest in the Crimson Kilns with the vizier’s key.'),
-        story: L('Sandıkta boş bir halka ve küçük çizmeler var. Halkada tek bir ad: Selvi. İçinden geçen zincir yok. O yanmadı.', 'Inside lie an empty link and a pair of small boots. One name on the link: Selvi. No chain runs through it. She did not burn.'),
-        reward: { item: 'selvi-last-road', xp: 160 }, rewardText: L('Selvi’nin Son Yolu (Eşsiz çizme)', 'Selvi’s Last Road (Unique boots)') }
+        ], fallbacks: [{ room: 1, dx: 7, dz: 4 }, { room: 6, dx: -7, dz: -3 }, { room: 8, dx: 6, dz: 4 }] }
     ],
     5: [
       { id: 'c5-rescue', kind: 'rescue', site: 'selvi-cell', goal: 'selvi-goal', requiresMain: 1, fallback: { index: .7 }, voice: null,
@@ -308,14 +177,7 @@
           page('c5.page1', L('Sayfa: Kadı’nın Sabrı', 'Page: The Judge’s Patience'), L('“Kâtip öldü sanıyorlar. Ölmedi. Defter’in boş satırı onu çağırır. Geldiğinde kalemi kardeşi tutacak.”', '“They think the scribe is dead. He is not. The Ledger’s empty line calls him. When he comes, his sister will hold the pen.”')),
           page('c5.page2', L('Sayfa: Selvi’nin Günlüğü', 'Page: Selvi’s Diary'), L('“Her gece onun el yazısını taklit ediyorum. Kadı memnun. Abi, gelirsen beni tanıma. Ellerim artık seninkiler.”', '“Every night I copy his handwriting. The Judge is pleased. Brother, if you come, do not know me. My hands are yours now.”')),
           page('c5.page3', L('Sayfa: Son Satır', 'Page: The Last Line'), L('“Selvi.” Mürekkep düzgün, harfler sakin. Altında senin imzan. Bir satır aşağıda, boşluk: senin adın için.', '“Selvi.” The ink is even, the letters calm. Beneath, your signature. One line lower, an empty space: for your name.'))
-        ], fallbacks: [{ index: .25 }, { index: .55 }, { index: .8 }] },
-      { id: 'c5-altar', kind: 'altar', site: 'c5.altar', fallback: { index: .6 }, hidden: true, voice: 'altar5',
-        name: L('Boş Satır', 'The Empty Line'), description: L('Arşivin gizli köşesinde açık duran bir sayfa. Son satırı boş.', 'In a hidden corner of the archive lies an open page. Its last line is empty.'),
-        objective: L('Boş satıra dokun.', 'Touch the empty line.'),
-        verdict: { title: L('Adını erken yaz', 'Write your name early'), question: L('Adını şimdi yazarsan Defter seni Kadı’dan önce tanır: efendiye karşı güç kazanırsın, ama ölüm seni daha kolay bulur.', 'Write your name now and the Ledger will know you before the Judge does: strength against its master, but death will find you more easily.'), options: [
-          { id: 'pay', name: L('Adını yaz', 'Write your name'), effect: L('Bu bölümde 1 şifa matarası eksik. Kalıcı +%5 hasar.', 'One less healing flask this chapter. Permanent +5% damage.'), story: L('Kalem elinde ağırlaşıyor. Adının ilk harfini yazıyorsun; Defter bir kalp gibi atıyor.', 'The pen grows heavy in your hand. You write the first letter of your name; the Ledger beats like a heart.'), cost: { flaskDebt: 1 }, reward: { damage: .05 } },
-          { id: 'refuse', name: L('Satırı boş bırak', 'Leave the line empty'), effect: L('Bedel yok.', 'No price.'), story: L('Kalemi bırakıyorsun. Satır boş kalıyor; şimdilik.', 'You set the pen down. The line stays empty, for now.'), reward: { xp: 120 } }
-        ] } }
+        ], fallbacks: [{ index: .25 }, { index: .55 }, { index: .8 }] }
     ]
   };
 
@@ -337,12 +199,10 @@
     ]
   };
 
-  // Verdict leanings change what the living say, what chests hold and how the story closes.
+  // Verdict leanings change what the living say and how the story closes.
   var LEAN = {
     rescueMercy: L('Gözlerinde korku yok. Merhametinin adı ondan önce bu salonlara ulaşmış.', 'There is no fear in their eyes. Word of your mercy reached these halls before you did.'),
     rescueWrath: L('Seni görünce titriyor. Verdiğin hükümlerin sesi senden önce gelmiş; yine de elini tutuyor.', 'They tremble at the sight of you. The sound of your verdicts arrived first; still, they take your hand.'),
-    chestMercy: L(' Sandığın dibinde, bıraktığın ölülerden birinin dua bezi var: kalıcı +3 can.', ' At the bottom lies a prayer cloth from one of the dead you spared: permanent +3 health.'),
-    chestWrath: L(' Sandığın dibinde bir cellat bileği var; yargının ağırlığını taşıyor: kalıcı +%2 hasar.', ' At the bottom lies an executioner’s whetstone, heavy with judgment: permanent +2% damage.'),
     epi: {
       name: [L('Mezarının başında Selvi her bahar bir ad okur: seninkini. Defter’de başka hiçbir ad kalmadı.', 'Each spring Selvi reads one name at your grave: yours. No other name remains in the Ledger.'),
              L('Kimse mezarına gelmez. Ama özgür kalan binlerce ad, toprağın altında bile seni tanır.', 'No one visits your grave. But the thousands of names set free know you, even beneath the earth.')],
@@ -392,40 +252,6 @@
         kit.box(body, PAPER, .44, .012, .32, 0, .965, .01, -.5); kit.box(body, PAPER, .2, .01, .28, .12, .975, .02, -.5, .12);
         kit.cyl(body, mt.wax || PAPER, .035, .04, .16, .26, .99, -.14); kit.put(glowParts, EMBER, new T.ConeGeometry(.022, .07, 6), .26, 1.1, -.14);
         kit.box(glowParts, G, .3, .006, .2, -.02, .975, .03, -.5);
-      } else if (kind === 'altar') {
-        kit.box(body, S, 1.1, .62, .7, 0, .31, 0); kit.box(body, S, 1.24, .1, .82, 0, .67, 0); kit.box(body, R, 1.26, .03, .84, 0, .6, 0);
-        kit.cyl(body, M, .3, .24, .14, 0, .79, 0);
-        for (var h = -1; h <= 1; h += 2) { kit.put(body, BONE, new T.ConeGeometry(.07, .7, 6), h * .5, 1.0, -.22, .25, 0, -h * .45); kit.put(body, BONE, new T.ConeGeometry(.05, .5, 6), h * .38, .94, .25, -.3, 0, -h * .3); }
-        kit.cyl(body, BLOOD, .24, .24, .03, 0, .86, 0); kit.box(body, BLOOD, .08, .5, .02, .2, .4, .36); kit.box(body, BLOOD, .05, .34, .02, -.25, .46, .36);
-        for (var sk = -1; sk <= 1; sk += 2) kit.put(body, BONE, new T.SphereGeometry(.09, 10, 8), sk * .42, .78, .2);
-        kit.cyl(glowParts, EMBER, .1, .1, .012, 0, .885, 0);
-        for (var c = 0; c < 4; c++) kit.ring(chains, M, .09, .02, -.62 + c * .025, .3 + c * .13, .36, c % 2 ? PI / 2 : 0);
-      } else if (kind === 'chest') {
-        kit.box(body, Wd, .9, .48, .58, 0, .26, 0); kit.box(body, M, .94, .05, .62, 0, .07, 0);
-        for (var b = -1; b <= 1; b += 2) kit.box(body, M, .05, .5, .62, b * .3, .27, 0);
-        kit.box(lid, Wd, .9, .14, .58, 0, 0, .29); kit.box(lid, M, .94, .04, .62, 0, .06, .29); kit.box(lid, R, .12, .14, .04, 0, -.02, .6);
-        for (var k = 0; k < 7; k++) kit.ring(chains, M, .075, .022, -.42 + k * .14, .52, .3, PI / 2, 0, (k % 2) * PI / 2);
-        for (var k2 = 0; k2 < 3; k2++) kit.ring(chains, M, .075, .022, .05, .3 + k2 * .12, .31, 0, PI / 2, (k2 % 2) * PI / 2);
-        kit.put(glowParts, EMBER, new T.SphereGeometry(.045, 10, 8), 0, .44, .32);
-      } else if (kind === 'reliquary') {
-        kit.box(body, S, .7, .7, .7, 0, .35, 0); kit.box(body, R, .76, .05, .76, 0, .72, 0);
-        kit.cyl(body, M, .2, .26, .14, 0, .8, 0);
-        for (var cg2 = 0; cg2 < 4; cg2++) { var a3 = cg2 * PI / 2 + PI / 4; kit.box(body, M, .03, .42, .03, Math.sin(a3) * .17, 1.06, Math.cos(a3) * .17, Math.cos(a3) * .25, 0, -Math.sin(a3) * .25); }
-        kit.put(glowParts, EMBER, new T.IcosahedronGeometry(.12, 0), 0, 1.02, 0);
-      } else if (kind === 'goal') {
-        kit.ring(glowParts, EMBER, 2.2, .045, 0, .06, 0, PI / 2); kit.ring(glowParts, G, 1.7, .025, 0, .06, 0, PI / 2);
-        for (var gs = 0; gs < 8; gs++) { var a4 = gs * PI / 4; kit.box(glowParts, EMBER, .08, .02, .5, Math.sin(a4) * 1.95, .07, Math.cos(a4) * 1.95, 0, a4, 0); }
-      } else if (/^sealstone/.test(kind)) {
-        var notches = +kind.slice(9);
-        kit.box(body, S, .5, 1.5, .5, 0, .75, 0); kit.box(body, S, .7, .16, .7, 0, .08, 0); kit.box(body, R, .56, .05, .56, 0, 1.52, 0);
-        for (var nt = 0; nt < notches; nt++) kit.box(body, R, .05, .34, .04, (nt - (notches - 1) / 2) * .12, .9, .26);
-        kit.put(glowParts, EMBER, new T.OctahedronGeometry(.13, 0), 0, 1.72, 0);
-      } else if (kind === 'brazier') {
-        kit.cyl(body, S, .42, .5, .22, 0, .11, 0); kit.cyl(body, M, .1, .12, .7, 0, .55, 0);
-        kit.put(body, M, new T.LatheGeometry([new T.Vector2(.08, 0), new T.Vector2(.42, .12), new T.Vector2(.55, .3), new T.Vector2(.5, .34)], 20), 0, .86, 0);
-        kit.ring(body, R, .54, .03, 0, 1.18, 0, PI / 2);
-        for (var sp = 0; sp < 3; sp++) { var an = sp * PI * 2 / 3; kit.box(body, M, .05, .9, .05, Math.sin(an) * .3, .45, Math.cos(an) * .3, Math.cos(an) * .35, 0, -Math.sin(an) * .35); }
-        kit.cyl(glowParts, EMBER, .4, .44, .05, 0, 1.13, 0); for (var em = 0; em < 5; em++) kit.put(glowParts, EMBER, new T.OctahedronGeometry(.07, 0), Math.sin(em * 1.3) * .22, 1.18, Math.cos(em * 1.3) * .22);
       } else if (kind === 'post') {
         kit.box(body, Wd, .2, 1.8, .2, 0, .9, 0); kit.box(body, M, .3, .08, .3, 0, 1.2, 0); kit.box(body, S, .7, .12, .7, 0, .06, 0);
         for (var l = 0; l < 6; l++) kit.ring(chains, M, .08, .02, .12 + l * .1, 1.1 - l * .16, .1, l % 2 ? PI / 2 : 0, 0, .7);
@@ -515,51 +341,48 @@
       }
       q.enemy = best; return true;
     }
-    // ---- beacons: a faint pillar of light and a slowly turning rune circle over the nearest live objectives,
-    // readable from across a hall. Six pooled sets, two canvas textures and one shader program, built once at load.
-    var beacons = [], beaconTex = null;
+    // ---- quest markers: a low, dim ground sigil (one thin ring, four ticks and a small diamond on the edge that faces the camera) under the
+    // nearest live objectives. No light pillar and no bloom: additive alpha <= .3, a slow breath, fading out with distance and while the hero stands on it.
+    // Three pooled sets, one canvas texture, built once at setup (and drawn once by the warm-up); reduced motion holds the sigil still.
+    var beacons = [], beaconTex = null, calmMotion = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : { matches: false };
     function canvasTex(w, h, draw) { var c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h); var t = new T.CanvasTexture(c); if (T.SRGBColorSpace) t.colorSpace = T.SRGBColorSpace; return t; }
     function buildBeacons() {
       if (typeof document === 'undefined') return;
-      var colTex = canvasTex(16, 128, function (x, w, h) { var g = x.createLinearGradient(0, 0, 0, h); g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(.55, 'rgba(255,255,255,.35)'); g.addColorStop(1, 'rgba(255,255,255,1)'); x.fillStyle = g; x.fillRect(0, 0, w, h); var s2 = x.createLinearGradient(0, 0, w, 0); s2.addColorStop(0, 'rgba(0,0,0,1)'); s2.addColorStop(.5, 'rgba(0,0,0,0)'); s2.addColorStop(1, 'rgba(0,0,0,1)'); x.globalCompositeOperation = 'destination-out'; x.fillStyle = s2; x.fillRect(0, 0, w, h); });
-      var runeTex = canvasTex(256, 256, function (x, w) {
+      beaconTex = canvasTex(256, 256, function (x, w) {
         x.translate(w / 2, w / 2); x.strokeStyle = '#fff'; x.fillStyle = '#fff';
-        x.lineWidth = 5; x.beginPath(); x.arc(0, 0, 118, 0, PI * 2); x.stroke(); x.lineWidth = 2; x.beginPath(); x.arc(0, 0, 100, 0, PI * 2); x.stroke();
-        x.lineWidth = 2; x.beginPath(); x.arc(0, 0, 62, 0, PI * 2); x.stroke();
-        for (var i = 0; i < 24; i++) { x.save(); x.rotate(i * PI / 12); x.fillRect(-1.5, -116, 3, i % 3 ? 10 : 18); x.restore(); }
-        for (var j = 0; j < 8; j++) { x.save(); x.rotate(j * PI / 4 + .2); x.beginPath(); x.moveTo(0, -96); x.lineTo(7, -78); x.lineTo(-7, -78); x.closePath(); x.fill(); x.restore(); }
-        for (var k = 0; k < 3; k++) { x.save(); x.rotate(k * PI * 2 / 3); x.beginPath(); x.moveTo(0, -62); x.lineTo(54, 31); x.stroke(); x.restore(); }
+        x.lineWidth = 3.5; x.beginPath(); x.arc(0, 0, 118, 0, PI * 2); x.stroke();
+        x.globalAlpha = .5; x.lineWidth = 1.4; x.beginPath(); x.arc(0, 0, 104, 0, PI * 2); x.stroke();
+        x.globalAlpha = .8; x.lineWidth = 2.5;
+        for (var i = 0; i < 4; i++) { x.save(); x.rotate(i * PI / 2); x.beginPath(); x.moveTo(0, -104); x.lineTo(0, -88); x.stroke(); x.restore(); }
+        x.globalAlpha = 1; x.beginPath(); x.moveTo(0, 101); x.lineTo(10, 118); x.lineTo(0, 135); x.lineTo(-10, 118); x.closePath(); x.fill();   // the small diamond, bottom edge = camera side
       });
-      beaconTex = [colTex, runeTex];
-      var colGeo = new T.CylinderGeometry(.42, .42, 9, 16, 1, true); colGeo.translate(0, 4.5, 0);
-      var runeGeo = new T.PlaneGeometry(3, 3); runeGeo.rotateX(-PI / 2);
-      for (var b = 0; b < 6; b++) {
-        var cm = new T.MeshBasicMaterial({ map: colTex, transparent: true, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide, color: 0xffb060, opacity: .55, fog: false });
-        var rm = new T.MeshBasicMaterial({ map: runeTex, transparent: true, depthWrite: false, blending: T.AdditiveBlending, color: 0xffb060, opacity: .7, fog: false });
-        var grp = new T.Group(), col = new T.Mesh(colGeo, cm), rune = new T.Mesh(runeGeo, rm); col.renderOrder = rune.renderOrder = 6; col.castShadow = rune.castShadow = false;
-        rune.position.y = .06; grp.add(col, rune); grp.visible = false; grp.name = 'quest-beacon'; kit.root.add(grp);
-        beacons.push({ group: grp, col: cm, rune: rm, runeMesh: rune, target: null });
+      var geo = new T.PlaneGeometry(2.6, 2.6); geo.rotateX(-PI / 2);
+      for (var b = 0; b < 3; b++) {
+        var m = new T.MeshBasicMaterial({ map: beaconTex, transparent: true, depthWrite: false, blending: T.AdditiveBlending, color: 0xb89150, opacity: 0, fog: false });
+        var mesh = new T.Mesh(geo, m); mesh.renderOrder = 6; mesh.castShadow = false; mesh.visible = false; mesh.name = 'quest-sigil'; mesh.position.y = .05; kit.root.add(mesh);
+        beacons.push({ mesh: mesh, mat: m, kind: '' });
       }
     }
-    try { buildBeacons(); } catch (e) { console.warn('[quests] beacons', e && e.message); beacons = []; }
-    var KIND_COLOR = { main: 0xf0c070, hunt: 0xff5a3a, rescue: 0x9fe0c0, lore: 0xf3dfaa, altar: 0xff2a20, chest: 0xffc060, siege: 0xff8040, escape: 0xffe070, puzzle: 0x90b8ff };
-    var beaconClock = 0;
+    try { buildBeacons(); } catch (e) { console.warn('[quests] markers', e && e.message); beacons = []; }
+    var KIND_COLOR = { main: 0xb89150, hunt: 0xa8624a, rescue: 0x8fa38c, lore: 0xb8a67c };
+    var KIND_ALPHA = { main: .3, hunt: .24, rescue: .24, lore: .24 };
+    var beaconClock = 0, beaconList = [];
     function updateBeacons(dt) {
       if (!beacons.length) return;
       beaconClock += dt;
-      var list = [];
-      (info.markers || []).forEach(function (m) { if (m.active && !m.complete) list.push({ x: m.x, z: m.z, kind: 'main', key: 'm' + m.id }); });
-      (info.side || []).forEach(function (e) { if (e.available && e.target && Number.isFinite(e.target.x) && !(e.kind === 'hunt')) list.push({ x: e.target.x, z: e.target.z, kind: e.kind, key: 's' + e.id + e.target.id }); });
-      list.forEach(function (t) { t.d = Math.hypot(t.x - player.x, t.z - player.z); });
-      list = list.filter(function (t) { return t.d > 2.2 && t.d < 70; }).sort(function (a, b) { return a.d - b.d; }).slice(0, beacons.length);
+      var list = beaconList; list.length = 0;
+      (info.markers || []).forEach(function (m) { if (m.active && !m.complete) list.push({ x: m.x, z: m.z, kind: 'main', d: 0 }); });
+      (info.side || []).forEach(function (e) { if (e.available && e.target && Number.isFinite(e.target.x) && e.kind !== 'hunt') list.push({ x: e.target.x, z: e.target.z, kind: e.kind, d: 0 }); });
+      for (var k = 0; k < list.length; k++) list[k].d = Math.hypot(list[k].x - player.x, list[k].z - player.z);
+      list = list.filter(function (t) { return t.d < 34; }).sort(function (a, b) { return a.d - b.d; });
+      var breath = calmMotion.matches ? 1 : .86 + Math.sin(beaconClock * 1.4) * .14;
       for (var i = 0; i < beacons.length; i++) {
         var bc = beacons[i], t = list[i];
-        if (!t) { if (bc.group.visible) bc.group.visible = false; continue; }
-        var y = world.effectHeightAt ? world.effectHeightAt(t.x, t.z, .65) : 0;
-        bc.group.position.set(t.x, y, t.z); bc.group.visible = true;
-        if (bc.kind !== t.kind) { bc.kind = t.kind; bc.col.color.setHex(KIND_COLOR[t.kind] || 0xffb060); bc.rune.color.setHex(KIND_COLOR[t.kind] || 0xffb060); }
-        var near = Math.min(1, Math.max(0, (t.d - 3) / 10)), pulse = .82 + Math.sin(beaconClock * 2.2 + i) * .18;
-        bc.col.opacity = .42 * near * pulse; bc.rune.opacity = .75 * pulse; bc.runeMesh.rotation.y = beaconClock * .35 * (i % 2 ? 1 : -1);
+        if (!t) { if (bc.mesh.visible) bc.mesh.visible = false; continue; }
+        var far = Math.min(1, (34 - t.d) / 12), nearK = .35 + .65 * Math.min(1, Math.max(0, (t.d - 2.2) / 4));
+        bc.mesh.position.set(t.x, (world.effectHeightAt ? world.effectHeightAt(t.x, t.z, .65) : 0) + .05, t.z); bc.mesh.visible = true;
+        if (bc.kind !== t.kind) { bc.kind = t.kind; bc.mat.color.setHex(KIND_COLOR[t.kind] || KIND_COLOR.main); }
+        bc.mat.opacity = (KIND_ALPHA[t.kind] || .24) * far * nearK * breath;
       }
     }
 
@@ -567,9 +390,9 @@
     defs.forEach(function (def, qi) {
       var q = { def: def, index: qi, nodes: [], entry: null };
       var entry = { id: def.id, kind: def.kind, kindName: W[def.kind], name: def.name, description: def.description, objective: def.objective,
-        rewardText: def.rewardText || '', hidden: !!def.hidden, discovered: !def.hidden, complete: false, progress: 0, total: 1, outcome: '', choice: null,
+        rewardText: def.rewardText || '', discovered: true, complete: false, progress: 0, total: 1, outcome: '', choice: null,
         pages: null, target: null, available: false };
-      q.entry = entry; quests.push(q); state[def.id] = { stage: 0, bits: 0, choice: null, done: false, discovered: !def.hidden };
+      q.entry = entry; quests.push(q); state[def.id] = { stage: 0, bits: 0, choice: null, done: false, discovered: true };
       try {
         if (def.kind === 'hunt') {
           q.huntAt = spot(def.site, def.fallback); promote(q);
@@ -581,25 +404,9 @@
         } else if (def.kind === 'lore') {
           entry.total = def.pages.length; entry.pages = [];
           def.pages.forEach(function (pg, i) { var n = node(q, 'page', pg.site, def.fallbacks[i], { verb: L('Sayfayı oku', 'Read the page'), role: 'page', page: i }); q.nodes.push(n); entry.pages.push({ name: pg.name, text: pg.text, found: false }); });
-        } else if (def.kind === 'altar') {
-          q.altar = node(q, 'altar', def.site, def.fallback, { verb: L('Sunağa dokun', 'Touch the altar'), role: 'altar' });
-        } else if (def.kind === 'escape') {
-          q.relic = node(q, 'reliquary', def.site, def.fallback, { verb: def.verb, role: 'escape' });
-          var gp = spot(def.goal, def.goalFallback); q.goal = { x: gp.x, z: gp.z, y: gp.y }; o.reserve(gp.x, gp.z);
-          q.goalRing = prop('goal', gp.x, gp.y, gp.z); q.goalRing.group.visible = false;
-          var dist = Math.hypot(gp.x - q.relic.x, gp.z - q.relic.z); q.limit = Math.round(Math.max(18, Math.min(45, dist / 3.6 + 9)));
-        } else if (def.kind === 'puzzle') {
-          q.seals = def.sites.map(function (site, i) { return node(q, 'sealstone' + (i + 1), site, def.fallbacks[i], { verb: L('Mühür taşını uyandır', 'Wake the seal stone'), role: 'seal', seal: i }); });
-          var mid = q.seals.reduce(function (a, n) { return { x: a.x + n.x / 3, z: a.z + n.z / 3 }; }, { x: 0, z: 0 });
-          q.vault = node(q, 'chest', def.id + '-vault', { dx: 0, dz: 0, room: def.fallbacks[1].room }, { verb: L('Gizli dolabı aç', 'Open the hidden cabinet'), role: 'vault' });
-          entry.total = 4;
-        } else if (def.kind === 'siege') {
-          q.brazier = node(q, 'brazier', def.site, def.fallback, { verb: def.verb, role: 'siege' }); entry.total = def.waves.length;
-        } else if (def.kind === 'chest') {
-          q.chest = node(q, 'chest', def.site, def.fallback, { verb: L('Sandığı aç', 'Open the chest'), role: 'chest' });
         }
       } catch (e) { console.warn('[quests] side quest disabled', def.id, e); q.disabled = true; }
-      if (q.captive) q.nodes.push(q.captive); if (q.altar) q.nodes.push(q.altar); if (q.chest) q.nodes.push(q.chest); if (q.brazier) q.nodes.push(q.brazier); if (q.relic) q.nodes.push(q.relic); if (q.seals) q.nodes.push.apply(q.nodes, q.seals.concat([q.vault]));
+      if (q.captive) q.nodes.push(q.captive);
     });
     quests = quests.filter(function (q) { return !q.disabled; });
     info.side = quests.map(function (q) { return q.entry; });
@@ -607,44 +414,29 @@
     nodes.forEach(function (n) { n.marker = { id: n.id, side: n.quest.def.id, kind: n.quest.def.kind, name: n.quest.def.name, x: n.x, z: n.z, active: false, complete: false }; info.sideMarkers.push(n.marker); });
     quests.forEach(function (q) { if (q.enemy) { q.marker = { id: q.def.id, side: q.def.id, kind: 'hunt', name: q.def.target.name, x: q.enemy.x, z: q.enemy.z, active: true, complete: false, moving: true }; info.sideMarkers.push(q.marker); } });
 
-    function keyOwned(q) { var src = state[q.def.key]; return !!(src && src.done); }
     function mainDone(i) { return !!(info.entries[i] && info.entries[i].complete); }
     function refresh() {
       quests.forEach(function (q) {
         var s = state[q.def.id], e = q.entry, d = q.def;
-        e.complete = s.done; e.discovered = s.discovered || s.done; e.choice = s.choice;
+        e.complete = s.done; e.discovered = true; e.choice = s.choice;
         if (d.kind === 'lore') { e.progress = 0; for (var i = 0; i < q.nodes.length; i++) { var got = !!(s.bits & (1 << i)); q.nodes[i].done = got; e.pages[i].found = got; if (got) e.progress++; } }
         else if (d.kind === 'rescue') { e.total = 2; e.progress = s.done ? 2 : s.stage >= 1 ? 1 : 0; }
-        else if (d.kind === 'escape') { e.progress = s.done ? 1 : 0; }
-        else if (d.kind === 'puzzle') { var lit = 0; for (var b2 = 0; b2 < 3; b2++) if (s.bits & (1 << b2)) lit++; e.progress = s.done ? 4 : lit; }
-        else if (d.kind === 'siege') { e.total = d.waves.length; e.progress = s.done ? d.waves.length : Math.max(0, s.stage - 1); }
         else e.progress = s.done ? 1 : 0;
-        e.objective = s.done ? W.done : d.kind === 'escape' && s.stage >= 1 ? W.run + Math.max(0, Math.ceil(q.left || 0)) + W.secs + ' · ' + d.objective : d.kind === 'puzzle' && s.stage >= 1 ? L('Gizli dolap açıldı. İçindekini al.', 'The hidden cabinet is open. Take what lies inside.') : d.kind === 'puzzle' && e.discovered ? d.objective + ' ' + d.riddle : d.kind === 'siege' && s.stage >= 1 ? W.wave + s.stage + ' / ' + d.waves.length + W.survive : d.kind === 'rescue' && s.stage >= 1 ? d.follow : d.kind === 'chest' && !keyOwned(q) ? W.locked : d.objective;
-        e.available = !s.done && e.discovered && !(d.requiresMain != null && !mainDone(d.requiresMain));
-        e.outcome = s.done ? (d.kind === 'altar' && s.choice ? (d.verdict.options.find(function (x) { return x.id === s.choice; }) || {}).story || '' : d.story) : '';
-        e.target = null; e.urgent = (d.kind === 'escape' || d.kind === 'siege') && s.stage >= 1 && !s.done ? (d.kind === 'escape' ? W.run + Math.max(0, Math.ceil(q.left || 0)) + W.secs : W.wave + s.stage + ' / ' + d.waves.length) : '';
+        e.locked = !s.done && d.requiresMain != null && !mainDone(d.requiresMain);
+        e.objective = s.done ? W.done : d.kind === 'rescue' && s.stage >= 1 ? d.follow : d.objective;
+        e.available = !s.done && !e.locked;
+        e.outcome = s.done ? d.story : '';
+        e.target = null; e.urgent = '';
         q.nodes.forEach(function (n) {
           if (d.kind === 'rescue') n.done = s.stage >= 1 || s.done;
-          if (d.kind === 'altar' || d.kind === 'chest') n.done = s.done;
-          if (d.kind === 'siege') n.done = s.done || s.stage >= 1;
-          if (d.kind === 'escape') n.done = s.done || s.stage >= 1;
-          if (d.kind === 'puzzle') n.done = s.done || (n.role === 'seal' ? !!(s.bits & (1 << n.seal)) || s.stage >= 1 : s.stage < 1);
-          n.marker.complete = n.done; n.marker.active = e.available && !n.done && !(d.kind === 'chest' && !keyOwned(q));
-          // qa: the tracker/beacon must not lead the player onto a wrong seal (wrong order costs health): only the next seal of the riddle's order is marked.
-          if (d.kind === 'puzzle' && n.role === 'seal' && n.marker.active && d.order) { var litN = 0; for (var b4 = 0; b4 < 3; b4++) if (s.bits & (1 << b4)) litN++; if (d.order[litN] !== n.seal) n.marker.active = false; }
+          n.marker.complete = n.done; n.marker.active = e.available && !n.done;
           if (!e.target && n.marker.active) e.target = n.marker;
           var pr = n.parts; if (!pr) return;
-          if (pr.glow) pr.glow.visible = n.marker.active || (d.kind === 'altar' && !s.done) || (d.kind === 'siege' && s.stage >= 1 && !s.done);
+          if (pr.glow) pr.glow.visible = n.marker.active;
           if (d.kind === 'lore') pr.group.visible = !n.done;
-          if (pr.chains) pr.chains.visible = !(d.kind === 'chest' ? s.done : d.kind === 'rescue' ? s.stage >= 1 || s.done : false);
-          if (pr.lid) { pr.lid.rotation.x = s.done ? -1.9 : 0; pr.lid.updateMatrix(); }
+          if (pr.chains) pr.chains.visible = !(d.kind === 'rescue' && (s.stage >= 1 || s.done));
         });
-        if (q.brand) q.brand.visible = !!e.discovered;
-        if (d.kind === 'puzzle' && q.vault && q.vault.parts) { q.vault.parts.group.visible = s.stage >= 1 || s.done; if (q.vault.parts.glow) q.vault.parts.glow.visible = s.stage >= 1 && !s.done; }
-        if (d.kind === 'puzzle' && q.seals) q.seals.forEach(function (n) { if (n.parts && n.parts.glow) n.parts.glow.visible = !!(s.bits & (1 << n.seal)) || s.done || s.stage >= 1; });
-        if (d.kind === 'escape' && q.goalRing) q.goalRing.group.visible = s.stage >= 1 && !s.done;
-        if (d.kind === 'escape' && s.stage >= 1 && !s.done) e.target = { id: d.goal, name: L('Kaçış noktası', 'Escape point'), x: q.goal.x, z: q.goal.z, active: true };
-        if (q.marker) { q.marker.complete = s.done; q.marker.active = !s.done && !!e.discovered && !!q.enemy && !q.enemy.dead; if (q.marker.active) e.target = q.marker; }
+        if (q.marker) { q.marker.complete = s.done; q.marker.active = !s.done && !!q.enemy && !q.enemy.dead; if (q.marker.active) e.target = q.marker; }
         if (d.kind === 'rescue' && s.stage >= 1 && !s.done) e.target = { id: d.goal, name: d.npc, x: q.goal.x, z: q.goal.z, active: true };
         if (d.kind === 'rescue' && q.actor) q.actor.root.visible = !(d.requiresMain != null && !mainDone(d.requiresMain) && !s.stage);
       });
@@ -682,7 +474,7 @@
     function scan() {
       near = null; var best = RANGE * RANGE;
       for (var i = 0; i < nodes.length; i++) {
-        var n = nodes[i], q = n.quest, s = state[q.def.id]; if (n.done || s.done || !q.entry.discovered) continue;
+        var n = nodes[i], q = n.quest, s = state[q.def.id]; if (n.done || s.done) continue;
         if (q.def.requiresMain != null && !mainDone(q.def.requiresMain)) continue;
         var dx = player.x - n.x, dz = player.z - n.z, d = dx * dx + dz * dz; if (d >= best) continue;
         if (world.hasClearPath && !world.hasClearPath(player.x, player.z, n.x, n.z, .25)) continue;
@@ -690,8 +482,7 @@
       }
       if (!near) return null;
       var qd = near.quest.def, blocked = '';
-      if (qd.kind === 'chest' && !keyOwned(near.quest)) blocked = W.locked;
-      else if (qd.kind === 'rescue' && guarded(near, 9)) blocked = W.guarded;
+      if (qd.kind === 'rescue' && guarded(near, 9)) blocked = W.guarded;
       prompt.id = near.id; prompt.name = qd.name; prompt.quest = qd.name; prompt.x = near.x; prompt.z = near.z;
       prompt.available = !blocked; prompt.text = blocked || near.verb; prompt.distance = Math.sqrt(best);
       return prompt;
@@ -710,42 +501,15 @@
         else { if (api.onChange) api.onChange(); notify(q, pg.name + ' · ' + count + ' / ' + d.pages.length, false); }
         return true;
       }
-      if (d.kind === 'chest') {
-        var ln = tally().lean, extra = ln === 'mercy' ? { hp: 3 } : ln === 'wrath' ? { damage: .02 } : null;
-        if (extra) grant(d.id + ':lean', extra);
-        complete(q, d.story + (ln === 'mercy' ? LEAN.chestMercy : ln === 'wrath' ? LEAN.chestWrath : '')); return true;
-      }
-      if (d.kind === 'escape') { s.stage = 1; q.left = q.limit; refresh(); notify(q, d.description + ' ' + W.run + q.limit + W.secs, false); api.sound('sealOpen', { x: n.x, z: n.z }); return true; }
-      if (d.kind === 'puzzle') {
-        if (n.role === 'vault') { complete(q, d.story); return true; }
-        var lit2 = 0; for (var b3 = 0; b3 < 3; b3++) if (s.bits & (1 << b3)) lit2++;
-        if (d.order[lit2] !== n.seal) { s.bits = 0; player.hp = Math.max(1, player.hp - 10); refresh(); api.sound('hurt', { x: n.x, z: n.z }); api.emit('toast', { text: W.wrongSeal + ' ' + d.riddle }); return true; }
-        s.bits |= 1 << n.seal; api.sound('sealOpen', { x: n.x, z: n.z });
-        if (lit2 + 1 === 3) { s.stage = 1; refresh(); if (api.onChange) api.onChange(); notify(q, L('Üç mühür birden yanıyor. Taşın altında bir dolap beliriyor.', 'All three seals burn at once. A cabinet appears beneath the stone.'), false); }
-        else refresh();
-        return true;
-      }
-      if (d.kind === 'siege') { s.stage = 1; q.wave = null; q.pause = .6; refresh(); notify(q, d.description, false); api.sound('sealOpen', { x: n.x, z: n.z }); return true; }
       if (d.kind === 'rescue') {
         s.stage = 1; q.actor.x = n.x + .9; q.actor.z = n.z + .6; refresh(); if (api.onChange) api.onChange();
         var lean = tally().lean; notify(q, d.freeStory + (lean ? ' ' + (lean === 'mercy' ? LEAN.rescueMercy : LEAN.rescueWrath) : ''), false); api.sound('sealOpen', { x: n.x, z: n.z }); return true;
-      }
-      if (d.kind === 'altar') {
-        info.pendingChoice = { questId: d.id, nodeId: n.id, title: d.verdict.title, question: d.verdict.question, options: d.verdict.options, side: true };
-        bump(); api.emit('questChoice', info.pendingChoice); return true;
       }
       return false;
     }
     function choose(questId, optionId) {
       var pending = info.pendingChoice; if (!pending || !pending.side || pending.questId !== questId) return false;
-      if (pending.finale) return chooseFinale(optionId);
-      var q = quests.find(function (x) { return x.def.id === questId; }); if (!q) return false;
-      var opt = q.def.verdict.options.find(function (x) { return x.id === optionId; }); if (!opt) return false;
-      var s = state[q.def.id]; s.choice = optionId; info.pendingChoice = null;
-      if (opt.cost && opt.cost.flaskDebt) local.flaskDebt += opt.cost.flaskDebt;
-      if (opt.cost && opt.cost.hp) grant(q.def.id + ':cost', { hp: opt.cost.hp });
-      complete(q, opt.story, q.def.id + ':' + optionId, opt.reward);
-      return true;
+      return pending.finale ? chooseFinale(optionId) : false;
     }
 
     // ---- finale (chapter 5, after the master falls)
@@ -804,39 +568,10 @@
       var vis = Math.abs(player.x - a.x) < 34 && Math.abs(player.z - a.z) < 34 && a.root.visible !== false;
       if (vis) animateActor(a, dt);
     }
-    // ---- survival: the rite pulls dormant dead from far, unvisited halls in three waves around the site.
-    function pull(q, count) {
-      var site = q.brazier, list = (api.enemies || []).filter(function (e) {
-        return !e.dead && !e.boss && !e.reserve && !e.huntQuest && !e.active && !e.siege && Math.hypot(e.x - player.x, e.z - player.z) > 26;
-      }).sort(function (a, b) { return Math.hypot(b.x - site.x, b.z - site.z) - Math.hypot(a.x - site.x, a.z - site.z); });
-      var wave = [];
-      for (var i = 0; i < list.length && wave.length < count; i++) {
-        var e = list[i], placed = false;
-        for (var k = 0; k < 10 && !placed; k++) {
-          var an = (wave.length / count + k * .13) * PI * 2 + (q.index || 0), r = 6 + (k % 3), x = site.x + Math.sin(an) * r, z = site.z + Math.cos(an) * r;
-          if (world.isWalkable && !world.isWalkable(x, z, .6)) continue;
-          e.x = e.spawnX = x; e.z = e.spawnZ = z; e.face = Math.atan2(player.x - x, player.z - z); e.active = e.activated = true; e.returning = false;
-          if (e.encounter && typeof e.encounter === 'object') e.encounter.announced = true; e.siege = q.def.id; e.cooldown = 1.2 + wave.length * .35; e.navigation = null;
-          if (e.model && e.model.root) { e.model.root.position.set(x, 0, z); e.model.root.visible = true; }
-          try { api.fx('boss2Summon', { x: x, z: z }); } catch (err) {} placed = true; wave.push(e);
-        }
-      }
-      return wave;
-    }
-    function updateSiege(q, s, dt) {
-      if (player.dead) return;
-      if (q.wave && q.wave.some(function (e) { return !e.dead; })) return;
-      if (q.wave) { q.wave = null; q.pause = 2.2; if (s.stage >= q.def.waves.length) { s.stage = 2; complete(q, q.def.story); return; } s.stage++; refresh(); }
-      q.pause -= dt; if (q.pause > 0) return;
-      var n = q.def.waves[Math.max(0, s.stage - 1)] - (api.difficulty === 'easy' || (B.app && B.app.game && B.app.game.difficulty === 'easy') ? 1 : 0);
-      q.wave = pull(q, n);
-      api.emit('toast', { text: W.wave + s.stage + ' / ' + q.def.waves.length + ' · ' + q.def.name });
-      if (!q.wave.length) { s.stage = q.def.waves.length; q.wave = []; }
-    }
     function update(dt) {
       if (disposed) return;
       var dirty = false;
-      // Flask capacity: permanent quest boons minus this chapter's blood debts.
+      // Flask capacity: permanent quest boons minus the blood debt a pre-trim save may still carry (the altar threads were removed).
       if (player.baseFlasks === undefined) player.baseFlasks = player.maxFlasks || 4;
       // talent tree 3 (talent-tree.js): Fazla Matara +1, Kan Yemini carries none at all
       var tp = prog(), tf = window.BABA.TalentTree && tp && tp.learned ? window.BABA.TalentTree.effects(tp.learned).flasks : 0;
@@ -847,28 +582,10 @@
         if (q.def.kind === 'hunt' && !q.enemy && !s.done) { q.retry = (q.retry || 0) - dt; if (q.retry <= 0) { q.retry = 2; if (promote(q)) { q.marker = { id: q.def.id, side: q.def.id, kind: 'hunt', name: q.def.target.name, x: q.enemy.x, z: q.enemy.z, active: false, complete: false, moving: true }; info.sideMarkers.push(q.marker); dirty = true; } } }
         if (q.def.kind === 'hunt' && q.enemy) {
           if (q.marker && !q.enemy.dead) { q.marker.x = q.enemy.x; q.marker.z = q.enemy.z; }
-          if (!s.done && s.discovered && !q.sighted && !q.enemy.dead && Math.hypot(q.enemy.x - player.x, q.enemy.z - player.z) < 16) { q.sighted = true; api.emit('toast', { text: W.hunt + ': ' + q.def.target.name + L(' yakında. Ondan kaçma.', ' is near. Do not run from it.') }); }
+          if (!s.done && !q.sighted && !q.enemy.dead && Math.hypot(q.enemy.x - player.x, q.enemy.z - player.z) < 16) { q.sighted = true; api.emit('toast', { text: W.hunt + ': ' + q.def.target.name + L(' yakında. Ondan kaçma.', ' is near. Do not run from it.') }); }
           if (!s.done && q.enemy.dead) complete(q, q.def.story);
         }
         if (q.def.kind === 'rescue') updateFollower(q, dt);
-        if (q.def.kind === 'siege' && s.stage >= 1 && !s.done) updateSiege(q, s, dt);
-        if (q.def.after && !s.discovered && state[q.def.after] && state[q.def.after].done) {
-          s.discovered = true; dirty = true; api.emit('toast', { text: W.chainFound + ': ' + q.def.name });
-          notify(q, q.def.description, false); if (api.onChange) api.onChange();
-        }
-        if (q.def.kind === 'escape' && s.stage >= 1 && !s.done && !player.dead) {
-          var before = Math.ceil(q.left); q.left -= dt;
-          if (Math.ceil(q.left) !== before) dirty = true;
-          if (Math.hypot(player.x - q.goal.x, player.z - q.goal.z) < 3.2) { s.stage = 2; complete(q, q.def.story); }
-          else if (q.left <= 0) { s.stage = 0; player.hp = Math.max(1, player.hp - 20); api.emit('toast', { text: W.escapeFail }); api.sound('hurt', { x: player.x, z: player.z }); dirty = true; }
-        }
-        if (!s.discovered && q.def.hidden) {
-          var n0 = q.nodes[0];
-          if (n0 && Math.hypot(player.x - n0.x, player.z - n0.z) < 10 && (!world.hasClearPath || world.hasClearPath(player.x, player.z, n0.x, n0.z, .25))) {
-            s.discovered = true; dirty = true; api.emit('toast', { text: W.found + ': ' + q.def.name });
-            if (api.onChange) api.onChange(); say(q.def.voice);
-          }
-        }
         if (q.def.kind === 'rescue' && q.def.requiresMain != null && !s.stage && mainDone(q.def.requiresMain)) { s.stage = 1; q.actor.x = q.captive.x + .9; q.actor.z = q.captive.z + .6; dirty = true; }
       }
       // Story beats: a recollection once the first calm minute passes, and the master's last words when it falls.
@@ -901,18 +618,17 @@
     }
     function snapshot() {
       var out = { v: 1, flaskDebt: local.flaskDebt, finale: local.finale, beats: local.beats, q: {} };
-      quests.forEach(function (q) { var s = state[q.def.id]; out.q[q.def.id] = [(q.def.kind === 'siege' || q.def.kind === 'escape') && !s.done ? 0 : s.stage, s.bits, s.choice, s.done ? 1 : 0, s.discovered ? 1 : 0]; });
+      quests.forEach(function (q) { var s = state[q.def.id]; out.q[q.def.id] = [s.stage, s.bits, s.choice, s.done ? 1 : 0, 1]; });
       return out;
     }
     function restore(saved) {
       local.flaskDebt = 0; local.finale = null; local.beats = 0; finaleOpen = false;
-      quests.forEach(function (q) { q.wave = null; q.pause = 0; });
-      quests.forEach(function (q) { state[q.def.id] = { stage: 0, bits: 0, choice: null, done: false, discovered: !q.def.hidden }; });
+            quests.forEach(function (q) { state[q.def.id] = { stage: 0, bits: 0, choice: null, done: false, discovered: true }; });
       if (saved && saved.v === 1 && saved.q) {
         local.flaskDebt = Math.max(0, Math.min(2, saved.flaskDebt | 0)); local.finale = typeof saved.finale === 'string' ? saved.finale : null; local.beats = saved.beats | 0;
         quests.forEach(function (q) {
           var r = saved.q[q.def.id]; if (!Array.isArray(r)) return;
-          var s = state[q.def.id]; s.stage = Math.max(0, Math.min(2, r[0] | 0)); s.bits = (r[1] | 0) & 7; s.choice = typeof r[2] === 'string' ? r[2] : null; s.done = !!r[3]; s.discovered = !!r[4] || !q.def.hidden;
+          var s = state[q.def.id]; s.stage = Math.max(0, Math.min(2, r[0] | 0)); s.bits = (r[1] | 0) & 7; s.choice = typeof r[2] === 'string' ? r[2] : null; s.done = !!r[3]; s.discovered = true;
           if (q.actor && s.stage === 1 && !s.done) { q.actor.x = player.x + 1.2; q.actor.z = player.z + 1.2; }
           if (q.actor && s.done) { q.actor.x = q.goal.x + 1.4; q.actor.z = q.goal.z + 1.1; }
         });
@@ -921,7 +637,7 @@
       quests.forEach(function (q) { if (q.actor) { q.actor.root.position.set(q.actor.x, 0, q.actor.z); } });
       refresh();
     }
-    function dispose() { disposed = true; if (beaconTex) beaconTex.forEach(function (t) { t.dispose(); }); beacons.forEach(function (b) { b.col.dispose(); b.rune.dispose(); }); quests.forEach(function (q) { if (q.actor && q.actor.root) q.actor.root.removeFromParent(); }); }
+    function dispose() { disposed = true; if (beaconTex) beaconTex.dispose(); beacons.forEach(function (b) { b.mat.dispose(); b.mesh.geometry.dispose(); }); quests.forEach(function (q) { if (q.actor && q.actor.root) q.actor.root.removeFromParent(); }); }
     quests.forEach(function (q) { if (q.actor) animateActor(q.actor, 0); });
     refresh();
     // QA hook: BABA.QuestSide.debug() lists live quest actors and states (no gameplay effect).

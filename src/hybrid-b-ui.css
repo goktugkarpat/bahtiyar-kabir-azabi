@@ -368,7 +368,7 @@
 
 /* Desktop assistance lives in the margin, outside the hero and the action bar. */
 @media (min-width:1101px) {
- body:not(.touch) #hud #tutorial {left:max(var(--pad),calc(26px * var(--k)));bottom:max(190px,calc(224px * var(--k)));transform:none;width:clamp(300px,27vw,380px);gap:11px;padding:13px 38px 13px 14px;background:linear-gradient(#14110feb,#080908e8);border:1px solid #8f74494d;box-shadow:0 5px 20px #0007;border-radius:1px;}
+ body:not(.touch) #hud #tutorial {left:max(var(--pad),calc(26px * var(--k)));bottom:max(262px,calc(290px * var(--k)));transform:none;width:clamp(300px,27vw,380px);gap:11px;padding:13px 38px 13px 14px;background:linear-gradient(#14110feb,#080908e8);border:1px solid #8f74494d;box-shadow:0 5px 20px #0007;border-radius:1px;}
  body:not(.touch) #tutorial>.skill {width:32px;height:32px;box-shadow:0 0 0 1px #a789584c;border-radius:1px;}
  body:not(.touch) #tutorial p {font-size:14px;line-height:1.45;}
  body:not(.touch) #tutorial strong {font:400 16px/1.3 Georgia,'Times New Roman',serif;color:#e2cfaa;margin-bottom:5px;}
@@ -419,6 +419,13 @@ body.in-combat #hud #interact.unavailable {display:none;}
 #pause .pause-resume-row {display:flex;flex:none;height:17%;min-height:44px;align-items:stretch;gap:22px;}
 #pause #resume {position:relative;inset:auto;width:29%;height:100%;padding:8px;border:2px ridge #b29460;border-radius:0;background:linear-gradient(#58232880,#220c0e80),url(../assets/ui/funeral-cloth.png) center/180px;font:400 clamp(14px,1.5vw,22px) Georgia,serif;box-shadow:none;}
 #pause #resume>span {position:static;display:block;color:#eedfc0;background:none;padding:0;text-shadow:none;}
+/* ajan:uifix – Harita button in the pause menu (moved from the quest panel) */
+#pause .pause-resume-row #pause-atlas.pause-map-btn {position:relative;inset:auto;flex:none;width:17%;height:100%;padding:8px;border:2px ridge #8c6c40;border-radius:0;background:linear-gradient(#100d0bb0,#090908e0),url(../assets/ui/funeral-cloth-dark.png) center/180px;font:400 clamp(14px,1.5vw,22px) Georgia,serif;box-shadow:none;cursor:pointer;}
+#pause .pause-resume-row #pause-atlas.pause-map-btn:hover,#pause .pause-resume-row #pause-atlas.pause-map-btn:focus-visible {border-color:#c8a86c;background:linear-gradient(#3a1a1c70,#1a0b0c90),url(../assets/ui/funeral-cloth.png) center/180px;}
+#pause #pause-atlas.pause-map-btn>span {position:static;display:block;color:#eedfc0;background:none;padding:0;text-shadow:none;}
+#pause .pause-resume-row {gap:30px;}
+@media(max-width:900px){#pause .pause-resume-row #pause-atlas.pause-map-btn{width:20%;font-size:13px;}}
+/* /ajan:uifix */
 #pause .funeral-quote {display:flex;flex:1;flex-direction:column;align-items:center;justify-content:center;position:relative;margin:0;padding:5px 36px;border-top:2px ridge #81643e;border-bottom:2px ridge #81643e;background:url(../assets/ui/funeral-cloth.png) center/190px;}
 #pause .funeral-quote .banner-inscription {font:400 clamp(12px,1.2vw,18px)/1.4 Georgia,serif;}
 #pause .funeral-quote small {font:11px/1.5 Arial,sans-serif;color:#b9ae99;}
@@ -515,6 +522,27 @@ body.in-combat #hud #interact.unavailable {display:none;}
  #keybinds .keybinds-panel>footer {padding-inline:8px;}
 }
 
+/* ajan:uifix – text stays clear of the carved corner fittings (frame-*.png, 30px) on every inset panel */
+#character .char-sheet>h3,#character .char-bag>h3 {padding-right:26px;}
+#character .skt-loadout h4 {padding-left:22px;}
+/* journal / map title was pushed 16px left of the banner by the in-flow close button */
+#journal .panel-head .close,#atlas .panel-head .close {position:absolute;}
+/* rotated diamond art overhangs its box by ~21%: keep the node name clear of it; room for descenders */
+#character .tt-active .tt-name,#character .tt-form .tt-name {margin-top:calc(var(--s) * .22 + 1px);}
+#character .tt-node .tt-name {line-height:1.25;}
+#character .tt-row::after {right:-14px;}
+#character .tt-tree .tt-head {padding-inline:22px;}
+#character .tt-tree .tt-note {padding-inline:22px;}
+#character .skt-inspect.tt-inspect .skt-kicker {padding-inline:22px;}
+@media(max-width:1100px) {   /* the longer English name touched the pillars of the banner at 1024 wide */
+ html[lang=en] :is(#character .mourning-title,#settings .panel-head .eyebrow,#journal .panel-head .eyebrow,#atlas .panel-head .eyebrow) {font-size:2.65vw;}
+}
+@media(max-width:1100px),(max-height:760px) {
+ #character .char-sheet>h3,#character .char-bag>h3 {padding-left:28px;padding-right:30px;}
+ #character .skt-loadout h4 {padding-left:30px;margin-bottom:9px;}
+ #character .tt-tree .tt-head,#character .tt-tree .tt-note,#character .skt-inspect.tt-inspect .skt-kicker {padding-inline:30px;}
+}
+/* /ajan:uifix */
 /* Actions stay clear of the inlaid corner fittings in both inspect panels. */
 #character .char-detail .cd-actions {margin:auto 12px 14px;}
 #character .skt-inspect>.skt-learn {width:calc(100% - 24px);margin:auto 12px 14px;}
@@ -534,3 +562,13 @@ body.in-combat #hud #interact.unavailable {display:none;}
 @media(max-width:699px) {
  #character .skt-inspect {flex-shrink:0;min-height:min-content;}
 }
+/* pause: map button sits in the same red-cloth family as "Yolculuğa devam" */
+#pause .pause-resume-row #pause-atlas.pause-map-btn {width:20%;border:2px ridge #b29460;background:linear-gradient(#4a1d2280,#1c0a0c88),url(../assets/ui/funeral-cloth.png) center/180px;box-shadow:inset 0 0 0 1px #00000070,inset 0 0 18px #00000060;}
+#pause .pause-resume-row #pause-atlas.pause-map-btn:hover,#pause .pause-resume-row #pause-atlas.pause-map-btn:focus-visible {border-color:#e0c488;background:linear-gradient(#6a2a3070,#2a1012a0),url(../assets/ui/funeral-cloth.png) center/180px;}
+#pause .pause-resume-row #pause-atlas kbd {border-color:#b29460aa;background:#1a0b0c90;color:#eedfc0;}
+#pause .pause-resume-row #pause-atlas.pause-map-btn {outline:2px solid #ead4a0;outline-offset:-6px;border:2px ridge #b29460;}
+#pause .pause-resume-row #pause-atlas.pause-map-btn:hover {outline-color:#fff0c4;}
+/* pause: bottom row uses the same 4-column grid as the cards above (resume+map = cols 1-2, verse = cols 3-4) */
+#pause .pause-resume-row {display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;}
+#pause .pause-resume-row #resume,#pause .pause-resume-row #pause-atlas.pause-map-btn {width:100%;min-width:0;}
+#pause .pause-resume-row .funeral-quote {grid-column:3 / 5;margin:0;min-width:0;}

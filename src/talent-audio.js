@@ -1,10 +1,10 @@
-/* KABİR AZABI — sounds of talent tree 3, pure WebAudio synthesis (no samples): ignite, seal, knell, rot burst, fire burst,
-   chain lash, blood price, execution. audio.js routes every name starting with "talent" here (one line in play()):
+/* KABİR AZABI — sounds of the talent tree, pure WebAudio synthesis (no samples): hook throw / hook hit, iron stance, thorns clang, rot burst, fire burst (gear powers),
+   chain lash, execution, learn / keystone. audio.js routes every name starting with "talent" here (one line in play()):
    B.TalentAudio.play(name, ctx, dry, wet, t, k, opts, noise) — dry/wet are the effects bus and its reverb send. */
 (function () {
   'use strict';
   const B = window.BABA = window.BABA || {};
-  const NAMES = new Set(['talentIgnite', 'talentSeal', 'talentKnell', 'talentRot', 'talentBurst', 'talentChain', 'talentChainMiss', 'talentBlood', 'talentExecute', 'talentLearn', 'talentKeystone']);
+  const NAMES = new Set(['talentIgnite', 'talentKnell', 'talentRot', 'talentBurst', 'talentChain', 'talentHook', 'talentHookHit', 'talentStance', 'talentThorns', 'talentExecute', 'talentLearn', 'talentKeystone']);
   const cache = new WeakMap();
   function noiseOf(ctx) {
     let b = cache.get(ctx); if (b) return b;
@@ -31,10 +31,6 @@
     switch (name) {
       case 'talentIgnite':
         whoosh(t, .38, 300, 2200, .22, 1.1); crackle(t + .05, .5, 9, .16); thump(t, 120, 60, .18, .18); break;
-      case 'talentSeal':
-        thump(t, 92, 34, .9, .62); whoosh(t, .7, 160, 1500, .3, .7); crackle(t + .1, 1.2, 22, .2);
-        { const a = g(0), lp = f('lowpass', 220, .7, a); hiss(t, 1.6, lp); env(a, t + .05, .3 * k, .08, 1.3); }
-        metal(t + .02, 74, .12, 1.4, [1, 2.4, 3.9]); break;
       case 'talentKnell': {
         // a cracked funeral bell: low inharmonic partials, a hum, a slow beat and a second, distant strike
         const strike = (t0, v) => { metal(t0, 98, v, 3.2, [.5, 1, 1.19, 1.56, 2.0, 2.74, 3.76]); thump(t0, 70, 40, .6, v * .6); const a = g(0), hp = f('highpass', 1800, .7, a); hiss(t0, .05, hp); env(a, t0, v * .4 * k, .001, .04); };
@@ -48,16 +44,31 @@
       case 'talentBurst':
         thump(t, 110, 30, .8, .5); whoosh(t, .55, 900, 140, .26, .6); crackle(t, .9, 26, .22);
         { const a = g(0), lp = f('lowpass', 900, .6, a); hiss(t, 1.2, lp); env(a, t, .45 * k, .005, .9); } break;
-      case 'talentChain':
-      case 'talentChainMiss': {
-        const n = name === 'talentChain' ? 9 : 4;
+      case 'talentChain': {
         whoosh(t, .25, 500, 3200, .2, 1.4);
-        for (let i = 0; i < n; i++) metal(t + .06 + i * .028 + Math.random() * .02, 1400 + Math.random() * 900, .07, .18, [1, 1.47, 2.31]);
-        if (name === 'talentChain') thump(t + .3, 90, 50, .25, .32);
+        for (let i = 0; i < 9; i++) metal(t + .06 + i * .028 + Math.random() * .02, 1400 + Math.random() * 900, .07, .18, [1, 1.47, 2.31]);
+        thump(t + .3, 90, 50, .25, .32);
         break;
       }
-      case 'talentBlood':
-        thump(t, 62, 40, .25, .55); thump(t + .26, 58, 38, .3, .42); { const a = g(0), bp = f('bandpass', 700, 2, a); hiss(t, .3, bp); env(a, t, .18 * k, .01, .25); } break;
+      case 'talentHook': {
+        // the hook leaves the hand: a rising whistle, links paying out one by one, then the barbed head biting in
+        whoosh(t, .22, 380, 2600, .26, 1.6);
+        for (let i = 0; i < 12; i++) metal(t + .03 + i * .017 + Math.random() * .01, 1700 + Math.random() * 1100, .06, .13, [1, 1.47, 2.31]);
+        thump(t + .22, 110, 46, .28, .42); metal(t + .22, 380, .1, .5, [1, 1.58, 2.4]); crackle(t + .22, .12, 5, .12, 2200);
+        break;
+      }
+      case 'talentHookHit':
+        // the foe is dragged in: chain strain, a heavy scrape and a body-weight thud
+        whoosh(t, .3, 2400, 500, .2, 1.1); thump(t + .14, 82, 36, .4, .55); metal(t + .12, 220, .08, .5, [1, 1.7, 2.7]); crackle(t + .02, .2, 7, .1, 1800); break;
+      case 'talentStance':
+        // iron stance: a deep breath-out thud of boots, armour plates grinding and settling, a low ringing clang
+        thump(t, 74, 32, .5, .62); whoosh(t + .02, .35, 260, 900, .18, .8);
+        metal(t + .04, 196, .17, 1.3, [1, 1.52, 2.1, 2.9]); crackle(t + .05, .3, 8, .1, 1400);
+        { const a = g(0), lp = f('lowpass', 420, .8, a); hiss(t, .8, lp); env(a, t + .03, .16 * k, .06, .6); }
+        break;
+      case 'talentThorns':
+        // the retaliation: an iron clang with a snap, then a short bone crunch
+        metal(t, 540, .22, .5, [1, 1.51, 2.2, 3.4]); thump(t, 120, 44, .22, .5); crackle(t, .1, 6, .16, 2600); whoosh(t, .12, 2800, 900, .12, 1.2); break;
       case 'talentLearn':
         // a seal pressed into hot iron: low knock, short metallic ring, a breath of sparks
         thump(t, 130, 70, .22, .4); metal(t + .01, 520, .09, .7, [1, 1.52, 2.33, 3.1]); whoosh(t, .3, 2400, 600, .08, 1.2); crackle(t + .04, .3, 6, .08); break;

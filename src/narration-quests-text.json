@@ -24,11 +24,6 @@
     "tr": "Sayfalar senin el yazın. Son satırda bir ad var, mürekkebi henüz kurumamış: Selvi.",
     "en": "The pages are in your hand. On the last line there is a name, its ink still wet: Selvi."
   },
-  "altar1": {
-    "chapter": 1,
-    "tr": "Kan sunağı hâlâ sıcak. Bedel isteyen her şey gibi, o da seni bekliyordu.",
-    "en": "The blood altar is still warm. Like everything that asks a price, it was waiting for you."
-  },
   "story2": {
     "chapter": 2,
     "tr": "Selvi bu kıyıdan geçti. Çancı onu tekneye bindirdi. Sen de Defter'e borç ödendi diye yazdın.",
@@ -53,11 +48,6 @@
     "chapter": 2,
     "tr": "Bir sayfada Selvi'nin el yazısı var: Abi, adımı sen yazma. Altında senin imzan.",
     "en": "One page bears Selvi's handwriting: Brother, don't you write my name. Beneath it, your signature."
-  },
-  "altar2": {
-    "chapter": 2,
-    "tr": "Dönmeyenler bir pazarlık teklif ediyor. Deniz hiçbir şeyi bedelsiz geri vermez.",
-    "en": "The unreturned offer a bargain. The sea gives nothing back without a price."
   },
   "story3": {
     "chapter": 3,
@@ -84,11 +74,6 @@
     "tr": "Bütün sayfaların altında aynı mühür var. Ne kralın, ne çancının. Kara Kadı'nın.",
     "en": "Every page carries the same seal. Not the king's, not the bellringer's. The Black Judge's."
   },
-  "altar3": {
-    "chapter": 3,
-    "tr": "Kralın kadehi hâlâ dolu. İçenlerin hiçbiri susuzluktan ölmedi; hepsi tahta zincirlendi.",
-    "en": "The king's cup is still full. None who drank from it died of thirst. All of them were chained to the throne."
-  },
   "story4": {
     "chapter": 4,
     "tr": "Defter'e yazılan her ad burada zincire döküldü. Bir yerlerde Selvi'nin halkası da yanıyor.",
@@ -113,11 +98,6 @@
     "chapter": 4,
     "tr": "Yanık sayfalarda yalnız senin adın kalmış. Bahtiyar. Kâtip. Boş satır. Mürekkep taze; biri hâlâ yazıyor.",
     "en": "Only your name survives on the burned pages. Bahtiyar. Scribe. Empty line. The ink is fresh. Someone is still writing."
-  },
-  "altar4": {
-    "chapter": 4,
-    "tr": "Kanlı örs, bir demircinin vermesi gerekeni bekliyor: kanını.",
-    "en": "The bloody anvil waits for what a smith must give: his blood."
   },
   "story5": {
     "chapter": 5,
@@ -173,11 +153,6 @@
     "chapter": 5,
     "tr": "Son sayfa. Selvi'nin adını yazan el titremiyor. O el senin. Korkudan yazdın. Artık biliyorsun.",
     "en": "The last page. The hand that wrote Selvi's name does not tremble. That hand is yours. You wrote it in fear. Now you know."
-  },
-  "altar5": {
-    "chapter": 5,
-    "tr": "Boş satır. Adını şimdi yazarsan, Defter seni Kadı'dan önce tanır.",
-    "en": "The empty line. Write your name now, and the Ledger will know you before the Judge does."
   },
   "endingName": {
     "chapter": 5,

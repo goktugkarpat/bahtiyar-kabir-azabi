@@ -527,7 +527,7 @@
       const choose = spec => () => { const same = tracked && JSON.stringify(tracked) === JSON.stringify(spec); tracked = same ? null : spec; lastLedger = null; updateRoute(true); if (!same) focus(target()); draw(); canvas.focus({ preventScroll: true }); };
       if (reward) {
         const item = B.Progression && Array.isArray(B.Progression.items) && B.Progression.items.find(def => def.id === reward.id);
-        goal(item && item.name || tr('Zafer emaneti'), tr('Efendi yenildi. Emanetine yaklaş.'), false, () => { if (Number.isFinite(reward.x)) { camera.x = reward.x; camera.z = reward.z; fitted = false; draw(); } }, true, 'reward');
+        goal(item && item.name || tr('Zafer emaneti'), tr('Efendinin düşürdüğü eşyayı al.'), false, () => { if (Number.isFinite(reward.x)) { camera.x = reward.x; camera.z = reward.z; fitted = false; draw(); } }, true, 'reward');
       } else if (q && q.ready) goal(tr('Efendinin kapısı açık'), q.objective, false, choose({ type: 'gate' }), !!tracked && tracked.type === 'gate', 'gate');
       else (q && q.entries || []).forEach((entry, i) => goal(entry.name, entry.complete ? tr('Bağ çözüldü') : entry.objective, entry.complete, choose({ type: 'main', index: i }), !!tracked && tracked.type === 'main' && tracked.index === i, 'main'));
       if (!reward) for (const e of sideEntries().filter(e => e.available && e.target && !e.complete).sort((a, b) => (tracked && tracked.id === b.id) - (tracked && tracked.id === a.id) || !!b.urgent - !!a.urgent).slice(0, 2)) { const on = !!tracked && tracked.type === 'side' && tracked.id === e.id; goal(e.name, e.objective, false, choose({ type: 'side', id: e.id }), on, e.kind, !on); }

@@ -1,14 +1,12 @@
-/* KABİR AZABI — talent tree 3 ("build" tree), slimmed down to 25 nodes. Data + rules only (no DOM, no THREE).
-   Six columns (one per active skill line), five rows:
-     row 1  actives (Mezar Yaran, Kan Nidası, Zincir Kasırgası, Kül Hücumu, Kor Mührü, Ölüm Çanı)
-     row 2  ONE seal (modifier) under every active
-     row 3  one archetype passive per column
-     row 4  final forms (old tier III, they replace the active in its slot) / the column passives of Kor and Çürüme
-     row 5  keystones: ONE per run, each a strong identity with a price
-   Every node costs one point; points = level - 1 (12 at level 13) + up to 5 quest points: 25 nodes, a full run takes ~65 % of them.
-   Gates: a node needs `level` and `gate` points already spent in the tree. Exclusive groups: one node per `group`.
-   Removed nodes (old tier II forms, extra seals, body filler, 4 keystones) are simply unknown ids: validate() drops them, so the points come back.
-   Forms keep their ids (temper, chainstorm, rend, havoc), so slots, art, motion and skill-fx keep working.
+/* KABİR AZABI — talent tree 4: a build tree of CHOICES, 24 nodes, only ~12-17 points to spend. Data + rules only (no DOM, no THREE).
+   Six columns (one per active skill line), four rows of decisions (no linear unlock order: any active can be the first point):
+     row 1  actives (Mezar Yaran, Kan Nidası, Zincir Kasırgası, Kül Hücumu, Çengelli Çekiş, Demir Duruş), levels 2-4
+     row 2  TWO exclusive forms under every active (A or B), each replaces the active in its slot; needs only that active + a modest level
+     row 3  four archetype passives in two exclusive pairs (Öfke | Kanama, Savunma | Hücum)
+     row 4  two exclusive keystones (Cellat | Kan Yemini)
+   Every node costs one point; points = level - 1 (12 at level 13) + up to 5 quest points, the tree costs 24: nobody takes everything.
+   Exclusive groups: one node per `group`. No gates on points spent. Removed tree-3 nodes are unknown ids: validate() drops them (and later exclusive siblings), the points come back.
+   Form ids reuse the older tiers (temper/brand, chainstorm/quake, rend/reap, havoc/grasp) so slots, art, motion and skill-fx keep working.
    Effects are DATA here; src/talent-runtime.js applies them in the fight, effective() turns them into skill params. */
 (function () {
   'use strict';
@@ -19,56 +17,49 @@
     { line: 'roar', name: t('KAN BEDELİ'), hint: t('Can çalma ve öfke'), color: '#c8473f' },
     { line: 'whirl', name: t('ZİNCİR'), hint: t('Çekiş ve alan'), color: '#7f9fbd' },
     { line: 'charge', name: t('HÜCUM'), hint: t('Hız ve atılış'), color: '#c9a45a' },
-    { line: 'pyre', name: t('KOR'), hint: t('Yanma ve ateş'), color: '#e0662f' },
-    { line: 'knell', name: t('ÇÜRÜME'), hint: t('Lanet ve ölüm'), color: '#8fae6a' }
+    { line: 'hook', name: t('ÇENGEL'), hint: t('Yakala ve çek'), color: '#7aa889' },
+    { line: 'guard', name: t('DEMİR DURUŞ'), hint: t('Dayan ve karşılık ver'), color: '#a9a4c4' }
   ]);
   const ROWS = Object.freeze([
-    { row: 1, name: t('I · UYANIŞ'), hint: t('Aktif yetenekler'), gate: 0 },
-    { row: 2, name: t('II · MÜHÜR'), hint: t('Her yeteneğe tek mühür'), gate: 1 },
-    { row: 3, name: t('III · BEDEN'), hint: t('3 puan harca'), gate: 3 },
-    { row: 4, name: t('IV · DÖNÜŞÜM'), hint: t('5 puan harca'), gate: 5 },
-    { row: 5, name: t('V · KİLİT TAŞI'), hint: t('8 puan · yalnız biri'), gate: 8 }
+    { row: 1, name: t('I · YETENEKLER'), hint: t('İstediğini ilk al'), gate: 0 },
+    { row: 2, name: t('II · BİÇİM'), hint: t('A ya da B'), gate: 0 },
+    { row: 3, name: t('III · YAPI'), hint: t('İki yoldan biri'), gate: 0 },
+    { row: 4, name: t('IV · KİLİT TAŞI'), hint: t('Yalnız biri'), gate: 0 }
   ]);
-  // kind: active | form | mod | passive | key.  glyph: small engraved symbol for mods/passives/keys (talent-ui.js draws it).
+  // Build archetypes: which skills / passives belong together (shown in tooltips and in the inspector).
+  const ARCH = Object.freeze({ bleed: t('Kanama yapısı'), rage: t('Öfke yapısı'), guard: t('Savunma yapısı'), charge: t('Hücum yapısı') });
+  const ARCH_OF_LINE = Object.freeze({ cleave: 'bleed', hook: 'bleed', roar: 'rage', whirl: 'rage', guard: 'guard', charge: 'charge' });
+  // kind: active | form | passive | key.  glyph: small engraved symbol for passives/keys (talent-ui.js draws it).
   const N = [];
   const node = o => { N.push(Object.freeze(Object.assign({ requires: null, group: null, gate: 0, level: 1, fx: {} }, o))); };
-  // ---- row 2: one seal per active -------------------------------------------------------------------------------
-  const mod = (id, col, name, desc, glyph, fx, level) => node({ id, kind: 'mod', col, slot: 1, row: 2, line: COLS[col].line, requires: COLS[col].line, group: 'seal-' + COLS[col].line, gate: 1, level: level || 3, name: t(name), desc: t(desc), glyph, fx });
-  // ---- rows 3 / 4: passives ----------------------------------------------------------------------------------------
-  const passive = (id, col, row, name, desc, glyph, fx, extra) => node(Object.assign({ id, kind: 'passive', col, row, line: COLS[col].line, gate: row === 3 ? 3 : 5, level: row === 3 ? 4 : 6, name: t(name), desc: t(desc), glyph, fx }, extra || {}));
-  const key = (id, col, name, desc, price, glyph, fx) => node({ id, kind: 'key', col, row: 5, line: COLS[col].line, group: 'keystone', gate: 8, level: 9, name: t(name), desc: t(desc), price: t(price), glyph, fx });
+  // x: position in % of the board width; arch: build archetype of the pair
+  const passive = (id, x, line, group, arch, level, name, desc, glyph) => node({ id, kind: 'passive', col: x / 100 * 6 - .5, x, row: 3, line, group, level, name: t(name), desc: t(desc), glyph, fx: {}, arch });
+  const key = (id, col, line, name, desc, price, glyph, fx) => node({ id, kind: 'key', col, row: 4, line, group: 'keystone', level: 9, name: t(name), desc: t(desc), price: t(price), glyph, fx });
 
-  mod('cleave-sunder', 0, 'Kemik Yarma', 'Darbe daha ağır iner: +%30 hasar ve +0,5 sn sersemletme. Biraz daha çok dayanıklılık ister.', 'hammer', { dmg: 1.3, stun: .5, cost: 6 });
-  mod('roar-blood', 1, 'Kan Bedeli', 'Nida dayanıklılık yerine canının %10’unu yer. Karşılığında öfkedeyken can çalman iki buçuk katına çıkar.', 'drop', { bloodCost: .10, steal: 2.5 });
-  mod('whirl-hook', 2, 'Kanca Zincir', 'Zincirlere kanca takılır: çekiş güçlenir, çember %10 genişler.', 'hook', { pull: 1.8, radius: 1.1 });
-  mod('charge-echo', 3, 'Gölge Adım', 'Hücum %40 daha ucuz ve %40 daha sık; çarpma %15 daha hafif.', 'wing', { cost: .6, cd: .6, dmg: .85 }, 6);
-  mod('pyre-burst', 4, 'Patlayan Mühür', 'Mühür sönerken patlar: içindekilere ağır hasar verir ve sersemletir.', 'burst', { burst: 90 }, 5);
-  mod('knell-chain', 5, 'Salgın', 'Lanetli bir düşman ölüp patladığında, patlamanın değdiği düşmanlar da lanetlenir.', 'spread', { spread: true }, 5);
-  // ---- row 3: one archetype-defining passive per column -------------------------------------------------------------
-  passive('p-aftershock', 0, 3, 'Artçı Sarsıntı', 'Sersemlemiş bir düşman ölünce yer sarsılır: çevresindekilere hasar verir ve onları sersemletir.', 'burst', { aftershock: 24 });
-  passive('p-frenzy', 1, 3, 'Kan Çılgınlığı', 'Canın %40’ın altındayken %25 fazla hasar verir, %15 daha hızlı dayanıklılık toplarsın.', 'heart', { frenzy: true });
-  passive('p-lash', 2, 3, 'Zincir Kırbacı', 'Kasırga bitince ya da hücum vardığında zincir savrulur: 7 metredeki en yakın üç düşmana çarpar.', 'chain', { lash: 32 });
-  passive('p-momentum', 3, 3, 'Hız Kazanımı', 'Kaçındıktan ya da hücum ettikten sonra 3 saniye vuruşların %20 daha ağır iner.', 'wing', { momentum: true });
-  passive('p-kindle', 4, 3, 'Alev Saçağı', 'Yanan düşmanların alevi yanındakine sıçrar: her yanma vuruşunda yakındaki bir düşman tutuşabilir.', 'spread', { kindle: true });
-  passive('p-plague', 5, 3, 'Kara Veba', 'Lanetli düşmanların kanaması ve yanması %50 daha çok acıtır.', 'skull', { plague: true });
-  // ---- row 4: column passives of the two newer actives (the four older lines hold their final form there) -----------
-  passive('p-ember', 4, 4, 'Kor Kalp', 'Yanma %50 daha çok hasar verir ve 2 saniye daha uzun sürer.', 'flame', { burnMul: 1.5, burnTime: 2 }, { requires: 'pyre' });
-  passive('p-rot', 5, 4, 'Çürük Kan', 'Kanama %50 daha çok hasar verir; kanayan düşmanlar %8 fazla hasar alır.', 'drop', { bleedMul: 1.5, bleedingTaken: 1.08 }, { requires: 'knell' });
-  // ---- row 5 keystones: exactly one per run ---------------------------------------------------------------------
-  key('k-exec', 0, 'Cellat', 'Canı %40’ın altına düşen düşmanlara %25 fazla hasar verirsin. Canı %10’un altına inen sıradan düşmanlar tek vuruşta ölür.', 'Bedeli: en yüksek canın %20 azalır.', 'axe', { exec: true, hpMul: .8 });
-  key('k-blood', 1, 'Kan Yemini', 'Verdiğin bütün hasarın %7’si can olarak sana döner.', 'Bedeli: şifa matarası taşıyamazsın.', 'drop', { leech: .07, noFlask: true });
+  // ---- row 3: eight archetype passives, four exclusive pairs (numbers: combat-tuning.js TALENT) --------------------------
+  passive('p-bleed', 7.5, 'hook', 'pair-a', 'bleed', 5, 'Kanlı İz', 'Yeteneklerin düşmanı kanatır; kanayan düşmanlar %15 fazla hasar alır.', 'drop');
+  passive('p-frenzy', 17.5, 'roar', 'pair-a', 'bleed', 5, 'Kan Çılgınlığı', 'Canın %40’ın altındayken %25 fazla hasar verir, %15 daha hızlı dayanıklılık toplarsın.', 'heart');
+  passive('p-rage', 32.5, 'whirl', 'pair-b', 'rage', 5, 'Öfke Birikimi', 'Her 5 vuruşta 3 saniye boyunca %20 fazla hasar verir, dayanıklılığın %40 hızlı dolar.', 'burst');
+  passive('p-momentum', 42.5, 'charge', 'pair-b', 'rage', 5, 'Hız Kazanımı', 'Kaçındıktan ya da hücum ettikten sonra 3 saniye vuruşların %20 daha ağır iner.', 'wing');
+  passive('p-ironhide', 57.5, 'guard', 'pair-c', 'guard', 7, 'Demir Deri', 'Aldığın bütün hasar sabit %10 azalır.', 'circle');
+  passive('p-vengeance', 67.5, 'guard', 'pair-c', 'guard', 7, 'Öç Alma', 'Aldığın darbenin %25’i bir sonraki vuruşuna hasar olarak eklenir.', 'hammer');
+  passive('p-crush', 82.5, 'cleave', 'pair-d', 'charge', 7, 'Ezici Vuruş', 'Sersemlemiş düşmanlara %20 fazla hasar verirsin.', 'skull');
+  passive('p-breath', 92.5, 'charge', 'pair-d', 'charge', 7, 'Yırtıcı Nefes', 'Bir düşmanı öldürünce 22 dayanıklılık ve canının %1’i geri gelir.', 'flame');
+  // ---- row 4 keystones: exactly one per run ---------------------------------------------------------------------
+  key('k-exec', 2, 'cleave', 'Cellat', 'Canı %40’ın altına düşen düşmanlara %25 fazla hasar verirsin. Canı %10’un altına inen sıradan düşmanlar tek vuruşta ölür.', 'Bedeli: en yüksek canın %20 azalır.', 'axe', { exec: true, hpMul: .8 });
+  key('k-blood', 3, 'roar', 'Kan Yemini', 'Verdiğin bütün hasarın %7’si can olarak sana döner.', 'Bedeli: şifa matarası taşıyamazsın.', 'drop', { leech: .07, noFlask: true });
 
-  // ---- actives / forms come from progression.js (same ids, same params); placed in the grid here ----------------
-  const PLACE = { cleave: [0, 1], temper: [0, 4], roar: [1, 1], chainstorm: [1, 4], whirl: [2, 1], rend: [2, 4], charge: [3, 1], havoc: [3, 4], pyre: [4, 1], knell: [5, 1] };
-  const FORM_OF = { temper: 'cleave', chainstorm: 'roar', rend: 'whirl', havoc: 'charge' };   // a final form replaces its active directly
+  // ---- actives / forms come from progression.js (same ids, same params); placed in the grid here: [col, row, slot] ----
+  const PLACE = { cleave: [0, 1], temper: [0, 2, 0], brand: [0, 2, 1], roar: [1, 1], chainstorm: [1, 2, 0], quake: [1, 2, 1], whirl: [2, 1], rend: [2, 2, 0], reap: [2, 2, 1],
+    charge: [3, 1], havoc: [3, 2, 0], grasp: [3, 2, 1], hook: [4, 1], hook2: [4, 2, 0], hook3: [4, 2, 1], guard: [5, 1], guard2: [5, 2, 0], guard3: [5, 2, 1] };
   let index = null, list = null;
   function build() {
     if (index) return;
     const P = B.Progression; list = [];
     for (const s of P.skills) {
       const at = PLACE[s.id]; if (!at) continue;
-      list.push(Object.freeze({ id: s.id, kind: s.tier > 1 ? 'form' : 'active', col: at[0], row: at[1], line: s.line, requires: FORM_OF[s.id] || s.requires, group: null,
-        gate: at[1] === 4 ? 5 : 0, level: s.level, name: s.name, desc: s.description, skill: s, fx: {} }));
+      list.push(Object.freeze({ id: s.id, kind: s.tier > 1 ? 'form' : 'active', col: at[0], row: at[1], slot: at[2] == null ? null : at[2], line: s.line, requires: s.requires, group: s.tier > 1 ? 'form-' + s.line : null,
+        gate: 0, level: s.level, name: s.name, desc: s.description, skill: s, fx: {}, arch: ARCH_OF_LINE[s.line] }));
     }
     for (const n of N) list.push(n);
     list.sort((a, b) => a.row - b.row || a.col - b.col || (a.slot || 0) - (b.slot || 0));
@@ -88,7 +79,7 @@
     if (!n) return { known: false, blocked: true, canLearn: false, reason: t('Böyle bir yetenek yok.') };
     const known = learned.includes(id), low = state.level < n.level, spent = spentOf(learned);
     const missingParent = n.requires && !learned.includes(n.requires) ? index[n.requires] : null;
-    const gateNeed = !known && spent < n.gate ? n.gate - spent : 0;
+    const gateNeed = 0;
     const exclusive = !known ? blockerOf(learned, n) : null;
     const blocked = !known && (low || !!missingParent || gateNeed > 0 || !!exclusive);
     const en = KabirI18n.lang === 'en';
@@ -122,70 +113,41 @@
     const rest = learned.filter(x => x !== id);
     return validate(rest, level, extra).length === rest.length;
   }
-  // Flat effect bag of everything learned (passives, keystones, seals). Cached per learned list.
+  // Flat effect bag of everything learned (passives, keystones). Cached per learned list.
   const fxCache = new Map();
   function effects(learned) {
     build(); const k = learned.join(','); let e = fxCache.get(k);
     if (e) return e;
-    e = { has: new Set(learned), seal: Object.create(null), keystone: null };
-    for (const id of learned) {
-      const n = index[id]; if (!n) continue;
-      if (n.kind === 'mod') e.seal[n.line] = n;
-      if (n.kind === 'key') e.keystone = n;
-    }
-    const f = id => (index[id] && e.has.has(id) ? index[id].fx : null);
-    const hp = f('p-iron'), exec = f('k-exec'), crit = f('p-crit'), wind = f('p-wind'), flask = f('p-flask'), rotW = f('k-rot');
-    const ember = f('p-ember'), pyreK = f('k-pyre'), rot = f('p-rot');
-    e.hpAdd = hp ? hp.hp : 0; e.hpMul = exec ? exec.hpMul : 1; e.crit = crit ? crit.crit : 0;
-    e.regen = (wind ? wind.regen : 1); e.hunger = e.has.has('k-hunger');
-    e.flasks = e.has.has('k-blood') ? -99 : flask ? flask.flasks : 0; e.flaskHeal = (flask ? flask.flaskHeal : 1) * (rotW ? rotW.flaskHeal : 1);
-    e.cd = e.has.has('p-haste') ? .85 : 1;
-    e.burnMul = (ember ? ember.burnMul : 1) * (pyreK ? pyreK.burnMul : 1); e.burnTime = ember ? ember.burnTime : 0;
-    e.bleedMul = rot ? rot.bleedMul : 1; e.bleedingTaken = rot ? rot.bleedingTaken : 1;
-    e.vsStunned = e.has.has('p-crush') ? 1.2 : 1; e.exec = !!exec; e.leech = e.has.has('k-blood') ? .07 : 0;
-    e.chainDodge = e.has.has('k-chains'); e.allBurn = !!pyreK; e.taken = pyreK ? pyreK.taken : 1; e.rotWorld = !!rotW;
-    e.ashfall = e.has.has('p-ashfall'); e.harvest = e.has.has('p-harvest');
-    e.aftershock = e.has.has('p-aftershock'); e.frenzy = e.has.has('p-frenzy'); e.lash = e.has.has('p-lash'); e.momentum = e.has.has('p-momentum'); e.kindle = e.has.has('p-kindle'); e.plague = e.has.has('p-plague');
+    e = { has: new Set(learned), keystone: null };
+    for (const id of learned) { const n = index[id]; if (n && n.kind === 'key') e.keystone = n; }
+    const h = id => e.has.has(id), T = (B.CombatTuning && B.CombatTuning.TALENT) || {}, g = (k, d) => T[k] || d;
+    const exec = h('k-exec'), X = g('exec', { below: .4, dmg: 1.25, kill: .1, hp: .8 });
+    e.hpAdd = 0; e.hpMul = exec ? X.hp : 1; e.crit = 0; e.regen = 1; e.hunger = false;
+    e.flasks = h('k-blood') ? -99 : 0; e.flaskHeal = 1; e.cd = 1;
+    const M = g('mark', { skillBleed: .3, time: 4, taken: 1.15 });
+    e.bleedMul = 1; e.bleedingTaken = h('p-bleed') ? M.taken : 1; e.skillBleed = h('p-bleed') ? M.skillBleed : 0; e.bleedTime = M.time;
+    e.exec = exec; e.execBelow = X.below; e.execDmg = X.dmg; e.execKill = X.kill; e.leech = h('k-blood') ? g('blood', { leech: .07 }).leech : 0;
+    e.taken = h('p-ironhide') ? g('ironhide', { taken: .9 }).taken : 1;
+    e.frenzy = h('p-frenzy') ? g('frenzy', { hp: 40, dmg: 1.25, regen: 1.15 }) : null; e.momentum = h('p-momentum') ? g('momentum', { dmg: 1.2, time: 3 }) : null;
+    e.rage = h('p-rage') ? g('rage', { hits: 5, time: 3, dmg: 1.2, regen: 1.4 }) : null; e.vengeance = h('p-vengeance') ? g('vengeance', { share: .25, cap: 90 }) : null;
+    e.vsStunned = h('p-crush') ? g('crush', { dmg: 1.2 }).dmg : 1; e.breath = h('p-breath') ? g('breath', { stamina: 22, heal: .01 }) : null;
     if (fxCache.size > 64) fxCache.clear(); fxCache.set(k, Object.freeze(e)); return e;
   }
-  // The skill as it fights with this tree: seal of its line + global passives folded into cost / cooldown / params.
-  const effCache = new Map();
+  // The skill as it fights with this tree (forms carry their own numbers; only the global cooldown factor is folded in).
   function effective(skill, learned) {
     if (!skill) return skill;
-    const k = skill.id + '|' + learned.join(','); let s = effCache.get(k);
-    if (s) return s;
-    const e = effects(learned), seal = e.seal[skill.line], p = Object.assign({}, skill.params), F = seal ? seal.fx : {};
-    let cost = skill.cost, cooldown = skill.cooldown;
-    if (seal) {
-      if (F.dmg) for (const f of ['damage', 'pathDamage', 'damage2', 'waveDamage']) if (p[f]) p[f] = Math.round(p[f] * F.dmg);
-      if (F.stun && skill.line !== 'knell') { if (p.stun != null) p.stun += F.stun; if (p.stunLast != null) p.stunLast += F.stun; }
-      if (F.cost && F.cost > 1) cost += F.cost; else if (F.cost) cost = Math.round(cost * F.cost);
-      if (F.cd) cooldown = cooldown * F.cd;
-      if (F.fear) p.fear = +(p.fear * F.fear).toFixed(2);
-      if (F.pull) p.pull = +(p.pull * F.pull + .8).toFixed(2);
-      if (F.pullAdd) p.pull = (p.pull || 0) + F.pullAdd;
-      if (F.radius && skill.line !== 'pyre' && skill.line !== 'knell') p.radius = +(p.radius * F.radius).toFixed(2);
-      if (F.bloodCost) cost = 0;
-      if (F.steal) p.steal = +(p.steal * F.steal).toFixed(3);
-      if (skill.line === 'pyre') { if (F.radius) p.radius = +(p.radius * F.radius).toFixed(2); if (F.time) p.time += F.time; if (F.burst) p.burst = F.burst; }
-      if (skill.line === 'knell') { if (F.radius) p.radius = +(p.radius * F.radius).toFixed(2); if (F.stun) p.stun = F.stun; if (F.damage) p.damage = F.damage; }
-    }
-    cooldown = +(cooldown * e.cd).toFixed(2);
-    s = Object.freeze(Object.assign({}, skill, { cost, cooldown, params: Object.freeze(p), seal: seal ? seal.id : null }));
-    if (effCache.size > 128) effCache.clear(); effCache.set(k, s); return s;
+    const e = effects(learned);
+    return e.cd === 1 ? skill : Object.freeze(Object.assign({}, skill, { cooldown: +(skill.cooldown * e.cd).toFixed(2) }));
   }
-  // Recommended builds (shown in the tree; "apply" relearns them in this order as far as level and points allow).
+  // Sample builds (data for the balance bench / debug: `build` = preset id; the tree page does not list them).
   const PRESETS = Object.freeze([
-    { id: 'pyre-priest', name: t('Kor Rahibi'), hint: t('Yere mühür kaz, her şeyi yak. Alev Saçağı ile ateş düşmandan düşmana geçer.'), nodes: ['pyre', 'cleave', 'pyre-burst', 'whirl', 'p-kindle', 'p-ember', 'whirl-hook', 'temper', 'k-exec'] },
-    { id: 'chain-reaper', name: t('Zincirli Cellat'), hint: t('Düşmanları çekip yığ, sersemlet, Cellat ile bitir.'), nodes: ['cleave', 'whirl', 'whirl-hook', 'cleave-sunder', 'p-lash', 'p-aftershock', 'charge', 'rend', 'temper', 'k-exec'] },
-    { id: 'plague-bearer', name: t('Veba Taşıyıcı'), hint: t('Çanla lanetle, kanat; ölenler patlayıp yenilerini lanetler.'), nodes: ['knell', 'cleave', 'knell-chain', 'whirl', 'p-plague', 'p-lash', 'p-rot', 'rend', 'roar', 'k-blood'] },
-    { id: 'blood-penitent', name: t('Kan Kefareti'), hint: t('Can ile öde, can ile al: matara yok, her vuruş seni iyileştirir.'), nodes: ['roar', 'cleave', 'roar-blood', 'charge', 'p-frenzy', 'p-momentum', 'chainstorm', 'temper', 'k-blood'] },
-    { id: 'storm-rider', name: t('Kara Fırtına'), hint: t('Hiç durma: hücum, kaçın, zincirle çek, yeniden hücum.'), nodes: ['charge', 'whirl', 'charge-echo', 'whirl-hook', 'p-momentum', 'p-lash', 'havoc', 'rend', 'roar', 'k-exec'] }
+    { id: 'warlord', name: t('Savaş Beyi'), hint: '', nodes: ['cleave', 'whirl', 'roar', 'charge', 'temper', 'rend', 'p-frenzy', 'havoc', 'k-exec'] },
+    { id: 'hook-haul', name: t('Çengelci'), hint: '', nodes: ['hook', 'cleave', 'charge', 'hook3', 'brand', 'p-bleed', 'grasp', 'whirl', 'k-exec'] },
+    { id: 'iron-wall', name: t('Demir Duvar'), hint: '', nodes: ['guard', 'cleave', 'roar', 'guard2', 'quake', 'p-guard', 'temper', 'whirl', 'k-blood'] }
   ]);
-  // Identity title of the two strongest columns (order-free).
-  const ARCHETYPE = { 'cleave+pyre': t('Kor Celladı'), 'cleave+whirl': t('Zincirli Cellat'), 'cleave+roar': t('Kanlı Balyoz'), 'charge+cleave': t('Koç Başı'), 'cleave+knell': t('Mezar Kazıcı'),
-    'pyre+roar': t('Kor Nidası'), 'pyre+whirl': t('Kül Fırtınası'), 'charge+pyre': t('Kor Rahibi'), 'knell+pyre': t('Kül ve Kemik'), 'roar+whirl': t('Kan Girdabı'), 'charge+roar': t('Kan Hücumu'),
-    'knell+roar': t('Kan Kefareti'), 'charge+whirl': t('Kara Fırtına'), 'knell+whirl': t('Paslı Veba'), 'charge+knell': t('Ölüm Habercisi') };
-  const archetype = (a, b) => ARCHETYPE[[a, b].sort().join('+')] || '';
-  B.TalentTree = Object.freeze({ presets: PRESETS, archetype, cols: COLS, rows: ROWS, nodes, get, access, validate, canRefund, effects, effective, get MAX_POINTS() { return B.Progression ? B.Progression.MAX_LEVEL - 1 : 12; } });
+  const archetype = () => '';
+  const colOfLine = line => COLS.find(c => c.line === line) || COLS[0];
+  const archOf = n => n && n.arch ? ARCH[n.arch] : '';
+  const archMates = n => n && n.arch ? nodes().filter(o => o.arch === n.arch && (o.kind === 'active' || o.kind === 'passive') && o.id !== n.id).map(o => o.name) : [];
+  B.TalentTree = Object.freeze({ presets: PRESETS, archetype, archOf, archMates, colOfLine, cols: COLS, rows: ROWS, nodes, get, access, validate, canRefund, effects, effective, get MAX_POINTS() { return B.Progression ? B.Progression.MAX_LEVEL - 1 : 12; } });
 }());

@@ -13,13 +13,13 @@
 #atlas .atlas-canvas {display:block;width:100%;height:100%;cursor:grab;touch-action:none;outline:0;}
 #atlas .atlas-canvas.dragging {cursor:grabbing;}
 #atlas .atlas-canvas:focus-visible {outline:1px solid #c7b187;outline-offset:-5px;}
-#atlas .atlas-controls {position:absolute;right:17px;bottom:19px;display:flex;gap:5px;}
+#atlas .atlas-controls {position:absolute;right:46px;bottom:12px;display:flex;gap:5px;}
 #atlas .atlas-controls button {display:grid;place-items:center;width:33px;height:33px;min-height:0;padding:0;border:1px solid #a9906266;background:#131511ed;color:#d6c198;font:400 23px/1 var(--display);box-shadow:inset 0 1px 0 #dcc0911a;cursor:pointer;}
 #atlas .atlas-controls button:hover,#atlas .atlas-controls button:focus-visible {color:#f4dfba;border-color:#d2b684;outline:1px solid #d2b684;outline-offset:2px;}
-#atlas .atlas-compass {position:absolute;left:20px;top:15px;width:73px;height:84px;color:#b4a279;pointer-events:none;opacity:.8;}
+#atlas .atlas-compass {position:absolute;left:46px;top:15px;width:73px;height:84px;color:#b4a279;pointer-events:none;opacity:.8;}
 #atlas .atlas-compass span {display:block;text-align:center;font:400 11px var(--display);}
 #atlas .atlas-compass svg {width:73px;height:73px;}
-#atlas .atlas-instructions {position:absolute;left:20px;bottom:20px;margin:0;font:400 11px/1.3 var(--text);letter-spacing:.03em;color:#9f947a;pointer-events:none;}
+#atlas .atlas-instructions {position:absolute;left:46px;bottom:14px;margin:0;font:400 11px/1.3 var(--text);letter-spacing:.03em;color:#9f947a;pointer-events:none;}
 #atlas .atlas-ledger {min-width:0;min-height:0;padding:18px 16px;display:flex;flex-direction:column;border:1px solid #a68b5b80;background:linear-gradient(135deg,#171410e8,#080909ed);box-shadow:inset 0 0 0 3px #070807,inset 0 0 0 4px #bca1711a,0 6px 18px #0006;overflow:hidden;}
 #atlas .atlas-ledger h3 {font:400 17px/1.3 var(--display);letter-spacing:.02em;color:#dac8a3;margin:0 0 10px;padding-top:17px;border-top:1px solid #a38b5b3b;}
 #atlas .atlas-ledger h3:first-child {padding-top:0;border:0;}

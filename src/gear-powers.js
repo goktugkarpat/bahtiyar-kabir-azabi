@@ -27,6 +27,31 @@
     'black-tide-sword': ['Kara Dalga', 'Her 6. vuruş önüne kara bir dalga salar.'],
     'slag-edge-sword': ['Cüruf Ağzı', 'Canı tam olan düşmanlara ilk vuruşun %30 fazla hasar verir.']
   };
+  // ajan:bossloot — powers of the boss-only items (src/boss-loot.js). id -> [name TR, text TR, name EN, text EN]
+  const BOSS_TEXT = {
+    'rusted-mail-chest': ['Pas Kabuğu', 'Canın %50’nin altındayken %12 daha az hasar alırsın.', 'Rust Crust', 'Below 50% health you take 12% less damage.'],
+    'headsman-hood': ['Kara Hüküm', 'Kritik vuruşlar hedefi kanatır: vuruşun %40’ı kadar kan 3 saniyede akar.', 'Black Verdict', 'Critical hits open a wound: 40% of the blow bleeds out over 3 seconds.'],
+    'hook-chain-gauntlets': ['Kanca Zinciri', 'Her 6. vuruş düşmanı kancayla yakalar ve yarım saniye sersemletir.', 'Hooked Chain', 'Every 6th blow hooks the foe and stuns it for half a second.'],
+    'drowned-clapper-axe': ['Batık Ağırlık', 'Ağır vuruşlar %25 fazla hasar verir.', 'Sunken Weight', 'Heavy blows deal 25% more damage.'],
+    'bellringer-bronze-chest': ['Tuzlu Deri', 'Yuvarlandıktan sonra 3 saniye boyunca %15 daha az hasar alırsın.', 'Brine Hide', 'For 3 seconds after a roll you take 15% less damage.'],
+    'drowned-ringer-helm': ['Derin Soluk', 'Canın %40’ın altındayken her öldürme canının %4’ünü iyileştirir.', 'Deep Breath', 'Below 40% health every kill heals 4% of your health.'],
+    'tide-chain-boots': ['Kıyı Adımı', 'Her yuvarlanma 10 dayanıklılık geri verir.', 'Shoreline Stride', 'Every roll restores 10 stamina.'],
+    'hollow-scepter-spear': ['Asa Darbesi', 'Bitirici (3.) vuruşlar %25 fazla hasar verir.', 'Scepter Strike', 'Finishing (3rd) blows deal 25% more damage.'],
+    'king-ossuary-chest': ['Taht Ağırlığı', 'Canın %70’in üstündeyken verdiğin hasar %8 artar.', 'Weight of the Throne', 'While above 70% health you deal 8% more damage.'],
+    'hollow-king-spurs': ['Mahmuz Hamlesi', 'Yuvarlandıktan sonraki ilk vuruş %30 fazla hasar verir.', 'Spur Lunge', 'The first blow after a roll deals 30% more damage.'],
+    'warden-iron-claws': ['Muhafız Avcısı', 'Seçkin düşmanlara, muhafızlara ve bosslara %10 fazla hasar.', 'Warden Hunter', 'Deal 10% more damage to elite foes, wardens and bosses.'],
+    'heart-forged-sword': ['Kor Kanı', 'Canın %50’nin altındayken verdiğin hasar %15 artar.', 'Ember Blood', 'Below 50% health you deal 15% more damage.'],
+    'anvil-heart-chest': ['Öfke Dökümü', 'Hasar aldıktan sonra 3 saniye boyunca vuruşların %15 daha sert olur.', 'Cast Fury', 'For 3 seconds after taking damage your blows hit 15% harder.'],
+    'furnace-heart-helm': ['İnfaz Bakışı', 'Canı %30’un altındaki düşmanlara %12 fazla hasar.', 'Executioner’s Stare', 'Deal 12% more damage to foes below 30% health.'],
+    'cinder-breath-boots': ['Köz Soluğu', 'Her 7. vuruş canının %1,5’ini iyileştirir.', 'Cinder Breath', 'Every 7th blow heals 1.5% of your health.'],
+    'ash-warden-greaves': ['Kül Hırsı', 'Her öldürme 3 saniyeliğine %10 hasar verir.', 'Ash Greed', 'Every kill grants 10% more damage for 3 seconds.'],
+    'black-gavel-axe': ['Hüküm Emici', 'Kritik vuruşlar canının %2’sini iyileştirir.', 'Verdict Drinker', 'Critical hits heal 2% of your health.'],
+    'qadi-black-robe': ['Hükmün Ertelenişi', '90 saniyede bir ölümcül darbe seni canının %15’iyle ayakta bırakır.', 'Stay of Sentence', 'Once every 90 seconds a killing blow leaves you standing with 15% health.'],
+    'qadi-iron-turban': ['Hüküm Gözü', 'Kritik vuruşlar 6 dayanıklılık geri verir.', 'Eye of Judgement', 'Critical hits restore 6 stamina.'],
+    'verdict-warden-boots': ['Zincir Çekişi', 'Yuvarlandıktan sonraki ilk vuruş düşmanı yarım saniye sersemletir.', 'Chain Pull', 'The first blow after a roll stuns the foe for half a second.']
+  };
+  { const D = window.KabirI18n && KabirI18n.dictionary;
+    for (const id of Object.keys(BOSS_TEXT)) { const p = BOSS_TEXT[id]; if (D) { if (!D[p[0]]) D[p[0]] = p[2]; if (!D[p[1]]) D[p[1]] = p[3]; } TEXT[id] = [p[0], p[1]]; } }
   function describe(def) {
     const p = def && TEXT[def.id]; if (!p) return '';
     return '<div class="cd-unique-power"><span class="cd-up-label">' + t('Eşsiz Güç') + '</span><strong>' + t(p[0]) + '</strong><p>' + t(p[1]) + '</p></div>';
@@ -41,6 +66,7 @@
     const strike = (e, amount, face) => { if (!alive(e)) return null; return hurtEnemy(e, Math.round(amount), true, face, { talent: true, combo: 0, face, heavy: true, gained: 99 }); };
     const heal = f => { if (!player.dead) player.hp = Math.min(player.maxHp, player.hp + f * player.maxHp); };
     let worn = new Set(), wornRev = -1, hits = 0, clock = 0, crown = [], primed = false, chainReady = 0, soulAt = 0;
+    let dodgeAt = -99, furyUntil = 0, rushUntil = 0, spurFor = null, spurUntil = 0, pullFor = null, pullUntil = 0, stayReady = 0;   // ajan:bossloot
     const dots = new Map(), trails = [], NONE = new Map(), procs = {}, P = id => { procs[id] = (procs[id] || 0) + 1; };
     function has(id) {
       if (B.GearPowers && B.GearPowers.off && B.GearPowers.off.has(id)) return false;   // balance bench A/B switch (combat-balance.js powersOff)
@@ -63,6 +89,17 @@
         if (e.stagger > 0 && has('warden-verdict-helm')) k *= 1.15;
         if (e.stagger > 0 && has('cave-verdict-sword')) k *= 1.25;
         if (has('slag-edge-sword') && e.hp >= max && attack && !attack.talent) k *= 1.3;
+        // ajan:bossloot — boss-only item powers
+        const own = attack && !attack.talent;
+        if (own && attack.heavy && has('drowned-clapper-axe')) k *= 1.25;
+        if (own && !attack.heavy && attack.combo === 2 && has('hollow-scepter-spear')) k *= 1.25;
+        if (player.hp > 70 && has('king-ossuary-chest')) k *= 1.08;
+        if (player.hp < 50 && has('heart-forged-sword')) k *= 1.15;
+        if (clock < furyUntil && has('anvil-heart-chest')) k *= 1.15;
+        if (clock < rushUntil && has('ash-warden-greaves')) k *= 1.1;
+        if ((e.boss || e.elite || e.warden) && has('warden-iron-claws')) k *= 1.1;
+        if (e.hp < max * .3 && has('furnace-heart-helm')) k *= 1.12;
+        if (own && has('hollow-king-spurs')) { if (spurFor !== attack && clock < spurUntil) { spurFor = attack; spurUntil = 0; } if (spurFor === attack) { P('hollow-king-spurs'); k *= 1.3; } }
         d = Math.round(d * k);
       } catch (err) { /* soft */ }
       return d;
@@ -82,6 +119,13 @@
           const x = player.x + Math.sin(player.face) * 2, z = player.z + Math.cos(player.face) * 2;
           sound('talentChain', { x, z, volume: .7 }); burstHit(x, z, 2.6, 26, 'chain');
         }
+        // ajan:bossloot
+        if (attack.critical && has('headsman-hood') && !killed) { P('headsman-hood'); dot(e, damage * .4, 3, 'bleed'); if (look) look.burst(e.x, e.z, 1.2, 'blood'); sound('talentBlood', { x: e.x, z: e.z, volume: .6 }); }
+        if (hits % 6 === 0 && has('hook-chain-gauntlets') && !killed) { P('hook-chain-gauntlets'); stunEnemy(e, .5, 'heavy'); if (look) look.burst(e.x, e.z, 1.2, 'chain'); sound('talentChain', { x: e.x, z: e.z, volume: .6 }); }
+        if (hits % 7 === 0 && has('cinder-breath-boots')) { P('cinder-breath-boots'); heal(.015); }
+        if (attack.critical && has('black-gavel-axe')) { P('black-gavel-axe'); heal(.02); }
+        if (attack.critical && has('qadi-iron-turban')) { P('qadi-iron-turban'); player.stamina = Math.min(player.maxStamina, player.stamina + 6); }
+        if (has('verdict-warden-boots')) { if (pullFor !== attack && clock < pullUntil) { pullFor = attack; pullUntil = 0; if (!killed) { P('verdict-warden-boots'); stunEnemy(e, .5, 'heavy'); if (look) look.burst(e.x, e.z, 1.2, 'chain'); sound('talentChain', { x: e.x, z: e.z, volume: .6 }); } } }
         void face;
       } catch (err) { /* soft */ }
     };
@@ -97,6 +141,8 @@
           if (look) look.burst(x, z, 2, 'bone'); sound('talentRot', { x, z, volume: .5 });
           for (const o of near) strike(o, 22, Math.atan2(o.x - x, o.z - z));
         }
+        if (has('drowned-ringer-helm') && player.hp < 40) { P('drowned-ringer-helm'); heal(.04); if (look) look.burst(player.x, player.z, 1.2, 'gold'); }
+        if (has('ash-warden-greaves')) { P('ash-warden-greaves'); rushUntil = clock + 3; }
         dots.delete(e);
       } catch (err) { /* soft */ }
     };
@@ -104,6 +150,8 @@
       base.onDodge();
       try {
         if (has('hearth-forged-gauntlets')) primed = true;
+        dodgeAt = clock; spurUntil = clock + 3; pullUntil = clock + 3;   // ajan:bossloot
+        if (has('tide-chain-boots')) { P('tide-chain-boots'); player.stamina = Math.min(player.maxStamina, player.stamina + 10); }
         if (has('sunken-vow-chest')) { P('sunken-vow-chest'); const sx = player.x, sz = player.z; trails.push({ sx, sz, at: clock + .32, life: 3, hit: new Set(), tick: 0 }); }
       } catch (err) { /* soft */ }
     };
@@ -112,14 +160,25 @@
       try {
         if (has('verdict-warden-helm') && enemies.filter(e => alive(e) && dist(e, player.x, player.z) < 5).length >= 3) d *= .9;
         if (has('warden-chainmail') && player.hp < (player.maxHp || 100) * .35) d *= .85;
+        // ajan:bossloot
+        if (d > 0) {
+          if (player.hp < 50 && has('rusted-mail-chest')) { P('rusted-mail-chest'); d *= .88; }
+          if (clock - dodgeAt < 3 && has('bellringer-bronze-chest')) { P('bellringer-bronze-chest'); d *= .85; }
+          if (has('anvil-heart-chest')) furyUntil = clock + 3;
+        }
         if (has('verdict-warden-chest') && chainReady <= 0 && d > 0) { P('verdict-warden-chest'); d *= .5; chainReady = 8; if (look) look.burst(player.x, player.z, 1.6, 'chain'); sound('talentChain', { volume: .6 }); }
+        // Stay of Sentence: a killing blow leaves 15 % health, once every 90 s (damage here is before the 100/effectiveMaxHp scaling).
+        if (d > 0 && stayReady <= 0 && has('qadi-black-robe')) {
+          const eff = player.effectiveMaxHp || 100;
+          if (player.hp - d * 100 / eff <= 0) { P('qadi-black-robe'); d = Math.max(0, player.hp - 15) * eff / 100; stayReady = 90; if (look) look.burst(player.x, player.z, 2, 'gold'); sound('talentExecute', { volume: .7 }); }
+        }
       } catch (err) { /* soft */ }
       return d;
     };
     talents.update = function (dt) {
       base.update(dt);
       try {
-        clock += dt; chainReady = Math.max(0, chainReady - dt);
+        clock += dt; chainReady = Math.max(0, chainReady - dt); stayReady = Math.max(0, stayReady - dt);
         crown = crown.filter(at => at > clock);
         for (const [e, d] of dots) {
           if (!alive(e)) { dots.delete(e); continue; }
@@ -149,6 +208,7 @@
       } catch (err) { /* soft */ }
     };
     talents.gearPowerStats = () => Object.assign({}, procs);
+    talents.gearDotOf = e => dots.get(e) || null;   // read-only (target bar icons)
     // Equip feedback: a short metal/leather sound for every piece put on.
     if (typeof progression.equip === 'function' && !progression.__gearEquip) {
       const equip = progression.equip; progression.__gearEquip = true;
@@ -158,7 +218,7 @@
         return r;
       };
     }
-    talents.reset = function () { base.reset(); dots.clear(); trails.length = 0; crown = []; primed = false; hits = 0; if (look) look.reset(); };
+    talents.reset = function () { base.reset(); dots.clear(); trails.length = 0; crown = []; primed = false; hits = 0; stayReady = 0; furyUntil = rushUntil = spurUntil = pullUntil = 0; spurFor = pullFor = null; dodgeAt = -99; if (look) look.reset(); };
   }
   B.GearPowers = { attach, describe, text: TEXT };
 })();
