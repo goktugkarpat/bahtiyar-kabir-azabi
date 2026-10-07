@@ -52,6 +52,7 @@
       uniforms: { uK: { value: 1 }, uA: { value: 1 }, uSeed: { value: 0 }, uStyle: { value: 0 }, uCol: { value: new T.Vector3(1, .4, .1) }, uHot: { value: new T.Vector3(2, 1.6, 1.2) } }, vertexShader: VS, fragmentShader: WALL_FS });
     const walls = Array.from({ length: 10 },() => { const mat = wallBase.clone(), m = new T.Mesh(wallGeo, mat); m.frustumCulled = false; m.visible = false; m.renderOrder = 4; root.add(m); return { m, mat, t: 9, life: 1, r: 1, h: 1 }; });
     function dome(x, z, d) {
+      if (d.delay && scaleCount(10) <= 3) return;   // lowest particle budgets (iPad / low quality): only the primary wall of each blow
       const w = walls.find(q => q.t >= q.life && !q.m.visible) || walls.reduce((a, b) => (b.t / b.life > a.t / a.life ? b : a));
       const u = w.mat.uniforms, k = calm() ? .5 : 1, col = d.col || [1, .4, .1], hot = d.hot || [2, 1.6, 1.2];
       w.t = -(d.delay || 0); w.life = d.life || .5; w.r = d.r || 3; w.h = d.h || 1.4; w.inward = !!d.inward; w.m.visible = false;
