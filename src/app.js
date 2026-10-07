@@ -649,7 +649,7 @@
     // Clone the nodes, not the flat text: the boss's last words are a styled block span (quest-side.js .qc-lastwords).
     fade.querySelector('.end-quote').replaceChildren(...Array.from(document.querySelector('#victory .end-quote').childNodes, n => n.cloneNode(true)));
     fade.querySelector('.next').textContent = KabirI18n.t('BÖLÜM ') + chapterNumbers[chapter] + ' · ' + chapterNames[chapter];
-    setTimeout(() => { fade.classList.remove('hidden'); void fade.offsetWidth; fade.classList.add('show'); document.body.classList.add('chapter-fading'); }, 1500);
+    setTimeout(() => { fade.classList.remove('hidden'); void fade.offsetWidth; fade.classList.add('show'); document.body.classList.add('chapter-fading'); try { B.Audio.play('chapterEnd'); } catch (e) {} }, 1500);
     // Music and ambience sink under the card so the swap on the next page is not a hard cut.
     setTimeout(() => {
       let n = 0; const timer = setInterval(() => { n++; B.Audio.set({ music: cfg.music * Math.max(0, 1 - n / 10), ambient: cfg.ambient * Math.max(0, 1 - n / 10) }); if (n >= 10) clearInterval(timer); }, 100);

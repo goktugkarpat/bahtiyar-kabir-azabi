@@ -197,11 +197,18 @@
     if (!st.playing && !st.title) return;
     chapterEvents(ch, t, st); heroStep(dt, st, t);
   }
+  function chapterEndSound(t) {   // chapter hand-over: a slow low bell, a held open fifth and a soft sub swell under the fade card
+    C.ring(t, { f: 110, partials: [1, 2.01, 2.76, 4.1], decay: 5, vol: .07, send: .8 });
+    C.thud(t, { f0: 55, f1: 34, dur: 1.6, vol: .22, send: .3 });
+    for (const [f, d] of [[73.42, 0], [110, .4]]) C.tone(t + d, f, 4.5 - d, .035, { type: 'triangle', attack: 1.2, lp: 1500, send: .7 });
+  }
   function after(name, o, k) {
     if (!C || !C.ctx) return;
     if (name === 'step') footstep(o || {}, k);
     else if (name === 'dodge' && C.chance(.35) && C.throttle('dodgeBreath', 1.2)) breath(C.ctx.currentTime + .12, .3 * k, false);
     else if (name === 'levelUp') levelUpExtra(C.ctx.currentTime);
+    else if (name === 'talentBlood' && C.throttle('talentBlood', .12)) { const t = C.ctx.currentTime; C.sample('flesh', { vol: .5 * k, rate: C.rand(.8, .95), send: .1 }); C.burst(t, .22, .1 * k, 700, { q: .8, f1: 260, attack: .01 }); C.thud(t, { f0: 130, f1: 70, dur: .14, vol: .12 * k }); }
+    else if (name === 'chapterEnd') chapterEndSound(C.ctx.currentTime);
   }
   B.AudioPlus = { build, update, after, ui, surface, stats };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', watchUI); else watchUI();
