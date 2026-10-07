@@ -13,8 +13,8 @@
   const DIFFICULTY = Object.freeze({
     easy: Object.freeze({ enemyHp: .70, enemyDmg: .48, eliteHp: 1, eliteDmg: 1, playerDmg: 1.18, pace: 1.22, rest: 1.30, attackers: 2, melee: 1,
       hitCap: .30, iframe: .44, dodgeStep: .15, regenDelay: .25, regen: 1.15, flasks: 5, flaskHeal: 1.15, perfectWindow: .26 }),
-    normal: Object.freeze({ chapterDmg: Object.freeze({ 1: 1.3, 2: 1.2, 3: 1.08, 4: 1.6, 5: 1.7 }), enemyHp: .95, enemyDmg: 1.25, eliteHp: 1.10, eliteDmg: 1.08, playerDmg: 1.12, pace: 1.10, rest: 1.08, attackers: 3, melee: 2,
-      hitCap: .38, iframe: .38, dodgeStep: .30, regenDelay: .40, regen: 1, flasks: 4, flaskHeal: 1, perfectWindow: .22 }),
+    normal: Object.freeze({ chapterDmg: Object.freeze({ 1: .85, 2: .85, 3: .82, 4: .95, 5: 1.1 }), enemyHp: .95, enemyDmg: 1.25, eliteHp: 1.10, eliteDmg: 1.08, playerDmg: 1.12, pace: 1.10, rest: 1.08, attackers: 3, melee: 2,
+      hitCap: .30, iframe: .38, dodgeStep: .30, regenDelay: .35, regen: 1.08, flasks: 5, flaskHeal: 1.1, perfectWindow: .22 }),
     hard: Object.freeze({ enemyHp: 1.15, enemyDmg: 1.32, eliteHp: 1.25, eliteDmg: 1.25, playerDmg: 1, pace: 1, rest: .82, attackers: 3, melee: 2,
       hitCap: .45, iframe: .32, dodgeStep: .40, regenDelay: .50, regen: 1, flasks: 3, flaskHeal: .85, perfectWindow: .18 })
   });
@@ -105,3 +105,9 @@
      bell-spear -56 % fight time, -47 % health lost -> cut to 8 % proc / .4 s stun (was 15 % / .6 s). The rest stayed within the
      bench's noise (+-30..50 % on 6 fights). Re-check sunken-vow-chest (-56 % health lost) and bone-rite-chest (-39 %) with more fights.
    Bench fix: the flask column counts drinks (it was start - end, negative when kills / talents refilled flasks). */
+
+/* NORMAL EASED (bench, tools-free CDP run of BABA.Balance.run; total % health lost over a chapter's halls, deaths in brackets, before -> after):
+   Normal chapterDmg 1.3/1.2/1.08/1.6/1.7 -> .85/.85/.82/.95/1.1, Normal hitCap .38 -> .30, regenDelay .40 -> .35, regen 1 -> 1.08, flasks 4 -> 5, flaskHeal 1 -> 1.1. Hard untouched.
+   Normal novice  ch I 1516 (2) -> 1089 (0)   ch IV 3560 (9) -> 2755 (3)   ch V 2877 (5) -> 2048 (1)
+   Normal average ch I 400 -> 220 (0 flasks)  ch IV 948 -> 590            ch V 1105 -> 833
+   Hard average   ch I ~840-1000 / ch IV 2068 (3) -> 2064 (1) / ch V 1704 -> 1688: unchanged within noise (Hard / Normal average 2.0-4.7x). */
