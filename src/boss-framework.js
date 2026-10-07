@@ -56,6 +56,7 @@
       BF.profiles[type] = profile;
       if (profile.signature && profile.signature.hint) BF.hints[profile.signature.id] = profile.signature.hint;
       if (profile.signature2 && profile.signature2.hint) BF.hints[profile.signature2.id] = profile.signature2.hint;
+      if (profile.signature3 && profile.signature3.hint) BF.hints[profile.signature3.id] = profile.signature3.hint;
       if (profile.pursuit) BF.hints['pursuit_' + type] = tr('Yuvarlanışının bittiği yere atılır; çizgiden yana çık, ardından gelen daireden yürüyerek çık.');
     },
     hint: function (id) { return BF.hints[id] || ''; },
@@ -79,6 +80,7 @@
       '#bf-cine .card.show i{width:62%}' +
       '#bf-cine .card.show strong{animation:bf-in 1.5s cubic-bezier(.2,.8,.2,1) both}' +
       '#bf-cine .card.phase{top:63%}#bf-cine .card.phase strong{font-size:clamp(24px,3.4vw,46px)}' +
+      '.bf-notched .target-notch{display:none!important}.bf-notch{position:absolute;top:-2px;bottom:-2px;width:2px;background:#f1d29a;box-shadow:0 0 4px #000;pointer-events:none;transition:opacity .4s}.bf-notch.done{opacity:.22}' +
       'body.bf-intro #announcement,body.bf-intro #boss-mechanic{visibility:hidden}' +
       '#bf-cine .flash{position:absolute;left:50%;top:73%;transform:translateX(-50%);font-size:clamp(15px,1.7vw,24px);font-weight:600;letter-spacing:.42em;color:#ffdc8f;opacity:0;text-shadow:0 0 14px rgba(240,170,60,.75),0 0 4px #000;transition:opacity .25s}' +
       '#bf-cine .flash.show{opacity:1;animation:bf-pop .5s cubic-bezier(.2,.8,.2,1) both}' +
@@ -97,12 +99,12 @@
   /* Text lanes: the card never sits on top of the narrator's subtitle, the level-up banner, the HUD announcement or the boss
      instruction panel. place() tries a few vertical lanes and keeps the one with the least overlap; a card that would collide
      waits (queue, at most 1.6 s) for a free lane; while shown it is re-laid every .25 s, so a subtitle that appears pushes it aside. */
-  var BLOCKERS = ['narration', 'level-up', 'lu-banner', 'announcement', 'boss-mechanic', 'tutorial'];
+  var BLOCKERS = ['narration', 'level-up', 'lu-banner', 'announcement', 'boss-mechanic', 'tutorial', 'chapter-fade', '.qc-bars.show .qc-caption'];
   function blockers(intro) {
     var out = [];
     for (var i = 0; i < BLOCKERS.length; i++) {
       if (intro && BLOCKERS[i] === 'boss-mechanic') continue;   // the intro card hides that panel itself
-      var el = document.getElementById(BLOCKERS[i]); if (!el) continue;
+      var el = BLOCKERS[i].charAt(0) === '.' ? document.querySelector(BLOCKERS[i]) : BLOCKERS[i] === 'chapter-fade' ? document.querySelector('#chapter-fade:not(.hidden) .cf-copy') : document.getElementById(BLOCKERS[i]); if (!el) continue;
       if (BLOCKERS[i] === 'narration' && (el.classList.contains('hidden') || !(el.textContent || '').trim())) continue;
       if ((BLOCKERS[i] === 'level-up' || BLOCKERS[i] === 'announcement') && !el.classList.contains('show')) continue;
       if (BLOCKERS[i] === 'lu-banner' && !el.classList.contains('lu-on')) continue;   // ajan:ui — levelup.js afişi
@@ -369,8 +371,37 @@
     var reduced = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : { matches: false };
 
     /* ---- per frame */
+    // Boss camera: in the arena the view frames the hero AND the boss (centre pulled toward the boss, a slight zoom-out with distance);
+    // at the intro it drifts slowly toward the boss, at the fall it holds on the body. app.js reads BF.camera() (offsets from the hero).
+    var cam = { x: 0, z: 0, zoom: 1 }, camFocus = 0;
+    function camStep(dt) {
+      var e = game.boss, tx = 0, tz = 0, tzoom = 1;
+      camFocus = Math.max(0, camFocus - dt);
+      if (e && profileOf(e) && st.intro && (e.active || (e.dead && camFocus > 0)) && game.state !== 'dead') {
+        var dx = e.x - player.x, dz = e.z - player.z, d = hyp(dx, dz);
+        if (d < 22) {
+          var w = camFocus > 0 ? (e.dead ? .62 : .42) : .3, L = Math.min(d * w, camFocus > 0 ? (e.dead ? 7 : 4.6) : 4.2), k = d > .01 ? L / d : 0;
+          tx = dx * k; tz = dz * k; tzoom = 1 + Math.min(1, Math.max(0, (d - 4) / 12)) * .13 + (camFocus > 0 ? .05 : 0);
+        }
+      }
+      var a = 1 - Math.exp(-dt * (camFocus > 0 ? 1.4 : 2.2));
+      cam.x += (tx - cam.x) * a; cam.z += (tz - cam.z) * a; cam.zoom += (tzoom - cam.zoom) * a;
+    }
+    BF.camera = function () { return BF.current === dir && !reduced.matches ? cam : null; };
+    // Phase thresholds on the boss health bar (profile.thresholds = health fractions); passed ones dim.
+    var notchT = 0, notchKey = '';
+    function notches(e, p, dt) {
+      if ((notchT -= dt) > 0) return; notchT = .4;
+      var th = p.thresholds; if (!th) return;
+      var bar = document.querySelector('.boss-target .target-health'); if (!bar) return;
+      var f = e.hp / e.maxHp, key = e.type + ':' + th.map(function (t) { return f <= t ? 1 : 0; }).join('');
+      if (key === notchKey && bar.querySelector('.bf-notch')) return; notchKey = key;
+      var old = bar.querySelectorAll('.bf-notch'); for (var i = 0; i < old.length; i++) old[i].remove();
+      bar.parentNode.classList.add('bf-notched');
+      th.forEach(function (t) { var n = document.createElement('i'); n.className = 'bf-notch' + (f <= t ? ' done' : ''); n.style.left = (t * 100).toFixed(1) + '%'; bar.appendChild(n); });
+    }
     function update(dt) {
-      time += dt; stepOverlay(dt); trackRolls(dt);
+      time += dt; stepOverlay(dt); trackRolls(dt); camStep(dt);
       var e = game.boss, p = profileOf(e);
       if (!e || !p) { aura.visible = false; return; }
       if (st.boss !== e) { st = Object.assign(fresh(), { boss: e }); }
@@ -387,16 +418,17 @@
         st.intro = true; st.phaseKey = e.phase + (e.enraged ? 'e' : '');
         showCard(p.sub || tr('BOSS'), p.title || e.name, p.epithet || '', 3.8, 3.2, false, p.color);
         st.sigAt = time + (p.signature ? p.signature.first || 14 : 1e9) * pace(); st.pursuitAt = time + 6;
-        st.sig2At = time + (p.signature2 ? p.signature2.first || 30 : 1e9) * pace();
+        st.sig2At = time + (p.signature2 ? p.signature2.first || 30 : 1e9) * pace(); st.sig3At = time + 6;
         // the held breath: a harmless war roar while the title burns in (the first real blow comes after it)
         if (!e.action) { e.face = Math.atan2(player.x - e.x, player.z - e.z); api.beginMove(e, { id: 'roar', name: p.title || e.name, duration: 1.9, pose: 'roar', cooldown: .6,
           hits: [kit.hit(1.1, 1.1, 'ring', 5, 0, 'roar', { inner: 0, arc: TAU, harmless: true, style: p.style || 'roar', fill: 'radial' })] }); }
         else e.cooldown = Math.max(e.cooldown, 1.8);
-        api.sound('bossPhase'); api.sound('bossLayer', { kind: p.sound, size: 'intro' });
+        api.sound('bossPhase'); api.sound('bossLayer', { kind: p.sound, size: 'intro' }); camFocus = 2.4;
+        api.emit('impact', { x: e.x, z: e.z, strength: .8, radius: 12 });
         api.fx('glowBurst', { x: e.x, y: .05, z: e.z, radius: 5.5, color: p.color || 0xb8452d, duration: 1.4 });
       }
       if (!e.active) { aura.visible = false; return; }
-      body(e, p, dt);
+      body(e, p, dt); notches(e, p, dt);
       var key = e.phase + (e.enraged ? 'e' : '');
       if (key !== st.phaseKey) {
         var label = e.enraged && p.enraged ? p.enraged : p.phases && p.phases[e.phase] || '';
@@ -431,6 +463,7 @@
     function slain(e) {
       var p = profileOf(e); if (!p || st.slain || !st.intro || e !== st.boss) return;
       api.sound('bossLayer', { kind: p.sound, size: 'fall' }); shatter(e, p, 1.4);
+      camFocus = 2.6;
       st.slain = true; showCard(tr('YENİLDİ'), p.title || e.name, p.epithet || '', 30, 30, true, p.color, true);
       if (api.slowMotion) api.slowMotion(.5);
       api.fx('glowBurst', { x: e.x, y: .05, z: e.z, radius: 8, color: p.color || 0xb8452d, duration: 1.6 });
@@ -440,14 +473,14 @@
     /* ---- hooks called by combat.js */
     function attack(e, d) {
       var p = profileOf(e); if (!p || !st.intro || st.boss !== e) return false;
-      for (var k = 0; k < 2; k++) {
-        var s = k ? p.signature2 : p.signature, at = k ? 'sig2At' : 'sigAt', other = k ? 'sigAt' : 'sig2At';
-        if (!s || time < st[at] || e.phase < (s.phase || 1) || d > (s.range || 15) || busy(e)) continue;
+      for (var k = 2; k >= 0; k--) {   // the late-fight signature (signature3: phase III / enraged) first, when it is due
+        var s = k === 2 ? p.signature3 : k ? p.signature2 : p.signature, at = k === 2 ? 'sig3At' : k ? 'sig2At' : 'sigAt', other = k === 0 ? 'sig2At' : 'sigAt';
+        if (!s || time < (st[at] || 0) || (s.late ? !(e.phase >= 3 || e.enraged) : e.phase < (s.phase || 1)) || d > (s.range || 15) || busy(e)) continue;
         var mv = s.build(e, d, kit, api);
         if (!mv || !api.beginMove(e, mv)) { st[at] = time + 2; continue; }
         var cds = s.cd || [20], cd = cds[Math.min(cds.length - 1, e.phase - 1)];
         st[at] = time + cd * pace() * (e.enraged ? .85 : 1);
-        st[other] = Math.max(st[other], time + 7);   // two signatures never follow each other directly
+        st[other] = Math.max(st[other], time + 7); if (k !== 2) st.sig3At = Math.max(st.sig3At || 0, time + 7);   // two signatures never follow each other directly
         api.sound('bossLayer', { kind: p.sound, size: 'cast' });
         return true;
       }
@@ -481,6 +514,13 @@
   // Arena features (one per boss; each boss's room plays differently): profile.arena = { phase, first, every:[per phase], build(e, arena, n, kit, api) }.
   // build() places owner-less hazards through BF.env(e, hazard); return false to retry soon.
   BF.register('boss', {
+    thresholds: [.52, .25],
+    // Celladın Hükmü (enraged): three chain lines fan out one after another toward the hero, then the axe falls where he stands.
+    signature3: { id: 'verdict', late: true, cd: [20], range: 12, hint: tr('Üç zincir sırayla iner, sonra balta durduğun yere düşer. Çizgilerin arasından geç, sonra daireden çık.'),
+      build: function (e, d, k, api) { var p = api.player, a0 = Math.atan2(p.x - e.x, p.z - e.z), name = tr('Celladın Hükmü'), hits = [];
+        [-.45, .45, 0].forEach(function (o, i) { var a = a0 + o; hits.push(k.hit(1.0 + i * .35, i ? .8 : 1.0, 'line', 0, 14, 'chainLash', { origin: { x: e.x, z: e.z }, face: a, width: 1.3, length: api.clipLine(e, a, 13), style: 'chain', fill: 'forward', beat: i === 0, attack: name })); });
+        hits.push(k.hit(2.6, 1.0, 'circle', 2.5, 22, 'overhead', { origin: { x: p.x, z: p.z }, style: 'quake', fill: 'inward', unblockable: true, scar: true, beat: false, attack: name + tr(' · balta') }));
+        return { id: 'verdict', name: name, duration: 3.4, pose: 'chainLash', cooldown: 1, hits: hits }; } },
     // Çöken Zemin: from the Blood Oath on, the old sacrificial floor gives way under the fight, a slab at a time; the pit stays.
     arena: { phase: 2, first: 8, every: [12, 11, 9], build: function (e, ar, n, k, api) {
       var p = api.player, hz = api.hazards, live = 0, i;
@@ -516,6 +556,13 @@
       } }
   });
   BF.register('bell', {
+    thresholds: [.72, .48, .24],
+    // Batık Çanlar Sarmalı (phase III+): drowned bells fall one after another along a spiral that unwinds from the bell toward the hero.
+    signature3: { id: 'bellSpiral', late: true, cd: [20], range: 15, hint: tr('Çanlar sarmal çizerek sırayla düşer. Sarmalın ilerlediği yönün tersine yürü.'),
+      build: function (e, d, k, api) { var p = api.player, a0 = Math.atan2(p.x - e.x, p.z - e.z), name = tr('Batık Çanlar Sarmalı'), hits = [], dir = (e.picks || 0) % 2 ? 1 : -1;
+        for (var i = 0; i < 11; i++) { var r = 2.6 + i * .95, a = a0 - dir * 2.4 + dir * i * .42, o = { x: e.x + Math.sin(a) * r, z: e.z + Math.cos(a) * r };
+          if (!api.walkable(o.x, o.z, .6)) continue; hits.push(k.hit(1.2 + i * .2, hits.length ? .85 : 1.2, 'circle', 1.7, 15, 'castHigh', { origin: o, style: 'tide', fill: 'inward', beat: !hits.length, attack: name })); }
+        return { id: 'bellSpiral', name: name, duration: 1.2 + 11 * .2 + 1, pose: 'castHigh', cooldown: 1, hits: hits }; } },
     // Yükselen Gelgit: the sea pours over the belfry's outer floor for six seconds; only the raised centre stays dry.
     arena: { phase: 1, first: 16, every: [24, 21, 18, 16], build: function (e, ar, n, k, api) {
       var inner = Math.max(5.5, Math.min(ar.w, ar.d) * .3);
@@ -537,6 +584,13 @@
         return { id: 'drownWell', name: name, duration: 3.9, pose: 'castHigh', cooldown: .9, hits: k.prison(e, o, name, 'tide', 'brine', 5, 30) }; } }
   });
   BF.register('hollowking', {
+    thresholds: [.62, .26],
+    // Billur Haç (phase III): a cross of crystal lines through the hero's spot, then the diagonal cross a beat later — step from one to the other.
+    signature3: { id: 'crystalCross', late: true, cd: [18], range: 16, hint: tr('Önce artı, sonra çarpı biçiminde billur çizgiler. İlk çizgiler patlarken çaprazlardan uzak dur, sonra düz çizgilerin üstüne geç.'),
+      build: function (e, d, k, api) { var p = api.player, c = { x: p.x, z: p.z }, name = tr('Billur Haç'), hits = [];
+        [0, 1].forEach(function (w) { for (var j = 0; j < 4; j++) { var a = j * Math.PI / 2 + (w ? Math.PI / 4 : 0);
+          hits.push(k.hit(1.4 + w * .95, w ? .95 : 1.4, 'line', 0, 16, 'castHigh', { origin: { x: c.x - Math.sin(a) * .9, z: c.z - Math.cos(a) * .9 }, face: a, width: 1.5, length: 8, style: 'rune', fill: 'forward', beat: w === 0 && j === 0, attack: name })); } });
+        return { id: 'crystalCross', name: name, duration: 3.2, pose: 'castHigh', cooldown: 1, hits: hits }; } },
     // Billur Damarlar: six crystal veins in the throne room's floor erupt in a fixed turning order (two opposite vents a time),
     // plus the vent nearest the hero: learn the order, keep off the next pair.
     arena: { phase: 1, first: 10, every: [10, 8.5, 7], build: function (e, ar, n, k, api) {
@@ -561,6 +615,12 @@
         return { id: 'crystalPrison', name: name, duration: 3.9, pose: 'castHigh', cooldown: .9, hits: k.prison(e, o, name, 'rune', '', 5, 30) }; } }
   });
   BF.register('furnaceheart', {
+    thresholds: [.60, .25],
+    // Kızgın Örs (phase III): three anvil-falls, each placed where the hero stands when the previous lands (.85 s tells): keep moving.
+    signature3: { id: 'anvilChase', late: true, cd: [18], range: 16, hint: tr('Örs üç kez düşer; her biri durduğun yere. Durma, yürümeye devam et.'),
+      build: function (e, d, k, api) { var p = api.player, name = tr('Kızgın Örs');
+        function next(n) { return function () { if (e.dead || !e.action || n > 2) return; api.hazardFrom(e, { x: p.x, z: p.z, shape: 'circle', radius: 2.6, warn: .85, delay: 0, damage: 18, style: 'ember', fill: 'inward', unblockable: true, scar: true, attack: name, near: true, onActive: next(n + 1) }); e.action.duration = Math.max(e.action.duration, e.action.age + 1.4); }; }
+        return { id: 'anvilChase', name: name, duration: 2.4, pose: 'overhead', cooldown: 1, hits: [k.hit(1.1, 1.1, 'circle', 2.6, 18, 'overhead', { origin: { x: p.x, z: p.z }, style: 'ember', fill: 'inward', unblockable: true, scar: true, attack: name, onActive: next(1) })] }; } },
     // Döküm Olukları: two casting channels across the forge floor fill with molten metal for five seconds, axis alternating each time.
     arena: { phase: 1, first: 12, every: [17, 15, 12], build: function (e, ar, n, k, api) {
       var alongX = n % 2 === 0, off = (alongX ? ar.d : ar.w) * .17;

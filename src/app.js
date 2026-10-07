@@ -1559,8 +1559,9 @@
       target.set(Math.sin(p.face) * lead, 0, Math.cos(p.face) * lead);
       cameraLead.lerp(target, 1 - Math.exp(-dt * 3));
       const push = ragePush > 0 ? Math.sin(Math.min(1, (1 - ragePush) / .18) * Math.PI / 2) * Math.min(1, ragePush / .6) : 0, near = 1 - .17 * push - (B.LevelUp ? B.LevelUp.push() : 0) - (B.Charge && B.Charge.cameraPush ? B.Charge.cameraPush() : 0) - (B.SkillFx ? B.SkillFx.push() : 0);
-      target.set(p.x + cameraLead.x, (wide ? 19 : touch ? 15.6 : 13.8) * CAM_NEAR * near, p.z + (wide ? 16 : 11.4) * CAM_NEAR * near + cameraLead.z);   // (parent: closer to the hero; CAM_NEAR .78 = 22 % nearer, ?cam=1 restores the old distance)
-      lookTarget.set(p.x + cameraLead.x, .7, p.z - .8 + cameraLead.z);
+      const bfc = B.BossFramework && B.BossFramework.camera ? B.BossFramework.camera() : null, bx = bfc ? bfc.x : 0, bz = bfc ? bfc.z : 0, bzoom = bfc ? bfc.zoom : 1;   // ajan:bosses — frame hero + boss
+      target.set(p.x + cameraLead.x + bx, (wide ? 19 : touch ? 15.6 : 13.8) * CAM_NEAR * near * bzoom, p.z + (wide ? 16 : 11.4) * CAM_NEAR * near * bzoom + cameraLead.z + bz);   // (parent: closer to the hero; CAM_NEAR .78 = 22 % nearer, ?cam=1 restores the old distance)
+      lookTarget.set(p.x + cameraLead.x + bx, .7, p.z - .8 + cameraLead.z + bz);
       if (introBlend < 1) {
         // Time-based (not frame-based) so the swoop always ends 1.1 s after the start, even at low frame rates.
         introBlend = clamp((performance.now() - introStart) / 1100, 0, 1);
