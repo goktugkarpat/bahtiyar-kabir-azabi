@@ -57,6 +57,8 @@
 /* Loading bar: each big script below reports when it has been parsed. */
 var KG_LOAD_LAST=0;window.KG_LOAD=function(p,text){p=Math.max(KG_LOAD_LAST,p);KG_LOAD_LAST=p;var f=document.getElementById('load-fill'),t=document.getElementById('load-text');if(f)f.style.transform='scaleX('+Math.max(.03,Math.min(1,p))+')';if(t&&text)t.textContent=KabirI18n.t(text);};
 KG_LOAD(.04);
+/* qa: the page-wide translation waits for DOMContentLoaded (after ~20 MB of scripts); translate the loading cover now so English players do not read Turkish while it loads. */
+if(window.KabirI18n&&KabirI18n.lang==='en'){var KG_W=document.createTreeWalker(document.getElementById('loading'),NodeFilter.SHOW_TEXT),KG_N;while(KG_N=KG_W.nextNode())KG_N.nodeValue=KabirI18n.t(KG_N.nodeValue);}
 </script>
 
 <main id="title" class="screen hidden" aria-label="Kabir Azabı ana menüsü">

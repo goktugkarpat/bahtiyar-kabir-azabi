@@ -23,7 +23,7 @@
   const bossPhases = {
     bell: ['', KabirI18n.t('BOĞULMUŞ ÇANLIK'), KabirI18n.t('DENİZİN YEMİNİ'), KabirI18n.t('MEZAR KÖKLERİ'), KabirI18n.t('SON ÇAN')],
     hollowking: ['', KabirI18n.t('SESSİZ TAHT'), KabirI18n.t('TAŞ TAHT ÇÖKÜYOR'), KabirI18n.t('OYUKLAR AÇILDI')],
-    furnaceheart: ['', 'KIZIL OCAK', KabirI18n.t('OCAK BASINCI YÜKSELİYOR'), KabirI18n.t('SON DÖKÜM')],
+    furnaceheart: ['', KabirI18n.t('KIZIL OCAK'), KabirI18n.t('OCAK BASINCI YÜKSELİYOR'), KabirI18n.t('SON DÖKÜM')],
     lastjudge: ['', KabirI18n.t('SON MAHKEME'), KabirI18n.t('EFENDİLERİN YANKISI'), KabirI18n.t('SON HÜKÜM')]
   };
   // Keep the small portrait images ready before the loading cover is removed.
@@ -125,7 +125,7 @@
       const champion = !boss && !!(enemy.champion || enemy.elite);
       if (champion !== wasChampion) { root.classList.toggle('champion-target', champion); wasChampion = champion; }
       const phases = bossPhases[enemy.type];
-      const phaseText = phases ? phases[enemy.phase] || '' : boss ? phase2 ? KabirI18n.t('ZİNCİRLER KIRILDI') : 'KURBAN SALONU' : champion ? KabirI18n.t('ŞAMPİYON') : '';
+      const phaseText = phases ? phases[enemy.phase] || '' : boss ? phase2 ? KabirI18n.t('ZİNCİRLER KIRILDI') : KabirI18n.t('KURBAN SALONU') : champion ? KabirI18n.t('ŞAMPİYON') : '';
       if (phaseText !== previousPhase) { phase.textContent = phaseText; previousPhase = phaseText; }
     }
     return { update, clear };
