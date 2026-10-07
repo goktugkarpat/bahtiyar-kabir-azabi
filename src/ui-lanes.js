@@ -68,6 +68,37 @@
     try { if (B.Audio && B.Audio.play) B.Audio.play('ui', { volume: .14 }); } catch (_) {}
   }, { passive: true });
 
+  /* ---------- 3. yükleme perdesi: bölüme özel renk + dönen ipuçları/alıntılar (yalnız perde açıkken) ---------- */
+  const TIPS = [
+    'Kızıl kenarlı darbeyi karşılama; yuvarlanarak kaç.',
+    'Yemin taşları iksirlerini doldurur ve öldüğünde seni geri çağırır.',
+    'Altın çerçeveli düşmanlar şampiyondur; özelliklerini adlarından oku.',
+    'Yetenek puanlarını T ile harca; bir yolun üst aşaması yuvadaki gücün yerine geçer.',
+    'Harita (M) sisini yalnız yürüdüğün yerlerden kaldırır.',
+    '“Her nefis ölümü tadacaktır.”'
+  ];
+  function decorateLoading() {
+    const box = $('loading'); if (!box || box.classList.contains('hidden')) return;
+    let ch = 1;
+    try { const c = JSON.parse(localStorage.getItem('baba.kabir.campaign.v1') || 'null'); if (c && c.chapter) ch = c.chapter | 0; } catch (_) {}
+    if (/[?&]yolculuk=yeni/.test(location.search)) ch = 1;
+    box.dataset.chapter = String(Math.max(1, Math.min(5, ch)));
+    const art = box.querySelector('.load-art'), mark = art && art.querySelector('.wordmark');
+    if (mark && !art.querySelector('.ui-logo-sub')) { const s = document.createElement('span'); s.className = 'ui-logo-sub'; s.setAttribute('aria-hidden', 'true'); mark.insertAdjacentElement('afterend', s); }
+    const tip = box.querySelector('.load-tip'); if (!tip) return;
+    let i = Math.floor(Math.random() * TIPS.length);
+    const show = () => {
+      if (box.classList.contains('hidden')) { clearInterval(id); return; }
+      i = (i + 1) % TIPS.length;
+      const quote = TIPS[i].charAt(0) === '“';
+      tip.classList.remove('ui-tip-in'); void tip.offsetWidth;
+      tip.innerHTML = '<b></b>'; tip.firstChild.textContent = quote ? T('Söz') : T('İpucu'); tip.append(T(TIPS[i])); tip.classList.toggle('ui-quote', quote);
+      tip.classList.add('ui-tip-in');
+    };
+    const id = setInterval(show, 5200);
+  }
+
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', decorateTitle, { once: true }); else decorateTitle();
+  decorateLoading();
   B.UILanes = { busy, pending: () => queue.length };
 })();

@@ -27,8 +27,8 @@ body:has(#lu-banner.lu-on) #quest-notice.show, body.bf-intro #quest-notice.show 
 #title .logo-wrap { margin-bottom: 4px }
 #title .title-copy .logo-wrap::before, #title .title-copy .logo-wrap::after { top: -12px; width: 18%; height: 14px; border-color: #b8925a88 }
 .ui-logo-sub { display: block; margin: 2px 0 0; color: #b99868; font: 600 clamp(12px, 1.25vw, 16px)/1.2 var(--text); letter-spacing: .62em; padding-left: .62em; text-transform: uppercase; text-shadow: 0 2px 3px #000; animation: fade-in 1.2s .7s both }
-html[lang=tr] .ui-logo-sub::before, html:not([lang]) .ui-logo-sub::before { content: 'Grave Torment' }
-html[lang=en] .ui-logo-sub::before { content: 'Kabir Azabı' }
+html[lang=tr] .ui-logo-sub::before, html:not([lang]) .ui-logo-sub::before { content: 'GRAVE TORMENT' }
+html[lang=en] .ui-logo-sub::before { content: 'KABİR AZABI' }
 #title .title-divider { margin-top: 22px }
 /* düğmeler: kararmış demir + kan kırmızısı, altın kenar; üstüne gelince ışık süzülür */
 #title .title-actions .btn {
@@ -151,6 +151,17 @@ html[lang=en] #death .end-title { background: linear-gradient(180deg, #ffe9c4 0%
 #hud .boss-target .target-fill { background: linear-gradient(#ff8a5e, #c22a1f 26%, #7a0b10 70%, #3a0206) }
 #hud .boss-target .target-health::before, #hud .boss-target .target-health::after { content: ''; position: absolute; top: 50%; z-index: 2; width: 9px; height: 9px; margin-top: -5px; transform: rotate(45deg); border: 1px solid #e0b46e; background: #3a0a08 }
 #hud .boss-target .target-health::before { left: 4px } #hud .boss-target .target-health::after { right: 4px }
+
+#loading .wordmark { color: transparent; letter-spacing: .07em; background: linear-gradient(180deg, #fbf3df 0%, #e9d6a8 34%, #b28a52 52%, #6b4a28 62%, #c9a56a 78%, #f0dfb4 100%); -webkit-background-clip: text; background-clip: text; text-shadow: none; filter: drop-shadow(0 3px 2px #000) drop-shadow(0 0 22px #5a0f0a88) }
+#loading .load-art { gap: 6px; margin-bottom: 18px }
+#loading .load-tip { min-height: 3em }
+#loading .load-tip.ui-tip-in { animation: fade-in .9s ease-out both }
+#loading .load-tip.ui-quote { font-family: Georgia, 'Times New Roman', serif; font-style: italic; color: #d9c7a4 }
+/* bölüme özel perde rengi: kor, deniz, toz, ocak, hüküm */
+#loading[data-chapter="2"] { background: radial-gradient(ellipse 60% 50% at 50% 44%, #0f2a2a 0%, #081414 40%, #030505 100%) }
+#loading[data-chapter="3"] { background: radial-gradient(ellipse 60% 50% at 50% 44%, #33260f 0%, #161008 40%, #050404 100%) }
+#loading[data-chapter="4"] { background: radial-gradient(ellipse 60% 50% at 50% 44%, #45180a 0%, #1c0904 40%, #050303 100%) }
+#loading[data-chapter="5"] { background: radial-gradient(ellipse 60% 50% at 50% 44%, #22102e 0%, #0e0714 40%, #040305 100%) }
 
 @media (prefers-reduced-motion: reduce) {
   #title .title-shade, #death::before, #lu-banner.lu-on::before, #lu-banner.lu-on .lu-note, #title .title-actions > .btn { animation: none }
