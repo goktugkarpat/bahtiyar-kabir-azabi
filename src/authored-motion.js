@@ -155,6 +155,20 @@
   var STRIDE = { walk: 1.9, jog: 3.4, sprint: 4.8 };
   // Everyone runs on the same walk/jog/sprint cycle; monsters hunch into it (forward bend, radians).
   var HUNCH = { prisoner: .34, stalker: .5, carrier: .24, cultist: .06, boss: .08 };
+  /* ajan:chars2b — weight profiles of the chapter 3-5 foes (they share the chapter-1 motion types; the style name tells them apart).
+   sink: knee-bend of the wind-up (rad of hip flexion), lunge: pelvis drive through the blow (source m), death: death-clip rate (lower = slower, heavier fall),
+   buckle: seconds the legs give way before the fall, thud: ground-impact dust (1 / 2 = boss), hurt: flinch scale (< 1 = shrugs blows off). */
+  var LATE = {
+    ashbound: { hunch: 0.2, sink: .30, lunge: .10, death: 1.45, buckle: .12, thud: 0, hurt: 1 }, shardseer: { sink: .10, lunge: .03, death: 1.7, buckle: 0, thud: 0, hurt: 1.15 },
+    cavefang: { sink: .46, lunge: .15, death: 2.0, buckle: 0, thud: 0, hurt: 1.2 }, gravemason: { hunch: 0.06, sink: .36, lunge: .08, death: 1.0, buckle: .32, thud: 1, hurt: .6 },
+    ruinwarden: { hunch: 0.08, sink: .32, lunge: .09, death: .95, buckle: .36, thud: 1, hurt: .5 }, hollowking: { hunch: 0.05, sink: .28, lunge: .08, death: .8, buckle: .55, thud: 2, hurt: .4 },
+    emberbound: { hunch: 0.16, sink: .30, lunge: .10, death: 1.45, buckle: .12, thud: 0, hurt: 1 }, chainseer: { sink: .10, lunge: .03, death: 1.7, buckle: 0, thud: 0, hurt: 1.15 },
+    slagcrawler: { sink: .46, lunge: .15, death: 2.0, buckle: 0, thud: 0, hurt: 1.2 }, forgesentinel: { hunch: 0.06, sink: .36, lunge: .08, death: 1.0, buckle: .32, thud: 1, hurt: .6 },
+    ashwarden: { hunch: 0.08, sink: .32, lunge: .09, death: .95, buckle: .36, thud: 1, hurt: .5 }, furnaceheart: { hunch: 0.05, sink: .28, lunge: .08, death: .8, buckle: .55, thud: 2, hurt: .4 },
+    damned: { hunch: 0.24, sink: .30, lunge: .10, death: 1.5, buckle: .1, thud: 0, hurt: 1 }, verdictseer: { sink: .10, lunge: .03, death: 1.7, buckle: 0, thud: 0, hurt: 1.15 },
+    voidcrawler: { sink: .46, lunge: .15, death: 2.0, buckle: 0, thud: 0, hurt: 1.2 }, chainjailer: { hunch: 0.06, sink: .36, lunge: .08, death: 1.0, buckle: .32, thud: 1, hurt: .6 },
+    verdictwarden: { hunch: 0.08, sink: .32, lunge: .09, death: .95, buckle: .36, thud: 1, hurt: .5 }, lastjudge: { hunch: 0.04, sink: .26, lunge: .08, death: .75, buckle: .6, thud: 2, hurt: .4 }
+  };
   function create(options) {
     var root = options.root, model = options.modelScene || root, type = options.type || 'hero', style = options.style || type, supplied = options.bones || {};
     var weapon = options.weapon, bladeTip = options.weaponTip, all = Object.create(null), mapping = [], nativeRest = [], targetRef = [], targetPos = [], originalLocal = [];
@@ -181,6 +195,8 @@
     else if (style === 'shardseer' || style === 'chainseer') { lifeRate=1.65;lifeLean=.026;lifeSway=.048; }
     else if (style === 'cavefang' || style === 'slagcrawler') { lifeRate=2.7;lifeLean=.050;lifeSway=.082; }
     else if (style === 'gravemason' || style === 'forgesentinel') { lifeRate=1.45;lifeLean=.045;lifeSway=.038; }
+    /* ajan:chars2b */ var prof = LATE[style] || null;   // chapter 3-5 weight profile (see LATE above create)
+    var slump = 0, lastStrikePhase = '', groundCap = false, roarStomp = false, wasAwake = false, noticeT = 9, noticeHeavy = false, noticeStomp = false, thudDone = false, fallDir = 1, sideSign = 1, lieU = 0, LIE = [0, .13, 3, .15, 5, .11, 14, .09, 18, .09, 15, .07, 19, .07];
     var initialized = false, disposed = false, wasDead = false, settled = false, lastHitAngle = 0, lookCur = 0, lookPitch = 0, lifeSeed = Math.random() * 40, shiftCur = 0, legYawCur = 0, backwardMotion = false, fearCur = 0;
     var footfall = root.userData.footfall = { serial: 0, side: 0, x: 0, z: 0, strength: 0, kind: 'step' };
     var motionInfo = root.userData.authoredMotion = { clip: '', source: 'Quaternius CC0', phase: 0, strike: '' };
@@ -319,6 +335,12 @@
       wpos(foot.ankle, va); footfall.serial++; footfall.side = foot.side;
       footfall.x = va.x; footfall.z = va.z; footfall.strength = clamp(strength, .15, 1); footfall.kind = kind || 'step';
     }
+    /* ajan:chars2b — ground-impact dust of a heavy corpse (effects.js 'bodyThud'); the footfall serial also drives the thud sound of enemy steps. */
+    function landThud(size) {
+      wpos(pelvis, va);
+      if (B.app && B.app.fx) B.app.fx('bodyThud', { x: va.x, z: va.z, y: .05, heavy: size > 1, shake: size >= 2 ? .3 : size > 1 ? .18 : size >= 1 ? .1 : 0 });
+      footfall.serial++; footfall.x = va.x; footfall.z = va.z; footfall.strength = 1; footfall.kind = 'thud';
+    }
     function moveHipY(amount) {
       if (Math.abs(amount) < .00001) return;
       wpos(pelvis, va); va.y += amount; inverse.copy(pelvis.parent.matrixWorld).invert(); pelvis.position.copy(va.applyMatrix4(inverse));
@@ -394,6 +416,71 @@
       euler.set(-(1.0 * lift + 1.35 * ext), 0, 0, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(p, 18, qa);
       euler.set(1.4 * lift, 0, 0, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(p, 19, qa);
       spineLayer(p, 0, -.18 * ext, 0);
+    }
+    /* ajan:chars2b — both knees give: thighs swing forward, shins back, feet stay flat (the floor pass below re-seats the pelvis, so the body really sinks). */
+    function crouchLayer(p, a) {
+      if (Math.abs(a) < 1e-3) return;
+      var c = a * .55;
+      for (var side = 0; side < 2; side++) {
+        var u = side ? 18 : 14;
+        euler.set(-a, 0, 0, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(p, u, qa);
+        euler.set(a + c, 0, 0, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(p, u + 1, qa);
+        euler.set(-c, 0, 0, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(p, u + 2, qa);
+      }
+    }
+    // Weight of a chapter 3-5 blow: the legs load in the coil, the pelvis then drives through the strike and the knees take the landing.
+    function lateLayer(p, c, m, t, Tc, Tend) {
+      if (m.still || m.roar || m.rush || m.leap) return;
+      var load = Math.max(0, c.coil) * (t < Tc ? 1 : 0), after = t > Tc ? Math.sin(clamp((t - Tc) / Math.max(.05, Tend - Tc), 0, 1) * PI) : 0;
+      crouchLayer(p, prof.sink * (load * .9 + after * .45));
+      p.p.z += (prof.lunge * c.strike - .5 * prof.lunge * load) / Math.max(.4, characterScale);
+    }
+    /* ajan:chars2b — procedural fall of the heavy foes (the stock Death01 clip hops backwards, wrong for a 3 m armoured giant):
+       the knees give (slow), the torso sags and the whole body topples forward about its feet, hits the ground, rebounds once and goes still. */
+    function heavyDeath(p) {
+      var heavyFoe = prof.buckle >= .3, bk = Math.max(.1, prof.buckle), t = deathTime, A = smooth(t / bk), tf = bk * (heavyFoe ? .85 : .7);
+      var Tf = heavyFoe ? (boss ? .95 : .62) * (prof.death < .9 ? 1.1 : 1) : .46, u = clamp((t - tf) / Tf, 0, 1);
+      var fall = u * u * (1.6 - .6 * u);                       // gravity: slow start, hard finish
+      var th = (fallDir === 0 ? 1.38 : 1.46) * Math.min(1, fall), bounce = t > tf + Tf ? Math.exp(-(t - tf - Tf) * 9) * Math.sin((t - tf - Tf) * 17) * (heavyFoe ? .06 : .035) : 0;
+      var hip = p.p.y, sag = (heavyFoe ? .8 : .6) * A * (1 - smooth(u * 1.25)), fwd = fallDir > 0;
+      if (u > 0) { var lw = smooth(u * 1.6); for (var li2 = 14; li2 < 22; li2++) p.q[li2].slerp(sourceRest[li2], lw); }   // the legs go slack and straight, whatever stride the foe died in
+      crouchLayer(p, sag);
+      spineLayer(p, .12 * A * Math.sin(lifeSeed), (fwd ? .35 : fallDir < 0 ? -.22 : .12) * A, .1 * A * Math.cos(lifeSeed));
+      euler.set((fwd ? .45 : -.2) * A + (fwd ? .6 : -.5) * u, 0, 0, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(p, 4, qa);                 // head drops / lolls
+      euler.set(-.2 * A, 0, .35 * A + .5 * u, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(p, 7, qa);         // arms go slack
+      euler.set(-.2 * A, 0, -.35 * A - .5 * u, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(p, 11, qa);
+      var tilt = th + bounce, c = Math.cos(Math.min(tilt, 1.45));
+      if (fallDir === 0) { euler.set(0, 0, sideSign * tilt, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(p, 0, qa); p.p.x += sideSign * hip * (1 - .3 * sag) * Math.sin(tilt) * .95; }
+      else { var lt = heavyFoe ? tilt : tilt * .8; euler.set(fallDir * lt, 0, .06 * Math.sin(lifeSeed * 3) * u, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(p, 0, qa); if (tilt > lt) { euler.set(fallDir * (tilt - lt), 0, 0, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(p, 1, qa); } p.p.z += fallDir * hip * (1 - .3 * sag) * Math.sin(tilt) * .95; }
+      p.p.y = hip * (1 - .3 * sag) * c + .08 * u;                 // pivot about the feet: the pelvis swings out and down with the body
+      lieU = u;
+      if (!thudDone && u >= .97) { thudDone = true; landThud(prof.thud === 1 ? 1.5 : prof.thud || .5); }
+    }
+    /* ajan:chars2b -- a chapter 3-5 foe's roar / phase vow: the body coils low and tight (head down, arms drawn in), then the chest is thrown back,
+       the head up and both arms flung wide, with one stamp on release; it shudders while it bellows and settles over the last .35 s. */
+    function bossRoar(p, t, Tr, Td) {
+      var g = smooth(t / Math.max(.05, Tr)), rel = t >= Tr ? easeOut((t - Tr) / .18, 2) : 0, fade = t > Td - .35 ? smooth((Td - t) / .35) : 1, hold = g * (1 - rel);
+      var shake = rel > 0 ? Math.sin(clock * 38) * .02 * fade : 0, heavyR = prof.buckle >= .3 ? 1 : .7;
+      crouchLayer(p, (.5 * hold + .14 * rel * fade) * heavyR);
+      spineLayer(p, shake * 2, .45 * hold - .62 * rel * fade + shake, 0);
+      euler.set(.4 * hold - .85 * rel * fade + shake * 2, 0, 0, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(p, 4, qa);
+      euler.set(-.25 * hold - .3 * rel * fade, 0, (-.25 * hold + 1.3 * rel * fade) * heavyR, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(p, 7, qa);
+      euler.set(-.25 * hold - .3 * rel * fade, 0, (.25 * hold - 1.3 * rel * fade) * heavyR, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(p, 11, qa);
+      euler.set(0, 0, -.5 * rel * fade, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(p, 8, qa);
+      euler.set(0, 0, .5 * rel * fade, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(p, 12, qa);
+      if (t < Tr) roarStomp = false; else if (!roarStomp) { roarStomp = true; landThud(prof.buckle >= .55 ? 2 : 1.5); }
+    }
+    /* ajan:chars2b -- a thrown-back corpse's arms go slack: the idle hang of both arms, expressed in the torso's own frame, is blended in
+       (the knock-back clip ends with a sword arm stuck up in the air). */
+    var limpQ = new T.Quaternion(), limpI = new T.Quaternion();
+    function limpArms(p, w) {
+      if (w < .01) return;
+      sample('idle', 0, extra, false);
+      limpI.copy(extra.q[3]).invert(); limpQ.copy(p.q[3]).multiply(limpI);
+      for (var side = 0; side < 2; side++) {
+        var sub = SUB[side ? 11 : 7];
+        for (var k = 0; k < sub.length; k++) { var j = sub[k]; qb.copy(limpQ).multiply(extra.q[j]); p.q[j].slerp(qb, w); }
+      }
     }
     // War cry / roar: breath drawn in low and tight, then released at Tr with the chest thrown out, head back,
     // the right arm and weapon hauled overhead and the free arm flung wide; it settles over the last .22 s (less for a short roar).
@@ -688,8 +775,9 @@
     }
     function applyMove(m, t, Tc, Tend, destination, state) {
       var c = moveCurve(m, t, Tc, Tend);
+      groundCap = !m.leap && !m.rush;
       if (m.pound) { poundPose(m, c, destination, t, Tc, Tend, state); if (t < Tc) return curve; return c; }
-      if (m.roar) { roarPose(destination, t, Tc, Tend, finite(state.roarTier, 1)); curve.phase = t < Tc ? 'hold' : 'follow'; return curve; }
+      if (m.roar) { if (prof && !hero) bossRoar(destination, t, Tc, Tend); else roarPose(destination, t, Tc, Tend, finite(state.roarTier, 1)); curve.phase = t < Tc ? 'hold' : 'follow'; return curve; }
       if (m.rush && t >= Tc) {
         // A charge: the body is thrown forward in a sprint while the capsule rushes along the telegraphed line.
         var run = clamp((t - Tc) / Math.max(.05, finite(state.rushTime, .3)), 0, 1);
@@ -737,6 +825,7 @@
       }
       if (hero && state.weaponType === 'axe' && !m.spear) { spineLayer(destination,m.twist*.18*c.coil,.08*c.strike-.025*Math.max(0,c.coil),-.035*c.strike); destination.p.y-=.018*c.strike; }
       if (m.kick) kickLayer(destination, c);
+      if (prof && !hero) lateLayer(destination, c, m, t, Tc, Tend);
       // Moves cut from a held pose (shield bash / shove, charge crouch) get a weight shift so the wind-up reads: the body sinks and draws back in the
       // coil and drives forward through the blow (the pelvis only; the strike frame and timing are unchanged).
       if (m.still && !m.kick) { var drive = c.strike; destination.p.z += .11 * drive - .09 * Math.max(0, c.coil); destination.p.y -= .035 * Math.max(0, c.coil) * (1 - drive); }
@@ -753,7 +842,7 @@
       motionInfo.refreshed = false;
       if (state.reset) {
         initialized = false; clock = finite(state.time, 0); gait = 0; speed = 0; moveWeight = 0; mode = ''; modeAge = 0; deathTime = 0; deathYaw = 0; deathKind = '';
-        hurtTime = 2; previousHurt = 0; previousAttack = 0; comboMemory = -1; previousDodge = 0; wasDead = false; turnRate = 0; footfall.serial = 0; rollRecover = 9; lookCur = 0; lookPitch = 0; shiftCur = 0; legYawCur = 0; backwardMotion = false; fearCur = 0;
+        wasAwake = false; noticeT = 9; slump = 0; hurtTime = 2; previousHurt = 0; previousAttack = 0; comboMemory = -1; previousDodge = 0; wasDead = false; turnRate = 0; footfall.serial = 0; rollRecover = 9; lookCur = 0; lookPitch = 0; shiftCur = 0; legYawCur = 0; backwardMotion = false; fearCur = 0;
         originalLocal.forEach(function (r) { r.node.position.copy(r.p); r.node.quaternion.copy(r.q); }); feet.forEach(function (f) { f.locked = false; f.weight = 0; });
       }
       // A corpse whose fall has finished holds one fixed local pose (death clip clamped at its end, slide eased out, no
@@ -784,8 +873,8 @@
       if (attack > 0 && (previousAttack === 0 || attack < previousAttack - .15)) { comboMemory = (comboMemory + 1) % 3; legacySerial++; }
       var combo = Math.floor(clamp(finite(state.combo, Math.max(0, comboMemory)), 0, 2)); previousAttack = attack;
       if (hurt > previousHurt + .05) hurtTime = 0; previousHurt = hurt; hurtTime += dt;
-      if (state.dead && !wasDead) { deathTime = 0; deathYaw = clamp(signedAngle(lastHitAngle), -PI, PI); deathKind = String(state.deathKind || ''); }
-      if (!state.dead && wasDead) { deathTime = 0; initialized = false; }
+      if (state.dead && !wasDead) { deathTime = 0; deathYaw = clamp(signedAngle(lastHitAngle), -PI, PI); deathKind = String(state.deathKind || ''); if (prof && prof.buckle >= .3) deathKind = ''; if (prof) { var rr = Math.random(); fallDir = prof.buckle >= .3 ? 1 : rr < .4 ? 1 : rr < .85 ? -1 : 0; sideSign = Math.random() < .5 ? 1 : -1; } }
+      if (!state.dead && wasDead) { deathTime = 0; initialized = false; } if (!state.dead) { thudDone = false; lieU = 0; }
       wasDead = !!state.dead; if (state.dead) deathTime += dt;
       speed += ((dodge || leap || state.dead ? 0 : realSpeed) - speed) * (dt > 0 ? damp(14, dt) : 1);
       moveWeight += ((move > .015 ? clamp(speed / (.85 * characterScale), 0, 1) : 0) - moveWeight) * (dt > 0 ? damp(15, dt) : 1);
@@ -803,7 +892,7 @@
       legYaw = legYawCur;
       var normalizedSpeed = speed / characterScale, walkJog = smooth((normalizedSpeed - 1.0) / 1.5), jogSprint = smooth((normalizedSpeed - 3.3) / 1.8);
       var gaitName = 'walk', walking = true;
-      var stride = (STRIDE.walk + (STRIDE.jog - STRIDE.walk) * walkJog + (STRIDE.sprint - STRIDE.jog) * jogSprint) * characterScale, oldGait = gait;
+      var stride = (STRIDE.walk + (STRIDE.jog - STRIDE.walk) * walkJog + (STRIDE.sprint - STRIDE.jog) * jogSprint) * characterScale * (prof && prof.stride || 1), oldGait = gait;
       var roaring = hero && finite(state.roarTime, -1) >= 0, whirling = hero && finite(state.whirl, -1) >= 0, charging = hero && finite(state.chargeTime, -1) >= 0;
       var swinging = attack > 0 || finite(state.attackTime, -1) >= 0 || finite(state.beatTime, -1) >= 0, acting = swinging || roaring || whirling || charging;
       if (moveWeight > .02 && !swinging && !dodge && !state.dead) gait += dt * speed / Math.max(.3, stride) * (backward ? -1 : 1);
@@ -822,7 +911,14 @@
         for (var li = 14; li < 22; li++) extra.q[li].premultiply(qTurn);
         qTurn.setFromAxisAngle(up, legYaw * .45); extra.q[0].premultiply(qTurn);
         if (HUNCH[type]) spineLayer(extra, 0, HUNCH[type] * (.6 + .4 * walkJog), 0);
+        if (prof && prof.hunch) spineLayer(extra, 0, prof.hunch * (.6 + .4 * walkJog), 0);   // (ajan:chars2b) per-foe stoop on top of the motion type's
         blendPose(wanted, extra, moveWeight);
+        if (prof && prof.buckle >= .3) {
+          // (ajan:chars2b) a giant's step is a heave: the torso rolls over each planted foot and the body dips as the weight lands (two dips per cycle)
+          var gph = wrap(gait) * TAU, gm = moveWeight * (.55 + .45 * walkJog);
+          spineLayer(wanted, .07 * Math.sin(gph) * gm, .03 * (1 - Math.cos(gph * 2)) * gm, .07 * Math.sin(gph) * gm);
+          wanted.p.y -= .02 * (1 - Math.cos(gph * 2)) * gm / Math.max(.4, characterScale);
+        }
       }
       var nextMode = 'locomotion', fade = .11;
       // After a roll the hero rises out of the crouch unless another action takes over.
@@ -845,7 +941,7 @@
         nextMode = 'consume'; sample('consume', clamp(state.healing, 0, 1) * clip('consume').duration, extra, false);
         blendPose(wanted, extra, .9, 1, 14); blendPose(wanted, extra, .9, 22, D.bones.length);
       }
-      var strikePhase = '';
+      var strikePhase = ''; groundCap = false;
       if (Number.isFinite(state.attackTime) && state.attackTime >= 0) {
         // Hero: exact gameplay clock (seconds), so the blade crosses the target on the damage frame.
         var m = state.skillMove && MOVES[state.skillMove] ? MOVES[state.skillMove] : state.skillTier > 1 ? (state.skillTier > 2 ? MOVES.strikePound : MOVES.strikeBrand) : heroMove(combo, heavy, state.weaponType); nextMode = 'attack' + finite(state.attackSerial, 0); fade = .06;
@@ -876,12 +972,12 @@
       if (hurtTime < .42 && hurt > .08 && !dodge && !state.dead && !stagger) {
         // Directional flinch: the torso snaps away from the blow and settles; heavy blows double it.
         sample('hitChest', Math.min(clip('hitChest').duration, hurtTime * 1.15), extra, false);
-        var reaction = clamp(hurt * .85, 0, .92) * (1 - smooth((hurtTime - .12) / .3)) * (state.hurtHeavy ? 1.35 : 1) * (acting ? .55 : 1);
+        var reaction = clamp(hurt * .85, 0, .92) * (1 - smooth((hurtTime - .12) / .3)) * (state.hurtHeavy ? 1.35 : 1) * (acting ? .55 : 1) * (prof ? prof.hurt : 1);
         blendPose(wanted, extra, Math.min(.85, reaction), 1, 14);
         var jolt = easeOut(hurtTime / .06) * reaction;
         spineLayer(wanted, -Math.sin(lastHitAngle) * .55 * jolt, -Math.cos(lastHitAngle) * .6 * jolt, Math.sin(lastHitAngle) * .22 * jolt);
         // Knock-back lean: the hips are shoved away from the blow and the head whips after the torso (heavy blows more), then it all rebounds.
-        var recoil = (state.hurtHeavy ? 1.6 : 1) * (easeOut(hurtTime / .07) * (1 - smooth((hurtTime - .06) / .34)) - .18 * Math.sin(clamp((hurtTime - .18) / .24, 0, 1) * PI)) * clamp(hurt, 0, 1) * (acting ? .5 : 1);
+        var recoil = (state.hurtHeavy ? 1.6 : 1) * (easeOut(hurtTime / .07) * (1 - smooth((hurtTime - .06) / .34)) - .18 * Math.sin(clamp((hurtTime - .18) / .24, 0, 1) * PI)) * clamp(hurt, 0, 1) * (acting ? .5 : 1) * (prof ? prof.hurt : 1);
         wanted.p.z += Math.cos(lastHitAngle) * .12 * recoil / Math.max(.4, characterScale); wanted.p.x += Math.sin(lastHitAngle) * .09 * recoil / Math.max(.4, characterScale);
         wanted.p.y -= .03 * Math.abs(recoil) / Math.max(.4, characterScale);
         euler.set(-Math.cos(lastHitAngle) * .32 * recoil, -Math.sin(lastHitAngle) * .3 * recoil, 0, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(wanted, 4, qa);
@@ -897,7 +993,7 @@
         }
         // Combat feel round: three reactions so a crowd does not reel in unison (state.staggerVariant from combat.js):
         // 0 the reel above, 1 twisted aside away from the blow, 2 buckled at the knees, doubled over. Peaks mid-stagger, gone at recovery.
-        var sv = finite(state.staggerVariant, 0) | 0, sw = Math.sin(clamp(stagger, 0, 1) * PI) * (boss ? .4 : 1), sc = Math.max(.4, characterScale);
+        var sv = finite(state.staggerVariant, 0) | 0, sw = Math.sin(clamp(stagger, 0, 1) * PI) * (boss ? .4 : prof ? Math.min(1, prof.hurt + .25) : 1), sc = Math.max(.4, characterScale);
         if (sv === 1) {
           euler.set(0, (Math.sin(lastHitAngle) >= 0 ? -1 : 1) * .6 * sw, .14 * sw, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(wanted, 4, qa);
           wanted.p.x += Math.sin(lastHitAngle) * .12 * sw / sc;
@@ -933,10 +1029,44 @@
         // Blown back by heavy blows, a collapsing stagger otherwise; the corpse slides away from the killer.
         nextMode = 'death'; fade = .07;
         var blown = deathKind === 'blown';
-        if (blown) sample('hitKnockback', Math.min(clip('hitKnockback').duration, deathTime * 1.05), wanted, false);
-        else sample('death', deathTime * (boss ? 1.05 : 1.75), wanted, false);
-        var slide = (blown ? 1.2 : boss ? .25 : .42) * easeOut(deathTime / (blown ? .45 : .5)) / characterScale;
+        if (blown) { sample('hitKnockback', Math.min(clip('hitKnockback').duration, deathTime * 1.05), wanted, false); if (prof) limpArms(wanted, smooth(deathTime / .55) * .85); }
+        else if (prof) heavyDeath(wanted);
+        else sample('death', deathTime * (prof ? prof.death : boss ? 1.05 : 1.75), wanted, false);
+        var slide = (blown ? 1.2 : prof ? .06 : boss ? .25 : .42) * easeOut(deathTime / (blown ? .45 : .5)) / characterScale;
         wanted.p.z -= slide; yawPose(wanted, deathYaw);
+      }
+      /* ajan:chars2b — noticing the hero: the first moment a foe turns hostile it reacts (lights flinch up into a ready crouch, heavies throw the chest
+         out, drop a shoulder and stamp once), then settles into the combat stance. Driven by the first finite lookYaw (combat.js sends it only for an awake foe). */
+      if (prof && !hero) {
+        var awake = Number.isFinite(state.lookYaw) && !state.dead;
+        if (awake && !wasAwake) { noticeT = 0; noticeHeavy = prof.buckle >= .3; noticeStomp = false; }
+        wasAwake = awake; if (dt > 0) noticeT += dt;
+        // dormant: an unaware foe slumps (head down, shoulders heavy, knees a little soft) and straightens when it wakes
+        var slumpWant = !awake && !state.dead && !acting && moveWeight < .1 && !stagger && hurt < .05 ? 1 : 0;
+        slump += (slumpWant - slump) * (dt > 0 ? damp(slumpWant > slump ? 2.2 : 7, dt) : 1);
+        if (slump > .01) {
+          var sK = (prof.buckle >= .3 ? .6 : 1) * slump;
+          spineLayer(wanted, 0, .2 * sK, 0); crouchLayer(wanted, .07 * sK);
+          euler.set(.32 * sK, 0, 0, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(wanted, 4, qa);
+          euler.set(.05 * sK, 0, .14 * sK, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(wanted, 7, qa);
+          euler.set(.05 * sK, 0, -.14 * sK, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(wanted, 11, qa);
+        }
+        var nDur = noticeHeavy ? (boss ? 1.25 : .95) : .5;
+        if (noticeT < nDur && !state.dead && !strikePhase && !stagger && !dodge) {
+          var nu = noticeT / nDur, nRise = noticeHeavy ? smooth(nu / .35) : easeOut(nu / .22, 3), nFall = smooth((nu - (noticeHeavy ? .55 : .3)) / (noticeHeavy ? .45 : .7)), nEnv = nRise * (1 - nFall);
+          if (noticeHeavy) {
+            spineLayer(wanted, .1 * nEnv, -.3 * nEnv, -.07 * nEnv); crouchLayer(wanted, .1 * nEnv);
+            euler.set(-.35 * nEnv, 0, .45 * nEnv, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(wanted, 7, qa);
+            euler.set(-.35 * nEnv, 0, -.45 * nEnv, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(wanted, 11, qa);
+            euler.set(-.28 * nEnv, 0, 0, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(wanted, 4, qa);
+            if (!noticeStomp && nu > .4) { noticeStomp = true; emit(feet[1], .95, 'stomp'); }
+          } else {
+            spineLayer(wanted, -.18 * nEnv, -.16 * nEnv, .06 * nEnv); crouchLayer(wanted, .22 * nEnv);
+            euler.set(-.2 * nEnv, 0, .25 * nEnv, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(wanted, 7, qa);
+            euler.set(-.2 * nEnv, 0, -.25 * nEnv, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(wanted, 11, qa);
+            euler.set(.18 * nEnv, 0, 0, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(wanted, 4, qa);
+          }
+        }
       }
       // Secondary life: slow breathing, a shifting stance, the head drifting and turning toward the foe (never while striking or falling).
       if (!state.dead && !dodge && !strikePhase && !roaring && !whirling && !charging && dt > 0) {
@@ -999,9 +1129,10 @@
       }
       if (Number.isFinite(lowest)) {
         var authoredClearance = Math.max(0, Math.min(output.sole[0], output.sole[1])) * characterScale;
+        if (prof && groundCap && !leap && !state.dead) authoredClearance = Math.min(authoredClearance, (prof.buckle >= .3 ? .05 : .08) * characterScale);   // (ajan:chars2b) a foe never hovers through the stock sword clips (Sword_Attack is a jumping slash): only a real leap leaves the floor
         moveHipY(clamp(floorReference + authoredClearance - lowest, -.45 * characterScale, .45 * characterScale));
       }
-      if (dodge > 0 || (state.dead && deathKind === 'blown')) {
+      if (dodge > 0 || (state.dead && (deathKind === 'blown' || prof))) {
         var rollFloor = Infinity;
         for (var floorJoint = 0; floorJoint < 3; floorJoint++) {
           var index = floorJoint === 0 ? 0 : floorJoint === 1 ? 3 : 5;
@@ -1011,6 +1142,13 @@
           rollFloor = Math.min(rollFloor, va.y - (index === 5 ? .135 : .18) * characterScale);
         }
         if (rollFloor < floorReference + .015) moveHipY(floorReference + .015 - rollFloor);
+
+        if (state.dead && prof && deathKind !== 'blown' && lieU > .35) {
+          // A foe lying down rests on whatever part of the body is lowest (not on its dangling feet): the body is lowered or raised to the floor.
+          var low = Infinity;
+          for (var lj = 0; lj < LIE.length; lj += 2) { var lm = mapping[LIE[lj]]; if (!lm) continue; wpos(lm, va); low = Math.min(low, va.y - LIE[lj + 1] * characterScale); }
+          if (Number.isFinite(low)) moveHipY(clamp(floorReference + .012 - low, -.7 * characterScale, .5 * characterScale));
+        }
       }
       var canPlant = initialized && dt > 0 && !teleported && !state.dead && !dodge && !leap && moveWeight > .05 && !acting && !stagger && modeAge > .1;
       for (var f = 0; f < feet.length; f++) {
@@ -1066,13 +1204,22 @@
       if (initialized && dt > 0 && !teleported) {
         if (canPlant && Math.floor(oldGait * 2) !== Math.floor(gait * 2)) {
           var landingSide = Math.abs(Math.floor(gait * 2)) % 2; emit(feet[landingSide], clamp(speed / (4 * characterScale), .25, .85));
+          if (prof && prof.buckle >= .3 && B.app && B.app.fx && footfall.strength > .3) B.app.fx('bodyThud', { x: footfall.x, z: footfall.z, y: .05, heavy: false, light: true, shake: prof.thud >= 2 ? .05 : 0 });   // (ajan:chars2b) a giant's step kicks up a little dust (a boss's also trembles the camera)
         }
         if (previousDodge > 0 && dodge === 0) emit(feet[0], .95, 'roll');
       }
-      motionInfo.clip = nextMode; motionInfo.phase = attack || dodge || wrap(gait); motionInfo.strike = strikePhase;
+      if (prof && !hero) {
+        // (ajan:chars2b) the blow lands: a heavy foe's weapon biting the floor kicks up dust (and a short camera jolt), once per blow
+        if (strikePhase === 'follow' && lastStrikePhase !== 'follow' && bladeTip && dt > 0) {
+          wpos(bladeTip, va);
+          if (va.y < floorReference + .55 * characterScale && B.app && B.app.fx) B.app.fx('bodyThud', { x: va.x, z: va.z, y: .05, heavy: false, shake: prof.buckle >= .3 ? .1 : 0 });
+        }
+        lastStrikePhase = strikePhase;
+      }
+      motionInfo.clip = nextMode; motionInfo.phase = attack || dodge || wrap(gait); motionInfo.strike = strikePhase; motionInfo.deathTime = deathTime; motionInfo.cs = characterScale; motionInfo.wj = walkJog; motionInfo.js = jogSprint;
       rootBefore.copy(rootNow); previousDodge = dodge; initialized = true;
       if (state.dead && dt > 0 && mode === 'death' && modeAge > fade) {
-        var settleAt = Math.max(2.2, .3 + (deathKind === 'blown' ? clip('hitKnockback').duration / 1.05 : clip('death').duration / (boss ? 1.05 : 1.75)));
+        var settleAt = Math.max(2.2, .3 + (prof ? prof.buckle * 1.7 : 0) + (deathKind === 'blown' ? clip('hitKnockback').duration / 1.05 : clip('death').duration / (prof ? prof.death : boss ? 1.05 : 1.75)));
         if (deathTime > settleAt) settled = true;
       }
       // Every node below the root now carries its final world matrix for this pose (see combat.js guardRenderMatrices).
@@ -1088,5 +1235,5 @@
     var t = [0]; for (var i = 1; i <= 96; i++) { var u = i / 96; t.push(t[i - 1] + smooth(u / .12) * (1 - smooth((u - .5) / .28))); } return t.map(function (v) { return v / t[96]; });
   })();
   function whirlAngle(u, turns) { var f = clamp(u, 0, 1) * 96, i = Math.min(95, Math.floor(f)); return (SPIN_TAB[i] + (SPIN_TAB[i + 1] - SPIN_TAB[i]) * (f - i)) * turns * TAU; }
-  B.AuthoredMotion = { create: create, moves: MOVES, strides: STRIDE, whirlAngle: whirlAngle };
+  B.AuthoredMotion = { create: create, moves: MOVES, strides: STRIDE, whirlAngle: whirlAngle, late: LATE };
 })();

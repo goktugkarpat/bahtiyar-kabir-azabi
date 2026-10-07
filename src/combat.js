@@ -158,6 +158,7 @@
       start, update, restart, newCampaign: restart, respawn, interact, dispose, setQuality, setDifficulty, difficulty: 'normal', toTitle, beginRenderTraversal, endRenderTraversal, prepareGraphics, propTargets: () => mech && mech.pickTargets ? mech.pickTargets() : noPropTargets
     };
     game.hero = hero;   // (ajan:secondary) QA / tooling handle
+    game.qaHurt = (e, dmg, heavy, face, combo) => hurtEnemy(e, dmg, !!heavy, face, { combo: combo | 0, face, heavy: !!heavy, gained: 99 });   // (ajan:chars2b) QA handle: a real player blow (light / heavy / finisher via combo 2)
     const skillKeys = ['heavy', 'special', 'rage', 'fourth'];   // right mouse, key 1, key 2, key 3 (slot index = loadout index)
     const SKILLS = Object.freeze(Object.fromEntries(BABA.Progression.skills.map(skill => [skill.id, skill])));
     const skillReach = Object.freeze({ cleave: 3, brand: 6.5, temper: 6.7, roar: 6, quake: 6, chainstorm: 6.5, whirl: 3.3, reap: 3.8, rend: 4.4, charge: 8, grasp: 10, havoc: 12, hook: 8, guard: 1 });

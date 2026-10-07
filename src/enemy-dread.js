@@ -280,6 +280,10 @@
     });
     if (info.phases) root.traverse(function (n) { if (n.isMesh && /^phase-[23]/.test(n.name)) { n.visible = false; n.userData.dreadPhase = +n.name.charAt(6); } });
     if (info.phases) phaseVisual(root, 1, false);
+    // (ajan:chars2b) body telegraph: while a boss winds up a blow its own glow (eyes, seams, runes) swells towards the strike and drops after it,
+    // so the attack is readable on the body as well as on the floor. One shared multiplier on the boss's own emissive materials; nothing is allocated per frame.
+    var glowMats = null, tellCur = 0, tellApplied = 0;
+    if (info.phases) { glowMats = []; root.traverse(function (n) { var m = n.isMesh && n.material; if (m && !Array.isArray(m) && m.emissive && m.userData.dreadGlow !== undefined && glowMats.indexOf(m) < 0) glowMats.push(m); }); if (!glowMats.length) glowMats = null; }
     // corpse variety: every foe falls its own way — arms flung or tucked, legs apart, the head lolled (world-up deltas on the death pose,
     // eased in over the fall; they keep the limbs at their height, so nothing sinks into the floor)
     var sprawl = [], deadT = 0, debrisDone = false, shownPhase = 1;
@@ -293,6 +297,14 @@
         var want = state.phase === 'rage' ? (state.enraged ? 3 : 2) : 1;
         if (state.reset) want = 1;
         if (want !== shownPhase) { shownPhase = want; phaseVisual(root, want === 3 ? 2 : want, want === 3); }
+      }
+      if (glowMats && state) {
+        var tT = 0; if (state.beatTime >= 0 && state.beatContact > 0 && state.beatTime <= state.beatContact + .1) { tT = Math.min(1, state.beatTime / state.beatContact); tT = tT * tT * (3 - 2 * tT); }
+        tellCur += (tT - tellCur) * (1 - Math.exp(-dt * (tT > tellCur ? 7 : 16)));
+        if (Math.abs(tellCur - tellApplied) > .012 || (tellCur < .01 && tellApplied > 0)) {
+          tellApplied = tellCur < .01 ? 0 : tellCur; var ph = 1 + ((root.userData.dreadPhase || 1) - 1) * .4;
+          for (var gi = 0; gi < glowMats.length; gi++) glowMats[gi].emissiveIntensity = glowMats[gi].userData.dreadGlow * ph * (1 + tellApplied * 1.5);
+        }
       }
       if (post.length && !(state && state.dead)) {
         // world right axis of the model, then a forward bend of each listed bone about it (applied after the animation)

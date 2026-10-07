@@ -660,7 +660,7 @@
   /* ───────────── Effects bridge ───────────── */
   let feedback;
   function makeFX() { feedback = B.Effects.create(scene, () => game, () => cfg); }
-  function fx(name, data) { if (feedback) feedback.burst(name, data); }
+  function fx(name, data) { if (feedback) feedback.burst(name, data); if (name === 'bodyThud' && data && game && game.player) shake = Math.max(shake, (data.shake || 0) * Math.max(0, 1 - Math.hypot(data.x - game.player.x, data.z - game.player.z) / 12)); }   // (ajan:chars2b) a heavy corpse hitting the floor shakes the camera, fading with distance
   function fxStep(dt) { if (feedback) feedback.update(dt); }
   function clearFX() { if (feedback) feedback.clear(); }
 
