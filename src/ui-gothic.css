@@ -91,6 +91,10 @@ body.ui-dying::after { content: ''; position: fixed; inset: 0; z-index: 9; point
 @keyframes ui-lu-burst { 0% { opacity: 0; transform: scale(.35) rotate(0deg) } 12% { opacity: 1 } 70% { opacity: .75 } 100% { opacity: 0; transform: scale(1.12) rotate(24deg) } }
 #lu-banner.lu-calm::before { animation: none }
 #lu-banner .lu-note b { color: #ffcf7e }
+/* yeni yetenek puanı: sol alttaki "T Yetenekler" ipucu afiş boyunca nabız atar */
+body:has(#lu-banner.lu-on) #key-hints span:nth-child(2) { color: #ffd894; transform-origin: left center; animation: ui-key-pulse .9s ease-in-out 3 }
+body:has(#lu-banner.lu-on) #key-hints span:nth-child(2) kbd { border-color: #f0c070; box-shadow: 0 0 10px #e0a04a99 }
+@keyframes ui-key-pulse { 0%, 100% { transform: none } 50% { transform: scale(1.12) } }
 #lu-banner.lu-on .lu-note { animation: ui-lu-note 2.6s ease-out both }
 @keyframes ui-lu-note { 0%, 30% { transform: scale(1) } 40% { transform: scale(1.08) } 52%, 100% { transform: scale(1) } }
 
