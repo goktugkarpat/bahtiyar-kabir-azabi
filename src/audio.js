@@ -1282,7 +1282,7 @@
     targetParam(A.wind.gain, forge ? .035 : r === 4 ? .045 : .032, t, 2);
     if (!st.playing && !st.title) return;
     if (!forge && t > A.dripNext) { A.dripNext = t + rand(3, 7); drip(t, rand(-.7, .7), rand(.009, .018)); }
-    if (forge && t > A.crackleNext) { A.crackleNext = t + rand(.18, .5); burst(t, rand(.012, .03), rand(.005, .011), rand(1600, 2800), { q: 1.2, bus: 'amb', pan: rand(-.65, .65) }); }
+    if (forge && t > A.crackleNext) { A.crackleNext = t + rand(.18, .5); burst(t, rand(.012, .03), rand(.03, .07), rand(1600, 2800), { q: 1.2, bus: 'amb', pan: rand(-.65, .65) }); }   // ajan:audio: audible furnace crackle (was ~-68 dBFS)
     // Leave room for attack tells and narration; ambience does not add another voice.
     if (t <= A.next || st.combat || st.boss || st.dead || st.won || current || queue.length || nclock - lastTellN < 4 || A.calm < 4) return;
     A.next = t + rand(18, 32);
@@ -1308,7 +1308,7 @@
     // damlalar (revirde daha sık)
     if (t > A.dripNext) { A.dripNext = t + (r === 2 ? rand(.5, 1.8) : rand(1.4, 4.5)); drip(t, rand(-.8, .8), rand(.012, .035)); }
     // meşale çıtırtısı: çok hafif
-    if (t > A.crackleNext) { A.crackleNext = t + rand(.05, .3); burst(t, rand(.008, .025), rand(.004, .014), rand(2200, 4200), { q: 2, bus: 'amb', pan: rand(-.6, .6) }); }
+    if (t > A.crackleNext) { A.crackleNext = t + rand(.05, .3); burst(t, rand(.008, .025), rand(.025, .07), rand(2200, 4200), { q: 2, bus: 'amb', pan: rand(-.6, .6) }); }   // ajan:audio: was .004-.014 (about -69 dBFS, below hearing)
     // uzak olaylar: zincir, inilti, çığlık, vinç, taş gürlemesi, rahip ilahileri
     if (t > A.next) {
       const quiet = !st.combat;
