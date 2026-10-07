@@ -155,7 +155,7 @@
         if (!m || seen.indexOf(m) >= 0 || m.userData.dreadGraded) return; seen.push(m); m.userData.dreadGraded = true;
         var u = m.userData.grade; if (!u || !u.kTint) return;
         var cls = /skin|flesh/.test(k) ? 'skin' : /bone|ash/.test(k) ? 'bone' : /rag|burlap|robe|bandage|tabard|sash|linen|rope|vestment/.test(k) ? 'cloth' : '';
-        if (cls === 'skin') { u.kTint.value.multiplyScalar(.8); u.kGrime.value = Math.max(u.kGrime.value, .62); u.kContrast.value = Math.max(u.kContrast.value, 1.16); u.kSat.value *= .85; u.kBlood.value = Math.min(1, u.kBlood.value + .1); }
+        if (cls === 'skin') { var tv = u.kTint.value, mx = Math.max(tv.r, tv.g, tv.b, .01); tv.multiplyScalar(Math.min(.8, .6 / mx)); u.kGrime.value = Math.max(u.kGrime.value, .62); u.kContrast.value = Math.max(u.kContrast.value, 1.16); u.kSat.value *= .85; u.kBlood.value = Math.min(1, u.kBlood.value + .1); }
         else if (cls === 'bone') { u.kTint.value.multiplyScalar(.6); u.kSat.value *= .7; u.kGrime.value = Math.max(u.kGrime.value, .62); u.kContrast.value = Math.max(u.kContrast.value, 1.1); }
         else if (cls === 'cloth') { u.kTint.value.multiplyScalar(.86); u.kGrime.value = Math.max(u.kGrime.value, .62); }
       });
