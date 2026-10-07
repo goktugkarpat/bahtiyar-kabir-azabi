@@ -30,7 +30,7 @@
   //   row IV  the panel's keystone in a big diamond at the bottom (one keystone per run, the others get the red cross).
   // Positions come from the data (line / slot / group / arch), nothing here knows the node ids.
   // Sized so the icons stay big on screen: narrow row gutter (numeral + gate only), slim header strips, tight rows.
-  const W = 848, H = 408, GUT = 36, GAP = 4;
+  const W = 888, H = 408, GUT = 36, GAP = 14;
   const PW = (W - GUT - 4 - GAP * 2) / 3;
   const ROW_Y = { 1: 70, 2: 152, 3: 246, 4: 354 };
   const HEAD = 32;
@@ -40,7 +40,7 @@
   const CROWN = .98, KEY_R = SIZE.key * CROWN * Math.SQRT1_2;   // keystone diamond: side = key * CROWN, half height = KEY_R
   const KIND = { active: t('Aktif yetenek'), form: t('Biçim'), mod: t('Güçlendirme'), passive: t('Yapı'), key: t('Kilit taşı') };
   const ARCH_COL = { bleed: '#c8473f', rage: '#d9884b', guard: '#a9a4c4', charge: '#c9a45a' };
-  const PANEL_NAME = { cleave: 'GAZAP', roar: 'VEBA', whirl: 'VEBA', charge: 'KÜL', guard: 'KÜL', hook: 'GAZAP' };   // by the panel's first line
+  const PANEL_NAME = { cleave: 'KANAMA', roar: 'ÖFKE', whirl: 'ÖFKE', charge: 'DEMİR', guard: 'DEMİR', hook: 'KANAMA' };   // by the panel's first line
   const PAINTED = new Set(['p-frenzy', 'p-momentum', 'p-crush', 'k-exec', 'k-blood', 'k-iron']);   // painted talent icons (others: engraved glyph)
   const colOf = n => B.TalentTree.colOfLine ? B.TalentTree.colOfLine(n.line) : (B.TalentTree.cols.find(c => c.line === n.line) || B.TalentTree.cols[0]);
   // ---- layout from the data (built once) -------------------------------------------------------------------------

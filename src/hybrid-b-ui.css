@@ -1,7 +1,7 @@
 /* Selected hybrid B: embossed burgundy leather, cast bronze, readable ivory typography. */
 #character,#settings,#journal {--text:Georgia,'Times New Roman',serif;--ch-ink:#eadfc9;--ch-muted:#c6bca7;background:#080708;}
 #character .character-panel,#settings .settings-panel,#journal .journal-panel {
- width:min(96vw,calc(94dvh * 1586 / 992));height:94dvh;max-height:1040px;max-width:1663px;
+ width:min(96vw,calc(94dvh * 1586 / 992 * 1.12));height:94dvh;max-height:1040px;max-width:1862px;
  padding:0;border:0;border-radius:0;box-shadow:0 12px 65px #000b;position:relative;
  background:url(../assets/ui/hybrid-b-chamber.png) center/100% 100% no-repeat;overflow:hidden;
 }
@@ -401,7 +401,7 @@ body.in-combat #hud #interact.unavailable {display:none;}
 
 /* Mola shares the character/settings chamber; all controls stay inside its safe area. */
 #pause {background:#080708;padding:0;align-items:center;justify-content:center;}
-#pause .sepulchral-pause {width:min(96vw,calc(94dvh * 1586 / 992));height:94dvh;max-height:1040px;max-width:1663px;aspect-ratio:auto;position:relative;display:block;padding:0;border:0;border-radius:0;margin:0;background:url(../assets/ui/hybrid-b-chamber.png) center/100% 100% no-repeat;overflow:hidden;zoom:1;box-shadow:0 12px 65px #000b;}
+#pause .sepulchral-pause {width:min(96vw,calc(94dvh * 1586 / 992 * 1.12));height:94dvh;max-height:1040px;max-width:1862px;aspect-ratio:auto;position:relative;display:block;padding:0;border:0;border-radius:0;margin:0;background:url(../assets/ui/hybrid-b-chamber.png) center/100% 100% no-repeat;overflow:hidden;zoom:1;box-shadow:0 12px 65px #000b;}
 #pause .mourning-head {display:block;position:absolute;top:2.3%;left:8%;right:8%;padding:0;margin:0;text-align:center;}
 #pause .mourning-title {font:400 clamp(22px,2.65vw,44px)/1.05 Georgia,serif;letter-spacing:.075em;color:#f0e3c9;}
 #pause .mourning-head h2 {font:400 clamp(13px,1.25vw,18px)/1.15 Georgia,serif;margin:4px 0 0;color:#e6d7b9;}

@@ -81,3 +81,6 @@ Object.assign(window.KabirI18n.dictionary,{"Geri al":"Refund","Hazır yollar":"B
 /* ajan:talentui2 */
 Object.assign(window.KabirI18n.dictionary,{"GAZAP":"WRATH","VEBA":"PLAGUE","KÜL":"ASH","Puanları sıfırla":"Reset points","Çengelci":"Hook Hauler","Demir Yemin":"Iron Oath","Aldığın bütün hasar %20 azalır. Öldürdüğün her düşman 8 dayanıklılık geri verir.":"All damage you take is reduced by 20%. Every foe you kill gives back 8 stamina.","Bedeli: kaçınma atılışı iki kat dayanıklılık harcar.":"Price: your dodge roll costs twice the stamina."});
 /* /ajan:talentui2 */
+/* ajan:panelnames */
+Object.assign(window.KabirI18n.dictionary,{"KANAMA":"BLEED","ÖFKE":"RAGE","DEMİR":"IRON"});
+/* /ajan:panelnames */
