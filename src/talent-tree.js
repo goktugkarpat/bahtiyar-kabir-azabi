@@ -57,6 +57,8 @@
   // ---- row 5 keystones: exactly one per run ---------------------------------------------------------------------
   key('k-exec', 0, 'Cellat', 'Canı %40’ın altına düşen düşmanlara %25 fazla hasar verirsin. Canı %10’un altına inen sıradan düşmanlar tek vuruşta ölür.', 'Bedeli: en yüksek canın %20 azalır.', 'axe', { exec: true, hpMul: .8 });
   key('k-blood', 1, 'Kan Yemini', 'Verdiğin bütün hasarın %7’si can olarak sana döner.', 'Bedeli: şifa matarası taşıyamazsın.', 'drop', { leech: .07, noFlask: true });
+  // KÜL panel (Zincir + Kor): chains and embers feed each other. Numbers: combat-tuning.js TALENT.CHAINFIRE.
+  key('k-chainfire', 4, 'Kor Zinciri', 'Zincirlerin korla dövülür: Zincir Kasırgası, Son Hüküm ve Zincir Kırbacı’nın değdiği her düşman tutuşur. Yanan düşmanlara %25 fazla hasar verirsin.', 'Bedeli: aldığın bütün hasar %20 artar.', 'chain', { chainfire: true });
 
   // ---- actives / forms come from progression.js (same ids, same params); placed in the grid here ----------------
   const PLACE = { cleave: [0, 1], temper: [0, 4], roar: [1, 1], chainstorm: [1, 4], whirl: [2, 1], rend: [2, 4], charge: [3, 1], havoc: [3, 4], pyre: [4, 1], knell: [5, 1] };
@@ -143,7 +145,8 @@
     e.burnMul = (ember ? ember.burnMul : 1) * (pyreK ? pyreK.burnMul : 1); e.burnTime = ember ? ember.burnTime : 0;
     e.bleedMul = rot ? rot.bleedMul : 1; e.bleedingTaken = rot ? rot.bleedingTaken : 1;
     e.vsStunned = e.has.has('p-crush') ? 1.2 : 1; e.exec = !!exec; e.leech = e.has.has('k-blood') ? .07 : 0;
-    e.chainDodge = e.has.has('k-chains'); e.allBurn = !!pyreK; e.taken = pyreK ? pyreK.taken : 1; e.rotWorld = !!rotW;
+    const CF = e.has.has('k-chainfire') ? Object.assign({ burnFrac: .35, burnTime: 3, lashBurn: 16, vsBurning: 1.25, taken: 1.2 }, B.CombatTuning && B.CombatTuning.TALENT && B.CombatTuning.TALENT.CHAINFIRE) : null;
+    e.chainDodge = e.has.has('k-chains'); e.allBurn = !!pyreK; e.taken = (pyreK ? pyreK.taken : 1) * (CF ? CF.taken : 1); e.rotWorld = !!rotW; e.chainfire = CF;
     e.ashfall = e.has.has('p-ashfall'); e.harvest = e.has.has('p-harvest');
     e.aftershock = e.has.has('p-aftershock'); e.frenzy = e.has.has('p-frenzy'); e.lash = e.has.has('p-lash'); e.momentum = e.has.has('p-momentum'); e.kindle = e.has.has('p-kindle'); e.plague = e.has.has('p-plague');
     if (fxCache.size > 64) fxCache.clear(); fxCache.set(k, Object.freeze(e)); return e;

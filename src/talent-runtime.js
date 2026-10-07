@@ -126,7 +126,7 @@
       if (!near.length) return;
       if (look) look.chains(player, near, true);
       sound('talentChain', { volume: .8 });
-      for (const e of near) ctx.strike(e, 32, Math.atan2(e.x - player.x, e.z - player.z));
+      for (const e of near) { const r = ctx.strike(e, 32, Math.atan2(e.x - player.x, e.z - player.z)); if (F.chainfire && !(r && r.killed)) burn(e, F.chainfire.lashBurn, F.chainfire.burnTime); }
     }
     function onCast(skill) {
       const seal = sealOf(skill.line), P = skill.params, face = player.face, F0 = fx();
@@ -180,6 +180,7 @@
       if (F.momentum && momentum > 0) k *= 1.2;
       const max = e.maxHp || e.hp || 1;
       if (F.exec && e.hp / max < .4) k *= 1.25;
+      if (F.chainfire && s && s.burn && s.burn.time > 0) k *= F.chainfire.vsBurning;   // Kor Zinciri
       let out = Math.round(damage * k);
       if (F.exec && !e.boss && (e.hp - out) / max < .10 && e.hp - out > 0) { out = e.hp; if (look) look.execute(e); sound('talentExecute', { x: e.x, z: e.z }); }
       return out;
@@ -193,6 +194,7 @@
       if (seal && seal.fx.bleed) bleed(e, damage * seal.fx.bleed, 4);
       if (seal && seal.fx.burn) burn(e, damage * seal.fx.burn, 3);
       if (F.allBurn && !(seal && seal.fx.burn)) burn(e, damage * .3, 3);
+      if (F.chainfire && line === 'whirl') burn(e, damage * F.chainfire.burnFrac, F.chainfire.burnTime);   // Kor Zinciri: chain swings ignite
     }
     function onKill(e) {
       const F = fx(), s = status.get(e), x = e.x, z = e.z;

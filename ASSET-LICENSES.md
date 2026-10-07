@@ -322,3 +322,7 @@ Equipment thumbnails in `assets/equipment/thumbnails.js` are offline renders of 
 - Leather and cloth now reuse the existing Poly Haven **Brown Leather** and **Rough Linen** PBR source maps from the coastal package, already credited above. Three material maps remain in use per equipment surface; textures are embedded/shared for offline and file:// play. Original generated leather/linen images remain solely as local fallback data.
 
 V hedef portreleri (`assets/ui/target-damned.webp`, `target-verdictseer.webp`, `target-voidcrawler.webp`, `target-chainjailer.webp`, `target-verdictwarden.webp`, `target-lastjudge.webp`), `src/finale-models.js` içindeki gerçek oyun modellerinden oyunun kendi çiziciyle hazırlanmıştır. Yukarıdaki karakter, hareket ve kaplama lisansları geçerlidir; yeni dış kaynak yoktur. Bölüm V seslendirmesi (`src/narration-finale.js`) `tools/gen_finale_voices.py` ile edge-tts (Microsoft neural sesler) üzerinden üretilmiştir, diğer anlatıcı dosyalarıyla aynı yöntem.
+
+### Kilit taşı simgesi "Kor Zinciri" — `assets/ui/talents/k-chainfire.png`
+Dış kaynak yok. Oyunun kendi simgelerinden (`k-chains.png` zinciri + `k-pyre.png` çerçevesi) `tools/make-keystone-chainfire.py` ile
+yeniden renklendirilip birleştirildi (Python + Pillow). Lisansı oyunun geri kalanıyla aynıdır.

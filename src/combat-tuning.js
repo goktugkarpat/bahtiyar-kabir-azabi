@@ -53,7 +53,11 @@
     if (level === 'hard') return t('Zor: hata payı çok az. Düşmanlar daha dayanıklı, daha sert ve dinlenmeden saldırır; seçkin düşmanlar gerçek bir sınavdır. Arka arkaya yuvarlanmak hızla dayanıklılığını tüketir, 3 şifa matarası taşırsın. Son anda yuvarlanmayı öğren.');
     return t('Normal: önerilen deneyim. Düşmanların darbelerini oku, son anda yuvarlan, dayanıklılığını yönet. Seviye atladıkça güçlenirsin ama her bölüm biraz daha sertleşir.');
   }
-  B.CombatTuning = Object.freeze({ DIFFICULTY, CHAPTER, BOSS, ECONOMY, FEEL, profile, describe });
+  // Talent keystones that read their numbers from here (src/talent-runtime.js). Kor Zinciri (k-chainfire, KÜL panel):
+  //   chain hits (Zincir Kasırgası / Son Hüküm swings, Zincir Kırbacı lashes) ignite: burn = burnFrac x hit damage over burnTime s
+  //   (lashes: lashBurn flat); every blow on a burning foe deals vsBurning x; price: the hero takes `taken` x damage.
+  const TALENT = Object.freeze({ CHAINFIRE: Object.freeze({ burnFrac: .35, burnTime: 3, lashBurn: 16, vsBurning: 1.25, taken: 1.2 }) });
+  B.CombatTuning = Object.freeze({ DIFFICULTY, CHAPTER, BOSS, ECONOMY, FEEL, TALENT, profile, describe });
 })();
 /* Measurements (BABA.Balance.run; every hall / boss fought from full health with the chapter's expected level and gear:
    ch I L3, ch II L6, ch III L9, ch IV L11). Bots: novice (sees a tell after .42 s, ignores 35 %), average (.30 s, 18 %),
