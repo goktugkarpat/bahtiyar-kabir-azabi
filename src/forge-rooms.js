@@ -79,7 +79,8 @@
     linkPath.add(new T.LineCurve3(lp(-lr,ly),lp(-lr,-ly)));
     linkPath.add(new T.CubicBezierCurve3(lp(-lr,-ly),lp(-lr,-ly-lc),lp(-lc,-ly-lr),lp(0,-ly-lr)));
     linkPath.add(new T.CubicBezierCurve3(lp(0,-ly-lr),lp(lc,-ly-lr),lp(lr,-ly-lc),lp(lr,-ly)));
-    K.addShape('forged-link',new T.TubeGeometry(linkPath,28,.013,6,true));
+    // ajan:perf: a 1.3 cm wire seen from the isometric camera; 20x5 segments read the same as 28x6 (~300 links per hall, -40 % triangles)
+    K.addShape('forged-link',/[?&]noopt\b/.test(location.search)?new T.TubeGeometry(linkPath,28,.013,6,true):new T.TubeGeometry(linkPath,20,.013,5,true));
     K.chain = function (id, x, y, z, len, tint) {
       var n = Math.floor(len / .22);
       for (var k = 0; k < n; k++) K.put(id,'forged-link','iron',x,y-k*.22,z,1,1,1,k%2?PI/2:0,0,0,tint||[.8,.74,.7],.2);
