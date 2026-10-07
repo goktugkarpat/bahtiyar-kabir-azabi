@@ -343,9 +343,15 @@
     POOLS = [mk(bone, 'bone', 'dread-debris-bone'), mk(link, 'dark', 'dread-debris-chain'), mk(scrap, 'rag', 'dread-debris-shroud')];
     return POOLS;
   }
+  function debrisHost(root) { var h = root && root.parent; return h && h.name === 'enemy-holder' && h.parent ? h.parent : h; }
+  // qa: attach the (empty) pools under the loading cover so the shader warm-up compiles their instanced variants; otherwise
+  // the first kill of every chapter compiled three programs on the spot (a 1.3-1.8 s freeze).
+  function prewarm(anyFoeRoot) { if (OFF) return; var ps = pools(), host = debrisHost(anyFoeRoot); if (!ps || !host) return; ps.forEach(function (m) { if (m.parent !== host) { host.add(m); m.count = 0; m.userData.cursor = 0; } }); }
   var dm = new T.Matrix4(), dq = new T.Quaternion(), dp = new T.Vector3(), ds = new T.Vector3(), de = new T.Euler();
   function scatterDebris(root, info) {
-    if (OFF) return; var ps = pools(), host = root.parent; if (!ps || !host) return;
+    // qa: each foe sits in its own 'enemy-holder' group (combat.js); hosting the shared pools there re-parented them and emptied
+    // the floor on every new kill. Host them on the combat group above it instead.
+    if (OFF) return; var ps = pools(), host = debrisHost(root); if (!ps || !host) return;
     // host = the combat group (world-aligned): the debris stays when the corpse is removed
     ps.forEach(function (m) { if (m.parent !== host) { host.add(m); m.count = 0; m.userData.cursor = 0; } });   // a new level: start empty
     root.updateWorldMatrix(true, false); dp.setFromMatrixPosition(root.matrixWorld); host.updateWorldMatrix(true, false);
@@ -386,7 +392,7 @@
     return { type: 'hero', hero: true, swing: [], phases: false, rig: rig(true),
       posture: { s2: .03, s3: .05, neck: -.03, head: -.03, clavL: [0, -.09], clavR: [0, .09] }, gait: { s2: .6, s3: .5 } };
   }
-  B.EnemyDread = { heroInfo: heroInfo, pre: OFF ? function () { } : pre, apply: apply, attach: attach, phaseVisual: phaseVisual, kit: KIT, posture: POSTURE };
+  B.EnemyDread = { prewarm: prewarm, heroInfo: heroInfo, pre: OFF ? function () { } : pre, apply: apply, attach: attach, phaseVisual: phaseVisual, kit: KIT, posture: POSTURE };
   // BABA.Models is published by authored-models.js (loaded after this file): install the helper once it exists.
   function install() { if (B.Models && !B.Models.phaseVisual) B.Models.phaseVisual = phaseVisual; }
   install(); if (!B.Models) { var tries = 0, iv = setInterval(function () { install(); if ((B.Models && B.Models.phaseVisual) || ++tries > 200) clearInterval(iv); }, 50); }

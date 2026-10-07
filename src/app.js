@@ -1825,6 +1825,7 @@
     safe(() => { if (feedback) feedback.update(0); });                          // tells: rim shells, rings, glints
     safe(() => { if (rig && rig.prepare) rig.prepare(game); });                 // character rim light is patched in first
     safe(() => { if (B.HUD && B.HUD.prepare) B.HUD.prepare(); });               // the health/stamina orbs have their own small GL contexts
+    safe(() => { const f = B.EnemyDread && B.EnemyDread.prewarm && game.enemies.find(e => e.model && e.model.root && e.model.root.parent); if (f) B.EnemyDread.prewarm(f.model.root); });   // qa: corpse debris pools (enemy-dread.js) join the warm-up
     // One entry per material and mesh kind (each kind is its own program variant).
     const seen = new Set(), seenGeometry = new Set(), jobs = [], geometryObjects = [], textures = new Set();
     const TEX = ['map', 'normalMap', 'roughnessMap', 'metalnessMap', 'aoMap', 'emissiveMap', 'alphaMap', 'bumpMap', 'lightMap'];
