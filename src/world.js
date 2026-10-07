@@ -1930,7 +1930,7 @@
       }
       var proxyBudget = 0, proxyShadows = false, proxyForceOff = false;
       function refreshProxyState() {
-        proxyOn = proxyBudget === 2 && proxyShadows && proxies.length > 0 && !proxyForceOff; cullDirty = true;
+        proxyOn = (proxyBudget === 2 || proxyBudget === 1 && !/[?&]noopt\b/.test(location.search)) && proxyShadows && proxies.length > 0 && !proxyForceOff; cullDirty = true;
         allBatches.forEach(function (mesh) { mesh.castShadow = proxyShadows && mesh.userData.baseCastShadow && !(proxyOn && mesh.userData.proxied); });
         syncProxies();
       }
