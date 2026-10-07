@@ -1732,6 +1732,8 @@
         }
       } else {
         enemy.hurt = 1; enemy.hitDirection = Math.sin(toPlayer - enemy.face);
+        // Multi-hit spins (a tick every ~.28 s) would re-fire the white body flash (lighting.js) at full strength each tick: soften it.
+        enemy.flashScale = attack && attack.whirl ? .4 : 1;
         const breaksGuard = heavy && enemy.type === 'guard' && fromFront && enemy.shield;
         if (breaksGuard) {
           enemy.shieldBroken = 4; enemy.shield = false;
@@ -1819,13 +1821,15 @@
       let damage = hazard.damage;
       if (hazard.owner) damage = Math.round(damage * (hazard.owner.boss ? EASE.bossDamage : EASE.damage) * BALANCE.damage * (hazard.owner.campaignDamage || 1));
       { const P = tuning(), elite = !!(hazard.owner && hazard.owner.elite && !hazard.owner.boss);
-        if (P) damage = Math.round(damage * P.enemyDmg * (elite ? P.eliteDmg : 1));
+        if (P) damage = Math.round(damage * P.enemyDmg * (elite ? P.eliteDmg : 1) * (P.chapterDmg ? P.chapterDmg[chapter] || 1 : 1));   // chapterDmg: Normal's own chapter curve (Hard already sits on it)
         else if (game.difficulty !== 'hard') damage = Math.round(damage * (game.difficulty==='easy'?.5:.75)); }
       damage = Math.max(1, Math.round(damage * (1 - (player.defense || 0)) * (1 - questBenefit('damageReduction', .12))));
       // The display event and the wound use the same final amount after the cry/fury's defence.
       if (player.roar) damage = Math.ceil(damage * .5); else if (player.rageTime > 0) damage = Math.ceil(damage * ROAR.guard);
       if (talents) damage = talents.incoming(damage);
       damage *= 100 / player.effectiveMaxHp;
+      // Fairness: no single blow takes more than hitCap of the bar (combat-tuning.js; Hard bench found 62 % hits from elite shore foes).
+      { const P = tuning(); if (P && P.hitCap) damage = Math.min(damage, P.hitCap * 100); }
       player.hitAngle = angleDifference(incomingAngle, player.face);
       const heavyBlow = hazard.damage >= 26;
       const applied = hitStop(damage > 0 ? (heavyBlow ? FEEL.hitstop.hurtHeavy : FEEL.hitstop.hurt) : 0, damage > 0 ? [{ body: player, model: hero, amp: .045 }] : null);

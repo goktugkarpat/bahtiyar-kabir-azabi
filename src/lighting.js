@@ -331,7 +331,7 @@
         var h = Number.isFinite(e.hurt) ? e.hurt : 0;
         if (h > (e.karaHurtPrev || 0) + .05 || (e.dead && !e.karaWasDead)) e.karaHitT = 0; else if (Number.isFinite(e.karaHitT)) e.karaHitT += dt;
         e.karaHurtPrev = h; e.karaWasDead = !!e.dead;   // the killing blow flashes too
-        var ht = Number.isFinite(e.karaHitT) ? e.karaHitT : 9, v = reducedMotion || ht > .16 ? 0 : Math.round(Math.pow(1 - ht / .16, 1.6) * 40) / 40;
+        var ht = Number.isFinite(e.karaHitT) ? e.karaHitT : 9, v = reducedMotion || ht > .16 ? 0 : Math.round(Math.pow(1 - ht / .16, 1.6) * (Number.isFinite(e.flashScale) ? e.flashScale : 1) * 40) / 40;   // flashScale: combat.js softens multi-hit spins
         var dead = e.dead ? Math.round(smooth(((e.deadAge || 0) - 1.2) / 4) * 20) / 20 : 0;   // starts after the fall, 4 s, 5 % steps
         var ember = e.dead && EMBER_TYPES.test(e.type || '') ? Math.round(Math.min(1, (e.deadAge || 0) / .35) * (1 - smooth(((e.deadAge || 0) - .4) / 4.5)) * 20) / 20 : 0;
         if (v === e.karaHitShown && dead === e.karaDeadShown && ember === e.karaEmberShown) continue;

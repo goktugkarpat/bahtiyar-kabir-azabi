@@ -12,11 +12,11 @@
   // regenDelay: seconds stamina waits after being spent before it refills; regen: refill multiplier. flasks / flaskHeal: flask count and heal.
   const DIFFICULTY = Object.freeze({
     easy: Object.freeze({ enemyHp: .70, enemyDmg: .48, eliteHp: 1, eliteDmg: 1, playerDmg: 1.18, pace: 1.22, rest: 1.30, attackers: 2, melee: 1,
-      iframe: .44, dodgeStep: .15, regenDelay: .25, regen: 1.15, flasks: 5, flaskHeal: 1.15, perfectWindow: .26 }),
-    normal: Object.freeze({ enemyHp: .95, enemyDmg: 1.25, eliteHp: 1.10, eliteDmg: 1.08, playerDmg: 1.12, pace: 1.10, rest: 1.08, attackers: 3, melee: 2,
-      iframe: .38, dodgeStep: .30, regenDelay: .40, regen: 1, flasks: 4, flaskHeal: 1, perfectWindow: .22 }),
+      hitCap: .30, iframe: .44, dodgeStep: .15, regenDelay: .25, regen: 1.15, flasks: 5, flaskHeal: 1.15, perfectWindow: .26 }),
+    normal: Object.freeze({ chapterDmg: Object.freeze({ 1: 1.3, 2: 1.2, 3: 1.08, 4: 1.6, 5: 1.7 }), enemyHp: .95, enemyDmg: 1.25, eliteHp: 1.10, eliteDmg: 1.08, playerDmg: 1.12, pace: 1.10, rest: 1.08, attackers: 3, melee: 2,
+      hitCap: .38, iframe: .38, dodgeStep: .30, regenDelay: .40, regen: 1, flasks: 4, flaskHeal: 1, perfectWindow: .22 }),
     hard: Object.freeze({ enemyHp: 1.15, enemyDmg: 1.32, eliteHp: 1.25, eliteDmg: 1.25, playerDmg: 1, pace: 1, rest: .82, attackers: 3, melee: 2,
-      iframe: .32, dodgeStep: .40, regenDelay: .50, regen: 1, flasks: 3, flaskHeal: .85, perfectWindow: .18 })
+      hitCap: .45, iframe: .32, dodgeStep: .40, regenDelay: .50, regen: 1, flasks: 3, flaskHeal: .85, perfectWindow: .18 })
   });
   // Stamina economy shared by all difficulties.
   //   REGEN per second once the delay has passed (was a flat 12/s that never paused, so rolls were effectively free between blows).
@@ -92,3 +92,16 @@
    After this table, NOT yet re-measured: Normal enemyDmg 1.0 -> 1.25 (skilled Normal sat ~2.5x under the target curve; expected ~8/10/19/18/26),
    CHAPTER[4].dmg .8 -> .9 (chapter IV was below III on Normal). The bench's flask column is off after the merge (fights start with the profile's
    flask count; negative values on Hard), ignore it. gear-powers.js (unique item powers) was not in `gece` at this merge: not measured. */
+/* BALANCE TABLE 2 (after merging `gece` with gear-powers.js). % health lost per fight, deaths in brackets.
+                     ch I     ch II    ch III   ch IV    ch V     target
+   Normal skilled     13       17       13       29       22      15 20 28 38 50   (Normal has its own chapterDmg 1.3/1.2/1.08/1.6/1.7)
+   Normal average     41       36       39       38       71 (2)
+   Hard skilled       44       40       62       71 (1)   48 (1)   ~2x Normal
+   Hard novice       172 (3)  184 (10) 181 (4)  222 (13) 204 (7)
+   Bosses, Hard skilled: 89 / 76 / 99 / 87 / 85 s, all survived; Hard novice dies to every boss (biggest boss hit 41 %).
+   Fairness: the largest single hit on Hard was 62 % (chapter II elite shore foes: mob mods on top of CHAPTER[2].dmg 2.15 x Hard 1.32).
+   Rule added after the table: hitCap = no single blow takes more than 30 / 38 / 45 % of the bar (Easy / Normal / Hard). No one-shot deaths.
+   Unique powers A/B (gear-powers.js; chapter V, Normal, average bot, 6 halls, power on vs the same item with the power off):
+     bell-spear -56 % fight time, -47 % health lost -> cut to 8 % proc / .4 s stun (was 15 % / .6 s). The rest stayed within the
+     bench's noise (+-30..50 % on 6 fights). Re-check sunken-vow-chest (-56 % health lost) and bone-rite-chest (-39 %) with more fights.
+   Bench fix: the flask column counts drinks (it was start - end, negative when kills / talents refilled flasks). */
