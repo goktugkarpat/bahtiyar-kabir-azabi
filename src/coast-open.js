@@ -60,6 +60,7 @@
       seeds.push([r.x + r.w / 2 + 1, r.entryZ], [-10.5, r.entryZ], [r.x - r.w / 2 - 1, r.z]);
     });
     for (i = 0; i < 5; i++) { var za = baseRooms[i].z - baseRooms[i].d / 2 - 2; seeds.push([-6, za], [3, za]); }
+    [[0, 7.5], [-2, 9.5], [2, 9.5], [-2, 4], [2, 4], [0, 1], [-7, 8.5], [7, 9], [-7, 1], [7, 1], [-1.5, -6], [3, -6], [-8, -6]].forEach(function (s) { seeds.push(s); });   // opening graveyard: dense seeds around the set pieces
     for (var sz = 10; sz > -148; sz -= 7) if (sz > -66 || sz < -96) seeds.push([9.6, sz]);
     var paths = baseRooms.slice(1, 7).map(function (r, i) { return { a: baseRooms[i], b: r, width: 6.6 }; }).concat(rooms.filter(function (r) { return r.parent != null; }).map(function (r) { return { a: { x: -10, z: r.entryZ }, b: { x: r.x + r.w / 2 - 2, z: r.entryZ }, width: 8.6 }; }));
     return { rooms: rooms, floorTest: floorTest, seeds: seeds, paths: paths };
@@ -278,6 +279,35 @@
     for (var ch2 = 0; ch2 < 70; ch2++) { var chx = -32 + R(-12, 12), chz = -81 + R(-9, 9); if (!L.floorTest(chx, chz, .3)) continue; add(11, G.plank, 'wood', chx, .02, chz, R(.15, .5), .03, R(.05, .12), 0, R(0, 6), 0); }
     patches(10, -33, -23, 12, 9, 9, 'puddle', .045);
 
+    /* ---- set pieces: the opening graveyard gets a sea anchor torn ashore and a burning boat-pyre; the shipyard keel burns ---- */
+    function anchor(room, x, z, s, yaw) {
+      var lean = .32, c = Math.cos(yaw), sn = Math.sin(yaw), L2 = 5.2 * s;
+      var top = [x + sn * Math.sin(lean) * L2, Math.cos(lean) * L2, z + c * Math.sin(lean) * L2];
+      beam(room, 'rust', [x, .2, z], top, .24 * s);
+      add(room, G.ring, 'rust', top[0], top[1] + .45 * s, top[2], .55 * s, .55 * s, .55 * s, 0, yaw, 0);
+      beam(room, 'rust', [x - c * 1.5 * s, top[1] * .78, z + sn * 1.5 * s], [x + c * 1.5 * s, top[1] * .78, z - sn * 1.5 * s], .12 * s);   // stock
+      var arc = new T.TorusGeometry(1.7 * s, .2 * s, 8, 18, PI); arc.rotateZ(PI); arc.rotateY(yaw); arc.translate(x, .55 * s, z); add(room, geo(arc), 'rust', 0, 0, 0, 1, 1, 1);
+      for (var sd = -1; sd <= 1; sd += 2) add(room, G.cone, 'rust', x + c * sd * 1.75 * s, .9 * s, z - sn * sd * 1.75 * s, .45 * s, 1.0 * s, .2 * s, 0, yaw, sd * .5);
+      for (var k = 0; k < 14; k++) { var t = k / 13, cx = top[0] + (x + 2.6 - top[0]) * t, cy = top[1] * (1 - t) * (1 - t) + .06, cz = top[2] + (z - 1.2 - top[2]) * t; add(room, G.ring, 'rust', cx, cy, cz, .16, .16, .16, k % 2 ? PI / 2 : 0, yaw + 1, 0); }
+      solid(x, z, 1.4 * s, 1.4 * s);
+    }
+    var pyreSpots = [], pyreLight = [];
+    function pyre(room, x, z, yaw) {
+      var ribs = []; for (var k = 0; k < 6; k++) { var w = 1.25 - Math.abs(k - 2.5) * .14, rb = new T.TorusGeometry(w, .13, 5, 12, PI * .85); rb.rotateZ(PI + .23); rb.rotateY(yaw + PI / 2); rb.translate(x + Math.sin(yaw) * (k - 2.5) * .62, w * .9, z + Math.cos(yaw) * (k - 2.5) * .62); ribs.push(rb); }
+      add(room, geo(B.Gear.merge(ribs)), 'char', 0, 0, 0, 1, 1, 1);
+      beam(room, 'char', [x - Math.sin(yaw) * 2, .25, z - Math.cos(yaw) * 2], [x + Math.sin(yaw) * 2, .25, z + Math.cos(yaw) * 2], .14);
+      pyreSpots.push([x, z]); for (k = 0; k < 8; k++) add(room, G.sphere, 'ember', x + R(-.9, .9), R(.05, .3), z + R(-1.4, 1.4), R(.08, .22), R(.05, .14), R(.08, .22));
+      for (k = 0; k < 6; k++) beam(room, 'char', [x + R(-1, 1), .05, z + R(-1.5, 1.5)], [x + R(-.4, .4), R(.6, 1.1), z + R(-.6, .6)], .07);
+      K.lightSources.push(pyreLight[pyreLight.length] = { x: x, y: 1.4, z: z, color: new T.Color(0xff7a30), intensity: 4.4, scatter: 1, glowRadius: 2.4, live: 1, group: 'coast', room: room });
+      solid(x, z, 2.4, 3.4);
+    }
+    anchor(0, 3.8, 6.9, 1, -.5); pyre(0, -4.7, 6.7, -.25); galleon(0, 15.5, 2.5, -.2); stumpBeacon(0, 5.1, 2.6);   // top-right of the opening frame: a burning sea-tower on the bank   // the opening frame: a drowned galleon looms off the graveyard shore K.lantern(0, 4.9, 2.7, 5.4, 'coast', true); K.lantern(0, -2.6, 2.6, -1.2, 'coast', true);
+    anchor(3, -9.4, -91.8, 1.25, .9); pyre(9, -23.5, 9.5, 1.2); pyre(13, -59.5, -99.5, .4);   // harbour plaza: a giant anchor dragged onto the pier
+    for (q = 0; q < 6; q++) add(11, G.sphere, 'ember', -33 + (q - 2.5) * 2.1, R(.4, 1.6), -88.3 + R(-.6, .6), R(.25, .5), R(.2, .4), R(.25, .5));
+    K.lightSources.push({ x: -33, y: 2.2, z: -88.3, color: new T.Color(0xff8040), intensity: 4, scatter: 1, glowRadius: 3, live: 1, group: 'coast', room: 11 });
+
+    // the opening graveyard ground: rain pools, gravel, bone splinters and trodden mud between the funeral stones
+    for (q = 0; q < 26; q++) { x = R(-11, 7.5); z = R(-6, 14.5); if (rnd() < .4) add(0, G.rock, 'puddle', x, .008, z, R(.5, 1.6), .03, R(.4, 1.1), 0, R(0, 6), 0); var pb = R(.05, .14); add(0, G.pebble, 'rock', x + R(-1, 1), .02, z + R(-1, 1), pb, pb * .5, pb * .8, 0, R(0, 6), 0); if (rnd() < .3) add(0, G.cylinder, 'bone', x, .03, z, .03, R(.25, .5), .03, PI / 2, R(0, 6), 0); }
     /* ---- the strand: driftwood, kelp, bones and sea-lanterns on posts along the shoreline walk ---- */
     for (z = 12; z > -149; z -= R(5, 8)) {
       if (z < -66 && z > -96) continue; var sr = nearestMain(z);
@@ -373,7 +403,7 @@
     for (q = 0; q < wispN; q++) { var sp = q < 30 ? null : spots[q % spots.length]; if (sp) { wp[q * 3] = sp[0] + R(-sp[2], sp[2]); wp[q * 3 + 2] = sp[1] + R(-sp[2], sp[2]); } else { var tz = R(-144, 6); wp[q * 3] = trailX(tz) + R(-3, 3); wp[q * 3 + 2] = tz; } wp[q * 3 + 1] = R(.5, 2.2); wph[q] = R(0, 6.28); }
     var wg = geo(new T.BufferGeometry()); wg.setAttribute('position', new T.BufferAttribute(wp, 3)); wg.setAttribute('phase', new T.BufferAttribute(wph, 1));
     M.wisp = new T.ShaderMaterial({ uniforms: { time: K.clock }, transparent: true, depthWrite: false, blending: T.AdditiveBlending, toneMapped: false,
-      vertexShader: 'attribute float phase;uniform float time;varying float vA;void main(){vec3 p=position;p.x+=sin(time*.31+phase*3.)*.9;p.z+=cos(time*.27+phase*2.)*.9;p.y+=sin(time*.8+phase)*.35;vec4 mv=modelViewMatrix*vec4(p,1.);vA=.55+.45*sin(time*1.7+phase*5.);gl_PointSize=clamp(26.*900./max(1.,-mv.z)/40.,2.,40.);gl_Position=projectionMatrix*mv;}',
+      vertexShader: 'attribute float phase;uniform float time;varying float vA;void main(){vec3 p=position;p.x+=sin(time*.31+phase*3.)*.9;p.z+=cos(time*.27+phase*2.)*.9;p.y+=sin(time*.8+phase)*.35;vec4 mv=modelViewMatrix*vec4(p,1.);vA=.55+.45*sin(time*1.7+phase*5.);gl_PointSize=clamp(9.*900./max(1.,-mv.z)/40.,1.5,12.);gl_Position=projectionMatrix*mv;}',
       fragmentShader: 'varying float vA;void main(){vec2 c=gl_PointCoord-.5;float d=dot(c,c);float a=exp(-d*28.)*vA+exp(-d*7.)*.18*vA;gl_FragColor=vec4(vec3(.42,.95,.78)*a,a);}' });
     var wisps = new T.Points(wg, M.wisp); wisps.name = 'coast-open-wisps'; wisps.frustumCulled = false; K.root.add(wisps);
     var mt = mistTexture(); K.textures.push(mt);
@@ -389,16 +419,16 @@
     var ringT = new T.CanvasTexture(ringC); K.textures.push(ringT);
     M.surf = new T.MeshBasicMaterial({ map: ringT, transparent: true, opacity: .5, depthWrite: false, fog: true, color: 0x9fb7b5 });
     var surfG = geo(new T.PlaneGeometry(1, 1)); surfG.rotateX(-PI / 2); var surfs = [];
-    [[26, 2, 4.5], [33, -58, 5.5], [46, -100, 7], [30, -160, 4.5], [55, -40, 6], [52, -150, 8], [37, -28, 11], [41, -128, 11], [29.2, -86.4, 5.5], [33, -78.5, 5]].forEach(function (s, n) {
+    [[15.5, 2.5, 11], [26, 2, 4.5], [33, -58, 5.5], [46, -100, 7], [30, -160, 4.5], [55, -40, 6], [52, -150, 8], [37, -28, 11], [41, -128, 11], [29.2, -86.4, 5.5], [33, -78.5, 5]].forEach(function (s, n) {
       var m = new T.Mesh(surfG, M.surf); m.position.set(s[0], -.3, s[1]); m.scale.set(s[2] * 2, 1, s[2] * 2); m.rotation.y = n * 1.3; m.renderOrder = 2; m.name = 'coast-surf'; K.root.add(m); surfs.push({ m: m, s: s[2] * 2, p: n * 1.9 });
     });
     /* ---- living coast: light rain, lightning, crows over the shore, torn banners ---- */
     var RN = 1100, rb = new Float32Array(RN * 2 * 3), rt = new Float32Array(RN * 2);
     for (var ri = 0; ri < RN; ri++) { var bx = R(-22, 22), bz = R(-20, 14), by = R(0, 15); for (var tp = 0; tp < 2; tp++) { var o3 = (ri * 2 + tp) * 3; rb[o3] = bx; rb[o3 + 1] = by; rb[o3 + 2] = bz; rt[ri * 2 + tp] = tp; } }
     var rg2 = geo(new T.BufferGeometry()); rg2.setAttribute('position', new T.BufferAttribute(rb, 3)); rg2.setAttribute('tip', new T.BufferAttribute(rt, 1));
-    M.rain = new T.ShaderMaterial({ uniforms: { time: K.clock, flash: { value: 0 } }, transparent: true, depthWrite: false, blending: T.AdditiveBlending, toneMapped: false,
-      vertexShader: 'attribute float tip;uniform float time;varying float vT;void main(){vec3 p=position;p.y=mod(p.y-time*13.,15.);p.y+=tip*.6;p.x+=tip*.16+p.y*.06;vT=tip;gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.);}',
-      fragmentShader: 'uniform float flash;varying float vT;void main(){gl_FragColor=vec4(vec3(.42,.5,.52)*(.10+.12*vT)*(1.+flash*3.),1.);}' });
+    M.rain = new T.ShaderMaterial({ uniforms: { time: K.clock, flash: { value: 0 }, amt: { value: 1 } }, transparent: true, depthWrite: false, blending: T.AdditiveBlending, toneMapped: false,
+      vertexShader: 'attribute float tip;uniform float time;varying float vT;void main(){vec3 p=position;p.y=mod(p.y-time*13.,15.);p.y+=tip*1.25;p.x+=tip*.3+p.y*.06;vT=tip;gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.);}',
+      fragmentShader: 'uniform float flash;uniform float amt;varying float vT;void main(){gl_FragColor=vec4(vec3(.42,.5,.52)*(.012+.045*vT)*(1.+flash*3.)*amt,1.);}' });
     var rain = new T.LineSegments(rg2, M.rain); rain.frustumCulled = false; rain.name = 'coast-rain'; rain.renderOrder = 4; K.root.add(rain);
     // crows: three loose flocks wheeling over the graves, the shipyard and the bell court
     var crowG = new T.BufferGeometry(); crowG.setAttribute('position', new T.Float32BufferAttribute([0, 0, .25, -.05, 0, -.2, .05, 0, -.2, 0, 0, .05, -.55, .08, -.05, 0, 0, -.12, 0, 0, .05, 0, 0, -.12, .55, .08, -.05], 3)); crowG.computeVertexNormals(); geo(crowG);
@@ -415,17 +445,42 @@
       var bm = new T.Mesh(bannerG, M.banner); bm.position.set(b[0], 3.2 + gy(b[0], b[1]), b[1]); bm.rotation.y = R(0, 6); bm.castShadow = false; bm.name = 'coast-banner'; roomOf(b[2]).add(bm);
     });
     function roomOf(id) { return K.groups[id] || K.root; }
+    // Fire beds: a soft, noisy ember glow (alpha-graded edge, no hard disc) that flickers, plus rising sparks.
+    var emC = document.createElement('canvas'); emC.width = emC.height = 128; var eg = emC.getContext('2d');
+    for (var e2 = 0; e2 < 260; e2++) { var ea = rnd() * PI * 2, er = Math.pow(rnd(), .7) * 56, ex = 64 + Math.cos(ea) * er, ey = 64 + Math.sin(ea) * er, es = 3 + rnd() * 9, gr2 = eg.createRadialGradient(ex, ey, 0, ex, ey, es), hot2 = 1 - er / 60;
+      gr2.addColorStop(0, 'rgba(255,' + (90 + hot2 * 120 | 0) + ',' + (20 + hot2 * 40 | 0) + ',' + (.25 + hot2 * .5).toFixed(2) + ')'); gr2.addColorStop(1, 'rgba(255,60,10,0)'); eg.fillStyle = gr2; eg.fillRect(ex - es, ey - es, es * 2, es * 2); }
+    var emT = new T.CanvasTexture(emC); K.textures.push(emT);
+    M.emberBed = new T.MeshBasicMaterial({ map: emT, transparent: true, blending: T.AdditiveBlending, depthWrite: false, toneMapped: false, color: 0xd06030, fog: true });
+    var bedG = geo(new T.PlaneGeometry(1, 1)); bedG.rotateX(-PI / 2); var beds = [];
+    var SPK = pyreSpots.length * 40, spP = new Float32Array(Math.max(1, SPK) * 3), spS = new Float32Array(Math.max(1, SPK));
+    pyreSpots.forEach(function (s, n) {
+      var m = new T.Mesh(bedG, M.emberBed); m.position.set(s[0], .07, s[1]); m.scale.set(2.6, 1, 3.6); m.renderOrder = 3; m.name = 'coast-ember-bed'; K.root.add(m); beds.push({ m: m, p: n * 2.1 });
+      var halo = new T.Mesh(bedG, M.emberBed); halo.position.set(s[0], .05, s[1]); halo.scale.set(4.2, 1, 5); halo.renderOrder = 2; K.root.add(halo); beds.push({ m: halo, p: n * 2.1 + 1, halo: true });
+      for (var k = 0; k < 40; k++) { var o = (n * 40 + k) * 3; spP[o] = s[0] + R(-.8, .8); spP[o + 1] = 0; spP[o + 2] = s[1] + R(-1.2, 1.2); spS[n * 40 + k] = rnd(); }
+    });
+    var spG2 = geo(new T.BufferGeometry()); spG2.setAttribute('position', new T.BufferAttribute(spP, 3)); spG2.setAttribute('seed', new T.BufferAttribute(spS, 1));
+    M.sparks = new T.ShaderMaterial({ uniforms: { time: K.clock }, transparent: true, depthWrite: false, blending: T.AdditiveBlending, toneMapped: false,
+      vertexShader: 'attribute float seed;uniform float time;varying float vA;void main(){float k=fract(time*(.35+seed*.3)+seed*7.);vec3 p=position;p.y=.3+k*(2.5+seed*2.);p.x+=sin(time*2.+seed*30.)*.25*k;p.z+=cos(time*1.7+seed*20.)*.25*k;vA=(1.-k)*(.6+.4*sin(time*20.+seed*50.));vec4 mv=modelViewMatrix*vec4(p,1.);gl_PointSize=clamp(40./max(1.,-mv.z),1.,3.);gl_Position=projectionMatrix*mv;}',
+      fragmentShader: 'varying float vA;void main(){vec2 c=gl_PointCoord-.5;float a=exp(-dot(c,c)*20.)*vA;gl_FragColor=vec4(vec3(1.,.5,.15)*a,a);}' });
+    var sparkPts = new T.Points(spG2, M.sparks); sparkPts.frustumCulled = false; sparkPts.name = 'coast-pyre-sparks'; K.root.add(sparkPts);
     var flash = 0, nextBolt = 9, lastT = 0, api = { flash: 0 }, calmFx = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     function update(time, p) {
       // lightning: a rare double flash; the world reads `flash` to lift the key light and exposure for a moment
-      if (!calmFx) { if (time > nextBolt) { nextBolt = time + 14 + rnd() * 22; flash = 1; } flash = Math.max(0, flash - Math.min(.1, Math.max(0, time - lastT)) * 2.6); } lastT = time;
+      // weather drifts: squalls come and go over ~3 minutes; lightning only inside a squall
+      var amt = .25 + .75 * Math.pow(.5 + .5 * Math.sin(time * .035 + 1.2), 1.5); M.rain.uniforms.amt.value = amt; rain.visible = amt > .08; api.rain = amt;
+      if (!calmFx && amt > .6 && time > nextBolt) { nextBolt = time + 14 + rnd() * 22; flash = 1; } flash = Math.max(0, flash - Math.min(.1, Math.max(0, time - lastT)) * 2.6); lastT = time;
       var f2 = flash > .55 ? 1 : flash > .35 ? .25 : flash > .15 ? .8 : flash; api.flash = f2 * f2;
+      if (api.t0 == null) api.t0 = time; var since = time - api.t0; api.intro = calmFx ? 0 : Math.max(0, 1 - since / 6); if (since < 6 && since > 2.2 && flash === 0 && !api.introBolt) { api.introBolt = true; flash = 1; }   // opening: the coast fades in out of the mist, one bolt reveals it
+      for (var bi = 0; bi < beds.length; bi++) { var B2 = beds[bi], fl2 = .55 + .25 * Math.sin(time * 7.3 + B2.p) + .15 * Math.sin(time * 13.1 + B2.p * 2.3); B2.m.visible = Math.abs(B2.m.position.z - p.z) < 40; B2.m.material.opacity = 1; B2.m.scale.y = 1; if (B2.halo) B2.m.position.y = .05 + fl2 * .0001; }
+      for (var pl = 0; pl < pyreLight.length; pl++) pyreLight[pl].intensity = 4.4 * (.78 + .14 * Math.sin(time * 8.3 + pl) + .08 * Math.sin(time * 17.9 + pl * 3));
+      M.emberBed.color.setRGB(.52 + .14 * Math.sin(time * 9.1), .2 + .06 * Math.sin(time * 6.7 + 1), .08);
       M.rain.uniforms.flash.value = api.flash; rain.position.set(p.x, 0, p.z);
-      for (var c = 0; c < CN; c++) { var ph = crowPh[c], fl = flocks[c % 3], a = time * ph[3] + ph[0], r2 = ph[1];
+      var crowsOn = false; for (var fi = 0; fi < 3; fi++) if (Math.abs(flocks[fi][1] - p.z) < 40 && Math.abs(flocks[fi][0] - p.x) < 40) crowsOn = true; crows.visible = crowsOn;
+      if (crowsOn) for (var c = 0; c < CN; c++) { var ph = crowPh[c], fl = flocks[c % 3], a = time * ph[3] + ph[0], r2 = ph[1];
         cp.set(fl[0] + Math.cos(a) * r2, fl[2] + ph[2] + Math.sin(time * .7 + c) * .4, fl[1] + Math.sin(a) * r2 * .8);
         cq.setFromEuler(ce.set(0, -a + (ph[3] > 0 ? 0 : PI), Math.sin(a) * .25)); var flap = .55 + .45 * Math.abs(Math.sin(time * 7 + c * 1.3)); cs.set(1.3 * flap, 1.3 + (1 - flap) * 2, 1.3);
         crows.setMatrixAt(c, cm.compose(cp, cq, cs)); }
-      crows.instanceMatrix.needsUpdate = true;
+      if (crowsOn) crows.instanceMatrix.needsUpdate = true;
       for (var u = 0; u < surfs.length; u++) { var o2 = surfs[u], w2 = .5 + .5 * Math.sin(time * .9 + o2.p); o2.m.scale.set(o2.s * (1 + w2 * .12), 1, o2.s * (1 + w2 * .12)); o2.m.visible = Math.abs(o2.m.position.z - p.z) < 50; }
       M.surf.opacity = .38 + .14 * Math.sin(time * .9);
       for (var i = 0; i < mists.length; i++) { var o = mists[i]; o.m.position.x = o.x + Math.sin(time * .05 + o.p) * 2.2; o.m.position.z = o.z + Math.cos(time * .04 + o.p) * 1.6; o.m.rotation.y += .0004; o.m.visible = o.z < p.z + 18 && o.z > p.z - 34 && Math.abs(o.x - p.x) < 36; }
@@ -569,6 +624,15 @@
       for (k = 0; k < 9; k++) add(room, G.rock, 'rock', x + R(-2.6, 2.6), -.3, z + R(-2.6, 2.6), R(.6, 1.3), R(.5, .9), R(.6, 1.2), 0, R(0, 6), 0);
       K.lightSources.push({ x: x, y: 8.6, z: z, color: new T.Color(0xff9348), intensity: 4.2, scatter: 1.2, glowRadius: 3, live: 1, group: 'coast', room: room });
       solid(x, z, 2.6, 2.6);
+    }
+    function stumpBeacon(room, x, z) {   // a broken sea-mark tower: low enough that its fire stays in the camera frame
+      add(room, G.cylinder, 'stone', x, .25, z, 1.7, .5, 1.7);
+      for (var k = 0; k < 3; k++) add(room, G.cylinder, 'wall', x, .75 + k * .95, z, 1.15 - k * .08, .95, 1.15 - k * .08, (k - 1) * .02, k * .5, 0);
+      for (k = 0; k < 7; k++) { var a = k / 7 * PI * 2; add(room, G.masonry, 'wall', x + Math.cos(a) * .95, 3.35 + (k % 3) * .25, z + Math.sin(a) * .95, .55, .5 + (k % 2) * .4, .4, R(-.15, .15), -a, 0); }
+      add(room, G.cylinder, 'rust', x, 3.45, z, .75, .25, .75); add(room, G.sphere, 'ember', x, 3.65, z, .45, .3, .45);
+      for (k = 0; k < 6; k++) add(room, G.masonry, 'stone', x + R(-2, 2), .15, z + R(-2, 2), R(.4, .8), R(.25, .45), R(.3, .7), R(-.3, .3), R(0, 6), 0);
+      pyreSpots.push([x, z]); K.lightSources.push(pyreLight[pyreLight.length] = { x: x, y: 4.2, z: z, color: new T.Color(0xff8a3c), intensity: 4.4, scatter: 1.2, glowRadius: 2.6, live: 1, group: 'coast', room: room });
+      solid(x, z, 2.2, 2.2);
     }
     function galleon(room, x, z, a) {
       K.boat(room, x, z, 20, a, true, false, false, true);

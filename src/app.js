@@ -458,7 +458,7 @@
     if (name === 'questChoice') { if (game && ['playing','pause'].includes(view)) open('journal'); if (questUI) questUI.open(); return; }
     if (name === 'quest') { if (questUI) questUI.event(d); if (d.complete && questVoices[d.id] && B.Audio.sayQuest) B.Audio.sayQuest(questVoices[d.id]); return; }
     if (name === 'progression') { if (d.levels > 0) { B.Audio.play('levelUp'); fx('heroSkill', { skill: 'level', phase: 'release', x: game.player.x, z: game.player.z }); announceTimer = 0; $('announcement').classList.remove('show'); if (B.LevelUp) B.LevelUp.trigger(d, game.player); levelUpTimer = 2.7; } if (characterUI) characterUI.refresh(); return; }
-    if (name === 'loot') { for (const item of d.items || []) { const def = B.Progression.catalog[item.id]; if (def) notify(B.Progression.qualities[def.rarity].name + ' ganimet · ' + def.name + KabirI18n.t(' · Çantaya eklendi [I]'), 'rarity-' + def.rarity); } return; }
+    if (name === 'loot') { for (const item of d.items || []) { const def = B.Progression.catalog[item.id]; if (def) notify(B.Progression.qualities[def.rarity].name + KabirI18n.t(' ganimet · ') + def.name + KabirI18n.t(' · Çantaya eklendi [I]'), 'rarity-' + def.rarity); } return; }
     if (name === 'hit') {
       // combat.js sizes the hit-stop itself (d.hitstop is set) and reports how hard the contact was (d.impact 0..1),
       // so here the camera only recoils; unclassified heavy hits retain the same short 8 ms limit.
@@ -486,7 +486,7 @@
     else if (name === 'encounter') { if (d.name) announce(d.name, KabirI18n.t('KARŞILAŞMA')); }
     else if (name === 'gateOpen') { announce(KabirI18n.t('Kapı açıldı'), 'BOSS KAPISI', 'seal'); }
     else if (name === 'encounterCleared') { announce(KabirI18n.t('Mühür açıldı'), d.roomName || d.name || KabirI18n.t('SALON TEMİZLENDİ'), 'seal'); }
-    else if (name === 'boss') { if (d.active !== false) { announce(d.name || KabirI18n.t('Zincir Celladı'), finaleChapter ? KabirI18n.t('SON MAHKEME') : forgeChapter ? KabirI18n.t('SON DÖKÜM') : ruinsChapter ? KabirI18n.t('SESSİZ TAHT') : coastChapter ? KabirI18n.t('BOĞULMUŞ ÇANLIK') : 'KURBAN SALONU', 'boss'); if (B.Audio.saySequence) B.Audio.saySequence(finaleChapter ? ['ch5Boss', 'ch5Kadi'] : forgeChapter ? ['forgeBoss'] : ruinsChapter ? ['ruinsBoss'] : coastChapter ? ['coastBoss'] : ['boss', 'cellat']); else if (B.Audio.say) B.Audio.say(finaleChapter ? 'ch5Boss' : forgeChapter ? 'forgeBoss' : ruinsChapter ? 'ruinsBoss' : coastChapter ? 'coastBoss' : 'boss'); } }
+    else if (name === 'boss') { if (d.active !== false) { announce(d.name || KabirI18n.t('Zincir Celladı'), finaleChapter ? KabirI18n.t('SON MAHKEME') : forgeChapter ? KabirI18n.t('SON DÖKÜM') : ruinsChapter ? KabirI18n.t('SESSİZ TAHT') : coastChapter ? KabirI18n.t('BOĞULMUŞ ÇANLIK') : KabirI18n.t('KURBAN SALONU'), 'boss'); if (B.Audio.saySequence) B.Audio.saySequence(finaleChapter ? ['ch5Boss', 'ch5Kadi'] : forgeChapter ? ['forgeBoss'] : ruinsChapter ? ['ruinsBoss'] : coastChapter ? ['coastBoss'] : ['boss', 'cellat']); else if (B.Audio.say) B.Audio.say(finaleChapter ? 'ch5Boss' : forgeChapter ? 'forgeBoss' : ruinsChapter ? 'ruinsBoss' : coastChapter ? 'coastBoss' : 'boss'); } }
     else if (name === 'death') death(d);
     else if (name === 'win') victory(d);
     else if (name === 'toast') notify(d.text);
@@ -618,7 +618,8 @@
     const hold = (Q.has('sessiz') ? 3.2 : Math.min(14, (narr && narr.duration) || 9) + 1) * 1000;
     fade.querySelector('.eyebrow').textContent = KabirI18n.t('Bölüm ') + chapterNumbers[chapter - 1] + KabirI18n.t(' tamamlandı');
     fade.querySelector('h2').textContent = $('victory-title-text').textContent;
-    fade.querySelector('.end-quote').textContent = document.querySelector('#victory .end-quote').textContent;
+    // Clone the nodes, not the flat text: the boss's last words are a styled block span (quest-side.js .qc-lastwords).
+    fade.querySelector('.end-quote').replaceChildren(...Array.from(document.querySelector('#victory .end-quote').childNodes, n => n.cloneNode(true)));
     fade.querySelector('.next').textContent = KabirI18n.t('BÖLÜM ') + chapterNumbers[chapter] + ' · ' + chapterNames[chapter];
     setTimeout(() => { fade.classList.remove('hidden'); void fade.offsetWidth; fade.classList.add('show'); document.body.classList.add('chapter-fading'); }, 1500);
     // Music and ambience sink under the card so the swap on the next page is not a hard cut.
@@ -1321,6 +1322,7 @@
     requestAnimationFrame(() => { miniPending = false; try { drawMinimapNow(game.player); } catch (e) { console.warn(KabirI18n.t('[Kabir Azabı] minimap'), e); } });
   }
   function drawMinimapNow(p) {
+    if (atlasUI && atlasUI.drawMinimap && atlasUI.drawMinimap($('minimap'))) return; // painted atlas minimap (atlas.js)
     const c = $('minimap'), x = c.getContext('2d', B.uiBitmapOptions), scale = MINI_SCALE, cx = 128, cy = 140, k = c.width / 256;
     const beat = .75 + Math.sin(elapsed * 6) * .25, beatIndex = clamp(Math.round((beat - .5) / .5 * (MINI_BEATS - 1)), 0, MINI_BEATS - 1);
     const here = world.roomAt(p.x, p.z);
@@ -1390,6 +1392,7 @@
     x.setTransform(1, 0, 0, 1, 0, 0); x.clearRect(0, 0, c.width, c.height);
     list.forEach((sprite, i) => stamp(x, sprite, 30 + (i % 8) * 28, 40 + Math.floor(i / 8) * 40, i % 2 ? .4 : 0));
     miniKey = '';
+    if (atlasUI && atlasUI.warmMinimap) atlasUI.warmMinimap(c);
   }
   function updateOverview() {
     const p = game.player, total = game.totalKills || game.enemies.length;
@@ -1430,12 +1433,12 @@
     const gateText = gateObjective(room); if (gateText) return gateText;
     if(chapter < 3 && room && room.id >= 7){const n=game.enemies.filter(e=>!e.dead&&e.encounter.room===room.id).length;return n?KabirI18n.t('Bu yan alanda ')+n+KabirI18n.t(' düşman var.'):KabirI18n.t('Alan temizlendi. Ana yola geri dön.');}
     if(finaleChapter&&B.FinaleWorld&&B.FinaleWorld.objective){const t=B.FinaleWorld.objective(game,room,binds.interact[0]?capName(binds.interact[0]):'E');if(t)return t;}
-    if(forgeChapter){if(game.state==='won')return KabirI18n.t('Ocak söndü. Zincirlerin kaynağı yok oldu.');if(!room)return KabirI18n.t('Dökümhanenin içinden kuzeye ilerle.');if(room.id===11)return game.checkpointIndex?KabirI18n.t('Köz Yemini mühürlendi. Son Döküm’e ilerle.'):KabirI18n.t('Köz Yemini taşına yaklaş ve ')+capName(binds.interact[0])+' ile dokun.';if(room.id===13)return KabirI18n.t('Ocağın Kalbi’ni yen. Kızgın halkalardaki boşlukları kullan.');const n=game.enemies.filter(e=>!e.dead&&e.encounter.room===room.id).length;return n?KabirI18n.t('Bu alanda ')+n+KabirI18n.t(' düşman var.'):KabirI18n.t('Kuzeydeki döküm salonuna ilerle.');}
-    if(ruinsChapter){if(game.state==='won')return KabirI18n.t('Taht yıkıldı. Kralın sesi sustu.');if(!room)return KabirI18n.t('Harabelerin içinden kuzeye ilerle.');if(room.id===11)return game.checkpointIndex?KabirI18n.t('Son yemin mühürlendi. Tahtın nöbetini aş.'):KabirI18n.t('Son Yemin taşına yaklaş ve ')+capName(binds.interact[0])+' ile dokun.';if(room.id===13)return KabirI18n.t('Oyukların Kralı’nı yen. Taş halkalarının güvenli boşluklarını bul.');const n=game.enemies.filter(e=>!e.dead&&e.encounter.room===room.id).length;return n?KabirI18n.t('Bu alanda ')+n+KabirI18n.t(' düşman var.'):room.id===5?KabirI18n.t('Yıkılmış anıtın altından mağaraya gir.'):KabirI18n.t('Kuzeydeki geçide ilerle.');}
+    if(forgeChapter){if(game.state==='won')return KabirI18n.t('Ocak söndü. Zincirlerin kaynağı yok oldu.');if(!room)return KabirI18n.t('Dökümhanenin içinden kuzeye ilerle.');if(room.id===11)return game.checkpointIndex?KabirI18n.t('Köz Yemini mühürlendi. Son Döküm’e ilerle.'):KabirI18n.t('Köz Yemini taşına yaklaş ve ')+capName(binds.interact[0])+KabirI18n.t(' ile dokun.');if(room.id===13)return KabirI18n.t('Ocağın Kalbi’ni yen. Kızgın halkalardaki boşlukları kullan.');const n=game.enemies.filter(e=>!e.dead&&e.encounter.room===room.id).length;return n?KabirI18n.t('Bu alanda ')+n+KabirI18n.t(' düşman var.'):KabirI18n.t('Kuzeydeki döküm salonuna ilerle.');}
+    if(ruinsChapter){if(game.state==='won')return KabirI18n.t('Taht yıkıldı. Kralın sesi sustu.');if(!room)return KabirI18n.t('Harabelerin içinden kuzeye ilerle.');if(room.id===11)return game.checkpointIndex?KabirI18n.t('Son yemin mühürlendi. Tahtın nöbetini aş.'):KabirI18n.t('Son Yemin taşına yaklaş ve ')+capName(binds.interact[0])+KabirI18n.t(' ile dokun.');if(room.id===13)return KabirI18n.t('Oyukların Kralı’nı yen. Taş halkalarının güvenli boşluklarını bul.');const n=game.enemies.filter(e=>!e.dead&&e.encounter.room===room.id).length;return n?KabirI18n.t('Bu alanda ')+n+KabirI18n.t(' düşman var.'):room.id===5?KabirI18n.t('Yıkılmış anıtın altından mağaraya gir.'):KabirI18n.t('Kuzeydeki geçide ilerle.');}
     if (coastChapter) {
       if (game.state === 'won') return KabirI18n.t('Çan sustu. Kara Kıyı özgür.');
       if (!room) return KabirI18n.t('Kıyının kuzeyine ilerle.');
-      if (room.id === 5) return game.checkpointIndex ? KabirI18n.t('Yeminin mühürlendi. Çanlığa ilerle.') : KabirI18n.t('Fenerin yemin taşına yaklaş ve ') + capName(binds.interact[0]) + ' ile dokun.';
+      if (room.id === 5) return game.checkpointIndex ? KabirI18n.t('Yeminin mühürlendi. Çanlığa ilerle.') : KabirI18n.t('Fenerin yemin taşına yaklaş ve ') + capName(binds.interact[0]) + KabirI18n.t(' ile dokun.');
       if (room.id === 6) return KabirI18n.t('Derinliklerin Çancısı’nı yen. Deniz halkalarının boşluklarını kullan.');
       const n = game.enemies.filter(e => !e.dead && e.encounter.room === room.id).length;
       return n ? KabirI18n.t('Bu alanda ') + n + KabirI18n.t(' düşman var. Savaş veya kuzeye ilerle.') : room.id === 4 ? KabirI18n.t('Son Fener’in yemin taşını bul.') : 'Kuzeydeki patikaya ilerle.';
@@ -1443,7 +1446,7 @@
     if (game.state === 'won') return KabirI18n.t('Geçit açıldı. Kurban Tapınağı sustu.');
     if (!room) return 'Kuzeydeki salona ilerle.';
     const idx = room.id;
-    if (idx === 5) return game.checkpointIndex ? KabirI18n.t('Yeminin mühürlendi. Zincir Mahkemesi’ne ilerle.') : KabirI18n.t('Yemin taşına yaklaş ve ') + capName(binds.interact[0]) + ' ile dokun.';
+    if (idx === 5) return game.checkpointIndex ? KabirI18n.t('Yeminin mühürlendi. Zincir Mahkemesi’ne ilerle.') : KabirI18n.t('Yemin taşına yaklaş ve ') + capName(binds.interact[0]) + KabirI18n.t(' ile dokun.');
     if (idx === 6) {
       const boss = game.boss || game.enemies.find(e => e.boss);
       return boss && boss.phase === 2 ? KabirI18n.t('Zincirler kırıldı. Celladın kızıl darbelerinden kaçın.') : KabirI18n.t('Zincir Celladı’nı yen. Tapınağın geçidini aç.');
@@ -1822,6 +1825,7 @@
     safe(() => { if (feedback) feedback.update(0); });                          // tells: rim shells, rings, glints
     safe(() => { if (rig && rig.prepare) rig.prepare(game); });                 // character rim light is patched in first
     safe(() => { if (B.HUD && B.HUD.prepare) B.HUD.prepare(); });               // the health/stamina orbs have their own small GL contexts
+    safe(() => { const f = B.EnemyDread && B.EnemyDread.prewarm && game.enemies.find(e => e.model && e.model.root && e.model.root.parent); if (f) B.EnemyDread.prewarm(f.model.root); });   // qa: corpse debris pools (enemy-dread.js) join the warm-up
     // One entry per material and mesh kind (each kind is its own program variant).
     const seen = new Set(), seenGeometry = new Set(), jobs = [], geometryObjects = [], textures = new Set();
     const TEX = ['map', 'normalMap', 'roughnessMap', 'metalnessMap', 'aoMap', 'emissiveMap', 'alphaMap', 'bumpMap', 'lightMap'];
@@ -2104,7 +2108,7 @@
     game = B.Game.create(world, { scene, emit: event, sound: (n, o) => B.Audio.play(n, o), fx });
     characterUI = B.CharacterUI.create({ game, keyLabels: () => ['heavy', 'special', 'rage', 'fourth'].map(a => { const c = binds[a][0] || binds[a][1]; return c ? capName(c) : '—'; }), onPreview: (canvas,nowMs,preparing) => characterPreview.draw(canvas,nowMs,preparing), onPreviewTurn: direction => characterPreview.turn(direction), onClose: back, onChange: () => { game.syncProgression(); if (game.saveProfileChoices) game.saveProfileChoices(); hud(0); } });
     questUI = B.QuestUI.create({ game });
-    atlasUI = B.Atlas.create({ world, game, onClose: back, onJournal: () => { if (stack[stack.length - 1] === 'journal') stack.pop(); show('journal'); } }); document.body.append(atlasUI.element);
+    atlasUI = B.Atlas.create({ world, game, onClose: back, onJournal: () => { if (stack[stack.length - 1] === 'journal') stack.pop(); show('journal'); } }); document.body.append(atlasUI.element); if (atlasUI.attachMinimap) atlasUI.attachMinimap($('minimap'));
     makeFX(); postProcess(); characterPreview = B.CharacterPreview.create({ renderer, camera, game, post, worldScene: scene }); setupUI();
     titleCamera();
     const placeNotices = () => {
@@ -2121,6 +2125,7 @@
     if (document.fonts && document.fonts.load) safe(() => { document.fonts.load('800 40px "Source Sans 3"'); });
     // The shadow pass clones ONE depth material per source material and then reuses it for skinned, instanced and plain casters alike,
     // so it switched programs on every change of caster type. Give each (material, caster type) pair its own depth material instead.
+    safe(() => { if (B.Perf && B.Perf.optimize) B.Perf.optimize(world, scene); });   // ajan:perf: post-build static merge (?noopt disables)
     safe(() => assignDepthMaterials(scene));
     ready = true; applySettings();
     B.app = { scene, camera, renderer, world, game, post, rig, scaler, resetPerformance, settings: cfg, input, get view() { return view; }, begin, show, fx, applySettings, clearFX, warmShaders,

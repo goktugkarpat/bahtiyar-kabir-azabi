@@ -400,6 +400,7 @@
       if (key !== st.phaseKey) {
         var label = e.enraged && p.enraged ? p.enraged : p.phases && p.phases[e.phase] || '';
         st.phaseKey = key;
+        if (B.Models && B.Models.phaseVisual) try { B.Models.phaseVisual(e, e.phase, e.enraged); } catch (err) { }   // (ajan:models) phase parts / hotter glow (enemy-dread.js)
         if (label) showCard(e.enraged ? tr('ÖFKE') : ['', 'I', 'II', 'III', 'IV', 'V'][e.phase] + ' · ' + tr('EVRE'), label, p.title || e.name, 3.2, 2.2, true, p.color);
         api.fx('glowBurst', { x: e.x, y: .05, z: e.z, radius: 7, color: p.color || 0xb8452d, duration: 1.1 });
         if (api.slowMotion) api.slowMotion(.3);

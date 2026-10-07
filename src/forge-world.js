@@ -77,7 +77,7 @@
     /* ---- living foundry set pieces (few meshes, animated here): a travelling casting ladle that stops and pours, spark showers,
        and the great bellows' breathing furnace glow. Own resources only; disposed with the world. ---- */
     var T = window.THREE, own = [], live = [], fxRoot = new T.Group(); fxRoot.name = 'forge-setpieces'; w.root.add(fxRoot);
-    var ironM = new T.MeshStandardMaterial({ color: 0x2b2624, roughness: .55, metalness: .8 }), hotM = new T.MeshBasicMaterial({ color: 0xc8380a, toneMapped: false, fog: false }), glowTex = (function () { var c = document.createElement('canvas'); c.width = c.height = 64; var x = c.getContext('2d'), gr = x.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(.4, 'rgba(255,255,255,.45)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = gr; x.fillRect(0, 0, 64, 64); return new T.CanvasTexture(c); })(),
+    var ironM = new T.MeshStandardMaterial({ color: 0x4e423c, roughness: .5, metalness: .75, emissive: 0x1a0702, emissiveIntensity: 1 }), hotM = new T.MeshBasicMaterial({ color: 0xc8380a, toneMapped: false, fog: false }), glowTex = (function () { var c = document.createElement('canvas'); c.width = c.height = 64; var x = c.getContext('2d'), gr = x.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(.4, 'rgba(255,255,255,.45)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = gr; x.fillRect(0, 0, 64, 64); return new T.CanvasTexture(c); })(),
       glowM = new T.MeshBasicMaterial({ map: glowTex, color: 0xe04a10, transparent: true, opacity: .5, blending: T.AdditiveBlending, depthWrite: false, toneMapped: false, side: T.DoubleSide });
     own.push(ironM, hotM, glowM, glowTex);
     var cyl = new T.CylinderGeometry(1, .82, 1, 16, 1, true), disc = new T.CircleGeometry(1, 16), rodG = new T.CylinderGeometry(1, 1, 1, 6), plane = new T.PlaneGeometry(1, 1); disc.rotateX(-Math.PI / 2); plane.rotateX(-Math.PI / 2); own.push(cyl, disc, rodG, plane);
@@ -92,13 +92,13 @@
       var g = new T.Group(), ladle = new T.Group(), x = W.side * 30.5;
       var shell = new T.Mesh(cyl, ironM); shell.scale.set(1.1, 1.2, 1.1); ladle.add(shell);
       var bottom = new T.Mesh(disc, ironM); bottom.position.y = -.6; bottom.rotation.x = Math.PI; bottom.scale.setScalar(.9); ladle.add(bottom);
-      var melt = new T.Mesh(disc, hotM); melt.position.y = .45; melt.scale.setScalar(1.0); ladle.add(melt);
+      var meltM = new T.MeshBasicMaterial({ color: 0x9a2406, toneMapped: false, fog: false }); own.push(meltM); var melt = new T.Mesh(disc, meltM); melt.position.y = .45; melt.scale.setScalar(1.0); ladle.add(melt);
       [-1, 1].forEach(function (s2) { var r = new T.Mesh(rodG, ironM); r.scale.set(.05, 2.6, .05); r.position.set(s2 * 1.05, 1.6, 0); r.rotation.z = -s2 * .38; ladle.add(r); });
-      var hook = new T.Mesh(rodG, ironM); hook.scale.set(.06, 6, .06); hook.position.y = 5.8; ladle.add(hook);
+      var hook = new T.Mesh(rodG, ironM); hook.scale.set(.06, 7, .06); hook.position.y = 4.1; ladle.add(hook);
       var streamM = new T.MeshBasicMaterial({ color: 0xd8480e, transparent: true, opacity: .85, blending: T.AdditiveBlending, depthWrite: false, toneMapped: false }); own.push(streamM); var stream = new T.Mesh(rodG, streamM); stream.scale.set(.16, 1, .16); g.add(stream);
       var splash = new T.Mesh(plane, glowM); splash.scale.set(3, 1, 3); splash.position.y = .12; g.add(splash);
       var sparks = new T.Points(spG, spM); sparks.frustumCulled = false; g.add(sparks);
-      var beam = new T.Mesh(rodG, ironM); beam.scale.set(.18, W.d - 8, .18); beam.rotation.x = Math.PI / 2; beam.position.set(x, 9.6, W.z); g.add(beam);
+      var beam = new T.Mesh(rodG, ironM); beam.scale.set(.18, W.d - 8, .18); beam.rotation.x = Math.PI / 2; beam.position.set(x + W.side * 2.5, 13.7, W.z); g.add(beam);
       g.add(ladle); fxRoot.add(g);
       live.push({ kind: 'ladle', W: W, g: g, ladle: ladle, stream: stream, splash: splash, sparks: sparks, x: x, z0: W.z0 + 6, z1: W.z1 - 6, phase: W.id * 1.7 });
     });
@@ -110,9 +110,58 @@
         live.push({ kind: 'breath', m: m, x: gx, z: gz, phase: h + q2 * .8 });
       }); });
     });
+    // Giant foundry gates closing the far ends of the slag field and the scrap graveyard (one merged mesh each, seam glow apart).
+    [[WINGS[0], WINGS[0].z0 - .9], [WINGS[3], WINGS[3].z0 - .9]].forEach(function (gz) {
+      var W = gz[0], z = gz[1], cx = W.x, parts = [], box = function (x, y, zz, sx, sy, sz, ry) { var b = new T.BoxGeometry(sx, sy, sz); if (ry) b.rotateY(ry); b.translate(x, y, zz); parts.push(b); };
+      box(cx - 8.6, 6, z, 1.8, 12, 1.8); box(cx + 8.6, 6, z, 1.8, 12, 1.8); box(cx, 12.6, z, 19.6, 1.6, 2.2); box(cx, 11.4, z, 16, .5, 1.6);
+      box(cx - 4.1, 5, z + .4, 7.6, 10, .35, .18); box(cx + 4.4, 5, z - .3, 7.6, 10, .35, -.42);   // the two leaves, one ajar
+      for (var r = 0; r < 5; r++) { box(cx - 4.1, 1.2 + r * 2, z + .62, 7.4, .22, .12, .18); box(cx + 4.4, 1.2 + r * 2, z - .52, 7.4, .22, .12, -.42); }
+      for (var p2 = -1; p2 <= 1; p2 += 2) for (var b2 = 0; b2 < 5; b2++) box(cx + p2 * 8.6, 1 + b2 * 2.4, z, 2.1, .3, 2.1);
+      var gm = new T.Mesh(B.Gear.merge(parts), ironM); gm.name = 'forge-great-gate'; own.push(gm.geometry); fxRoot.add(gm);
+      var seam = new T.Mesh(new T.BoxGeometry(.14, 9.6, .5), hotM); seam.position.set(cx + .2, 5, z); seam.rotation.y = -.1; own.push(seam.geometry); fxRoot.add(seam);
+      var back = new T.Mesh(new T.PlaneGeometry(22, 15), new T.MeshBasicMaterial({ map: glowTex, color: 0xd04010, transparent: true, opacity: .8, blending: T.AdditiveBlending, depthWrite: false, toneMapped: false })); back.position.set(cx, 6.5, z - 1.6); own.push(back.geometry, back.material); fxRoot.add(back);
+      live.push({ kind: 'gate', m: gm, seam: seam, back: back, z: z });
+    });
+    // Hanging chains that sway over the wings (instanced links, updated only near the hero).
+    var linkG = new T.TorusGeometry(.12, .035, 5, 10), chainSpots = []; own.push(linkG);
+    WINGS.forEach(function (W) { for (var c2 = 0; c2 < 3; c2++) chainSpots.push({ x: W.side * (21 + 5 + c2 * 4.5), z: W.z + (c2 - 1) * 18, top: 10, n: 14 + c2 * 3, ph: W.id + c2 * 1.3 }); });
+    var LINKS = chainSpots.reduce(function (s, c) { return s + c.n; }, 0), chains = new T.InstancedMesh(linkG, ironM, LINKS); chains.frustumCulled = false; chains.name = 'forge-swaying-chains'; fxRoot.add(chains);
+    var cM = new T.Matrix4(), cQ = new T.Quaternion(), cE = new T.Euler(), cP = new T.Vector3(), cS = new T.Vector3(1, 1, 1);
+    // Ember rain drifting down around the hero; its strength follows slow "heat waves".
+    var ER = 420, erP = new Float32Array(ER * 3); for (q = 0; q < ER; q++) { erP[q * 3] = (Math.random() - .5) * 40; erP[q * 3 + 1] = Math.random() * 14; erP[q * 3 + 2] = (Math.random() - .5) * 34; }
+    var erG = new T.BufferGeometry(); erG.setAttribute('position', new T.BufferAttribute(erP, 3)); own.push(erG);
+    var erM = new T.ShaderMaterial({ uniforms: { t: { value: 0 }, heat: { value: .5 } }, transparent: true, depthWrite: false, blending: T.AdditiveBlending, toneMapped: false,
+      vertexShader: 'uniform float t;uniform float heat;varying float vA;void main(){vec3 p=position;float s=fract(sin(dot(p.xz,vec2(12.9,78.2)))*43758.5);p.y=mod(p.y-t*(.6+s*.9),14.);p.x+=sin(t*.7+s*20.)*.8;p.z+=cos(t*.5+s*13.)*.6;vA=heat*(.35+.65*fract(s*7.3+t*.3))*smoothstep(0.,1.5,p.y);vec4 mv=modelViewMatrix*vec4(p,1.);gl_PointSize=clamp(70./max(1.,-mv.z),1.2,4.);gl_Position=projectionMatrix*mv;}',
+      fragmentShader: 'varying float vA;void main(){vec2 c=gl_PointCoord-.5;float a=exp(-dot(c,c)*18.)*vA;gl_FragColor=vec4(vec3(1.,.42,.1)*a,a);}' }); own.push(erM);
+    var emberRain = new T.Points(erG, erM); emberRain.frustumCulled = false; emberRain.name = 'forge-ember-rain'; fxRoot.add(emberRain);
+    var heatNow = .5, baseAtmo = w.atmosphereAt;
+    w.atmosphereAt = function (x, z) { var a = baseAtmo.apply(w, arguments); if (a) { if (a.exposure != null) a.exposure *= 1 + (heatNow - .5) * .12; if (a.bloom != null) a.bloom *= 1 + (heatNow - .5) * .3; } return a; };
+    // Floor detail for the forge (this chapter's own material instances only): glowing heat cracks in the black stone and iron
+    // floor plates, a cell-noise network that breathes with the heat waves; no textures, same meshes.
+    var forgeClock = { value: 0 }, forgeHeat = { value: .5 }, forgeDetail = { value: 1 }, baseSetQuality = w.setQuality;
+    w.setQuality = function (cfg) { var q = typeof cfg === 'string' ? cfg : cfg && (cfg.quality || cfg.preset) || 'high'; forgeDetail.value = q === 'low' ? 0 : 1; return baseSetQuality.apply(w, arguments); };
+    ['floor', 'iron', 'earth', 'wall', 'stone'].forEach(function (k) {
+      var m = w.materials[k]; if (!m || !m.isMaterial || m.isShaderMaterial) return;
+      var prev = m.onBeforeCompile, pk = m.customProgramCacheKey;
+      m.onBeforeCompile = function (sh, r) {
+        if (prev) prev.call(this, sh, r); sh.uniforms.fcT = forgeClock; sh.uniforms.fcHeat = forgeHeat; sh.uniforms.fcDetail = forgeDetail;
+        sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 fcW;').replace('#include <project_vertex>', '#include <project_vertex>\nfcW=(modelMatrix*vec4(transformed,1.)).xyz;');
+        sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec3 fcW;uniform float fcT;uniform float fcHeat;uniform float fcDetail;vec2 fcH(vec2 p){p=vec2(dot(p,vec2(127.1,311.7)),dot(p,vec2(269.5,183.3)));return fract(sin(p)*43758.5453);}float fcC(vec2 p){vec2 i=floor(p),f=fract(p);float d1=8.,d2=8.;for(int y=-1;y<=1;y++)for(int x=-1;x<=1;x++){vec2 g=vec2(float(x),float(y));float d=length(g+fcH(i+g)-f);if(d<d1){d2=d1;d1=d;}else if(d<d2)d2=d;}return d2-d1;}')
+          .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\nif(fcDetail>.5){float up=dot(normal,normalize((viewMatrix*vec4(0.,1.,0.,0.)).xyz));float fl=smoothstep(.75,.95,up)*(1.-smoothstep(.15,.6,fcW.y));float c1=1.-smoothstep(0.,.032,fcC(fcW.xz*.55));float c2=1.-smoothstep(0.,.035,fcC(fcW.xz*1.7+3.1));float msk=smoothstep(.4,.95,.5+.5*sin(fcW.x*.23+sin(fcW.z*.19)*2.3)*sin(fcW.z*.14+fcT*.04));float pul=.75+.25*sin(fcT*1.3+fcW.x*.4+fcW.z*.3);totalEmissiveRadiance+=vec3(1.,.26,.04)*(c1*1.1+c2*.25)*msk*fl*pul*(.5+fcHeat);diffuseColor.rgb*=1.-(c1*.5+c2*.2)*fl;float vt=(1.-smoothstep(.25,.6,abs(up)))*(1.-smoothstep(.6,3.6,fcW.y));float c3=1.-smoothstep(0.,.028,fcC(vec2(fcW.x+fcW.z,fcW.y*1.6)*.8));totalEmissiveRadiance+=vec3(1.,.24,.035)*c3*vt*(.35+.65*msk)*pul*(.35+fcHeat)*1.6;totalEmissiveRadiance+=vec3(.5,.11,.02)*fl*msk*(.04+.05*fcHeat);}');
+      };
+      if (k === 'iron') { var pob = m.onBeforeCompile; m.onBeforeCompile = function (sh, r) { pob.call(this, sh, r); sh.fragmentShader = sh.fragmentShader.replace('#include <alphamap_fragment>', '#include <alphamap_fragment>\nif(fcDetail>.5){vec2 fq=fcW.xz+fcW.y;float fsc=smoothstep(.96,1.,sin(dot(fq,vec2(31.,7.))+sin(fq.y*2.7)*5.))*smoothstep(.4,.8,fract(sin(dot(floor(fq*1.3),vec2(12.9,78.2)))*43758.5));float frs=smoothstep(.62,.92,(.5+.5*sin(fcW.x*3.9+sin(fcW.z*2.9+fcW.y)*2.))*(.5+.5*sin(fcW.z*3.3-fcW.y*1.7+sin(fcW.x*1.1)*3.)));float fht=1.-smoothstep(.2,1.6,fcW.y);diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.3,.14,.06),frs*.45);diffuseColor.rgb*=mix(vec3(1.),vec3(1.12,.9,.85),fht*.6);diffuseColor.rgb+=vec3(.12,.11,.1)*fsc;}'); }; }
+      m.customProgramCacheKey = function () { return (pk ? pk.call(this) : '') + '-forgecracks4' + k; }; m.needsUpdate = true;
+    });
     var baseUpdate = w.update, baseDispose = w.dispose;
     w.update = function (dt, time, p) {
       baseUpdate.apply(w, arguments); var t = time || 0; p = p || { x: 0, z: 0 }; spM.uniforms.t.value = t;
+      // heat waves: the foundry breathes over ~2 minutes (ember rain, bloom, exposure)
+      heatNow = .3 + .7 * Math.pow(.5 + .5 * Math.sin(t * .05 + .7), 2); erM.uniforms.t.value = t; erM.uniforms.heat.value = heatNow; forgeClock.value = t; forgeHeat.value = heatNow; emberRain.position.set(p.x, 0, p.z);
+      var li = 0, anyChain = false;
+      for (var ci = 0; ci < chainSpots.length; ci++) { var C = chainSpots[ci], vis = Math.abs(C.z - p.z) < 34 && Math.abs(C.x - p.x) < 34; if (vis) anyChain = true;
+        var sw = Math.sin(t * .9 + C.ph) * .12, sw2 = Math.cos(t * .7 + C.ph * 1.7) * .08;
+        for (var k2 = 0; k2 < C.n; k2++) { var d2 = k2 * .36; cP.set(C.x + Math.sin(sw) * d2, C.top - Math.cos(sw) * d2, C.z + Math.sin(sw2) * d2); cQ.setFromEuler(cE.set(sw2, k2 % 2 ? Math.PI / 2 : 0, sw)); if (!vis) cS.set(0, 0, 0); else cS.set(1.8, 1.8, 1.8); chains.setMatrixAt(li++, cM.compose(cP, cQ, cS)); } }
+      if (anyChain) chains.instanceMatrix.needsUpdate = true; chains.visible = anyChain;
       for (var i = 0; i < live.length; i++) { var L = live[i];
         if (L.kind === 'ladle') {
           var near = Math.abs(p.z - (L.z0 + L.z1) / 2) < (L.z1 - L.z0) / 2 + 30; L.g.visible = near; if (!near) continue;
@@ -120,10 +169,12 @@
           var cyc = (t + L.phase * 7) % 40, leg = Math.floor(cyc / 20), u = cyc % 20, span = L.z1 - L.z0, z;
           var travel = Math.min(1, u / 14), ease = travel * travel * (3 - 2 * travel); z = leg === 0 ? L.z0 + span * ease : L.z1 - span * ease;
           var pour = u > 14 ? Math.sin((u - 14) / 6 * Math.PI) : 0, sway = Math.sin(t * 1.3 + L.phase) * .04 * (1 - pour);
-          L.ladle.position.set(L.x, 3.8, z); L.ladle.rotation.set(0, 0, sway + pour * .55 * (L.W.side));
+          L.ladle.position.set(L.x + L.W.side * 2.5, 6.4, z); L.ladle.rotation.set(0, 0, sway + pour * .55 * (L.W.side));
           L.stream.visible = L.splash.visible = pour > .15; L.sparks.visible = pour > .05;
-          if (pour > .15) { var sx = L.x + L.W.side * 1.2 * pour, top = 3.6; L.stream.position.set(sx, top / 2, z); L.stream.scale.set(.12 + pour * .08, top, .12 + pour * .08); L.splash.position.set(sx, .12, z); L.splash.material.opacity = .45 * pour; L.sparks.position.set(sx, .1, z); }
+          if (pour > .15) { var sx = L.x + L.W.side * (2.5 + 1.2 * pour), top = 6.1; L.stream.position.set(sx, top / 2, z); L.stream.scale.set(.12 + pour * .08, top, .12 + pour * .08); L.splash.position.set(sx, .12, z); L.splash.material.opacity = .45 * pour; L.sparks.position.set(sx, .1, z); }
           spM.uniforms.gain.value = Math.max(spM.uniforms.gain.value * .98, pour);
+        } else if (L.kind === 'gate') {
+          var gv = Math.abs(p.z - L.z) < 60; L.m.visible = L.seam.visible = L.back.visible = gv; if (gv) L.back.material.opacity = .45 + .4 * heatNow; if (gv) L.seam.material.color.setRGB(.55 + .25 * heatNow + .1 * Math.sin(t * 2.3), .14 + .06 * heatNow, .03);
         } else {
           var on = Math.abs(p.z - L.z) < 40; L.m.visible = on; if (!on) continue;
           var br = .5 + .5 * Math.sin(t * 2.1 + L.phase); L.m.material.opacity = .18 + .5 * br * br; L.m.scale.x = L.m.scale.z * (1.05 + br * .2) / 1.05 * 4 / 3.4;

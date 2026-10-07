@@ -1934,7 +1934,7 @@
       if (slot !== -1) {
         const skill = selectedSkill(slot);
         if (!skill) return rejectAction(key, 'locked', KabirI18n.t('Bu yetenek yuvası boş. Yetenek ekranından bir yetenek seç.'));
-        if ((skillCooldowns[skill.line] || 0) > FEEL.buffer) return rejectAction(key, 'cooldown', skill.name + KabirI18n.t(' hazırlanıyor: ') + secondsText(skillCooldowns[skill.line]) + ' sn.', { remaining: skillCooldowns[skill.line] });
+        if ((skillCooldowns[skill.line] || 0) > FEEL.buffer) return rejectAction(key, 'cooldown', skill.name + KabirI18n.t(' hazırlanıyor: ') + secondsText(skillCooldowns[skill.line]) + KabirI18n.t(' sn.'), { remaining: skillCooldowns[skill.line] });
         if (skill.line === 'roar' && (player.rageTime > 0 || player.roar)) return rejectAction(key, 'active', KabirI18n.t('Kan Öfkesi zaten etkin.'));
         if (player.stamina < skill.cost) return rejectAction(key, 'stamina', skill.name + KabirI18n.t(' için ') + Math.round(skill.cost) + KabirI18n.t(' dayanıklılık gerekiyor.'), { cost: skill.cost, have: player.stamina });
       }
@@ -2701,7 +2701,7 @@
           es.action = action ? action.attack : ''; es.actionProgress = action ? action.age / action.duration : 0; es.leap = leap;
           es.heavy = !!(action && (enemy.boss || enemy.type === 'guard'));
           es.block = enemy.shield && !enemy.dead; es.dodge = 0; es.hurt = enemy.hurt; es.hitDirection = enemy.hitDirection || 0; es.dead = enemy.dead;
-          es.phase = enemy.phase >= 2 ? 'rage' : action ? 'attack' : 'idle'; es.face = enemy.face; es.rage = enemy.buff > 0 || enemy.phase >= 2;
+          es.phase = enemy.phase >= 2 ? 'rage' : action ? 'attack' : 'idle'; es.face = enemy.face; es.rage = enemy.buff > 0 || enemy.phase >= 2; es.enraged = !!enemy.enraged;   // (ajan:models) boss phase III visuals
           enemy.model.animate(dt + (enemy._lodAcc || 0), es); enemy._lodAcc = 0;
           if (enemy._limb) enemy.model.root.userData.authoredMotion.refreshed = false;   // the limb hook shakes the spine after the pose
           enemy._lodPosed = true; enemy._lodX = enemy.x; enemy._lodZ = enemy.z; enemy._lodFace = enemy.face;

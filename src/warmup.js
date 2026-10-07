@@ -109,7 +109,7 @@
       let i = 0;
       for (const type of Object.keys(TH.portraits)) {
         const boss = type === 'boss';
-        img.hidden = false; img.src = TH.portraits[type]; nm.textContent = KabirI18n.t('Zincir Celladı ') + type; ct.textContent = (1234 - i * 77) + ' / 5678'; ph.textContent = boss ? 'KURBAN SALONU' : '';
+        img.hidden = false; img.src = TH.portraits[type]; nm.textContent = KabirI18n.t('Zincir Celladı ') + type; ct.textContent = (1234 - i * 77) + ' / 5678'; ph.textContent = boss ? KabirI18n.t('KURBAN SALONU') : '';
         root.classList.toggle('boss-target', boss); root.classList.toggle('phase2', boss && i % 2 === 0);
         fill.style.transform = 'scaleX(' + (1 - (i % 5) * .17).toFixed(2) + ')';
         i++; await frame(); await frame();
