@@ -237,7 +237,7 @@
           : ' else if(kind<2.5){ float v=n(q*2.4+ph*13.+vec2(uTime*.05,uTime*.11))*.62+n(q*5.1-ph*7.+vec2(-uTime*.07,uTime*.09))*.38; a=smoothstep(.22,.82,v)*(1.-smoothstep(.45,1.,rr)); ao=a; }',
         ' else if(kind<3.5){ a=exp(-r2*8.)*1.5; }',
         ' else if(kind<4.5){ a=exp(-r2*7.); }',
-        ' else { float ac=exp(-q.x*q.x*3.2)*(1.-smoothstep(.72,1.,abs(q.x))); float al=smoothstep(0.,.22,q.y)*(1.-.55*smoothstep(.5,1.,q.y)); float dust=.62+.55*n(vec2(q.x*2.2+ph*6.,q.y*3.2-uTime*.2)); a=ac*al*dust; }',
+        ' else { float ac=exp(-q.x*q.x*3.2)*(1.-smoothstep(.72,1.,abs(q.x))); float al=smoothstep(0.,.22,q.y)*(1.-smoothstep(.38,1.,q.y)*.985); float dust=.62+.55*n(vec2(q.x*2.2+ph*6.,q.y*3.2-uTime*.2)); a=ac*al*dust; }',
         ' a*=vCol.a; if(a<.002) discard; gl_FragColor=vec4(col*a, ao*vCol.a); }'].join('\n')
     });
     spriteMat.name = 'ruins-sprites';

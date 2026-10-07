@@ -98,3 +98,7 @@
 /* ---------------- shared modal chrome ---------------- */
 :is(#character, #journal, #atlas, #settings, #controls) .panel-head h2 { color:#efe1c0; }
 
+/* ajan:world2 — encounter / room banner eyebrow was unreadable over bright light shafts */
+#announcement small { font-size:calc(15px * var(--k, 1)); font-weight:700; color:#f0b680; text-shadow:0 1px 2px #000, 0 0 6px #000, 0 0 16px #000, 0 0 28px #000; }
+#announcement.checkpoint small { color:#bcd8a4; }
+
