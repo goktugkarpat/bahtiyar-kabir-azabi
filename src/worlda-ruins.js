@@ -166,7 +166,7 @@
     }());
     // ---- falling drops and their rings in the caves (one GPU-animated instanced draw) ----
     if (env.root && B.WorldADrips) { var dp = []; [6, 7, 8, 9].forEach(function (i) { var r = rooms[i], R = K.rng(i, 72); for (var k = 0; k < 7; k++) dp.push([r.x + (R() - .5) * (r.w - 6), 5.6 + R() * 1.2, r.z + (R() - .5) * (r.d - 6)]); });
-      B.WorldADrips.create(window.THREE, env.root, dp, [.55, .8, 1.0]); }
+      B.WorldADrips.create(window.THREE, env.root, dp, [.3, .5, .7]); }
     // ---- bats in the caverns and over the ruined city; mineral motes drifting through the crystal light ----
     if (env.root && B.WorldABats) B.WorldABats.create(window.THREE, env.root, [[0, 7, 8], [-4, 7.5, -18], [-3, 6.5, -148], [4, 6.5, -174], [-4, 6.5, -200], [5, 6.5, -226]], 30);
     [6, 7, 8, 9].forEach(function (i) { var r = rooms[i], R = K.rng(i, 31);
@@ -213,8 +213,8 @@
         K.dec(i, 4, 0, mid, 6, d + 2, 0, [.55, .54, .52], .8); K.dec(i, 0, (R() - .5) * 4, mid, 5, 5, R() * 6, [1, 1, 1], .8);
       }
       // ---- macro variation: broad soot / dust / damp fields break the slab and plate rhythm ----
-      for (var mv = 0; mv < 7; mv++) { var mt = mv % 3; K.dec(i, mt === 0 ? 3 : mt === 1 ? 4 : 9, X((R() - .5) * (r.w - 4)), Z((R() - .5) * (r.d - 4)), 5 + R() * 5, 5 + R() * 5, R() * 6.28, mt === 1 ? [.5, .49, .47] : [1, 1, 1], mt === 2 ? .5 : .55, mt === 2 ? 'wet' : 'matte'); }
-      [-1, 1].forEach(function (s) { for (var wb = 0; wb < 5; wb++) K.dec(i, 4, X(s * (r.w / 2 - 1)), Z(-r.d / 2 + 2.2 + wb * (r.d - 4.4) / 4), 2.4, 3.4, R() * .6, [.42, .41, .4], .8); });
+      for (var mv = 0; mv < 7; mv++) { var mt = mv % 3; K.dec(i, mt === 0 ? 3 : mt === 1 ? 4 : 9, X((R() - .5) * (r.w - 4)), Z((R() - .5) * (r.d - 4)), 4 + R() * 3, 4 + R() * 3, R() * 6.28, mt === 1 ? [.5, .49, .47] : [1, 1, 1], .35, 'matte'); }   // soft, matte, smaller: no hard-edged sheets
+      [-1, 1].forEach(function (s) { for (var wb = 0; wb < 5; wb++) K.dec(i, 4, X(s * (r.w / 2 - 1)), Z(-r.d / 2 + 2.2 + wb * (r.d - 4.4) / 4), 2.4, 3.4, R() * .6 + .3, [.42, .41, .4], .45); });
       // ---- lived-in floor ----
       pebbles(i, r, cave ? 70 : 46, R, cave ? 'rock' : 'stone', cave ? [.7, .74, .8] : [.85, .84, .82], [7, 5]);
       for (var k = 0; k < (cave ? 18 : 10); k++) { var bx = X((R() - .5) * (r.w - 3)), bz = Z((R() - .5) * (r.d - 3)); bone(i, bx, bz, .25 + R() * .4, R() * 6.28, 0, R); }
