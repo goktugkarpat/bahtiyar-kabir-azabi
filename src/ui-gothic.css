@@ -174,7 +174,8 @@ html[lang=en] #death .end-title { background: linear-gradient(180deg, #ffe9c4 0%
 #hud .target-trail.snap { transition: none }
 #hud .target-count, #hud .target-notch { z-index: 1 }
 #hud .champion-target .target-health { border-color: #d7ad5e; box-shadow: 0 0 0 1px #000, 0 0 12px #c08a3a66 }
-#hud .champion-target .target-name { color: #f3cf86 }
+#hud .champion-target .target-name { color: #f3cf86; max-width: 100%; font-size: max(14px, calc(17px * var(--k))) }
+#hud .champion-target .target-title { flex-direction: column-reverse; align-items: flex-start; gap: 1px }
 #hud .champion-target .target-phase { color: #f0c26e; letter-spacing: .22em }
 #hud .champion-target .target-portrait::after { content: ''; position: absolute; inset: 9%; border-radius: 50%; box-shadow: 0 0 0 2px #d7ad5e, 0 0 14px #e0a2466e; pointer-events: none }
 #hud .boss-target .target-title { flex-direction: column; align-items: flex-start; gap: 2px }
