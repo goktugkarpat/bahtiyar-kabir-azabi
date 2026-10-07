@@ -90,12 +90,13 @@
   }
 
   // `visible` as an accessor: world code writes the wish, the renderer reads wish && !merged.
+  var wishEpoch = 0;
   function hookVisibility(o, group) {
     var want = o.visible;
     Object.defineProperty(o, 'visible', {
       configurable: true, enumerable: true,
       get: function () { return want && !group.active; },
-      set: function (v) { want = !!v; }
+      set: function (v) { v = !!v; if (v !== want) { want = v; wishEpoch++; } }
     });
     o.userData.perfGroup = group;
     o.userData.perfWant = function () { return want; };
@@ -216,40 +217,44 @@
   function cameraStep(camera) {
     camPos.setFromMatrixPosition(camera.matrixWorld); camera.getWorldDirection(camDir);
     var pe = camera.projectionMatrix.elements;
-    if (camPos.distanceToSquared(lastPos) < 1e-6 && camDir.dot(lastDir) > .9999999 && pe[0] === lastP0 && pe[5] === lastP5) return;
+    if (camPos.distanceToSquared(lastPos) < 1e-6 && camDir.dot(lastDir) > .9999999 && pe[0] === lastP0 && pe[5] === lastP5) return false;
     lastPos.copy(camPos); lastDir.copy(camDir); lastP0 = pe[0]; lastP5 = pe[5]; camEpoch++;
     projView.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse); frustum.setFromProjectionMatrix(projView);
-  }
-  function inView(s) {
-    tmpSphere.copy(s.boundingSphere).applyMatrix4(s.matrixWorld); tmpSphere.radius += MARGIN;
-    return frustum.intersectsSphere(tmpSphere);
+    return true;
   }
 
   // Before every main render (scene.onBeforeRender; shadow maps render inside that call afterwards).
+  // Cheap when nothing changed: the part loop only runs after the camera moved, a wish changed or shadow flags flipped.
   function frame(camera) {
     var mainCam = B.app && B.app.camera, useCam = camera && camera === mainCam;
-    if (useCam) cameraStep(camera);
+    var moved = useCam ? cameraStep(camera) : false;
     var check = (frameNo = (frameNo + 1) % 15) === 0;
     var gs = Perf.groups;
     for (var i = 0; i < gs.length; i++) {
       var G = gs[i]; if (G.dead) continue;
-      var srcs = G.sources, s0 = srcs[0], ok = Perf.enabled && s0.parent !== null, k, s;
-      for (k = 1; ok && k < srcs.length; k++) { s = srcs[k]; if (s.castShadow !== s0.castShadow || s.receiveShadow !== s0.receiveShadow || s.parent !== s0.parent) ok = false; }
+      var srcs = G.sources, s0 = srcs[0], k, s;
       if (check) for (k = 0; k < srcs.length; k++) if (versionOf(srcs[k]) !== G.versions[k]) { release(G); break; }
       if (G.dead) continue;
-      G.active = ok;
-      if (!ok) { G.mesh.visible = false; continue; }
-      // Parts that cast shadows must stay in the merged draw even off camera (shadow maps see further than the view).
+      var flags = (Perf.enabled ? 1 : 0) | (s0.castShadow ? 2 : 0) | (s0.receiveShadow ? 4 : 0) | (s0.parent ? 8 : 0);
+      if (flags !== G.flags || check) {
+        var ok = Perf.enabled && s0.parent !== null;
+        for (k = 1; ok && k < srcs.length; k++) { s = srcs[k]; if (s.castShadow !== s0.castShadow || s.receiveShadow !== s0.receiveShadow || s.parent !== s0.parent) ok = false; }
+        if (ok !== G.ok || flags !== G.flags) G.sig = '';
+        G.ok = ok; G.flags = flags;
+      }
+      G.active = G.ok;
+      if (!G.ok) { G.mesh.visible = false; continue; }
+      var camTest = !s0.castShadow && useCam;
       // Other cameras (previews, warm-up) keep the set chosen for the last main view.
-      if (!useCam && G.sig !== '') { G.mesh.visible = G.drawn; continue; }
-      var camTest = !s0.castShadow && useCam, inc = G.included, changed = false;
+      if (G.sig !== '' && (!useCam || G.wish === wishEpoch && G.camTest === camTest && (!camTest || !moved))) { G.mesh.visible = G.drawn; continue; }
+      var inc = G.included, changed = false, ws = G.wspheres;
       for (k = 0; k < srcs.length; k++) {
-        s = srcs[k];
-        var want = s.userData.perfWant() ? 1 : 0;
-        if (want && camTest) want = inView(s) ? 1 : 0;
+        var want = srcs[k].userData.perfWant() ? 1 : 0;
+        if (want && camTest) want = frustum.intersectsSphere(ws[k]) ? 1 : 0;
         if (inc[k] !== want) { inc[k] = want; changed = true; }
       }
       if (changed || G.sig === '') { G.sig = 'x'; rebuild(G); }
+      G.wish = wishEpoch; G.camTest = camTest;
       G.mesh.visible = G.drawn;
       G.mesh.castShadow = s0.castShadow; G.mesh.receiveShadow = s0.receiveShadow;
       if (G.mesh.parent !== s0.parent) s0.parent.add(G.mesh);
@@ -275,7 +280,11 @@
     });
     function adopt(G) {
       Perf.groups.push(G); Perf.stats[G.kind]++; Perf.stats.sources += G.sources.length;
-      G.sources.forEach(function (s) { if (!s.boundingSphere) s.computeBoundingSphere(); hookVisibility(s, G); });
+      G.wspheres = G.sources.map(function (s) {
+        if (!s.boundingSphere) s.computeBoundingSphere(); hookVisibility(s, G);
+        var w = s.boundingSphere.clone().applyMatrix4(s.matrixWorld); w.radius += MARGIN; return w;   // static parts: world bounds once
+      });
+      G.flags = -1; G.ok = false;
     }
     pseudo.forEach(function (G) {
       if (G.sources.length < 2) return;
