@@ -59,3 +59,6 @@ Object.assign(window.KabirI18n.dictionary,{
 "Av":"Hunt","Kurtarma":"Rescue","Kayıp sayfa":"Lost page","Sunak":"Altar","Sandık":"Chest","Kuşatma":"Siege","Kaçış":"Escape","Mühür bulmacası":"Seal puzzle","Dokun: takip et":"Tap: track","Küçük harita sabit · Bahtiyar’la döndür":"Minimap fixed north · turn with Bahtiyar"
 });
 /* /ajan:map */
+/* ajan:qa */
+Object.assign(window.KabirI18n.dictionary,{"KIZIL OCAK":"CRIMSON FORGE"});
+/* /ajan:qa */
