@@ -153,6 +153,16 @@ body:has(#lu-banner.lu-on) #key-hints span:nth-child(2) kbd { border-color: #f0c
   #controls .ui-chamber .control-grid { gap: 0 22px }
   #controls .ui-chamber .control-grid p b { font-family: Georgia, serif; font-weight: 400; font-size: 16px }
 }
+/* tuş atamaları: soğuk lacivert kutular yerine is kararmış demir + soluk altın */
+#keybinds .settings-cols section { border: 1px solid #6a4f2e66; background: linear-gradient(160deg, #1d1612d9, #0f0b0ae6); box-shadow: inset 0 1px 0 #ffffff0a, inset 0 0 40px #0008 }
+#keybinds .settings-cols h3 { color: #e6d2a8; font-family: Georgia, serif; font-weight: 400 }
+#keybinds .bind-slot { border-color: #8a6a3f66; background: linear-gradient(#2a201ae6, #120d0b); color: #ecdcbc; box-shadow: inset 0 1px 0 #ffe7b80f, inset 0 -2px 4px #0008 }
+#keybinds .bind-slot:hover { border-color: #d7b072 }
+#keybinds .bind-slot.listening { border-color: #e0b46e; background: #5a160f66; color: #fff0d2; box-shadow: 0 0 12px #b3261e66 }
+#keybinds .bind-pad { color: #b2a48f }
+#keybinds footer { border-top-color: #6a4f2e66 }
+#keybinds .panel-head .close, #controls .panel-head .close { background: linear-gradient(#2a1d17, #120d0b); border-color: #b88a4e; color: #ecd9b0 }
+#keybinds .bind-card { border-color: #b88a4e; background: linear-gradient(#1f1713, #0c0908); box-shadow: 0 20px 60px #000c, 0 0 0 4px #15100c, 0 0 0 5px #4f3a22 }
 /* okuma sırası: hareket ve savaş temelleri önce, yetenek yuvaları sırayla (sağ tık, 1, 2, 3) en sonda */
 #controls .control-grid > :nth-child(1) { order: 1 } #controls .control-grid > :nth-child(2) { order: 2 }
 #controls .control-grid > :nth-child(5) { order: 3 } #controls .control-grid > :nth-child(6) { order: 4 }
