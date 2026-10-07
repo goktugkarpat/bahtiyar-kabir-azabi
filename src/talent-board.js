@@ -30,12 +30,12 @@
   //   row IV  the panel's keystone in a big diamond at the bottom (one keystone per run, the others get the red cross).
   // Positions come from the data (line / slot / group / arch), nothing here knows the node ids.
   // Sized so the icons stay big on screen: narrow row gutter (numeral + gate only), slim header strips, tight rows.
-  const W = 800, H = 408, GUT = 36, GAP = 4;
+  const W = 848, H = 408, GUT = 36, GAP = 4;
   const PW = (W - GUT - 4 - GAP * 2) / 3;
-  const ROW_Y = { 1: 72, 2: 148, 3: 238, 4: 343 };
+  const ROW_Y = { 1: 70, 2: 152, 3: 246, 4: 354 };
   const HEAD = 32;
-  const SIZE = { active: 66, form: 54, mod: 54, passive: 54, key: 74 };
-  const FORK = 31;   // half distance between the two forms of a line
+  const SIZE = { active: 62, form: 44, mod: 44, passive: 46, key: 56 };
+  const FORK = 37;   // half distance between the two forms of a line
   const PLQ_TOP = SIZE.passive / 2 + 18, PLQ_BOT = SIZE.passive / 2 + 10;   // build plaque around row III: label strip above, badge room below
   const CROWN = .98, KEY_R = SIZE.key * CROWN * Math.SQRT1_2;   // keystone diamond: side = key * CROWN, half height = KEY_R
   const KIND = { active: t('Aktif yetenek'), form: t('Biçim'), mod: t('Güçlendirme'), passive: t('Yapı'), key: t('Kilit taşı') };

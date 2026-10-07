@@ -406,3 +406,7 @@
   #character .tb-ident, #character .tb-help { font-size:12px; }
 }
 /* /ajan:boyut */
+
+/* v330: the slot bar sits centred in its strip (more room above, no empty band below) */
+#character .tb-bottom { padding:16px 4px 4px; align-items:center; }
+#character .tb-slots { align-self:center; }
