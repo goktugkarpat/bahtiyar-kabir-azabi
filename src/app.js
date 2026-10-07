@@ -458,7 +458,7 @@
     if (name === 'questChoice') { if (game && ['playing','pause'].includes(view)) open('journal'); if (questUI) questUI.open(); return; }
     if (name === 'quest') { if (questUI) questUI.event(d); if (d.complete && questVoices[d.id] && B.Audio.sayQuest) B.Audio.sayQuest(questVoices[d.id]); return; }
     if (name === 'progression') { if (d.levels > 0) { B.Audio.play('levelUp'); fx('heroSkill', { skill: 'level', phase: 'release', x: game.player.x, z: game.player.z }); announceTimer = 0; $('announcement').classList.remove('show'); if (B.LevelUp) B.LevelUp.trigger(d, game.player); levelUpTimer = 2.7; } if (characterUI) characterUI.refresh(); return; }
-    if (name === 'loot') { for (const item of d.items || []) { const def = B.Progression.catalog[item.id]; if (def) notify(B.Progression.qualities[def.rarity].name + ' ganimet · ' + def.name + KabirI18n.t(' · Çantaya eklendi [I]'), 'rarity-' + def.rarity); } return; }
+    if (name === 'loot') { for (const item of d.items || []) { const def = B.Progression.catalog[item.id]; if (def) notify(B.Progression.qualities[def.rarity].name + KabirI18n.t(' ganimet · ') + def.name + KabirI18n.t(' · Çantaya eklendi [I]'), 'rarity-' + def.rarity); } return; }
     if (name === 'hit') {
       // combat.js sizes the hit-stop itself (d.hitstop is set) and reports how hard the contact was (d.impact 0..1),
       // so here the camera only recoils; unclassified heavy hits retain the same short 8 ms limit.
@@ -1433,12 +1433,12 @@
     const gateText = gateObjective(room); if (gateText) return gateText;
     if(chapter < 3 && room && room.id >= 7){const n=game.enemies.filter(e=>!e.dead&&e.encounter.room===room.id).length;return n?KabirI18n.t('Bu yan alanda ')+n+KabirI18n.t(' düşman var.'):KabirI18n.t('Alan temizlendi. Ana yola geri dön.');}
     if(finaleChapter&&B.FinaleWorld&&B.FinaleWorld.objective){const t=B.FinaleWorld.objective(game,room,binds.interact[0]?capName(binds.interact[0]):'E');if(t)return t;}
-    if(forgeChapter){if(game.state==='won')return KabirI18n.t('Ocak söndü. Zincirlerin kaynağı yok oldu.');if(!room)return KabirI18n.t('Dökümhanenin içinden kuzeye ilerle.');if(room.id===11)return game.checkpointIndex?KabirI18n.t('Köz Yemini mühürlendi. Son Döküm’e ilerle.'):KabirI18n.t('Köz Yemini taşına yaklaş ve ')+capName(binds.interact[0])+' ile dokun.';if(room.id===13)return KabirI18n.t('Ocağın Kalbi’ni yen. Kızgın halkalardaki boşlukları kullan.');const n=game.enemies.filter(e=>!e.dead&&e.encounter.room===room.id).length;return n?KabirI18n.t('Bu alanda ')+n+KabirI18n.t(' düşman var.'):KabirI18n.t('Kuzeydeki döküm salonuna ilerle.');}
-    if(ruinsChapter){if(game.state==='won')return KabirI18n.t('Taht yıkıldı. Kralın sesi sustu.');if(!room)return KabirI18n.t('Harabelerin içinden kuzeye ilerle.');if(room.id===11)return game.checkpointIndex?KabirI18n.t('Son yemin mühürlendi. Tahtın nöbetini aş.'):KabirI18n.t('Son Yemin taşına yaklaş ve ')+capName(binds.interact[0])+' ile dokun.';if(room.id===13)return KabirI18n.t('Oyukların Kralı’nı yen. Taş halkalarının güvenli boşluklarını bul.');const n=game.enemies.filter(e=>!e.dead&&e.encounter.room===room.id).length;return n?KabirI18n.t('Bu alanda ')+n+KabirI18n.t(' düşman var.'):room.id===5?KabirI18n.t('Yıkılmış anıtın altından mağaraya gir.'):KabirI18n.t('Kuzeydeki geçide ilerle.');}
+    if(forgeChapter){if(game.state==='won')return KabirI18n.t('Ocak söndü. Zincirlerin kaynağı yok oldu.');if(!room)return KabirI18n.t('Dökümhanenin içinden kuzeye ilerle.');if(room.id===11)return game.checkpointIndex?KabirI18n.t('Köz Yemini mühürlendi. Son Döküm’e ilerle.'):KabirI18n.t('Köz Yemini taşına yaklaş ve ')+capName(binds.interact[0])+KabirI18n.t(' ile dokun.');if(room.id===13)return KabirI18n.t('Ocağın Kalbi’ni yen. Kızgın halkalardaki boşlukları kullan.');const n=game.enemies.filter(e=>!e.dead&&e.encounter.room===room.id).length;return n?KabirI18n.t('Bu alanda ')+n+KabirI18n.t(' düşman var.'):KabirI18n.t('Kuzeydeki döküm salonuna ilerle.');}
+    if(ruinsChapter){if(game.state==='won')return KabirI18n.t('Taht yıkıldı. Kralın sesi sustu.');if(!room)return KabirI18n.t('Harabelerin içinden kuzeye ilerle.');if(room.id===11)return game.checkpointIndex?KabirI18n.t('Son yemin mühürlendi. Tahtın nöbetini aş.'):KabirI18n.t('Son Yemin taşına yaklaş ve ')+capName(binds.interact[0])+KabirI18n.t(' ile dokun.');if(room.id===13)return KabirI18n.t('Oyukların Kralı’nı yen. Taş halkalarının güvenli boşluklarını bul.');const n=game.enemies.filter(e=>!e.dead&&e.encounter.room===room.id).length;return n?KabirI18n.t('Bu alanda ')+n+KabirI18n.t(' düşman var.'):room.id===5?KabirI18n.t('Yıkılmış anıtın altından mağaraya gir.'):KabirI18n.t('Kuzeydeki geçide ilerle.');}
     if (coastChapter) {
       if (game.state === 'won') return KabirI18n.t('Çan sustu. Kara Kıyı özgür.');
       if (!room) return KabirI18n.t('Kıyının kuzeyine ilerle.');
-      if (room.id === 5) return game.checkpointIndex ? KabirI18n.t('Yeminin mühürlendi. Çanlığa ilerle.') : KabirI18n.t('Fenerin yemin taşına yaklaş ve ') + capName(binds.interact[0]) + ' ile dokun.';
+      if (room.id === 5) return game.checkpointIndex ? KabirI18n.t('Yeminin mühürlendi. Çanlığa ilerle.') : KabirI18n.t('Fenerin yemin taşına yaklaş ve ') + capName(binds.interact[0]) + KabirI18n.t(' ile dokun.');
       if (room.id === 6) return KabirI18n.t('Derinliklerin Çancısı’nı yen. Deniz halkalarının boşluklarını kullan.');
       const n = game.enemies.filter(e => !e.dead && e.encounter.room === room.id).length;
       return n ? KabirI18n.t('Bu alanda ') + n + KabirI18n.t(' düşman var. Savaş veya kuzeye ilerle.') : room.id === 4 ? KabirI18n.t('Son Fener’in yemin taşını bul.') : 'Kuzeydeki patikaya ilerle.';
@@ -1446,7 +1446,7 @@
     if (game.state === 'won') return KabirI18n.t('Geçit açıldı. Kurban Tapınağı sustu.');
     if (!room) return 'Kuzeydeki salona ilerle.';
     const idx = room.id;
-    if (idx === 5) return game.checkpointIndex ? KabirI18n.t('Yeminin mühürlendi. Zincir Mahkemesi’ne ilerle.') : KabirI18n.t('Yemin taşına yaklaş ve ') + capName(binds.interact[0]) + ' ile dokun.';
+    if (idx === 5) return game.checkpointIndex ? KabirI18n.t('Yeminin mühürlendi. Zincir Mahkemesi’ne ilerle.') : KabirI18n.t('Yemin taşına yaklaş ve ') + capName(binds.interact[0]) + KabirI18n.t(' ile dokun.');
     if (idx === 6) {
       const boss = game.boss || game.enemies.find(e => e.boss);
       return boss && boss.phase === 2 ? KabirI18n.t('Zincirler kırıldı. Celladın kızıl darbelerinden kaçın.') : KabirI18n.t('Zincir Celladı’nı yen. Tapınağın geçidini aç.');

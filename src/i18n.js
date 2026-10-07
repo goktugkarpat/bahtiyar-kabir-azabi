@@ -60,5 +60,5 @@ Object.assign(window.KabirI18n.dictionary,{
 });
 /* /ajan:map */
 /* ajan:qa */
-Object.assign(window.KabirI18n.dictionary,{"KIZIL OCAK":"CRIMSON FORGE"});
+Object.assign(window.KabirI18n.dictionary,{"KIZIL OCAK":"CRIMSON FORGE"," ganimet · ":" loot · "," ile dokun.":" to touch it."," sn.":" sec."});
 /* /ajan:qa */
