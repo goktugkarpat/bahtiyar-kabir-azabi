@@ -55,7 +55,7 @@
     }
     function castHook(skill, face, targets) {
       const P = skill.params;
-      if (look) look.chains(player, targets, true, { life: .72 });
+      if (look) look.chains(player, targets, true, { life: .72, hook: true });
       sound('talentHook');
       later.push({ at: clock + .24, fn() {
         let landed = 0;

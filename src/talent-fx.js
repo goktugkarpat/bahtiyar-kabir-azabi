@@ -79,9 +79,15 @@
     }
     // ---- chains (Zincirli Kader, Zincir Kırbacı, Kanca / Kement): real links, instanced (6 chains x 22 links), thrown out then dragged back
     const LINKS = 22, CHAINS = 6;
-    const linkMat = new T.MeshStandardMaterial({ color: 0x5d5853, metalness: .85, roughness: .38, emissive: new T.Color(.25, .04, .02) });
+    const linkMat = new T.MeshStandardMaterial({ color: 0x8c8e94, metalness: .9, roughness: .32, emissive: new T.Color(.03, .012, .008) });
     const links = new T.InstancedMesh(new T.TorusGeometry(.13, .035, 6, 10), linkMat, LINKS * CHAINS); links.frustumCulled = false; links.count = 0; group.add(links);
     const chainList = [];   // { from, to:{x,z,e}, t, life }
+    // grapnel head on the chain tip: a barbed spike plus a curved claw (Çengelli Çekiş / hook throws)
+    const headMat = new T.MeshStandardMaterial({ color: 0xb4b2ac, metalness: .92, roughness: .26, emissive: new T.Color(.05, .015, .01) });
+    const spikeGeo = new T.ConeGeometry(.07, .5, 6).rotateX(Math.PI / 2).translate(0, 0, .22);
+    const clawGeo = new T.TorusGeometry(.2, .045, 6, 12, Math.PI * 1.25).rotateY(Math.PI / 2).rotateX(Math.PI / 2).translate(0, .0, -.05);
+    const spikes = new T.InstancedMesh(spikeGeo, headMat, CHAINS), claws = new T.InstancedMesh(clawGeo, headMat, CHAINS);
+    for (const m of [spikes, claws]) { m.frustumCulled = false; m.count = 0; group.add(m); }
     const _m = new T.Matrix4(), _q = new T.Quaternion(), _e = new T.Euler(), _p = new T.Vector3(), _s = new T.Vector3(1, 1, 1);
     // ---- particles
     const MAX = 900, pos = new Float32Array(MAX * 3), col = new Float32Array(MAX * 4), size = new Float32Array(MAX);
@@ -155,7 +161,7 @@
     function chains(p, foes, lash, opt) {
       for (const e of foes.slice(0, CHAINS)) {
         if (chainList.length >= CHAINS) chainList.shift();
-        chainList.push({ from: p, to: e, x: e.x, z: e.z, t: 0, life: opt && opt.life || (lash ? .45 : .55), lash: !!lash });
+        chainList.push({ from: p, to: e, x: e.x, z: e.z, t: 0, life: opt && opt.life || (lash ? .45 : .55), lash: !!lash, hook: !!(opt && opt.hook) });
         const y = (e.model && e.model.root.position.y) || 0;
         for (let i = 0; i < 10; i++) spark(e.x, y + 1, e.z, rnd(-2, 2), rnd(.5, 2.5), rnd(-2, 2), i % 2 ? [1.8, 1.5, 1.1] : [1.6, .4, .12], .35, .07, -6);
       }
@@ -231,20 +237,27 @@
         if (m.sigil) { const s = m.sigil; s.m.position.set(e.x, gy(e.x, e.z) + .05, e.z); const r = (e.radius || .5) + .55; s.m.scale.set(r, 1, r); s.m.rotation.y = time * .8; s.mat.uniforms.uTime.value = time; s.mat.uniforms.uFade.value = .3 + .08 * Math.sin(time * 2.4); }   // rot mark: a dim, slow pulse so it never reads as a telegraph ring
       }
       // chains: thrown out over the first 25 %, held, then dragged home
-      let li = 0;
+      let li = 0, hi = 0;
       for (let c = chainList.length - 1; c >= 0; c--) {
         const ch = chainList[c]; ch.t += dt; const k = ch.t / ch.life;
         if (k >= 1) { chainList.splice(c, 1); continue; }
         const p = ch.from, tx = ch.to.dead ? ch.x : ch.to.x, tz = ch.to.dead ? ch.z : ch.to.z, reach = k < .25 ? k / .25 : k > .7 ? 1 - (k - .7) / .3 : 1;
         const y0 = gy(p.x, p.z) + 1.05, ty = ((ch.to.model && ch.to.model.root.position.y) || 0) + 1, dx = tx - p.x, dz = tz - p.z, len = Math.hypot(dx, dz) || 1, yaw = Math.atan2(dx, dz);
         const n = Math.min(LINKS, Math.max(3, Math.round(len * reach / .2)));
+        const hk = !!ch.hook, droop = (hk ? .12 : (ch.lash ? .5 : .25)) * (1 - reach * .6) * (hk ? -1 : 1);
         for (let i = 0; i < n && li < LINKS * CHAINS; i++) {
-          const u = (i + .5) / n * reach, sag = Math.sin(u / Math.max(.01, reach) * Math.PI) * (ch.lash ? .5 : .25) * (1 - reach * .6);
-          _p.set(p.x + dx * u, y0 + (ty - y0) * u + sag + Math.sin(time * 30 + i) * .02, p.z + dz * u);
+          const u = (i + .5) / n * reach, sag = Math.sin(u / Math.max(.01, reach) * Math.PI) * droop;
+          _p.set(p.x + dx * u, y0 + (ty - y0) * u + sag + Math.sin(time * 30 + i) * (hk ? .006 : .02), p.z + dz * u);
           _e.set(i % 2 ? Math.PI / 2 : 0, yaw, 0, 'YXZ'); _q.setFromEuler(_e); _s.set(1, 1, 1.6); _m.compose(_p, _q, _s); links.setMatrixAt(li++, _m);
+        }
+        if (hk && hi < CHAINS) {
+          const pitch = Math.atan2(-(ty - y0), len);
+          _p.set(p.x + dx * reach, y0 + (ty - y0) * reach, p.z + dz * reach); _e.set(pitch, yaw, 0, 'YXZ'); _q.setFromEuler(_e); _s.set(1, 1, 1); _m.compose(_p, _q, _s);
+          spikes.setMatrixAt(hi, _m); claws.setMatrixAt(hi, _m); hi++;
         }
       }
       links.count = li; if (li) links.instanceMatrix.needsUpdate = true;
+      spikes.count = claws.count = hi; if (hi) { spikes.instanceMatrix.needsUpdate = true; claws.instanceMatrix.needsUpdate = true; }
       // build aura on the hero (talent-runtime passes the dominant path)
       if (auraOf && auraOf.player && !auraOf.player.dead && AURA_COL[auraOf.kind]) {
         const p = auraOf.player; heroRing.visible = true; heroRing.position.set(p.x, gy(p.x, p.z) + .03, p.z); heroRing.scale.set(1.15, 1, 1.15); heroRing.rotation.y = -time * .35;
@@ -298,7 +311,7 @@
       for (const o of ringPool) o.m.visible = false;
       for (const [e] of marks) clear(e);
       for (let i = 0; i < MAX; i++) life[i] = 0;
-      chainList.length = 0; links.count = 0;
+      chainList.length = 0; links.count = 0; spikes.count = claws.count = 0;
     }
     function dispose() {
       reset(); root.remove(group);

@@ -13,8 +13,8 @@
   const DIFFICULTY = Object.freeze({
     easy: Object.freeze({ enemyHp: .70, enemyDmg: .48, eliteHp: 1, eliteDmg: 1, playerDmg: 1.18, pace: 1.22, rest: 1.30, attackers: 2, melee: 1,
       hitCap: .30, iframe: .44, dodgeStep: .15, regenDelay: .25, regen: 1.15, flasks: 5, flaskHeal: 1.15, perfectWindow: .26 }),
-    normal: Object.freeze({ chapterDmg: Object.freeze({ 1: .85, 2: .85, 3: .82, 4: .95, 5: 1.1 }), enemyHp: .95, enemyDmg: 1.25, eliteHp: 1.10, eliteDmg: 1.08, playerDmg: 1.12, pace: 1.10, rest: 1.08, attackers: 3, melee: 2,
-      hitCap: .30, iframe: .38, dodgeStep: .30, regenDelay: .35, regen: 1.08, flasks: 5, flaskHeal: 1.1, perfectWindow: .22 }),
+    normal: Object.freeze({ chapterDmg: Object.freeze({ 1: .62, 2: .70, 3: .78, 4: .92, 5: 1.1 }), enemyHp: .88, enemyDmg: 1.08, eliteHp: 1.10, eliteDmg: 1.08, playerDmg: 1.12, pace: 1.10, rest: 1.08, attackers: 3, melee: 2,
+      hitCap: .26, iframe: .40, dodgeStep: .28, regenDelay: .32, regen: 1.12, flasks: 6, flaskHeal: 1.2, perfectWindow: .22 }),
     hard: Object.freeze({ enemyHp: 1.15, enemyDmg: 1.32, eliteHp: 1.25, eliteDmg: 1.25, playerDmg: 1, pace: 1, rest: .82, attackers: 3, melee: 2,
       hitCap: .45, iframe: .32, dodgeStep: .40, regenDelay: .50, regen: 1, flasks: 3, flaskHeal: .85, perfectWindow: .18 })
   });
