@@ -866,7 +866,8 @@
     if (!!s.paused !== S.paused || pk !== S.pk) { S.pk = pk; S.title = !!s.title; S.paused = !!s.paused; setP(N.muffle.frequency, S.paused ? (S.title ? 2600 : 650) : 20000, t, .2); setP(N.duck.gain, S.paused ? (S.title ? .8 : .45) : 1, t, .25); }   // ajan:audio: the title theme is only veiled
     if (S.wonAt >= 0 && !won && t > S.wonAt + 60) S.wonAt = -1;
     const quiet = dead || won || t < S.quietUntil || S.wonAt >= 0, duck = t < S.duckUntil ? S.duckAmt : 1;
-    for (let i = 0; i < 7; i++) { const p = SCP[i]; setPart(p, !quiet && !boss && room === i ? (combatOn ? .55 : 1) * duck : 0, quiet ? .3 : 2.2, dt); sceneLife(p, i, t); }
+    const trim = B.MusicColor && B.MusicColor.trim ? B.MusicColor.trim(B.ActiveChapter || 1) : 1;   // ajan:audio: per-chapter exploration level (II-V beds were 4-11 dB under I)
+    for (let i = 0; i < 7; i++) { const p = SCP[i]; setPart(p, !quiet && !boss && room === i ? (combatOn ? .55 : 1) * duck * trim : 0, quiet ? .3 : 2.2, dt); sceneLife(p, i, t); }
     setPart(PT, quiet ? 0 : Math.pow(S.danger, 1.2) * (combatOn ? .45 : 1) * (boss ? .2 : 1), quiet ? .2 : .9, dt);
     setPart(PC, !quiet && (combatOn || CB.ending || t < (CB.tail || 0)) ? 1 : 0, quiet ? .2 : combatOn ? .05 : 1.3, dt);
     setPart(PB, boss && !quiet ? .85 : 0, boss ? .2 : quiet ? .25 : 2.5, dt);

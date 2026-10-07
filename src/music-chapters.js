@@ -21,29 +21,29 @@
     const perc = X.dest(P, 'perc'), far = X.dest(P, 'far'), bell = X.dest(P, 'bell'), sd = X.stepDur();
     const first = st === CB.start;
     if (ch === 1) {
-      if (first) X.toll(P, t, { buf: 'bellBig', vel: .32, rate: .94 });
-      if (s === 0 && rel % 4 === 0 && rel > 0) X.brassNote(P, n.D1, t, { vel: .2, att: .4, dur: sd * 30, rel: 1.2, bright: .5 });
-      if (s === 0 && rel % 4 === 2) X.toll(P, t, { buf: 'bellD3', vel: .2, rate: .89, pan: X.rr(-.3, .3) });
-      if ((s === 6 || s === 14) && rel % 2 === 1 && X.chance(.7)) X.playBuf('taikoL', t, perc, { gain: .32, rate: .86, pan: X.rr(-.2, .2) });
+      if (first) X.toll(P, t, { buf: 'bellBig', vel: .48, rate: .94 });
+      if (s === 0 && rel % 4 === 0 && rel > 0) X.brassNote(P, n.D1, t, { vel: .30, att: .4, dur: sd * 30, rel: 1.2, bright: .5 });
+      if (s === 0 && rel % 4 === 2) X.toll(P, t, { buf: 'bellD3', vel: .30, rate: .89, pan: X.rr(-.3, .3) });
+      if ((s === 6 || s === 14) && rel % 2 === 1 && X.chance(.7)) X.playBuf('taikoL', t, perc, { gain: .48, rate: .86, pan: X.rr(-.2, .2) });
     } else if (ch === 2) {
       if (first || (s === 0 && rel % 2 === 0)) X.toll(P, t, { buf: 'bellD3', vel: first ? .34 : .2, rate: .72 * X.rr(.995, 1.005), pan: X.rr(-.6, .6) });
-      if (s === 0 && rel % 4 === 1) { X.vowel('choirB', 'u', t, .4); for (const m of [n.D2, n.A2]) X.choirNote(P, 'choirB', m, t, { vel: .14, att: .6, dur: sd * 28, rel: 1.2, vib: 6 }); }
-      if (s === 8 && rel % 4 === 3) X.stringNote(P, 'cello', n.D2 - 2, t, { vel: .14, att: .2, dur: sd * 7, rel: .6, n: 2, trem: .9, tremRate: 13 });
+      if (s === 0 && rel % 4 === 1) { X.vowel('choirB', 'u', t, .4); for (const m of [n.D2, n.A2]) X.choirNote(P, 'choirB', m, t, { vel: .21, att: .6, dur: sd * 28, rel: 1.2, vib: 6 }); }
+      if (s === 8 && rel % 4 === 3) X.stringNote(P, 'cello', n.D2 - 2, t, { vel: .21, att: .2, dur: sd * 7, rel: .6, n: 2, trem: .9, tremRate: 13 });
     } else if (ch === 3) {
-      if ((s === 6 || s === 14) && X.chance(.55)) X.playBuf('bellD4', t, bell, { gain: .1, rate: X.pick([1.5, 2, 1.335, 1.782]), pan: X.rr(-.7, .7) });
-      if (s % 4 === 3 && X.chance(.25)) X.playBuf('bone', t, far, { gain: .22, rate: X.rr(1, 1.3), pan: X.rr(-.8, .8) });
-      if (s === 0 && rel % 2 === 0) X.brassNote(P, n.D1 + (rel % 4 ? -2 : 0), t, { vel: .24, att: .25, dur: sd * 26, rel: 1, bright: .7 });
-      if (first) X.playBuf('bellBig', t, bell, { gain: .22, rate: 1.19 });
+      if ((s === 6 || s === 14) && X.chance(.55)) X.playBuf('bellD4', t, bell, { gain: .15, rate: X.pick([1.5, 2, 1.335, 1.782]), pan: X.rr(-.7, .7) });
+      if (s % 4 === 3 && X.chance(.25)) X.playBuf('bone', t, far, { gain: .33, rate: X.rr(1, 1.3), pan: X.rr(-.8, .8) });
+      if (s === 0 && rel % 2 === 0) X.brassNote(P, n.D1 + (rel % 4 ? -2 : 0), t, { vel: .36, att: .25, dur: sd * 26, rel: 1, bright: .7 });
+      if (first) X.playBuf('bellBig', t, bell, { gain: .33, rate: 1.19 });
     } else if (ch === 4) {
       if (s === 4 || s === 12) X.playBuf('anvil', t, perc, { gain: s === 4 ? .2 : .14, rate: X.rr(.74, .8), pan: X.rr(-.35, .35) });
-      if (s === 10 && rel % 2 === 1) X.playBuf('plate', t, perc, { gain: .16, rate: X.rr(.85, .95), pan: X.rr(-.3, .3) });
-      if (s % 2 === 1 && rel >= 1 && X.chance(.5)) X.playBuf('tek', t, perc, { gain: .1, rate: X.rr(1.3, 1.5), pan: X.rr(-.6, .6) });
-      if (s === 0 && rel % 4 === 0) { X.vowel('choirA', 'u', t, .5); for (const m of [n.D2, n.Ab2]) X.choirNote(P, 'choirA', m, t, { vel: .09, att: 1, dur: sd * 56, rel: 1.5, vib: 5 }); }
-      if (first) X.playBuf('plate', t, perc, { gain: .3, rate: .7 });
+      if (s === 10 && rel % 2 === 1) X.playBuf('plate', t, perc, { gain: .24, rate: X.rr(.85, .95), pan: X.rr(-.3, .3) });
+      if (s % 2 === 1 && rel >= 1 && X.chance(.5)) X.playBuf('tek', t, perc, { gain: .15, rate: X.rr(1.3, 1.5), pan: X.rr(-.6, .6) });
+      if (s === 0 && rel % 4 === 0) { X.vowel('choirA', 'u', t, .5); for (const m of [n.D2, n.Ab2]) X.choirNote(P, 'choirA', m, t, { vel: .14, att: 1, dur: sd * 56, rel: 1.5, vib: 5 }); }
+      if (first) X.playBuf('plate', t, perc, { gain: .45, rate: .7 });
     } else {
-      if (s === 0 && rel % 2 === 0) { X.vowel('choirA', 'a', t, .6); const r = rel % 4 ? n.Eb2 : n.D2; for (const m of [r, r + 7, r + 12]) X.choirNote(P, 'choirA', m, t + X.rr(0, .05), { vel: .1, att: .8, dur: sd * 30, rel: 1.4, vib: 9 }); }
-      if (first || (s === 0 && rel % 4 === 3)) X.toll(P, t, { buf: 'bellD3', vel: .22, rate: .74 });
-      if (s === 0 && rel % 4 === 0) X.brassNote(P, n.D1, t, { vel: .18, att: .6, dur: sd * 60, rel: 1.6, bright: .45 });
+      if (s === 0 && rel % 2 === 0) { X.vowel('choirA', 'a', t, .6); const r = rel % 4 ? n.Eb2 : n.D2; for (const m of [r, r + 7, r + 12]) X.choirNote(P, 'choirA', m, t + X.rr(0, .05), { vel: .15, att: .8, dur: sd * 30, rel: 1.4, vib: 9 }); }
+      if (first || (s === 0 && rel % 4 === 3)) X.toll(P, t, { buf: 'bellD3', vel: .33, rate: .74 });
+      if (s === 0 && rel % 4 === 0) X.brassNote(P, n.D1, t, { vel: .27, att: .6, dur: sd * 60, rel: 1.6, bright: .45 });
     }
   }
 
@@ -53,25 +53,26 @@
     const raw = X.S.raw || {}, hp = raw.bossHp == null ? 1 : raw.bossHp, stage = hp < .34 ? 3 : BS.phase;
     const perc = X.dest(P, 'perc'), far = X.dest(P, 'far'), bell = X.dest(P, 'bell'), sd = X.stepDur();
     if (ch === 2) {
-      if (s === 0 && rel % 2 === 0) X.playBuf('bellBig', t, bell, { gain: .26, rate: .62, pan: X.rr(-.4, .4) });
-      if (s === 8 && rel % 4 === 1) { X.vowel('choirA', 'u', t, .5); for (const m of [n.D2, n.Eb2 + 12]) X.choirNote(P, 'choirA', m, t, { vel: .1, att: .8, dur: sd * 24, rel: 1.2, vib: 8 }); }
+      if (s === 0 && rel % 2 === 0) X.playBuf('bellBig', t, bell, { gain: .39, rate: .62, pan: X.rr(-.4, .4) });
+      if (s === 8 && rel % 4 === 1) { X.vowel('choirA', 'u', t, .5); for (const m of [n.D2, n.Eb2 + 12]) X.choirNote(P, 'choirA', m, t, { vel: .15, att: .8, dur: sd * 24, rel: 1.2, vib: 8 }); }
     } else if (ch === 3) {
-      if ((s === 4 || s === 12) && X.chance(.6)) X.playBuf('bellD4', t, bell, { gain: .12, rate: X.pick([1.5, 2, 1.68]), pan: X.rr(-.7, .7) });
-      if (s === 0 && rel % 2 === 1) X.brassNote(P, n.D1 + 12, t, { vel: .3, att: .2, dur: sd * 14, rel: .8, bright: 1 });
+      if ((s === 4 || s === 12) && X.chance(.6)) X.playBuf('bellD4', t, bell, { gain: .18, rate: X.pick([1.5, 2, 1.68]), pan: X.rr(-.7, .7) });
+      if (s === 0 && rel % 2 === 1) X.brassNote(P, n.D1 + 12, t, { vel: .45, att: .2, dur: sd * 14, rel: .8, bright: 1 });
     } else if (ch === 4) {
-      if (s % 4 === 0) X.playBuf('anvil', t, perc, { gain: .2 * (s === 0 ? 1 : .7), rate: s === 0 ? .7 : .78, pan: X.rr(-.3, .3) });
-      if (s === 6 || s === 14) X.playBuf('plate', t, perc, { gain: .14, rate: X.rr(.8, .9) });
+      if (s % 4 === 0) X.playBuf('anvil', t, perc, { gain: .30 * (s === 0 ? 1 : .7), rate: s === 0 ? .7 : .78, pan: X.rr(-.3, .3) });
+      if (s === 6 || s === 14) X.playBuf('plate', t, perc, { gain: .21, rate: X.rr(.8, .9) });
     } else if (ch >= 5) {
-      if (s === 0 && rel % 2 === 0) { X.vowel('choirA', 'a', t, .3); for (const m of [n.D2, n.A2, n.D3, n.F3]) X.choirNote(P, 'choirA', m, t + X.rr(0, .06), { vel: .09, att: .5, dur: sd * 30, rel: 1.5, vib: 10 }); }
-      if (s === 0 && rel % 4 === 0) { X.brassNote(P, n.D1, t, { vel: .26, att: .4, dur: sd * 62, rel: 2, bright: .5 }); X.playBuf('bellBig', t, bell, { gain: .22, rate: .74 }); }
+      if (s === 0 && rel % 2 === 0) { X.vowel('choirA', 'a', t, .3); for (const m of [n.D2, n.A2, n.D3, n.F3]) X.choirNote(P, 'choirA', m, t + X.rr(0, .06), { vel: .14, att: .5, dur: sd * 30, rel: 1.5, vib: 10 }); }
+      if (s === 0 && rel % 4 === 0) { X.brassNote(P, n.D1, t, { vel: .39, att: .4, dur: sd * 62, rel: 2, bright: .5 }); X.playBuf('bellBig', t, bell, { gain: .33, rate: .74 }); }
     } else {
-      if (s === 0 && rel % 4 === 2) X.toll(P, t, { buf: 'bellBig', vel: .22, rate: .9 });
+      if (s === 0 && rel % 4 === 2) X.toll(P, t, { buf: 'bellBig', vel: .33, rate: .9 });
     }
     if (stage === 3) {   // last third of the boss's health: the whole court joins in
-      if (s % 4 === 2) X.playBuf('taikoM', t, perc, { gain: .28, rate: X.rr(.95, 1.05), pan: X.rr(-.5, .5) });
-      if (s === 0 && rel % 2 === 0) X.playBuf('boom', t, perc, { gain: .3 });
-      if (s === 0 && rel % 2 === 1) X.toll(P, t, { buf: ch === 3 ? 'bellD4' : 'bellD3', vel: .2, rate: ch === 2 ? .72 : 1, pan: X.rr(-.4, .4) });
-      if (s === 12 && X.chance(.5)) X.playBuf('chain', t, far, { gain: .3, rate: X.rr(.8, 1.1), pan: X.rr(-.7, .7) });
+      if (s % 4 === 2) X.playBuf('taikoM', t, perc, { gain: .68, rate: X.rr(.95, 1.05), pan: X.rr(-.5, .5) });
+      if (s === 0 && rel % 2 === 0) X.playBuf('boom', t, perc, { gain: .75 });
+      if (s % 2 === 1 && X.chance(.6)) X.playBuf('rim', t, perc, { gain: .33, pan: X.rr(-.6, .6) });
+      if (s === 0 && rel % 2 === 1) X.toll(P, t, { buf: ch === 3 ? 'bellD4' : 'bellD3', vel: .51, rate: ch === 2 ? .72 : 1, pan: X.rr(-.4, .4) });
+      if (s === 12 && X.chance(.5)) X.playBuf('chain', t, far, { gain: .45, rate: X.rr(.8, 1.1), pan: X.rr(-.7, .7) });
     }
   }
 
@@ -94,5 +95,8 @@
     titleNext = at + X.rr(17, 26);
   }
 
-  B.MusicColor = { step, update };
+  // Exploration level per chapter (offline renders, room bed alone, integrated LUFS at the music bus before this trim):
+  // I -32.8, II -37.1, III -43.7, IV -36.1, V -41.1. The trim brings II-V to about -34..-37, still under combat (-27).
+  const TRIM = { 1: 1, 2: 1.45, 3: 2.4, 4: 1.45, 5: 1.9 };
+  B.MusicColor = { step, update, trim: ch => TRIM[ch] || 1 };
 })();

@@ -30,7 +30,11 @@
   function lfo(f, depth, to, nodes) { const o = C.ctx.createOscillator(), g = C.gainNode(depth); o.frequency.value = f; o.connect(g); g.connect(to); o.start(); nodes.push(o, g); return o; }
   function makeBed(ch) {
     const ctx = C.ctx, N = C.N, [bus] = C.busOf('amb'), out = C.gainNode(0, bus), nodes = [out], t = ctx.currentTime;
-    const src = (buf) => { const s = C.noiseSrc(buf); s.start(t, Math.random() * 2); nodes.push(s); return s; };
+    // Stereo bed: the same noise read at two offsets, one per ear (a mono bed sits in the middle of the head).
+    const src = (buf) => {
+      const m = ctx.createChannelMerger(2), a = C.noiseSrc(buf), b = C.noiseSrc(buf), len = (buf || N.noise).duration;
+      a.connect(m, 0, 0); b.connect(m, 0, 1); a.start(t, Math.random() * len * .4); b.start(t, len * .5 + Math.random() * len * .4); nodes.push(a, b, m); return m;
+    };
     const chainOf = (s, list, lvl) => { let a = s; for (const n of list) { a.connect(n); a = n; nodes.push(n); } const g = C.gainNode(lvl, out); a.connect(g); nodes.push(g); return g; };
     const b = { out, nodes, level: 1, ch };
     if (ch === 1) {          // temple crypt: slow cave breath through the arches

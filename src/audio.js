@@ -674,7 +674,7 @@
     if (!throttle('step', .045)) return;
     const v = o.volume == null ? .4 : o.volume, dodge = v > .5;
     stepCount++;
-    sample('step', { vol: (dodge ? 1.3 : 1.1) * k, rate: rand(.92, 1.05), lp: 7000, send: .06 });
+    sample('step', { vol: (dodge ? 1.1 : .85) * k, rate: rand(.92, 1.05), lp: 7000, send: .06 });   // ajan:audio: was 1.3/1.1 — every step peaked at -4.6 dBFS, almost a sword hit (-1.6)
     if (room() === 2 && chance(.6)) sample('wetStep', { vol: .22 * k, rate: rand(.9, 1.1) });
     if (stepCount % 3 === 0) sample('gear', { vol: .07 * k, rate: rand(.9, 1.1) });
     if (dodge) sample('scuff', { vol: .6 * k });
@@ -1235,7 +1235,7 @@
   const A = { next: 3, dripNext: 1.5, crackleNext: 0, room: -1, calm: 0, heart: 0 };
   function buildAmbience() {
     A.bus = gainNode(1, N.amb);
-    const air = noiseSrc(N.brown), lp = filter('lowpass', 150, .7, filter('highpass', 32, .7, gainNode(.4, A.bus))); air.connect(lp); air.start();
+    const air = noiseSrc(N.brown), lp = filter('lowpass', 150, .7, filter('highpass', 40, .7, gainNode(.26, A.bus))); air.connect(lp); air.start();   // ajan:audio: was .4 / 32 Hz — the constant sub rumble was as loud as the combat score (-27 LUFS)
     const wind = noiseSrc(N.pink), bp = filter('bandpass', 430, 1.4), wg = gainNode(.0, A.bus); wind.connect(bp); bp.connect(wg); wind.start();
     const wl = ctx.createOscillator(), wlg = gainNode(.028); wl.frequency.value = .061; wl.connect(wlg); wlg.connect(wg.gain); wl.start();
     const wf = ctx.createOscillator(), wfg = gainNode(160); wf.frequency.value = .037; wf.connect(wfg); wfg.connect(bp.frequency); wf.start();
