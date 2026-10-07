@@ -163,9 +163,23 @@ html[lang=en] #death .end-title { background: linear-gradient(180deg, #ffe9c4 0%
 #loading[data-chapter="4"] { background: radial-gradient(ellipse 60% 50% at 50% 44%, #45180a 0%, #1c0904 40%, #050303 100%) }
 #loading[data-chapter="5"] { background: radial-gradient(ellipse 60% 50% at 50% 44%, #22102e 0%, #0e0714 40%, #040305 100%) }
 
+/* ───────── 12. Bölüm geçiş kartı ───────── */
+#chapter-fade::before { content: ''; position: absolute; inset: -6%; pointer-events: none; background: radial-gradient(ellipse 45% 35% at 50% 46%, #6a170f33, transparent 70%), url(../assets/ui/stone.webp) 0 0 / 320px; opacity: .12; mix-blend-mode: screen; -webkit-mask: radial-gradient(ellipse at center, #000 20%, transparent 75%); mask: radial-gradient(ellipse at center, #000 20%, transparent 75%); transform: scale(1); }
+#chapter-fade.show::before { animation: ui-cf-drift 14s linear both }
+@keyframes ui-cf-drift { from { transform: scale(1) } to { transform: scale(1.08) } }
+#chapter-fade .cf-copy { position: relative }
+#chapter-fade .eyebrow { letter-spacing: .4em; color: #c08a55 }
+#chapter-fade .cf-title { text-transform: uppercase; font: 400 clamp(32px, 5vw, 62px)/1.1 Georgia, 'Times New Roman', serif; letter-spacing: .05em; color: transparent;
+  background: linear-gradient(180deg, #fff1c9 0%, #f0c873 30%, #a8712c 55%, #6a3f16 64%, #d9a654 80%, #f7dc9a 100%); -webkit-background-clip: text; background-clip: text; text-shadow: none; filter: drop-shadow(0 3px 1px #000) }
+#chapter-fade .end-quote { font-family: Georgia, 'Times New Roman', serif; font-style: italic; color: #d8c8aa }
+#chapter-fade .next { display: inline-flex; align-items: center; gap: 14px }
+#chapter-fade .next::before, #chapter-fade .next::after { content: ''; width: 46px; height: 1px; background: linear-gradient(90deg, transparent, #c79a5c) }
+#chapter-fade .next::after { transform: scaleX(-1) }
+
 @media (prefers-reduced-motion: reduce) {
   #title .title-shade, #death::before, #lu-banner.lu-on::before, #lu-banner.lu-on .lu-note, #title .title-actions > .btn { animation: none }
   #hud .target-trail { transition: none }
+  #chapter-fade.show::before { animation: none }
   #death::before { opacity: 1 }
 }
 /* /ajan:ui */
