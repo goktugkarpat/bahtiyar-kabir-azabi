@@ -160,7 +160,7 @@ body:has(#lu-banner.lu-on) #key-hints span:nth-child(2) kbd { border-color: #f0c
 
 /* ───────── 10. İngilizce ölüm/zafer başlığı: Türkçe oyma altın görsele yakın, ortalı ───────── */
 html[lang=en] #death .end-title, html[lang=en] #victory .end-title {
-  display: block; margin-left: auto; margin-right: auto; text-align: center; text-transform: uppercase;
+  display: block; margin-left: calc((100% - min(740px, 92vw)) / 2); margin-right: calc((100% - min(740px, 92vw)) / 2); text-align: center; text-transform: uppercase;
   font: 400 clamp(34px, 5.2vw, 70px)/1.08 Georgia, 'Times New Roman', serif; letter-spacing: .045em; color: transparent;
   background: linear-gradient(180deg, #fff1c9 0%, #f0c873 30%, #a8712c 55%, #6a3f16 64%, #d9a654 80%, #f7dc9a 100%);
   -webkit-background-clip: text; background-clip: text; text-shadow: none; filter: drop-shadow(0 3px 1px #000) drop-shadow(0 0 16px #3a0a0699) }
