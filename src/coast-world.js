@@ -532,7 +532,7 @@
     var allRooms=rooms.concat(open.rooms);
     var openFx=B.CoastOpen.dress({add:add,beam:beam,tree:tree,grave:grave,lantern:lantern,building:building,boat:boat,corpse:corpse,skull:skull,cargo:cargo,collision:collision,geo:geo,rootTube:rootTube,
       materials:materials,textures:textures,rnd:rnd,root:root,groups:roomGroups,clock:clock,lightSources:lightSources,mainRooms:rooms,allRooms:function(){return allRooms;},
-      G:{box:box,sphere:sphere,cylinder:cylinder,cone:cone,ring:ring,headstone:headstone,plank:plank,branch:branch,rock:rock,masonry:masonry,archStone:archStone,paving:paving,pebble:pebble}},open,ground);
+      G:{box:box,sphere:sphere,cylinder:cylinder,cone:cone,ring:ring,headstone:headstone,plank:plank,branch:branch,rock:rock,masonry:masonry,archStone:archStone,paving:paving,pebble:pebble}},open,ground);B.CoastWeather=openFx;/* ajan:audio: rain + lightning for thunder sync */
     // Static instances are assembled once. Detail lives in texture maps and silhouettes, not frame-time allocations.
     // Draw-call budget: small/medium static props are baked into ONE mesh per room and material (instancing is kept only
     // for big repeated shapes and for scaled bark, whose texture scale comes from the instance matrix).
