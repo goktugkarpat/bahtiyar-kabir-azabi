@@ -195,7 +195,7 @@
     if (B.SkillArt) await B.SkillArt.prepare();
     const wrap = document.createElement('div');
     wrap.setAttribute('aria-hidden', 'true'); wrap.inert = true;
-    wrap.style.cssText = 'position:fixed;left:0;top:0;width:100%;height:100%;z-index:2147483000;opacity:.012;pointer-events:none;overflow:hidden;contain:layout paint';
+    wrap.style.cssText = 'position:fixed;left:0;top:0;width:100%;height:100%;z-index:149;opacity:.012;pointer-events:none;overflow:hidden;contain:layout paint';
     if (live) safe(() => live(true));
     const skip = /^(loading|game|fatal|warming|fps)$/;
     for (const el of Array.from(document.body.children)) {
