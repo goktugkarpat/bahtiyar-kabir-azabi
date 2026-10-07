@@ -37,13 +37,14 @@
   Perf.stats = { pseudo: 0, inst: 0, sources: 0, vertices: 0, rebuilds: 0, skipped: {} };
 
   function skip(reason) { Perf.stats.skipped[reason] = (Perf.stats.skipped[reason] || 0) + 1; return false; }
-  var ATTR_OK = { position: 1, normal: 1, uv: 1, uv1: 1, uv2: 1, tangent: 1, color: 1 };
 
   function eligible(o) {
     if (!o.isInstancedMesh || o.isSkinnedMesh || o.isBatchedMesh) return false;
     var m = o.material, g = o.geometry;
     if (!m || Array.isArray(m)) return skip('multi-material');
-    if (m.transparent || m.isShaderMaterial || m.isRawShaderMaterial) return skip('transparent/shader');
+    if (m.isShaderMaterial || m.isRawShaderMaterial) return skip('shader');
+    // Blended parts keep their own draws: merging them changes the blend order where decals of two materials overlap.
+    if (m.transparent) return skip('transparent');
     if (m.alphaTest > 0 || m.alphaHash) return skip('cutout');
     if (o.morphTexture || g.morphAttributes && Object.keys(g.morphAttributes).length) return skip('morph');
     if (o.instanceMatrix.usage !== T.StaticDrawUsage) return skip('dynamic');
@@ -58,7 +59,7 @@
     var names = Object.keys(g.attributes);
     for (var i = 0; i < names.length; i++) {
       var a = g.attributes[names[i]];
-      if (!ATTR_OK[names[i]] || a.isInterleavedBufferAttribute || a.isInstancedBufferAttribute) return skip('attribute:' + names[i]);
+      if (a.isInterleavedBufferAttribute || a.isInstancedBufferAttribute && a.meshPerAttribute !== 1) return skip('attribute:' + names[i]);
     }
     if (!g.attributes.position) return skip('no-position');
     if (o.count < 1) return skip('empty');
@@ -66,7 +67,7 @@
   }
   function layoutOf(g) {
     return Object.keys(g.attributes).sort().map(function (n) {
-      var a = g.attributes[n]; return n + '/' + a.itemSize + '/' + a.normalized + '/' + a.array.constructor.name;
+      var a = g.attributes[n]; return n + '/' + a.itemSize + '/' + a.normalized + '/' + a.array.constructor.name + (a.isInstancedBufferAttribute ? '/I' : '');
     }).join(',') + (g.index ? '/i' : '/n');
   }
   // Content hash of a geometry (world.js gives every batch its own copy of a shared shape).
@@ -74,7 +75,7 @@
   function geoHash(g) {
     var h = hashCache.get(g); if (h) return h;
     var x = 2166136261 >>> 0, parts = [];
-    Object.keys(g.attributes).sort().forEach(function (n) { parts.push(g.attributes[n].array); });
+    Object.keys(g.attributes).sort().forEach(function (n) { if (!g.attributes[n].isInstancedBufferAttribute) parts.push(g.attributes[n].array); });
     if (g.index) parts.push(g.index.array);
     parts.forEach(function (arr) {
       var u = new Uint32Array(arr.buffer, arr.byteOffset, (arr.byteLength / 4) | 0);
@@ -114,7 +115,11 @@
     G.mesh = mesh; G.included = new Uint8Array(G.sources.length); G.sig = ''; G.versions = G.sources.map(versionOf);
     s0.parent.add(mesh);
   }
-  function versionOf(s) { return s.instanceMatrix.version + ':' + (s.instanceColor ? s.instanceColor.version : -1) + ':' + s.count; }
+  function versionOf(s) {
+    var v = s.instanceMatrix.version + ':' + (s.instanceColor ? s.instanceColor.version : -1) + ':' + s.count, a = s.geometry.attributes;
+    for (var n in a) if (a[n].isInstancedBufferAttribute) v += ':' + a[n].version;
+    return v;
+  }
 
   function buildPseudo(G) {
     var srcs = G.sources, nv = 0, ni = 0, k, i, j;
@@ -134,8 +139,9 @@
       G.ranges[k * 2] = io;
       for (var inst = 0; inst < s.count; inst++) {
         for (var a = 0; a < names.length; a++) {
-          var at = sg.attributes[names[a]], sz = at.itemSize;
-          arrays[names[a]].set(at.array.subarray(0, sn * sz), vo * sz);
+          var at = sg.attributes[names[a]], sz = at.itemSize, dst = arrays[names[a]];
+          if (at.isInstancedBufferAttribute) { var one = at.array.subarray(inst * sz, inst * sz + sz); for (i = 0; i < sn; i++) dst.set(one, (vo + i) * sz); }
+          else dst.set(at.array.subarray(0, sn * sz), vo * sz);
         }
         var m16 = im.subarray(inst * 16, inst * 16 + 16);
         for (i = 0; i < sn; i++) {
@@ -163,7 +169,19 @@
   function buildInst(G) {
     var srcs = G.sources, n = 0, hasColor = !!srcs[0].instanceColor;
     srcs.forEach(function (s) { n += s.count; });
-    var mesh = new T.InstancedMesh(srcs[0].geometry, srcs[0].material, n);
+    var g0 = srcs[0].geometry, geo = g0, per = [];
+    Object.keys(g0.attributes).forEach(function (name) { if (g0.attributes[name].isInstancedBufferAttribute) per.push(name); });
+    if (per.length) {
+      geo = new T.BufferGeometry(); geo.setIndex(g0.index);
+      Object.keys(g0.attributes).forEach(function (name) {
+        var a = g0.attributes[name];
+        if (!a.isInstancedBufferAttribute) geo.setAttribute(name, a);
+        else { var c = new T.InstancedBufferAttribute(new a.array.constructor(n * a.itemSize), a.itemSize, a.normalized); c.setUsage(T.DynamicDrawUsage); geo.setAttribute(name, c); }
+      });
+      geo.boundingSphere = new T.Sphere(); geo.boundingBox = new T.Box3(); G.ownGeometry = true;
+    }
+    G.perInstance = per;
+    var mesh = new T.InstancedMesh(geo, srcs[0].material, n);
     mesh.instanceMatrix.setUsage(T.DynamicDrawUsage);
     if (hasColor) { mesh.instanceColor = new T.InstancedBufferAttribute(new Float32Array(n * 3), 3); mesh.instanceColor.setUsage(T.DynamicDrawUsage); }
     mesh.count = 0; G.capacity = n; G.vertices = 0;
@@ -189,12 +207,17 @@
         var s = srcs[k];
         im.array.set(s.instanceMatrix.array.subarray(0, s.count * 16), count * 16);
         if (ic) ic.array.set(s.instanceColor.array.subarray(0, s.count * 3), count * 3);
+        for (var pa = 0; pa < G.perInstance.length; pa++) {
+          var src = s.geometry.attributes[G.perInstance[pa]], dstA = mesh.geometry.attributes[G.perInstance[pa]];
+          dstA.array.set(src.array.subarray(0, s.count * src.itemSize), count * src.itemSize);
+        }
         count += s.count; s.boundingSphere.getBoundingBox(tmpBox2); tmpBox.union(tmpBox2); any = true;
       }
       mesh.count = count;
       if (count) {
         im.clearUpdateRanges(); im.addUpdateRange(0, count * 16); im.needsUpdate = true;
         if (ic) { ic.clearUpdateRanges(); ic.addUpdateRange(0, count * 3); ic.needsUpdate = true; }
+        for (var pb = 0; pb < G.perInstance.length; pb++) { var at2 = mesh.geometry.attributes[G.perInstance[pb]]; at2.clearUpdateRanges(); at2.addUpdateRange(0, count * at2.itemSize); at2.needsUpdate = true; }
       }
     }
     if (any) {
@@ -208,7 +231,7 @@
 
   function release(G) {
     G.active = false; G.dead = true;
-    if (G.mesh) { G.mesh.visible = false; if (G.mesh.parent) G.mesh.parent.remove(G.mesh); if (G.kind === 'pseudo') G.mesh.geometry.dispose(); else G.mesh.dispose(); G.mesh = null; }
+    if (G.mesh) { G.mesh.visible = false; if (G.mesh.parent) G.mesh.parent.remove(G.mesh); if (G.kind === 'pseudo' || G.ownGeometry) G.mesh.geometry.dispose(); if (G.kind === 'inst') G.mesh.dispose(); G.mesh = null; }
     G.sources.forEach(function (s) { if (s.userData.perfRelease) s.userData.perfRelease(); });
   }
 
@@ -275,7 +298,7 @@
       var cast = o.castShadow && !(ud.proxied && ud.baseCastShadow), scope = cast ? roomOf(o, world) : 'all';
       var flags = [o.parent.uuid, o.material.uuid, !!o.instanceColor, o.castShadow, ud.baseCastShadow, ud.proxied, o.receiveShadow, o.renderOrder, o.layers.mask,
         o.customDepthMaterial ? o.customDepthMaterial.uuid : '-', scope].join('|');
-      var small = verts <= SRC_LIMIT, map = small ? pseudo : inst, key = small ? flags + '|' + layoutOf(o.geometry) : flags + '|' + geoHash(o.geometry);
+      var small = verts <= SRC_LIMIT && !o.material.transparent, map = small ? pseudo : inst, key = small ? flags + '|' + layoutOf(o.geometry) : flags + '|' + geoHash(o.geometry);
       var G = map.get(key); if (!G) map.set(key, G = { key: key, kind: small ? 'pseudo' : 'inst', sources: [], verts: 0 });
       G.sources.push(o); G.verts += verts;
     });
