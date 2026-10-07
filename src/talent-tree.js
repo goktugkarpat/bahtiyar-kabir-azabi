@@ -1,13 +1,14 @@
-/* KABİR AZABI — talent tree 3 ("build" tree). Data + rules only (no DOM, no THREE).
+/* KABİR AZABI — talent tree 3 ("build" tree), slimmed down to 25 nodes. Data + rules only (no DOM, no THREE).
    Six columns (one per active skill line), five rows:
      row 1  actives (Mezar Yaran, Kan Nidası, Zincir Kasırgası, Kül Hücumu, Kor Mührü, Ölüm Çanı)
-     row 2  three MUTUALLY EXCLUSIVE "seals" (modifiers) under every active: one per active
-     row 3  body passives (one per column, no parent)
-     row 4  second forms (old tier II) / column passives      row 5  final forms (old tier III) / column passives
-     row 6  keystones: ONE per run, each a strong identity with a price
-   Every node costs one point; points = level - 1 (12 at level 13), the tree has 48 nodes: a run can never take everything.
+     row 2  ONE seal (modifier) under every active
+     row 3  one archetype passive per column
+     row 4  final forms (old tier III, they replace the active in its slot) / the column passives of Kor and Çürüme
+     row 5  keystones: ONE per run, each a strong identity with a price
+   Every node costs one point; points = level - 1 (12 at level 13) + up to 5 quest points: 25 nodes, a full run takes ~65 % of them.
    Gates: a node needs `level` and `gate` points already spent in the tree. Exclusive groups: one node per `group`.
-   Forms keep their old ids/requires (cleave > brand > temper ...), so slots, art, motion and skill-fx keep working.
+   Removed nodes (old tier II forms, extra seals, body filler, 4 keystones) are simply unknown ids: validate() drops them, so the points come back.
+   Forms keep their ids (temper, chainstorm, rend, havoc), so slots, art, motion and skill-fx keep working.
    Effects are DATA here; src/talent-runtime.js applies them in the fight, effective() turns them into skill params. */
 (function () {
   'use strict';
@@ -22,79 +23,52 @@
     { line: 'knell', name: t('ÇÜRÜME'), hint: t('Lanet ve ölüm'), color: '#8fae6a' }
   ]);
   const ROWS = Object.freeze([
-    { row: 1, name: t('I · UYANIŞ'), hint: t('Aktif yetenekler') },
-    { row: 2, name: t('II · MÜHÜR'), hint: t('Her yeteneğe tek mühür') },
-    { row: 3, name: t('III · BEDEN'), hint: t('3 puan harca') },
-    { row: 3.5, name: '', hint: '' },
-    { row: 4, name: t('IV · DÖNÜŞÜM'), hint: t('4 puan harca') },
-    { row: 5, name: t('V · KIYAMET'), hint: t('7 puan harca') },
-    { row: 6, name: t('VI · KİLİT TAŞI'), hint: t('6 puan · yalnız biri') }
+    { row: 1, name: t('I · UYANIŞ'), hint: t('Aktif yetenekler'), gate: 0 },
+    { row: 2, name: t('II · MÜHÜR'), hint: t('Her yeteneğe tek mühür'), gate: 1 },
+    { row: 3, name: t('III · BEDEN'), hint: t('3 puan harca'), gate: 3 },
+    { row: 4, name: t('IV · DÖNÜŞÜM'), hint: t('5 puan harca'), gate: 5 },
+    { row: 5, name: t('V · KİLİT TAŞI'), hint: t('8 puan · yalnız biri'), gate: 8 }
   ]);
   // kind: active | form | mod | passive | key.  glyph: small engraved symbol for mods/passives/keys (talent-ui.js draws it).
   const N = [];
   const node = o => { N.push(Object.freeze(Object.assign({ requires: null, group: null, gate: 0, level: 1, fx: {} }, o))); };
-  // ---- row 2: seals (3 per active, exclusive per active) --------------------------------------------------------
-  const mod = (id, col, slot, name, desc, glyph, fx, level) => node({ id, kind: 'mod', col, slot, row: 2, line: COLS[col].line, requires: COLS[col].line, group: 'seal-' + COLS[col].line, gate: 1, level: level || 3, name: t(name), desc: t(desc), glyph, fx });
-  // ---- row 3: body passives ------------------------------------------------------------------------------------
-  const passive = (id, col, row, name, desc, glyph, fx, extra) => node(Object.assign({ id, kind: 'passive', col, row, line: COLS[col].line, gate: row <= 3.5 ? 3 : row === 4 ? 4 : 7, level: row === 3 ? 4 : row === 3.5 ? 5 : row === 4 ? 6 : 9, name: t(name), desc: t(desc), glyph, fx }, extra || {}));
-  const key = (id, col, name, desc, price, glyph, fx) => node({ id, kind: 'key', col, row: 6, line: COLS[col].line, group: 'keystone', gate: 6, level: 8, name: t(name), desc: t(desc), price: t(price), glyph, fx });
+  // ---- row 2: one seal per active -------------------------------------------------------------------------------
+  const mod = (id, col, name, desc, glyph, fx, level) => node({ id, kind: 'mod', col, slot: 1, row: 2, line: COLS[col].line, requires: COLS[col].line, group: 'seal-' + COLS[col].line, gate: 1, level: level || 3, name: t(name), desc: t(desc), glyph, fx });
+  // ---- rows 3 / 4: passives ----------------------------------------------------------------------------------------
+  const passive = (id, col, row, name, desc, glyph, fx, extra) => node(Object.assign({ id, kind: 'passive', col, row, line: COLS[col].line, gate: row === 3 ? 3 : 5, level: row === 3 ? 4 : 6, name: t(name), desc: t(desc), glyph, fx }, extra || {}));
+  const key = (id, col, name, desc, price, glyph, fx) => node({ id, kind: 'key', col, row: 5, line: COLS[col].line, group: 'keystone', gate: 8, level: 9, name: t(name), desc: t(desc), price: t(price), glyph, fx });
 
-  mod('cleave-sunder', 0, 0, 'Kemik Yarma', 'Darbe daha ağır iner: +%30 hasar ve +0,5 sn sersemletme. Biraz daha çok dayanıklılık ister.', 'hammer', { dmg: 1.3, stun: .5, cost: 6 });
-  mod('cleave-bleed', 0, 1, 'Kanlı Yarık', 'Vurduğun her düşman kanar: vuruşun %60’ı kadar hasar 4 saniyede akar.', 'drop', { bleed: .6 });
-  mod('cleave-ember', 0, 2, 'Kor Ağzı', 'Silahın kor tutar: vurduklarını tutuşturur ve önünde 3 saniye yanan bir yarık bırakır.', 'flame', { burn: .45, zone: 'crescent' });
-  mod('roar-blood', 1, 0, 'Kan Bedeli', 'Nida dayanıklılık yerine canının %10’unu yer. Karşılığında öfkedeyken can çalman iki buçuk katına çıkar.', 'drop', { bloodCost: .10, steal: 2.5 });
-  mod('roar-dread', 1, 1, 'Dehşet', 'Korkutma %70 uzar. Yakındaki düşmanlar dehşete düşer: 6 saniye %20 fazla hasar alır.', 'eye', { fear: 1.7, dread: 6 });
-  mod('roar-ember', 1, 2, 'Kor Nefesi', 'Şok dalgası kor taşır: yakındaki bütün düşmanları tutuşturur.', 'flame', { igniteNear: 34 });
-  mod('whirl-hook', 2, 0, 'Kanca Zincir', 'Zincirlere kanca takılır: çekiş güçlenir, çember %10 genişler.', 'hook', { pull: 1.8, radius: 1.1 });
-  mod('whirl-bleed', 2, 1, 'Paslı Zincir', 'Her dönüş kanatır: her vuruşun %35’i 4 saniyede akar ve üst üste biner.', 'drop', { bleed: .35 });
-  mod('whirl-ash', 2, 2, 'Kül Fırtınası', 'Kasırga bitince ayağının dibinde 4 saniye yanan bir kül çemberi kalır.', 'flame', { zone: 'ring' });
-  mod('charge-trail', 3, 0, 'Kor İzi', 'Atıldığın yol 3,5 saniye yanar; içinde kalan düşmanlar tutuşur.', 'flame', { zone: 'trail' }, 6);
-  mod('charge-echo', 3, 1, 'Gölge Adım', 'Hücum %40 daha ucuz ve %40 daha sık; çarpma %15 daha hafif.', 'wing', { cost: .6, cd: .6, dmg: .85 }, 6);
-  mod('charge-chain', 3, 2, 'Zincir Kement', 'Varışta zincirler savrulur: çevredeki düşmanları çarpma noktasına çeker ve daha uzun sersemletir.', 'hook', { pullAdd: 4, stun: .6 }, 6);
-  mod('pyre-wide', 4, 0, 'Geniş Mühür', 'Mühür %45 büyür ve 2 saniye daha uzun yanar.', 'circle', { radius: 1.45, time: 2 }, 5);
-  mod('pyre-heart', 4, 1, 'Ocak Yüreği', 'Kendi mührünün içinde dayanıklılığın iki kat hızlı dolar ve saniyede canının %1,5’i yerine gelir.', 'heart', { hearth: true }, 5);
-  mod('pyre-burst', 4, 2, 'Patlayan Mühür', 'Mühür sönerken patlar: içindekilere ağır hasar verir ve sersemletir.', 'burst', { burst: 90 }, 5);
-  mod('knell-chain', 5, 0, 'Salgın', 'Lanetli bir düşman ölüp patladığında, patlamanın değdiği düşmanlar da lanetlenir.', 'spread', { spread: true }, 5);
-  mod('knell-drain', 5, 1, 'Ruh Hasadı', 'Lanetli düşmanlar ölünce canının %5’i ve 10 dayanıklılık sana döner.', 'heart', { drain: true }, 5);
-  mod('knell-toll', 5, 2, 'Ağır Çan', 'Çan %35 daha uzağa ulaşır, düşmanları 1,4 saniye sersemletir ve hasar verir.', 'bell', { radius: 1.35, stun: 1.4, damage: 30 }, 5);
-  // ---- row 3 body passives (no parent: a build may skip actives for them) ------------------------------------
-  passive('p-crush', 0, 3, 'Ezici', 'Sersemlemiş düşmanlara %20 fazla hasar verirsin.', 'hammer', { vsStunned: 1.2 });
-  passive('p-iron', 1, 3, 'Demir Beden', 'En yüksek canın 15 artar.', 'shield', { hp: 15 });
-  passive('p-wind', 2, 3, 'Derin Nefes', 'Dayanıklılığın %25 daha hızlı dolar.', 'wind', { regen: 1.25 });
-  passive('p-haste', 3, 3, 'Sabırsız Öfke', 'Bütün yeteneklerin bekleme süresi %15 kısalır.', 'hourglass', { cd: .85 });
-  passive('p-flask', 4, 3, 'Fazla Matara', 'Bir şifa matarası daha taşırsın; mataralar %20 daha çok iyileştirir.', 'flask', { flasks: 1, flaskHeal: 1.2 });
-  passive('p-crit', 5, 3, 'Kemik Gözü', 'Kritik vuruş ihtimalin 8 puan artar.', 'eye', { crit: .08 });
-  // ---- row 3.5: one stranger, archetype-defining passive per column (round 2) ---------------------------------
-  passive('p-aftershock', 0, 3.5, 'Artçı Sarsıntı', 'Sersemlemiş bir düşman ölünce yer sarsılır: çevresindekilere hasar verir ve onları sersemletir.', 'burst', { aftershock: 24 });
-  passive('p-frenzy', 1, 3.5, 'Kan Çılgınlığı', 'Canın %40’ın altındayken %25 fazla hasar verir, %15 daha hızlı dayanıklılık toplarsın.', 'heart', { frenzy: true });
-  passive('p-lash', 2, 3.5, 'Zincir Kırbacı', 'Kasırga bitince ya da hücum vardığında zincir savrulur: 7 metredeki en yakın üç düşmana çarpar.', 'chain', { lash: 32 });
-  passive('p-momentum', 3, 3.5, 'Hız Kazanımı', 'Kaçındıktan ya da hücum ettikten sonra 3 saniye vuruşların %20 daha ağır iner.', 'wing', { momentum: true });
-  passive('p-kindle', 4, 3.5, 'Alev Saçağı', 'Yanan düşmanların alevi yanındakine sıçrar: her yanma vuruşunda yakındaki bir düşman tutuşabilir.', 'spread', { kindle: true });
-  passive('p-plague', 5, 3.5, 'Kara Veba', 'Lanetli düşmanların kanaması ve yanması %50 daha çok acıtır.', 'skull', { plague: true });
-  // ---- rows 4/5: the column passives of the two new actives (the four old lines hold their forms there) --------
+  mod('cleave-sunder', 0, 'Kemik Yarma', 'Darbe daha ağır iner: +%30 hasar ve +0,5 sn sersemletme. Biraz daha çok dayanıklılık ister.', 'hammer', { dmg: 1.3, stun: .5, cost: 6 });
+  mod('roar-blood', 1, 'Kan Bedeli', 'Nida dayanıklılık yerine canının %10’unu yer. Karşılığında öfkedeyken can çalman iki buçuk katına çıkar.', 'drop', { bloodCost: .10, steal: 2.5 });
+  mod('whirl-hook', 2, 'Kanca Zincir', 'Zincirlere kanca takılır: çekiş güçlenir, çember %10 genişler.', 'hook', { pull: 1.8, radius: 1.1 });
+  mod('charge-echo', 3, 'Gölge Adım', 'Hücum %40 daha ucuz ve %40 daha sık; çarpma %15 daha hafif.', 'wing', { cost: .6, cd: .6, dmg: .85 }, 6);
+  mod('pyre-burst', 4, 'Patlayan Mühür', 'Mühür sönerken patlar: içindekilere ağır hasar verir ve sersemletir.', 'burst', { burst: 90 }, 5);
+  mod('knell-chain', 5, 'Salgın', 'Lanetli bir düşman ölüp patladığında, patlamanın değdiği düşmanlar da lanetlenir.', 'spread', { spread: true }, 5);
+  // ---- row 3: one archetype-defining passive per column -------------------------------------------------------------
+  passive('p-aftershock', 0, 3, 'Artçı Sarsıntı', 'Sersemlemiş bir düşman ölünce yer sarsılır: çevresindekilere hasar verir ve onları sersemletir.', 'burst', { aftershock: 24 });
+  passive('p-frenzy', 1, 3, 'Kan Çılgınlığı', 'Canın %40’ın altındayken %25 fazla hasar verir, %15 daha hızlı dayanıklılık toplarsın.', 'heart', { frenzy: true });
+  passive('p-lash', 2, 3, 'Zincir Kırbacı', 'Kasırga bitince ya da hücum vardığında zincir savrulur: 7 metredeki en yakın üç düşmana çarpar.', 'chain', { lash: 32 });
+  passive('p-momentum', 3, 3, 'Hız Kazanımı', 'Kaçındıktan ya da hücum ettikten sonra 3 saniye vuruşların %20 daha ağır iner.', 'wing', { momentum: true });
+  passive('p-kindle', 4, 3, 'Alev Saçağı', 'Yanan düşmanların alevi yanındakine sıçrar: her yanma vuruşunda yakındaki bir düşman tutuşabilir.', 'spread', { kindle: true });
+  passive('p-plague', 5, 3, 'Kara Veba', 'Lanetli düşmanların kanaması ve yanması %50 daha çok acıtır.', 'skull', { plague: true });
+  // ---- row 4: column passives of the two newer actives (the four older lines hold their final form there) -----------
   passive('p-ember', 4, 4, 'Kor Kalp', 'Yanma %50 daha çok hasar verir ve 2 saniye daha uzun sürer.', 'flame', { burnMul: 1.5, burnTime: 2 }, { requires: 'pyre' });
-  passive('p-ashfall', 4, 5, 'Kül Yağmuru', 'Yanan bir düşman ölünce alev saçar: çevresindekiler tutuşur.', 'burst', { ashfall: true }, { requires: 'p-ember' });
   passive('p-rot', 5, 4, 'Çürük Kan', 'Kanama %50 daha çok hasar verir; kanayan düşmanlar %8 fazla hasar alır.', 'drop', { bleedMul: 1.5, bleedingTaken: 1.08 }, { requires: 'knell' });
-  passive('p-harvest', 5, 5, 'Ruh Biçen', 'Her öldürme 8 dayanıklılık ve canının %1’ini geri verir.', 'scythe', { killStamina: 8, killHeal: .01 }, { requires: 'p-rot' });
-  // ---- row 6 keystones: exactly one per run ---------------------------------------------------------------------
+  // ---- row 5 keystones: exactly one per run ---------------------------------------------------------------------
   key('k-exec', 0, 'Cellat', 'Canı %40’ın altına düşen düşmanlara %25 fazla hasar verirsin. Canı %10’un altına inen sıradan düşmanlar tek vuruşta ölür.', 'Bedeli: en yüksek canın %20 azalır.', 'axe', { exec: true, hpMul: .8 });
   key('k-blood', 1, 'Kan Yemini', 'Verdiğin bütün hasarın %7’si can olarak sana döner.', 'Bedeli: şifa matarası taşıyamazsın.', 'drop', { leech: .07, noFlask: true });
-  key('k-chains', 2, 'Zincirli Kader', 'Kaçınma dayanıklılık harcamaz; her kaçınmada zincirler 7 metredeki düşmanları yanına çeker ve sersemletir.', 'Bedeli: iki kaçınma arasında 2 saniye beklersin.', 'chain', { chainDodge: true });
-  key('k-hunger', 3, 'Ölü Açlığı', 'Her vuruş fazladan 2, her öldürme 25 dayanıklılık verir.', 'Bedeli: dayanıklılığın 20’nin üstüne kendiliğinden çıkmaz.', 'skull', { hunger: true });
-  key('k-pyre', 4, 'Yanan Beden', 'Bütün vuruşların tutuşturur ve yanma %30 daha çok hasar verir.', 'Bedeli: aldığın hasar %15 artar.', 'flame', { allBurn: true, burnMul: 1.3, taken: 1.15 });
-  key('k-rot', 5, 'Çürüyen Dünya', 'Öldürdüğün her düşman çürüyerek patlar: çevresine hasar verir ve onları lanetler.', 'Bedeli: şifa mataraları %40 daha az iyileştirir.', 'skull', { rotWorld: true, flaskHeal: .6 });
 
   // ---- actives / forms come from progression.js (same ids, same params); placed in the grid here ----------------
-  const PLACE = { cleave: [0, 1], brand: [0, 4], temper: [0, 5], roar: [1, 1], quake: [1, 4], chainstorm: [1, 5], whirl: [2, 1], reap: [2, 4], rend: [2, 5],
-    charge: [3, 1], grasp: [3, 4], havoc: [3, 5], pyre: [4, 1], knell: [5, 1] };
+  const PLACE = { cleave: [0, 1], temper: [0, 4], roar: [1, 1], chainstorm: [1, 4], whirl: [2, 1], rend: [2, 4], charge: [3, 1], havoc: [3, 4], pyre: [4, 1], knell: [5, 1] };
+  const FORM_OF = { temper: 'cleave', chainstorm: 'roar', rend: 'whirl', havoc: 'charge' };   // a final form replaces its active directly
   let index = null, list = null;
   function build() {
     if (index) return;
     const P = B.Progression; list = [];
     for (const s of P.skills) {
       const at = PLACE[s.id]; if (!at) continue;
-      list.push(Object.freeze({ id: s.id, kind: s.tier > 1 ? 'form' : 'active', col: at[0], row: at[1], line: s.line, requires: s.requires, group: null,
-        gate: at[1] === 4 ? 4 : at[1] === 5 ? 7 : 0, level: s.level, name: s.name, desc: s.description, skill: s, fx: {} }));
+      list.push(Object.freeze({ id: s.id, kind: s.tier > 1 ? 'form' : 'active', col: at[0], row: at[1], line: s.line, requires: FORM_OF[s.id] || s.requires, group: null,
+        gate: at[1] === 4 ? 5 : 0, level: s.level, name: s.name, desc: s.description, skill: s, fx: {} }));
     }
     for (const n of N) list.push(n);
     list.sort((a, b) => a.row - b.row || a.col - b.col || (a.slot || 0) - (b.slot || 0));
@@ -202,11 +176,11 @@
   }
   // Recommended builds (shown in the tree; "apply" relearns them in this order as far as level and points allow).
   const PRESETS = Object.freeze([
-    { id: 'pyre-priest', name: t('Kor Rahibi'), hint: t('Yere mühür kaz, her şeyi yak. Yanan Beden ile her vuruş tutuşturur.'), nodes: ['cleave', 'pyre', 'cleave-ember', 'pyre-wide', 'p-flask', 'whirl', 'whirl-ash', 'p-ember', 'p-kindle', 'charge', 'k-pyre', 'p-ashfall'] },
-    { id: 'chain-reaper', name: t('Zincirli Cellat'), hint: t('Düşmanları çekip yığ, sersemlet, Cellat ile bitir.'), nodes: ['cleave', 'whirl', 'whirl-hook', 'cleave-sunder', 'p-crush', 'p-lash', 'charge', 'charge-chain', 'p-aftershock', 'brand', 'k-exec', 'reap'] },
-    { id: 'plague-bearer', name: t('Veba Taşıyıcı'), hint: t('Çanla lanetle, kanat; ölenler patlayıp yenilerini lanetler.'), nodes: ['cleave', 'knell', 'cleave-bleed', 'knell-chain', 'whirl', 'whirl-bleed', 'p-crit', 'p-rot', 'p-plague', 'roar', 'k-rot', 'p-harvest'] },
-    { id: 'blood-penitent', name: t('Kan Kefareti'), hint: t('Can ile öde, can ile al: matara yok, her vuruş seni iyileştirir.'), nodes: ['cleave', 'roar', 'cleave-bleed', 'roar-blood', 'p-iron', 'whirl', 'p-frenzy', 'whirl-bleed', 'quake', 'k-blood', 'brand', 'charge'] },
-    { id: 'storm-rider', name: t('Kara Fırtına'), hint: t('Hiç durma: hücum, kaçın, zincirle çek, yeniden hücum.'), nodes: ['cleave', 'charge', 'charge-echo', 'whirl', 'whirl-hook', 'p-haste', 'p-momentum', 'p-wind', 'grasp', 'k-chains', 'roar', 'reap'] }
+    { id: 'pyre-priest', name: t('Kor Rahibi'), hint: t('Yere mühür kaz, her şeyi yak. Alev Saçağı ile ateş düşmandan düşmana geçer.'), nodes: ['pyre', 'cleave', 'pyre-burst', 'whirl', 'p-kindle', 'p-ember', 'whirl-hook', 'temper', 'k-exec'] },
+    { id: 'chain-reaper', name: t('Zincirli Cellat'), hint: t('Düşmanları çekip yığ, sersemlet, Cellat ile bitir.'), nodes: ['cleave', 'whirl', 'whirl-hook', 'cleave-sunder', 'p-lash', 'p-aftershock', 'charge', 'rend', 'temper', 'k-exec'] },
+    { id: 'plague-bearer', name: t('Veba Taşıyıcı'), hint: t('Çanla lanetle, kanat; ölenler patlayıp yenilerini lanetler.'), nodes: ['knell', 'cleave', 'knell-chain', 'whirl', 'p-plague', 'p-lash', 'p-rot', 'rend', 'roar', 'k-blood'] },
+    { id: 'blood-penitent', name: t('Kan Kefareti'), hint: t('Can ile öde, can ile al: matara yok, her vuruş seni iyileştirir.'), nodes: ['roar', 'cleave', 'roar-blood', 'charge', 'p-frenzy', 'p-momentum', 'chainstorm', 'temper', 'k-blood'] },
+    { id: 'storm-rider', name: t('Kara Fırtına'), hint: t('Hiç durma: hücum, kaçın, zincirle çek, yeniden hücum.'), nodes: ['charge', 'whirl', 'charge-echo', 'whirl-hook', 'p-momentum', 'p-lash', 'havoc', 'rend', 'roar', 'k-exec'] }
   ]);
   // Identity title of the two strongest columns (order-free).
   const ARCHETYPE = { 'cleave+pyre': t('Kor Celladı'), 'cleave+whirl': t('Zincirli Cellat'), 'cleave+roar': t('Kanlı Balyoz'), 'charge+cleave': t('Koç Başı'), 'cleave+knell': t('Mezar Kazıcı'),

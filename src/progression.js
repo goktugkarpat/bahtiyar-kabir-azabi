@@ -32,7 +32,7 @@
     { id: 'brand', name: KabirI18n.t('Kemik Kıran'), line: 'cleave', tier: 2, level: 6, requires: 'cleave', branch: 0, cost: 33, cooldown: 6,
       params: { damage: 106, radius: 4.5, reach: 4.2, duration: .68, strike: .22, stun: 1.1 },
       description: KabirI18n.t('Silahı başının üstüne kaldırıp önündeki zemine var gücüyle indir. Kehribar rengi bir şok halkası ve zemin yarıkları düşmanları ezer, sersemletir.'), delta: KabirI18n.t('Tepeden ezme: daha çok hasar, geniş şok halkası, uzun sersemletme.') },
-    { id: 'temper', name: KabirI18n.t('Kabir Balyozu'), line: 'cleave', tier: 3, level: 10, requires: 'brand', branch: 0, cost: 44, cooldown: 8,
+    { id: 'temper', name: KabirI18n.t('Kabir Balyozu'), line: 'cleave', tier: 3, level: 10, requires: 'cleave', branch: 0, cost: 44, cooldown: 8,
       params: { damage: 140, radius: 7, arc: 2.5, duration: .74, strike: .26, stun: 1.7 },
       description: KabirI18n.t('İleri sıçra, omuzdan gelen ağır çapraz darbeyle önünü yar. Zemin kara-mor yarıklarla çatlar; önündeki geniş koninin içindeki düşmanlar ezilir ve yere devrilir.'), delta: KabirI18n.t('Sıçrayışlı yer darbesi: çok geniş koni, en yüksek hasar, en uzun sersemletme.') },
     { id: 'roar', name: KabirI18n.t('Kan Nidası'), line: 'roar', tier: 1, level: 2, requires: null, branch: 1, cost: 34, cooldown: 22,
@@ -41,7 +41,7 @@
     { id: 'quake', name: KabirI18n.t('Ölüm Çığlığı'), line: 'roar', tier: 2, level: 6, requires: 'roar', branch: 1, cost: 45, cooldown: 27,
       params: { near: 8.4, far: 13, time: 14.5, guard: .68, steal: .06, stun: 1.9, fear: 3, damage: 44, waves: 1 },
       description: KabirI18n.t('Başını geriye atıp çığlık at: kemik beyazı ve kehribar şok halkaları yayılır, zemin yarılır, sarsılan düşmanlar hasar görür ve titrer. Öfke daha uzun sürer.'), delta: KabirI18n.t('Çığlık: daha geniş halkalar, hasar, daha uzun öfke ve can çalma.') },
-    { id: 'chainstorm', name: KabirI18n.t('Kıyamet Narası'), line: 'roar', tier: 3, level: 10, requires: 'quake', branch: 1, cost: 56, cooldown: 34,
+    { id: 'chainstorm', name: KabirI18n.t('Kıyamet Narası'), line: 'roar', tier: 3, level: 10, requires: 'roar', branch: 1, cost: 56, cooldown: 34,
       params: { near: 11, far: 16, time: 18, guard: .6, steal: .09, stun: 2.5, fear: 3.8, damage: 52, waves: 3, waveDamage: 38 },
       description: KabirI18n.t('İki aşamalı kıyamet narası: yer yarılır, kemik ışığıyla kızıl köz parçacıkları savrulur ve üç halka art arda yayılır. Her halka düşmanları yeniden sarsıp yaralar; öfken çok uzun ve güçlü sürer.'), delta: KabirI18n.t('İki aşamalı nara, üç halka, en geniş alan, en uzun ve güçlü öfke.') },
     { id: 'whirl', name: KabirI18n.t('Zincir Kasırgası'), line: 'whirl', tier: 1, level: 3, requires: null, branch: 2, cost: 36, cooldown: 8,
@@ -50,7 +50,7 @@
     { id: 'reap', name: KabirI18n.t('Ölüm Biçeni'), line: 'whirl', tier: 2, level: 6, requires: 'whirl', branch: 2, cost: 54, cooldown: 11,
       params: { ticks: 5, damage: 36, radius: 4.8, first: .06, gap: .27, duration: 1.6, stun: .7, stunLast: 1.5, pull: 1.1, fling: 1.8, grow: 1, turns: 4, move: .65 },
       description: KabirI18n.t('Zincirler uzun, parlak orak yaylarına dönüşür: yerde altın bir biçme izi bırakır, beş vuruş vurur, düşmanları içeri çeker. Son vuruş onları uzağa savurur.'), delta: KabirI18n.t('Beş vuruş, daha geniş çember, daha sert çekiş ve savurma.') },
-    { id: 'rend', name: KabirI18n.t('Son Hüküm'), line: 'whirl', tier: 3, level: 10, requires: 'reap', branch: 2, cost: 74, cooldown: 15,
+    { id: 'rend', name: KabirI18n.t('Son Hüküm'), line: 'whirl', tier: 3, level: 10, requires: 'whirl', branch: 2, cost: 74, cooldown: 15,
       params: { ticks: 7, damage: 35, radius: 6.2, first: .06, gap: .24, duration: 2.05, stun: .85, stunLast: 2, pull: 1.9, fling: 3.4, grow: .68, turns: 6, move: .7 },
       description: KabirI18n.t('Zincirler mor ateşli bir ölüm fırtınasına dönüşür: başta yer çatlar, çember dönerken genişler, yedi vuruş vurur. Son vuruş yeri sarsar ve düşmanları fırlatır.'), delta: KabirI18n.t('Yedi vuruş, genişleyen en büyük çember, en güçlü çekiş, sarsıcı son vuruş.') },
     { id: 'charge', name: KabirI18n.t('Kül Hücumu'), line: 'charge', tier: 1, level: 5, requires: null, branch: 3, cost: 30, cooldown: 7,
@@ -59,7 +59,7 @@
     { id: 'grasp', name: KabirI18n.t('Kor Hücumu'), line: 'charge', tier: 2, level: 6, requires: 'charge', branch: 3, cost: 46, cooldown: 10,
       params: { range: 11, speed: 27, damage: 116, ringMul: .55, radius: 3.8, stun: 1.9, width: 2.4, pathDamage: 26, shove: 3.6, knock: 3.6, hitStop: .09, pull: 2.4, impacts: 1 },
       description: KabirI18n.t('Omzunu öne verip kor gibi parlayan bir iz bırakarak koş: yoldaki düşmanları kıvılcımlarla yana devirir, varışta yer çatlaklarla yarılır ve düşmanlar çarpma noktasına çekilir.'), delta: KabirI18n.t('Daha uzun ve hızlı atılış, yoldakileri devirir, çatlak açan daha büyük çarpma.') },
-    { id: 'havoc', name: KabirI18n.t('Mahşer Hücumu'), line: 'charge', tier: 3, level: 10, requires: 'grasp', branch: 3, cost: 66, cooldown: 14,
+    { id: 'havoc', name: KabirI18n.t('Mahşer Hücumu'), line: 'charge', tier: 3, level: 10, requires: 'charge', branch: 3, cost: 66, cooldown: 14,
       params: { range: 14, speed: 32, damage: 160, ringMul: .55, radius: 5, stun: 2.6, width: 3.4, pathDamage: 44, shove: 6.5, knock: 4.8, hitStop: .12, pull: 3.6, impacts: 2, damage2: 110, radius2: 6.6 },
       description: KabirI18n.t('Kükreyip koç gibi atıl: geniş, karanlık bir iz bırakır, yoldakileri havaya fırlatır. Varışta yer iki kez çatlar; ikinci çarpma daha ağırdır ve sersemletir.'), delta: KabirI18n.t('Çifte çarpma, yoldakileri fırlatır, en geniş alan ve en uzun sersemletme.') },
     // Talent tree 3 actives (runtime: src/talent-runtime.js, look: src/talent-fx.js).
@@ -378,7 +378,9 @@
         state.equipment[slot] = entry && catalog[entry.id].slot === slot && catalog[entry.id].level <= state.level ? entry.uid : null;
       }
       if (!profile.equipment || !Object.prototype.hasOwnProperty.call(profile.equipment,'weapon')) state.equipment.weapon = addItem('dull-sword').uid;
-      state.loadout = [0, 1, 2, 3].map(n => Array.isArray(profile.loadout) && learned.has(profile.loadout[n]) && skillIndex[profile.loadout[n]] ? profile.loadout[n] : null);
+      // A slotted skill whose node no longer exists (cut tier II forms) falls back to the best learned skill of the same line, so the slot is not lost.
+      const slotted = id => { if (!Array.isArray(profile.loadout) || !skillIndex[id]) return null; if (learned.has(id)) return id; const best = skills.filter(k => k.line === skillIndex[id].line && learned.has(k.id)).sort((x, y) => y.tier - x.tier)[0]; return best ? best.id : null; };
+      state.loadout = [0, 1, 2, 3].map(n => Array.isArray(profile.loadout) ? slotted(profile.loadout[n]) : null);
       // A skill line has one home (tiers replace each other): copied/corrupt saves cannot equip a line twice.
       state.loadout = state.loadout.map((id, n, list) => id && list.findIndex(o => o && skillIndex[o].line === skillIndex[id].line) !== n ? null : id);
       // A save from the three-slot days: a learned line that had no slot yet takes the new 4th slot.

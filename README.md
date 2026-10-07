@@ -87,16 +87,17 @@ Boss'u yenince bölüm biter. İlk üç bölümün sonunda oyun kendiliğinden s
 
 ### Yetenek ağacı
 
-**4 yol × 3 aşama** yatay yollar halinde gösterilir. Bir yeteneğe çift tıklayarak veya iki kez dokunarak öğrenebilirsin; seviye ve önceki aşama şartları geçerlidir. İlk aşamanın mevcut açılma sırası korunur. Dört ilk aşama öğrenildikten sonra, 6. seviyeden itibaren ikinci aşamanın dört yeteneği istediğin sırada seçilebilir. Dört ikinci aşama tamamlanınca, 10. seviyeden itibaren üçüncü aşama da serbest sırayla seçilebilir. Her seviyede bir puan kazanılır; 13. seviyede toplam 12 yeteneği öğrenmeye yetecek puanın olur. Üst aşamayı öğrenince, alttaki yetenek yuvadaki yerinden çıkıp onun yerine geçer. Aynı anda dört yolun dördünden birer yetenek takabilirsin: **sağ tık, 1, 2 ve 3** yuvaları. Yetenek puanları seviye atladıkça kazanılır.
+Ağaç **6 yol × 5 sıra, toplam 26 düğümden** oluşur; tek ekranda görünür, yakınlaştırmaya gerek yoktur. Her düğüm 1 yetenek puanıdır: 12 puan seviyelerden (en çok 13. seviye), en çok 5 puan da yan görevlerden gelir. Yani bir yolculukta düğümlerin yaklaşık üçte ikisini alabilirsin. Bir düğüme çift tıklayarak (ya da iki kez dokunarak) öğrenirsin; üstündeki "Puanı geri al" ya da "Yolu sıfırla" ile puanlar ücretsiz geri verilir (savaş dışında).
 
-| Yol | 1. aşama | 2. aşama | 3. aşama |
-|---|---|---|---|
-| **Külün Çeliği** (sert vuruş) | Mezar Yaran (seviye 2) | Kemik Kıran (6) | Kabir Balyozu (10) |
-| **Kanın Yemini** (nida) | Kan Nidası (2) | Ölüm Çığlığı (6) | Kıyamet Narası (10) |
-| **Mezarın Zinciri** (kasırga) | Zincir Kasırgası (3) | Ölüm Biçeni (6) | Son Hüküm (10) |
-| **Kara Adım** (hücum) | Kül Hücumu (5) | Kor Hücumu (6) | Mahşer Hücumu (10) |
+| Sıra | İçerik |
+|---|---|
+| I · Uyanış | Altı aktif yetenek: Mezar Yaran, Kan Nidası, Zincir Kasırgası, Kül Hücumu, Kor Mührü, Ölüm Çanı |
+| II · Mühür | Her yeteneğe bir mühür (değiştirici) |
+| III · Beden | Her yolun kendine has bir pasifi |
+| IV · Dönüşüm | Dört eski yolun son hâli (Kabir Balyozu, Kıyamet Narası, Son Hüküm, Mahşer Hücumu; yuvadaki yeteneğin yerine geçer) ve Kor ile Çürüme yollarının pasifleri |
+| V · Kilit taşı | Bedeli olan iki güçlü seçenek (Cellat, Kan Yemini); yolculukta yalnız biri alınır |
 
-Her yeteneğin hasar, alan, sersemletme, dayanıklılık bedeli ve bekleme süresi ağaç ekranında yazar.
+Önerilen yollar ağacın üstünde durur; birine tıklayıp önizleyebilir, "Bu yolu uygula" ile otomatik öğrenebilirsin. Eski kayıtlardaki kaldırılmış düğümlerin puanı kendiliğinden geri verilir. Her yeteneğin hasar, alan, sersemletme, dayanıklılık bedeli ve bekleme süresi ağaç ekranında yazar.
 
 ### Eşyalar ve çanta
 
