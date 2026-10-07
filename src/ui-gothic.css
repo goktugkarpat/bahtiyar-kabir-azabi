@@ -12,6 +12,9 @@ body.bf-intro .qc-caption { opacity: 0 !important; transition: opacity .3s !impo
 body.in-combat .qc-bars .qc-bar.top { transform: translateY(-100%) } body.in-combat .qc-bars .qc-bar.bottom { transform: translateY(100%) }
 body.in-combat.qc-cinema #hud .hero-card, body.in-combat.qc-cinema #hud .quest.story-quest { opacity: 1 }
 body.in-combat .qc-caption { opacity: 0 !important; transition: opacity .4s !important }
+/* hedef/boss çubuğu (ve boss mekanik paneli) açıkken seviye afişi onların altına iner */
+body:has(#target-hud:not(.hidden)) #lu-banner { top: max(24%, 172px) }
+body:has(#target-hud:not(.hidden) #boss-mechanic:not(.hidden)) #lu-banner { top: max(31%, 228px) }
 /* görev bildirimi seviye afişi/boss kartı sırasında soluklaşır, sonra kendiliğinden geri gelir */
 body:has(#lu-banner.lu-on) #quest-notice.show, body.bf-intro #quest-notice.show { opacity: .25 }
 
