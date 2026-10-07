@@ -115,6 +115,23 @@ body:has(#lu-banner.lu-on) #key-hints span:nth-child(2) kbd { border-color: #f0c
 #hud #narration.tap { animation: ui-narr-in .5s ease-out }
 @keyframes ui-narr-in { from { opacity: 0; transform: translate(-50%, 10px) } to { opacity: 1; transform: translateX(-50%) } }
 
+/* dar/orta pencerelerde (≤1279 px) ortalı anlatıcı kutusu sağdaki görev panelinin altına giriyordu:
+   sola yaslanır ve görev panelinin soluna kadar uzanır (eğitim kutusu açıkken eski yerinde kalır) */
+@media (max-width: 1279px) and (min-width: 701px) {
+  body:not(.touch):not(:has(#tutorial:not(.hidden))) #hud #narration { left: calc(var(--pad) + 6px); transform: none; max-width: 720px;
+    width: calc(100vw - 2 * var(--pad) - min(calc(355px * var(--k, 1)), 34vw) - 30px) }
+  body:not(.touch):not(:has(#tutorial:not(.hidden))) #hud #narration.tap { animation-name: ui-narr-in-l }
+}
+@keyframes ui-narr-in-l { from { opacity: 0; transform: translateY(10px) } to { opacity: 1; transform: none } }
+
+/* karakter/çanta ekranı kısa pencerelerde (≤600 px yükseklik) sığmıyordu: oda paneli sanal olarak büyütülüp küçültülür */
+@media (min-height: 601px) and (min-width: 700px) and (max-width: 1199px) {
+  #character .character-panel { zoom: .8; width: calc(min(96vw, calc(94dvh * 1586 / 992)) / .8); height: calc(94dvh / .8); max-height: none; max-width: none }
+}
+@media (max-height: 600px) and (min-width: 700px) {
+  #character .character-panel { zoom: .56; width: calc(96vw / .56); height: calc(96dvh / .56); max-height: none; max-width: none }
+}
+
 /* ───────── 7. Görev bildirimi ve eşya bildirimi ───────── */
 /* --left tanımsızdı (bildirim ekran kenarına yapışıyordu); üstte, kahraman kartının altında dursun ki sol alttaki eşya bildirimleriyle çakışmasın */
 #hud #quest-notice { left: calc(var(--pad) + 4px); top: max(19%, 132px) }
