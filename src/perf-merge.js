@@ -406,7 +406,7 @@
    * stand-ins (character shadow proxies) are shown inside the shadow pass, after this update. */
   // Only actors, effects and other groups outside the world root take part: the world's static parts already skip their
   // matrix work, and chapter worlds may show helper groups only inside their own render hooks.
-  var LAZY = !OFF && !/[?&]nolazy\b/.test(Q), lazyClock = 0;
+  var LAZY = !OFF && /[?&]lazy\b/.test(Q), lazyClock = 0;   // opt-in (?lazy): perf-hidden.js already skips hidden subtrees and the extra wrapper cost ~15 % of a frame's CPU in A/B runs
   function markLazy(scene, worldRoot) {
     if (!LAZY) return;
     scene.children.forEach(function (top) {
