@@ -100,5 +100,21 @@
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', decorateTitle, { once: true }); else decorateTitle();
   decorateLoading();
-  B.UILanes = { busy, pending: () => queue.length };
+  /* ---------- 4. ölüm anı: ağır çekim + kırmızı vinyet (ölüm kartı açılmadan önceki ~0.75 sn) ---------- */
+  let dyingAt = -1, dyingTimer = 0;
+  function dying() {
+    dyingAt = performance.now(); document.body.classList.add('ui-dying');
+    clearTimeout(dyingTimer); dyingTimer = setTimeout(() => document.body.classList.remove('ui-dying'), 2400);
+  }
+  // ölüm kartı (ya da başka bir ekran) açılınca vinyet bırakılır; kartın kendi kırmızı perdesi devralır
+  new MutationObserver(() => { if (document.body.dataset.view !== 'playing') document.body.classList.remove('ui-dying'); })
+    .observe(document.body, { attributes: true, attributeFilter: ['data-view'] });
+  // app.js benzetim dt'sini bununla çarpar: ilk 0.9 sn 0.3x, sonra 0.3 sn'de normale döner.
+  function timeScale() {
+    if (dyingAt < 0) return 1;
+    const t = (performance.now() - dyingAt) / 1000;
+    if (t > 1.2) { dyingAt = -1; return 1; }
+    return t < .9 ? .3 : .3 + .7 * (t - .9) / .3;
+  }
+  B.UILanes = { busy, pending: () => queue.length, dying, timeScale };
 })();

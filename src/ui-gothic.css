@@ -60,6 +60,7 @@ html[lang=en] .ui-logo-sub::before { content: 'KABİR AZABI' }
 .ui-build { color: #8c7c66; font: 500 12px/1.3 var(--text); letter-spacing: .08em }
 
 /* ───────── 3. Ölüm ekranı: kırmızı vinyet nabzı, ağır giriş ───────── */
+body.ui-dying::after { content: ''; position: fixed; inset: 0; z-index: 9; pointer-events: none; background: radial-gradient(ellipse 70% 62% at 50% 50%, transparent 30%, #6a0505b3 75%, #1a0000f2 100%); animation: ui-death-veil .7s ease-out both }
 #death::before { content: ''; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(ellipse 75% 70% at 50% 50%, transparent 38%, #5a0606aa 78%, #2a0000f0 100%); opacity: 0; animation: ui-death-veil 1.8s ease-out .1s forwards, ui-death-pulse 3.6s ease-in-out 1.9s infinite }
 @keyframes ui-death-veil { from { opacity: 0 } to { opacity: 1 } }
 @keyframes ui-death-pulse { 0%, 100% { opacity: 1 } 50% { opacity: .72 } }
@@ -76,6 +77,7 @@ html[lang=en] .ui-logo-sub::before { content: 'KABİR AZABI' }
 #death .death-card .icon { color: #d8c7a8; filter: drop-shadow(0 0 8px #8a1a12) }
 #death .end-tip:not(:empty) { max-width: min(560px, 88vw); margin-left: auto; margin-right: auto; padding: 8px 14px; border-left: 2px solid #a9241b; background: linear-gradient(90deg, #1b0807d9, #0000); color: #e8d4b8; text-align: left }
 
+@media (max-height: 780px) and (min-width: 700px) { html:not([lang=en]) #death .end-title { width: min(540px, 80vw) } #death .end-tip:not(:empty) { margin-top: 6px; margin-bottom: 6px } }
 /* ───────── 4. Zafer ekranı ───────── */
 #victory .end-title { animation: ui-death-title 1.8s cubic-bezier(.16,.8,.2,1) .2s both }
 #victory .end-quote, #victory #victory-stats { animation: fade-in 1.2s 1s both }

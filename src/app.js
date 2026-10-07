@@ -571,6 +571,7 @@
   const DEATH_OMENS_ANY = [KabirI18n.t('Ölüm seni bile istemedi.'), KabirI18n.t('Karanlık seni yuttu ve geri tükürdü.'), KabirI18n.t('Burada ölüler bile dinlenemez.')];
   function death(d = {}) {
     if (deathShown) return; deathShown = true; deaths++;
+    if (B.UILanes && B.UILanes.dying) B.UILanes.dying();   // ajan:ui — ölüm anı ağır çekim + kırmızı vinyet
     hud(0); hudTimer = 0;
     if (B.Audio.say) B.Audio.say(finaleChapter && B.Narration && B.Narration.ch5Death ? 'ch5Death' : coastChapter ? 'coastDeath' : 'death', true);
     const enemy = d.enemy || game.lastDeath?.enemy, attack = d.attack || game.lastDeath?.attack;
@@ -1700,7 +1701,7 @@
     const playing = view === 'playing' && game.state === 'playing';
     if (playing) {
       if (heldLight || keyDown('light') || controllerState?.lightHeld) { lightRepeat += dt; if (lightRepeat >= .12) { actions.light = true; if (heldLight) actions.near = true; lightRepeat = 0; } }
-      const stopped = Math.min(dt, hitPause), simDt = (dt - stopped) * (B.LevelUp ? B.LevelUp.timeScale() : 1) * (B.Charge && B.Charge.timeScale ? B.Charge.timeScale() : 1) * (B.SkillFx ? B.SkillFx.timeScale() : 1); hitPause -= stopped;
+      const stopped = Math.min(dt, hitPause), simDt = (dt - stopped) * (B.LevelUp ? B.LevelUp.timeScale() : 1) * (B.Charge && B.Charge.timeScale ? B.Charge.timeScale() : 1) * (B.SkillFx ? B.SkillFx.timeScale() : 1) * (B.UILanes && B.UILanes.timeScale ? B.UILanes.timeScale() : 1); hitPause -= stopped;
       // Input events remain queued during contact emphasis; all combat clocks share simDt
       // so neither enemies nor i-frames gain a hidden time advantage.
       if (simDt > .000001) { const inp = pollInput(); if (view === 'playing') { game.update(simDt, inp); fxStep(simDt); footstepFeedback(); } }
