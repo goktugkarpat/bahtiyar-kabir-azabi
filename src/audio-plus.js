@@ -69,9 +69,15 @@
 
   // ------------------------------------------------------------------ chapter events
   const due = (k, t, a, b) => { if (ev[k] == null) { ev[k] = t + C.rand(a * .3, b * .5); return false; } if (t < ev[k]) return false; ev[k] = t + C.rand(a, b); return true; };
+  const stats = { thunder: 0, beds: 0, flashSeen: 0 };
   function thunder(t, dist) {   // dist 0 (overhead crack) .. 1 (far rumble)
-    const near = 1 - dist, vol = .2 + .25 * near;
-    if (near > .45) C.burst(t, .35, .12 * near, 2600, { q: .5, f1: 700, bus: 'amb', send: .5, pan: C.rand(-.4, .4) });   // the crack
+    stats.thunder++;
+    // Offline check: the first version (rumble only, 40-160 Hz) moved the 3 s loudness by < 1 LU — felt, not heard.
+    // The rolling mid band (300-600 Hz) is what makes thunder read as thunder on laptop and tablet speakers.
+    const near = 1 - dist, vol = 1 + .8 * near;   // noise buffers are quiet (pink RMS ~.1): these gains are not hot
+    if (near > .45) C.burst(t, .45, 1.1 * near, 2600, { q: .5, f1: 600, bus: 'amb', send: .5, pan: C.rand(-.4, .4) });   // the crack
+    C.burst(t + .08, 2.8 + dist, 1.4 + .8 * near, 520 - 160 * dist, { buf: C.N.pink, q: .55, f1: 220, attack: .12 + dist * .3, bus: 'amb', send: .7, pan: C.rand(-.5, .5) });
+    C.burst(t + .9 + dist * .5, 2.2, .9, 380, { buf: C.N.pink, q: .7, f1: 180, attack: .4, bus: 'amb', send: .8, pan: C.rand(-.7, .7) });
     C.burst(t + .02, 3.2 + dist * 1.5, vol, 160 - 60 * dist, { buf: C.N.brown, q: .6, f1: 45, attack: .08 + dist * .35, bus: 'amb', send: .55, pan: C.rand(-.6, .6) });
     C.burst(t + .5 + dist * .4, 2.6, vol * .55, 90, { buf: C.N.brown, q: .7, f1: 40, attack: .5, bus: 'amb', send: .6, pan: C.rand(-.6, .6) });   // roll
     C.thud(t + .05, { f0: 62, f1: 30, dur: 1.4, vol: .18 * (.4 + near), bus: 'amb' });
@@ -83,7 +89,7 @@
       if (bed && bed.rain) { const r = Math.round(rain * 20) / 20; hold(bed.rain.gain, .025 + .07 * r, t, 1.5); hold(bed.wet.gain, .08 + .2 * r, t, 1.5); }
       // lightning on screen -> thunder after the light (distance = delay); never two in a row
       if (flash > .3 && flashWas <= .3 && (ev.lastBolt == null || t - ev.lastBolt > 4)) { ev.lastBolt = t; const d = C.rand(.2, .9); thunder(t + .25 + d * 2.2, d); }
-      flashWas = flash;
+      if (flash > .3) stats.flashSeen++; flashWas = flash;
       if (calm && due('buoy', t, 26, 44)) C.ring(t, { f: C.rand(196, 233), partials: [1, 2.32, 3.01, 4.17], decay: 4.5, vol: .016, bus: 'amb', send: .9, pan: C.rand(-.8, .8) });
     } else if (ch === 3) {
       if (calm && due('chime', t, 7, 16)) { const f = C.rand(1700, 2600); C.ring(t, { f, partials: [1, 2.71, 4.8], decay: 1.8, vol: .007, bus: 'amb', send: .9, pan: C.rand(-.9, .9) }); if (C.chance(.4)) C.ring(t + C.rand(.12, .3), { f: f * 1.19, partials: [1, 2.71], decay: 1.4, vol: .005, bus: 'amb', send: .9, pan: C.rand(-.9, .9) }); }
@@ -91,9 +97,9 @@
     } else if (ch === 4) {
       if (due('hammer', t, 9, 16)) {   // far forge hammer: two or three strikes, iron ring under it
         const n = C.chance(.5) ? 3 : 2, pan = C.rand(-.7, .7), f = C.rand(310, 380);
-        for (let i = 0; i < n; i++) { const at = t + i * C.rand(.55, .7); C.ring(at, { f, partials: [1, 2.63, 4.1, 6.9], decay: .7, vol: .012 * (i ? .8 : 1), bus: 'amb', send: .8, pan }); C.thud(at, { f0: 120, f1: 60, dur: .12, vol: .03, bus: 'amb', pan }); }
+        for (let i = 0; i < n; i++) { const at = t + i * C.rand(.55, .7); C.ring(at, { f, partials: [1, 2.63, 4.1, 6.9], decay: .7, vol: .02 * (i ? .8 : 1), bus: 'amb', send: .8, pan }); C.thud(at, { f0: 120, f1: 60, dur: .12, vol: .03, bus: 'amb', pan }); }
       }
-      if (due('hiss', t, 14, 26)) C.burst(t, C.rand(1.2, 2), .02, 3800, { q: .5, f1: 1800, attack: .05, bus: 'amb', send: .4, pan: C.rand(-.7, .7) });   // quench steam
+      if (due('hiss', t, 14, 26)) C.burst(t, C.rand(1.2, 2), .1, 3800, { q: .5, f1: 1800, attack: .05, bus: 'amb', send: .4, pan: C.rand(-.7, .7) });   // quench steam
     } else if (ch >= 5) {
       if (bed && bed.sub) hold(bed.sub.gain, st.boss ? .05 : .11, t, 2);
       if (calm && due('whisper', t, 18, 32)) C.sample('tortWhisper', { bus: 'amb', vol: .06, rate: C.rand(.6, .75), lp: 1800, send: 1, pan: C.rand(-.9, .9) });
@@ -105,7 +111,7 @@
   // ------------------------------------------------------------------ hero body
   function breath(t, vol, inhale) {   // filtered pink noise shaped like a mouth: low formant + airy top, no vocal pitch
     const f = inhale ? 1250 : 820;
-    C.burst(t, inhale ? .42 : .55, vol, f, { buf: C.N.pink, q: 1.6, f1: inhale ? 1550 : 560, attack: inhale ? .2 : .06, send: .04 });
+    C.burst(t, inhale ? .42 : .55, vol, f, { q: 1.6, f1: inhale ? 1550 : 560, attack: inhale ? .2 : .06, send: .04 });
     C.burst(t, inhale ? .38 : .5, vol * .45, 2600, { q: .9, f1: inhale ? 3100 : 1900, attack: inhale ? .2 : .05 });
   }
   function heroStep(dt, st, t) {
@@ -113,7 +119,7 @@
     const hp = p.hp / p.maxHp; if (hp >= .35) { breathT = 0; return; }
     breathT -= dt; if (breathT > 0) return;
     const pace = 1.5 + hp * 2.5; breathT = pace + C.rand(-.15, .25);
-    breath(t, .016, true); breath(t + pace * .42, .02, false);
+    breath(t, .22, true); breath(t + pace * .42, .3, false);
   }
 
   // ------------------------------------------------------------------ footsteps by ground
@@ -127,12 +133,12 @@
   }
   function footstep(o, k) {
     stepN++; const t = C.ctx.currentTime, s = surface(), v = (o && o.volume > .5 ? 1.3 : 1) * k;
-    if (s === 'stone') C.burst(t + .005, .05, .028 * v, 3600, { q: .8, pan: C.rand(-.15, .15) });   // grit under the boot
-    else if (s === 'water') { C.sample('wetStep', { vol: .2 * v, rate: C.rand(.85, 1.1) }); C.burst(t + .03, .16, .02 * v, 1400, { q: 1.4, f1: 2600 }); }
+    if (s === 'stone') C.burst(t + .005, .05, .22 * v, 3600, { q: .8, pan: C.rand(-.15, .15) });   // grit under the boot
+    else if (s === 'water') { C.sample('wetStep', { vol: .2 * v, rate: C.rand(.85, 1.1) }); C.burst(t + .03, .16, .2 * v, 1400, { q: 1.4, f1: 2600 }); }
     else if (s === 'mud') { C.sample('wetStep', { vol: .14 * v, rate: C.rand(.6, .75), lp: 1600 }); C.thud(t, { f0: 90, f1: 50, dur: .09, vol: .06 * v }); }
-    else if (s === 'wood') { C.thud(t, { f0: 160, f1: 95, dur: .09, vol: .07 * v }); if (stepN % 3 === 0) C.burst(t + .06, .18, .008 * v, 700, { q: 6, f1: 520 }); }   // a creaking plank now and then
-    else if (s === 'metal') C.ring(t, { f: C.rand(240, 300), partials: [1, 2.76, 5.4], decay: .16, vol: .012 * v, send: .2 });
-    else if (s === 'ash') C.burst(t + .01, .09, .02 * v, 1900, { q: .6, f1: 900 });
+    else if (s === 'wood') { C.thud(t, { f0: 160, f1: 95, dur: .09, vol: .07 * v }); if (stepN % 3 === 0) C.burst(t + .06, .18, .12 * v, 700, { q: 6, f1: 520 }); }   // a creaking plank now and then
+    else if (s === 'metal') C.ring(t, { f: C.rand(240, 300), partials: [1, 2.76, 5.4], decay: .16, vol: .03 * v, send: .2 });
+    else if (s === 'ash') C.burst(t + .01, .09, .2 * v, 1900, { q: .6, f1: 900 });
     else if (s === 'void') C.thud(t, { f0: 70, f1: 40, dur: .22, vol: .045 * v, send: .5 });
     if (stepN % 2 === 0 && C.chance(.6)) C.sample('armor', { vol: .045 * v, rate: C.rand(1.25, 1.5), hp: 1800, delay: .02 });   // mail and buckles
   }
@@ -142,9 +148,9 @@
     if (!C || !C.ctx || C.ctx.state !== 'running' && !C.offline || C.volume.master <= 0) return;
     const t = C.ctx.currentTime, o = { bus: 'sfx' };
     if (!C.throttle('uiplus_' + kind, .12)) return;
-    if (kind === 'open') { C.whoosh(t, { dur: .26, peak: .7, f0: 260, f1: 1300, f2: 600, q: .9, vol: .05 }); C.thud(t + .2, { f0: 140, f1: 80, dur: .1, vol: .1 }); C.sample('cloth', { vol: .14, rate: 1.1, delay: .02 }); }
-    else if (kind === 'close') { C.whoosh(t, { dur: .2, peak: .4, f0: 900, f1: 500, f2: 260, q: .9, vol: .04 }); C.thud(t + .1, { f0: 110, f1: 60, dur: .08, vol: .08 }); }
-    else if (kind === 'map') { C.sample('cloth', { vol: .22, rate: .8 }); C.burst(t + .05, .5, .03, 1600, { q: .5, f1: 3800, attack: .15 }); C.burst(t + .35, .25, .02, 2400, { q: .7, f1: 1200 }); }
+    if (kind === 'open') { C.whoosh(t, { dur: .26, peak: .7, f0: 260, f1: 1300, f2: 600, q: .9, vol: .22 }); C.thud(t + .2, { f0: 140, f1: 80, dur: .1, vol: .1 }); C.sample('cloth', { vol: .14, rate: 1.1, delay: .02 }); }
+    else if (kind === 'close') { C.whoosh(t, { dur: .2, peak: .4, f0: 900, f1: 500, f2: 260, q: .9, vol: .16 }); C.thud(t + .1, { f0: 110, f1: 60, dur: .08, vol: .08 }); }
+    else if (kind === 'map') { C.sample('cloth', { vol: .22, rate: .8 }); C.burst(t + .05, .5, .16, 1600, { q: .5, f1: 3800, attack: .15 }); C.burst(t + .35, .25, .12, 2400, { q: .7, f1: 1200 }); }
     else if (kind === 'equip') { C.sample('armor', { vol: .3, rate: C.rand(.9, 1.05) }); C.ring(t + .05, { f: C.rand(620, 700), partials: [1, 2.76, 5.4, 8.9], decay: .5, vol: .03, send: .25 }); C.thud(t, { f0: 120, f1: 70, dur: .12, vol: .14 }); }
     else if (kind === 'unequip') { C.sample('cloth', { vol: .2, rate: .9 }); C.sample('armor', { vol: .16, rate: .8, delay: .04 }); }
     else if (kind === 'deny') { C.tone(t, 98, .28, .05, Object.assign({ type: 'sawtooth', lp: 420 }, o)); C.thud(t, { f0: 80, f1: 45, dur: .2, vol: .12 }); }
@@ -156,7 +162,7 @@
   }
   function levelUpExtra(t) {   // on top of the existing level-up: a sub impact, a rising shimmer and a held open fifth
     C.thud(t, { f0: 60, f1: 32, dur: 1.1, vol: .3, send: .3 });
-    C.burst(t, 1.6, .03, 3000, { q: .6, f1: 7000, attack: .5, send: .7 });
+    C.burst(t, 1.6, .14, 3000, { q: .6, f1: 7000, attack: .5, send: .7 });
     for (const [f, d, v] of [[73.42, 0, .05], [110, .05, .035], [146.8, .3, .03], [220, .6, .022], [293.7, .9, .016]]) C.tone(t + d, f, 3.2 - d, v, { type: 'triangle', attack: .35, lp: 2200, send: .65 });
     C.ring(t + .9, { f: 587.3, partials: [1, 2.01, 3.0, 4.1], decay: 2.6, vol: .018, send: .8, pan: .2 });
   }
@@ -186,7 +192,7 @@
   function update(dt, st) {
     if (!C || !C.ctx) return;
     const t = C.ctx.currentTime, ch = chapterNow();
-    if (ch !== bedCh || !bed) { killBed(t); bed = makeBed(ch); bedCh = ch; ev = {}; }
+    if (ch !== bedCh || !bed) { killBed(t); bed = makeBed(ch); stats.beds++; bedCh = ch; ev = {}; }
     if (bed) hold(bed.out.gain, (st.dead ? .3 : st.boss ? .55 : st.combat ? .75 : 1) * bed.level * .16, t, 1.2);
     if (!st.playing && !st.title) return;
     chapterEvents(ch, t, st); heroStep(dt, st, t);
@@ -194,9 +200,9 @@
   function after(name, o, k) {
     if (!C || !C.ctx) return;
     if (name === 'step') footstep(o || {}, k);
-    else if (name === 'dodge' && C.chance(.35) && C.throttle('dodgeBreath', 1.2)) breath(C.ctx.currentTime + .12, .024 * k, false);
+    else if (name === 'dodge' && C.chance(.35) && C.throttle('dodgeBreath', 1.2)) breath(C.ctx.currentTime + .12, .3 * k, false);
     else if (name === 'levelUp') levelUpExtra(C.ctx.currentTime);
   }
-  B.AudioPlus = { build, update, after, ui, surface };
+  B.AudioPlus = { build, update, after, ui, surface, stats };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', watchUI); else watchUI();
 })();
