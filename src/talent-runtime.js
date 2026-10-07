@@ -53,11 +53,13 @@
       }
       return out;
     }
+    // Per form: when the head bites (matches the pose contact in combat.js), how long the foe slides, how hard the camera jolts, the sound variant.
+    const HOOK = { hook: { style: 'hook', strike: .24, drag: .34, shake: .6 }, hook2: { style: 'long', strike: .17, drag: .26, shake: .5 }, hook3: { style: 'barb', strike: .28, drag: .42, shake: .85 } };
     function castHook(skill, face, targets) {
-      const P = skill.params;
-      if (look) look.chains(player, targets, true, { life: .72, hook: true });
-      sound('talentHook');
-      later.push({ at: clock + .24, fn() {
+      const P = skill.params, H = HOOK[skill.id] || HOOK.hook;
+      if (look) look.chains(player, targets, true, { life: H.strike + H.drag + .5, hook: true, style: H.style, throw: H.strike });
+      sound('talentHook', { style: H.style });
+      later.push({ at: clock + H.strike, fn() {
         let landed = 0;
         targets.forEach((e, n) => {
           if (!alive(e)) return;
@@ -65,20 +67,21 @@
           landed++;
           if (r && r.killed) return;
           bleed(e, P.bleed, 4);
-          if (!e.boss) { pulls.push({ e, left: .2, total: .2, keep: P.keep + n * .9 }); ctx.stun(e, P.stun + .2); }
+          if (!e.boss) { pulls.push({ e, left: H.drag, total: H.drag, keep: P.keep + n * .9, d0: dist(e, player.x, player.z), dust: 0, style: H.style }); ctx.stun(e, P.stun + H.drag); }
           if (look) look.puff(e.x, (e.model && e.model.root.position.y) || 0, e.z, 'bone', 8);
         });
-        if (landed) { sound('talentHookHit'); ctx.emit('impact', { x: player.x + Math.sin(face) * 2, z: player.z + Math.cos(face) * 2, strength: .6, radius: 2.2 }); }
+        if (landed) { sound('talentHookHit', { style: H.style }); ctx.emit('impact', { x: player.x + Math.sin(face) * 2, z: player.z + Math.cos(face) * 2, strength: H.shake, radius: 2.2 }); }
       } });
       return true;
     }
     // Demir Duruş: the stance lasts P.time seconds (the pose itself is the war-cry body of combat.js).
+    const stanceStyle = skill => skill && skill.id === 'guard2' ? 'heart' : skill && skill.id === 'guard3' ? 'thorn' : 'iron';
     function castGuard(skill) {
       const P = skill.params;
-      guard = { time: P.time, taken: P.taken, thorns: P.thorns, stun: P.stun, bleed: P.bleed, reach: P.reach, heal: P.heal || 0, cool: 0, puff: 0 };
-      sound('talentStance');
-      if (look) { look.puff(player.x, (player.model && player.model.root.position.y) || 0, player.z, 'stone', 14); look.puff(player.x, 0, player.z, 'bone', 8); }
-      ctx.emit('impact', { x: player.x, z: player.z, strength: .55, radius: 2.4 });
+      guard = { time: P.time, taken: P.taken, thorns: P.thorns, stun: P.stun, bleed: P.bleed, reach: P.reach, heal: P.heal || 0, cool: 0, puff: 0, style: stanceStyle(skill) };
+      sound('talentStance', { style: guard.style });
+      if (look) { look.plant(player, guard.style); look.puff(player.x, (player.model && player.model.root.position.y) || 0, player.z, 'bone', 6); }
+      ctx.emit('impact', { x: player.x, z: player.z, strength: .75, radius: 3 });
       return true;
     }
     // Called by combat.js once the pose started; returns true when the effect is armed.
@@ -94,8 +97,8 @@
       if (dist(owner, player.x, player.z) > guard.reach + owner.radius) return;
       guard.cool = .3;
       const away = Math.atan2(owner.x - player.x, owner.z - player.z), r = ctx.strike(owner, guard.thorns, away);
-      sound('talentThorns', { x: owner.x, z: owner.z });
-      if (look) { look.puff(owner.x, 0, owner.z, 'bone', 9); look.burst(owner.x, owner.z, 1.7, 'stone'); }
+      sound('talentThorns', { x: owner.x, z: owner.z, style: guard.style });
+      if (look) { look.puff(owner.x, 0, owner.z, 'bone', 6); look.burst(owner.x, owner.z, 1.7, 'stone'); look.thornVolley(player, owner, guard.style); }
       if (guard.heal) heal(guard.heal);
       if (r && !r.killed) { if (!owner.boss) ctx.stun(owner, guard.stun); bleed(owner, guard.bleed, 4); }
     }
@@ -166,19 +169,23 @@
         if (r === 'again') { job.at = clock + .1; continue; }
         later.splice(i, 1);
       }
-      // hooked foes slide in
+      // hooked foes slide in along the taut chain: eased (a hard yank, then the weight arrives), dust scraped off the floor, a thud at the end
       for (let i = pulls.length - 1; i >= 0; i--) {
         const p = pulls[i];
         if (!alive(p.e)) { pulls.splice(i, 1); continue; }
-        const d = dist(p.e, player.x, player.z), step = Math.min(dt, p.left);
-        if (d > p.keep + .05) ctx.yank(p.e, player.x, player.z, Math.max(p.keep, d - (d - p.keep) * step / Math.max(.001, p.left)));
-        p.left -= dt; if (p.left <= 0) pulls.splice(i, 1);
+        p.left -= dt; const u = Math.min(1, Math.max(0, 1 - p.left / p.total)), k = u * u * (3 - 2 * u), want = Math.max(p.keep, p.d0 + (p.keep - p.d0) * k), d = dist(p.e, player.x, player.z);
+        if (d > want + .02) {
+          ctx.yank(p.e, player.x, player.z, want);
+          if (look && (p.dust -= dt) <= 0) { p.dust = .035; const ax = (player.x - p.e.x) / (d || 1), az = (player.z - p.e.z) / (d || 1); look.dust(p.e.x, p.e.z, -ax * 2, -az * 2, p.style === 'barb' ? 3 : 2); }
+        }
+        if (p.left <= 0) { pulls.splice(i, 1); if (look && p.d0 - p.keep > 1.2) { look.slam(p.e.x, p.e.z); sound('talentHookLand', { x: p.e.x, z: p.e.z, style: p.style }); ctx.emit('impact', { x: p.e.x, z: p.e.z, strength: .35, radius: 1.8 }); } }
       }
       // the stance
       if (guard) {
+        if (look) look.setGuard(player, guard.time, guard.style);
         guard.time -= dt; guard.cool = Math.max(0, guard.cool - dt); guard.puff -= dt;
         if (guard.puff <= 0 && look && !player.dead) { guard.puff = .22; look.puff(player.x, (player.model && player.model.root.position.y) || 0, player.z, 'stone', 2); }
-        if (guard.time <= 0 || player.dead) { guard = null; if (look && !player.dead) look.puff(player.x, 0, player.z, 'bone', 6); }
+        if (guard.time <= 0 || player.dead) { guard = null; if (look) look.setGuard(null); if (look && !player.dead) look.puff(player.x, 0, player.z, 'bone', 6); }
       }
       // bleeding
       for (const [e, s] of status) {

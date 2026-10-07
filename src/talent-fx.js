@@ -42,6 +42,17 @@
     '  float alpha = clamp(m * .55 + core * .5 + ash * core * .3, 0.0, 1.2) * uFade * .72;',   // skillfx: large seals read near-white across the arena; keep them under the hits
     '  gl_FragColor = vec4(hot * alpha, alpha);',
     '}'].join('\n');
+  const GUARD_FS = [
+    'varying vec2 vUv; uniform float uTime, uFade, uKind;',
+    'void main(){ vec2 p = vUv; float r = length(p), a = atan(p.x, p.y), seg = fract(a * 1.2732395), pl = 1.0;',   // 8 plates
+    '  float rim = smoothstep(.035, 0.0, abs(r - .93));',
+    '  float plates = smoothstep(.05, 0.0, abs(r - .8)) * smoothstep(0.0, .06, seg) * smoothstep(1.0, .94, seg);',
+    '  float teeth = uKind > 1.5 ? step(.93, r) * step(r, 1.0) * step(fract(a * 3.8197 + .5), (1.0 - r) * 12.0 * .5 + .08) * step(.5, fract(a * 1.9099)) : 0.0;',
+    '  float heart = uKind > .5 && uKind < 1.5 ? (1.0 - smoothstep(0.0, .9, r)) * (.1 + .12 * pow(.5 + .5 * sin(uTime * 5.5), 4.0)) : 0.0;',
+    '  float disc = (1.0 - smoothstep(.3, .95, r)) * .06;',
+    '  vec3 col = uKind < .5 ? vec3(.4, .52, .85) : uKind < 1.5 ? vec3(1.0, .26, .18) : vec3(1.0, .88, .8);',
+    '  float m = (rim * .9 + plates * .8 + teeth * 1.1 + heart + disc) * step(r, 1.0) * (1.0 - smoothstep(.97, 1.0, r));',
+    '  float al = clamp(m, 0.0, 1.0) * uFade; gl_FragColor = vec4(col * al, al); }'].join('\n');
   const RING_FS = [
     'varying vec2 vUv; uniform float uK, uFade; uniform vec3 uColor;',
     'void main(){ float r = length(vUv); float w = mix(.08, .03, uK); float band = smoothstep(w, 0.0, abs(r - mix(.25, .98, uK)));',
@@ -77,28 +88,38 @@
       o.t = 0; o.life = life || .5; o.r = r; o.y = y || 0; o.m.position.set(x, gy(x, z) + .05 + (y || 0), z); o.m.scale.set(r, 1, r);
       o.mat.uniforms.uColor.value.set(color[0], color[1], color[2]); o.m.visible = true;
     }
-    // ---- chains (Zincirli Kader, Zincir Kırbacı, Kanca / Kement): real links, instanced (6 chains x 22 links), thrown out then dragged back
-    const LINKS = 22, CHAINS = 6;
-    const linkMat = new T.MeshStandardMaterial({ color: 0x8c8e94, metalness: .9, roughness: .32, emissive: new T.Color(.03, .012, .008) });
-    const links = new T.InstancedMesh(new T.TorusGeometry(.13, .035, 6, 10), linkMat, LINKS * CHAINS); links.frustumCulled = false; links.count = 0; group.add(links);
-    const chainList = [];   // { from, to:{x,z,e}, t, life }
-    // grapnel head on the chain tip: a barbed spike plus a curved claw (Çengelli Çekiş / hook throws)
-    const headMat = new T.MeshStandardMaterial({ color: 0x8f98a6, metalness: .8, roughness: .34, emissive: new T.Color(.05, .015, .01) });
-    // forged three-pronged grapnel: shank, front spike, collar, chain eye and three barbed prongs curling back toward the chain
+    // ---- chains (Çengelli Çekiş + forms, gear powers): real links, instanced, thrown out then held taut while the foe is dragged, then whipped home.
+    //      styles: hook = single cold-steel chain, long = twin helical strands (Zincirli Fırlatış), barb = blackened chain, spiked head, dripping blood (Dikenli Çengel)
+    const LINKS = 40, CHAINS = 6, LCAP = LINKS * CHAINS * 2;
+    const linkMat = new T.MeshStandardMaterial({ color: 0xffffff, metalness: .62, roughness: .36, emissive: new T.Color(.008, .012, .02) });
+    const links = new T.InstancedMesh(new T.TorusGeometry(.11, .03, 5, 9).rotateY(Math.PI / 2), linkMat, LCAP); links.frustumCulled = false; links.count = 0; group.add(links);
+    links.setColorAt(0, new T.Color(1, 1, 1));
+    const chainList = [];   // { from, to, x, z, t, life, throwT, style, hook, landed }
+    // grapnel head on the chain tip: forged shank, front spike, collar, chain eye and three barbed prongs curling back toward the chain
+    const headMat = new T.MeshStandardMaterial({ color: 0xffffff, metalness: .6, roughness: .4, emissive: new T.Color(.006, .01, .016) });
     const parts = [new T.CylinderGeometry(.055, .075, .6, 8).rotateX(Math.PI / 2).translate(0, 0, .0),
       new T.ConeGeometry(.075, .42, 8).rotateX(Math.PI / 2).translate(0, 0, .5),
       new T.TorusGeometry(.12, .04, 6, 12).translate(0, 0, -.22), new T.TorusGeometry(.1, .03, 6, 12).rotateY(Math.PI / 2).translate(0, 0, -.42)];
     const prong = new T.CatmullRomCurve3([new T.Vector3(0, 0, .22), new T.Vector3(.16, 0, .3), new T.Vector3(.36, 0, .2), new T.Vector3(.46, 0, .0), new T.Vector3(.42, 0, -.16)]);
     for (let k = 0; k < 3; k++) { const g = new T.TubeGeometry(prong, 14, .042, 6, false).rotateZ(k * Math.PI * 2 / 3 + Math.PI / 2); parts.push(g, new T.ConeGeometry(.05, .16, 6).rotateX(-Math.PI / 2 - .35).translate(.42, 0, -.22).rotateZ(k * Math.PI * 2 / 3 + Math.PI / 2)); }
-    const merged = new T.BufferGeometry(); { const P = [], N = [], I = []; let off = 0;
-      for (const g0 of parts) { const g = g0.index ? g0 : g0.toNonIndexed(); const pa = g.attributes.position, na = g.attributes.normal;
+    function mergeParts(list) {
+      const g1 = new T.BufferGeometry(), P = [], N = [], I = []; let off = 0;
+      for (const g0 of list) { const g = g0.index ? g0 : g0.toNonIndexed(); const pa = g.attributes.position, na = g.attributes.normal;
         for (let i = 0; i < pa.count; i++) { P.push(pa.getX(i), pa.getY(i), pa.getZ(i)); N.push(na.getX(i), na.getY(i), na.getZ(i)); }
         if (g.index) for (let i = 0; i < g.index.count; i++) I.push(g.index.getX(i) + off); else for (let i = 0; i < pa.count; i++) I.push(i + off);
         off += pa.count; }
-      merged.setAttribute('position', new T.Float32BufferAttribute(P, 3)); merged.setAttribute('normal', new T.Float32BufferAttribute(N, 3)); merged.setIndex(I); }
-    const spikes = new T.InstancedMesh(merged, headMat, CHAINS), claws = { count: 0, instanceMatrix: { needsUpdate: false }, setMatrixAt() {} };
-    for (const m of [spikes]) { m.frustumCulled = false; m.count = 0; group.add(m); }
-    const _m = new T.Matrix4(), _q = new T.Quaternion(), _e = new T.Euler(), _p = new T.Vector3(), _s = new T.Vector3(1, 1, 1);
+      g1.setAttribute('position', new T.Float32BufferAttribute(P, 3)); g1.setAttribute('normal', new T.Float32BufferAttribute(N, 3)); g1.setIndex(I); return g1;
+    }
+    const merged = mergeParts(parts);
+    // Dikenli Çengel: a ring of long barbs round the collar (drawn only for that form: one extra instanced mesh, empty otherwise)
+    const barbParts = []; for (let k = 0; k < 8; k++) barbParts.push(new T.ConeGeometry(.04, .32, 5).translate(0, .16, 0).rotateX(-.6).translate(0, .1, -.12).rotateZ(k * Math.PI / 4));
+    const spikes = new T.InstancedMesh(merged, headMat, CHAINS), barbs = new T.InstancedMesh(mergeParts(barbParts), headMat, CHAINS);
+    for (const m of [spikes, barbs]) { m.frustumCulled = false; m.count = 0; group.add(m); m.setColorAt(0, new T.Color(1, 1, 1)); }
+    const STY = {   // chain colour, head colour, head scale, strands, link scale
+      hook: { link: [.4, .48, .6], head: [.52, .6, .72], hs: .8, strands: 1, ls: 1, spark: [1.4, 1.3, 1.1] },
+      long: { link: [.55, .7, .95], head: [.8, .92, 1.15], hs: .88, strands: 2, ls: .68, spark: [.8, 1.0, 1.5] },
+      barb: { link: [.2, .17, .18], head: [.26, .2, .2], hs: .86, strands: 1, ls: 1.1, spark: [1.5, .08, .05] } };
+    const _m = new T.Matrix4(), _q = new T.Quaternion(), _q2 = new T.Quaternion(), _e = new T.Euler(), _p = new T.Vector3(), _s = new T.Vector3(1, 1, 1), _c = new T.Color(), _ax = new T.Vector3(0, 0, 1), _o = new T.Vector3();
     // ---- particles
     const MAX = 900, pos = new Float32Array(MAX * 3), col = new Float32Array(MAX * 4), size = new Float32Array(MAX);
     const vel = new Float32Array(MAX * 3), life = new Float32Array(MAX), age = new Float32Array(MAX), base = new Float32Array(MAX * 4), grav = new Float32Array(MAX), size0 = new Float32Array(MAX);
@@ -167,15 +188,42 @@
       for (let i = 0; i < n; i++) { const a = Math.random() * 6.283, s = rnd(1.5, 4.5) * Math.min(1.6, r / 2.5);
         spark(x + Math.sin(a) * .4, y + rnd(.2, 1.1), z + Math.cos(a) * .4, Math.sin(a) * s, rnd(.6, kind === 'rot' ? 2.4 : 4), Math.cos(a) * s, i % 6 ? c : COLORS.bone, rnd(.4, .9), rnd(.1, kind === 'rot' ? .26 : .18), kind === 'blood' ? -9 : kind === 'fire' ? -3 : -.5); }
     }
-    // opt.life: seconds the chain stays out (Çengelli Çekiş holds it .72 s while the foe slides in)
+    // opt: { life (s the chain stays out), hook (grapnel head), style 'hook'|'long'|'barb', throw (s until the head lands) }
     function chains(p, foes, lash, opt) {
       for (const e of foes.slice(0, CHAINS)) {
         if (chainList.length >= CHAINS) chainList.shift();
-        chainList.push({ from: p, to: e, x: e.x, z: e.z, t: 0, life: opt && opt.life || (lash ? .45 : .55), lash: !!lash, hook: !!(opt && opt.hook) });
-        const y = (e.model && e.model.root.position.y) || 0;
-        for (let i = 0; i < 10; i++) spark(e.x, y + 1, e.z, rnd(-2, 2), rnd(.5, 2.5), rnd(-2, 2), i % 2 ? [1.8, 1.5, 1.1] : [1.6, .4, .12], .35, .07, -6);
+        const hk = !!(opt && opt.hook);
+        chainList.push({ from: p, to: e, x: e.x, z: e.z, t: 0, life: opt && opt.life || (lash ? .45 : .55), lash: !!lash, hook: hk, style: (opt && opt.style) || 'hook', throwT: (opt && opt.throw) || .24, landed: false, acc: 0 });
+        if (!hk) { const y = (e.model && e.model.root.position.y) || 0; for (let i = 0; i < 10; i++) spark(e.x, y + 1, e.z, rnd(-2, 2), rnd(.5, 2.5), rnd(-2, 2), i % 2 ? [1.8, 1.5, 1.1] : [1.6, .4, .12], .35, .07, -6); }
       }
       if (!lash) ring(p.x, p.z, 7, [.55, .55, .62], .4);
+    }
+    // the grapnel bites: sparks off the steel, a short ring, blood from the barbs
+    function hookLand(c, x, y, z) {
+      const S = STY[c.style] || STY.hook, barb = c.style === 'barb', n = barb ? 22 : 14;
+      ring(x, z, barb ? 1.9 : 1.5, barb ? [1.1, .1, .07] : [.7, .75, .95], .28);
+      for (let i = 0; i < n; i++) { const a = Math.random() * 6.283, v = rnd(1.2, 4); spark(x, y, z, Math.sin(a) * v, rnd(.3, 2.6), Math.cos(a) * v, barb && i % 3 ? COLORS.blood : i % 2 ? S.spark : [1.8, 1.6, 1.3], rnd(.25, .5), rnd(.06, .12), barb ? -9 : -5); }
+    }
+    // dust scraped up by a foe dragged along the floor (call every .04 s while he slides) and the thud when he stops
+    function dust(x, z, dx, dz, n) {
+      const g = gy(x, z) + .08;
+      for (let i = 0; i < (n || 2); i++) spark(x + rnd(-.3, .3), g + rnd(0, .1), z + rnd(-.3, .3), dx * rnd(.2, .8) + rnd(-.4, .4), rnd(.3, 1.1), dz * rnd(.2, .8) + rnd(-.4, .4), Math.random() < .2 ? [1.1, .9, .6] : [.26, .23, .19], rnd(.35, .6), rnd(.08, .15), -.6);
+    }
+    function slam(x, z) {
+      ring(x, z, 1.6, [.5, .5, .46], .3);
+      for (let i = 0; i < 16; i++) { const a = Math.random() * 6.283, v = rnd(1.2, 3.2); spark(x + Math.sin(a) * .3, gy(x, z) + .1, z + Math.cos(a) * .3, Math.sin(a) * v, rnd(.4, 1.4), Math.cos(a) * v, i % 4 ? [.28, .25, .2] : [1.5, 1.3, 1.0], rnd(.35, .6), rnd(.08, .15), -2); }
+    }
+    // Demir Duruş: boots planted, a dust ring pushed outward and steel sparks; style 'heart' (Demir Yürek) warm, 'thorn' (Dikenli Zırh) sharp
+    function plant(p, style) {
+      const g = gy(p.x, p.z), col = style === 'heart' ? [.55, .16, .11] : style === 'thorn' ? [.55, .5, .44] : [.24, .3, .5];
+      ring(p.x, p.z, 3.4, col, .5); ring(p.x, p.z, 2.0, [.2, .19, .18], .32);
+      for (let i = 0; i < 26; i++) { const a = Math.random() * 6.283, v = rnd(2, 4.6); spark(p.x + Math.sin(a) * .5, g + .1, p.z + Math.cos(a) * .5, Math.sin(a) * v, rnd(.2, .9), Math.cos(a) * v, i % 5 ? [.26, .23, .19] : [1.3, 1.1, .9], rnd(.45, .8), rnd(.08, .15), -1.2); }
+      for (let i = 0; i < 10; i++) { const a = Math.random() * 6.283; spark(p.x + Math.sin(a) * .5, g + .2, p.z + Math.cos(a) * .5, Math.sin(a) * rnd(.4, 1.4), rnd(2, 4.4), Math.cos(a) * rnd(.4, 1.4), style === 'heart' ? [1.6, .5, .3] : [1.5, 1.5, 1.8], rnd(.3, .6), rnd(.06, .1), -6); }
+    }
+    // the retaliation: a volley of steel splinters from the hero into the foe who struck him
+    function thornVolley(p, e, style) {
+      const gp = gy(p.x, p.z) + 1.1, y = ((e.model && e.model.root.position.y) || 0) + 1.0, k = .16, thorn = style === 'thorn';
+      for (let i = 0; i < (thorn ? 12 : 7); i++) spark(p.x + rnd(-.3, .3), gp + rnd(-.3, .3), p.z + rnd(-.3, .3), (e.x - p.x) / k + rnd(-1.2, 1.2), (y - gp) / k + rnd(-1, 1), (e.z - p.z) / k + rnd(-1.2, 1.2), i % 2 ? [1.7, 1.6, 1.5] : thorn ? [1.6, .2, .12] : [1, 1.2, 1.7], k * rnd(1, 1.6), .1, 0);
     }
     // Kan Yemini: a thread of blood motes from the wound to the hero. Ölü Açlığı: pale souls fly from the corpse into him.
     function leech(e, p) {
@@ -188,7 +236,7 @@
     }
     function puff(x, y, z, kind, n) {
       const c = COLORS[kind] || COLORS.bone;
-      for (let i = 0; i < (n || 6); i++) spark(x + rnd(-.3, .3), y + rnd(.2, 1.6), z + rnd(-.3, .3), rnd(-.3, .3), rnd(.1, .6), rnd(-.3, .3), c, rnd(.35, .6), rnd(.12, .22), 0);
+      for (let i = 0; i < (n || 6); i++) spark(x + rnd(-.3, .3), y + rnd(.2, 1.6), z + rnd(-.3, .3), rnd(-.3, .3), rnd(.1, .6), rnd(-.3, .3), c, rnd(.35, .6), rnd(.07, .14), 0);
     }
     function leap(a, b) {
       const ya = ((a.model && a.model.root.position.y) || 0) + 1.2;
@@ -204,6 +252,11 @@
       const y = (e.model && e.model.root.position.y) || 0;
       for (let i = 0; i < 14; i++) spark(e.x + rnd(-.3, .3), y + rnd(.6, 1.5), e.z + rnd(-.3, .3), (p.x - e.x) * 1.6, rnd(.5, 1.5), (p.z - e.z) * 1.6, [1.6, .25, .2], .6, .13, 0);
     }
+    // ---- Demir Duruş ring: eight iron plates round a rim (kind 0), a beating heart pulse (1, Demir Yürek) or sharp teeth (2, Dikenli Zırh)
+    const guardMesh = new T.Mesh(quad, new T.ShaderMaterial(Object.assign({ vertexShader: ZONE_VS, fragmentShader: GUARD_FS, uniforms: { uTime: { value: 0 }, uFade: { value: 0 }, uKind: { value: 0 } } }, blend)));
+    guardMesh.visible = false; guardMesh.frustumCulled = false; guardMesh.renderOrder = 3; group.add(guardMesh);
+    let guardView = null;
+    function setGuard(p, time, style) { guardView = p ? { p, left: time, age: guardView && guardView.p === p ? guardView.age : 0, style: style || '' } : null; }
     // ---- frame
     let time = 0;
     let auraOf = null, auraAcc = 0;
@@ -246,28 +299,59 @@
         if (m.dread && Math.random() < dt * 10) spark(e.x + rnd(-.4, .4), y + h * rnd(.8, 1.1), e.z + rnd(-.4, .4), 0, rnd(.3, .8), 0, COLORS.dread, .8, rnd(.12, .22), 0);
         if (m.sigil) { const s = m.sigil; s.m.position.set(e.x, gy(e.x, e.z) + .05, e.z); const r = (e.radius || .5) + .55; s.m.scale.set(r, 1, r); s.m.rotation.y = time * .8; s.mat.uniforms.uTime.value = time; s.mat.uniforms.uFade.value = .3 + .08 * Math.sin(time * 2.4); }   // rot mark: a dim, slow pulse so it never reads as a telegraph ring
       }
-      // chains: thrown out over the first 25 %, held, then dragged home
-      let li = 0, hi = 0;
+      // chains: the head flies out, bites, the chain stays taut while the foe is dragged along it, then everything whips home
+      let li = 0, hi = 0, bi = 0;
       for (let c = chainList.length - 1; c >= 0; c--) {
-        const ch = chainList[c]; ch.t += dt; const k = ch.t / ch.life;
-        if (k >= 1) { chainList.splice(c, 1); continue; }
-        const p = ch.from, tx = ch.to.dead ? ch.x : ch.to.x, tz = ch.to.dead ? ch.z : ch.to.z, reach = k < .25 ? k / .25 : k > .7 ? 1 - (k - .7) / .3 : 1;
-        const y0 = gy(p.x, p.z) + 1.05, ty = ((ch.to.model && ch.to.model.root.position.y) || 0) + 1, dx = tx - p.x, dz = tz - p.z, len = Math.hypot(dx, dz) || 1, yaw = Math.atan2(dx, dz);
-        const n = Math.min(LINKS, Math.max(3, Math.round(len * reach / .2)));
-        const hk = !!ch.hook, droop = (hk ? .12 : (ch.lash ? .5 : .25)) * (1 - reach * .6) * (hk ? -1 : 1);
-        for (let i = 0; i < n && li < LINKS * CHAINS; i++) {
-          const u = (i + .5) / n * reach, sag = Math.sin(u / Math.max(.01, reach) * Math.PI) * droop;
-          _p.set(p.x + dx * u, y0 + (ty - y0) * u + sag + Math.sin(time * 30 + i) * (hk ? .006 : .02), p.z + dz * u);
-          _e.set(i % 2 ? Math.PI / 2 : 0, yaw, 0, 'YXZ'); _q.setFromEuler(_e); _s.set(1, 1, 1.6); _m.compose(_p, _q, _s); links.setMatrixAt(li++, _m);
+        const ch = chainList[c]; ch.t += dt;
+        if (ch.t >= ch.life) { chainList.splice(c, 1); continue; }
+        const p = ch.from, tx = ch.to.dead ? ch.x : ch.to.x, tz = ch.to.dead ? ch.z : ch.to.z, hk = ch.hook, S = STY[ch.style] || STY.hook;
+        let reach;
+        if (!hk) { const k = ch.t / ch.life; reach = k < .25 ? k / .25 : k > .7 ? 1 - (k - .7) / .3 : 1; }
+        else if (ch.t < ch.throwT) { const u = ch.t / ch.throwT; reach = 1 - (1 - u) * (1 - u); }
+        else { const back = ch.life - .2; reach = ch.t > back ? Math.max(0, 1 - Math.pow((ch.t - back) / .2, 2)) : 1; }
+        // the chain leaves the left hand (the 'chain' pose is mirrored), not the hip
+        let ox = p.x, oy = gy(p.x, p.z) + 1.05, oz = p.z;
+        if (hk && p.model && p.model.root) {
+          const mdl = p.model; if (mdl.__ttHandL === undefined) mdl.__ttHandL = mdl.root.getObjectByName('handL') || null;
+          if (mdl.__ttHandL) { mdl.__ttHandL.getWorldPosition(_o); if (Math.abs(_o.x - p.x) < 1.6 && Math.abs(_o.z - p.z) < 1.6 && Math.abs(_o.y - oy) < 1.5) { ox = _o.x; oy = _o.y; oz = _o.z; } }
         }
-        if (hk && hi < CHAINS) {
-          const pitch = Math.atan2(-(ty - y0), len);
-          _p.set(p.x + dx * reach, y0 + (ty - y0) * reach, p.z + dz * reach); _e.set(pitch, yaw, Math.PI / 6, 'YXZ'); _q.setFromEuler(_e); _s.set(1.25, 1.25, 1.25); _m.compose(_p, _q, _s);
-          spikes.setMatrixAt(hi, _m); claws.setMatrixAt(hi, _m); hi++;
+        const ty = ((ch.to.model && ch.to.model.root.position.y) || 0) + 1, dx = tx - ox, dz = tz - oz, len = Math.hypot(dx, dz) || 1, yaw = Math.atan2(dx, dz), pitch = Math.atan2(oy - ty, len);
+        const sag0 = hk ? (ch.t < ch.throwT ? .18 * (1 - reach) : Math.max(0, 1 - len / 3.2) * .22) : (ch.lash ? .5 : .25) * (1 - reach * .6);
+        const headLen = Math.max(0, len * reach - (hk && ch.t >= ch.throwT * .98 ? .32 : 0)), tipx = ox + dx / len * headLen, tipz = oz + dz / len * headLen, tipy = oy + (ty - oy) * (headLen / len);
+        if (hk) {
+          if (!ch.landed && ch.t >= ch.throwT) { ch.landed = true; hookLand(ch, tx, ty, tz); }
+          // trailing sparks behind the flying head, blood drips off the barbs while held
+          ch.acc += dt * (ch.t < ch.throwT ? 90 : ch.style === 'barb' ? 16 : 0);
+          while (ch.acc >= 1) { ch.acc--; if (ch.style === 'barb' && ch.t >= ch.throwT) spark(tipx + rnd(-.1, .1), tipy, tipz + rnd(-.1, .1), rnd(-.2, .2), rnd(-.2, .3), rnd(-.2, .2), COLORS.blood, rnd(.4, .7), rnd(.06, .1), -9); else spark(tipx, tipy, tipz, rnd(-.5, .5), rnd(-.2, .7), rnd(-.5, .5), S.spark, rnd(.15, .3), rnd(.04, .08), -2); }
+        }
+        const strands = hk ? S.strands : 1, n = Math.min(LINKS, Math.max(2, Math.round(headLen / (hk ? .27 * S.ls : .2))));
+        const side = _p.set(Math.cos(yaw), 0, -Math.sin(yaw));
+        const sx = side.x, sz = side.z;
+        for (let sd = 0; sd < strands; sd++) for (let i = 0; i < n && li < LCAP; i++) {
+          const u = (i + .5) / n, h = headLen * u / len, sag = Math.sin(u * Math.PI) * sag0, tw = hk && strands > 1 ? u * headLen * 1.3 - time * 5 + sd * Math.PI : 0, off = strands > 1 ? .06 : 0;
+          const wob = Math.sin(time * 30 + i) * (hk ? .004 : .02);
+          _p.set(ox + dx * h + sx * Math.cos(tw) * off, oy + (ty - oy) * h - sag + Math.sin(tw) * off + wob, oz + dz * h + sz * Math.cos(tw) * off);
+          _e.set(pitch, yaw, 0, 'YXZ'); _q.setFromEuler(_e); if ((i + sd) % 2) { _q2.setFromAxisAngle(_ax, Math.PI / 2); _q.multiply(_q2); }
+          const ls = hk ? S.ls : 1; _s.set(ls, ls, hk ? 1.5 : 1.6); _m.compose(_p, _q, _s); links.setMatrixAt(li, _m);
+          if (hk) _c.setRGB(S.link[0], S.link[1], S.link[2]); else _c.setRGB(.5, .54, .62); links.setColorAt(li, _c); li++;
+        }
+        if (hk && hi < CHAINS && ch.t >= 0) {
+          _p.set(tipx, tipy, tipz); _e.set(pitch, yaw, ch.t * 0, 'YXZ'); _q.setFromEuler(_e); _q2.setFromAxisAngle(_ax, ch.t < ch.throwT ? ch.t * 14 : .5); _q.multiply(_q2);
+          const hs = S.hs * (ch.style === 'long' ? 1 : 1); _s.set(hs, hs, hs * (ch.style === 'long' ? 1.25 : 1)); _m.compose(_p, _q, _s);
+          spikes.setMatrixAt(hi, _m); _c.setRGB(S.head[0], S.head[1], S.head[2]); spikes.setColorAt(hi, _c); hi++;
+          if (ch.style === 'barb') { barbs.setMatrixAt(bi, _m); barbs.setColorAt(bi, _c); bi++; }
         }
       }
-      links.count = li; if (li) links.instanceMatrix.needsUpdate = true;
-      spikes.count = claws.count = hi; if (hi) { spikes.instanceMatrix.needsUpdate = true; claws.instanceMatrix.needsUpdate = true; }
+      links.count = li; if (li) { links.instanceMatrix.needsUpdate = true; links.instanceColor.needsUpdate = true; }
+      spikes.count = hi; if (hi) { spikes.instanceMatrix.needsUpdate = true; spikes.instanceColor.needsUpdate = true; }
+      barbs.count = bi; if (bi) { barbs.instanceMatrix.needsUpdate = true; barbs.instanceColor.needsUpdate = true; }
+      // Demir Duruş: a steel ring under the hero for the whole stance
+      if (guardView && guardView.p && !guardView.p.dead) {
+        const gp = guardView.p, left = guardView.left, k = Math.min(1, guardView.age / .25) * Math.min(1, left / .6);
+        guardMesh.visible = true; guardMesh.position.set(gp.x, gy(gp.x, gp.z) + .045, gp.z); guardMesh.scale.set(1.9, 1, 1.9); guardMesh.rotation.y = time * .22;
+        const u = guardMesh.material.uniforms; u.uTime.value = time; u.uFade.value = k * (.4 + .1 * Math.sin(time * (guardView.style === 'heart' ? 5.5 : 2.4)));
+        u.uKind.value = guardView.style === 'heart' ? 1 : guardView.style === 'thorn' ? 2 : 0; guardView.age += dt;
+      } else guardMesh.visible = false;
       // build aura on the hero (talent-runtime passes the dominant path)
       if (auraOf && auraOf.player && !auraOf.player.dead && AURA_COL[auraOf.kind]) {
         const p = auraOf.player; heroRing.visible = true; heroRing.position.set(p.x, gy(p.x, p.z) + .03, p.z); heroRing.scale.set(1.15, 1, 1.15); heroRing.rotation.y = -time * .35;
@@ -321,14 +405,14 @@
       for (const o of ringPool) o.m.visible = false;
       for (const [e] of marks) clear(e);
       for (let i = 0; i < MAX; i++) life[i] = 0;
-      chainList.length = 0; links.count = 0; spikes.count = claws.count = 0;
+      chainList.length = 0; links.count = 0; spikes.count = barbs.count = 0; guardView = null; guardMesh.visible = false;
     }
     function dispose() {
       reset(); root.remove(group);
       group.traverse(o => { if (o.geometry && o.geometry !== quad) o.geometry.dispose(); if (o.material) o.material.dispose(); });
       quad.dispose();
     }
-    return { zone, unzone, mark, unmark, clear, burst, chains, drain, leech, souls, leap, execute, puff, update, reset, dispose, debug: () => ({ live: liveCount, zones: zonePool.filter(o => o.z).length, marks: marks.size }) };
+    return { zone, unzone, mark, unmark, clear, burst, chains, dust, slam, plant, thornVolley, setGuard, drain, leech, souls, leap, execute, puff, update, reset, dispose, debug: () => ({ live: liveCount, zones: zonePool.filter(o => o.z).length, marks: marks.size }) };
   }
   B.TalentFX = Object.freeze({ create });
 }());

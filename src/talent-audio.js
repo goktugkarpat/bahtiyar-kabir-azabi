@@ -4,7 +4,7 @@
 (function () {
   'use strict';
   const B = window.BABA = window.BABA || {};
-  const NAMES = new Set(['talentIgnite', 'talentKnell', 'talentRot', 'talentBurst', 'talentChain', 'talentHook', 'talentHookHit', 'talentStance', 'talentThorns', 'talentExecute', 'talentLearn', 'talentKeystone']);
+  const NAMES = new Set(['talentIgnite', 'talentKnell', 'talentRot', 'talentBurst', 'talentChain', 'talentHook', 'talentHookHit', 'talentHookLand', 'talentStance', 'talentThorns', 'talentExecute', 'talentLearn', 'talentKeystone']);
   const cache = new WeakMap();
   function noiseOf(ctx) {
     let b = cache.get(ctx); if (b) return b;
@@ -13,7 +13,7 @@
     cache.set(ctx, b); return b;
   }
   function play(name, ctx, dry, wet, t, k, o, N) {
-    k = (k == null ? 1 : k) * .9;
+    k = (k == null ? 1 : k) * .9; const style = (o && o.style) || '';
     const noise = (N && N.noise) || noiseOf(ctx);
     const out = ctx.createGain(); out.gain.value = 1; out.connect(dry);
     if (wet) { const s = ctx.createGain(); s.gain.value = .32; out.connect(s); s.connect(wet); }
@@ -51,24 +51,31 @@
         break;
       }
       case 'talentHook': {
-        // the hook leaves the hand: a rising whistle, links paying out one by one, then the barbed head biting in
-        whoosh(t, .22, 380, 2600, .26, 1.6);
-        for (let i = 0; i < 12; i++) metal(t + .03 + i * .017 + Math.random() * .01, 1700 + Math.random() * 1100, .06, .13, [1, 1.47, 2.31]);
-        thump(t + .22, 110, 46, .28, .42); metal(t + .22, 380, .1, .5, [1, 1.58, 2.4]); crackle(t + .22, .12, 5, .12, 2200);
+        // the hook leaves the hand: a rising whistle, links paying out one by one, then the head biting in exactly on the contact frame
+        const st = style === 'long' ? .17 : style === 'barb' ? .28 : .24, links = style === 'long' ? 18 : 12, span = st - .04;
+        whoosh(t, st * .95, style === 'long' ? 520 : 380, style === 'long' ? 3400 : 2600, style === 'long' ? .3 : .26, 1.6);
+        for (let i = 0; i < links; i++) metal(t + .03 + i * span / links + Math.random() * .008, (style === 'barb' ? 1300 : 1700) + Math.random() * 1100, .06, .13, [1, 1.47, 2.31]);
+        thump(t + st, style === 'barb' ? 90 : 110, 46, .28, style === 'barb' ? .55 : .42); metal(t + st, style === 'barb' ? 300 : 380, .1, .5, [1, 1.58, 2.4]); crackle(t + st, .12, style === 'barb' ? 9 : 5, .12, 2200);
+        if (style === 'barb') { const a = g(0), bp = f('bandpass', 700, 1.4, a); hiss(t + st, .18, bp); env(a, t + st, .16 * k, .004, .16); }   // barbs tearing into flesh
         break;
       }
       case 'talentHookHit':
-        // the foe is dragged in: chain strain, a heavy scrape and a body-weight thud
-        whoosh(t, .3, 2400, 500, .2, 1.1); thump(t + .14, 82, 36, .4, .55); metal(t + .12, 220, .08, .5, [1, 1.7, 2.7]); crackle(t + .02, .2, 7, .1, 1800); break;
+        // the foe is dragged in: chain strain, a heavy scrape (longer for the barbed form) and a body-weight thud on the arrival
+        whoosh(t, style === 'long' ? .22 : .32, 2400, 500, .2, 1.1); crackle(t + .02, style === 'barb' ? .38 : .24, 9, .1, 1800);
+        { const a = g(0), bp = f('bandpass', 260, 2.2, a); hiss(t, .3, bp); env(a, t, .1 * k, .03, .3); }   // links grinding under load
+        thump(t + (style === 'long' ? .2 : style === 'barb' ? .36 : .28), 82, 36, .4, .55); break;
+      case 'talentHookLand':
+        thump(t, 78, 34, .4, .5); { const a = g(0), lp = f('lowpass', 700, .8, a); hiss(t, .25, lp); env(a, t, .22 * k, .004, .22); } metal(t, 210, .07, .35, [1, 1.7, 2.7]); break;
       case 'talentStance':
-        // iron stance: a deep breath-out thud of boots, armour plates grinding and settling, a low ringing clang
+        // iron stance: a deep breath-out thud of boots, armour plates grinding and settling, a low ringing clang (heart: a pulse; thorn: a sharper ring)
         thump(t, 74, 32, .5, .62); whoosh(t + .02, .35, 260, 900, .18, .8);
-        metal(t + .04, 196, .17, 1.3, [1, 1.52, 2.1, 2.9]); crackle(t + .05, .3, 8, .1, 1400);
+        metal(t + .04, style === 'thorn' ? 310 : 196, .17, style === 'thorn' ? .8 : 1.3, [1, 1.52, 2.1, 2.9]); crackle(t + .05, .3, 8, .1, 1400);
         { const a = g(0), lp = f('lowpass', 420, .8, a); hiss(t, .8, lp); env(a, t + .03, .16 * k, .06, .6); }
+        if (style === 'heart') { thump(t + .32, 62, 40, .3, .38); thump(t + .5, 62, 40, .3, .3); }
         break;
       case 'talentThorns':
         // the retaliation: an iron clang with a snap, then a short bone crunch
-        metal(t, 540, .22, .5, [1, 1.51, 2.2, 3.4]); thump(t, 120, 44, .22, .5); crackle(t, .1, 6, .16, 2600); whoosh(t, .12, 2800, 900, .12, 1.2); break;
+        metal(t, style === 'thorn' ? 760 : 540, .22, .5, [1, 1.51, 2.2, 3.4]); thump(t, 120, 44, .22, .5); crackle(t, style === 'thorn' ? .16 : .1, style === 'thorn' ? 10 : 6, .16, 2600); whoosh(t, .12, 2800, 900, .12, 1.2); break;
       case 'talentLearn':
         // a seal pressed into hot iron: low knock, short metallic ring, a breath of sparks
         thump(t, 130, 70, .22, .4); metal(t + .01, 520, .09, .7, [1, 1.52, 2.33, 3.1]); whoosh(t, .3, 2400, 600, .08, 1.2); crackle(t + .04, .3, 6, .08); break;
