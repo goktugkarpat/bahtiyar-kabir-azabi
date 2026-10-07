@@ -8,7 +8,7 @@
 (function () {
   'use strict';
   const B = window.BABA = window.BABA || {};
-  const COLORS = { stone: [1.1, .85, .55], gold: [1.6, 1.15, .45], chain: [.75, .78, .85], fire: [1.45, .3, .04], blood: [1.5, .08, .05], rot: [.4, 1.0, .22], dread: [.55, .2, 1.0], bone: [1.4, 1.3, 1.05] };
+  const COLORS = { stone: [1.1, .85, .55], gold: [1.6, 1.15, .45], chain: [.75, .78, .85], fire: [1.45, .3, .04], blood: [1.5, .08, .05], rot: [.46, .62, .2], dread: [.55, .2, 1.0], bone: [1.4, 1.3, 1.05] };
   const ZONE_VS = 'varying vec2 vUv; void main(){ vUv = uv * 2.0 - 1.0; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }';
   // kind 0: seal (rune circle), 1: ring, 2: trail (uv.x along, uv.y across), 3: crescent (front arc)
   const ZONE_FS = [
@@ -39,7 +39,7 @@
     '  }',
     '  float ash = crack * step(r, 1.0) * (uKind > 1.5 && uKind < 2.5 ? 0.0 : .6);',
     '  vec3 hot = mix(uColor, vec3(1.7, .7, .2), clamp(core, 0.0, 1.0));',
-    '  float alpha = clamp(m * .55 + core * .5 + ash * core * .3, 0.0, 1.2) * uFade;',
+    '  float alpha = clamp(m * .55 + core * .5 + ash * core * .3, 0.0, 1.2) * uFade * .72;',   // skillfx: large seals read near-white across the arena; keep them under the hits
     '  gl_FragColor = vec4(hot * alpha, alpha);',
     '}'].join('\n');
   const RING_FS = [
@@ -80,15 +80,15 @@
     // ---- bell (Ölüm Çanı): a fresnel ghost bell (rim-lit, so it reads from the steep top-down camera), its clapper and a pale pillar of light
     const pts = [], H = 1.25; for (let i = 0; i <= 18; i++) { const u = i / 18; pts.push(new T.Vector2(.2 + .62 * Math.pow(u, 1.6) + (u > .9 ? (u - .9) * 2.6 : 0), H * (1 - u))); }
     const GHOST_VS = 'varying vec3 vN; varying vec3 vV; varying float vY; void main(){ vec4 w = modelViewMatrix * vec4(position, 1.0); vN = normalize(normalMatrix * normal); vV = normalize(-w.xyz); vY = position.y; gl_Position = projectionMatrix * w; }';
-    const GHOST_FS = 'varying vec3 vN; varying vec3 vV; varying float vY; uniform float uFade, uTime; uniform vec3 uColor; void main(){ float f = pow(1.0 - abs(dot(normalize(vN), normalize(vV))), 1.6); float band = smoothstep(.04, 0.0, abs(fract(vY * 3.2 - uTime * .8) - .5) - .42); float a = (f * 1.2 + band * .35 + .08) * uFade; gl_FragColor = vec4(uColor * a, a); }';
-    const bellMat = new T.ShaderMaterial({ vertexShader: GHOST_VS, fragmentShader: GHOST_FS, uniforms: { uFade: { value: 0 }, uTime: { value: 0 }, uColor: { value: new T.Vector3(.55, 1.25, .45) } }, transparent: true, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide });
+    const GHOST_FS = 'varying vec3 vN; varying vec3 vV; varying float vY; uniform float uFade, uTime; uniform vec3 uColor; void main(){ float f = pow(1.0 - abs(dot(normalize(vN), normalize(vV))), 1.6); float band = smoothstep(.04, 0.0, abs(fract(vY * 3.2 - uTime * .8) - .5) - .42); float a = (f * .8 + band * .25 + .03) * uFade; gl_FragColor = vec4(uColor * a, a); }';
+    const bellMat = new T.ShaderMaterial({ vertexShader: GHOST_VS, fragmentShader: GHOST_FS, uniforms: { uFade: { value: 0 }, uTime: { value: 0 }, uColor: { value: new T.Vector3(.46, .78, .36) } }, transparent: true, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide });
     const bell = new T.Mesh(new T.LatheGeometry(pts, 28), bellMat); bell.visible = false; bell.renderOrder = 5; group.add(bell);
     const clapper = new T.Mesh(new T.SphereGeometry(.17, 12, 8), bellMat); clapper.position.y = -.15; bell.add(clapper);
     const bellWire = new T.LineSegments(new T.EdgesGeometry(bell.geometry, 25), new T.LineBasicMaterial({ color: new T.Color(.85, 1, .7), transparent: true, opacity: 0, blending: T.AdditiveBlending, depthWrite: false }));
     bell.add(bellWire);
     const PILLAR_FS = 'varying vec2 vUv; uniform float uFade, uTime; uniform vec3 uColor; void main(){ float edge = sin(vUv.x * 3.14159); float v = smoothstep(0.0, .15, vUv.y) * (1.0 - smoothstep(.55, 1.0, vUv.y)); float flow = .6 + .4 * sin(vUv.y * 22.0 - uTime * 9.0); float a = edge * edge * v * flow * uFade * .55; gl_FragColor = vec4(uColor * a, a); }';
     const pillarMat = new T.ShaderMaterial({ vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }', fragmentShader: PILLAR_FS,
-      uniforms: { uFade: { value: 0 }, uTime: { value: 0 }, uColor: { value: new T.Vector3(.35, .85, .3) } }, transparent: true, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide });
+      uniforms: { uFade: { value: 0 }, uTime: { value: 0 }, uColor: { value: new T.Vector3(.26, .5, .2) } }, transparent: true, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide });
     const pillar = new T.Mesh(new T.CylinderGeometry(1.25, 1.6, 5.5, 24, 1, true), pillarMat); pillar.visible = false; pillar.renderOrder = 4; group.add(pillar);
     let bellT = 9, bellOwner = null, bellR = 7, bellWave = 3;
     // ---- chains (Zincirli Kader, Zincir Kırbacı, Kanca / Kement): real links, instanced (6 chains x 22 links), thrown out then dragged back
@@ -245,7 +245,7 @@
         if (m.bleed && Math.random() < dt * 14) { const a = Math.random() * 6.283; spark(e.x + Math.sin(a) * .3, y + rnd(.8, h * .7), e.z + Math.cos(a) * .3, Math.sin(a) * .3, rnd(.2, .8), Math.cos(a) * .3, COLORS.blood, rnd(.4, .7), rnd(.07, .12), -9); }
         if (m.rot && Math.random() < dt * 12) { const a = time * 2 + Math.random() * 6.283; spark(e.x + Math.sin(a) * .55, y + rnd(.3, h), e.z + Math.cos(a) * .55, Math.cos(a) * .4, rnd(.3, .7), -Math.sin(a) * .4, Math.random() < .3 ? COLORS.bone : COLORS.rot, rnd(.6, 1), rnd(.1, .2), .2); }
         if (m.dread && Math.random() < dt * 10) spark(e.x + rnd(-.4, .4), y + h * rnd(.8, 1.1), e.z + rnd(-.4, .4), 0, rnd(.3, .8), 0, COLORS.dread, .8, rnd(.12, .22), 0);
-        if (m.sigil) { const s = m.sigil; s.m.position.set(e.x, gy(e.x, e.z) + .05, e.z); const r = (e.radius || .5) + .55; s.m.scale.set(r, 1, r); s.m.rotation.y = time * .8; s.mat.uniforms.uTime.value = time; s.mat.uniforms.uFade.value = .55 + .25 * Math.sin(time * 5); }
+        if (m.sigil) { const s = m.sigil; s.m.position.set(e.x, gy(e.x, e.z) + .05, e.z); const r = (e.radius || .5) + .55; s.m.scale.set(r, 1, r); s.m.rotation.y = time * .8; s.mat.uniforms.uTime.value = time; s.mat.uniforms.uFade.value = .3 + .08 * Math.sin(time * 2.4); }   // rot mark: a dim, slow pulse so it never reads as a telegraph ring
       }
       // bell: rises, swings hard (so its side reads from above), rings three waves; a pale pillar under it
       if (bell.visible) {
