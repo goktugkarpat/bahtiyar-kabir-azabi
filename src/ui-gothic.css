@@ -8,6 +8,10 @@ body:not([data-view="playing"]) #lu-banner { opacity: 0 !important; visibility: 
 /* öncelik: boss kartı > seviye afişi > bölge duyurusu */
 body.bf-intro #announcement.show, body:has(#lu-banner.lu-on) #announcement.show { opacity: 0 !important }
 body.bf-intro .qc-caption { opacity: 0 !important; transition: opacity .3s !important }
+/* savaş başlarsa sinema bantları çekilir, altyazı söner: alt çubuk/küreler ve hedef çubuğu asla örtülmez */
+body.in-combat .qc-bars .qc-bar.top { transform: translateY(-100%) } body.in-combat .qc-bars .qc-bar.bottom { transform: translateY(100%) }
+body.in-combat.qc-cinema #hud .hero-card, body.in-combat.qc-cinema #hud .quest.story-quest { opacity: 1 }
+body.in-combat .qc-caption { opacity: 0 !important; transition: opacity .4s !important }
 /* görev bildirimi seviye afişi/boss kartı sırasında soluklaşır, sonra kendiliğinden geri gelir */
 body:has(#lu-banner.lu-on) #quest-notice.show, body.bf-intro #quest-notice.show { opacity: .25 }
 
@@ -76,7 +80,7 @@ html[lang=en] .ui-logo-sub::before { content: 'Kabir Azabı' }
 
 /* ───────── 5. Seviye atlama: arkada dönen altın ışık, puan vurgusu ───────── */
 #lu-banner::before { content: ''; position: absolute; left: 50%; top: 42%; width: min(620px, 70vw); aspect-ratio: 1; margin-left: calc(min(620px, 70vw) / -2); margin-top: calc(min(620px, 70vw) / -2); z-index: -1; border-radius: 50%; pointer-events: none;
-  background: radial-gradient(circle, #ffd98a40 0%, #d0904018 30%, transparent 62%), repeating-conic-gradient(from 0deg, #ffdb9a1c 0deg 3deg, transparent 3deg 15deg);
+  background: radial-gradient(circle, #ffe0a066 0%, #d0904028 30%, transparent 62%), repeating-conic-gradient(from 0deg, #ffdb9a30 0deg 3deg, transparent 3deg 15deg);
   -webkit-mask: radial-gradient(circle, #000 18%, transparent 66%); mask: radial-gradient(circle, #000 18%, transparent 66%); opacity: 0; transform: scale(.4) rotate(0deg) }
 #lu-banner.lu-on::before { animation: ui-lu-burst 2.6s cubic-bezier(.12,.75,.2,1) both }
 @keyframes ui-lu-burst { 0% { opacity: 0; transform: scale(.35) rotate(0deg) } 12% { opacity: 1 } 70% { opacity: .75 } 100% { opacity: 0; transform: scale(1.12) rotate(24deg) } }
