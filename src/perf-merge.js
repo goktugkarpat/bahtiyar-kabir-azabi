@@ -30,6 +30,7 @@
   // Small parts (shape vertices × instances) are copied into pseudo merges; larger ones are merged as real instances.
   // TOTAL caps the copied vertices (~108 bytes each with matrix and colour).
   var SRC_LIMIT = +(/[?&]mergesrc=(\d+)/.exec(Q) || [0, 5000])[1], TOTAL_LIMIT = +(/[?&]mergetotal=(\d+)/.exec(Q) || [0, 600000])[1];
+  var NO_ADD = /[?&]nomergeadd\b/.test(Q);
   var MARGIN = +(/[?&]mergemargin=([\d.]+)/.exec(Q) || [0, .25])[1];   // metres added to each part's bounds for the camera test (re-tested whenever the camera moves)
   var Perf = B.Perf = B.Perf || {};
   Perf.enabled = !OFF;
@@ -42,13 +43,15 @@
     if (!o.isInstancedMesh || o.isSkinnedMesh || o.isBatchedMesh) return false;
     var m = o.material, g = o.geometry;
     if (!m || Array.isArray(m)) return skip('multi-material');
-    if (m.isShaderMaterial || m.isRawShaderMaterial) return skip('shader');
+    // Additive, depth-free glows (flames, glow decals) add up in any order: these may merge (as real instances) even when animated.
+    var additive = m.transparent && m.blending === T.AdditiveBlending && m.depthWrite === false && !NO_ADD;
+    if ((m.isShaderMaterial || m.isRawShaderMaterial) && !additive) return skip('shader');
     // Blended parts keep their own draws: merging them changes the blend order where decals of two materials overlap.
-    if (m.transparent) return skip('transparent');
+    if (m.transparent && !additive) return skip('transparent');
     if (m.alphaTest > 0 || m.alphaHash) return skip('cutout');
     if (o.morphTexture || g.morphAttributes && Object.keys(g.morphAttributes).length) return skip('morph');
-    if (o.instanceMatrix.usage !== T.StaticDrawUsage) return skip('dynamic');
-    if (o.instanceColor && o.instanceColor.usage !== T.StaticDrawUsage) return skip('dynamic-color');
+    if (!additive && o.instanceMatrix.usage !== T.StaticDrawUsage) return skip('dynamic');
+    if (!additive && o.instanceColor && o.instanceColor.usage !== T.StaticDrawUsage) return skip('dynamic-color');
     if (!o.frustumCulled) return skip('no-frustum');
     if (o.onBeforeRender !== T.Object3D.prototype.onBeforeRender || o.onAfterRender !== T.Object3D.prototype.onAfterRender) return skip('render-hook');
     if (o.children.length) return skip('children');
@@ -257,7 +260,10 @@
     for (var i = 0; i < gs.length; i++) {
       var G = gs[i]; if (G.dead) continue;
       var srcs = G.sources, s0 = srcs[0], k, s;
-      if (check) for (k = 0; k < srcs.length; k++) if (versionOf(srcs[k]) !== G.versions[k]) { release(G); break; }
+      if (G.live) {   // animated glows: copy again whenever a part changed (every frame while they flicker)
+        for (k = 0; k < srcs.length; k++) { var vv = versionOf(srcs[k]); if (vv !== G.versions[k]) { G.versions[k] = vv; G.sig = ''; } }
+        if (G.sig === '') for (k = 0; k < srcs.length; k++) { s = srcs[k]; if (!s.boundingSphere) s.computeBoundingSphere(); G.wspheres[k].copy(s.boundingSphere).applyMatrix4(s.matrixWorld); G.wspheres[k].radius += MARGIN; }
+      } else if (check) for (k = 0; k < srcs.length; k++) if (versionOf(srcs[k]) !== G.versions[k]) { release(G); break; }
       if (G.dead) continue;
       var flags = (Perf.enabled ? 1 : 0) | (s0.castShadow ? 2 : 0) | (s0.receiveShadow ? 4 : 0) | (s0.parent ? 8 : 0);
       if (flags !== G.flags || check) {
@@ -298,7 +304,7 @@
       var cast = o.castShadow && !(ud.proxied && ud.baseCastShadow), scope = cast ? roomOf(o, world) : 'all';
       var flags = [o.parent.uuid, o.material.uuid, !!o.instanceColor, o.castShadow, ud.baseCastShadow, ud.proxied, o.receiveShadow, o.renderOrder, o.layers.mask,
         o.customDepthMaterial ? o.customDepthMaterial.uuid : '-', scope].join('|');
-      var small = verts <= SRC_LIMIT && !o.material.transparent, map = small ? pseudo : inst, key = small ? flags + '|' + layoutOf(o.geometry) : flags + '|' + geoHash(o.geometry);
+      var small = verts <= SRC_LIMIT && !o.material.transparent && !o.material.isShaderMaterial, map = small ? pseudo : inst, key = small ? flags + '|' + layoutOf(o.geometry) : flags + '|' + geoHash(o.geometry);
       var G = map.get(key); if (!G) map.set(key, G = { key: key, kind: small ? 'pseudo' : 'inst', sources: [], verts: 0 });
       G.sources.push(o); G.verts += verts;
     });
@@ -309,6 +315,7 @@
         var w = s.boundingSphere.clone().applyMatrix4(s.matrixWorld); w.radius += MARGIN; return w;   // static parts: world bounds once
       });
       G.flags = -1; G.ok = false;
+      G.live = G.kind === 'inst' && G.sources.some(function (s) { return s.material.transparent; });
     }
     pseudo.forEach(function (G) {
       if (G.sources.length < 2) return;
