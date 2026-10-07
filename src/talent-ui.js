@@ -30,93 +30,65 @@
     skull: '<path d="M12 2c5 0 9 3.5 9 8.5 0 3-1.5 4.5-3 5.5v3h-3v-2h-2v2h-2v-2H9v2H6v-3c-1.5-1-3-2.5-3-5.5C3 5.5 7 2 12 2zM8 9a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm8 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4z"/>'
   };
   const glyph = (name, color) => '<svg class="tt-glyph" viewBox="0 0 24 24" aria-hidden="true" style="color:' + color + '">' + (GLYPH[name] || GLYPH.circle) + '</svg>';
-  // Fixed pixel rows: node (art) + a 2-line label band + margin never overlap the next row. The board is ROWH * rows tall and scrolls in its viewport when the screen is short.
-  const ROWH = 122, TOP = 12, LABEL = 40, SIZE = { active: 62, form: 48, mod: 48, passive: 54, key: 60 };
-  const ROW_TOP = r => (r - 1) * ROWH + TOP;
+  const ROW_Y = { 1: 9, 2: 29, 3: 50, 4: 70, 5: 90 };
   // view state that survives re-renders: recommended-build preview, last learned list (learn animation)
   const zoom = 1;   // the slim tree fits at once: no zoom / pan
   let preview = '', seen = null;
-  const KIND = { active: t('Aktif yetenek'), form: t('Biçim'), mod: t('Güçlendirme'), passive: t('Yapı'), key: t('Kilit taşı') };
+  const KIND = { active: t('Aktif yetenek'), form: t('Dönüşüm'), mod: t('Mühür'), passive: t('Beden'), key: t('Kilit taşı') };
   function pos(n) {
-    const x = n.x != null ? n.x : (n.slot != null ? n.col + .25 + .5 * n.slot : n.col + .5) * 100 / 6, size = SIZE[n.kind] || 56, top = ROW_TOP(n.row) + (64 - size) / 2;
-    return { x, top, size, bottom: top + size, linkEnd: top + size + LABEL };
-  }
-  const esc = s => String(s).replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
-  const PAINTED = new Set(['p-frenzy', 'p-momentum', 'k-exec', 'k-blood']);   // painted node icons in assets/ui/talents; the other passives use the engraved glyph only
-  const paint = id => PAINTED.has(id) ? '<img class="tt-ico" src="assets/ui/talents/' + id + '.png" alt="" draggable="false">' : '';
-  function archLine(n) {
-    const T = B.TalentTree, a = T.archOf(n); if (!a) return '';
-    const mates = T.archMates(n).slice(0, 4);
-    return '<p class="tt-arch-note"><b>' + esc(a) + '</b>' + (mates.length ? ' · ' + esc(t('iyi eşleşir:')) + ' ' + mates.map(esc).join(', ') : '') + '</p>';
+    const colW = 100 / 6; const x = (n.col + .5) * colW, y = ROW_Y[n.row];
+        return { x, y };
   }
   function render(state, h) {
     const T = B.TalentTree, P = B.Progression, esc = h.escape, nodes = T.nodes(), learned = state.learned;
     const sel = T.get(h.selected) || T.get('cleave');
-    const colOf = n => T.colOfLine(n.line);
+    const colOf = n => T.cols[n.col];
     const game = h.game, inCombat = !!(game && game.talents && game.talents.inCombat && game.talents.inCombat());
     // ---- links (SVG in a 1000 x 1000 box, stretched over the board)
     const links = [];
-    const BOARD_H = ROWH * T.rows.length;
-    const line = (a, b, cls) => { const p = pos(a), q = pos(b); links.push('<path class="tt-link ' + cls + '" d="M' + (p.x * 10).toFixed(1) + ' ' + p.linkEnd.toFixed(1) + ' L' + (q.x * 10).toFixed(1) + ' ' + (q.top - 4).toFixed(1) + '"/>'); };
+    const line = (a, b, cls) => { const p = pos(a), q = pos(b); links.push('<path class="tt-link ' + cls + '" d="M' + (p.x * 10).toFixed(1) + ' ' + (p.y * 10).toFixed(1) + ' L' + (q.x * 10).toFixed(1) + ' ' + (q.y * 10).toFixed(1) + '"/>'); };
+    for (let c = 0; c < 6; c++) { const x = ((c + .5) * 100 / 6 * 10).toFixed(1); links.push('<path class="tt-spine" d="M' + x + ' 75 L' + x + ' 920" style="stroke:' + T.cols[c].color + '"/>'); }
     for (const n of nodes) {
-      if (!n.requires) continue; let p = T.get(n.requires); if (!p) continue;
-      for (const m of nodes) if (m.col === p.col && m.row > p.row && m.row < n.row && m.kind === 'form') p = m;   // the link starts at the form that replaced the active, never through its label
-      const root = T.get(n.requires), lit = learned.includes(n.id) && learned.includes(root.id), ready = !lit && learned.includes(root.id) && T.access(state, n.id).canLearn;
+      if (!n.requires) continue; const p = T.get(n.requires); if (!p) continue;
+      const lit = learned.includes(n.id) && learned.includes(p.id), ready = !lit && learned.includes(p.id) && T.access(state, n.id).canLearn;
       line(p, n, (lit ? 'lit' : ready ? 'ready' : '') + (lit && seen && !seen.includes(n.id) ? ' just' : ''));
     }
     // ---- gates (row labels with the points they ask for)
     const spent = learned.length, bonus = state.boons ? (state.boons().points || 0) : 0;
     const rows = T.rows.map(r => {
       if (!r.name) return ''; const need = r.gate || 0, open = spent >= need;
-      return '<div class="tt-row' + (open ? ' open' : '') + '" style="top:' + (ROW_TOP(r.row) + 32) + 'px"><b>' + (() => { const k = r.name.indexOf(' · '); return k > 0 ? '<span class="tt-roman">' + esc(r.name.slice(0, k)) + '</span><span class="tt-rowword"> · ' + esc(r.name.slice(k + 3)) + '</span>' : esc(r.name); })() + '</b><small>' + esc(r.hint) + '</small></div>';
+      return '<div class="tt-row' + (open ? ' open' : '') + '" style="top:' + ROW_Y[r.row] + '%"><b>' + (() => { const k = r.name.indexOf(' · '); return k > 0 ? '<span class="tt-roman">' + esc(r.name.slice(0, k)) + '</span><span class="tt-rowword"> · ' + esc(r.name.slice(k + 3)) + '</span>' : esc(r.name); })() + '</b><small>' + esc(r.hint) + '</small></div>';
     }).join('');
     const heads = T.cols.map((c, i) => {
-      const count = nodes.filter(n => n.line === c.line && learned.includes(n.id)).length;
+      const count = nodes.filter(n => n.col === i && learned.includes(n.id)).length;
       return '<div class="tt-colhead" style="left:' + ((i + .5) * 100 / 6) + '%;--c:' + c.color + '"><b>' + esc(c.name) + '</b>' + (count ? '<i>' + count + '</i>' : '') + '</div>';
     }).join('');
     const slotOf = id => state.loadout.indexOf(id);
     const fresh = seen ? learned.filter(id => !seen.includes(id)) : []; seen = learned.slice();
     const pre = preview ? T.presets.find(x => x.id === preview) : null;
-    const firstSentence = txt => { const k = txt.search(/[.!?](\s|$)/); return k > 0 ? txt.slice(0, k + 1) : txt; };
-    // one button per node, used inside the cards (ids / data attributes / classes stay what character-ui.js and the hover card expect)
-    const nodeBtn = n => {
-      const a = T.access(state, n.id), known = a.known, slot = slotOf(n.id), c = colOf(n).color;
+    const html = nodes.map(n => {
+      const a = T.access(state, n.id), known = a.known, slot = slotOf(n.id), p = pos(n), c = colOf(n).color;
       const superseded = known && n.skill && slot < 0 && nodes.some(o => o.requires === n.id && o.skill && learned.includes(o.id));
-      const cls = 'tt-node skt-node tt-' + n.kind + (n.slot != null ? ' tt-fork' : '') + (known ? ' learned' : a.exclusive ? ' excluded' : a.canLearn ? ' available' : a.blocked ? ' locked' : ' pending') + (superseded ? ' superseded' : '') + (slot >= 0 ? ' slotted' : '') + (n.id === sel.id ? ' selected' : '') + (fresh.includes(n.id) ? ' just' : '');
-      const art = n.skill ? h.icon(n.id) : paint(n.id) + glyph(n.glyph, c);
+      const cls = 'tt-node skt-node tt-' + n.kind + (known ? ' learned' : a.exclusive ? ' excluded' : a.canLearn ? ' available' : a.blocked ? ' locked' : ' pending') + (superseded ? ' superseded' : '') + (slot >= 0 ? ' slotted' : '') + (n.id === sel.id ? ' selected' : '') + (fresh.includes(n.id) ? ' just' : '') + (pre && pre.nodes.includes(n.id) ? ' preview' : '');
+      const art = n.skill ? h.icon(n.id) : '<img class="tt-ico" src="assets/ui/talents/' + n.id + '.png" alt="" draggable="false" onerror="this.remove()">' + glyph(n.glyph, c);
       const title = n.name + ' · ' + KIND[n.kind] + (known ? '' : ' · ' + a.reason);
-      const sub = n.kind === 'active' ? firstSentence(n.desc) : n.kind === 'form' ? n.skill.delta : n.kind === 'key' ? n.price : firstSentence(n.desc);
-      const state2 = known ? t('Öğrenildi') : a.exclusive ? t('Kilitli') : a.canLearn ? t('Çift tıkla: öğren') : '';
-      return '<button data-char="skill" data-skill="' + n.id + '" class="' + cls + '" style="--c:' + c + '" aria-pressed="' + (n.id === sel.id) + '" title="' + esc(title) + '">' +
-        '<span class="tt-art">' + art + '</span>' + (fresh.includes(n.id) ? '<i class="tt-burst" aria-hidden="true"></i>' : '') + (slot >= 0 ? '<span class="tt-cap">' + h.capHtml(h.keys[slot]) + '</span>' : '') +
-        '<span class="tt-txt"><span class="tt-name">' + esc(n.name) + (n.kind === 'form' ? ' <em class="tt-tier">' + (n.slot ? 'B' : 'A') + '</em>' : '') + '</span><span class="tt-sub">' + esc(sub) + '</span>' + (n.kind === 'active' || n.kind === 'form' ? '<span class="tt-state">' + esc(state2) + '</span>' : '') + '</span></button>';
-    };
-    const ARCH_COL = { bleed: '#c8473f', rage: '#d9884b', guard: '#a9a4c4', charge: '#c9a45a' };
-    const skillCards = T.cols.map(c => {
-      const act = nodes.find(n => n.kind === 'active' && n.line === c.line), forms = nodes.filter(n => n.kind === 'form' && n.line === c.line);
-      const got = learned.includes(act.id) || forms.some(f => learned.includes(f.id));
-      return '<section class="tt-card' + (got ? ' got' : '') + '" style="--c:' + c.color + '"><div class="tt-card-top">' + nodeBtn(act) + '</div><div class="tt-forms">' + forms.map(nodeBtn).join('') + '</div></section>';
+      return '<button data-char="skill" data-skill="' + n.id + '" class="' + cls + '" style="left:' + p.x.toFixed(2) + '%;top:' + p.y.toFixed(2) + '%;--c:' + c + '" aria-pressed="' + (n.id === sel.id) + '" title="' + esc(title) + '">' +
+        '<span class="tt-art">' + art + '</span>' + (fresh.includes(n.id) ? '<i class="tt-burst" aria-hidden="true"></i>' : '') + (n.kind === 'form' ? '<em class="tt-tier">' + (n.skill.tier === 2 ? 'II' : 'III') + '</em>' : '') +
+        (slot >= 0 ? '<span class="tt-cap">' + h.capHtml(h.keys[slot]) + '</span>' : '') + '<span class="tt-name">' + esc(n.name) + '</span>' + '</button>';
     }).join('');
-    const pairs = ['pair-a', 'pair-b', 'pair-c', 'pair-d'].map(g => {
-      const two = nodes.filter(n => n.group === g); if (two.length < 2) return '';
-      return '<section class="tt-pair" style="--c:' + ARCH_COL[two[0].arch] + '"><h4>' + esc(T.archOf(two[0])) + '</h4><div class="tt-pair-row">' + nodeBtn(two[0]) + '<span class="tt-or">' + esc(t('VEYA')) + '</span>' + nodeBtn(two[1]) + '</div></section>';
-    }).join('');
-    const keys = nodes.filter(n => n.kind === 'key');
-    const keyCard = '<section class="tt-pair tt-keys" style="--c:#d8b678"><h4>' + esc(t('Kilit taşı')) + ' · ' + esc(t('Yalnız biri')) + '</h4><div class="tt-pair-row">' + keys.map(nodeBtn).join('<span class="tt-or">' + esc(t('VEYA')) + '</span>') + '</div></section>';
-    const html = '<h3 class="tt-sec">' + esc(t('Yetenekler')) + '<small>' + esc(t('İstediğini ilk al')) + ' · ' + esc(t('A ya da B')) + '</small></h3><div class="tt-grid">' + skillCards + '</div>' +
-      '<h3 class="tt-sec">' + esc(t('Güçlendirmeler')) + '<small>' + esc(t('İki yoldan biri')) + '</small></h3><div class="tt-grid tt-pairs">' + pairs + '</div>' + keyCard;
     // ---- build identity: the two columns with most points
-    const weight = T.cols.map((c, i) => ({ c, n: nodes.filter(n => n.line === c.line && learned.includes(n.id)).length })).filter(o => o.n).sort((a, b) => b.n - a.n);
+    const weight = T.cols.map((c, i) => ({ c, n: nodes.filter(n => n.col === i && learned.includes(n.id)).length })).filter(o => o.n).sort((a, b) => b.n - a.n);
     const keystone = nodes.find(n => n.kind === 'key' && learned.includes(n.id));
-    const title = '';
+    const title = weight.length > 1 ? T.archetype(T.cols.indexOf(weight[0].c) >= 0 ? weight[0].c.line : '', weight[1].c.line) : '';
     const identity = weight.length ? (title ? '<b class="tt-arch">' + esc(title) + '</b> · ' : '') + weight.slice(0, 2).map(o => '<b style="color:' + o.c.color + '">' + esc(o.c.name) + '</b>').join(' + ') + (keystone ? ' · <b class="tt-keyname">' + esc(keystone.name) + '</b>' : '') : '<i>' + esc(t('Henüz bir yol seçmedin')) + '</i>';
     const respecWhy = !learned.length ? t('Geri alınacak puan yok.') : inCombat ? t('Savaşın ortasında yol değiştirilemez.') : t('Bütün puanlar ücretsiz geri verilir (savaş dışında).');
     const head = '<div class="tt-head"><span class="tt-budget"><b>' + state.points + '</b> ' + esc(t('puan')) + ' <small>' + spent + ' / ' + (T.MAX_POINTS + bonus) + ' ' + esc(t('harcandı')) + ' · ' + T.nodes().length + ' ' + esc(t('düğüm')) + '</small></span>' +
       '<span class="tt-identity">' + esc(t('Yolun:')) + ' ' + identity + '</span>' +
       '<button class="tt-respec" data-char="respec" title="' + esc(respecWhy) + '" ' + (!learned.length || inCombat ? 'disabled' : '') + '>' + esc(t('Yolu sıfırla')) + '</button></div>';
-    const presets = '';
-    const board = '<div class="tt-viewport tt-cardview"><div class="tt-cards">' + html + '</div></div>';
-    const note = '<p class="skt-note tt-note">' + esc(t('Çift tıkla: öğren') + ' · ' + t('Tek kilit taşı') + ' · ' + spent + ' / ' + nodes.length) + '</p>';
+    const presets = '<div class="tt-presets"><small>' + esc(t('Önerilen yollar')) + '</small>' + T.presets.map(x => '<button data-char="talent" data-act="preview" data-preset="' + x.id + '" class="' + (x.id === preview ? 'on' : '') + '" title="' + esc(x.hint) + '">' + esc(x.name) + '</button>').join('') +
+      (pre ? '<span class="tt-preinfo">' + esc(pre.hint) + '</span><button class="tt-apply" data-char="talent" data-act="apply" data-preset="' + pre.id + '" ' + (inCombat ? 'disabled' : '') + '>' + esc(t('Bu yolu uygula')) + '</button>' : '') + '</div>';
+    const board = '<div class="tt-viewport" data-zoom="' + zoom + '"><div class="tt-board" style="--z:' + zoom + '"><svg class="tt-links" viewBox="0 0 1000 1000" preserveAspectRatio="none" aria-hidden="true">' + links.join('') + '</svg>' + rows + heads + html + '</div></div>';
+    const note = '<p class="skt-note tt-note">' + esc(t('Çift tıkla: öğren · Her yeteneğe tek mühür · Tek kilit taşı') + ' · ' + (T.MAX_POINTS + bonus) + ' / ' + nodes.length) + '</p>';
     // ---- inspect
     const a = T.access(state, sel.id), col = colOf(sel), known = a.known;
     let facts = '';
@@ -127,13 +99,10 @@
     let extra = '';
     if (sel.kind === 'mod') {
       const target = T.get(sel.requires), rivals = nodes.filter(n => n.group === sel.group && n.id !== sel.id);
-      extra = '<p class="tt-rule">' + esc(en() ? 'Upgrade for ' + target.name + '.' : target.name + ' için güçlendirme.') + '</p>';
+      extra = '<p class="tt-rule">' + esc(en() ? 'Seal for ' + target.name + '.' : target.name + ' için mühür.') + '</p>' + (rivals.length ? '<p class="tt-rule excl">✕ ' + esc(en() ? 'Excludes: ' : 'Birlikte alınamaz: ') + rivals.map(r => esc(r.name)).join(', ') + '</p>' : '');
     } else if (sel.kind === 'key') {
       extra = '<p class="tt-price">' + esc(sel.price) + '</p><p class="tt-rule excl">✕ ' + esc(t('Bir yolculukta yalnız bir kilit taşı seçilir.')) + '</p>';
-    } else if (sel.kind === 'form' || sel.kind === 'passive') {
-      const rival = nodes.find(n => n.group === sel.group && n.id !== sel.id);
-      extra = (sel.kind === 'form' ? '<p class="tt-rule">' + esc(en() ? 'Replaces ' + T.get(sel.requires).name + ' in its slot.' : T.get(sel.requires).name + ' yerine aynı yuvaya geçer.') + '</p>' : '') + (rival ? '<p class="tt-rule excl">✕ ' + esc(en() ? 'Or: ' : 'Ya da: ') + esc(rival.name) + '</p>' : '');
-    }
+    } else if (sel.kind === 'form') extra = '<p class="tt-rule">' + esc(en() ? 'Replaces ' + T.get(sel.requires).name + ' in its slot.' : T.get(sel.requires).name + ' yerine aynı yuvaya geçer.') + '</p>';
     const canRefund = known && T.canRefund(learned, sel.id, state.level, bonus);
     const refund = known ? '<button class="tt-refund" data-char="refund" data-skill="' + sel.id + '" ' + (!canRefund || inCombat ? 'disabled' : '') + ' title="' + esc(inCombat ? t('Savaşın ortasında yol değiştirilemez.') : !canRefund ? t('Bu düğüme ya da harcanan puan sayısına bağlı başka düğümler var; önce onları geri al.') : t('Puanı ücretsiz geri al')) + '">' + esc(t('Puanı geri al')) + '</button>' : '';
     const assignment = known && sel.skill ? '<div class="skt-assign"><small>' + esc(t('Hangi yuvaya konsun?')) + '</small><div>' + [0, 1, 2, 3].map(slot => {
@@ -142,7 +111,7 @@
     }).join('') + '</div></div>' : '';
     const learnText = a.canLearn ? t('1 puanla öğren') : a.reason;
     const inspect = '<aside class="skt-inspect tt-inspect" style="--line:' + col.color + '"><small class="skt-kicker">' + esc(KIND[sel.kind]) + ' · ' + esc(col.name) + ' · ' + esc(en() ? 'level ' + sel.level : 'seviye ' + sel.level) + '</small>' +
-      '<header>' + (sel.skill ? h.icon(sel.id) : '<span class="tt-bigglyph"><img class="tt-ico" src="assets/ui/talents/' + sel.id + '.png" alt="" draggable="false" onerror="this.remove()">' + glyph(sel.glyph, col.color) + '</span>') + '<h3>' + esc(sel.name) + '</h3></header><p>' + esc(sel.desc) + '</p>' + extra + facts + archLine(sel) +
+      '<header>' + (sel.skill ? h.icon(sel.id) : '<span class="tt-bigglyph"><img class="tt-ico" src="assets/ui/talents/' + sel.id + '.png" alt="" draggable="false" onerror="this.remove()">' + glyph(sel.glyph, col.color) + '</span>') + '<h3>' + esc(sel.name) + '</h3></header><p>' + esc(sel.desc) + '</p>' + extra + facts +
       '<div class="tt-actions"><button class="skt-learn" data-char="unlock" data-skill="' + sel.id + '" ' + (a.canLearn ? '' : 'disabled') + '>' + esc(known ? t('Öğrenildi') : learnText) + '</button>' + refund + '</div>' + assignment + '</aside>';
     // ---- loadout (same markup as before so the hybrid frame styles apply)
     const loadout = state.loadout.map((id, slot) => {
@@ -180,9 +149,9 @@
     if (el === tipFor || !lastState) return;
     const T = B.TalentTree, n = T.get(el.dataset.skill); if (!n) return;
     if (!tip) { tip = document.createElement('div'); tip.className = 'tt-tip'; tip.setAttribute('role', 'tooltip'); document.body.appendChild(tip); }
-    const a = T.access(lastState, n.id), c = T.colOfLine(n.line).color, esc = s => String(s).replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
+    const a = T.access(lastState, n.id), c = T.cols[n.col].color, esc = s => String(s).replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
     tip.style.setProperty('--c', c);
-    tip.innerHTML = '<small>' + esc(KIND[n.kind]) + ' · ' + esc(T.colOfLine(n.line).name) + '</small><b>' + esc(n.name) + '</b><p>' + esc(n.desc) + '</p>' + (T.archOf(n) ? '<p class="tt-tip-arch">' + esc(T.archOf(n)) + '</p>' : '') + (n.price ? '<p class="tt-tip-price">' + esc(n.price) + '</p>' : '') +
+    tip.innerHTML = '<small>' + esc(KIND[n.kind]) + ' · ' + esc(T.cols[n.col].name) + '</small><b>' + esc(n.name) + '</b><p>' + esc(n.desc) + '</p>' + (n.price ? '<p class="tt-tip-price">' + esc(n.price) + '</p>' : '') +
       '<em class="' + (a.known ? 'ok' : a.canLearn ? 'go' : 'no') + '">' + esc(a.known ? t('Öğrenildi') : a.canLearn ? t('Çift tıkla: öğren') : a.reason) + '</em>';
     tip.hidden = false; tipFor = el;
     const r = el.getBoundingClientRect(), w = tip.offsetWidth, h = tip.offsetHeight;

@@ -6,7 +6,7 @@
 (() => {
   'use strict';
   const B = window.BABA = window.BABA || {};
-  const ids = Object.freeze(['cleave', 'brand', 'temper', 'roar', 'quake', 'chainstorm', 'whirl', 'reap', 'rend', 'charge', 'grasp', 'havoc', 'hook', 'hook2', 'hook3', 'guard', 'guard2', 'guard3', 'light', 'dodge', 'heal']);
+  const ids = Object.freeze(['cleave', 'brand', 'temper', 'roar', 'quake', 'chainstorm', 'whirl', 'reap', 'rend', 'charge', 'grasp', 'havoc', 'pyre', 'knell', 'light', 'dodge', 'heal']);
   const images = Object.create(null), urls = Object.create(null);
   for (const id of ids) {
     urls[id] = 'assets/ui/abilities/' + id + '.png';

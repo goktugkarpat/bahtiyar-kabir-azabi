@@ -8,20 +8,21 @@
 #boss-mechanic.timed .mechanic-time { display: block }
 #boss-mechanic-progress { display: block; width: 100%; height: 100%; transform-origin: left; background: #c9a87e }
 #boss-mechanic.safe #boss-mechanic-progress { background: #8baab8 }
-/* Quest tracker (HUD, top right): the active main thread, one sentence, a small arrow with the distance, the chapter count. Iron and gold only, no glow. */
-.quest.story-quest { gap: 5px; width: min(calc(340px * var(--k)), 34vw); text-align: left; align-items: stretch; padding: 8px 4px 8px 12px; border-left: 1px solid #ad895440; background: #0c0d10a0 }
-.story-quest #objective { font-size: calc(15px * var(--k)); line-height: 1.4; color: #dccfb4; font-weight: 500 }
+.quest.story-quest { gap: 7px; width: min(calc(355px * var(--k)), 34vw); text-align: left; align-items: stretch; padding: 9px 11px; border-left: 1px solid #ad89545e; background: #0c0d10a8 }
+.story-quest #objective { font-size: calc(16px * var(--k)); line-height: 1.35; color: #e0d3b8 }
 .story-quest #objective::before { display: none }
-#quest-tracker { display: block; order: -1 }
-.quest-track-row { display: flex; align-items: center; gap: 8px; min-width: 0; color: #c9ab74 }
-.quest-track-row span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: calc(11.5px * var(--k)); line-height: 1.3; color: inherit; font-weight: 600; letter-spacing: .1em; text-transform: uppercase }
+#quest-tracker { display: grid; gap: 5px; order: -1 }
+.quest-track-row { display: flex; align-items: center; gap: 8px; min-width: 0; color: #ceb890 }
+.quest-track-row span { flex: 1; font-size: calc(14px * var(--k)); line-height: 1.3; color: inherit; font-weight: 600 }
 .quest-track-row span::before { display: none }
-.quest-track-row b { font-size: calc(12px * var(--k)); font-weight: 600; color: #b1a184; font-variant-numeric: tabular-nums }
-.quest-seal { display: inline-block; width: 6px; height: 6px; border: 1px solid #c19958; transform: rotate(45deg); flex: none }
-.quest-track-row.complete { color: #9aa891 }
+.quest-track-row b { font-size: calc(12px * var(--k)); font-weight: 500; color: #b1a184; font-variant-numeric: tabular-nums }
+.quest-seal { display: inline-block; width: 7px; height: 7px; border: 1px solid #c19958; transform: rotate(45deg); flex: none }
+.quest-track-row.complete { color: #8d9b8a }
 .quest-track-row.complete .quest-seal { background: #8d9b8a; border-color: #a8b5a0 }
-.quest-bottom { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding-top: 5px; border-top: 1px solid #a1854c24 }
-.story-quest #kill-progress { font-size: calc(11px * var(--k)); font-weight: 500; color: #8f8268 }
+.quest-bottom { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-top: 5px; border-top: 1px solid #a1854c30 }
+.story-quest #kill-progress { font-size: calc(11px * var(--k)); font-weight: 500; color: #aa9878 }
+#hud-journal { border: 0; padding: 2px 0; background: transparent; color: #c1b293; font: 500 calc(11px * var(--k))/1.3 var(--text); pointer-events: auto; cursor: pointer }
+#hud-journal:hover, #hud-journal:focus-visible { color: #ffe1a7; outline-offset: 3px }
 .journal-panel { width: min(1000px, calc(100vw - 52px)); max-height: calc(100dvh - 64px); display: flex; flex-direction: column; padding: clamp(22px, 3vw, 40px); overflow: hidden }
 .journal-panel .panel-head { flex: none; margin-bottom: 16px }
 .journal-panel h2 { font-size: clamp(27px, 3vw, 38px); margin: 5px 0 0 }
@@ -58,33 +59,80 @@
 #quest-notice p { color: #c0beb7; font: 400 14px/1.6 var(--text); margin: 9px 0 0 }
 #quest-notice.complete { border-left-color: #9caf8f }
 #quest-notice.complete small { color: #b4c4a6 }
-@media (max-width: 800px) { .quest.story-quest { width: min(260px, 37vw); padding: 7px 8px } .story-quest #objective { font-size: 12px } .quest-track-row span { font-size: 10px } .quest-track-row b { font-size: 10px } .journal-panel { padding: 22px; max-height: calc(100dvh - 32px) } #journal-content { gap: 12px } .journal-quest { padding: 15px } #quest-notice { width: 35vw; padding: 12px } #quest-notice strong { font-size: 17px } #quest-notice p { font-size: 12px } }
+@media (max-width: 800px) { .quest.story-quest { width: min(260px, 37vw); padding: 7px 8px } .story-quest #objective { font-size: 12px } .quest-track-row span { font-size: 11px } .quest-track-row b { font-size: 10px } .journal-panel { padding: 22px; max-height: calc(100dvh - 32px) } #journal-content { gap: 12px } .journal-quest { padding: 15px } #quest-notice { width: 35vw; padding: 12px } #quest-notice strong { font-size: 17px } #quest-notice p { font-size: 12px } }
 @media (max-width: 580px) { #journal-content { grid-template-columns: 1fr } .journal-panel footer { align-items: flex-start; gap: 12px } #journal-intro { font-size: 13px; margin-bottom: 15px } #quest-notice { top: 24%; width: 45vw } }
 @media (prefers-reduced-motion: reduce) { #quest-notice { transition: none } }
 /* ajan:quests — quest kinds, progress bars, compass, side cards, finale */
 #journal #journal-content { grid-auto-rows: max-content; align-content: start; align-items: start }
 #journal #journal-content > .journal-quest { min-height: max-content }
 .journal-section { grid-column: 1 / -1; margin: 6px 0 -4px; color: #b99b66; font: 500 11px/1.3 var(--text); letter-spacing: .18em; text-transform: uppercase; border-bottom: 1px solid #a18b6235; padding-bottom: 7px }
+.journal-section.side { margin-top: 14px }
+.journal-hidden-note { grid-column: 1 / -1; margin: -6px 0 0; color: #8d7a8a; font: italic 400 12px/1.5 var(--text) }
 .quest-bar { display: block; height: 3px; background: #6a5a3e40; overflow: hidden }
 .quest-bar > i { display: block; height: 100%; background: linear-gradient(90deg, #8e6a3c, #d9b77c); transform-origin: left; transform: scaleX(0); transition: transform .35s ease }
 .journal-bar { margin: 12px 0 0 }
 .journal-quest.complete .quest-bar > i { background: #8d9b8a }
+.quest-kind-icon { width: 100%; height: 100%; display: block }
+.journal-kind { padding: 9px; color: #d0a868 }
+.kind-hunt .journal-kind, .quest-track-row.kind-hunt { color: #d48a6a }
+.kind-rescue .journal-kind, .quest-track-row.kind-rescue { color: #a9c3b0 }
+.kind-lore .journal-kind, .quest-track-row.kind-lore { color: #cdbb93 }
+.kind-altar .journal-kind, .quest-track-row.kind-altar { color: #c75a55 }
+.kind-siege .journal-kind, .quest-track-row.kind-siege { color: #e0894a }
+.kind-escape .journal-kind, .quest-track-row.kind-escape { color: #e6c35c }
+.kind-puzzle .journal-kind, .quest-track-row.kind-puzzle { color: #9fb6d8 }
+.kind-chest .journal-kind, .quest-track-row.kind-chest { color: #c9a35c }
+.journal-quest.side-quest { border-color: #6f5f4a47; background: #0d0f12e0 }
+.journal-quest.kind-altar { border-color: #7c2f2c66; background: linear-gradient(180deg, #1a0d0ee6, #0c0d10e6) }
+.journal-objective { color: #e3c993; font: 500 13px/1.5 var(--text); margin: -8px 0 12px; padding-left: 10px; border-left: 2px solid #b08a52 }
+.journal-reward { color: #a9a08f; font: 400 12px/1.5 var(--text); margin: 0 0 10px }
+.journal-reward b { color: #c9ab74; font-weight: 600 }
 .journal-quest h4 { color: #b99b66; font: 500 11px/1.3 var(--text); letter-spacing: .14em; margin: 14px 0 8px; text-transform: uppercase }
+.journal-pages { list-style: none; margin: 0; padding: 0; display: grid; gap: 9px }
+.journal-pages li { padding: 9px 11px; border-left: 2px solid #4b4234; background: #15140f8c; color: #6f6a60 }
+.journal-pages li b { display: block; font: 600 12px/1.3 var(--text); color: #77705f }
+.journal-pages li p { margin: 5px 0 0; font: italic 400 12.5px/1.6 Georgia, 'Times New Roman', serif }
+.journal-pages li.found { border-left-color: #b59660; color: #d7cbb2; background: #1d1912b3 }
+.journal-pages li.found b { color: #e2c48c }
 .journal-finale { grid-column: 1 / -1; border-color: #9d7a4590; background: radial-gradient(ellipse at top, #24170ff0, #0b0c0ff0) }
 .journal-finale h3 { font-size: 26px !important }
 .journal-quest[hidden] { display: none }
+.quest-track-row.side { gap: 6px }
+.quest-track-row.side .quest-kind-icon { width: calc(13px * var(--k)); height: calc(13px * var(--k)); flex: none }
+.quest-track-row.side span { color: #c8b89c; font-weight: 500; font-size: calc(13px * var(--k)) }
+.quest-track-row.side .quest-bar { width: calc(34px * var(--k)); flex: none }
+.quest-track-row[hidden] { display: none }
+.quest-compass { display: flex; align-items: center; gap: 7px; padding: 4px 0 1px; color: #e4c78e; font: 500 calc(12px * var(--k))/1.2 var(--text) }
+.quest-compass[hidden] { display: none }
+.quest-compass svg { width: calc(18px * var(--k)); height: calc(18px * var(--k)); fill: #e0b770; flex: none; filter: drop-shadow(0 0 3px #00000080) }
+.quest-compass span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #d6c6a6 }
+.quest-compass b { font-weight: 600; font-variant-numeric: tabular-nums; color: #f0d59f }
+#quest-notice[data-kind="hunt"] { border-left-color: #c46a4c }
+#quest-notice[data-kind="altar"] { border-left-color: #b13b38 }
 #quest-notice[data-kind="lore"] { border-left-color: #d6bf8c }
 #quest-notice[data-kind="lore"] p { font-family: Georgia, 'Times New Roman', serif; font-style: italic }
+#quest-notice[data-kind="siege"] { border-left-color: #d0743c }
 #quest-notice[data-kind="rescue"] { border-left-color: #8fb39c }
+@media (max-width: 800px) { .quest-track-row.side span { font-size: 10px } .quest-compass { font-size: 10px } }
 
+.quest-urgent { position: absolute; left: 50%; top: 13%; transform: translateX(-50%); text-align: center; pointer-events: none; padding: 8px 26px 10px; background: radial-gradient(ellipse at center, #1a0907d9 0%, #1a090700 72%); text-shadow: 0 2px 8px #000 }
+.quest-urgent[hidden] { display: none }
+.quest-urgent small { display: block; color: #d9a46a; font: 500 11px/1.3 var(--text); letter-spacing: .24em; text-transform: uppercase }
+.quest-urgent b { display: block; color: #ffd9a0; font: 600 calc(30px * var(--k, 1))/1.15 var(--display); letter-spacing: .06em }
+.quest-urgent[data-kind="escape"] b { color: #ffcf7a }
+.quest-urgent[data-kind="siege"] b { color: #ff9f7a }
+/* qa: the siege / escape banner sat on top of the boss bar; while a target bar is shown it moves just below it. */
+#hud:has(#target-hud:not(.hidden)) .quest-urgent { top: calc(var(--top, 14px) + 8px + 100px * var(--k, 1)) }
+body.target-stacked #hud:has(#target-hud:not(.hidden)) .quest-urgent { top: calc(var(--top, 14px) + 244px * var(--k, 1)) }
+@media (max-aspect-ratio: 1/1) { #hud:has(#target-hud:not(.hidden)) .quest-urgent, body.target-stacked #hud:has(#target-hud:not(.hidden)) .quest-urgent { top: calc(var(--top, 14px) + 392px * var(--k, 1)) } }
 
 /* ajan:quests — cinema bars, page reader, epilogue */
 .qc-root { position: fixed; inset: 0; pointer-events: none; z-index: 34 }
-.qc-bars .qc-bar { display: none }   /* no black cinema bars (parent's choice); the caption below stays */
+.qc-bars .qc-bar { position: absolute; left: 0; right: 0; height: 11vh; background: #000; transition: transform 1.1s cubic-bezier(.2,.7,.2,1) }
 .qc-bars .qc-bar.top { top: 0; transform: translateY(-100%) }
 .qc-bars .qc-bar.bottom { bottom: 0; transform: translateY(100%) }
 .qc-bars.show .qc-bar { transform: none }
-.qc-caption { position: absolute; left: 50%; top: calc(7vh + 18px); width: min(900px, 82vw); transform: translateX(-50%); text-align: center; opacity: 0; transition: opacity 1.4s ease .5s; text-shadow: 0 2px 10px #000, 0 0 2px #000 }
+.qc-caption { position: absolute; left: 50%; top: calc(11vh + 26px); width: min(900px, 82vw); transform: translateX(-50%); text-align: center; opacity: 0; transition: opacity 1.4s ease .5s; text-shadow: 0 2px 10px #000, 0 0 2px #000 }
 .qc-bars.show .qc-caption { opacity: 1 }
 .qc-caption .qc-eyebrow { display: block; color: #c9a46a; font: 500 12px/1.3 var(--text); letter-spacing: .3em; text-transform: uppercase; margin-bottom: 6px }
 .qc-caption .qc-title { display: block; color: #f1dfb8; font: 600 clamp(24px, 3vw, 38px)/1.15 var(--display); letter-spacing: .04em; margin-bottom: 8px }
@@ -118,38 +166,5 @@ body.chapter-fading .qc-bars { opacity: 0; transition: opacity .6s }
 @media (prefers-reduced-motion: reduce) { .qc-bars .qc-bar, .qc-caption, .qc-reader, .qc-sheet, .qc-epilogue { transition: none } .qc-para { animation: none; opacity: 1 } }
 .qc-lastwords { display: block; margin-top: 16px; color: #e6c48e; font: italic 400 clamp(15px, 1.4vw, 19px)/1.6 Georgia, 'Times New Roman', serif }
 .qc-root.reading { z-index: 400 }
-
-/* Quest HUD compass: a small arrow and the distance (shown only while the goal is far) */
-.quest-compass { display: flex; align-items: center; gap: 6px; color: #b9a67f; font: 500 calc(12px * var(--k))/1.2 var(--text) }
-.quest-compass[hidden] { display: none }
-.quest-compass svg { width: calc(13px * var(--k)); height: calc(13px * var(--k)); fill: #b9a67f; flex: none }
-.quest-compass span { min-width: 0; max-width: 9em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #a99b7c }
-.quest-compass span:empty { display: none }
-.quest-compass b { font-weight: 600; font-variant-numeric: tabular-nums; color: #cdb98f }
-.quest.story-quest .quest-bottom #kill-progress { margin: 0 0 0 auto }
-@media (max-width: 800px) { .quest-compass { font-size: 10px } }
-
-/* Journal: optional threads as compact rows (state mark, name, state, one objective line, reward) */
-.journal-optional { grid-column: 1 / -1; display: grid; gap: 8px }
-.journal-opt { display: flex; gap: 14px; align-items: flex-start; padding: 12px 16px; border: 1px solid #6f5f4a47; border-left: 2px solid #8e734980; background: #100e0ce0 }
-.journal-opt-mark { width: 9px; height: 9px; margin-top: 8px; border: 1px solid #9c8358; transform: rotate(45deg); flex: none }
-.journal-opt.started .journal-opt-mark { background: #9c7542; border-color: #e2be79 }
-.journal-opt[data-state="done"] .journal-opt-mark { background: #7f9177; border-color: #a0b398 }
-.journal-opt[data-state="locked"] { opacity: .62 }
-.journal-opt[data-state="locked"] .journal-opt-mark { border-color: #5d5445 }
-.journal-opt-body { flex: 1; min-width: 0 }
-.journal-opt-top { display: flex; justify-content: space-between; align-items: baseline; gap: 14px }
-.journal-opt h3 { color: #e5d8ba; font: 600 17px/1.3 var(--display); margin: 0 }
-.journal-opt small { color: #a9946c; font: 500 11px/1.3 var(--text); letter-spacing: .12em; text-transform: uppercase; white-space: nowrap }
-.journal-opt[data-state="done"] small { color: #a5b49c }
-.journal-opt[data-state="done"] h3 { color: #b4ad9d }
-#journal .journal-opt-line { margin: 4px 0 0; color: #c9bda4; font: 400 14px/1.45 var(--text) }
-.journal-opt-line[hidden], .journal-opt-reward[hidden], .journal-pages[hidden] { display: none }
-#journal .journal-opt-reward { margin: 3px 0 0; color: #9d9382; font: 400 12px/1.4 var(--text) }
-.journal-opt .journal-pages { list-style: none; display: flex; flex-wrap: wrap; gap: 6px; margin: 9px 0 0; padding: 0 }
-.journal-opt .journal-pages li { padding: 3px 10px; border: 1px solid #4b4234; color: #6f6a60; font: 500 12px/1.4 var(--text) }
-.journal-opt .journal-pages li.found { border-color: #8e7349; color: #d7cbb2; cursor: pointer }
-.journal-opt .journal-pages li.found:hover { background: #2a2216cc }
-#journal-intro { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden }
-/* Main cards: the steps already say what to do, so the long description and the bar are dropped (one reading, no duplicate lines) */
-#journal .journal-quest.kind-main .journal-description, #journal .journal-quest.kind-main .journal-bar { display: none }
+.journal-pages li.found { cursor: pointer }
+.journal-pages li.found:hover { background: #2a2216cc }

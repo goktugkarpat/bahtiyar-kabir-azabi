@@ -352,42 +352,8 @@
     K.chain = function (id, x, y, z, len, tint) {
       var n = Math.floor(len / .26); for (var k = 0; k < n; k++) K.put(id, 'link', 'iron', x, y - k * .26, z, .34, .34, .34, k % 2 ? PI / 2 : 0, 0, 0, tint || [.8, .74, .7], .2);
     };
-    // (ajan:secondary) Hanging banners: a swallow-tailed pennant (one subdivided sheet, own cloned wall material) that sways in the shared clock in the
-    // vertex shader: pinned at the rod, free toward the tips, a slow swell plus a small ripple. Nothing runs on the CPU; 1 extra draw per room that has banners.
-    function bannerShape() {
-      var cols = 4, rows = 10, pos = [], uv = [], nor = [], idx = [];
-      for (var j = 0; j <= rows; j++) for (var i = 0; i <= cols; i++) {
-        var v = j / rows, fx = i / cols - .5, tail = v > .8 ? (v - .8) / .2 : 0, y = .5 - v - tail * tail * .06 * (1 - Math.abs(fx) * 2);
-        pos.push(fx, y - (Math.abs(fx) < .17 ? tail * .09 * 0 : 0), 0); uv.push(i / cols, 1 - v); nor.push(0, 0, 1);
-      }
-      for (j = 0; j < rows; j++) for (i = 0; i < cols; i++) { var q = j * (cols + 1) + i; idx.push(q, q + cols + 1, q + 1, q + 1, q + cols + 1, q + cols + 2); }
-      var g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); g.setAttribute('normal', new T.Float32BufferAttribute(nor, 3)); g.setAttribute('uv', new T.Float32BufferAttribute(uv, 2)); g.setIndex(idx);
-      // swallow tail: the centre of the lowest rows is cut away upward (vertices pulled up)
-      var p = g.attributes.position; for (j = rows - 2; j <= rows; j++) { var c = (j - (rows - 3)) / 3; for (i = 1; i < cols; i++) { var k = j * (cols + 1) + i; p.setY(k, p.getY(k) + c * .07 * (1 - Math.abs(i / cols - .5) * 2)); } }
-      geometries.push(g); return g;
-    }
-    function bannerMaterial(src) {
-      var m = src.clone(), before = src.onBeforeCompile, ck = src.customProgramCacheKey;
-      m.defines = Object.assign({}, src.defines); m.userData = src.userData; m.name = (src.name || 'wall') + '-banner'; m.side = T.DoubleSide;
-      var calm = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches || /[?&]nophys(&|$)/.test(location.search);
-      m.onBeforeCompile = function (sh, r) {
-        if (before) before.call(this, sh, r); sh.uniforms.kBannerT = clock; sh.uniforms.kBannerA = { value: calm ? 0 : 1 };
-        sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nuniform float kBannerT;uniform float kBannerA;')
-          .replace('#include <begin_vertex>', '#include <begin_vertex>\n{float sw=pow(clamp(1.-uv.y,0.,1.),1.35)*kBannerA,ph=position.x*.55+position.z*.6+position.y*.08;' +
-            'float a=sin(kBannerT*1.15+ph)*.55+sin(kBannerT*2.7+ph*2.3+uv.x*3.)*.22+sin(kBannerT*.43+ph*.5)*.35;' +
-            'transformed+=normalize(normal)*sw*a*.2;transformed.y+=sw*(abs(a)*-.025);}');
-      };
-      m.customProgramCacheKey = function () { return (ck ? ck.call(this) : '') + '|banner-1'; };
-      return m;
-    }
     K.banner = function (id, x, y, z, w, h, rot, tint) {
-      K.put(id, 'box', 'iron', x, y + h / 2 + .06, z, w + .24, .1, .1, rot, 0, 0);
-      if (!shapes.banner && materials.wall) shapes.banner = bannerShape();
-      if (shapes.banner && materials.wall && !/[?&]nophys(&|$)/.test(location.search)) {
-        if (!materials.banner) materials.banner = bannerMaterial(materials.wall);
-        K.put(id, 'banner', 'banner', x, y, z, w, h, 1, rot, 0, 0, tint || [.5, .12, .1], .3, h); return;
-      }
-      K.put(id, 'box', 'wall', x, y, z, w, h, .05, rot, .03, 0, tint || [.5, .12, .1], .3, h);
+      K.put(id, 'box', 'iron', x, y + h / 2 + .06, z, w + .24, .1, .1, rot, 0, 0); K.put(id, 'box', 'wall', x, y, z, w, h, .05, rot, .03, 0, tint || [.5, .12, .1], .3, h);
       K.put(id, 'spike', 'wall', x, y - h / 2 - .1, z, w * .5, .5, .05, rot, PI, 0, tint || [.5, .12, .1], .3);
     };
     K.stalactite = function (id, x, y, z, w, h, tint) { K.put(id, 'spike', 'rock', x, y, z, w, h, w, 0, PI, 0, tint, .1); };

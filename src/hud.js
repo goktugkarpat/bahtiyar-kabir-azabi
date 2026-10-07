@@ -282,7 +282,7 @@
   }
   const SKILL_ART = {};
   if (B.SkillArt) for (const id of B.SkillArt.ids) SKILL_ART[id] = B.SkillArt.url(id);
-  const SKILL_ICONS = { cleave: 'heavy', roar: 'rage', whirl: 'special', charge: 'dodge', quake: 'heavy', reap: 'special', brand:'rage', grasp:'dodge', rend:'heavy',temper:'rage',chainstorm:'special', havoc:'dodge', hook:'heavy', hook2:'heavy', hook3:'heavy', guard:'rage', guard2:'rage', guard3:'rage' };
+  const SKILL_ICONS = { cleave: 'heavy', roar: 'rage', whirl: 'special', charge: 'dodge', quake: 'heavy', reap: 'special', brand:'rage', grasp:'dodge', rend:'heavy',temper:'rage',chainstorm:'special', havoc:'dodge' };
   const ROMAN = ['', 'I', 'II', 'III'];
   function updateSkillSlot(sl, row) {
     const id = row.id || null;

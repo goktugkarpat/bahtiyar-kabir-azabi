@@ -291,7 +291,7 @@
       if (!def) return '<div class="char-empty-detail">' + icon(selectedSlot || 'chest') + '<h3>' + (selectedSlot ? LABELS[selectedSlot] + KabirI18n.t(' yuvası boş') : KabirI18n.t('Bir eşya seç')) + KabirI18n.t('</h3><p>Çantadan bir parçaya dokun. Özelliklerini ve giydiğinle farkını burada göreceksin.</p></div>');
       const old = state.itemForSlot(def.slot), equipped = state.equipment[def.slot] === entry.uid, compare = !equipped && !!old, locked = def.level > state.level;
       const lines = statLines(def, equipped ? null : old, compare);
-      const head = '<div class="cd-head"><span class="char-item-art cd-art">' + menuGearIcon(def) + '</span><div class="cd-title"><span class="cd-sub">' + RARITY[def.rarity] + ' · ' + (TYPE[def.type] || LABELS[def.slot]) + (B.GearArmor && B.GearArmor.familyName && B.GearArmor.familyName(def) ? ' · ' + B.GearArmor.familyName(def) : '') + '</span><h3>' + escape(def.name) + '</h3></div></div>' + (B.BossLoot ? B.BossLoot.cardLine(def.id) : '');   // ajan:bossloot: boss-source line + crest
+      const head = '<div class="cd-head"><span class="char-item-art cd-art">' + menuGearIcon(def) + '</span><div class="cd-title"><span class="cd-sub">' + RARITY[def.rarity] + ' · ' + (TYPE[def.type] || LABELS[def.slot]) + (B.GearArmor && B.GearArmor.familyName && B.GearArmor.familyName(def) ? ' · ' + B.GearArmor.familyName(def) : '') + '</span><h3>' + escape(def.name) + '</h3></div></div>';
       const primary = '<div class="cd-primary"><span class="cd-plabel">' + lines.main.label + '</span><div class="cd-pline"><strong>' + lines.main.text + '</strong>' + lines.main.arrow + '</div></div>';
       const rest = lines.rest.length ? '<div class="cd-rest">' + lines.rest.map(r => '<div class="cd-row"><span>' + r.label + '</span><strong>' + r.text + '</strong>' + r.arrow + '</div>').join('') + '</div>' : '';
       const req = '<div class="cd-chips"><span class="cd-chip ' + (locked ? 'bad' : 'ok') + '">' + (locked ? (KabirI18n.lang === 'en' ? 'Requires level ' + def.level : def.level + KabirI18n.t('. seviye gerekli')) : KabirI18n.t('Seviye ') + def.level) + KabirI18n.t('</span><span class="cd-chip power" title="Eşya gücü">Güç ') + def.power + '</span>' + (def.roll ? '<span class="cd-chip ' + (def.roll > 0 ? 'ok' : 'bad') + KabirI18n.t('" title="İşçilik">İşçilik ') + (def.roll > 0 ? '+' : '−') + Math.abs(def.roll) + '</span>' : '') + '</div>';
@@ -592,8 +592,7 @@
       const skill = B.TalentTree ? B.TalentTree.get(id) : B.Progression.skills.find(s => s.id === id);
       const result = state.unlock(id);
       if (result && result.ok) try { if (B.Audio && B.Audio.play) B.Audio.play(skill && skill.kind === 'key' ? 'talentKeystone' : 'talentLearn', { volume: .6 }); } catch (_) { /* sound is optional */ }
-      const unslotted = result && result.ok && skill && (skill.kind === 'active' || skill.kind === 'form') && !state.loadout.includes(id);   // a 5th active stays unslotted until swapped in (assign buttons in the inspector)
-      change(result, skill ? KabirI18n.t('Öğrenildi: ') + skill.name + (unslotted ? ' · ' + KabirI18n.t('Dört yuva dolu: bu yetenek yuvaya konmadı; inceleme panelinden bir yuvaya ata.') : '') : undefined);
+      change(result, skill ? KabirI18n.t('Öğrenildi: ') + skill.name : undefined);
     }
     overlay.addEventListener('pointerdown', event => { lastPointerType = event.pointerType || 'mouse'; hideTooltip(); });
     overlay.addEventListener('click', event => {

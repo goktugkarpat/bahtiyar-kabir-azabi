@@ -7,7 +7,6 @@
   let prepared;
   function surface(kind) {
     if (surfaces[kind]) return surfaces[kind];
-    if (kind==='chain'&&B.GearMetal&&B.GearMetal.ringSurface&&!/[?&]oldmetal/.test(location.search)) { const rs=B.GearMetal.ringSurface(); if (rs) return surfaces[kind]=rs; }   // gear-metal.js: tileable interlocked-ring weave
     const n = 512, heights = new Float32Array(n*n), color = new Uint8Array(n*n*4), normal = new Uint8Array(n*n*4), rough = new Uint8Array(n*n*4);
     let chainScan=null;
     if(kind==='chain'&&scanned.metal){try{const canvas=document.createElement('canvas');canvas.width=canvas.height=n;const ctx=canvas.getContext('2d',{willReadFrequently:true});ctx.drawImage(scanned.metal.map.image,0,0,n,n);chainScan=ctx.getImageData(0,0,n,n).data;}catch(error){/* Offline file origins retain the shared relief. */}}
@@ -133,8 +132,8 @@
     const buildT0=performance.now();
     // A mail underlayer replaces the existing cloth group in plate sets. All
     // torso and limb pieces keep their old grouping and native skin bindings.
-    const lowMail=B.GearMetal&&B.GearMetal.lowQuality&&B.GearMetal.lowQuality(),sourcePart=part,mailSets=new Set(['grave-chest','lamellar-chest','warden-chest','chainmail-chest']);
-    part=(slot,id,mat,...args)=>{const m=mat==='cloth'&&mailSets.has(id)?'mail':mat==='cloth'&&id==='rib-chest'?'leather':mat;if(m==='mail'&&B.GearMetal&&B.GearMetal.fitMailUV&&!lowMail&&args[0]&&!args[0].userData.mailFit&&!/[?&]oldmetal/.test(location.search))B.GearMetal.fitMailUV(args[0]);return sourcePart(slot,id,m,...args);};   // gear-metal.js: ring size 1.8 cm on every mail shell
+    const sourcePart=part,mailSets=new Set(['grave-chest','lamellar-chest','warden-chest','chainmail-chest']);
+    part=(slot,id,mat,...args)=>sourcePart(slot,id,mat==='cloth'&&mailSets.has(id)?'mail':mat==='cloth'&&id==='rib-chest'?'leather':mat,...args);
     const BODY=['skin','leather'], torsoBones=['pelvis','spine01','spine02','spine03'];
     const v3 = p => new T.Vector3().fromArray(p), emit=(slot,id,mat,list,bone,opts)=>{if(list.length)part(slot,id,mat,G.merge(list),bone,opts);};
     const line=(fn,count=24)=>Array.from({length:count+1},(_,i)=>fn(i/count));
@@ -195,7 +194,6 @@
       p[0]+=Math.sin(a)*keel;p[2]+=Math.cos(a)*keel;
       return p;
     }
-    const gm=B.GearMetal&&B.GearMetal.env&&!/[?&]oldmetal/.test(location.search)?B.GearMetal.env({A,part,sleeve,chest,cuirass,rearDepth,cz,curveReady,facingAngle:a=>facingAngle(a),cloud,torsoBones}):null;   // gear-metal.js: articulated plate / ring mail cores (null = old shells)
     function curveReady(source,maxEdge=.011) {
       const p=source.attributes.position,uv=source.attributes.uv,pos=[],tex=[];
       const vertex=i=>[p.getX(i),p.getY(i),p.getZ(i),uv?uv.getX(i):0,uv?uv.getY(i):0];
@@ -440,7 +438,6 @@
         const front=facingAngle(cover);
         for(let row=0;row<6;row++)piping('chest',id,'strap',u=>cover.at(u*TAU,.25+row*.10,.003)[0].toArray(),upper,.0013);
         for(const a of[front-PI*.62,front+PI*.62])piping('chest',id,'strap',v=>cover.at(a,.19+v*.77,.004)[0].toArray(),upper,.0022);
-        if(gm&&gm.arm(id,style,side))continue;   // gear-metal.js: rerebrace / couter / vambrace
         if(style===6)continue;
         if(style===1||style===7||style===8){
           const brace=sleeve(A,fore,hand,.26,.78,.021,.006,['skin']),face=facingAngle(brace),steel=style===8?'dark':'steel',lames=[];
@@ -478,7 +475,6 @@
           }
           emit('chest',id,'rag',stitches,thigh);
         }
-        if(gm&&gm.leg(id,style,side))continue;   // gear-metal.js: tassets + poleyn
         if(!heavy||style===2&&side==='R')continue;
         const armorMat=style===2?'salt':style===8?'dark':'steel';
         const upperPlate=sleeve(A,thigh,shin,.23,.85,.027,.006,['skin']);
@@ -508,7 +504,6 @@
       if(k===0){barbarianChest(id,false);return;}
       if(k===2||k===3){tailoredChest(id,2);return;}
       if(k===5){tailoredChest(id,2);return;}
-      if(gm&&gm.chest(id,k))return;   // gear-metal.js: articulated plates / ring mail replace the single shells below
       const plate=[1,2,7].includes(k), mat=plate?(k===2?'salt':k===7?'dark':'steel'):k===6?'mail':'leather';
       if(plate){
         // Each set is built from different functional plates. No rear slab:
@@ -542,7 +537,6 @@
       }
       ['L','R'].forEach(side=>{
         if(k===6)return;
-        if(gm&&gm.shoulder(id,k,side))return;   // gear-metal.js: lamed pauldrons for lamellar / bone cores
         const style=k===1?'iron':k===2?'salt':k===8?'ritual':k===7||k===4?'warden':null;
         shoulder(id,side,k===2?(side==='L'?'salt':'strap'):k===8?'bone':k===7?'dark':'steel',style);
       });
@@ -647,7 +641,6 @@
         for(let i=0;i<p.count;i++){const x=p.getX(i),y=p.getY(i),z=hc.z+rz+.015-(k===3?.065:.085)*Math.pow(x/rx,2);p.setXYZ(i,hc.x+x,hc.y+y,z+p.getZ(i));}
         face.computeVertexNormals();G.uvScale(face,4,4);part('head',id,k===3?'dark':'steel',face,'head');
       }
-      if(gm)gm.helm(id,k,{dome,rx,ry,rz,hc,mat});   // gear-metal.js: rivets, comb, neck lames
     });
     for(const s of['L','R']){
       const fore='forearm'+s,hand='hand'+s,shin='shin'+s,foot='tarsal'+s;
@@ -657,7 +650,6 @@
         const cover=sleeve(A,fore,hand,k===3?.26:k===4?.22:.56,length,.012,.004,BODY);
         part('hands',id,k?'leather':'rag',cover.geometry,fore);
         const front=facingAngle(cover);
-        if(k>=2&&gm&&gm.hand(id,k,s,{cover,front,hb,c,sz}))return;   // gear-metal.js: segmented gauntlet
         if(!k){
           const bands=[];for(let n=0;n<3;n++)bands.push(G.shell(24,3,(u,v)=>cover.at(u*TAU,.58+n*.065+v*.05+.012*Math.sin(u*TAU),.003)[0].toArray(),.003,true));emit('hands',id,'cloth',bands,fore);return;
         }
@@ -692,8 +684,7 @@
         part('boots',id,'strap',G.shell(32,3,(u,v)=>{const p=shoe(u,0);p[1]=sole+v*.026;return p;},.009,true),foot);
         for(const t of[k===0?.76:.68,.90])part('boots',id,'strap',G.shell(24,3,(u,v)=>cover.at(u*TAU,t+v*.035,.004)[0].toArray(),.003,true),shin);
         for(const u of[.12,.88])piping('boots',id,'strap',v=>shoe(u,.04+v*.82),foot,.0017);
-        const gmb=gm&&gm.boot(id,k,s,{fc,fs,sole,w,length});   // gear-metal.js: greave + sabaton lames
-        if(gmb){}else if(k===1||k===4){
+        if(k===1||k===4){
           const greave=sleeve(A,shin,foot,k===4?.44:.52,.89,.026,.006,BODY),front=facingAngle(greave),span=k===4?1.16:.76;
           const plate=(u,v)=>greave.at(front+mix(-span,span,u),(k===4?.44:.53)+v*(k===4?.43:.34),.007+.004*Math.sin(u*PI))[0].toArray();
           part('boots',id,k===4?'dark':'steel',G.shell(18,12,plate,.007,false),shin);

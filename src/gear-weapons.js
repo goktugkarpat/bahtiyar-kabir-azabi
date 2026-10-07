@@ -353,20 +353,9 @@
       handle: .36, pommel: 'gem', pommelOpts: { trim: 'gold', gem: 'ember' }, gripOpts: { wrap: 'hide', ring: 'gold', wire: 'gold' }, runes: 'gore', runeCount: 9, seed: 31, tassel: ['crimson', .32, 7] });
     axe('void-oath-axe', { top: 1.22, finish: 'dark', reach: .32, up: .26, down: .18, bulge: .05, back: 'spike', headMat: 'black', trim: 'gold', wrap: 'hide', ring: 'gold', runes: 'void', runeCount: 3, seed: 33, tassel: ['sable', .22, 5] });
     spear('chain-court-spear', { top: 2.05, head: .55, finish: 'dark', headMat: 'black', width: t => .05 * Math.pow(Math.sin(t * PI), .55) * Math.pow(1 - t, .15), runes: 'gore', runeCount: 5, ring: 'gold', wrap: 'hide', seed: 35 });
-    // ajan:bossloot — boss-only weapons (src/boss-loot.js): own silhouettes, tinted by finish + trim, lit channels (grand() = boss rarity)
-    axe('drowned-clapper-axe', { top: 1.18, finish: 'salt', reach: .3, up: .15, down: .28, bulge: .04, beard: .06, back: 'poll', headMat: 'bronze', trim: 'brass', wrap: 'sable', ring: 'bronze', ring2: 'bronze', rivet: 'brass', runes: 'frost', runeCount: 2, seed: 41, tassel: ['rag', .26, 6],
-      extra: (P, s) => { P.bronze.push(G.sphere(.036, [0, s.y + .17, 0], [1, 1.3, 1], 14, 10)); P.salt.push(G.ring(.034, .004, [0, s.y + .13, 0], null, 6, 24)); P.frost.push(G.sphere(.009, [0, s.y + .2, .03], null, 8, 6)); } });
-    spear('hollow-scepter-spear', { top: 1.92, head: .4, finish: 'bone', headMat: 'bone', width: t => .052 * Math.pow(Math.sin(t * PI), .7) * Math.pow(1 - t, .15), wings: [[.02, .02], [.1, -.02], [.125, .03], [.1, .07], [.02, .07]], wingMat: 'bone', runes: 'holy', runeCount: 4, ring: 'gold', wrap: 'bone', tassel: ['crimson', .28, 6], seed: 42,
-      extra: (P, s) => { P.gold.push(G.ring(.032, .0045, [0, s.hb - .045, 0], null, 6, 24)); for (let k = 0; k < 5; k++) { const a = (k / 5) * TAU; P.bone.push(G.spike(.012, [Math.cos(a) * .026, s.hb - .06, Math.sin(a) * .026], [Math.cos(a) * .04, s.hb + .02, Math.sin(a) * .04], 5)); } } });
-    sword('heart-forged-sword', { top: 1.34, finish: 'dark', width: t => (.066 - .02 * t) * (t > .85 ? 1 - Math.pow((t - .85) / .15, 1.2) * .97 : 1), serr: 28, guard: 'cross', guardOpts: { mat: 'black', trim: 'gold', width: .2, droop: 1.3 },
-      handle: .33, pommel: 'gem', pommelOpts: { trim: 'gold', gem: 'ember' }, gripOpts: { wrap: 'hide', ring: 'gold', wire: 'gold' }, runes: 'ember', runeCount: 7, cracks: 'ember', crackCount: 6, seed: 43, ricassoMat: 'black', tassel: ['sable', .24, 5] });
-    axe('black-gavel-axe', { top: 1.3, finish: 'dark', reach: .34, up: .27, down: .21, bulge: .06, back: 'poll', headMat: 'black', trim: 'gold', rivet: 'gold', wrap: 'hide', ring: 'gold', ring2: 'gold', wire: 'gold', runes: 'gore', runeCount: 3, cracks: 'gore', seed: 44, tassel: ['crimson', .3, 7], blood: true,
-      extra: (P, s) => { P.gold.push(G.spike(.02, [0, s.y + .14, 0], [0, s.y + .25, 0], 8)); P.gore.push(G.sphere(.011, [0, s.y + .15, 0], [1, 1, 1], 10, 8)); } });
     // drop empty / null entries before merging
     Object.values(out).forEach(w => Object.keys(w.parts).forEach(k => { w.parts[k] = w.parts[k].filter(Boolean); if (!w.parts[k].length) { delete w.parts[k]; if (w.materials) delete w.materials[k]; } }));
     return out;
   }
-  // ajan:bossloot — authored-models.js only trusts a weapon's own mesh when its id is registered here
-  if (B.EquipmentArt && B.EquipmentArt.uniqueWeapons) ['drowned-clapper-axe', 'hollow-scepter-spear', 'heart-forged-sword', 'black-gavel-axe'].forEach(id => B.EquipmentArt.uniqueWeapons.add(id));
   B.GearWeapons = { build };
 })();

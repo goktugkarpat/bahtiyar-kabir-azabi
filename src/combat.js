@@ -157,16 +157,15 @@
       },
       start, update, restart, newCampaign: restart, respawn, interact, dispose, setQuality, setDifficulty, difficulty: 'normal', toTitle, beginRenderTraversal, endRenderTraversal, prepareGraphics, propTargets: () => mech && mech.pickTargets ? mech.pickTargets() : noPropTargets
     };
-    game.hero = hero;   // (ajan:secondary) QA / tooling handle
     const skillKeys = ['heavy', 'special', 'rage', 'fourth'];   // right mouse, key 1, key 2, key 3 (slot index = loadout index)
     const SKILLS = Object.freeze(Object.fromEntries(BABA.Progression.skills.map(skill => [skill.id, skill])));
-    const skillReach = Object.freeze({ cleave: 3, brand: 6.5, temper: 6.7, roar: 6, quake: 6, chainstorm: 6.5, whirl: 3.3, reap: 3.8, rend: 4.4, charge: 8, grasp: 10, havoc: 12, hook: 8, guard: 1 });
+    const skillReach = Object.freeze({ cleave: 3, brand: 6.5, temper: 6.7, roar: 6, quake: 6, chainstorm: 6.5, whirl: 3.3, reap: 3.8, rend: 4.4, charge: 8, grasp: 10, havoc: 12 });
     const skillCooldowns = Object.create(null);
     let roarWaves = null;   // pending follow-up rings of the tier-3 war cry
     const progression = BABA.Progression.create({ chapter, emit, groundLoot:true });
     let appliedLevel = progression.level;
     game.progression = progression;
-    // Talent tree 4 (src/talent-runtime.js): bleed, Çengelli Çekiş + Demir Duruş (barbarian actives), passives and keystones.
+    // Talent tree 3 (src/talent-runtime.js): bleed / burn / curses / burning ground, Kor Mührü + Ölüm Çanı, seals and keystones.
     const talents = BABA.TalentRuntime ? BABA.TalentRuntime.create({ game, player, enemies, progression, root, fx, sound, emit, groundY: (x, z) => world.effectHeightAt ? world.effectHeightAt(x, z, .6) : .06,
       strike: (e, amount, face) => { if (!e || e.dead) return null; if (!e.active) { e.active = true; e.activated = true; if (e.encounter) e.encounter.activated = true; } return hurtEnemy(e, Math.round(amount), true, face, { talent: true, combo: 0, face, heavy: true, gained: 99 }); },   // gained: talent bursts never refill the stamina orb (ECONOMY.HIT)
       dot: (e, amount, kind) => talentTick(e, amount, kind), stun: (e, s) => stunEnemy(e, s, 'heavy'),
@@ -189,8 +188,7 @@
       if (killed) { enemy.deathKind = ''; killEnemy(enemy); } else enemyPhaseChange(enemy);
       return { killed };
     }
-    const groundLoot = BABA.GroundLoot ? BABA.GroundLoot.create(root, world, {player, progression, chapter, sound, fx, emit, onCollect:saveProfileChoices,
-      isFinalReward: drop => !!(game.boss && game.boss.dead && drop.uid === 'drop-' + chapter + ':' + game.boss.id), bossDead: () => !!(game.boss && game.boss.dead)}) : null;
+    const groundLoot = BABA.GroundLoot ? BABA.GroundLoot.create(root, world, {player, progression, chapter, sound, fx, onCollect:saveProfileChoices}) : null;
     game.groundLoot = groundLoot;
     game.syncProgression = syncProgression;
     game.criticalChance = .08; game.criticalMultiplier = 1.5;
@@ -379,22 +377,14 @@
         player.rageCd = 0; started = startWarCry();
         if (started) player.rageCd = player.rageMaxCd = skill.cooldown;
       } else if (talents && talents.isActive(skill)) {
-        if (skill.line === 'hook') {
-          // Çengelli Çekiş: a lashing throw of the chained hook (pose: authored-motion 'skillMove'); the bite lands .24 s in (talent-runtime.js). No foe in the cone: nothing is spent.
-          const targets = talents.hookTargets(skill, player.face);
-          if (!targets || !targets.length) emit('toast', { text: KabirI18n.t('Çengel için önünde düşman yok.') });
-          else {
-            player.attack = { skill: skill.id, line: 'hook', tier: 1, params: P, heavy: true, combo: 0, age: 0, duration: .62, strike: .24, hit: true, face: player.face, damage: 0, radius: 0, serial: ++attackSerial,
-              queued: null, lunge: 0, lunged: 1, lungeLead: .1, whooshed: true, whooshAt: 99, originX: player.x, originZ: player.z, victims: new Set(), skillMove: 'chain' };
-            player.attack.chainAt = player.attack.duration; player.stamina -= skill.cost; started = talents.cast(skill, player.face, targets);
-          }
-        } else {
-          // Demir Duruş: the hero plants his feet in the war-cry body (no shout, no shockwave: the pose is released at once), the stance itself lives in talent-runtime.js.
-          Object.assign(ROAR, { tier: 1, release: .1, duration: .75, move: .55 });
-          player.attack = null; player.healing = 0; healingAge = 0; comboStep = 0; comboWindow = 0;
-          player.roar = { age: 0, released: true, serial: ++attackSerial, gather: ROAR.release };
-          player.stamina -= skill.cost; started = talents.cast(skill, player.face);
-        }
+        if (skill.line === 'pyre') {
+          // Kor Mührü: the heavy overhead blow (light damage), the seal is cut into the floor at contact (talent-runtime.js).
+          const savedPlan = swingPlan;
+          if (!swingPlan) swingPlan = { stand: true, face: player.face };
+          started = beginAttack(true, hasAim, true);
+          if (started) { player.stamina -= skill.cost - RESOURCES.costs.heavy; Object.assign(player.attack, { skill: skill.id, line: skill.line, tier: 1, params: P, damage: P.damage, radius: 3, arc: 1.9 }); talents.cast(skill, player.face); }
+          else swingPlan = savedPlan;
+        } else { started = talents.cast(skill, player.face); if (started) player.stamina -= skill.cost; }
       } else if (skill.line === 'charge') {
         const target = chargeTarget(skill, hasAim), attack = { skill: skill.id, line: 'charge', tier: skill.tier, params: P, heavy: true, combo: 0, age: 0, duration: .5, strike: .2, hit: true, face: player.face,
           damage: P.damage, radius: 0, serial: ++attackSerial, queued: null, lunge: 0, lunged: 1, lungeLead: .1, whooshed: true, whooshAt: 99, originX: player.x, originZ: player.z, victims: new Set() };
@@ -909,7 +899,6 @@
     function interact() {
       if (game.state !== 'playing') return;
       if (quests && quests.interact()) return;
-      if (groundLoot && groundLoot.takeNearest(player.x, player.z, 2)) return;   // E also takes the nearest ground item within 2 m
       if (activateCheckpoint()) return;
       if (distance(player, checkpoint) < 6.1) emit('toast', { text: game.checkpointIndex ? (chapter === 5 ? KabirI18n.t('Yemin mühürlü. Kara Kadı ileride bekliyor.') : chapter === 4 ? KabirI18n.t('Yemin mühürlü. Ocağın Kalbi ileride bekliyor.') : chapter === 3 ? KabirI18n.t('Yemin mühürlü. Oyukların Kralı ileride bekliyor.') : world.chapter === 2 ? KabirI18n.t('Yemin mühürlü. Çancı ileride bekliyor.') : KabirI18n.t('Mühür açık. Cellat salonda bekliyor.')) : KabirI18n.t('Yakındaki tehlikeden uzaklaş; sonra yemin taşına dön.') });
     }
@@ -1693,7 +1682,7 @@
         if (groundLoot && drop) {
           clearHazards();
           emit('boss', {name:enemy.name,active:false});
-          emit('toast', {text:KabirI18n.t(BABA.GroundLoot.auto ? 'Efendi yenildi. Emanetine yaklaş; kendiliğinden toplanır.' : 'Efendi yenildi. Düşürdüğü eşyaya tıkla ve al.')});
+          emit('toast', {text:KabirI18n.t('Efendi yenildi. Emanetine yaklaş; kendiliğinden toplanır.')});
         } else win();
       }
       saveProfileChoices();
@@ -1851,7 +1840,6 @@
       player.healing = 0; healingAge = 0;
       // Hurt never steals dodge input.
       sound('hurt'); fx('blood', { x: player.x + Math.sin(incomingAngle) * .3, y: 1.25, z: player.z + Math.cos(incomingAngle) * .3, player: true, damage, labelTarget: player, face: incomingAngle + Math.PI, spray: incomingAngle + Math.PI, heavy: heavyBlow });
-      if (talents) talents.onHurt(hazard.owner || null, damage);   // Demir Duruş: the foe next to the hero is thrown back
       if (hazard.pull && hazard.owner) {
         // The hook drags the hero to exactly pullTo metres from the executioner.
         const a = angleTo(player, hazard.owner), dist = Math.max(0, distance(player, hazard.owner) - (hazard.pullTo || 2.4));
@@ -2266,13 +2254,12 @@
       out.x = Number.isFinite(input.x) ? clamp(input.x, -1, 1) : 0;
       out.z = Number.isFinite(input.z) ? clamp(input.z, -1, 1) : 0;
       rawInput = input; swingPlan = null; dodgeAim = null;
-      let click = pendingClick || (input.clickLight || input.clickHeavy ? { heavy: !!input.clickHeavy, loot: input.loot, target: input.target, prop: input.prop, propEpoch: input.prop ? input.prop.epoch : null, x: input.pointX, z: input.pointZ, stand: !!input.stand } : null);
+      let click = pendingClick || (input.clickLight || input.clickHeavy ? { heavy: !!input.clickHeavy, target: input.target, prop: input.prop, propEpoch: input.prop ? input.prop.epoch : null, x: input.pointX, z: input.pointZ, stand: !!input.stand } : null);
       pendingClick = null;
       if (player.dead || game.state !== 'playing') { order = null; showTargetRing(null); return out; }
       const valid = e => !!e && !e.dead && e.model.root.visible;
       const validProp = p => !!p && (p.kind === 'anchor' || p.kind === 'orb') && typeof p.isTargetable === 'function' && p.isTargetable();
       const hover = valid(input.target) ? input.target : null, hoverProp = !hover && validProp(input.prop) ? input.prop : null;
-      const validLoot = d => !!d && !!groundLoot && !!groundLoot.find(d.uid), hoverLoot = !hover && !hoverProp && validLoot(input.loot) ? input.loot : null;   // ground loot under the cursor (click = walk there and take it)
       const hasPt = Number.isFinite(input.pointX) && Number.isFinite(input.pointZ);
       const mv = Math.hypot(input.x || 0, input.z || 0), holdL = !!input.holdLight, holdH = !!input.holdHeavy && !!selectedSkill(0), stand = !!input.stand;
       if (!holdL && !holdH || click || hover || hoverProp && hoverProp !== blockedPropHold) blockedPropHold = null;
@@ -2291,8 +2278,7 @@
       }
       if (click) {
         const t = valid(click.target) ? click.target : null, prop = !t && validProp(click.prop) ? click.prop : null, cx = prop ? prop.x : Number.isFinite(click.x) ? click.x : player.x + Math.sin(player.face) * 3, cz = prop ? prop.z : Number.isFinite(click.z) ? click.z : player.z + Math.cos(player.face) * 3;
-        if (!click.stand && !click.heavy && !t && !prop && validLoot(click.loot)) order = { kind: 'loot', uid: click.loot.uid, owed: true };
-        else if (click.stand || click.heavy && !t && !prop) order = { kind: 'stand', heavy: click.heavy, x: cx, z: cz, owed: true };
+        if (click.stand || click.heavy && !t && !prop) order = { kind: 'stand', heavy: click.heavy, x: cx, z: cz, owed: true };
         else if (t) order = { kind: 'attack', enemy: t, heavy: click.heavy, owed: true };
         else if (prop) order = { kind: 'prop', prop, epoch: prop.epoch, heavy: click.heavy, owed: true };
         else if (!click.heavy && Number.isFinite(click.x)) order = { kind: 'move', x: click.x, z: click.z };
@@ -2311,9 +2297,6 @@
           if (!order || order.kind !== 'attack' || order.heavy !== heavy || order.enemy !== hover) {
             order = { kind: 'attack', enemy: hover, heavy, owed: true, stuck: 0 }; trackAttackTarget(hover);
           }
-          order.held = true;
-        } else if (hoverLoot && btn === 'L') {
-          if (!order || order.kind !== 'loot' || order.uid !== hoverLoot.uid) order = { kind: 'loot', uid: hoverLoot.uid, owed: true, stuck: 0 };
           order.held = true;
         } else if (hoverProp) {
           const heavy = btn === 'H';
@@ -2344,11 +2327,6 @@
             const nav = order.navigation || (order.navigation = {}); routeDirection(player, e, nav, dt, hero.radius || .5, true);
             out.x = nav.dx; out.z = nav.dz; walking = true;
           }
-        } else if (order.kind === 'loot') {
-          const drop = groundLoot && groundLoot.find(order.uid);
-          if (!drop) order = null;
-          else if (Math.hypot(drop.x - player.x, drop.z - player.z) <= (groundLoot.takeReach || 1.4)) { groundLoot.take(drop.uid); order = null; }
-          else { dodgeAim = Math.atan2(drop.x - player.x, drop.z - player.z); if (mv <= .08) { const nav = order.navigation || (order.navigation = {}); routeDirection(player, drop, nav, dt, hero.radius || .5, true); out.x = nav.dx; out.z = nav.dz; walking = true; } }
         } else if (order.kind === 'prop') {
           const prop = order.prop, face = angleTo(player, prop), selected = order.heavy ? selectedSkill(0) : null;
           const reach = order.heavy ? (selected ? skillReach[selected.id] || ORDER.reachHeavy : ORDER.reachHeavy) : ORDER.reach + weaponHandling().reach;
@@ -2378,7 +2356,6 @@
         }
         if (order) { order.px = player.x; order.pz = player.z; }
       }
-      if (groundLoot) groundLoot.setHover(order && order.kind === 'loot' ? order.uid : hoverLoot ? hoverLoot.uid : '');
       showTargetRing(ring, !!(order && order.kind === 'attack'));
       showMoveMark(order && order.kind === 'move' && Number.isFinite(order.x) ? order : null, dt);
       return out;
@@ -2545,7 +2522,6 @@
       }
       // Energy recovers during every live action, including a held attack.
       if (talents) { DODGE.cost = talents.dodgeCost(RESOURCES.costs.dodge); talents.update(dt); }
-      if (BABA.Status) BABA.Status.tick(dt, enemies);   // target-hud.js: generic enemy.statuses timers (display only)
       // Energy recovers during every live action, including a held attack, but only after a short pause once some was spent
       // (combat-tuning.js ECONOMY: a spend restarts the pause, so constant rolling starves the bar; a breath refills it quickly).
       const P = tuning();
@@ -2559,7 +2535,7 @@
       }
       player.opening = Math.max(0, (player.opening || 0) - dt); perfectCd = Math.max(0, perfectCd - dt);
       player.dodgeCost = dodgeCost();
-      player.status = player.healing ? KabirI18n.t('Şifa içiliyor') : player.roar ? KabirI18n.t('Savaş narası') : talents && talents.guardActive() ? KabirI18n.t('Demir duruş') : player.rageTime > 0 ? KabirI18n.t('Kan öfkesi') : '';
+      player.status = player.healing ? KabirI18n.t('Şifa içiliyor') : player.roar ? KabirI18n.t('Savaş narası') : player.rageTime > 0 ? KabirI18n.t('Kan öfkesi') : '';
       pendingAction();
       player.move = player.dodge ? 1 : Math.min(1, moveLength) * (player.attack ? .5 : 1);
       if (input.interact) interact();
@@ -2656,7 +2632,7 @@
       hs.dodgeDirection = Math.atan2(dodgeVector.x, dodgeVector.z); hs.healing = player.healing ? 1 - player.healing / .82 : 0;
       hs.drinkTime = drinkLeft > 0 ? DRINK - drinkLeft : -1; hs.drinkDuration = DRINK;
       hs.hurt = player.hurt; hs.dead = player.dead; hs.phase = player.healing ? 'heal' : 'idle'; hs.face = player.face; hs.rage = player.rageTime > 0;
-      hs.skillMove = atk && atk.skillMove || ''; hs.roarTier = player.roar ? ROAR.tier : 1; hs.skillTier = atk && atk.skill && atk.line === 'cleave' ? atk.tier : 0; hs.leapAir = LEAP_AIR;
+      hs.roarTier = player.roar ? ROAR.tier : 1; hs.skillTier = atk && atk.skill && atk.line === 'cleave' ? atk.tier : 0; hs.leapAir = LEAP_AIR;
       hs.roarTime = player.roar ? player.roar.age : -1; hs.roarRelease = ROAR.release; hs.roarDuration = ROAR.duration; hs.roarSerial = player.roar ? player.roar.serial : 0;
       // Poses are only needed for a callback that is drawn (a 200 Hz screen under a 120 FPS cap, or a 120 Hz screen under 60, runs the
       // simulation more often than it draws): the time of the skipped callbacks is handed to the next pose, so nothing is lost.
@@ -2791,7 +2767,7 @@
       if (freeze > 0) {
         // Hit-stop: every combat clock holds together; presses made now are buffered for the next frame.
         const held = Math.min(freeze, dt); freeze -= held; dt -= held;
-        if (game.state === 'playing') { holdInput(input, true); if (input.clickLight || input.clickHeavy) pendingClick = { heavy: !!input.clickHeavy, loot: input.loot, target: input.target, prop: input.prop, propEpoch: input.prop ? input.prop.epoch : null, x: input.pointX, z: input.pointZ, stand: !!input.stand }; }
+        if (game.state === 'playing') { holdInput(input, true); if (input.clickLight || input.clickHeavy) pendingClick = { heavy: !!input.clickHeavy, target: input.target, prop: input.prop, propEpoch: input.prop ? input.prop.epoch : null, x: input.pointX, z: input.pointZ, stand: !!input.stand }; }
         input = Object.assign({}, input, { light: false, heavy: false, near: false, clickLight: false, clickHeavy: false, dodge: false, heal: false, rage: false, special: false, fourth: false });
         pendingAction();
         shudder(freeze > 0); game.hitStop = freeze;

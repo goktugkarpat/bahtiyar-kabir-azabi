@@ -46,23 +46,15 @@
     lathe: (pr, seg, a, b) => S.lathe(pr, Math.max(8, Math.round((seg || 24) * .7)), a, b) });
   function build(ctx) {
     const { A, sleeve, chest, hc, rx, ry, rz, facingAngle, modelOf } = ctx, G = lodGear(B.Gear, .7);
-    // (ajan:secondary) cloth / chain rigs on helper bones (secondary-motion.js); null with ?nophys -> every piece stays rigid exactly as before
-    const SX = B.Secondary && B.Secondary.heroRigs ? B.Secondary.heroRigs(A, ctx) : null;
-    const sk = (sheet, o) => SX && SX.sheets[sheet] ? Object.assign({ skin: SX.skin(SX.sheets[sheet], o), skinId: sheet + (o && o.hinge ? ':h' : '') }, o && o.extra) : null;
     // Pieces with identical fittings share one look: calls are recorded per item, fingerprinted, and only new looks are submitted.
-    // A piece carrying userData.dyn / opts.dyn = { mass: 'light'|'heavy', anchor: bone, len: m } (gear-metal.js) hangs on its own small column.
-    let rec = null; const part = (slot, id, mat, geometry, bone, opts) => {
-      const dyn = (opts && opts.dyn) || (geometry.userData && geometry.userData.dyn), d = SX && dyn ? SX.dyn(geometry, dyn) : null;
-      if (d) { bone = null; opts = { skin: d.skin, skinId: d.id }; }
-      rec.push([slot, mat, geometry, bone, opts]);
-    };
+    let rec = null; const part = (slot, id, mat, geometry, bone, opts) => rec.push([slot, mat, geometry, bone, opts]);
     const looks = new Map(), lookOf = {};
     function commit(itemId) {
       if (!rec.length) return;
       const key = rec.map(([slot, mat, g, bone, opts]) => { const p = g.attributes.position; return [slot, mat, bone || '', opts ? JSON.stringify(opts) : '', p.count, p.getX(0).toFixed(4), p.getY(0).toFixed(4), p.getZ(p.count - 1).toFixed(4)].join(':'); }).join('|');
       let look = looks.get(key);
       if (look) rec.forEach(r => r[2].dispose());
-      else { look = 'look@' + looks.size; looks.set(key, look); rec.forEach(([slot, mat, g, bone, opts]) => { ctx.part(slot, look, mat, g, bone, opts); if (SX && opts && opts.skinId) SX.own(opts.skinId.replace(/:h$/, ''), look); }); }
+      else { look = 'look@' + looks.size; looks.set(key, look); rec.forEach(([slot, mat, g, bone, opts]) => ctx.part(slot, look, mat, g, bone, opts)); }
       lookOf[itemId] = look;
     }
     const line = (fn, n) => Array.from({ length: n + 1 }, (_, i) => fn(i / n));
@@ -110,8 +102,7 @@
         strips.push(G.shell(2, 6, strip, .002, false));
         if (i % 3 === 0) beads.push(G.sphere(.008, strip(.5, 1.04), null, 8, 6));
       }
-      const skm = sk('mant');
-      if (skm) { emit('head', id, mat, strips, null, skm); emit('head', id, trim, beads, null, skm); } else { emit('head', id, mat, strips, 'spine03'); emit('head', id, trim, beads, 'spine03'); }
+      emit('head', id, mat, strips, 'spine03'); emit('head', id, trim, beads, 'spine03');
       const pin = [hc.x, hc.y - ry * .62, hc.z + .085];
       part('head', id, trim, G.lathe([[0, -.012], [.02, -.008], [.022, .004], [0, .01]], 14).rotateX(PI / 2).translate(...pin), 'spine03');
       if (glow) part('head', id, glow, G.sphere(.007, [pin[0], pin[1], pin[2] + .012], null, 8, 6), 'spine03');
@@ -138,35 +129,6 @@
         emit('chest', id, 'black', sp, bone); emit('chest', id, trim, st, bone);
       }
     }
-    // ---- (ajan:secondary) NEW hanging details, each on its own small spring column (secondary-motion.js); they are skipped with ?nophys
-    function strapTails(id, mat, trim) {   // two leather tails with a bead, hanging off the shoulder plates
-      if (!SX) return;
-      for (const s of ['L', 'R']) {
-        const { bone, c, rz: pz, rx: px, sign } = shoulderInfo[s], sid = 'sh' + s, x0 = c.x + sign * (px + .03), y0 = c.y - .02, z0 = c.z - pz * .3;
-        if (!SX.sheets[sid]) SX.chain(sid, bone, [0, 1, 2, 3].map(k => [x0 + sign * .016 * k, y0 - .06 * k, z0]), 'light');
-        const o = { skin: SX.skin(SX.sheets[sid]), skinId: sid };
-        part('chest', id, mat, G.shell(1, 6, (u, v) => [x0 + sign * .048 * v, y0 - v * .18, z0 + (u - .5) * .03 * (1 - v * .45)], .003, false), null, o);
-        part('chest', id, trim, G.sphere(.011, [x0 + sign * .048, y0 - .185, z0], [1, 1, .8], 8, 6), null, o);
-      }
-    }
-    function chainLoops(id, mat) {   // a short iron chain dangling from each gauntlet cuff
-      if (!SX) return;
-      for (const s of ['L', 'R']) {
-        const sign = s === 'L' ? 1 : -1, fore = 'forearm' + s, hand = 'hand' + s, a = A.P(fore).lerp(A.P(hand), .42), sid = 'wr' + s;
-        const J = [0, 1, 2, 3].map(k => [a.x + sign * (.07 + .016 * k), a.y - .05 * k, a.z - .005]);
-        if (!SX.sheets[sid]) SX.chain(sid, fore, J, 'heavy');
-        part('hands', id, mat, G.chain(J, .02, 0), null, { skin: SX.skin(SX.sheets[sid]), skinId: sid });
-        part('hands', id, mat, G.ring(.014, .003, J[0], [0, 0, sign * PI / 2], 5, 12), fore);
-      }
-    }
-    function bootTails(id, mat) {   // cloth ends trailing behind the shin wraps
-      if (!SX) return;
-      for (const s of ['L', 'R']) {
-        const shin = 'shin' + s, foot = 'tarsal' + s, a = A.P(shin).lerp(A.P(foot), .3), sid = 'bt' + s, z0 = a.z - .1;
-        if (!SX.sheets[sid]) SX.chain(sid, shin, [0, 1, 2].map(k => [a.x, a.y - .085 * k, z0 - .012 * k]), 'light');
-        part('boots', id, mat, G.shell(1, 5, (u, v) => [a.x + (u - .5) * .045 * (1 - v * .3), a.y - v * .17, z0 - .024 * v], .002, false), null, { skin: SX.skin(SX.sheets[sid]), skinId: sid });
-      }
-    }
     function sigil(id, trim, glow, shape) {
       const p = chest(0, .64, .056), out = [], g = [];
       const poly = shape === 'skull' ? null : shape === 'sun' ? Array.from({ length: 16 }, (_, i) => { const a = i / 16 * TAU, r = i % 2 ? .03 : .052; return [Math.sin(a) * r, Math.cos(a) * r]; }) : [[0, .055], [.04, 0], [0, -.055], [-.04, 0]];
@@ -177,12 +139,9 @@
       emit('chest', id, shape === 'skull' ? 'bone' : trim, out.filter(q => q.type !== 'TorusGeometry'), 'spine02'); emit('chest', id, trim, out.filter(q => q.type === 'TorusGeometry'), 'spine02');
       if (glow) emit('chest', id, shape === 'skull' ? glow : glow, g, 'spine02');
     }
-    function halfCape(id, mat, len, narrow) {
-      // (ajan:secondary) hangs from the shoulder blades on the 'cape' sheet; the lower hem is cut into tabs so it reads as strips when it flares
-      const hem = u => SX ? 1 - .15 * Math.abs(((u * 6) % 1) - .5) * 2 : 1, a0 = narrow ? .39 : .36;
-      const cape = (u, v0) => { const v = v0 * hem(u), a = mix(a0, 1 - a0, u), p = chest(a, .97, .05); const flare = 1 + v * .28; return [p[0] * flare, p[1] - v * len, p[2] - .03 * v - .05 * v * v + .01 * Math.sin(u * PI * 7) * v]; };
-      const skc = sk('cape');
-      part('chest', id, mat, G.shell(24, 14, cape, .005, false), null, skc || { bones: ['spine03', 'spine02', 'spine01', 'pelvis'] });
+    function halfCape(id, mat, len) {
+      const cape = (u, v) => { const a = mix(.36, .64, u), p = chest(a, .97, .05); const flare = 1 + v * .28; return [p[0] * flare, p[1] - v * len, p[2] - .03 * v - .05 * v * v + .01 * Math.sin(u * PI * 7) * v]; };
+      part('chest', id, mat, G.shell(24, 14, cape, .005, false), null, { bones: ['spine03', 'spine02', 'spine01', 'pelvis'] });
       part('chest', id, 'gold', G.tube(line(u => cape(u, 0), 24), .005, 6, 32, true), 'spine03');
       for (const u of [0, 1]) { const p = cape(u, 0); part('chest', id, 'gold', G.sphere(.016, [p[0], p[1] - .01, p[2] + .02], [1, 1, .6], 10, 8), 'spine03'); }
     }
@@ -200,7 +159,7 @@
     }
     function silkSash(id, mat) {
       part('chest', id, mat, G.shell(40, 4, (u, v) => chest(u, .1 + v * .09, .052), .004, true), null, HIP_W);
-      for (const k of [0, 1]) part('chest', id, mat, G.shell(3, 10, (u, v) => { const p = chest(.08 + k * .025 + u * .03, .12, .056); return [p[0] + v * .02, p[1] - v * (.26 - k * .06), p[2] + .01 * Math.sin(v * 4)]; }, .003, false), null, sk('hip') || HIP_W);
+      for (const k of [0, 1]) part('chest', id, mat, G.shell(3, 10, (u, v) => { const p = chest(.08 + k * .025 + u * .03, .12, .056); return [p[0] + v * .02, p[1] - v * (.26 - k * .06), p[2] + .01 * Math.sin(v * 4)]; }, .003, false), null, HIP_W);
     }
     function furCollar(id) {
       const tufts = [], cz0 = A.P('spine03').z;
@@ -214,22 +173,19 @@
       part('chest', id, 'brass', G.sphere(.016, chest(0, .58, .055), [1, 1, .5], 10, 8), 'spine02');
     }
     function tabard(id, cloth, trim, glow) {
-      // (ajan:secondary) swallow-tail hem; the whole panel hangs on the 'tab' sheet (3 columns x 4 links) and swings over the thighs
-      const hemT = u => SX ? 1 - .14 * (1 - Math.abs(2 * u - 1)) : 1, skt = sk('tab');
-      const panel = (u, v) => { const p = chest((u - .5) * .14, .62, .058); return [p[0] * (1 + v * .2), mix(p[1], .62, v * hemT(u)), p[2] + .01 + .015 * v + .006 * Math.sin(u * PI * 3) * v]; };
-      part('chest', id, cloth, G.shell(10, 16, panel, .004, false), null, skt || TORSO_W);
-      for (const e of [0, 1]) part('chest', id, trim, G.tube(line(v => panel(e, v), 16), .0025, 4, 20, true), null, skt || TORSO_W);
+      const panel = (u, v) => { const p = chest((u - .5) * .14, .62, .058); return [p[0] * (1 + v * .2), mix(p[1], .62, v), p[2] + .01 + .015 * v + .006 * Math.sin(u * PI * 3) * v]; };
+      part('chest', id, cloth, G.shell(10, 16, panel, .004, false), null, TORSO_W);
+      for (const e of [0, 1]) part('chest', id, trim, G.tube(line(v => panel(e, v), 16), .0025, 4, 20, true), null, TORSO_W);
       const q = chest(0, .42, .07), cross = G.extrude([[-.012, .05], [.012, .05], [.012, .014], [.04, .014], [.04, -.012], [.012, -.012], [.012, -.07], [-.012, -.07], [-.012, -.012], [-.04, -.012], [-.04, .014], [-.012, .014]], .006, .002);
-      cross.translate(q[0], q[1], q[2]); if (skt) part('chest', id, trim, cross, null, skt); else part('chest', id, trim, cross, 'spine01');
-      if (glow) { if (skt) part('chest', id, glow, G.sphere(.008, [q[0], q[1] + .002, q[2] + .01], null, 8, 6), null, skt); else part('chest', id, glow, G.sphere(.008, [q[0], q[1] + .002, q[2] + .01], null, 8, 6), 'spine01'); }
+      cross.translate(q[0], q[1], q[2]); part('chest', id, trim, cross, 'spine01');
+      if (glow) part('chest', id, glow, G.sphere(.008, [q[0], q[1] + .002, q[2] + .01], null, 8, 6), 'spine01');
       const st = []; for (let i = 0; i < 16; i++) { const u = i / 16, p = chest(u, .11, .056); st.push(G.stud(.0055, p, [Math.sin(u * TAU), 0, Math.cos(u * TAU)])); } emit('chest', id, 'gold', st, null, HIP_W);
     }
     function tassets(id, mat, trim, n) { // hanging hip plates
       for (const sd of [-1, 1]) for (let k = 0; k < n; k++) {
         const a0 = sd * (.09 + k * .055), plate = (u, v) => { const p = chest(a0 + (u - .5) * .05, .06, .06 + k * .004); return [p[0] * (1 + v * .1), p[1] - .02 - v * .17, p[2] + v * .02 * Math.cos(a0 * TAU)]; };
-        const pc = plate(.5, .5), skp = SX ? { skin: SX.skinAt(SX.sheets.plate, pc, { hinge: true }), skinId: 'plate:h' } : null;   // (ajan:secondary) a hinged plate: swings from its top edge, stiff and quickly damped
-        part('chest', id, mat, G.shell(6, 5, plate, .005, false, sd < 0), null, skp || HIP_W);
-        part('chest', id, trim, G.tube(line(u => plate(u, 1), 6), .002, 4, 8, true), null, skp || HIP_W);
+        part('chest', id, mat, G.shell(6, 5, plate, .005, false, sd < 0), null, HIP_W);
+        part('chest', id, trim, G.tube(line(u => plate(u, 1), 6), .002, 4, 8, true), null, HIP_W);
       }
     }
     function legWraps(id, mat) {
@@ -290,8 +246,6 @@
         if (spur) { const fb = A.box(A.cloud([foot], ['skin'], .35)), hp = [mix(fb.min.x, fb.max.x, .5), fb.min.y + .04, fb.min.z - .02]; part('boots', id, trim, G.tube([hp, [hp[0], hp[1] + .004, hp[2] - .05]], .0035, 5, 6, true), foot); const r = new T.TorusGeometry(.014, .003, 4, 10); r.translate(hp[0], hp[1] + .004, hp[2] - .055); part('boots', id, mat, r, foot); }
       }
     }
-    // gear-metal.js hook (one block): crowns that sit on the articulated pauldron lames of the metal cores
-    if (B.GearMetal && B.GearMetal.armorBuilders && !/[?&]oldmetal/.test(location.search)) ({ spikedPauldron, bellPauldron } = B.GearMetal.armorBuilders({ G, part, emit, shoulderInfo, line }));
     // ------------------------------------------------------------- catalogue pass
     const sig = SIG();
     for (const item of B.Progression.items) {
@@ -332,27 +286,26 @@
             else if (fam === 'gore') chainMantle(id);
             else if (fam === 'holy') wingPauldron(id, 'gold', 'black');
           }
-          if (unique) { spikedPauldron(id, 'black', 'gold', 3, .13, true); strapTails(id, 'strap', 'gold'); sigil(id, 'gold', glowKey, 'sun'); halfCape(id, 'crimson', .52); }
+          if (unique) { spikedPauldron(id, 'black', 'gold', 3, .13, true); sigil(id, 'gold', glowKey, 'sun'); halfCape(id, 'crimson', .52); }
           else if (rank >= 3) {
             const k = item.id.length % 3;
             if (/hollow|sunless/.test(item.id)) { sigil(id, 'bone', glow, 'skull'); trophySkulls(id); }
-            else if (k === 0) { spikedPauldron(id, plate, trim, 3, .085, false); strapTails(id, 'strap', trim); sigil(id, trim, glow, 'diamond'); if (/^(iron|holy|ember|gore|frost)$/.test(fam)) halfCape(id, clothOf(item), .32, true); }
+            else if (k === 0) { spikedPauldron(id, plate, trim, 3, .085, false); sigil(id, trim, glow, 'diamond'); }
             else if (k === 1) { sigil(id, trim, glow, 'sun'); halfCape(id, clothOf(item), .42); }
-            else { spikedPauldron(id, plate, trim, 2, .1, false); strapTails(id, 'strap', trim); sigil(id, trim, glow, 'diamond'); if (/^(iron|holy|ember|gore|frost)$/.test(fam)) halfCape(id, clothOf(item), .3, true); }
+            else { spikedPauldron(id, plate, trim, 2, .1, false); sigil(id, trim, glow, 'diamond'); }
           }
         } else if (item.slot === 'hands') {
           if (rank >= 2 && !/wrap/.test(item.id)) cuff(id, rank >= 3 ? 'black' : 'dark', trim, rank >= 3 ? .03 : .018);
-          if (rank >= 3) { knuckles(id, 'black', trim, glow, unique); chainLoops(id, 'dark'); }
+          if (rank >= 3) knuckles(id, 'black', trim, glow, unique);
         } else if (item.slot === 'boots') {
           const fam = family(item);
-          if (rank >= 1) { if (fam === 'barbarian' || fam === 'gore') { legWraps(id, fam === 'gore' ? 'sable' : 'rag'); bootTails(id, fam === 'gore' ? 'sable' : 'rag'); } else if (fam !== 'void') kneeCops(id, plate, trim); }
+          if (rank >= 1) { if (fam === 'barbarian' || fam === 'gore') legWraps(id, fam === 'gore' ? 'sable' : 'rag'); else if (fam !== 'void') kneeCops(id, plate, trim); }
           if (rank >= 3) kneeSpikes(id, 'black', trim, glow, true);
           else if (rank === 2) kneeSpikes(id, 'dark', trim, null, false);
         }
       } catch (error) { console.warn('gear-armor', item.id, error); }
       commit(item.id);
     }
-    if (SX) SX.finalize();   // (ajan:secondary) capsule radii fitted to the finished rigs
     B.GearArmor.looks = lookOf;
   }
   // Family name shown in the character screen (identity only; no set bonus).

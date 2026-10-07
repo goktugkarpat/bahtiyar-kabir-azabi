@@ -1039,15 +1039,6 @@
     if(o.weaponType)sample('metal',{vol:.12*k,rate:o.weaponType==='axe'?.82:1.13,lp:4200,delay:.025,send:.06});
     if(o.rarity==='epic'||o.rarity==='boss'||o.signature)sample('hitRingA',{vol:.085*k,rate:.70,lp:2500,delay:.035,send:.18});
   };
-  // An ordinary drop landing: a soft thud, plus a faint ring that grows with rarity (common stays modest). Unique drops use gearUniqueDrop.
-  H.lootDrop = (o, k) => {
-    if (!throttle('lootDrop', .07)) return;
-    const t = now(), s = spatial(o.x, o.z), r = o.rarity;
-    sample('gear', { vol: (r === 'common' ? .07 : .11) * k * s.gain, rate: r === 'common' ? .8 : .95, lp: 3200, send: .04 });
-    if (r === 'uncommon') tone(t + .03, 1175, .35, .022 * k * s.gain, { type: 'sine', attack: .005, send: .25, pan: s.pan });
-    else if (r === 'rare') ring(t + .02, { f: 880, partials: [1, 2.4], decay: .7, vol: .045 * k * s.gain, send: .3, pan: s.pan });
-    else if (r === 'epic') ring(t + .02, { f: 660, partials: [1, 2.01, 3.9], decay: 1.4, vol: .07 * k * s.gain, send: .45, pan: s.pan });
-  };
   /* ajan:gear */
   // A unique piece hits the ground: one deep bronze bell under a shower of high glints.
   H.gearUniqueDrop = (o, k) => {

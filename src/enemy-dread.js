@@ -14,7 +14,7 @@
 (function () {
   'use strict';
   var B = window.BABA = window.BABA || {}, T = window.THREE;
-  var OFF = /[?&]nodread(&|$)/.test(location.search), OFF_SX = /[?&]nophys(&|$)/.test(location.search), TAU = Math.PI * 2;
+  var OFF = /[?&]nodread(&|$)/.test(location.search), TAU = Math.PI * 2;
   function V(x, y, z) { return new T.Vector3(x, y, z); }
   var EXEC = { carrier: 1, boss: 1, urchin: 1, bell: 1, gravemason: 1, ruinwarden: 1, hollowking: 1, forgesentinel: 1, ashwarden: 1, furnaceheart: 1, chainjailer: 1, verdictwarden: 1, lastjudge: 1 };
   var BOSS = { boss: 1, bell: 1, hollowking: 1, furnaceheart: 1, lastjudge: 1 };
@@ -113,7 +113,7 @@
       if (Math.abs(base.y - c.y) > .12 * sc) base.y = c.y;
       return base.add(V(Math.sin(a) * (out || .02) * sc, 0, Math.cos(a) * (out || .02) * sc));
     }
-    var nSwing = 0, SXB = !OFF_SX && B.Secondary && !B.Secondary.off ? B.Secondary.begin(A) : null;   // (ajan:secondary) multi-link spring chains instead of the single pendulum
+    var nSwing = 0;
     function swingBone(role, at, rec) {
       var name = 'dread_' + (nSwing++); A.addBone(name, R[role], at);
       rec.bone = name; rec.len = rec.len || .3; info.swing.push(rec); return A.index[name];
@@ -121,26 +121,7 @@
     function chainGeo(at, len, size, tail) {
       var parts = [], n = Math.max(3, Math.round(len / (size * 1.25)));
       for (var i = 0; i < n; i++) { var g = G.link(size); if (i % 2) g.rotateY(Math.PI / 2); g.translate(at.x, at.y - size * .55 - i * size * 1.22, at.z); parts.push(g); }
-      return { geo: G.merge(parts), end: V(at.x, at.y - n * size * 1.22, at.z), links: parts };
-    }
-    // (ajan:secondary) a strip / chain hung from `at` on a column of 2-4 spring links (secondary-motion.js); every link of a chain stays rigid on its own bone
-    function addSX(kind, role, ang, at, len, limb) {
-      var id = 'e' + (nSwing++), N = Math.max(2, Math.min(4, Math.round(len / (.11 * sc)))), joints = [], k;
-      for (k = 0; k <= N; k++) joints.push([at.x, at.y - len / N * k, at.z]);
-      var sh = SXB.chain(id, R[role], joints, kind === 's' ? 'rag' : kind === 'g' ? 'light' : 'heavy'), skin = SXB.skin(sh), last = sh.cols[0].bones[N - 1];
-      if (kind === 's') {
-        var w = (limb ? .07 : .1) * sc, out = V(Math.sin(ang), 0, Math.cos(ang));
-        if (limb) out.set(0, 0, -1);
-        var g = G.sheet(3, 10, function (u, v) { var x = (u - .5) * w * (1 - v * .4); return [at.x + out.z * x + out.x * (v * .03 * sc), at.y - v * len, at.z - out.x * x + out.z * (v * .03 * sc) + Math.sin(v * 7 + nSwing) * .01 * sc]; }, false);
-        G.wear(g, { edge: 0, cavity: 0, border: 0, curv: 0, tear: { amount: .55, width: .03, bottom: .3, base: .02 } });
-        A.weighted(ragKey, g, skin); return;
-      }
-      var size = (kind === 'c' ? .055 : .05) * sc, ch = chainGeo(at, len, size), c3 = new T.Vector3();
-      ch.links.forEach(function (lg) { lg.computeBoundingBox(); lg.boundingBox.getCenter(c3); var wgt = skin(c3); A.weighted(ironKey, lg, function () { return wgt; }); });
-      if (kind === 'k') A.rigid(ironKey, hookGeo(ch.end, 1.1 * sc), last);
-      else if (kind === 'x') { var sk = skullGeo(ch.end, .11 * sc); A.rigid(boneKey, sk.bone, last); if (sk.void) A.rigid(has('void') ? 'void' : ironKey, sk.void, last); }
-      else if (kind === 'p') { var pl = G.box(.06 * sc, .07 * sc, .025 * sc, [ch.end.x, ch.end.y - .04 * sc, ch.end.z]); A.rigid(ironKey, G.merge([pl, G.ring(.022 * sc, .006 * sc, [ch.end.x, ch.end.y, ch.end.z], [0, 0, 0], 5, 10)]), last); }
-      else if (kind === 'g') { var sg = G.sphere(.045 * sc, [ch.end.x, ch.end.y - .04 * sc, ch.end.z], [1, 1, .45], 10, 6); A.rigid(glowKey, sg, last); }
+      return { geo: G.merge(parts), end: V(at.x, at.y - n * size * 1.22, at.z) };
     }
     function hookGeo(p, s) { var h = G.hook(), list = []; Object.keys(h.parts).forEach(function (k) { h.parts[k].forEach(function (g) { list.push(g); }); }); var g = G.merge(list); g.scale(s, s, s); g.translate(p.x, p.y - .02 * s, p.z); return g; }
     function skullGeo(p, s) { var k = G.skull(s, true), bone = G.merge(k.parts.bone || []), vd = k.parts.void && k.parts.void.length ? G.merge(k.parts.void) : null; bone.translate(p.x, p.y - s * .9, p.z); if (vd) vd.translate(p.x, p.y - s * .9, p.z); return { bone: bone, void: vd }; }
@@ -152,7 +133,6 @@
       else at = surface(role, ang, dy, kind === 's' ? .025 : .035);
       if (!at) return;
       len *= sc;
-      if (SXB) { try { return addSX(kind, role, ang, at, len, limb); } catch (e) { if (window.console) console.warn('dread sx ' + type + ' ' + kind + ': ' + (e && e.message)); } }
       var stiff = kind === 's' ? .3 : .12, rec = { gravity: true, len: len, grav: 1, stiff: stiff, damp: kind === 's' ? .9 : .965, dir: [0, -1, 0], max: kind === 's' ? 1.0 : 1.25 }, j = swingBone(role, at, rec);
       if (kind === 's') {
         // a torn shroud strip: top rigid to its bone, the lower part skinned to the pendulum (it swings, the top stays put)
@@ -184,10 +164,6 @@
       });
     } catch (e) { if (window.console) console.warn('dread grade ' + type + ': ' + (e && e.message)); }
     (KIT[type] || []).forEach(function (k) { try { add(k[0], k[1], k[2], k[3], k[4]); } catch (e) { if (window.console) console.warn('dread ' + type + ' ' + k[0] + ': ' + (e && e.message)); } });
-    if (SXB && SXB.info.chains.length) {   // body capsules for the cloth / chains to rest on (radii fitted to the skin, then shrunk clear of the rest pose)
-      ['pelvis', 's1', 's2', 's3', 'head', 'thighL', 'thighR', 'armL', 'armR', 'foreL', 'foreR'].forEach(function (role) { var nm = R[role]; if (nm && A.has(nm)) SXB.autoProxy(nm, A.tail(nm), .88, 0, 1, .07 * sc); });
-      SXB.finalize();
-    }
     if (BLIND[type]) try {
       var hcl = A.cloud([R.head], skinKeys, .5); if (hcl.length > 20) {
         var hb = A.box(hcl), hc2 = hb.getCenter(new T.Vector3()), rx = (hb.max.x - hb.min.x) * .5 + .012 * sc, rz = (hb.max.z - hb.min.z) * .5 + .012 * sc, ey = hc2.y + (hb.max.y - hb.min.y) * .06;

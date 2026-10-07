@@ -342,7 +342,7 @@ body.target-stacked #target-hud { width: min(calc(500px * var(--k)), calc(100vw 
 .action.cooling .skill { filter: grayscale(.5) brightness(.6) }
 .action-rage.burning .skill, .action-fourth.burning .skill { filter: brightness(1.1) }
 .action.queued { outline: 2px solid #f3cf85; outline-offset: 2px }
-#skill-feedback { position: absolute; left: 50%; bottom: calc(164px * var(--k)); transform: translateX(-50%); max-width: min(88vw, 580px); padding: 8px 14px; border: 1px solid #8f4733; border-radius: 4px; background: #160b08ec; color: #ffc1a3; text-align: center; font: 700 max(13px, calc(15px * var(--k)))/1.35 var(--text); pointer-events: none; z-index: 8 }
+#skill-feedback { position: absolute; left: 50%; bottom: calc(132px * var(--k)); transform: translateX(-50%); max-width: min(88vw, 580px); padding: 8px 14px; border: 1px solid #8f4733; border-radius: 4px; background: #160b08ec; color: #ffc1a3; text-align: center; font: 700 max(13px, calc(15px * var(--k)))/1.35 var(--text); pointer-events: none; z-index: 8 }
 #skill-feedback.waiting { color: #f3dcaa; border-color: #8b7043 }
 body.touch #skill-feedback { bottom: calc(288px * var(--k)) }
 .action.lack { animation: lack-pulse .5s ease-out }
@@ -955,7 +955,7 @@ body.chapter-fading #hud, body.chapter-fading #tutorial { visibility: hidden }
 #victory.final .end-title { background: none; aspect-ratio: auto; width: auto; margin: 4px 0 0; font: 700 clamp(34px, 5.5vw, 64px)/1.15 var(--display); color: #f0e2c8; text-shadow: 0 2px 6px #000; animation: fade-up 1.2s .3s both }
 
 /* Key reminder: bottom-left, a little above the screen edge and left of the health orb; plain static DOM (no filters). */
-#key-hints { position: absolute; left: calc(26px * var(--k, 1)); bottom: calc(34px * var(--k, 1)); display: flex; flex-direction: column; gap: calc(9px * var(--k, 1)); align-items: flex-start; padding: calc(11px * var(--k, 1)) calc(15px * var(--k, 1)); border: 1px solid #8a72464d; border-radius: 3px; background: #0a0d10b0; color: #c4b89e; font: 600 calc(15px * var(--k, 1))/1.2 var(--text, system-ui); letter-spacing: .03em; pointer-events: none; opacity: .86; white-space: nowrap; }
+#key-hints { position: absolute; left: calc(26px * var(--k, 1)); bottom: calc(70px * var(--k, 1)); display: flex; flex-direction: column; gap: calc(9px * var(--k, 1)); align-items: flex-start; padding: calc(11px * var(--k, 1)) calc(15px * var(--k, 1)); border: 1px solid #8a72464d; border-radius: 3px; background: #0a0d10b0; color: #c4b89e; font: 600 calc(15px * var(--k, 1))/1.2 var(--text, system-ui); letter-spacing: .03em; pointer-events: none; opacity: .86; white-space: nowrap; }
 #key-hints span { display: flex; align-items: center; }
 #key-hints kbd { display: inline-block; min-width: 2.2em; padding: .1em .5em .26em; line-height: 1; margin-right: .65em; border: 1px solid #9c8452; border-bottom-width: 2px; border-radius: 3px; background: #1a1610; color: #ecd9ae; font: 700 .9em var(--text, system-ui); line-height: 1; text-align: center; }
 @media (pointer: coarse), (max-width: 1100px) { #key-hints { display: none; } }

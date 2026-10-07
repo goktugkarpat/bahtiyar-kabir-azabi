@@ -1,10 +1,10 @@
 /* KABİR AZABI — look of talent tree 3 (all procedural, no textures):
-   - burning ground (a pool of 10 shader quads; only gear powers open zones now, the tree itself no longer does)
+   - burning ground (Kor Mührü seal, Kül Fırtınası ring, Kor İzi trail, Kor Ağzı crescent): one shader quad per zone (pool of 10)
    - status on foes: burn embers, bleed drops, rot motes + green sigil under the feet, dread wisps: ONE shared Points cloud (900)
-   - bursts: pooled expanding ring quads (10); chains: real instanced links (Çengelli Çekiş, gear powers)
-   Draw calls: 1 points + visible zones + visible rings + chain links. Nothing is allocated per frame.
+   - bursts / bell waves: pooled expanding ring quads (10); Ölüm Çanı: a ghostly lathe bell over the hero; chains: link motes
+   Draw calls: 1 points + visible zones + visible rings + bell. Nothing is allocated per frame.
    API (talent-runtime.js): create(root, groundY) -> { zone(z), unzone(z), mark(e, kind), unmark(e, kind), clear(e), burst(x, z, r, kind),
-     chains(player, foes, lash, opt), drain(e, player), update(dt, status, hearthPlayer), reset(), dispose() } */
+     bell(player, radius), chains(player, foes), drain(e, player), update(dt, status, hearthPlayer), reset(), dispose() } */
 (function () {
   'use strict';
   const B = window.BABA = window.BABA || {};
@@ -77,6 +77,20 @@
       o.t = 0; o.life = life || .5; o.r = r; o.y = y || 0; o.m.position.set(x, gy(x, z) + .05 + (y || 0), z); o.m.scale.set(r, 1, r);
       o.mat.uniforms.uColor.value.set(color[0], color[1], color[2]); o.m.visible = true;
     }
+    // ---- bell (Ölüm Çanı): a fresnel ghost bell (rim-lit, so it reads from the steep top-down camera), its clapper and a pale pillar of light
+    const pts = [], H = 1.25; for (let i = 0; i <= 18; i++) { const u = i / 18; pts.push(new T.Vector2(.2 + .62 * Math.pow(u, 1.6) + (u > .9 ? (u - .9) * 2.6 : 0), H * (1 - u))); }
+    const GHOST_VS = 'varying vec3 vN; varying vec3 vV; varying float vY; void main(){ vec4 w = modelViewMatrix * vec4(position, 1.0); vN = normalize(normalMatrix * normal); vV = normalize(-w.xyz); vY = position.y; gl_Position = projectionMatrix * w; }';
+    const GHOST_FS = 'varying vec3 vN; varying vec3 vV; varying float vY; uniform float uFade, uTime; uniform vec3 uColor; void main(){ float f = pow(1.0 - abs(dot(normalize(vN), normalize(vV))), 1.6); float band = smoothstep(.04, 0.0, abs(fract(vY * 3.2 - uTime * .8) - .5) - .42); float a = (f * .8 + band * .25 + .03) * uFade; gl_FragColor = vec4(uColor * a, a); }';
+    const bellMat = new T.ShaderMaterial({ vertexShader: GHOST_VS, fragmentShader: GHOST_FS, uniforms: { uFade: { value: 0 }, uTime: { value: 0 }, uColor: { value: new T.Vector3(.46, .78, .36) } }, transparent: true, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide });
+    const bell = new T.Mesh(new T.LatheGeometry(pts, 28), bellMat); bell.visible = false; bell.renderOrder = 5; group.add(bell);
+    const clapper = new T.Mesh(new T.SphereGeometry(.17, 12, 8), bellMat); clapper.position.y = -.15; bell.add(clapper);
+    const bellWire = new T.LineSegments(new T.EdgesGeometry(bell.geometry, 25), new T.LineBasicMaterial({ color: new T.Color(.85, 1, .7), transparent: true, opacity: 0, blending: T.AdditiveBlending, depthWrite: false }));
+    bell.add(bellWire);
+    const PILLAR_FS = 'varying vec2 vUv; uniform float uFade, uTime; uniform vec3 uColor; void main(){ float edge = sin(vUv.x * 3.14159); float v = smoothstep(0.0, .15, vUv.y) * (1.0 - smoothstep(.55, 1.0, vUv.y)); float flow = .6 + .4 * sin(vUv.y * 22.0 - uTime * 9.0); float a = edge * edge * v * flow * uFade * .55; gl_FragColor = vec4(uColor * a, a); }';
+    const pillarMat = new T.ShaderMaterial({ vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }', fragmentShader: PILLAR_FS,
+      uniforms: { uFade: { value: 0 }, uTime: { value: 0 }, uColor: { value: new T.Vector3(.26, .5, .2) } }, transparent: true, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide });
+    const pillar = new T.Mesh(new T.CylinderGeometry(1.25, 1.6, 5.5, 24, 1, true), pillarMat); pillar.visible = false; pillar.renderOrder = 4; group.add(pillar);
+    let bellT = 9, bellOwner = null, bellR = 7, bellWave = 3;
     // ---- chains (Zincirli Kader, Zincir Kırbacı, Kanca / Kement): real links, instanced (6 chains x 22 links), thrown out then dragged back
     const LINKS = 22, CHAINS = 6;
     const linkMat = new T.MeshStandardMaterial({ color: 0x5d5853, metalness: .85, roughness: .38, emissive: new T.Color(.25, .04, .02) });
@@ -151,11 +165,14 @@
       for (let i = 0; i < n; i++) { const a = Math.random() * 6.283, s = rnd(1.5, 4.5) * Math.min(1.6, r / 2.5);
         spark(x + Math.sin(a) * .4, y + rnd(.2, 1.1), z + Math.cos(a) * .4, Math.sin(a) * s, rnd(.6, kind === 'rot' ? 2.4 : 4), Math.cos(a) * s, i % 6 ? c : COLORS.bone, rnd(.4, .9), rnd(.1, kind === 'rot' ? .26 : .18), kind === 'blood' ? -9 : kind === 'fire' ? -3 : -.5); }
     }
-    // opt.life: seconds the chain stays out (Çengelli Çekiş holds it .72 s while the foe slides in)
-    function chains(p, foes, lash, opt) {
+    function bellAt(p, radius) {
+      bellT = 0; bellOwner = p; bellR = radius; bell.visible = true;
+      bellWave = 0;
+    }
+    function chains(p, foes, lash) {
       for (const e of foes.slice(0, CHAINS)) {
         if (chainList.length >= CHAINS) chainList.shift();
-        chainList.push({ from: p, to: e, x: e.x, z: e.z, t: 0, life: opt && opt.life || (lash ? .45 : .55), lash: !!lash });
+        chainList.push({ from: p, to: e, x: e.x, z: e.z, t: 0, life: lash ? .45 : .55, lash: !!lash });
         const y = (e.model && e.model.root.position.y) || 0;
         for (let i = 0; i < 10; i++) spark(e.x, y + 1, e.z, rnd(-2, 2), rnd(.5, 2.5), rnd(-2, 2), i % 2 ? [1.8, 1.5, 1.1] : [1.6, .4, .12], .35, .07, -6);
       }
@@ -230,6 +247,20 @@
         if (m.dread && Math.random() < dt * 10) spark(e.x + rnd(-.4, .4), y + h * rnd(.8, 1.1), e.z + rnd(-.4, .4), 0, rnd(.3, .8), 0, COLORS.dread, .8, rnd(.12, .22), 0);
         if (m.sigil) { const s = m.sigil; s.m.position.set(e.x, gy(e.x, e.z) + .05, e.z); const r = (e.radius || .5) + .55; s.m.scale.set(r, 1, r); s.m.rotation.y = time * .8; s.mat.uniforms.uTime.value = time; s.mat.uniforms.uFade.value = .3 + .08 * Math.sin(time * 2.4); }   // rot mark: a dim, slow pulse so it never reads as a telegraph ring
       }
+      // bell: rises, swings hard (so its side reads from above), rings three waves; a pale pillar under it
+      if (bell.visible) {
+        bellT += dt; const k = bellT / 1.6, p = bellOwner;
+        while (p && bellWave < 3 && bellT >= .28 + bellWave * .17) { ring(p.x, p.z, bellR * (.75 + bellWave * .14), bellWave === 1 ? [.42, .4, .3] : [.17, .42, .09], .75 + bellWave * .1); bellWave++; }
+        if (k >= 1 || !p) { bell.visible = false; pillar.visible = false; bellOwner = null; }
+        else {
+          const fade = Math.min(1, k * 7) * (1 - Math.max(0, (k - .62) / .38)), g0 = gy(p.x, p.z);
+          bell.position.set(p.x, g0 + 3.1 + k * .6, p.z); bell.rotation.x = Math.sin(bellT * 9) * .55 * (1 - k * .7) + .35; bell.rotation.y = bellT * .7;
+          bell.scale.setScalar(1.05 + .3 * Math.sin(Math.min(1, k * 4) * Math.PI / 2));
+          bellMat.uniforms.uFade.value = .75 * fade; bellMat.uniforms.uTime.value = time; bellWire.material.opacity = .9 * fade;
+          pillar.visible = true; pillar.position.set(p.x, g0 + 2.6, p.z); pillarMat.uniforms.uFade.value = fade; pillarMat.uniforms.uTime.value = time; pillar.scale.set(1 + k * .4, 1, 1 + k * .4);
+          if (Math.random() < dt * 60) { const a = Math.random() * 6.283; spark(p.x + Math.sin(a) * 1.1, bell.position.y - .4, p.z + Math.cos(a) * 1.1, Math.sin(a) * 1.8, -rnd(.5, 1.6), Math.cos(a) * 1.8, Math.random() < .5 ? COLORS.rot : COLORS.bone, .8, .18, -1); }
+        }
+      }
       // chains: thrown out over the first 25 %, held, then dragged home
       let li = 0;
       for (let c = chainList.length - 1; c >= 0; c--) {
@@ -298,14 +329,14 @@
       for (const o of ringPool) o.m.visible = false;
       for (const [e] of marks) clear(e);
       for (let i = 0; i < MAX; i++) life[i] = 0;
-      chainList.length = 0; links.count = 0;
+      bell.visible = false; pillar.visible = false; bellOwner = null; chainList.length = 0; links.count = 0;
     }
     function dispose() {
       reset(); root.remove(group);
       group.traverse(o => { if (o.geometry && o.geometry !== quad) o.geometry.dispose(); if (o.material) o.material.dispose(); });
       quad.dispose();
     }
-    return { zone, unzone, mark, unmark, clear, burst, chains, drain, leech, souls, leap, execute, puff, update, reset, dispose, debug: () => ({ live: liveCount, zones: zonePool.filter(o => o.z).length, marks: marks.size }) };
+    return { zone, unzone, mark, unmark, clear, burst, bell: bellAt, chains, drain, leech, souls, leap, execute, puff, update, reset, dispose, debug: () => ({ live: liveCount, zones: zonePool.filter(o => o.z).length, marks: marks.size }) };
   }
   B.TalentFX = Object.freeze({ create });
 }());

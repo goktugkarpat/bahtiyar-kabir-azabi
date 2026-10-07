@@ -7,13 +7,6 @@
   var B = window.BABA = window.BABA || {};
   var T = window.THREE;
   var MAX_SCATTER = 12;
-  // ---- GRAFİK AYARLARI (polish round: "biraz daha az karanlık"). Old (v304) behaviour = 1 for every multiplier. Change here only. ----
-  var LOOK_TUNE = {
-    exposureLift: 1.18,  // multiplies every room's / the Parlaklık slider's exposure (~+0.25 stop); slider 100 % stays the default
-    ambientLift: 1.08,   // hemisphere (ambient) light floor: floors and walls away from torches keep a bit more body
-    mistGain: .85,       // low mist layer thickness (the haze that greys the floor)
-    fogGain: .9          // distance fog density
-  };
   // Hero focus pool in the post composite (ajan:visual-dark): [strength, radius m]; rooms may override with atmosphere.focus / focusRadius. QA: ?focus=s,r
   var FOCUS = ((/[?&]focus=([\d.]+),([\d.]+)/.exec(location.search) || []).slice(1).map(Number));
   if (FOCUS.length !== 2) FOCUS = [.4, 6];
@@ -794,15 +787,15 @@
       // Fog, ambient and key/rim.
       if (!scene.background || !scene.background.isColor) scene.background = new T.Color();
       scene.background.lerp(a.fog, k);
-      if (scene.fog) { scene.fog.color.copy(scene.background); scene.fog.density += (a.fogDensity * LOOK_TUNE.fogGain * (cfgRef.fog || .02) / .02 - scene.fog.density) * k; }
-      hemi.color.lerp(a.sky, k); hemi.groundColor.lerp(a.ground, k); hemi.intensity += (a.hemi * LOOK_TUNE.ambientLift - hemi.intensity) * k;
+      if (scene.fog) { scene.fog.color.copy(scene.background); scene.fog.density += (a.fogDensity * (cfgRef.fog || .02) / .02 - scene.fog.density) * k; }
+      hemi.color.lerp(a.sky, k); hemi.groundColor.lerp(a.ground, k); hemi.intensity += (a.hemi - hemi.intensity) * k;
       moon.color.lerp(a.key, k); moon.intensity += (a.keyI - moon.intensity) * k;
       rim.color.lerp(a.rim, k); rim.intensity += (a.rimI - rim.intensity) * k;
       keyDir.lerp(tmpV.fromArray(a.keyDir), k);
       scene.environmentIntensity += (a.env - scene.environmentIntensity) * k;
       // Mist.
       var M = FOG.karaMist.value;
-      M[0].y += (a.mistA * LOOK_TUNE.mistGain - M[0].y) * k; M[0].z += (a.mistH - M[0].z) * k; M[0].w = reducedMotion ? 0 : time;
+      M[0].y += (a.mistA - M[0].y) * k; M[0].z += (a.mistH - M[0].z) * k; M[0].w = reducedMotion ? 0 : time;
       M[1].set(a.wind[0], a.wind[1], .34, .35); M[2].x += (a.scatter - M[2].x) * k; M[2].y += (a.mistGlow - M[2].y) * k;
       var mc = FOG.karaMistColor.value[0]; tmpC.copy(a.mist); mc.set(mc.x + (tmpC.r - mc.x) * k, mc.y + (tmpC.g - mc.y) * k, mc.z + (tmpC.b - mc.z) * k);
       // Character rim in view space.
@@ -817,7 +810,7 @@
       grade.shadowTint.lerp(a.shadowTint, k); grade.highTint.lerp(a.highTint, k); grade.contrast += (a.contrast - grade.contrast) * k;
       grade.vignette += (a.vignette - grade.vignette) * k; grade.vignetteColor.lerp(a.vigColor, k);
       grade.bloom += (a.bloom - grade.bloom) * k; grade.bloomTint.lerp(a.bloomTint, k);
-      grade.exposure = (cfgRef.exposure || 1.15) * a.exposure * LOOK_TUNE.exposureLift;
+      grade.exposure = (cfgRef.exposure || 1.15) * a.exposure;
       var fx = p.x, fz = p.z - 2;
       updateScatter(fx, fz, dt);
       if (opts.post) { updateHeat(opts.post.heat(), fx, fz); if (opts.post.pulse) warCryPost(opts.post.heat(), opts.post.pulse(), p); chapterLook(dt); opts.post.setGrade(grade); if (opts.post.setFocus) opts.post.setFocus(p.x, .9, p.z, Number.isFinite(a.focusRadius) ? a.focusRadius : FOCUS[1], Number.isFinite(a.focus) ? a.focus : FOCUS[0] * (FOCUS_CH[B.ActiveChapter] || 1)); }
@@ -832,7 +825,7 @@
       if (scene.environment) { scene.environment.dispose(); scene.environment = null; }
     }
     setQuality(opts.cfg || {});
-    return { tune: LOOK_TUNE, update: update, follow: follow, setQuality: setQuality, dispose: dispose, grade: grade, moon: moon, hemi: hemi, rim: rim, prepare: prepare, snap: function () { ready = false; },
+    return { update: update, follow: follow, setQuality: setQuality, dispose: dispose, grade: grade, moon: moon, hemi: hemi, rim: rim, prepare: prepare, snap: function () { ready = false; },
       get state() { return state; }, fog: FOG, rimUniforms: RIM, patchModel: patchModel, attachPost: function (post) { opts.post = post; }, cameraFx: cameraFx };
   }
 
