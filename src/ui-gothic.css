@@ -131,6 +131,22 @@ body.ui-dying::after { content: ''; position: fixed; inset: 0; z-index: 9; point
 #controls .control-grid p b { color: #ecdcbc }
 #controls .control-grid p span { color: #b2a48f }
 #controls .ctl-icon { border-color: #6a4f2e }
+/* geniş ekranda: karakter/ayarlar/günlük ile aynı oymalı oda (assets/ui/hybrid-b-chamber.png) */
+@media (min-width: 900px) and (min-height: 600px) {
+  #controls { background: #080708 }
+  #controls .controls-panel.ui-chamber { width: min(96vw, calc(94dvh * 1586 / 992)); height: 94dvh; max-height: 1040px; max-width: 1663px; padding: 0; border: 0; border-radius: 0; box-shadow: 0 12px 65px #000b; position: relative; overflow: hidden;
+    background: url(../assets/ui/hybrid-b-chamber.png) center / 100% 100% no-repeat }
+  #controls .ui-chamber::before, #controls .ui-chamber::after { display: none }
+  #controls .ui-chamber .panel-head { position: absolute; top: 2.3%; left: 6.5%; width: 87%; padding: 0; margin: 0; border: 0; display: flex; justify-content: center; text-align: center }
+  #controls .ui-chamber .panel-head .eyebrow { font-size: 0; letter-spacing: 0 }
+  #controls .ui-chamber .panel-head .eyebrow::before { content: 'KABİR AZABI'; font: 400 clamp(26px, 2.65vw, 44px)/1.05 Georgia, serif; letter-spacing: .075em; color: #f0e3c9; text-shadow: 0 2px 3px #000 }
+  html[lang=en] #controls .ui-chamber .panel-head .eyebrow::before { content: 'GRAVE TORMENT' }
+  #controls .ui-chamber .panel-head h2 { font: 400 18px/1.15 Georgia, serif; letter-spacing: .06em; color: #e6d7b9; margin-top: 4px }
+  #controls .ui-chamber .panel-head .close { position: absolute; top: 0; right: 0; width: 32px; height: 32px; min-height: 32px; background: #0c0908d9; border: 1px solid #ba9864; color: #e6d6b6 }
+  #controls .ui-chamber .ui-scroll { -webkit-mask: linear-gradient(#000 calc(100% - 28px), transparent); mask: linear-gradient(#000 calc(100% - 28px), transparent); position: absolute; top: 15.5%; bottom: 11.5%; left: 13.5%; right: 13.5%; overflow: auto; padding-right: 8px; scrollbar-width: thin; scrollbar-color: #997849 #100d0b }
+  #controls .ui-chamber .control-grid { gap: 0 22px }
+  #controls .ui-chamber .control-grid p b { font-family: Georgia, serif; font-weight: 400; font-size: 16px }
+}
 /* okuma sırası: hareket ve savaş temelleri önce, yetenek yuvaları sırayla (sağ tık, 1, 2, 3) en sonda */
 #controls .control-grid > :nth-child(1) { order: 1 } #controls .control-grid > :nth-child(2) { order: 2 }
 #controls .control-grid > :nth-child(5) { order: 3 } #controls .control-grid > :nth-child(6) { order: 4 }

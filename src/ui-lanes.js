@@ -98,7 +98,16 @@
     const id = setInterval(show, 5200);
   }
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', decorateTitle, { once: true }); else decorateTitle();
+  // Kontroller (H) paneli, karakter/ayarlar/günlük ile aynı oymalı odaya oturur: başlık dışındaki her şey tek kaydırma alanına alınır.
+  function frameControls() {
+    const panel = document.querySelector('#controls .controls-panel'); if (!panel || panel.querySelector('.ui-scroll')) return;
+    const box = document.createElement('div'); box.className = 'ui-scroll';
+    Array.from(panel.children).forEach(c => { if (!c.classList.contains('panel-head')) box.appendChild(c); });
+    panel.appendChild(box); panel.classList.add('ui-chamber');
+  }
+
+  function decorate() { decorateTitle(); frameControls(); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', decorate, { once: true }); else decorate();
   decorateLoading();
   /* ---------- 4. ölüm anı: ağır çekim + kırmızı vinyet (ölüm kartı açılmadan önceki ~0.75 sn) ---------- */
   let dyingAt = -1, dyingTimer = 0;
