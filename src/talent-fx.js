@@ -83,11 +83,21 @@
     const links = new T.InstancedMesh(new T.TorusGeometry(.13, .035, 6, 10), linkMat, LINKS * CHAINS); links.frustumCulled = false; links.count = 0; group.add(links);
     const chainList = [];   // { from, to:{x,z,e}, t, life }
     // grapnel head on the chain tip: a barbed spike plus a curved claw (Çengelli Çekiş / hook throws)
-    const headMat = new T.MeshStandardMaterial({ color: 0xb4b2ac, metalness: .92, roughness: .26, emissive: new T.Color(.05, .015, .01) });
-    const spikeGeo = new T.ConeGeometry(.07, .5, 6).rotateX(Math.PI / 2).translate(0, 0, .22);
-    const clawGeo = new T.TorusGeometry(.2, .045, 6, 12, Math.PI * 1.25).rotateY(Math.PI / 2).rotateX(Math.PI / 2).translate(0, .0, -.05);
-    const spikes = new T.InstancedMesh(spikeGeo, headMat, CHAINS), claws = new T.InstancedMesh(clawGeo, headMat, CHAINS);
-    for (const m of [spikes, claws]) { m.frustumCulled = false; m.count = 0; group.add(m); }
+    const headMat = new T.MeshStandardMaterial({ color: 0x8f98a6, metalness: .8, roughness: .34, emissive: new T.Color(.05, .015, .01) });
+    // forged three-pronged grapnel: shank, front spike, collar, chain eye and three barbed prongs curling back toward the chain
+    const parts = [new T.CylinderGeometry(.055, .075, .6, 8).rotateX(Math.PI / 2).translate(0, 0, .0),
+      new T.ConeGeometry(.075, .42, 8).rotateX(Math.PI / 2).translate(0, 0, .5),
+      new T.TorusGeometry(.12, .04, 6, 12).translate(0, 0, -.22), new T.TorusGeometry(.1, .03, 6, 12).rotateY(Math.PI / 2).translate(0, 0, -.42)];
+    const prong = new T.CatmullRomCurve3([new T.Vector3(0, 0, .22), new T.Vector3(.16, 0, .3), new T.Vector3(.36, 0, .2), new T.Vector3(.46, 0, .0), new T.Vector3(.42, 0, -.16)]);
+    for (let k = 0; k < 3; k++) { const g = new T.TubeGeometry(prong, 14, .042, 6, false).rotateZ(k * Math.PI * 2 / 3 + Math.PI / 2); parts.push(g, new T.ConeGeometry(.05, .16, 6).rotateX(-Math.PI / 2 - .35).translate(.42, 0, -.22).rotateZ(k * Math.PI * 2 / 3 + Math.PI / 2)); }
+    const merged = new T.BufferGeometry(); { const P = [], N = [], I = []; let off = 0;
+      for (const g0 of parts) { const g = g0.index ? g0 : g0.toNonIndexed(); const pa = g.attributes.position, na = g.attributes.normal;
+        for (let i = 0; i < pa.count; i++) { P.push(pa.getX(i), pa.getY(i), pa.getZ(i)); N.push(na.getX(i), na.getY(i), na.getZ(i)); }
+        if (g.index) for (let i = 0; i < g.index.count; i++) I.push(g.index.getX(i) + off); else for (let i = 0; i < pa.count; i++) I.push(i + off);
+        off += pa.count; }
+      merged.setAttribute('position', new T.Float32BufferAttribute(P, 3)); merged.setAttribute('normal', new T.Float32BufferAttribute(N, 3)); merged.setIndex(I); }
+    const spikes = new T.InstancedMesh(merged, headMat, CHAINS), claws = { count: 0, instanceMatrix: { needsUpdate: false }, setMatrixAt() {} };
+    for (const m of [spikes]) { m.frustumCulled = false; m.count = 0; group.add(m); }
     const _m = new T.Matrix4(), _q = new T.Quaternion(), _e = new T.Euler(), _p = new T.Vector3(), _s = new T.Vector3(1, 1, 1);
     // ---- particles
     const MAX = 900, pos = new Float32Array(MAX * 3), col = new Float32Array(MAX * 4), size = new Float32Array(MAX);
@@ -252,7 +262,7 @@
         }
         if (hk && hi < CHAINS) {
           const pitch = Math.atan2(-(ty - y0), len);
-          _p.set(p.x + dx * reach, y0 + (ty - y0) * reach, p.z + dz * reach); _e.set(pitch, yaw, 0, 'YXZ'); _q.setFromEuler(_e); _s.set(1, 1, 1); _m.compose(_p, _q, _s);
+          _p.set(p.x + dx * reach, y0 + (ty - y0) * reach, p.z + dz * reach); _e.set(pitch, yaw, Math.PI / 6, 'YXZ'); _q.setFromEuler(_e); _s.set(1.25, 1.25, 1.25); _m.compose(_p, _q, _s);
           spikes.setMatrixAt(hi, _m); claws.setMatrixAt(hi, _m); hi++;
         }
       }
