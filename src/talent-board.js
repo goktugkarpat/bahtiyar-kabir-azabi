@@ -153,7 +153,7 @@
         '<span class="tb-panelart" style="background:' + bg + '"></span>' +
         '<header>' + (acts[0] ? '<span class="tb-crest"><img src="assets/ui/abilities/' + acts[0].id + '.png" alt="" draggable="false"></span>' : '') +
         '<span class="tb-ptitle"><b>' + esc(t(p.name)) + '</b><small><em>' + count + '</em> ' + esc(count === 1 && en() ? 'point' : t('puan')) + '</small></span>' +
-        '<span class="tb-paths">' + cols.map(c => '<i style="color:' + c.color + '" title="' + esc(c.hint || '') + '">' + esc(c.name) + '</i>').join('') + '</span></header>' +
+        '<span class="tb-paths">' + cols.map(c => { const a = T.nodes().find(n => n.kind === 'active' && n.line === c.line); return '<i style="color:' + c.color + '" title="' + esc(c.name + (c.hint ? ' · ' + c.hint : '')) + '">' + esc(a ? a.name : c.name) + '</i>'; }).join('') + '</span></header>' +
         (p.keys.length ? '<span class="tb-keycap" style="right:' + (p.w - (pos(p.keys[0]).x - p.x) + KEY_R + 6).toFixed(1) + 'px;top:' + ROW_Y[4] + 'px;max-width:' + Math.max(30, pos(p.keys[0]).x - p.x - KEY_R - 10).toFixed(0) + 'px">' + esc(t('Kilit taşı')) + '</span>' : '') + '</div>';
     }).join('');
     // ---- build plaques (row III): one per exclusive pair of passives, "ya da" between the rivals -----------------------
