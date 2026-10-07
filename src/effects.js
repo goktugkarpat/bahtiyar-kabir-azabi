@@ -1243,6 +1243,11 @@
         feet = Math.max(feet, bloodUnder(x, z)); if (feet > .12) { const yaw = game.player && game.player.model ? game.player.model.root.rotation.y : 0; footPrint(x, z, yaw, feet); feet *= .8; } else feet = 0;
         return;
       }
+      if (name === 'bodyThud') {   // (ajan:chars2b) a heavy corpse hits the ground: a low ring of dust and grit thrown outward
+        const n = scaleCount(d.light ? 5 : d.heavy ? 22 : 12), big = d.heavy ? 1 : d.light ? .35 : .6;
+        for (let i = 0; i < n; i++) particle(x + rnd(-.3, .3), .05, z + rnd(-.3, .3), 2, [.09, .075, .06], .55 * big + .35, i / n * Math.PI * 2 + rnd(-.2, .2), .25);
+        return;
+      }
       if (name === 'bloodSpray' || name === 'goreBurst' || name === 'stumpSpurt') { gore(name, x, y, z, d.dirX != null ? d.dirX : Math.sin(d.face || 0), d.dirZ != null ? d.dirZ : Math.cos(d.face || 0), d.strength); return; }
       if (name === 'dodge') {
         // Kicked-up grit behind the roll.
