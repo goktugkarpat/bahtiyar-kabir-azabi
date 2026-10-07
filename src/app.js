@@ -371,7 +371,7 @@
     setTimeout(() => d.remove(), kind.startsWith('rarity-') ? 6600 : 4200);
   }
   function clearNotices() {
-    levelUpTimer = 0; $('level-up').classList.remove('show'); if (B.LevelUp) B.LevelUp.cancel(); if (B.Charge && B.Charge.cancel) B.Charge.cancel();
+    levelUpTimer = 0; pendingLevel = null; $('level-up').classList.remove('show'); if (B.LevelUp) B.LevelUp.cancel(); if (B.Charge && B.Charge.cancel) B.Charge.cancel();
     buffUI.clear(); chapterBuffUI.clear(); if (questUI) questUI.clear();
     targetUI.clear();
     $('toasts').replaceChildren();
@@ -458,10 +458,28 @@
     if (B.Audio.say && !game.checkpointIndex && game.elapsed === 0 && game.kills === 0) B.Audio.say(finaleChapter ? 'ch5Intro' : forgeChapter ? 'forgeIntro' : ruinsChapter ? 'ruinsIntro' : coastChapter ? 'coastIntro' : 'intro');
   }
   const questVoices = { 'lost-names': 'questNames', 'blood-verdict': 'questVerdict', 'last-voice': 'questBell', 'root-memory': 'questMemory', 'kings-name': 'questKing', 'cave-breath': 'questEcho', 'last-prisoner': 'questPrisoner', 'heart-feeds': 'questHeart' };
+  // Level-up banner waits (max 8 s) until the chapter title, the story caption (cinema bars) or a boss card is gone, so the texts never overlap.
+  let pendingLevel = null, pendingLevelWait = 0;
+  function levelLaneBusy() {
+    const b = document.body, vis = e => !!e && +getComputedStyle(e).opacity > .04 && getComputedStyle(e).visibility !== 'hidden';
+    return vis($('announcement')) || b.classList.contains('bf-intro') || vis(document.querySelector('.qc-bars.show .qc-caption')) || !!document.querySelector('.qc-bars.show');
+  }
+  function queueLevelUp(d) {
+    if (pendingLevel) { pendingLevel.levels = (pendingLevel.levels | 0) + (d.levels | 0); pendingLevel.level = d.level; pendingLevel.points = d.points; }
+    else { pendingLevel = Object.assign({}, d); pendingLevelWait = 0; }
+  }
+  function flushLevelUp(dt) {
+    if (!pendingLevel || view !== 'playing') return;
+    pendingLevelWait += dt;
+    if (levelLaneBusy() && pendingLevelWait < 8) return;
+    const d = pendingLevel; pendingLevel = null;
+    if (B.LevelUp) B.LevelUp.trigger(d, game.player);
+    levelUpTimer = 2.7;
+  }
   function event(name, d = {}) {
     if (name === 'questChoice') { if (game && ['playing','pause'].includes(view)) open('journal'); if (questUI) questUI.open(); return; }
     if (name === 'quest') { if (questUI) questUI.event(d); if (d.complete && questVoices[d.id] && B.Audio.sayQuest) B.Audio.sayQuest(questVoices[d.id]); return; }
-    if (name === 'progression') { if (d.levels > 0) { B.Audio.play('levelUp'); fx('heroSkill', { skill: 'level', phase: 'release', x: game.player.x, z: game.player.z }); announceTimer = 0; $('announcement').classList.remove('show'); if (B.LevelUp) B.LevelUp.trigger(d, game.player); levelUpTimer = 2.7; } if (characterUI) characterUI.refresh(); return; }
+    if (name === 'progression') { if (d.levels > 0) { B.Audio.play('levelUp'); fx('heroSkill', { skill: 'level', phase: 'release', x: game.player.x, z: game.player.z }); queueLevelUp(d); } if (characterUI) characterUI.refresh(); return; }
     if (name === 'loot') { for (const item of d.items || []) { const def = B.Progression.catalog[item.id]; if (def) notify(B.Progression.qualities[def.rarity].name + KabirI18n.t(' ganimet · ') + def.name + KabirI18n.t(' · Çantaya eklendi [I]'), 'rarity-' + def.rarity); } return; }
     if (name === 'hit') {
       // combat.js sizes the hit-stop itself (d.hitstop is set) and reports how hard the contact was (d.impact 0..1),
@@ -1718,6 +1736,7 @@
     else if ((game.state === 'dead' || game.state === 'won') && view === 'playing') { game.update(dt, { ...input, x: 0, z: 0, light: false, heavy: false, clickLight: false, clickHeavy: false, holdLight: false, holdHeavy: false, target: null, dodge: false, heal: false, rage: false }); fxStep(dt); }
 
     if (announceTimer > 0) { announceTimer -= dt; if (announceTimer <= 0) $('announcement').classList.remove('show'); }
+    flushLevelUp(dt);
     if (levelUpTimer > 0 && view === 'playing') { levelUpTimer -= dt; if (levelUpTimer <= 0) $('level-up').classList.remove('show'); }
     flash = Math.max(0, flash - dt * 1.7);
     syncWarnings(dt);
