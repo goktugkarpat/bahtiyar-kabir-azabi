@@ -213,8 +213,8 @@
         K.dec(i, 4, 0, mid, 6, d + 2, 0, [.55, .54, .52], .8); K.dec(i, 0, (R() - .5) * 4, mid, 5, 5, R() * 6, [1, 1, 1], .8);
       }
       // ---- macro variation: broad soot / dust / damp fields break the slab and plate rhythm ----
-      for (var mv = 0; mv < 7; mv++) { var mt = mv % 3; K.dec(i, mt === 0 ? 3 : mt === 1 ? 4 : 9, X((R() - .5) * (r.w - 4)), Z((R() - .5) * (r.d - 4)), 5 + R() * 5, 5 + R() * 5, R() * 6.28, mt === 1 ? [.5, .49, .47] : [1, 1, 1], mt === 2 ? .5 : .55, mt === 2 ? 'wet' : 'matte'); }
-      [-1, 1].forEach(function (s) { for (var wb = 0; wb < 5; wb++) K.dec(i, 4, X(s * (r.w / 2 - 1)), Z(-r.d / 2 + 2.2 + wb * (r.d - 4.4) / 4), 2.4, 3.4, R() * .6, [.42, .41, .4], .8); });
+      for (var mv = 0; mv < 7; mv++) { var mt = mv % 3; K.dec(i, mt === 0 ? 3 : mt === 1 ? 4 : 9, X((R() - .5) * (r.w - 4)), Z((R() - .5) * (r.d - 4)), 4 + R() * 3, 4 + R() * 3, R() * 6.28, mt === 1 ? [.5, .49, .47] : [1, 1, 1], .35, 'matte'); }   // soft, matte, smaller: no hard-edged sheets
+      [-1, 1].forEach(function (s) { for (var wb = 0; wb < 5; wb++) K.dec(i, 4, X(s * (r.w / 2 - 1)), Z(-r.d / 2 + 2.2 + wb * (r.d - 4.4) / 4), 2.4, 3.4, R() * .6 + .3, [.42, .41, .4], .45); });
       // ---- lived-in floor ----
       pebbles(i, r, cave ? 70 : 46, R, cave ? 'rock' : 'stone', cave ? [.7, .74, .8] : [.85, .84, .82], [7, 5]);
       for (var k = 0; k < (cave ? 18 : 10); k++) { var bx = X((R() - .5) * (r.w - 3)), bz = Z((R() - .5) * (r.d - 3)); bone(i, bx, bz, .25 + R() * .4, R() * 6.28, 0, R); }
