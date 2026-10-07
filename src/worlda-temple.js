@@ -749,7 +749,7 @@
       vertexShader: 'attribute vec3 aHome; attribute vec2 aPh; uniform float uTime; varying vec2 vUv; varying float vRing; varying float vA;' +
         'void main(){ vUv=uv; float t=fract(uTime/aPh.y+aPh.x); float fallT=.28; vec3 wp;' +
         ' if(t<fallT){ float k=t/fallT; vec3 c=vec3(aHome.x, aHome.y*(1.-k*k), aHome.z); vec4 mv=viewMatrix*vec4(c,1.); mv.xy+=position.xy*vec2(.035,.22); gl_Position=projectionMatrix*mv; vRing=0.; vA=.9; }' +
-        ' else { float k=(t-fallT)/(1.-fallT); float s=.15+k*1.1; wp=vec3(aHome.x+position.x*s, .03, aHome.z-position.y*s); gl_Position=projectionMatrix*viewMatrix*vec4(wp,1.); vRing=1.; vA=(1.-k)*.8; } }',
+        ' else { float k=(t-fallT)/(1.-fallT); float s=.15+k*1.1; wp=vec3(aHome.x+position.x*s, .03, aHome.z-position.y*s); gl_Position=projectionMatrix*viewMatrix*vec4(wp,1.); vRing=1.; vA=(1.-k)*(1.-k)*.35; } }',
       fragmentShader: 'uniform vec3 uCol; varying vec2 vUv; varying float vRing; varying float vA; void main(){ vec2 d=vUv-.5; float a;' +
         ' if(vRing>.5){ float r=length(d)*2.; a=smoothstep(.72,.9,r)*(1.-smoothstep(.9,1.,r)); } else { a=1.-smoothstep(.0,.5,abs(d.x)*2.); a*=smoothstep(0.,.3,vUv.y); }' +
         ' a*=vA; if(a<.01) discard; gl_FragColor=vec4(uCol*a,a); }' });
