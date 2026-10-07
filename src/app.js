@@ -458,7 +458,7 @@
     if (name === 'questChoice') { if (game && ['playing','pause'].includes(view)) open('journal'); if (questUI) questUI.open(); return; }
     if (name === 'quest') { if (questUI) questUI.event(d); if (d.complete && questVoices[d.id] && B.Audio.sayQuest) B.Audio.sayQuest(questVoices[d.id]); return; }
     if (name === 'progression') { if (d.levels > 0) { B.Audio.play('levelUp'); fx('heroSkill', { skill: 'level', phase: 'release', x: game.player.x, z: game.player.z }); announceTimer = 0; $('announcement').classList.remove('show'); if (B.LevelUp) B.LevelUp.trigger(d, game.player); levelUpTimer = 2.7; } if (characterUI) characterUI.refresh(); return; }
-    if (name === 'loot') { for (const item of d.items || []) { const def = B.Progression.catalog[item.id]; if (def) notify(B.Progression.qualities[def.rarity].name + ' ganimet · ' + def.name + KabirI18n.t(' · Çantaya eklendi [I]'), 'rarity-' + def.rarity); } return; }
+    if (name === 'loot') { for (const item of d.items || []) { const def = B.Progression.catalog[item.id]; if (def) notify(B.Progression.qualities[def.rarity].name + KabirI18n.t(' ganimet · ') + def.name + KabirI18n.t(' · Çantaya eklendi [I]'), 'rarity-' + def.rarity); } return; }
     if (name === 'hit') {
       // combat.js sizes the hit-stop itself (d.hitstop is set) and reports how hard the contact was (d.impact 0..1),
       // so here the camera only recoils; unclassified heavy hits retain the same short 8 ms limit.

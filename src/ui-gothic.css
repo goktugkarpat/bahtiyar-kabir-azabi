@@ -96,11 +96,17 @@ html[lang=en] .ui-logo-sub::before { content: 'KABİR AZABI' }
 .qc-caption .qc-text { max-width: 760px; margin: 0 auto; color: #e6d7bd }
 
 /* ───────── 7. Görev bildirimi ve eşya bildirimi ───────── */
+/* --left tanımsızdı (bildirim ekran kenarına yapışıyordu); üstte, kahraman kartının altında dursun ki sol alttaki eşya bildirimleriyle çakışmasın */
+#hud #quest-notice { left: calc(var(--pad) + 4px); top: max(19%, 132px) }
 #quest-notice { border: 1px solid #5d4729; border-left: 3px solid #b28b4f; background: linear-gradient(100deg, #15100ef2, #0b0a0cf0 70%); box-shadow: 0 10px 30px #000a, inset 0 1px 0 #ffffff0d }
 #quest-notice.show { animation: ui-slide-in .45s cubic-bezier(.2,.7,.2,1) both }
 @keyframes ui-slide-in { from { transform: translateX(-14px) } to { transform: none } }
 #quest-notice strong { overflow-wrap: anywhere }
 #hud #toasts .toast { border-left: 2px solid #9c7a48; background: linear-gradient(90deg, #120e0cf0, #0d0b0bd9 80%, #0000); box-shadow: 0 6px 18px #0008; animation: ui-slide-in .35s cubic-bezier(.2,.7,.2,1) both }
+#hud #toasts .toast[class*="rarity-"] { font-weight: 600; padding-left: 14px }
+#hud #toasts .toast.rarity-uncommon { border-left-color: #7fa86a } #hud #toasts .toast.rarity-rare { border-left-color: #5d8fc4; box-shadow: 0 6px 18px #0008, -6px 0 16px -8px #5d8fc4 }
+#hud #toasts .toast.rarity-epic { border-left-color: #9a6ad0; box-shadow: 0 6px 18px #0008, -6px 0 18px -8px #9a6ad0 }
+#hud #toasts .toast.rarity-boss { border-left-color: #e0a64e; box-shadow: 0 6px 18px #0008, -6px 0 20px -6px #e0a64e; background: linear-gradient(90deg, #2a1a0cf0, #120d0ad9 80%, #0000) }
 #hud #toasts .toast.out { opacity: 0; transition: opacity .5s }
 
 /* ───────── 8. Yükleme ekranı ───────── */
