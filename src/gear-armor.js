@@ -26,6 +26,7 @@
   function family(item) {
     const id = item.id, m = item.modelId || '';
     if (/lamel|empty-vow/.test(id) || m === 'lamellar-chest') return 'lamellar';
+    if (/hide|chieftain/.test(id)) return 'barbarian';
     if (/furnace|coal|ember|slag|forge|fire|shift|dawn|anvil|burnt|hearth/.test(id)) return 'ember';
     if (/salt|sunken|tide|drowned|silent|watch/.test(id)) return 'frost';
     if (/warden|crown|throne|verdict|witness|barrow|king/.test(id)) return 'holy';
@@ -144,6 +145,64 @@
       part('chest', id, 'gold', G.tube(line(u => cape(u, 0), 24), .005, 6, 32, true), 'spine03');
       for (const u of [0, 1]) { const p = cape(u, 0); part('chest', id, 'gold', G.sphere(.016, [p[0], p[1] - .01, p[2] + .02], [1, 1, .6], 10, 8), 'spine03'); }
     }
+    // ---- family identity pieces (3rd pass) ----
+    const TORSO_W = { bones: ['spine03', 'spine02', 'spine01', 'pelvis'] }, HIP_W = { bones: ['pelvis', 'spine01'] };
+    function lamellarWings(id, mat, trim) { // overlapping winged scale lames fanning off each shoulder
+      for (const s of ['L', 'R']) {
+        const { bone, c, rz: pz, rx: px, sign } = shoulderInfo[s];
+        for (let l = 0; l < 4; l++) {
+          const lame = (u, v) => { const a = mix(-1.25, 1.25, u), r = 1.1 + l * .12 + v * .25; return [c.x + sign * (px * .55 + l * .022 + v * .05), c.y + .07 - l * .045 - v * .06, c.z + Math.sin(a) * pz * r]; };
+          part('chest', id, mat, G.shell(14, 3, lame, .004, false, sign < 0), bone);
+          part('chest', id, trim, G.tube(line(u => lame(u, 1), 14), .0022, 4, 18, true), bone);
+        }
+      }
+    }
+    function silkSash(id, mat) {
+      part('chest', id, mat, G.shell(40, 4, (u, v) => chest(u, .1 + v * .09, .052), .004, true), null, HIP_W);
+      for (const k of [0, 1]) part('chest', id, mat, G.shell(3, 10, (u, v) => { const p = chest(.08 + k * .025 + u * .03, .12, .056); return [p[0] + v * .02, p[1] - v * (.26 - k * .06), p[2] + .01 * Math.sin(v * 4)]; }, .003, false), null, HIP_W);
+    }
+    function furCollar(id) {
+      const tufts = [], cz0 = A.P('spine03').z;
+      for (let i = 0; i < 46; i++) { const u = i / 46, p = chest(u, .97, .03), out = new T.Vector3(p[0], 0, p[2] - cz0).normalize(), L = .08 + .05 * G.hash(i, 5, 1); tufts.push(G.spike(.03, p, [p[0] + out.x * L, p[1] + .06 + .03 * G.hash(i, 2, 2), p[2] + out.z * L], 5)); }
+      emit('chest', id, 'fur', tufts, null, TORSO_W);
+      const beads = []; for (let i = 0; i < 13; i++) { const t = i / 12, p = chest(mix(-.11, .11, t), .8 - .1 * Math.sin(t * PI), .05); beads.push(i % 3 === 1 ? G.spike(.009, p, [p[0], p[1] - .04, p[2] + .01], 5) : G.sphere(.008, p, null, 8, 6)); }
+      emit('chest', id, 'bone', beads, 'spine02');
+    }
+    function crossStraps(id) {
+      for (const sd of [-1, 1]) part('chest', id, 'strap', G.shell(4, 24, (u, v) => chest(sd * (.16 - v * .32) + (u - .5) * .028, .18 + v * .78, .047), .004, false, sd < 0), null, TORSO_W);
+      part('chest', id, 'brass', G.sphere(.016, chest(0, .58, .055), [1, 1, .5], 10, 8), 'spine02');
+    }
+    function tabard(id, cloth, trim, glow) {
+      const panel = (u, v) => { const p = chest((u - .5) * .14, .62, .058); return [p[0] * (1 + v * .2), mix(p[1], .62, v), p[2] + .01 + .015 * v + .006 * Math.sin(u * PI * 3) * v]; };
+      part('chest', id, cloth, G.shell(10, 16, panel, .004, false), null, TORSO_W);
+      for (const e of [0, 1]) part('chest', id, trim, G.tube(line(v => panel(e, v), 16), .0025, 4, 20, true), null, TORSO_W);
+      const q = chest(0, .42, .07), cross = G.extrude([[-.012, .05], [.012, .05], [.012, .014], [.04, .014], [.04, -.012], [.012, -.012], [.012, -.07], [-.012, -.07], [-.012, -.012], [-.04, -.012], [-.04, .014], [-.012, .014]], .006, .002);
+      cross.translate(q[0], q[1], q[2]); part('chest', id, trim, cross, 'spine01');
+      if (glow) part('chest', id, glow, G.sphere(.008, [q[0], q[1] + .002, q[2] + .01], null, 8, 6), 'spine01');
+      const st = []; for (let i = 0; i < 16; i++) { const u = i / 16, p = chest(u, .11, .056); st.push(G.stud(.0055, p, [Math.sin(u * TAU), 0, Math.cos(u * TAU)])); } emit('chest', id, 'gold', st, null, HIP_W);
+    }
+    function tassets(id, mat, trim, n) { // hanging hip plates
+      for (const sd of [-1, 1]) for (let k = 0; k < n; k++) {
+        const a0 = sd * (.09 + k * .055), plate = (u, v) => { const p = chest(a0 + (u - .5) * .05, .06, .06 + k * .004); return [p[0] * (1 + v * .1), p[1] - .02 - v * .17, p[2] + v * .02 * Math.cos(a0 * TAU)]; };
+        part('chest', id, mat, G.shell(6, 5, plate, .005, false, sd < 0), null, HIP_W);
+        part('chest', id, trim, G.tube(line(u => plate(u, 1), 6), .002, 4, 8, true), null, HIP_W);
+      }
+    }
+    function legWraps(id, mat) {
+      for (const s of ['L', 'R']) { const shin = 'shin' + s, foot = 'tarsal' + s, cover = sleeve(A, shin, foot, .25, .7, .03, .003, ['skin', 'leather']);
+        for (let k = 0; k < 6; k++) part('boots', id, mat, G.shell(20, 2, (u, v) => cover.at(u * TAU, .28 + k * .07 + v * .03 + .02 * Math.sin(u * TAU), .004)[0].toArray(), .002, true), shin); }
+    }
+    function kneeCops(id, mat, trim) {
+      for (const s of ['L', 'R']) { const shin = 'shin' + s, knee = A.P(shin), sk = A.box(A.cloud([shin], ['skin'], .42)), c = sk.getCenter(new T.Vector3()), z = Math.max(knee.z + .085, c.z + .07);
+        const cap = (u, v) => { const a = u * TAU, e = v * 1.2; return [knee.x + Math.sin(a) * .05 * Math.sin(e), knee.y + .015 + Math.cos(a) * .055 * Math.sin(e), z + Math.cos(e) * .028]; };
+        part('boots', id, mat, G.shell(16, 6, cap, .004, true), shin); part('boots', id, trim, G.tube(line(u => cap(u, 1), 16), .0025, 4, 20, true), shin); }
+    }
+    // Family pauldron silhouettes for epic chests.
+    function bellPauldron(id, mat, trim) { for (const s of ['L', 'R']) { const { bone, c, sign } = shoulderInfo[s]; const g = G.lathe([[0, .1], [.04, .095], [.075, .06], [.095, .0], [.12, -.06], [.125, -.075]], 20); g.rotateZ(sign * .55); g.translate(c.x + sign * .03, c.y, c.z); part('chest', id, mat, g, bone); const r = G.ring(.124, .004, [0, -.075, 0], null, 5, 30); r.rotateZ(sign * .55); r.translate(c.x + sign * .03, c.y, c.z); part('chest', id, trim, r, bone); } }
+    function emberOrbs(id, glow) { for (const s of ['L', 'R']) { const { bone, c, sign } = shoulderInfo[s]; const o = []; for (let i = 0; i < 4; i++) o.push(G.sphere(.02 + .007 * i, [c.x + sign * (.06 + i * .035), c.y + .15 + i * .055, c.z - .02 + i * .012], null, 10, 8)); emit('chest', id, glow, o, bone); } }
+    function chainMantle(id) { const out = []; for (let r = 0; r < 3; r++) out.push(G.chain(line(u => chest(mix(.12, .88, u), .98 - r * .1, .05 + r * .005), 18), .026, .2)); emit('chest', id, 'dark', out, null, TORSO_W); }
+    function boneTeeth(id) { for (const s of ['L', 'R']) { const { bone, c, sign } = shoulderInfo[s]; const t = []; for (let i = 0; i < 5; i++) { const a = mix(-.8, .8, i / 4), b = [c.x + sign * .06, c.y + .08, c.z + Math.sin(a) * .07]; t.push(G.tube(line(u => [b[0] + sign * (.03 + .1 * u), b[1] + .1 * Math.sin(u * PI * .6) - .02 * u, b[2] + Math.sin(a) * .03 * u], 8), u => mix(.012, .002, u), 6, 12, true)); } emit('chest', id, 'bone', t, bone); } }
+    function wingPauldron(id, mat, trim) { for (const s of ['L', 'R']) { const { bone, c, sign } = shoulderInfo[s]; const w = G.extrude([[0, 0], [.08, .05], [.16, .16], [.12, .06], [.18, .08], [.1, -.01], [.04, -.03]].map(p => [p[0] * sign, p[1]]), .012, .003); w.translate(c.x + sign * .07, c.y + .03, c.z - .03); part('chest', id, mat, w, bone); part('chest', id, trim, G.sphere(.014, [c.x + sign * .07, c.y + .03, c.z - .02], null, 8, 6), bone); } }
     function trophySkulls(id) {
       const out = { bone: [], black: [] };
       for (const u of [.09, .91]) { const p = chest(u, .13, .075), sk = G.skull(.065, true); sk.parts.bone.forEach(q => { q.rotateY(u * TAU); q.translate(p[0], p[1] - .05, p[2]); out.bone.push(q); }); sk.parts.void.forEach(q => { q.rotateY(u * TAU); q.translate(p[0], p[1] - .05, p[2]); out.black.push(q); }); }
@@ -194,6 +253,7 @@
       if (item.slot === 'weapon') continue;
       const unique = item.rarity === 'boss' || sig.has(item.id), id = 'variant@' + item.id, glowKey = theme(item), trim = trimOf(item, unique), rank = { common: 0, uncommon: 1, rare: 2, epic: 3, boss: 4 }[item.rarity] || 0, core = modelOf(item);
       const glow = rank >= 3 ? glowKey : null;
+      const plate = { frost: 'bronze', void: 'bone', lamellar: 'steel', barbarian: 'hide', iron: 'dark', gore: 'rust', holy: 'black', ember: 'black' }[family(item)] || 'black';
       try {
         if (item.slot === 'head') {
           if (/hood/.test(core)) { if (rank >= 2) tatters(id, rank >= 3 ? 'sable' : 'rag', trim === 'brass' ? 'bone' : trim, glow); continue; }
@@ -211,18 +271,35 @@
           } else if (rank === 2) aventail(id, .15);
         } else if (item.slot === 'chest') {
           if (rank >= 1) riveted(id, rank >= 2 ? trim : 'dark');
+          const fam = family(item);
+          if (rank >= 2) {
+            if (fam === 'lamellar') { silkSash(id, 'crimson'); tassets(id, 'steel', 'brass', 2); }
+            else if (fam === 'barbarian') { furCollar(id); crossStraps(id); }
+            else if (fam === 'iron') { tabard(id, 'crimson', 'gold', glow); tassets(id, 'dark', 'steel', 2); }
+            else if (fam === 'holy') tassets(id, 'black', 'gold', 2);
+          }
+          if (rank >= 3 && !unique) {
+            if (fam === 'lamellar') lamellarWings(id, 'steel', 'brass');
+            else if (fam === 'barbarian' || fam === 'void') boneTeeth(id);
+            else if (fam === 'frost') bellPauldron(id, 'bronze', 'bronze');
+            else if (fam === 'ember') emberOrbs(id, 'ember');
+            else if (fam === 'gore') chainMantle(id);
+            else if (fam === 'holy') wingPauldron(id, 'gold', 'black');
+          }
           if (unique) { spikedPauldron(id, 'black', 'gold', 3, .13, true); sigil(id, 'gold', glowKey, 'sun'); halfCape(id, 'crimson', .52); }
           else if (rank >= 3) {
             const k = item.id.length % 3;
             if (/hollow|sunless/.test(item.id)) { sigil(id, 'bone', glow, 'skull'); trophySkulls(id); }
-            else if (k === 0) { spikedPauldron(id, 'dark', trim, 3, .085, false); sigil(id, trim, glow, 'diamond'); }
+            else if (k === 0) { spikedPauldron(id, plate, trim, 3, .085, false); sigil(id, trim, glow, 'diamond'); }
             else if (k === 1) { sigil(id, trim, glow, 'sun'); halfCape(id, clothOf(item), .42); }
-            else { spikedPauldron(id, 'black', trim, 2, .1, false); sigil(id, trim, glow, 'diamond'); }
+            else { spikedPauldron(id, plate, trim, 2, .1, false); sigil(id, trim, glow, 'diamond'); }
           }
         } else if (item.slot === 'hands') {
           if (rank >= 2 && !/wrap/.test(item.id)) cuff(id, rank >= 3 ? 'black' : 'dark', trim, rank >= 3 ? .03 : .018);
           if (rank >= 3) knuckles(id, 'black', trim, glow, unique);
         } else if (item.slot === 'boots') {
+          const fam = family(item);
+          if (rank >= 1) { if (fam === 'barbarian' || fam === 'gore') legWraps(id, fam === 'gore' ? 'sable' : 'rag'); else if (fam !== 'void') kneeCops(id, plate, trim); }
           if (rank >= 3) kneeSpikes(id, 'black', trim, glow, true);
           else if (rank === 2) kneeSpikes(id, 'dark', trim, null, false);
         }

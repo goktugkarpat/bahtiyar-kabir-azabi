@@ -248,6 +248,8 @@
     ,item('lamellar-oath-chest', KabirI18n.t('Lamel Yeminin Zırhı'), 'chest', 6, 'rare', 0, .07, 1, null, KabirI18n.t('Yüzlerce küçük demir pul, deri kayışlarla birbirine bağlanmış.'), 'lamellar-chest', 'rust')
     ,item('hearth-forged-gauntlets', KabirI18n.t('Ocak Dökümü Eldivenler'), 'hands', 10, 'epic', 0, .08, 1, null, KabirI18n.t('Dökümhanede kalıba dökülmüş ağır pençeler. Eklem aralarından hâlâ kor ışığı sızar.'), 'claw-gauntlets', 'rust')
     ,item('mourner-silent-steps', KabirI18n.t('Yasçının Sessiz Adımları'), 'boots', 6, 'rare', 0, .045, 2, null, KabirI18n.t('Ayak bileklerinde kırık prangalar sallanır. Yas tutan biri bunlarla mezardan mezara yürümüş.'), 'shackle-boots', 'blood')
+    ,item('hide-chieftain-chest', KabirI18n.t('Derili Reisin Kürkü'), 'chest', 8, 'epic', 0, .075, 6, null, KabirI18n.t('Kurt postu ve kemik takılarla ağırlaşmış bir reis zırhı. Kayışları eski savaşların izlerini taşır.'), 'torn-chest', 'blood')
+    ,item('hide-chieftain-wraps', KabirI18n.t('Reisin Kemik Sargıları'), 'hands', 7, 'rare', 0, .035, 3, null, KabirI18n.t('Ham deri sargıların arasına kemik pullar dikilmiş.'), 'rag-wraps', 'bone')
     /* /ajan:gear */
   ]);
   const catalog = Object.freeze(Object.fromEntries(items.map(i => [i.id, i])));

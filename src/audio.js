@@ -1039,6 +1039,24 @@
     if(o.weaponType)sample('metal',{vol:.12*k,rate:o.weaponType==='axe'?.82:1.13,lp:4200,delay:.025,send:.06});
     if(o.rarity==='epic'||o.rarity==='boss'||o.signature)sample('hitRingA',{vol:.085*k,rate:.70,lp:2500,delay:.035,send:.18});
   };
+  /* ajan:gear */
+  // A unique piece hits the ground: one deep bronze bell under a shower of high glints.
+  H.gearUniqueDrop = (o, k) => {
+    if (!throttle('gearUniqueDrop', .6)) return;
+    const t = now(), s = spatial(o.x, o.z);
+    ring(t, { f: 98, partials: [1, 2.01, 2.76, 4.1, 5.4], decay: 3.4, vol: .4 * k * s.gain, send: .6, pan: s.pan });
+    ring(t + .02, { f: 196, partials: [1, 2.4, 3.9], decay: 1.6, vol: .12 * k * s.gain, send: .5, pan: s.pan });
+    for (const [d, f] of [[.16, 1568], [.27, 2093], [.4, 2637], [.55, 3136], [.72, 2637]]) tone(t + d, f, .8, .03 * k * s.gain, { type: 'sine', attack: .01, send: .7, pan: s.pan });
+  };
+  // Putting a piece on: metal (or leather) settling, a short buckle ring.
+  H.gearEquip = (o, k) => {
+    if (!throttle('gearEquip', .12)) return;
+    const t = now(), heavy = o.slot === 'weapon' || o.slot === 'chest';
+    sample(o.slot === 'weapon' ? 'metal' : 'gear', { vol: .2 * k, rate: heavy ? .86 : 1.05, send: .05 });
+    sample('cloth', { vol: .11 * k, rate: .8, delay: .05, send: .03 });
+    ring(t + .06, { f: o.rarity === 'boss' || o.rarity === 'epic' ? 740 : 560, partials: [1, 2.4, 3.7], decay: .4, vol: .07 * k, send: .25 });
+  };
+  /* /ajan:gear */
   H.checkpoint = (o, k) => {
     if (extMusic) B.Music.sting('checkpoint');
     const t = now();
