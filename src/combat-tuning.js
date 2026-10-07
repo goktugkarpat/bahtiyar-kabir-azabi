@@ -13,7 +13,7 @@
   const DIFFICULTY = Object.freeze({
     easy: Object.freeze({ enemyHp: .70, enemyDmg: .48, eliteHp: 1, eliteDmg: 1, playerDmg: 1.18, pace: 1.22, rest: 1.30, attackers: 2, melee: 1,
       iframe: .44, dodgeStep: .15, regenDelay: .25, regen: 1.15, flasks: 5, flaskHeal: 1.15, perfectWindow: .26 }),
-    normal: Object.freeze({ enemyHp: .95, enemyDmg: .86, eliteHp: 1.10, eliteDmg: 1.08, playerDmg: 1.12, pace: 1.10, rest: 1.08, attackers: 3, melee: 2,
+    normal: Object.freeze({ enemyHp: .95, enemyDmg: 1.25, eliteHp: 1.10, eliteDmg: 1.08, playerDmg: 1.12, pace: 1.10, rest: 1.08, attackers: 3, melee: 2,
       iframe: .38, dodgeStep: .30, regenDelay: .40, regen: 1, flasks: 4, flaskHeal: 1, perfectWindow: .22 }),
     hard: Object.freeze({ enemyHp: 1.15, enemyDmg: 1.32, eliteHp: 1.25, eliteDmg: 1.25, playerDmg: 1, pace: 1, rest: .82, attackers: 3, melee: 2,
       iframe: .32, dodgeStep: .40, regenDelay: .50, regen: 1, flasks: 3, flaskHeal: .85, perfectWindow: .18 })
@@ -42,9 +42,9 @@
   // Per-chapter correction for common foes (not bosses), on top of the campaign ramp in combat.js. Measured with the average bot on Normal
   // (hero at the expected level/gear of the chapter: L3 / L6 / L9 / L11), health lost per hall without -> with this table:
   // ch I 23.6 -> ~20 %, ch II 12.3 (the hero's level-6 jump outran the shore foes) -> ~19 %, ch III 33 -> ~26 %, ch IV 42 -> ~34 %.
-  const CHAPTER = Object.freeze({ 1: { hp: 1, dmg: .85 }, 2: { hp: 1.12, dmg: 2.15 }, 3: { hp: 1, dmg: .88 }, 4: { hp: 1, dmg: .8 }, 5: { hp: 1, dmg: .5 } });   // V: ajan:chapter5 (measured, see tools/combat_balance.py 5)
+  const CHAPTER = Object.freeze({ 1: { hp: 1, dmg: .85 }, 2: { hp: 1.12, dmg: 2.15 }, 3: { hp: 1, dmg: .88 }, 4: { hp: 1, dmg: .9 }, 5: { hp: 1, dmg: 1.0 } });   // V: ajan:chapter5 (measured, see tools/combat_balance.py 5)
   // Chapter bosses (their own blows only; adds follow CHAPTER): the forge heart hit softer than the hollow king it follows.
-  const BOSS = Object.freeze({ 1: { dmg: 1 }, 2: { dmg: 1 }, 3: { dmg: 1 }, 4: { dmg: 1.3 }, 5: { dmg: .8 } });
+  const BOSS = Object.freeze({ 1: { dmg: 1 }, 2: { dmg: 1 }, 3: { dmg: 1 }, 4: { dmg: 1.3 }, 5: { dmg: 1.0 } });
   function profile(level) { return DIFFICULTY[level] || DIFFICULTY.normal; }
   // Text for the settings screen (Turkish source, translated through KabirI18n; English in i18n.js block "ajan:combat").
   function describe(level) {
@@ -76,3 +76,19 @@
    took the profile's elite bonus on top: ch IV hall #9 measured 100-111 s on Hard, 88 % of it the warden alone (kills at 13-26 s, warden at 79-88 s),
    vs 18 s on Normal. Hard eliteHp 1.40 -> 1.25 (and Normal 1.12 -> 1.10); stamina from landed blows (ECONOMY.HIT) also keeps a rolling hero swinging.
    Chapter II common foes were raised again after this table (dmg 2.0 -> 2.15; 2.3 measured 311 / 610 / 301 for normal avg / hard avg / hard skilled, a touch above chapter III). */
+/* BALANCE TABLE (after merging `gece`: 5 chapters; tools/combat_balance.py 1,2,3,4,5 easy,normal,hard novice,average,skilled,spam).
+   % health lost per fight (each fight from full health, chapter's expected level/gear L3/L6/L9/L11/L13), deaths in brackets.
+   Measured with Normal enemyDmg 1.0, CHAPTER[4].dmg .8, CHAPTER[5].dmg 1.0 (was .5), BOSS[5].dmg 1.0 (was .8):
+                 ch I        ch II       ch III      ch IV       ch V
+   Easy skilled   2           5           2           3           3          (target ~5)
+   Easy novice   25          26          20          33          35
+   Normal skill   6           8          15          13          21          (target 15 20 28 38 50)
+   Normal avg    12          23          26          43          39
+   Normal novice 100         117         97          127 (2)    167 (3)
+   Hard skilled  42          46 (2)      54          66 (1)      81 (3)      (target ~2x Normal: on curve; chapter V now the hardest, QA had 73 -> 29 for IV -> V)
+   Hard avg      71          77 (2)      90 (1)     109 (1)     122 (3)
+   Spam (Normal) 73          108         126 (1)    161 (5)     209 (5)      rolling through everything is always the worst player
+   Final boss (Last Judge) Normal: skilled 96 s / average 103 s (1.6-1.7 min, target 1.5-3); Hard skilled 124 s. No 150 s timeouts on Normal/Hard bosses.
+   After this table, NOT yet re-measured: Normal enemyDmg 1.0 -> 1.25 (skilled Normal sat ~2.5x under the target curve; expected ~8/10/19/18/26),
+   CHAPTER[4].dmg .8 -> .9 (chapter IV was below III on Normal). The bench's flask column is off after the merge (fights start with the profile's
+   flask count; negative values on Hard), ignore it. gear-powers.js (unique item powers) was not in `gece` at this merge: not measured. */
