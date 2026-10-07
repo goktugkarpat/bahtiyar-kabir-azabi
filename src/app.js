@@ -1547,7 +1547,8 @@
     if (view === 'title') {
       const s = world.spawn, sway = reducedMotion.matches ? 0 : Math.sin(elapsed * .09);
       const narrow = innerWidth / innerHeight < 1.1;
-      target.set(s.x + (narrow ? .6 : TITLE_CAM[0]) + sway * .25, TITLE_CAM[1] + sway * .08, s.z + TITLE_CAM[2] + (narrow ? 1.6 : 0));
+      const par = B.UILanes && !reducedMotion.matches ? B.UILanes.parallax : null;   // ajan:ui — fareyle hafif kamera kayması
+      target.set(s.x + (narrow ? .6 : TITLE_CAM[0]) + sway * .25 + (par ? par.x * .32 : 0), TITLE_CAM[1] + sway * .08 - (par ? par.y * .12 : 0), s.z + TITLE_CAM[2] + (narrow ? 1.6 : 0));
       cameraPos.lerp(target, 1 - Math.exp(-dt * 2));
       target.set(s.x + (narrow ? 0 : TITLE_CAM[3]), TITLE_CAM[4], s.z + TITLE_CAM[5]); look.lerp(target, 1 - Math.exp(-dt * 2));
     } else {

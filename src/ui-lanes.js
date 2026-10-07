@@ -125,5 +125,11 @@
     if (t > 1.2) { dyingAt = -1; return 1; }
     return t < .9 ? .3 : .3 + .7 * (t - .9) / .3;
   }
-  B.UILanes = { busy, pending: () => queue.length, dying, timeScale };
+  /* ---------- 5. başlık ekranı: fare konumuna göre çok hafif kamera kayması (app.js cameraStep okur) ---------- */
+  const parallax = { x: 0, y: 0 };
+  window.addEventListener('pointermove', e => {
+    if (e.pointerType !== 'mouse' || document.body.dataset.view !== 'title') return;
+    parallax.x = (e.clientX / (innerWidth || 1)) * 2 - 1; parallax.y = (e.clientY / (innerHeight || 1)) * 2 - 1;
+  }, { passive: true });
+  B.UILanes = { busy, pending: () => queue.length, dying, timeScale, parallax };
 })();
