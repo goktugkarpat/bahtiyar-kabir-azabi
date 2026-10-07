@@ -1,6 +1,6 @@
 /* Explored atlas: the same cast bronze / burgundy chamber, a quiet engraved floor plate. */
 #atlas {z-index:36;padding:20px;background:#080708;--text:'Source Sans 3','Segoe UI',system-ui,sans-serif;--display:Georgia,'Times New Roman',serif;}
-#atlas .atlas-panel {width:min(96vw,calc(94dvh * 1586 / 992 * 1.12));height:94dvh;max-height:1040px;max-width:1862px;padding:0;border:0;border-radius:0;box-shadow:0 12px 65px #000b;position:relative;background:url(../assets/ui/hybrid-b-chamber.png) center/100% 100% no-repeat;overflow:hidden;}
+#atlas .atlas-panel {width:min(96vw,calc(94dvh * 1586 / 992 * 1.05));height:94dvh;max-height:1040px;max-width:1745px;padding:0;border:0;border-radius:0;box-shadow:0 12px 65px #000b;position:relative;background:url(../assets/ui/hybrid-b-chamber.png) center/100% 100% no-repeat;overflow:hidden;}
 #atlas .atlas-panel::before,#atlas .atlas-panel::after {display:none;}
 #atlas .panel-head {position:absolute;top:2.3%;left:6.5%;width:87%;padding:0;margin:0;border:0;gap:0;}
 #atlas .panel-head>div {width:100%;text-align:center;}

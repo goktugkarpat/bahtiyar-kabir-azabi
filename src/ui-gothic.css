@@ -126,7 +126,7 @@ body:has(#lu-banner.lu-on) #key-hints span:nth-child(2) kbd { border-color: #f0c
 
 /* karakter/çanta ekranı kısa pencerelerde (≤600 px yükseklik) sığmıyordu: oda paneli sanal olarak büyütülüp küçültülür */
 @media (min-height: 601px) and (min-width: 700px) and (max-width: 1199px) {
-  #character .character-panel { zoom: .8; width: calc(min(96vw, calc(94dvh * 1586 / 992 * 1.12)) / .8); height: calc(94dvh / .8); max-height: none; max-width: none }
+  #character .character-panel { zoom: .8; width: calc(min(96vw, calc(94dvh * 1586 / 992 * 1.05)) / .8); height: calc(94dvh / .8); max-height: none; max-width: none }
 }
 @media (max-height: 600px) and (min-width: 700px) {
   #character .character-panel { zoom: .56; width: calc(96vw / .56); height: calc(96dvh / .56); max-height: none; max-width: none }
@@ -172,7 +172,7 @@ body:has(#lu-banner.lu-on) #key-hints span:nth-child(2) kbd { border-color: #f0c
 /* geniş ekranda: karakter/ayarlar/günlük ile aynı oymalı oda (assets/ui/hybrid-b-chamber.png) */
 @media (min-width: 900px) and (min-height: 600px) {
   #controls { background: #080708 }
-  #controls .controls-panel.ui-chamber { width: min(96vw, calc(94dvh * 1586 / 992 * 1.12)); height: 94dvh; max-height: 1040px; max-width: 1862px; padding: 0; border: 0; border-radius: 0; box-shadow: 0 12px 65px #000b; position: relative; overflow: hidden;
+  #controls .controls-panel.ui-chamber { width: min(96vw, calc(94dvh * 1586 / 992 * 1.05)); height: 94dvh; max-height: 1040px; max-width: 1745px; padding: 0; border: 0; border-radius: 0; box-shadow: 0 12px 65px #000b; position: relative; overflow: hidden;
     background: url(../assets/ui/hybrid-b-chamber.png) center / 100% 100% no-repeat }
   #controls .ui-chamber::before, #controls .ui-chamber::after { display: none }
   #controls .ui-chamber .panel-head { position: absolute; top: 2.3%; left: 6.5%; width: 87%; padding: 0; margin: 0; border: 0; display: flex; justify-content: center; text-align: center }
