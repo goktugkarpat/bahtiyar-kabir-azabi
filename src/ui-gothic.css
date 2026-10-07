@@ -135,8 +135,26 @@ html[lang=en] #death .end-title, html[lang=en] #victory .end-title {
   -webkit-background-clip: text; background-clip: text; text-shadow: none; filter: drop-shadow(0 3px 1px #000) drop-shadow(0 0 16px #3a0a0699) }
 html[lang=en] #death .end-title { background: linear-gradient(180deg, #ffe9c4 0%, #e8b46a 30%, #9a5c26 55%, #5a2a10 64%, #c98a48 80%, #f0cf96 100%); -webkit-background-clip: text; background-clip: text }
 
+/* ───────── 11. Hedef çubuğu: yenen can izi, şampiyon (altın) ve boss (büyük, oymalı) ayrımı ───────── */
+#hud .target-fill { transition: transform .12s ease-out }
+#hud .target-trail { position: absolute; inset: 0; transform-origin: left; background: linear-gradient(#ffe9b8, #e3a95c 40%, #a8642a); opacity: .85; transition: transform .55s cubic-bezier(.3,.6,.3,1) .32s; will-change: transform }
+#hud .target-trail.snap { transition: none }
+#hud .target-count, #hud .target-notch { z-index: 1 }
+#hud .champion-target .target-health { border-color: #d7ad5e; box-shadow: 0 0 0 1px #000, 0 0 12px #c08a3a66 }
+#hud .champion-target .target-name { color: #f3cf86 }
+#hud .champion-target .target-phase { color: #f0c26e; letter-spacing: .22em }
+#hud .champion-target .target-portrait::after { content: ''; position: absolute; inset: 9%; border-radius: 50%; box-shadow: 0 0 0 2px #d7ad5e, 0 0 14px #e0a2466e; pointer-events: none }
+#hud .boss-target .target-title { flex-direction: column; align-items: flex-start; gap: 2px }
+#hud .boss-target .target-name { max-width: 100%; font-family: Georgia, 'Times New Roman', serif; font-weight: 400; font-size: max(16px, calc(19px * var(--k))); text-transform: uppercase; letter-spacing: .06em; color: #f1dcae }
+#hud .boss-target .target-phase { letter-spacing: .2em; color: #d99a6a }
+#hud .boss-target .target-health { height: calc(34px * var(--k)); border-color: #a77a44; box-shadow: 0 0 0 1px #000, 0 0 0 4px #1a110c, 0 0 0 5px #6a4a28, 0 6px 18px #000c }
+#hud .boss-target .target-fill { background: linear-gradient(#ff8a5e, #c22a1f 26%, #7a0b10 70%, #3a0206) }
+#hud .boss-target .target-health::before, #hud .boss-target .target-health::after { content: ''; position: absolute; top: 50%; z-index: 2; width: 9px; height: 9px; margin-top: -5px; transform: rotate(45deg); border: 1px solid #e0b46e; background: #3a0a08 }
+#hud .boss-target .target-health::before { left: 4px } #hud .boss-target .target-health::after { right: 4px }
+
 @media (prefers-reduced-motion: reduce) {
   #title .title-shade, #death::before, #lu-banner.lu-on::before, #lu-banner.lu-on .lu-note, #title .title-actions > .btn { animation: none }
+  #hud .target-trail { transition: none }
   #death::before { opacity: 1 }
 }
 /* /ajan:ui */

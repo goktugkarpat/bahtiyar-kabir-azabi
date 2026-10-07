@@ -60,5 +60,5 @@ Object.assign(window.KabirI18n.dictionary,{
 });
 /* /ajan:map */
 /* ajan:ui */
-Object.assign(window.KabirI18n.dictionary,{"Sürüm":"Build","Bir yeraltı ağıtı":"A lament from below"});
+Object.assign(window.KabirI18n.dictionary,{"Sürüm":"Build","ŞAMPİYON":"CHAMPION","Bir yeraltı ağıtı":"A lament from below"});
 /* /ajan:ui */
