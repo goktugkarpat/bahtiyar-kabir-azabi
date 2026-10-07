@@ -149,6 +149,7 @@
     '#endif', ''].join('\n');
   var SURFACE_FRAG_ALBEDO = [
     '#ifdef G_SURFACE',
+    '  float gWaH = 0.0;',
     '  vec3 gNw = normalize((vec4(vNormal, 0.0) * viewMatrix).xyz);',
     '  float gUp = clamp(gNw.y * 1.6 - 0.6, 0.0, 1.0); float gSide = 1.0 - gUp; vec3 gP = gV0.xyz;',
     '  diffuseColor.rgb *= gV3;',
@@ -182,6 +183,18 @@
     '  diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.028, 0.034, 0.011), gMoss * 0.75);',
     '  diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.03, 0.0035, 0.0028) * (0.75 + gn2.g * 0.5), gBlood * 0.88);',
     '  diffuseColor.rgb *= 1.0 - gWet * 0.3;',
+    // ajan:world-a — temple stone identity (amber-black limestone): a broad two-scale tonal field breaks the tile repeat,
+    // hairline cracks follow a noise ridge (darkened, and fed to the normal as relief), bone-pale dust settles in the joints.
+    '  #ifdef G_WA',
+    '    vec4 gm1 = texture2D(gNoise, gP.xz * 0.013 + vec2(0.17, 0.53) + gP.y * 0.011);',
+    '    float gMac = gm1.g * 0.6 + gm1.r * 0.4;',
+    '    diffuseColor.rgb *= mix(vec3(0.78, 0.8, 0.86), vec3(1.12, 0.96, 0.78), smoothstep(0.28, 0.72, gMac)) * (0.86 + 0.28 * gn1.b);',
+    '    vec4 gc = texture2D(gNoise, gP.xz * 0.37 + gP.y * vec2(0.31, 0.17) + vec2(gm1.b * 0.2));',
+    '    float gCrk = (1.0 - smoothstep(0.0, 0.03 + gn2.g * 0.02, abs(gc.r - 0.5))) * smoothstep(0.5, 0.74, gm1.b);',
+    '    diffuseColor.rgb *= 1.0 - gCrk * 0.6;',
+    '    diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.34, 0.31, 0.25), gJoint * gUp * 0.22 * smoothstep(0.4, 0.8, gn2.r));',
+    '    gWaH = gCrk + gJoint * 0.5;',
+    '  #endif',
     '#endif'].join('\n');
   var SURFACE_FRAG_ROUGH = [
     '#ifdef G_SURFACE',
@@ -192,6 +205,11 @@
     '#endif'].join('\n');
   var SURFACE_FRAG_NORMAL = [
     '#ifdef G_SURFACE',
+    '  #ifdef G_WA',
+    '  { float gh = -gWaH * 0.05 + (gn2.r + gn1.g - 1.0) * 0.012;',
+    '    vec3 gsx = dFdx(-vViewPosition), gsy = dFdy(-vViewPosition); vec3 gr1 = cross(gsy, normal), gr2 = cross(normal, gsx); float gdet = dot(gsx, gr1);',
+    '    vec3 ggrad = sign(gdet) * (dFdx(gh) * gr1 + dFdy(gh) * gr2); normal = normalize(abs(gdet) * normal - ggrad); }',
+    '  #endif',
     '  normal = normalize(mix(normal, gGeoN, clamp(gWet * 0.7 + gBlood * 0.6 + (gAsh + gDust) * 0.35, 0.0, 0.9)));',
     '#endif'].join('\n');
 
@@ -356,6 +374,7 @@
       function surface(m, opts) {
         // Variants differ only by this uniform, so every stone material shares a few shader programs.
         m.defines = Object.assign(m.defines || {}, { G_SURFACE: '', G_SPOTS: SPOT_MAX });
+        if (BABA.WorldATemple && BABA.WorldATemple.active && !/[?&]nomat\b/.test(location.search)) m.defines.G_WA = '';   // ajan:world-a stone layers (?nomat: off)
         m.userData.gFlags = new T.Vector4(opts.slab ? 1 : 0, opts.project ? 1 : 0, opts.rotate ? 1 : 0, opts.tile || .4);
         m.userData.surfaceOpts = opts;
         m.onBeforeCompile = surfaceHook;
