@@ -62,7 +62,7 @@
   let lastHover = null, lastHoverAt = 0;
   document.addEventListener('pointerover', e => {
     if (e.pointerType !== 'mouse') return;
-    const btn = e.target.closest && e.target.closest('#title .btn, .screen .btn, .screen .text-button');
+    const btn = e.target.closest && e.target.closest('#title .btn, .screen button');
     if (!btn || btn === lastHover || btn.disabled) { if (!btn) lastHover = null; return; }
     lastHover = btn; const t = performance.now(); if (t - lastHoverAt < 70) return; lastHoverAt = t;
     try { if (B.Audio && B.Audio.play) B.Audio.play('ui', { volume: .14 }); } catch (_) {}

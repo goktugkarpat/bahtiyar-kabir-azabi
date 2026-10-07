@@ -120,6 +120,12 @@ body:has(#lu-banner.lu-on) #key-hints span:nth-child(2) kbd { border-color: #f0c
 #hud #toasts .toast.rarity-boss { border-left-color: #e0a64e; box-shadow: 0 6px 18px #0008, -6px 0 20px -6px #e0a64e; background: linear-gradient(90deg, #2a1a0cf0, #120d0ad9 80%, #0000) }
 #hud #toasts .toast.out { opacity: 0; transition: opacity .5s }
 
+/* HUD'daki son soğuk (lacivert/gri) tonlar sıcak demir-altına çekilir: tek görsel dil */
+#hud .hero-info { background: linear-gradient(90deg, transparent, #1a0f0b5c 40%, transparent) }
+#hud .hero-info #hero-subtitle { color: #cbb78f }
+#hud .quest { background: linear-gradient(90deg, transparent, #120c0ac7) }
+#hud .action kbd { background: linear-gradient(#2c211beb, #120d0b); border-color: #a4875a66; color: #efe0c2 }
+
 /* ───────── 8. Yükleme ekranı ───────── */
 #loading .load-bar { position: relative; border: 1px solid #5b4428; box-shadow: 0 0 0 1px #000, inset 0 1px 3px #000 }
 #loading .load-bar::before, #loading .load-bar::after { content: ''; position: absolute; top: 50%; width: 7px; height: 7px; margin-top: -4px; transform: rotate(45deg); border: 1px solid #b88a4e; background: #1a120d }
