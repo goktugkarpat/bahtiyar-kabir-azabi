@@ -75,3 +75,6 @@ Object.assign(window.KabirI18n.dictionary,{"I · UYANIŞ":"I · AWAKENING","V ·
 /* ajan:uifix */
 (function(){var d=window.KabirI18n&&window.KabirI18n.dictionary;if(!d)return;Object.assign(d,{"Gezdiğin yerleri gösterir · mola menüsünden de açılır":"Shows the places you have explored · also opens from the pause menu","Sıradaki adımı ve yeminleri gösterir · mola menüsünden de açılır":"Shows your next step and your oaths · also opens from the pause menu"});}());
 /* /ajan:uifix */
+/* ajan:talentui */
+Object.assign(window.KabirI18n.dictionary,{"Geri al":"Refund","Hazır yollar":"Builds","PUAN":"POINTS","kalan":"left","Simgeyi seç, yuvaya tıkla":"Pick an icon, click a slot","Sürükle ya da seç ve yuvaya tıkla":"Drag it, or pick it and click a slot","Uygula":"Apply","Yetenek yuvaları":"Skill slots","Yuvaya koy":"Put in slot","ya da":"or","Öğren":"Learn","Öğrenilebilir · 1 puan":"Can be learned · 1 point"});
+/* /ajan:talentui */
