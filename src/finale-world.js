@@ -133,6 +133,10 @@
       if (i >= rooms.length - 1) return; var next = rooms[i + 1], a = r.z - r.d / 2 + .6, b = next.z + next.d / 2 - .6, w = BRIDGE_W[i];
       var br = { x: 0, z: (a + b) / 2, w: w, d: a - b, room: i }; floors.push(br); bridges.push(br); paths.push({ a: { x: 0, z: r.z }, b: { x: 0, z: next.z }, width: w });
     });
+    // Two optional hidden platforms off the route (an elite, a secret altar / chest, a lore page), reached by narrow stepping-stone causeways.
+    var secrets = [{ room: 8, cx: -26, cz: -3, bx0: -16, bx1: -21, bz: -3, name: KabirI18n.t('Unutulmuş Kürsü') }, { room: 5, cx: 27, cz: 1, bx0: 16, bx1: 22, bz: 1, name: KabirI18n.t('Mühürsüz Hücre') }];
+    secrets.forEach(function (q) { var r = rooms[q.room]; q.x = r.x + q.cx; q.z = r.z + q.cz; q.w = 10; q.d = 9; floors.push({ x: q.x, z: q.z, w: q.w, d: q.d });
+      var bx = r.x + (q.bx0 + q.bx1) / 2, bw = Math.abs(q.bx1 - q.bx0) + 1.2; q.bridge = { x: bx, z: r.z + q.bz, w: bw, d: 2.8 }; floors.push(q.bridge); });
     function onFloor(x, z) { for (var k = 0; k < floors.length; k++) { var f = floors[k]; if (Math.abs(x - f.x) <= f.w / 2 && Math.abs(z - f.z) <= f.d / 2) return true; } return false; }
     function solid(x, z, w, d) { colliders.push({ x: x, z: z, w: w, d: d }); }
     var K = B.RuinsKit.create({ forge: true, root: root, materials: materials, textures: textures, groups: groups, shapes: shapes, clock: clock, sources: sources, flames: flames, geometries: geometries, rooms: rooms, solid: solid });
@@ -159,9 +163,11 @@
       var spawns = FORM[i].map(function (q) { var s = { type: q[0], x: r.x + q[1], z: r.z + q[2] }; if (q[3]) s.elite = true; return s; });
       encounters.push({ id: 'finale-' + i, room: i, name: r.name, clearText: KabirI18n.t('Platform sustu. Boşluğun üstündeki yol açık.'), stage: 1.1 + i * .016, spawns: spawns });
     });
-    var info = { rooms: rooms, bridges: bridges, onFloor: onFloor, names: NAMES };
+    encounters.push({ id: 'finale-secret-a', room: 8, name: secrets[0].name, clearText: KabirI18n.t('Unutulmuş Kürsü sustu.'), stage: 1.26, spawns: [{ type: 'verdictwarden', x: secrets[0].x - 1.5, z: secrets[0].z - 2, elite: true }, { type: 'damned', x: secrets[0].x + 2.5, z: secrets[0].z + 2 }, { type: 'damned', x: secrets[0].x - 1.8, z: secrets[0].z + 3.2 }] });
+    encounters.push({ id: 'finale-secret-b', room: 5, name: secrets[1].name, clearText: KabirI18n.t('Mühürsüz Hücre sustu.'), stage: 1.22, spawns: [{ type: 'chainjailer', x: secrets[1].x + 1.5, z: secrets[1].z - 2, elite: true }, { type: 'verdictseer', x: secrets[1].x - 2.5, z: secrets[1].z + 2.5 }, { type: 'voidcrawler', x: secrets[1].x + 1.8, z: secrets[1].z + 3.2 }] });
+    var info = { rooms: rooms, bridges: bridges, onFloor: onFloor, names: NAMES, secrets: secrets };
     rooms.forEach(function (r, i) { B.FinaleRooms.dress(K, r, i, info); });
-    B.FinaleRooms.bridges(K, info);
+    B.FinaleRooms.bridges(K, info); if (B.FinaleRooms.secrets) B.FinaleRooms.secrets(K, info);
     var meshes = K.finish().concat(K.finishFx());
     // ---- The court transforms with the Black Qadi (phase 2 / 3): bleeding cracks open across the floor, shards of the broken sky
     // rise and orbit the arena, four columns of cold light fall on the lords' pillars. One instanced mesh + three simple meshes, hidden at rest.
@@ -197,7 +203,8 @@
     }
     function move(p, dx, dz, r) { if (!Number.isFinite(dx) || !Number.isFinite(dz)) return p; var n = Math.max(1, Math.ceil(Math.max(Math.abs(dx), Math.abs(dz)) / .18)), sx = dx / n, sz = dz / n; for (var i = 0; i < n; i++) { if (isWalkable(p.x + sx, p.z + sz, r)) { p.x += sx; p.z += sz; } else { if (isWalkable(p.x + sx, p.z, r)) p.x += sx; if (isWalkable(p.x, p.z + sz, r)) p.z += sz; } } return p; }
     function hasClearPath(ax, az, bx, bz, r) { var n = Math.max(1, Math.ceil(Math.hypot(bx - ax, bz - az) / .3)); for (var i = 0; i <= n; i++) if (!isWalkable(ax + (bx - ax) * i / n, az + (bz - az) * i / n, r)) return false; return true; }
-    var nodes = []; rooms.forEach(function (r) { [-12, -6, 0, 6, 12].forEach(function (x) { [-8, 0, 8].forEach(function (z) { if (isWalkable(r.x + x, r.z + z, 1.05)) nodes.push({ x: r.x + x, z: r.z + z, edges: [] }); }); }); });
+    var nodes = []; secrets.forEach(function (q) { [[q.x, q.z], [q.bridge.x, q.bridge.z], [q.x + (q.cx < 0 ? 3 : -3), q.z + 2.5]].forEach(function (n) { if (isWalkable(n[0], n[1], .9)) nodes.push({ x: n[0], z: n[1], edges: [] }); }); });
+    rooms.forEach(function (r) { [-12, -6, 0, 6, 12].forEach(function (x) { [-8, 0, 8].forEach(function (z) { if (isWalkable(r.x + x, r.z + z, 1.05)) nodes.push({ x: r.x + x, z: r.z + z, edges: [] }); }); }); });
     bridges.forEach(function (b) { if (isWalkable(0, b.z, 1.05)) nodes.push({ x: 0, z: b.z, edges: [] }); });
     for (var i = 0; i < nodes.length; i++) for (var j = i + 1; j < nodes.length; j++) if (Math.hypot(nodes[i].x - nodes[j].x, nodes[i].z - nodes[j].z) < 30 && hasClearPath(nodes[i].x, nodes[i].z, nodes[j].x, nodes[j].z, 1.05)) { nodes[i].edges.push(j); nodes[j].edges.push(i); }
     var dist = new Float64Array(nodes.length), prev = new Int16Array(nodes.length), used = new Uint8Array(nodes.length);
@@ -241,7 +248,8 @@
       if (materials.crystal) materials.crystal.emissiveIntensity = 1.15 + .2 * Math.sin((time || 0) * .8);
       if (materials.slag) materials.slag.emissiveIntensity = 1.25 + .2 * Math.sin((time || 0) * 1.3 + 1);
       var g = B.app && B.app.game, boss = g && g.boss, want = boss && boss.active && !boss.dead && p.z < rooms[13].z + 16 ? (boss.phase >= 3 ? 1 : boss.phase >= 2 ? .45 : .1) : 0;
-      if (boss && boss.active && !boss.dead && !intro) intro = 3.2;   // the Qadi rises: a short surge of the whole court
+      if (boss && boss.active && !boss.dead && !intro) intro = 3.2;
+      var fall = B.FinaleWorld.fallAt ? (performance.now() - B.FinaleWorld.fallAt) / 1000 : 99; if (fall < 5) want = Math.max(want, fall < .4 ? 1 : 1 - (fall - .4) / 4.6);   // the Qadi's fall: the court flares once, then goes dark   // the Qadi rises: a short surge of the whole court
       if (intro > 0) { intro = Math.max(.0001, intro - (dt || 0)); if (intro > .001) want = Math.max(want, Math.sin(Math.min(1, intro / 3.2) * PI) * .9); }
       wrath.value += (want - wrath.value) * Math.min(1, (dt || 0) * 1.5);
       var wv = wrath.value; arena.visible = wv > .02 && groups[13].visible;
@@ -254,7 +262,7 @@
     // Quest sites for quests.js (STORY.md contract): every point walkable, clear of colliders and of the fixed formations.
     var questSites = {};
     [['ledger-seal-1', 5, -5, 3], ['ledger-seal-2', 6, -3, 6], ['ledger-seal-3', 7, -4, 7], ['selvi-cell', 10, 11, -4.5], ['selvi-goal', 11, 3, 3.5], ['c5.hunt', 8, -10, -3],
-      ['c5.page1', 2, -8.5, -3.5], ['c5.page2', 9, 12, -1], ['c5.page3', 12, -9, 5], ['c5.altar', 1, 14, -5]].forEach(function (q) { var r = rooms[q[1]]; questSites[q[0]] = { x: r.x + q[2], z: r.z + q[3], room: q[1] }; });
+      ['c5.page1', 2, -8.5, 2.2], ['c5.page2', 5, 28.5, -2], ['c5.page3', 12, -9, 5], ['c5.altar', 8, -27.5, 1], ['c5.chest', 5, 25, 3], ['c5.hunt2', 3, 10, -6], ['c5.escape', 11, -3, -3], ['c5.siege', 10, -6, 4]].forEach(function (q) { var r = rooms[q[1]]; questSites[q[0]] = { x: r.x + q[2], z: r.z + q[3], room: q[1] }; });
     root.updateMatrixWorld(true);
     B.FinaleWorld.lastBuildMs = Math.round(performance.now() - buildT0);
     return { chapter: chapter, name: KabirI18n.t('Son Mahkeme'), root: root, rooms: rooms, paths: paths, encounters: encounters, colliders: colliders, occluders: [], materials: materials, questSites: questSites, spawn: { x: 0, z: 14 }, checkpoint: { x: 0, z: rooms[11].z }, bossSpawn: { x: 0, z: rooms[13].z - 2 },

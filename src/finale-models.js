@@ -37,6 +37,8 @@
         bone: C.bodyMaterial(C.gearMaterial('bone'), 'finale-' + type + '-bone', { cls: 'bone', tint: [.9, .84, .74], grime: .3, blood: .18, scale: 10 }, { roughness: .76 }),
         glow: C.bodyMaterial(C.gearMaterial('iron'), 'finale-' + type + '-verdict-fire', { cls: 'metal', tint: [.6, .2, .16], rust: .2, grime: .3, wear: .6, scale: 10 }, { color: new T.Color(0x3a0e0a), emissive: new T.Color(0xff2a14), emissiveIntensity: boss ? 1.7 : 1.15, roughness: .6, metalness: .5 })
       };
+      // cold void fire: the second colour of the court (cracks of the void crawler, the Qadi's horns and robe seams)
+      materials.cold = C.bodyMaterial(C.gearMaterial('iron'), 'finale-' + type + '-void-fire', { cls: 'metal', tint: [.2, .24, .5], rust: .1, grime: .3, wear: .6, scale: 10 }, { color: new T.Color(0x0c1030), emissive: new T.Color(0x4a66ff), emissiveIntensity: boss ? 1.6 : 1.2, roughness: .5, metalness: .4 });
       GLOW.push({ mat: materials.glow, base: materials.glow.emissiveIntensity, type: type });
       function limbCover(key, from, to, t0, t1, pad, thickness, flare) {
         var q = C.sleeve(A, from, to, t0, t1, pad, thickness, ['skin'], flare, { u: 20, v: 6 });
@@ -114,9 +116,9 @@
         var panels = []; for (var row = 0; row < 4; row++) for (var side = -1; side <= 1; side += 2) (function (row, side) { var center = side * .68, width = .57 - row * .045, top = fb.max.y - .03 - row * torsoH * .19; panels.push(G.shell(9, 4, function (u, v) { var a = center + (u - .5) * width, y = top - v * torsoH * .18; return fitted.at(a, y, .017 + .02 * Math.sin(v * Math.PI)); }, .009, false, true)); })(row, side);
         var sh = G.merge(panels); G.uvScale(sh, 1.4, 1.3); plateWear(sh, .18); fitted.attach('iron', sh);
         var cracks = [seam(armL, .03, .007), seam(armR, -.03, .007), seam(foreL, .028, .006), seam(foreR, -.028, .006)];
-        A.rigid('glow', cracks[0], armL); A.rigid('glow', cracks[1], armR); A.rigid('glow', cracks[2], foreL); A.rigid('glow', cracks[3], foreR);
-        A.rigid('glow', seam(thighL, .04, .008), thighL); A.rigid('glow', seam(thighR, -.04, .008), thighR);
-        var fc = []; for (var m = 0; m < 5; m++) { var a0 = (m - 2) * .55, pts = []; for (var j = 0; j < 5; j++) pts.push(fitted.at(a0 + Math.sin(j * 2.1 + m * 1.7) * .16, fb.max.y - .04 - j * torsoH * .17, .02)); fc.push(G.tube(pts, .0065, 5, 16, false)); } fitted.attach('glow', G.merge(fc));
+        A.rigid('cold', cracks[0], armL); A.rigid('cold', cracks[1], armR); A.rigid('cold', cracks[2], foreL); A.rigid('cold', cracks[3], foreR);
+        A.rigid('cold', seam(thighL, .04, .008), thighL); A.rigid('cold', seam(thighR, -.04, .008), thighR);
+        var fc = []; for (var m = 0; m < 5; m++) { var a0 = (m - 2) * .55, pts = []; for (var j = 0; j < 5; j++) pts.push(fitted.at(a0 + Math.sin(j * 2.1 + m * 1.7) * .16, fb.max.y - .04 - j * torsoH * .17, .02)); fc.push(G.tube(pts, .0065, 5, 16, false)); } fitted.attach('cold', G.merge(fc));
         // talons
         [handL, handR].forEach(function (hand) { var o = A.P(hand), parts = []; for (var k = 0; k < 4; k++) { var q = o.clone().add(V((k - 1.5) * .025, -.08, .03)), tip = q.clone().add(V((k - 1.5) * .01, -.13, .06)); parts.push(G.tube([q, q.clone().lerp(tip, .5).add(V(0, 0, .02)), tip], function (t) { return .012 * Math.pow(1 - t, 1.2) + .001; }, 6, 10, true)); } A.rigid('bone', G.merge(parts), hand); });
         // the head: a cracked basalt helm-skull with a glowing split
@@ -169,6 +171,9 @@
         var crown = []; for (var k = 0; k < 9; k++) { var a = k / 9 * TAU, b0 = V(c.x + Math.sin(a) * .14, c.y + .17, c.z + Math.cos(a) * .14), hgt = (k % 3 === 0 ? .32 : .18) * (k === 4 ? .5 : 1); crown.push(G.spike(.03, b0, b0.clone().add(V(Math.sin(a) * .04, hgt, Math.cos(a) * .04)))); }
         crown.push(G.ring(.15, .02, [c.x, c.y + .17, c.z], [Math.PI / 2, 0, 0], 6, 22)); A.rigid('iron', G.merge(crown), head);
         A.rigid('glow', G.ring(.42, .018, [c.x, c.y + .1, c.z - .3], [0, 0, 0], 6, 48), spine);
+        for (var hs2 = -1; hs2 <= 1; hs2 += 2) A.rigid('bone', G.tube([[c.x + hs2 * .1, c.y + .14, c.z + .02], [c.x + hs2 * .24, c.y + .24, c.z - .06], [c.x + hs2 * .34, c.y + .2, c.z - .22], [c.x + hs2 * .36, c.y + .05, c.z - .3], [c.x + hs2 * .3, c.y - .04, c.z - .2]], function (t) { return .045 * (1 - t * .85) + .004; }, 8, 26, true), head);
+        var vs = []; for (var v2 = 0; v2 < 3; v2++) { var pts2 = []; for (var j2 = 0; j2 < 7; j2++) pts2.push(new T.Vector3(hip.x + (v2 - 1) * .14 + Math.sin(j2 * 2.3 + v2) * .03, hip.y - .1 - j2 * .2, hip.z + .36 + j2 * .025)); vs.push(G.tube(pts2, .008, 5, 18, false)); }
+        A.weighted('cold', G.merge(vs), C.clothWeights(A, 'pelvis', thighL, thighR, hip.y - .1, hip.y - 1.3, .5));
         A.rigid('iron', G.merge([0, 1, 2, 3, 4, 5].map(function (k) { var a = k / 6 * TAU + .3; return G.box(.04, .12, .03, [c.x + Math.sin(a) * .42, c.y + .1 + Math.cos(a) * .42, c.z - .3]); })), spine);
         // the verdict's chains: four heavy chains hanging from the belt (one per fallen lord), each ending in a seal
         var ch = [], seals = []; [[-.26, .1], [.26, .1], [-.18, -.2], [.18, -.2]].forEach(function (o, n) { for (var k = 0; k < 11; k++) ch.push(G.ring(.035, .01, [hip.x + o[0], hip.y - .02 - k * .065, hip.z + o[1]], [k % 2 ? Math.PI / 2 : 0, 0, 0], 5, 10)); seals.push(G.sphere(.05, [hip.x + o[0], hip.y - .76, hip.z + o[1]], [1, 1, .4], 10, 6)); });

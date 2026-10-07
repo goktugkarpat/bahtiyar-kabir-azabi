@@ -856,6 +856,9 @@
     if (!boss && S.boss) bossEnd(t);
     S.boss = boss;
     if (boss && phase === 2 && BS.phase === 1 && BS.pend2 === undefined) bossPhase2(t);
+    // Chapter V, the last verdict (Kara Kadı phase 3): the whole score drives harder and faster, a far toll marks the change once.
+    if (boss && s.bossFinal && !S.bossFinal) { S.bossFinal = true; T.want = 112; setP(N.drive.gain, .9, t, 1.2); sting('bossStart'); }
+    if ((!boss || !s.bossFinal) && S.bossFinal) { S.bossFinal = false; if (boss) T.want = 104; }
     S.hold = s.combat && !dead && !won ? 4.5 : S.hold - dt;
     const combatOn = S.hold > 0 && !boss && !dead && !won;
     if (combatOn && !S.combatOn) combatEnter(t);
