@@ -32,6 +32,7 @@
       sk.computeVertexNormals(); G['wa-skull'] = sk;
       G['wa-socket'] = new T.IcosahedronGeometry(1, 0);
       G['wa-drum'] = new T.CylinderGeometry(.5, .5, 1, 10, 1);
+      G['wa-sheet'] = new T.PlaneGeometry(1, 1, 3, 8);   // hung cloth: enough rows to bend in the sway shader
       var flute = new T.CylinderGeometry(.5, .5, 1, 16, 1), fp = flute.attributes.position;
       for (var w = 0; w < fp.count; w++) { var fx = fp.getX(w), fz = fp.getZ(w), a = Math.atan2(fz, fx), k = 1 - .07 * Math.max(0, Math.cos(a * 8)); fp.setXYZ(w, fx * k, fp.getY(w), fz * k); }
       flute.computeVertexNormals(); G['wa-flute'] = flute;
@@ -42,7 +43,14 @@
       var urn = new T.LatheGeometry([new T.Vector2(0, -.5), new T.Vector2(.28, -.5), new T.Vector2(.42, -.25), new T.Vector2(.5, .05), new T.Vector2(.36, .32), new T.Vector2(.22, .4), new T.Vector2(.27, .5), new T.Vector2(0, .5)], 10);
       G['wa-urn'] = urn;
     }
-    if (!K.materials['wa-linen']) { var lin = K.materials.shroud.clone(); lin.vertexColors = false; lin.color.copy(K.linear(.55, .47, .34)); lin.roughness = 1; K.materials['wa-linen'] = lin; }
+    if (!K.materials['wa-linen-sway']) {
+      var swayT = { value: 0 }, sw = K.materials.shroud.clone(); sw.vertexColors = false; sw.color.copy(K.linear(.3, .25, .18)); sw.side = T.DoubleSide;
+      sw.onBeforeCompile = function (sh) { sh.uniforms.waT = swayT; sh.vertexShader = 'uniform float waT;\n' + sh.vertexShader.replace('#include <begin_vertex>',
+        '#include <begin_vertex>\n vec4 waW = modelMatrix * vec4(transformed, 1.); float waH = clamp((4.0 - waW.y) / 2.6, 0., 1.);\n' +
+        ' transformed.x += sin(waT * 1.3 + waW.x * .8 + waW.z * .5) * .09 * waH * waH; transformed.z += sin(waT * 1.1 + waW.x * .6) * .14 * waH * waH;'); };
+      sw.customProgramCacheKey = function () { return 'wa-linen-sway'; }; sw.userData.waTime = swayT; K.materials['wa-linen-sway'] = sw;
+    }
+    if (!K.materials['wa-linen']) { var lin = K.materials.shroud.clone(); lin.vertexColors = false; lin.color.copy(K.linear(.3, .25, .18)); lin.roughness = 1; K.materials['wa-linen'] = lin; }
     // Small props never cast static shadows (detail level 1): the shadow passes only see walls, piers and big furniture.
     // Inside a side crypt every small prop is baked into ONE mesh per material for the whole room (no shadows):
     // a handful of draw calls instead of one instanced batch per shape x material x detail level.
@@ -50,7 +58,7 @@
     var MERGE_MAT = { stone: 'stone~p', pale: 'pale~p', dark: 'dark~p' };
     function put(geo, mat, x, y, z, sx, sy, sz, rx, ry, rz, level, color) {
       if (!level && mat !== 'floor' && Math.max(Math.abs(sx), Math.abs(sy), Math.abs(sz)) < 1.6) level = 1;
-      if (mergeOn && level && mat !== 'floor' && K.mergeParts && G[geo] && G[geo].attributes.normal) {
+      if (mergeOn && level && !color && mat !== 'floor' && K.mergeParts && G[geo] && G[geo].attributes.normal) {
         var mk = MERGE_MAT[mat] || mat; if (!K.materials[mk]) mk = mat;
         mtmp.position.set(x, y, z); mtmp.rotation.set(rx || 0, ry || 0, rz || 0); mtmp.scale.set(sx, sy, sz); mtmp.updateMatrix();
         (mergeBuckets[mk] = mergeBuckets[mk] || []).push({ geo: G[geo], matrix: mtmp.matrix.clone() });
@@ -63,6 +71,7 @@
       if (!mergeOn) return; mergeOn = false;
       Object.keys(mergeBuckets).forEach(function (mk) {
         var m = new T.Mesh(K.mergeParts(mergeBuckets[mk]), K.materials[mk]); m.name = 'wa-merged:' + name + ':' + mk;
+        if (K.materials[mk].userData.waTime) { var wt = K.materials[mk].userData.waTime; m.onBeforeRender = function () { wt.value = performance.now() / 1000; }; m.frustumCulled = false; }
         m.castShadow = false; m.receiveShadow = true; m.updateMatrix(); m.matrixAutoUpdate = false; K.root.add(m);
       });
       mergeBuckets = null;
@@ -458,6 +467,9 @@
           solid(bx, S.north + .7, 3.2, 1);
         });
         K.ribCage(r.x + S.s * 9.5, r.z + .4, 1.2);
+        // soiled sheets hung on a line between the tables: they stir in the draught
+        for (var hs = 0; hs < 4; hs++) put('wa-sheet', 'wa-linen-sway', r.x - 4.5 + hs * 3, 2.7, r.z - 9.6, 1.4, 2.2, 1, 0, U(-.15, .15), 0, 1);
+        put('wa-drum', 'wood', r.x, 3.85, r.z - 9.6, .06, 13, .06, 0, 0, PI / 2, 1);
         for (var sh = 0; sh < 4; sh++) { var shz = r.z - 4.5 + sh * 3; put('link', 'rust', S.back + S.s * .45, 1.9, shz, .22, .3, .22, 0, PI / 2, 0, 1); K.chain(S.back + S.s * .5, 1.75, shz, 1.2, 'y', 1); put('link', 'iron', S.back + S.s * .5, .5, shz, .26, .26, .18, 0, PI / 2, 0, 1);
           K.wallDecal('wet', CELL.bloodDrip, S.back + S.s * .4, 1.2, shz, .9, 1.6, S.s * PI / 2, COL.oldBlood, 1); }
         skulls(S.back + S.s * 1.6, r.z - 1.2, .8, 8);
@@ -484,7 +496,7 @@
         for (var h = 0; h < 6; h++) {
           var hx = r.x + (h - 2.5) * 3.6, hz = S.north + 3.8 + (h % 2) * 1.2;
           put('wa-drum', 'wood', hx, 3.9, hz, .1, 3.2, .1, 0, 0, PI / 2, 1);
-          for (var q = 0; q < 2; q++) put('box', 'wa-linen', hx + (q ? .75 : -.75), 2.75, hz + U(-.05, .05), 1.25, U(1.8, 2.5), .02, U(-.04, .04), 0, U(-.03, .03), 1);
+          for (var q = 0; q < 2; q++) put('wa-sheet', 'wa-linen-sway', hx + (q ? .75 : -.75), 2.75, hz + U(-.05, .05), 1.25, U(1.8, 2.5), 1, U(-.04, .04), 0, U(-.03, .03), 1);
         }
         // shroud bolts, spindle baskets and a cutting table
         for (var bb = 0; bb < 7; bb++) put('wa-drum', bb % 3 ? 'wa-linen' : 'cloth', r.x + S.s * 9.3, .3 + Math.floor(bb / 3) * .55, r.z - 4 + (bb % 3) * .62 + (bb > 2 ? .3 : 0), .5, 1.6, .5, PI / 2, 0, PI / 2);
@@ -573,6 +585,15 @@
         [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(function (c) { skulls(r.x + c[0] * (r.w / 2 - 2.2), r.z + c[1] * (r.d / 2 - 2.4), .75, 12); });
         for (var bt = 0; bt < 6; bt++) { var ba = bt / 6 * 6.28 + .3; bloodTrail(r.x + Math.cos(ba) * 4, r.z - 2 + Math.sin(ba) * 4, r.x + Math.cos(ba) * 11, r.z - 2 + Math.sin(ba) * 11); }
         for (var bb = 0; bb < 10; bb++) K.ribCage(r.x + (bb % 2 ? 1 : -1) * U(10.5, 12.5), r.z + U(-12, 10), R() * 6);
+        // the arena's rim burns: heaps of broken pews and gallows timber smoulder in the four corners
+        [[-1, 1], [1, 1], [-1, -1], [1, -1]].forEach(function (c) { var fx = r.x + c[0] * (r.w / 2 - 1.9), fz = r.z + c[1] * (r.d / 2 - 4.6);
+          pile(fx, fz, .9, 7);
+          for (var tb = 0; tb < 5; tb++) put('box', 'charred', fx + U(-.6, .6), .25 + tb * .05, fz + U(-.6, .6), .16, .14, U(1, 1.8), U(-.3, .3), R() * 6, U(-.3, .3), 1);
+          K.flame(fx, .55, fz, .75, 1.1, 'fire', true, true); K.flame(fx + .3, .4, fz - .25, .45, .7, 'fire', true, false);
+          K.lightSource(fx, 1.1, fz, '#ff6a26', 14, 9, 1.1, { kind: 'brazier' });
+          K.emberSources.push({ x: fx, y: .8, z: fz, count: 8, spread: .5, rise: 3 });
+          K.floorDecal('matte', CELL.soot, fx, fz, 2.6, 2.6, null, COL.soot, 0);
+          solid(fx, fz, 1.6, 1.6); });
       }
       [[-1, -1], [1, -1]].forEach(function (c) { if (r.id === 6 || r.id === 3) return; pile(r.x + c[0] * (r.w / 2 - 1.3), r.z + c[1] * (r.d / 2 - 1.3), 1.0, 9); });
     });
@@ -580,12 +601,18 @@
     var beamTex = null;
     function beam(x, z, rTop, rBot, h, color, opacity, y0) {
       if (!K.root) return;
-      if (!beamTex) { var c = document.createElement('canvas'); c.width = 4; c.height = 64; var g = c.getContext('2d'), gr = g.createLinearGradient(0, 0, 0, 64);
-        gr.addColorStop(0, 'rgba(255,255,255,0)'); gr.addColorStop(.25, 'rgba(255,255,255,.75)'); gr.addColorStop(.85, 'rgba(255,255,255,1)'); gr.addColorStop(1, 'rgba(255,255,255,.35)');
-        g.fillStyle = gr; g.fillRect(0, 0, 4, 64); beamTex = new T.CanvasTexture(c); beamTex.colorSpace = T.SRGBColorSpace; }
+      if (!beamTex) { var c = document.createElement('canvas'); c.width = 32; c.height = 64; var g = c.getContext('2d'), img = g.createImageData(32, 64);
+        for (var yy = 0; yy < 64; yy++) for (var xx = 0; xx < 32; xx++) { var u = (xx + .5) / 32 - .5, v = (yy + .5) / 64, across = Math.exp(-u * u * 22), along = Math.min(1, v / .3) * (1 - .55 * Math.max(0, (v - .8) / .2)), q = (yy * 32 + xx) * 4;
+          img.data[q] = img.data[q + 1] = img.data[q + 2] = 255; img.data[q + 3] = Math.round(255 * across * along * (.85 + .15 * Math.sin(xx * 1.7 + yy * .4))); }
+        g.putImageData(img, 0, 0); beamTex = new T.CanvasTexture(c); beamTex.colorSpace = T.SRGBColorSpace; }
       var key = 'wa-beam-' + color;
       if (!K.materials[key]) K.materials[key] = new T.MeshBasicMaterial({ color: color, map: beamTex, transparent: true, opacity: opacity, blending: T.AdditiveBlending, depthWrite: false, side: T.DoubleSide, fog: false, toneMapped: false });
-      var geo = new T.CylinderGeometry(rTop, rBot, h, 18, 1, true); if (K.uniqueGeometries) K.uniqueGeometries.push(geo);
+      var p1 = new T.PlaneGeometry(1, 1), parts = [];
+      [0, Math.PI / 2, Math.PI / 4, -Math.PI / 4].forEach(function (a) { var mm = new T.Matrix4().makeRotationY(a); parts.push({ geo: p1, matrix: mm }); });
+      var geo = K.mergeParts ? K.mergeParts(parts) : p1; var pp = geo.attributes.position;
+      for (var vi = 0; vi < pp.count; vi++) { var vy = pp.getY(vi), wdt = (vy > 0 ? rTop : rBot) * 2.2; pp.setXYZ(vi, pp.getX(vi) * wdt, vy * h, pp.getZ(vi) * wdt); }
+      geo.computeBoundingSphere();
+      if (K.emberSources) K.emberSources.push({ x: x, y: (y0 || 0) + 1.2, z: z, count: 8, spread: rBot * .8, rise: h * .6, sick: false });
       var m = new T.Mesh(geo, K.materials[key]); m.position.set(x, (y0 || 0) + h / 2, z); m.renderOrder = 6; m.castShadow = false; m.receiveShadow = false; m.name = 'wa-beam';
       m.updateMatrix(); m.matrixAutoUpdate = false; K.root.add(m);
     }
@@ -606,7 +633,7 @@
       Object.keys(BR).forEach(function (k) {
         var i = +k, a = K.rooms[i], b = K.rooms[i + 1], half = BR[i], zEnd = a.z - a.d / 2, zNext = b.z + b.d / 2, mid = (zEnd + zNext) / 2;
         // ceiling collapsed above the breach: dust-laden light pours in, fallen vault stones lie where it struck
-        beam(U(-2, 2), mid + U(-1, 1), 1.1, 2.6, 13, i % 2 ? '#8fa6d8' : '#c9b48a', .045);
+        beam(U(-2, 2), mid + U(-1, 1), .9, 2.2, 13, i % 2 ? '#8fa6d8' : '#c9b48a', .11);
         K.decal('glow', CELL.glow, 0, .02, mid, 6, 5, 0, K.linear(.07, .07, .08), 0);
         pile(-half + 1.6, mid + U(-1, 1), 1.2, 10); pile(half - 1.6, mid + U(-1, 1), 1.0, 8);
         for (var f = 0; f < 5; f++) put('slab' + f % 4, 'stone', U(-half + 2, half - 2), .18, mid + U(-1.5, 1.5), U(.5, 1.1), U(.25, .45), U(.4, .8), U(-.3, .3), R() * 6, U(-.3, .3), 1);
@@ -620,8 +647,28 @@
         [-1, 1].forEach(function (s) { var ax = s * (BR[5] - .9);
           for (var l = 0; l < 16; l++) put('link', 'iron', ax, 1 + l * .62, z5, .5, .8, .5, 0, l % 2 ? Math.PI / 2 : 0, 0, 1);
           put('link', 'rust', ax, .5, z5, .9, .9, .5, Math.PI / 2, 0, 0, 1); put('slab1', 'dark', ax, .2, z5, 1.3, .4, 1.3, 0, 0, 0, 1); solid(ax, z5, 1.3, 1.3); }); }
-      beam(-35.8, -22, 1.2, 1.6, 16, '#ff3010', .04, -5);
+      beam(-35.8, -22, 1.0, 1.5, 16, '#ff3010', .12, -5);
+      // bats roosting under the high vaults of the nave and the crypts; the first screen gets its own flight under the ash light
+      if (K.root && B.WorldABats) B.WorldABats.create(T, K.root, [[0, 6.5, 0], [-1, 7, -30], [1, 7.5, -62], [-28, 6, -21], [32, 6.5, -101], [0, 8, -150]], 30);
+      // first screen (Kül Eşiği): a pale shaft falls through the broken roof ahead of the hero onto the threshold seal
+      beam(1.5, 1.2, .8, 2, 12, '#a9b8d8', .1);
+      // incense and pit smoke, smouldering embers
+      if (K.smokeSources) { K.smokeSources.push({ x: -35.8, y: -2, z: -22, count: 8, rate: .06, rise: 7, spread: 1.2, size: 2, alpha: .12, color: [.09, .03, .02] });
+        K.smokeSources.push({ x: -30, y: 1.6, z: -132.6, count: 6, rate: .07, rise: 3.5, spread: .6, size: 1.5, alpha: .12, color: [.08, .04, .03] }); }
     }());
+    // A reward at the end of a side path: an open book of names on a lectern, lit by its own candles.
+    function lectern(x, z, yaw) {
+      var c = Math.cos(yaw), s = Math.sin(yaw);
+      put('slab1', 'dark', x, .1, z, .9, .2, .9, 0, yaw, 0); put('wa-drum', 'dark', x, .62, z, .22, 1.05, .22, 0, 0, 0);
+      put('box', 'wood', x, 1.18, z, .9, .08, .62, -.45, yaw, 0); put('box', 'wa-linen', x + s * .02, 1.25, z + c * .02, .78, .03, .5, -.45, yaw, 0);
+      put('box', 'cloth', x, 1.22, z, .05, .05, .7, -.45, yaw, 0);
+      [-1, 1].forEach(function (k) { var cx = x + c * k * .55, cz = z - s * k * .55; put('pole', 'wax', cx, 1.1, cz, .05, .3, .05, 0, 0, 0, 1); K.flame(cx, 1.32, cz, .08, .16, 'fire', false, false); });
+      K.lightSource(x, 1.9, z, '#ffc77a', 9, 6, .4, { kind: 'candle' });
+      K.decal('glow', CELL.glow, x, .02, z, 3, 3, 0, K.linear(.08, .05, .02), 1);
+      K.floorDecal('matte', CELL.wax, x, z, 1.2, 1.2, null, COL.wax, 1);
+      solid(x, z, .9, .9);
+    }
+    lectern(42.6, 6.3, -Math.PI / 2); lectern(32, -111.2, 0); lectern(-41.6, -46.2, Math.PI / 2);
     function inHole(holes, x, z, m) { for (var i = 0; i < holes.length; i++) { var o = holes[i]; if (Math.abs(x - o.x) < o.w / 2 + m && Math.abs(z - o.z) < o.d / 2 + m) return true; } return false; }
     // Lived-in floor: grit, chips of fallen vault, stray bones, stains that run under the furniture.
     function floorLife(r, holes) {
@@ -629,6 +676,8 @@
       // and a dirt band along every wall foot where nobody walks
       for (var mv = 0; mv < 9; mv++) { var mx = r.x + U(-r.w / 2 + 2, r.w / 2 - 2), mz = r.z + U(-r.d / 2 + 2, r.d / 2 - 2), t2 = mv % 3;
         K.floorDecal('matte', t2 === 0 ? CELL.mould : t2 === 1 ? CELL.specks : CELL.water, mx, mz, U(3, 6), U(3, 6), null, t2 === 0 ? COL.grime : t2 === 1 ? COL.dust : COL.water, 1); }
+      // moss and damp creep out of the corners and along the joints (same decal batch: no extra draw)
+      [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(function (c) { for (var ms = 0; ms < 3; ms++) K.floorDecal('matte', ms % 2 ? CELL.mould : CELL.specks, r.x + c[0] * (r.w / 2 - U(.8, 2.6)), r.z + c[1] * (r.d / 2 - U(.8, 2.6)), U(1.4, 2.8), U(1.4, 2.8), null, K.linear(.035, .05, .016), 1); });
       for (var eb = 0; eb < Math.ceil(r.w / 2.2); eb++) { K.floorDecal('matte', CELL.mould, r.x - r.w / 2 + 1.1 + eb * 2.2, r.z - r.d / 2 + .8, 2.6, 1.6, U(-.3, .3), COL.grime, 1);
         K.floorDecal('matte', CELL.ashPile, r.x - r.w / 2 + 1.1 + eb * 2.2, r.z + r.d / 2 - .8, 2.4, 1.4, U(-.3, .3), COL.dust, 1); }
       for (var es = 0; es < Math.ceil(r.d / 2.2); es++) [-1, 1].forEach(function (k) { K.floorDecal('matte', es % 2 ? CELL.mould : CELL.specks, r.x + k * (r.w / 2 - .8), r.z - r.d / 2 + 1.1 + es * 2.2, 1.6, 2.6, U(-.3, .3), es % 2 ? COL.grime : COL.dust, 1); });
@@ -663,5 +712,52 @@
     'c1.seal2': { x: -27.5, z: -14 },
     'c1.seal3': { x: -23, z: -19 }
   };
-  B.WorldATemple = { active: !/[?&]nowa\b/.test(location.search), rooms: ROOMS, dress: dress, sites: SITES };
+  // Bat flocks: ONE instanced draw per chapter. Each bat is a two-wing card animated entirely in the vertex shader
+  // (circling flight around its roost, wing flap); no per-frame CPU work besides one time uniform.
+  B.WorldABats = { create: function (T, parent, roosts, count) {
+    var g = new T.BufferGeometry();
+    // body at origin, two wings (x<0 and x>0) whose tips flap in y
+    g.setAttribute('position', new T.Float32BufferAttribute([0, 0, .12, -.55, 0, -.05, 0, 0, -.12, 0, 0, .12, 0, 0, -.12, .55, 0, -.05], 3));
+    g.setAttribute('wing', new T.Float32BufferAttribute([0, 1, 0, 0, 0, 1], 1));
+    var n = count || 24, off = new Float32Array(n * 4), home = new Float32Array(n * 3);
+    for (var i = 0; i < n; i++) { var r = roosts[i % roosts.length]; home[i * 3] = r[0]; home[i * 3 + 1] = r[1]; home[i * 3 + 2] = r[2];
+      off[i * 4] = Math.random() * 6.28; off[i * 4 + 1] = 2 + Math.random() * 3.5; off[i * 4 + 2] = .5 + Math.random() * .5; off[i * 4 + 3] = Math.random() < .5 ? -1 : 1; }
+    var ig = new T.InstancedBufferGeometry(); ig.index = null; ig.setAttribute('position', g.attributes.position); ig.setAttribute('wing', g.attributes.wing);
+    ig.setAttribute('aOff', new T.InstancedBufferAttribute(off, 4)); ig.setAttribute('aHome', new T.InstancedBufferAttribute(home, 3)); ig.instanceCount = n;
+    var u = { uTime: { value: 0 } };
+    var m = new T.ShaderMaterial({ uniforms: u, side: T.DoubleSide, transparent: false,
+      vertexShader: 'attribute float wing; attribute vec4 aOff; attribute vec3 aHome; uniform float uTime; varying float vW;' +
+        'void main(){ float t=uTime*aOff.z*aOff.w+aOff.x; vec3 c=aHome+vec3(sin(t)*aOff.y, sin(t*2.3+aOff.x)*.6, cos(t*1.3)*aOff.y*.8);' +
+        ' vec3 v=normalize(vec3(cos(t)*aOff.y, 0., -sin(t*1.3)*aOff.y*1.04)*aOff.w+1e-4); vec3 s=normalize(cross(vec3(0.,1.,0.),v));' +
+        ' vec3 p=position; p.y+=wing*sin(uTime*22.+aOff.x*9.)*.32; vec3 wp=c+s*p.x*.6+vec3(0.,p.y*.6,0.)+v*p.z*.6; vW=wing;' +
+        ' gl_Position=projectionMatrix*viewMatrix*vec4(wp,1.); }',
+      fragmentShader: 'varying float vW; void main(){ gl_FragColor=vec4(vec3(.012,.01,.012)+vW*.01,1.); }' });
+    var mesh = new T.Mesh(ig, m); mesh.frustumCulled = false; mesh.name = 'wa-bats'; mesh.renderOrder = 3;
+    mesh.onBeforeRender = function () { u.uTime.value = performance.now() / 1000; };
+    parent.add(mesh); return { mesh: mesh, dispose: function () { ig.dispose(); g.dispose(); m.dispose(); } };
+  } };
+  // Falling drops + floor rings, entirely on the GPU: each instance is one quad that is a tiny falling streak for the first
+  // part of its cycle and a flat expanding ring on the floor for the rest. One draw for every drip in a chapter.
+  B.WorldADrips = { create: function (T, parent, points, color) {
+    var n = points.length, home = new Float32Array(n * 3), ph = new Float32Array(n * 2);
+    points.forEach(function (p, i) { home[i * 3] = p[0]; home[i * 3 + 1] = p[1]; home[i * 3 + 2] = p[2]; ph[i * 2] = Math.random(); ph[i * 2 + 1] = 1.6 + Math.random() * 2.2; });
+    var g = new T.InstancedBufferGeometry(); var q = new T.PlaneGeometry(1, 1);
+    g.index = q.index; g.setAttribute('position', q.attributes.position); g.setAttribute('uv', q.attributes.uv);
+    g.setAttribute('aHome', new T.InstancedBufferAttribute(home, 3)); g.setAttribute('aPh', new T.InstancedBufferAttribute(ph, 2)); g.instanceCount = n;
+    var u = { uTime: { value: 0 }, uCol: { value: new T.Vector3(color[0], color[1], color[2]) } };
+    var m = new T.ShaderMaterial({ uniforms: u, transparent: true, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide, toneMapped: false,
+      vertexShader: 'attribute vec3 aHome; attribute vec2 aPh; uniform float uTime; varying vec2 vUv; varying float vRing; varying float vA;' +
+        'void main(){ vUv=uv; float t=fract(uTime/aPh.y+aPh.x); float fallT=.28; vec3 wp;' +
+        ' if(t<fallT){ float k=t/fallT; vec3 c=vec3(aHome.x, aHome.y*(1.-k*k), aHome.z); vec4 mv=viewMatrix*vec4(c,1.); mv.xy+=position.xy*vec2(.035,.22); gl_Position=projectionMatrix*mv; vRing=0.; vA=.9; }' +
+        ' else { float k=(t-fallT)/(1.-fallT); float s=.15+k*1.1; wp=vec3(aHome.x+position.x*s, .03, aHome.z-position.y*s); gl_Position=projectionMatrix*viewMatrix*vec4(wp,1.); vRing=1.; vA=(1.-k)*.8; } }',
+      fragmentShader: 'uniform vec3 uCol; varying vec2 vUv; varying float vRing; varying float vA; void main(){ vec2 d=vUv-.5; float a;' +
+        ' if(vRing>.5){ float r=length(d)*2.; a=smoothstep(.72,.9,r)*(1.-smoothstep(.9,1.,r)); } else { a=1.-smoothstep(.0,.5,abs(d.x)*2.); a*=smoothstep(0.,.3,vUv.y); }' +
+        ' a*=vA; if(a<.01) discard; gl_FragColor=vec4(uCol*a,a); }' });
+    var mesh = new T.Mesh(g, m); mesh.frustumCulled = false; mesh.name = 'wa-drips'; mesh.renderOrder = 7;
+    mesh.onBeforeRender = function () { u.uTime.value = performance.now() / 1000; };
+    parent.add(mesh); return mesh;
+  } };
+  // Dripping water / blood (world.js drops + floor ripples): side crypts and the broken nave.
+  var DRIPS = [[-36.6, 4.2, -26.5, 1], [29.5, 4.5, -70, 0], [26, 4.2, 8, 0], [-37.4, 4, -53.4, 1], [-24.6, 4, -40.8, 1], [36, 4.4, -96, 0], [-24, 4.2, -120, 0], [2.2, 5, -34.5, 0], [-3.2, 5, -88, 0]];
+  B.WorldATemple = { active: !/[?&]nowa\b/.test(location.search), rooms: ROOMS, dress: dress, sites: SITES, drips: DRIPS };
 }());

@@ -1321,6 +1321,7 @@
     requestAnimationFrame(() => { miniPending = false; try { drawMinimapNow(game.player); } catch (e) { console.warn(KabirI18n.t('[Kabir Azabı] minimap'), e); } });
   }
   function drawMinimapNow(p) {
+    if (atlasUI && atlasUI.drawMinimap && atlasUI.drawMinimap($('minimap'))) return; // painted atlas minimap (atlas.js)
     const c = $('minimap'), x = c.getContext('2d', B.uiBitmapOptions), scale = MINI_SCALE, cx = 128, cy = 140, k = c.width / 256;
     const beat = .75 + Math.sin(elapsed * 6) * .25, beatIndex = clamp(Math.round((beat - .5) / .5 * (MINI_BEATS - 1)), 0, MINI_BEATS - 1);
     const here = world.roomAt(p.x, p.z);
@@ -1390,6 +1391,7 @@
     x.setTransform(1, 0, 0, 1, 0, 0); x.clearRect(0, 0, c.width, c.height);
     list.forEach((sprite, i) => stamp(x, sprite, 30 + (i % 8) * 28, 40 + Math.floor(i / 8) * 40, i % 2 ? .4 : 0));
     miniKey = '';
+    if (atlasUI && atlasUI.warmMinimap) atlasUI.warmMinimap(c);
   }
   function updateOverview() {
     const p = game.player, total = game.totalKills || game.enemies.length;
@@ -2104,7 +2106,7 @@
     game = B.Game.create(world, { scene, emit: event, sound: (n, o) => B.Audio.play(n, o), fx });
     characterUI = B.CharacterUI.create({ game, keyLabels: () => ['heavy', 'special', 'rage', 'fourth'].map(a => { const c = binds[a][0] || binds[a][1]; return c ? capName(c) : '—'; }), onPreview: (canvas,nowMs,preparing) => characterPreview.draw(canvas,nowMs,preparing), onPreviewTurn: direction => characterPreview.turn(direction), onClose: back, onChange: () => { game.syncProgression(); if (game.saveProfileChoices) game.saveProfileChoices(); hud(0); } });
     questUI = B.QuestUI.create({ game });
-    atlasUI = B.Atlas.create({ world, game, onClose: back, onJournal: () => { if (stack[stack.length - 1] === 'journal') stack.pop(); show('journal'); } }); document.body.append(atlasUI.element);
+    atlasUI = B.Atlas.create({ world, game, onClose: back, onJournal: () => { if (stack[stack.length - 1] === 'journal') stack.pop(); show('journal'); } }); document.body.append(atlasUI.element); if (atlasUI.attachMinimap) atlasUI.attachMinimap($('minimap'));
     makeFX(); postProcess(); characterPreview = B.CharacterPreview.create({ renderer, camera, game, post, worldScene: scene }); setupUI();
     titleCamera();
     const placeNotices = () => {
