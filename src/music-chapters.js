@@ -67,7 +67,8 @@
     } else {
       if (s === 0 && rel % 4 === 2) X.toll(P, t, { buf: 'bellBig', vel: .33, rate: .9 });
     }
-    if (stage === 3) {   // last third of the boss's health: the whole court joins in
+    if (stage === 3) {   // last third of the boss's health: the whole court joins in, and the pulse quickens (tempo changes on the next bar line)
+      const want = BS.phase === 2 ? 108 : 100; if (X.T.want < want) X.T.want = want;
       if (s % 4 === 2) X.playBuf('taikoM', t, perc, { gain: .68, rate: X.rr(.95, 1.05), pan: X.rr(-.5, .5) });
       if (s === 0 && rel % 2 === 0) X.playBuf('boom', t, perc, { gain: .75 });
       if (s % 2 === 1 && X.chance(.6)) X.playBuf('rim', t, perc, { gain: .33, pan: X.rr(-.6, .6) });
