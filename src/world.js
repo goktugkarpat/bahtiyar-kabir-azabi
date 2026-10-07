@@ -471,6 +471,8 @@
       // Standing water and fresh blood are near-mirrors: fire and moonlight glint in them.
       Object.assign(materials.blood, { roughness: .2, clearcoat: .65, clearcoatRoughness: .12, envMapIntensity: .45 });
       Object.assign(materials.water, { roughness: .09, clearcoat: .6, clearcoatRoughness: .06, envMapIntensity: .4, opacity: .7 });
+      // (ajan:models) the puddle ripples drift (own copy of the shared ripple map), so the fire and moon glints in the water shimmer
+      if (rippleMap && rippleMap.clone) { var flowMap = rippleMap.clone(); flowMap.wrapS = flowMap.wrapT = T.RepeatWrapping; flowMap.needsUpdate = true; materials.water.normalMap = flowMap; materials.water.normalScale.set(.14, .14); materials.water.userData.flow = flowMap; }
       // Candle wax glows warmest just under the flame (per instance: the pole spans y -0.5..0.5).
       materials.wax.onBeforeCompile = function (sh) {
         sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying float vWaxH;').replace('#include <begin_vertex>', '#include <begin_vertex>\nvWaxH = position.y + 0.5;');
@@ -1928,7 +1930,7 @@
       }
       var proxyBudget = 0, proxyShadows = false, proxyForceOff = false;
       function refreshProxyState() {
-        proxyOn = proxyBudget === 2 && proxyShadows && proxies.length > 0 && !proxyForceOff; cullDirty = true;
+        proxyOn = (proxyBudget === 2 || proxyBudget === 1 && !/[?&]noopt\b/.test(location.search)) && proxyShadows && proxies.length > 0 && !proxyForceOff; cullDirty = true;
         allBatches.forEach(function (mesh) { mesh.castShadow = proxyShadows && mesh.userData.baseCastShadow && !(proxyOn && mesh.userData.proxied); });
         syncProxies();
       }
@@ -2666,6 +2668,7 @@
         if (!p || !Number.isFinite(p.x)) { var app = BABA.app, g = app && app.game; p = g && g.player; }
         if (p && Number.isFinite(p.x) && Number.isFinite(p.z)) { focus.x = p.x; focus.z = p.z; }
         var motionTime = reducedMotion ? 0 : time;
+        if (materials.water && materials.water.userData.flow) materials.water.userData.flow.offset.set(motionTime * .011, motionTime * .0075);   // (ajan:models) drifting puddle glints
         flameUniforms.time.value = motionTime;
         playerLight.position.set(focus.x - 1.2, 3.5, focus.z + .6);   // off-axis (ajan:visual-dark): side key models the body instead of flat front light
         // The hero's own light is lent to the special ability / war cry (lighting.js): warm orbiting flash, same light count, no shader rebuild.

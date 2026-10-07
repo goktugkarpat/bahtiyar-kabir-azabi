@@ -156,6 +156,8 @@
       u.kScarB = { value: o.scars.map(function (sc) { return new T.Vector4(sc[1].x, sc[1].y, sc[1].z, sc[3] ? 1 : 0); }) };
     }
     if (o.engrave) { defs.KARA_ENGRAVE = ''; u.kEngrave = { value: o.engrave }; u.kEngraveRect = { value: o.engrave.userData.rect }; }
+    // (ajan:models) hero body skin layer (hero-detail.js): veins, raised tattoo, burns, sweat sheen; own uniforms + GLSL
+    var bodyFx = o.bodyFx || null; if (bodyFx) { defs.KARA_BODY = ''; Object.keys(bodyFx.uniforms).forEach(function (k) { u[k] = bodyFx.uniforms[k]; }); }
     m.defines = Object.assign(m.defines || {}, defs);
     m.defaultAttributeValues = { kwear: [0, 0, 0, 0] };
     m.userData.grade = u;
@@ -164,7 +166,7 @@
       Object.keys(u).forEach(function (k) { sh.uniforms[k] = u[k]; });
       sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute vec4 kwear;varying vec3 vKara;varying vec4 vKWear;')
         .replace('#include <begin_vertex>', '#include <begin_vertex>\nvKara=position;vKWear=kwear;');
-      sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\n' + GRADE_HEAD)
+      sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\n' + GRADE_HEAD + (bodyFx ? bodyFx.head : ''))
         .replace('#include <lights_physical_pars_fragment>', physicalPars())
         .replace('void main() {', 'void main() {\nfloat kBloodMask=0.,kEdgeMask=0.,kCav=0.,kGloss=0.,kWet=0.,kCut=0.,kRustMask=0.;\n' +
           '#ifdef KARA_TEAR\nif(vKWear.w>.004){float tn=kF(vKara*47.+vec3(11.))*.8+kN(vKara*230.)*.2;if(tn<vKWear.w*.95)discard;}\n#endif\n')
@@ -208,7 +210,7 @@
           '  for(int i=0;i<3;i++){float a=float(i)*.4-.3;vec2 d=vec2(cos(a),sin(a)),r=e-vec2(.013,0.);float al=dot(r,d),pp=abs(r.x*d.y-r.y*d.x);crow=max(crow,kFall(.0007,.0002,pp)*smoothstep(0.,.004,al)*kFall(.022,.008,al)*smoothstep(.25,.6,kN(vec3(al*90.,float(i),4.))));}\n' +
           '  diffuseColor.rgb*=1.-fm*(.16*sock+.3*crease+.16*lower+.1*bag+.16*crow+.15*fl);kFaceH=-fm*(.0007*fl+.0006*crease+.0003*lower+.0002*crow);}\n' +
           ' float bm=kBeard(w,vKara);\n' +
-          ' if(bm>0.){float g=kGrey(w,vKara,.05,600.,.8);vec3 hc=mix(vec3(.05,.036,.03),vec3(.58,.56,.52),g)*(.65+.7*kN(vKara*900.));diffuseColor.rgb=mix(diffuseColor.rgb,hc,bm*.88);kSkinMask*=1.-bm*.95;}}}\n#endif\n')
+          ' if(bm>0.){float g=kGrey(w,vKara,.05,600.,.8);vec3 hc=mix(vec3(.05,.036,.03),vec3(.58,.56,.52),g)*(.65+.7*kN(vKara*900.));diffuseColor.rgb=mix(diffuseColor.rgb,hc,bm*.88);kSkinMask*=1.-bm*.95;}}}\n#endif\n' + (bodyFx ? bodyFx.frag : ''))
         .replace('#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\n' +
           '#if KARA_CLASS == 1\nroughnessFactor*=.72+.56*kN(vKara*kScale*4.+vec3(5.));roughnessFactor=mix(roughnessFactor,.26,kEdgeMask);\n' +
           '#elif KARA_CLASS == 4\nroughnessFactor=mix(roughnessFactor,.36+.26*kN(vKara*90.)*kN(vKara*23.+vec3(4.)),kSkinMask);\n#endif\n' +
@@ -450,6 +452,17 @@
       return finishGear(g, key, function (v) { var s = pinned || nearest(v.x, v.y, v.z, keys, allow); if (!s) return [[0, 1]]; return s.j.map(function (j, k) { return [j, s.w[k]]; }).filter(function (e) { return e[1] > 0; }); });
     };
     A.weighted = function (key, g, fn) { return finishGear(g, key, fn); };
+    // (ajan:models) A new helper bone under parentName at bind-space point pos (world axes, no rotation): hanging chains, shrouds
+    // and trophies are skinned to it and create() swings it as a damped pendulum (enemy-dread.js). Returns the bone index.
+    A.addBone = function (name, parentName, pos) {
+      var jp = index[parentName]; if (jp === undefined) throw Error('Kemik yok: ' + parentName);
+      if (index[name] !== undefined) return index[name];
+      var b = new T.Bone(); b.name = name;
+      var local = new T.Matrix4().multiplyMatrices(inverses[jp], new T.Matrix4().makeTranslation(pos.x, pos.y, pos.z));
+      local.decompose(b.position, b.quaternion, b.scale); bones[jp].add(b); b.updateMatrixWorld(true);
+      bones.push(b); inverses.push(new T.Matrix4().makeTranslation(-pos.x, -pos.y, -pos.z)); index[name] = bones.length - 1;
+      return index[name];
+    };
     // Rigid geometry positioned in a bone frame: origin at the bone head (+offset along the bone), +Y along the bone,
     // +Z toward the character's front (or hint). Returns the placed geometry.
     A.frame = function (name, along, zHint, originOffset) {
@@ -493,7 +506,7 @@
       var proxies = [], groups = {};
       meshes.forEach(function (mesh) {
         var m = mesh.material, key = mesh.name;
-        if (!mesh.castShadow || !m || Array.isArray(m) || m.transparent || m.alphaTest > 0 || m.alphaMap || m.displacementMap || m.visible === false || /^equipment:/.test(key)) return;
+        if (!mesh.castShadow || !m || Array.isArray(m) || m.transparent || m.alphaTest > 0 || m.alphaMap || m.displacementMap || m.visible === false || /^(equipment:|hero-trinket-|phase-)/.test(key)) return;
         if (A.base === 'barbarian' && (PROXY_FLARE[key] || key === 'iron' || key === 'base-straps' || key === 'mantle-brooch')) return;   // whirlwind-flared fur / cloth / beard and the swappable chest iron stay real casters
         var side = m.shadowSide !== null && m.shadowSide !== undefined ? 'x' + m.shadowSide : 's' + m.side;
         (groups[side] = groups[side] || []).push(mesh);
@@ -791,14 +804,14 @@
     function half(u) { return .33 * smooth(-.02, .07, u) * (1 - .9 * Math.pow(smooth(.5, 1, u), 1.15)) + .02; }
     for (y = 0; y < H; y++) for (x = 0; x < W; x++) {
       var u = x / (W - 1), v = 1 - y / (H - 1), k = (y * W + x) * 4;
-      d[k] = 34; d[k + 1] = 24; d[k + 2] = 18; d[k + 3] = 255 * smooth(-.04, .07, half(u) - Math.abs(v - .5) + (G.hash(x, y, 3) - .5) * .07);
+      d[k] = 62; d[k + 1] = 56; d[k + 2] = 50; d[k + 3] = 255 * smooth(-.04, .07, half(u) - Math.abs(v - .5) + (G.hash(x, y, 3) - .5) * .07);
     }
     g.putImageData(px, 0, 0); g.lineCap = 'round';
     for (i = 0; i < 1100; i++) {
       var u0 = G.hash(i, 1, 8), h0 = half(u0), v0 = .5 + (G.hash(i, 2, 8) - .5) * 1.9 * h0, a = mix(1.05, -.3, Math.pow(u0, .8)) + (G.hash(i, 3, 8) - .5) * .5,
         len = (36 + G.hash(i, 4, 8) * 40) * mix(1, .55, smooth(.6, 1, u0)), x0 = u0 * (W - 1), y0 = (1 - v0) * (H - 1), dx = Math.cos(a), dy = -Math.sin(a), r = G.hash(i, 5, 8);
       len = Math.min(len, dy < 0 ? (y0 - 3) / -dy : (H - 3 - y0) / (dy || 1e-6), dx > 0 ? (W - 3 - x0) / dx : 1e6);
-      g.strokeStyle = r < .06 ? 'rgba(125,116,106,.95)' : r < .3 ? 'rgba(66,48,34,.88)' : r < .42 ? 'rgba(12,9,7,.95)' : 'rgba(32,22,16,.9)'; g.lineWidth = 1.6 + G.hash(i, 6, 8) * 1.6;
+      g.strokeStyle = r < .34 ? 'rgba(150,141,130,.95)' : r < .5 ? 'rgba(96,86,76,.9)' : r < .62 ? 'rgba(66,48,34,.88)' : r < .7 ? 'rgba(18,14,11,.95)' : 'rgba(44,34,27,.9)';   // (ajan:models) salt-and-pepper like the beard, not flat black g.lineWidth = 1.6 + G.hash(i, 6, 8) * 1.6;
       g.beginPath(); g.moveTo(x0, y0); g.quadraticCurveTo(x0 + dx * len * .5 - dy * len * .12, y0 + dy * len * .5 + dx * len * .12, x0 + dx * len, y0 + dy * len); g.stroke();
     }
     browMap = new T.CanvasTexture(c); browMap.colorSpace = T.SRGBColorSpace; browMap.anisotropy = 4; return browMap;
@@ -961,7 +974,8 @@
     A.rigid('brow', browHair(A), 'head'); A.rigid('beardmass', beardMass(A), 'head');
     A.parts.slice(-2).forEach(function (part) { part.body = true; });   // hair like the imported beard: no contact shadow on the skin under it
     // Heavier build: thicker neck/traps/forearms; the father should read broad from above.
-    A.slim(body, { spine03: 1.06, neck: 1.1, upper_armL: 1.05, upper_armR: 1.05, forearmL: 1.08, forearmR: 1.08 }, 1);
+    // (ajan:models) hero-detail.js: heavier proportions (bone offsets + flesh), before the mantle and every equipment piece is fitted
+    if (!(B.HeroDetail && B.HeroDetail.build && B.HeroDetail.build(A, body))) A.slim(body, { spine03: 1.06, neck: 1.1, upper_armL: 1.05, upper_armR: 1.05, forearmL: 1.08, forearmR: 1.08 }, 1);
     var BODY = ['skin', 'iron', 'leather'];
     // Fur mantle shrink-wrapped over the shoulders and upper back, shaggy hem and a rolled collar.
     var cloud = A.cloud(['spine03', 'spine02', 'shoulderL', 'shoulderR', 'neck'], BODY, .3).filter(function (p) { return p.y > 1.1 && p.y < 1.62; });
@@ -1028,16 +1042,16 @@
     ], ['skin']);
     var equipment = heroEquipment(A);
     var materials = {
-      skin: bodyMaterial(A.srcMaterial('LOW_body'), 'hero-skin', { cls: 'skin', skin: 1, skinMap: true, sat: .44, tint: [.78, .68, .58], contrast: 1.2, grime: .52, blood: .18, scars: scars, face: true }),
+      skin: bodyMaterial(A.srcMaterial('LOW_body'), 'hero-skin', { cls: 'skin', skin: 1, skinMap: true, sat: .44, tint: [.78, .68, .58], contrast: 1.2, grime: .52, blood: .18, scars: scars, face: true, bodyFx: B.HeroDetail && B.HeroDetail.skinFx ? B.HeroDetail.skinFx(A) : null }),
       brow: library['hero-brow'] || (library['hero-brow'] = Object.assign(std({ map: browTexture(), alphaTest: .4, roughness: .8, side: T.DoubleSide }, { sat: 1 }), { name: 'kara-hero-brow' })),
       eye: library['hero-eye'] || (library['hero-eye'] = Object.assign(new T.MeshPhysicalMaterial({ map: eyeTexture(), roughness: .4, clearcoat: .6, clearcoatRoughness: .18 }), { name: 'kara-hero-eye' })),
-      leather: bodyMaterial(A.srcMaterial('LOW_cloth'), 'hero-leather', { cls: 'leather', sat: .8, tint: [1.25, 1.12, 1.0], grime: .3, blood: .12 }),
+      leather: bodyMaterial(A.srcMaterial('LOW_cloth'), 'hero-leather', { cls: 'leather', sat: .7, tint: [.82, .7, .6], contrast: 1.15, grime: .55, blood: .22, wear: 1.2 }),   // (ajan:models) worn, stained hide
       // the painted iron atlas is busy; keep its relief (normal/AO) with a controlled forged-steel value
       iron: bodyMaterial(A.srcMaterial('LOW_metal_shoulder'), 'hero-iron', { cls: 'metal', sat: 1, tint: [1, 1, 1], blood: .14, grime: .35, rust: .08 }, { map: null, color: new T.Color().setRGB(.15, .152, .16), metalness: .78, roughness: .5 }),
       // salt and pepper: dark brown at the moustache and upper cheeks, greying toward the chin and under the jaw (see kGrey)
-      beard: bodyMaterial(A.srcMaterial('Beard'), 'hero-beard', { sat: 1, tint: 0xffffff, hair: [.05, 1.1, 600, .8] }, { color: new T.Color(0xb4a494) }),
+      beard: bodyMaterial(A.srcMaterial('Beard'), 'hero-beard', { sat: 1, tint: 0xffffff, hair: [.05, 1.1, 600, .8] }, { color: new T.Color(0x93877a) }   /* (ajan:models) dirtier, less white */),
       beardmass: library['hero-beardmass'] || (library['hero-beardmass'] = Object.assign(std({ color: 0x3a2c22, roughness: .92, side: T.DoubleSide }, { hair: [.2, 1, 600, 1], mass: true }), { name: 'kara-hero-beardmass' })),
-      moustache: bodyMaterial(A.srcMaterial('Moustache'), 'hero-moustache', { sat: 1, hair: [-.25, 1.1, 600, .7] }, { color: new T.Color(0xa09080) })
+      moustache: bodyMaterial(A.srcMaterial('Moustache'), 'hero-moustache', { sat: 1, hair: [-.25, 1.1, 600, .7] }, { color: new T.Color(0x887a6a) })
     };
     Object.assign(materials, equipment.materials);
     return { weapon: equipment.weapons['dull-sword'], equipment: equipment, materials: materials };
@@ -1445,7 +1459,12 @@
   function blueprint(type) {
     if (blueprints[type]) return blueprints[type];
     var cfg = TYPES[type], A = Assembly(cfg.base); A.srcMaterial = srcMaterialFinder(A);
-    var recipe = R[type](A), built = A.build(recipe.materials || {});
+    if (type !== 'hero' && B.EnemyDread) B.EnemyDread.pre(type, A);   // (ajan:models) enemy-dread.js: proportions before any body or gear is fitted
+    var recipe = R[type](A);
+    if (type !== 'hero' && B.EnemyHorror) B.EnemyHorror.apply(type, A, recipe);
+    if (type === 'hero' && B.HeroDetail) B.HeroDetail.apply(A, recipe, { sleeve: sleeve, gearMaterial: gearMaterial, place: place, onBody: onBody, frameFrom: frameFrom });   // (ajan:visual-dark) hero-detail.js   // (ajan:visual-dark) silhouette growths, enemy-horror.js
+    var dread = B.EnemyDread ? (type === 'hero' ? (B.EnemyDread.heroInfo ? B.EnemyDread.heroInfo() : null) : B.EnemyDread.apply(type, A, recipe)) : null;   // (ajan:models) swinging chains/shrouds, signature growths, boss phase parts
+    var built = A.build(recipe.materials || {});
     // body height from body parts only (helmets, horns and crowns may rise above it)
     var box = new T.Box3(); built.meshes.forEach(function (m) { if (A.parts.some(function (p) { return p.body && p.key === m.name; })) { m.geometry.computeBoundingBox(); box.union(m.geometry.boundingBox); } });
     var h = box.max.y - box.min.y, scale = cfg.height / h;
@@ -1477,7 +1496,7 @@
     }
     var bp = { type: type, scene: built.scene, scale: scale, yOffset: -box.min.y * scale,
       weapon: equipmentWeapons ? equipmentWeapons['dull-sword'] : recipe.weapon ? { art: weaponGroup(recipe.weapon, true), tip: recipe.weapon.tip } : null,
-      equipmentWeapons: equipmentWeapons, anchors: anchors, recipe: recipe };
+      equipmentWeapons: equipmentWeapons, anchors: anchors, recipe: recipe, dread: dread };
     blueprints[type] = bp; return bp;
   }
   // Character maps are resized once, before their first upload: Düşük halves them (2048 -> 1024, 1024 -> 512) and
@@ -1684,9 +1703,10 @@
     var rightHand = find(['hand_r', 'hand.R', 'handR']); if (!rightHand) throw Error(KabirI18n.t('Karakterin sağ el kemiği eksik.'));
     var weapon = new T.Group(); weapon.name = 'weapon'; rightHand.add(weapon);
     var marker = new T.Object3D(); marker.name = 'weapon_tip';
-    var equipment = null, equipmentMeshes = [], equipmentArms = {}, armorMeshes = [], baseMantle = [], baseIron = null, equipmentMaterials = new Map();
+    var equipment = null, equipmentMeshes = [], equipmentArms = {}, armorMeshes = [], baseMantle = [], heroTrinkets = [], baseIron = null, equipmentMaterials = new Map();
     if (bp.equipmentWeapons) {
       scene.traverse(function(n){if(n.isMesh && n.material && (/^kara-fur(?:fringe)?$/.test(n.material.name) || n.name === 'mantle-brooch' || n.name === 'base-straps' || n.name === 'base-skirt' || n.name === 'tabard'))baseMantle.push(n);});
+      scene.traverse(function(n){if(n.isMesh && /^hero-trinket-/.test(n.name))heroTrinkets.push(n);});   // (ajan:models) hero-detail.js
       equipment = { weaponType: 'sword', weaponId: 'dull-sword', headId: null, chestId: 'torn-chest', handsId: null, bootsId: null };
       Object.keys(bp.equipmentWeapons).forEach(function (id) {
         var src = bp.equipmentWeapons[id], art = src.art.clone(), meshes = [];
@@ -1778,6 +1798,7 @@
     var motion = B.AuthoredMotion.create({ root: root, modelScene: scene, type: cfg.motionType || type, style: type, bones: native, weapon: weapon, weaponTip: marker, scale: bp.scale });
     var aliases = motion.bones; aliases.weapon = weapon;
     var detailMotion = cfg.detailMotion ? cfg.detailMotion(native, scene, bp.scale) : null;
+    if (bp.dread && B.EnemyDread) B.EnemyDread.attach(bp.dread, { root: root, scene: scene, native: native, extras: extras, scale: bp.scale });   // (ajan:models) pendulum bones, posture, phase parts
     // 'staticTree': nothing moves the nodes below the root after authored-motion's pose (no detail motion, no dragged chain), so combat.js may
     // trust the world matrices that animate() just computed instead of walking the tree again in the render pass.
     root.userData.authoredMotion.staticTree = !detailMotion && !bp.anchors.drag;
@@ -1833,6 +1854,7 @@
       });
       var chestItem = equipmentItem(equipment.chestId, 'chest'), chestModel = equipmentModel(chestItem,equipment.chestId);
       baseMantle.forEach(function(m){m.visible = !chestModel;});
+      heroTrinkets.forEach(function(m){m.visible = !B.HeroDetail || B.HeroDetail.trinketsVisible(chestModel);});
       if (baseIron) baseIron.visible = false;
       marker.visible = weaponId !== null;
       if (weaponId !== null) marker.position.copy(equipmentArms[weaponModel].tip).multiply(equipmentArms[weaponModel].art.scale);
@@ -1862,5 +1884,7 @@
     };
   }
   B.Models = { register: function (type, cfg, recipe) { if (prepared) throw Error(KabirI18n.t('Karakter kaydı hazırlıktan önce yapılmalı.')); TYPES[type] = cfg; R[type] = function (A) { return recipe(A, { bases: bases, bodyMaterial: bodyMaterial, gearMaterial: gearMaterial, clothWeights: clothWeights, sleeve: sleeve, whiteMap: function () { return NO_WHITE ? null : whiteMap(); }, forgedBlock: forgedBlock, forgedBlade: forgedBlade, forgedGrip: forgedGrip }); }; }, create: create, prepare: prepare, templates: bases, blueprints: blueprints, types: TYPES };
+  B.Models.gearMaterial = gearMaterial;
+  B.Models.phaseVisual = function (target, phase, enraged) { if (B.EnemyDread) B.EnemyDread.phaseVisual(target, phase, enraged); };   // (ajan:models) boss phase parts (enemy-dread.js)   // (ajan:models) enemy-dread.js: shared fallback materials for phase parts
   B.Models.grade = grade;   // gear-*: equipment surfaces share the character grade (edge wear, cavities, rust, blood)
 })();
