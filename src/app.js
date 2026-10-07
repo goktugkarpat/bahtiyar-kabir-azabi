@@ -451,6 +451,8 @@
     deathShown = wonShown = false; roomId = -1; firstHint = showBasics ? 25 : 0; lastHp = lastFlasks = null;
     $('tutorial').classList.toggle('hidden', !showBasics);
     show('playing'); hud(0);
+    // First frames of a run: re-sync merged world groups with the play camera (several times while the intro swoop runs).
+    if (B.Perf && B.Perf.invalidate) { B.Perf.invalidate(); for (const ms of [120, 400, 900, 1800]) setTimeout(() => { if (B.Perf && B.Perf.invalidate) B.Perf.invalidate(); }, ms); }
     introMs = 1100; introArc = 0;
     if (fromTitle && !reducedMotion.matches) { introBlend = 0; introStart = performance.now(); introFrom.copy(cameraPos); introLook.copy(look); }   // swoop from the title shot down to the play camera
     // Chapter V opening: the camera rises out of the void beside the first platform, over the chains, and settles on Bahtiyar (6.5 s).

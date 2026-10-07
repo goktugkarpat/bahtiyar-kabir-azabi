@@ -331,6 +331,9 @@
     if (/[?&]perflog\b/.test(Q)) console.log('perf merge', JSON.stringify(Perf.stats));
     return Perf.stats;
   };
+  // Forces every merged group to be re-evaluated against the current camera on the next frames (new run, intro swoop, chapter load).
+  // A group whose set was chosen for another view (title camera, warm-up) must never survive into the first frames of play.
+  Perf.invalidate = function () { wishEpoch++; for (var i = 0; i < Perf.groups.length; i++) Perf.groups[i].sig = ''; };
   Perf.setEnabled = function (on) {
     Perf.enabled = !!on && !OFF;
     if (Perf.scene) Perf.scene.traverse(function (o) {   // shadow proxies: welded <-> full geometry
