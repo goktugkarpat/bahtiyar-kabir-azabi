@@ -71,3 +71,6 @@ Object.assign(window.KabirI18n.dictionary,{"I · UYANIŞ":"I · AWAKENING","V ·
 /* ajan:talentui */
 Object.assign(window.KabirI18n.dictionary,{"GAZAP":"WRATH","VEBA":"PLAGUE","KÜL":"ASH","Geri al":"Refund","Hazır yollar":"Builds","PUAN":"POINTS","kalan":"left","Puanları sıfırla":"Reset points","Simgeyi seç, yuvaya tıkla":"Pick an icon, click a slot","Sürükle ya da seç ve yuvaya tıkla":"Drag it, or pick it and click a slot","Uygula":"Apply","Yetenek yuvaları":"Skill slots","Yuvaya koy":"Put in slot","bütün sıralar açık":"all rows open","Öğren":"Learn","Öğrenilebilir · 1 puan":"Can be learned · 1 point"});
 /* /ajan:talentui */
+/* ajan:kul */
+Object.assign(window.KabirI18n.dictionary,{"Kor Zinciri":"Ember Chain","Zincirlerin korla dövülür: Zincir Kasırgası, Son Hüküm ve Zincir Kırbacı’nın değdiği her düşman tutuşur. Yanan düşmanlara %25 fazla hasar verirsin.":"Your chains are forged in embers: every foe touched by Chain Whirlwind, Final Judgment or Chain Whip catches fire. You deal 25% more damage to burning foes.","Bedeli: aldığın bütün hasar %20 artar.":"Price: all damage you take is 20% higher."});
+/* /ajan:kul */
