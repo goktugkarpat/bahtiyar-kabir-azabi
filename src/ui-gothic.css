@@ -105,6 +105,32 @@ html[lang=en] .ui-logo-sub::before { content: 'Kabir Azabı' }
 #loading .load-bar::before { left: -12px } #loading .load-bar::after { right: -12px }
 #loading #load-fill { background: linear-gradient(90deg, #5c0f0b, #b3261e 70%, #f0b26a) }
 
+/* ───────── 9. Kontroller (H) ve tuş atama: soğuk mavi panel yerine mola/ayarlarla aynı taş-demir dil ───────── */
+#controls .controls-panel, #keybinds .keybinds-panel {
+  background: radial-gradient(ellipse 90% 60% at 50% 0%, #2a0e0b55, transparent 70%), linear-gradient(180deg, #17120fFA, #0d0a09FA 60%, #090706FC);
+  border: 1px solid #6a4f2e; box-shadow: 0 0 0 1px #000, 0 0 0 5px #15100c, 0 0 0 6px #4f3a22, 0 24px 60px #000d, inset 0 1px 0 #ffffff0d, inset 0 0 80px #00000080 }
+#controls .panel-head h2, #keybinds .panel-head h2 { font-family: Georgia, 'Times New Roman', serif; font-weight: 400; color: #ecd9b0; letter-spacing: .03em; text-shadow: 0 2px 3px #000 }
+#controls .panel-head .eyebrow, #keybinds .panel-head .eyebrow { color: #c08a55; letter-spacing: .3em }
+#controls .panel-head, #keybinds .panel-head { border-bottom-color: #6a4f2e88 }
+#controls .control-grid > div { border-color: #c9a46a1c }
+#controls .control-grid p b { color: #ecdcbc }
+#controls .control-grid p span { color: #b2a48f }
+#controls .ctl-icon { border-color: #6a4f2e }
+/* okuma sırası: hareket ve savaş temelleri önce, yetenek yuvaları sırayla (sağ tık, 1, 2, 3) en sonda */
+#controls .control-grid > :nth-child(1) { order: 1 } #controls .control-grid > :nth-child(2) { order: 2 }
+#controls .control-grid > :nth-child(5) { order: 3 } #controls .control-grid > :nth-child(6) { order: 4 }
+#controls .control-grid > :nth-child(4) { order: 5 } #controls .control-grid > :nth-child(10) { order: 6 }
+#controls .control-grid > :nth-child(3) { order: 7 } #controls .control-grid > :nth-child(9) { order: 8 }
+#controls .control-grid > :nth-child(7) { order: 9 } #controls .control-grid > :nth-child(8) { order: 10 }
+
+/* ───────── 10. İngilizce ölüm/zafer başlığı: Türkçe oyma altın görsele yakın, ortalı ───────── */
+html[lang=en] #death .end-title, html[lang=en] #victory .end-title {
+  display: block; margin-left: auto; margin-right: auto; text-align: center; text-transform: uppercase;
+  font: 400 clamp(34px, 5.2vw, 70px)/1.08 Georgia, 'Times New Roman', serif; letter-spacing: .045em; color: transparent;
+  background: linear-gradient(180deg, #fff1c9 0%, #f0c873 30%, #a8712c 55%, #6a3f16 64%, #d9a654 80%, #f7dc9a 100%);
+  -webkit-background-clip: text; background-clip: text; text-shadow: none; filter: drop-shadow(0 3px 1px #000) drop-shadow(0 0 16px #3a0a0699) }
+html[lang=en] #death .end-title { background: linear-gradient(180deg, #ffe9c4 0%, #e8b46a 30%, #9a5c26 55%, #5a2a10 64%, #c98a48 80%, #f0cf96 100%); -webkit-background-clip: text; background-clip: text }
+
 @media (prefers-reduced-motion: reduce) {
   #title .title-shade, #death::before, #lu-banner.lu-on::before, #lu-banner.lu-on .lu-note, #title .title-actions > .btn { animation: none }
   #death::before { opacity: 1 }
