@@ -41,6 +41,10 @@
     rects.push({ x0: -58, x1: -46, z0: -97.6, z1: -93.6 }); rects.push({ x0: -60.5, x1: -55, z0: -99, z1: -92 });
     // the strand along the whole shoreline (north of the pier and south of it); the pier itself is the bridge between them
     rects.push({ x0: 7.5, x1: 11.4, z0: -66.5, z1: 14 }); rects.push({ x0: 7.5, x1: 11.4, z0: -149.4, z1: -95.5 });
+    // harbour boardwalk on piles along the pier's sea side: the shore road now flows unbroken past the harbour plaza
+    rects.push({ x0: 7.5, x1: 10.6, z0: -96.5, z1: -65.5 });
+    // graveyard -> gallows hill: a direct climbing path, closing the loop graveyard / hill / cliff trail
+    rects.push({ x0: -52, x1: -42, z0: -106.5, z1: -102.5 }); rects.push({ x0: -58.5, x1: -50, z0: -104.5, z1: -99.5 });
     rects.push({ x0: 6, x1: 25, z0: -87.9, z1: -84.9 }); rects.push({ x0: 23, x1: 31, z0: -91, z1: -82 });
     function floorTest(x, z, r) {
       r = r || 0;
@@ -61,7 +65,8 @@
     });
     for (i = 0; i < 5; i++) { var za = baseRooms[i].z - baseRooms[i].d / 2 - 2; seeds.push([-6, za], [3, za]); }
     [[0, 7.5], [-2, 9.5], [2, 9.5], [-2, 4], [2, 4], [0, 1], [-7, 8.5], [7, 9], [-7, 1], [7, 1], [-1.5, -6], [3, -6], [-8, -6]].forEach(function (s) { seeds.push(s); });   // opening graveyard: dense seeds around the set pieces
-    for (var sz = 10; sz > -148; sz -= 7) if (sz > -66 || sz < -96) seeds.push([9.6, sz]);
+    for (var sz = 10; sz > -148; sz -= 7) seeds.push([9.2, sz]);
+    seeds.push([-47, -104.5], [-53, -102], [-56, -101]);
     var paths = baseRooms.slice(1, 7).map(function (r, i) { return { a: baseRooms[i], b: r, width: 6.6 }; }).concat(rooms.filter(function (r) { return r.parent != null; }).map(function (r) { return { a: { x: -10, z: r.entryZ }, b: { x: r.x + r.w / 2 - 2, z: r.entryZ }, width: 8.6 }; }));
     return { rooms: rooms, floorTest: floorTest, seeds: seeds, paths: paths };
   }
@@ -308,6 +313,15 @@
 
     // the opening graveyard ground: rain pools, gravel, bone splinters and trodden mud between the funeral stones
     for (q = 0; q < 26; q++) { x = R(-11, 7.5); z = R(-6, 14.5); if (rnd() < .4) add(0, G.rock, 'puddle', x, .008, z, R(.5, 1.6), .03, R(.4, 1.1), 0, R(0, 6), 0); var pb = R(.05, .14); add(0, G.pebble, 'rock', x + R(-1, 1), .02, z + R(-1, 1), pb, pb * .5, pb * .8, 0, R(0, 6), 0); if (rnd() < .3) add(0, G.cylinder, 'bone', x, .03, z, .03, R(.25, .5), .03, PI / 2, R(0, 6), 0); }
+    // boardwalk planks and piles beside the pier; paving and a lantern on the graveyard-hill path
+    for (z = -65.8; z > -96.5; z -= .62) { add(3, G.plank, 'wood', 9.05, .02, z, 3.0, .07, .56, 0, R(-.02, .02), R(-.015, .015)); if (Math.round(z * 10) % 31 === 0) { add(3, G.cylinder, 'wood', 10.75, -.2, z, .16, 2.4, .16); add(3, G.cylinder, 'wood', 10.75, .55, z, .05, .7, .05); } }
+    beam(3, 'rope', [10.75, .85, -66], [10.75, .85, -96], .02);
+    for (q = 0; q < 26; q++) { var hx2 = R(-57, -43), hz2 = hx2 > -50 ? R(-106, -103) : R(-104, -100); add(8, K.G.paving[q % 3], 'funeralPaving', hx2, .01, hz2, R(.5, .9), .34, R(.5, .9), 0, R(0, 6), 0); }
+    K.lantern(8, -50.2, 2.3, -106.8, 'coast');
+    // footprints: bare feet along the cliff trail and down the strand, a dragged keel groove to a beached skiff
+    function prints(room, x0, z0, x1, z1, n) { var dx = x1 - x0, dz = z1 - z0, L = Math.hypot(dx, dz), a = Math.atan2(dx, dz), px = -dz / L, pz = dx / L; for (var k = 0; k < n; k++) { var t = k / n, s = k % 2 ? 1 : -1, x = x0 + dx * t + px * s * .14 + Math.sin(t * 9) * .3, z = z0 + dz * t + pz * s * .14; add(room, G.sphere, 'dark', x, .004, z, .07, .012, .14, 0, a + R(-.15, .15), 0); add(room, G.sphere, 'dark', x + Math.sin(a) * .17, .004, z + Math.cos(a) * .17, .06, .012, .07, 0, a, 0); } }
+    prints(15, trailX(-30), -30, trailX(-60), -60, 44); prints(15, trailX(-110), -110, trailX(-128), -128, 26); prints(1, 9.3, -12, 9.6, -34, 32); prints(4, 9.2, -100, 9.6, -124, 34); prints(0, -2, 4, -10, 2, 14);
+    for (q = 0; q < 2; q++) add(2, G.box, 'dark', 10.1 + q * .55, .004, -50, .18, .01, 7, 0, .05, 0);
     /* ---- the strand: driftwood, kelp, bones and sea-lanterns on posts along the shoreline walk ---- */
     for (z = 12; z > -149; z -= R(5, 8)) {
       if (z < -66 && z > -96) continue; var sr = nearestMain(z);
@@ -462,6 +476,14 @@
     M.sparks = new T.ShaderMaterial({ uniforms: { time: K.clock }, transparent: true, depthWrite: false, blending: T.AdditiveBlending, toneMapped: false,
       vertexShader: 'attribute float seed;uniform float time;varying float vA;void main(){float k=fract(time*(.35+seed*.3)+seed*7.);vec3 p=position;p.y=.3+k*(2.5+seed*2.);p.x+=sin(time*2.+seed*30.)*.25*k;p.z+=cos(time*1.7+seed*20.)*.25*k;vA=(1.-k)*(.6+.4*sin(time*20.+seed*50.));vec4 mv=modelViewMatrix*vec4(p,1.);gl_PointSize=clamp(40./max(1.,-mv.z),1.,3.);gl_Position=projectionMatrix*mv;}',
       fragmentShader: 'varying float vA;void main(){vec2 c=gl_PointCoord-.5;float a=exp(-dot(c,c)*20.)*vA;gl_FragColor=vec4(vec3(1.,.5,.15)*a,a);}' });
+    // slow smoke columns over every fire (soft dark sprites, normal blending, one draw)
+    var SMK = pyreSpots.length * 14, smP = new Float32Array(Math.max(1, SMK) * 3), smS = new Float32Array(Math.max(1, SMK));
+    pyreSpots.forEach(function (s, n) { for (var k = 0; k < 14; k++) { var o = (n * 14 + k) * 3; smP[o] = s[0]; smP[o + 1] = 0; smP[o + 2] = s[1]; smS[n * 14 + k] = k / 14 + rnd() * .05; } });
+    var smG = geo(new T.BufferGeometry()); smG.setAttribute('position', new T.BufferAttribute(smP, 3)); smG.setAttribute('seed', new T.BufferAttribute(smS, 1));
+    M.smoke = new T.ShaderMaterial({ uniforms: { time: K.clock }, transparent: true, depthWrite: false,
+      vertexShader: 'attribute float seed;uniform float time;varying float vA;void main(){float k=fract(time*.07+seed);vec3 p=position;p.y=1.+k*7.;p.x+=k*k*3.+sin(time*.4+seed*20.)*.4*k;p.z+=sin(time*.3+seed*13.)*.5*k;vA=sin(k*3.1416)*.32;vec4 mv=modelViewMatrix*vec4(p,1.);gl_PointSize=clamp((1.+k*3.5)*520./max(1.,-mv.z),4.,220.);gl_Position=projectionMatrix*mv;}',
+      fragmentShader: 'varying float vA;void main(){vec2 c=gl_PointCoord-.5;float a=smoothstep(.5,.0,length(c))*vA;gl_FragColor=vec4(vec3(.07,.075,.08),a);}' });
+    var smokePts = new T.Points(smG, M.smoke); smokePts.frustumCulled = false; smokePts.renderOrder = 5; smokePts.name = 'coast-pyre-smoke'; K.root.add(smokePts);
     var sparkPts = new T.Points(spG2, M.sparks); sparkPts.frustumCulled = false; sparkPts.name = 'coast-pyre-sparks'; K.root.add(sparkPts);
     var flash = 0, nextBolt = 9, lastT = 0, api = { flash: 0 }, calmFx = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     function update(time, p) {
