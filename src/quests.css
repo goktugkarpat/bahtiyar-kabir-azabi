@@ -53,7 +53,7 @@
 #journal-gate.ready { color: #b5c4a6 }
 #journal-gate .icon { width: 24px; height: 24px; flex: none }
 #quest-notice { position: absolute; left: max(var(--left), 22px); top: 25%; width: min(420px, 35vw); padding: 17px 20px; border-left: 2px solid #b28b4f; background: #0b0d12ed; opacity: 0; visibility: hidden; pointer-events: none; transition: opacity .2s ease; text-shadow: none }
-#quest-notice.show { opacity: 1; visibility: visible }
+#quest-notice.show { opacity: 1; visibility: visible; z-index: 6 }   /* qa: above the toast stack, which otherwise printed over the card on short screens */
 #quest-notice small { color: #b99b66; display: block; font: 500 10px/1.2 var(--text); letter-spacing: .18em; margin-bottom: 7px }
 #quest-notice strong { color: #ead9ba; display: block; font: 600 21px/1.3 var(--display) }
 #quest-notice p { color: #c0beb7; font: 400 14px/1.6 var(--text); margin: 9px 0 0 }
@@ -121,6 +121,10 @@
 .quest-urgent b { display: block; color: #ffd9a0; font: 600 calc(30px * var(--k, 1))/1.15 var(--display); letter-spacing: .06em }
 .quest-urgent[data-kind="escape"] b { color: #ffcf7a }
 .quest-urgent[data-kind="siege"] b { color: #ff9f7a }
+/* qa: the siege / escape banner sat on top of the boss bar; while a target bar is shown it moves just below it. */
+#hud:has(#target-hud:not(.hidden)) .quest-urgent { top: calc(var(--top, 14px) + 8px + 100px * var(--k, 1)) }
+body.target-stacked #hud:has(#target-hud:not(.hidden)) .quest-urgent { top: calc(var(--top, 14px) + 244px * var(--k, 1)) }
+@media (max-aspect-ratio: 1/1) { #hud:has(#target-hud:not(.hidden)) .quest-urgent, body.target-stacked #hud:has(#target-hud:not(.hidden)) .quest-urgent { top: calc(var(--top, 14px) + 392px * var(--k, 1)) } }
 
 /* ajan:quests — cinema bars, page reader, epilogue */
 .qc-root { position: fixed; inset: 0; pointer-events: none; z-index: 34 }
