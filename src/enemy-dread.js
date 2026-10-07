@@ -88,6 +88,8 @@
     lastjudge: [['g', 'pelvis', 1.2, 0, .9], ['g', 'pelvis', -1.2, 0, .9], ['x', 's3', 2.8, .05, .8], ['x', 's3', 3.5, .05, .8]]
   };
   // signature horrors (one per chapter, plus every boss): see apply()
+  // the licensed body has a clean, handsome mannequin face: types that show it get a blood-soaked rag bound over the eyes
+  var BLIND = { ashbound: 1, emberbound: 1, rootborn: 1, guard: 0 };
   var SIGNATURE = { cultist: 'arms', lantern: 'neckhair', gravemason: 'stone', chainseer: 'draped', verdictseer: 'arms' };
 
   function apply(type, A, recipe) {
@@ -155,13 +157,22 @@
         if (!m || seen.indexOf(m) >= 0 || m.userData.dreadGraded) return; seen.push(m); m.userData.dreadGraded = true;
         var u = m.userData.grade; if (!u || !u.kTint) return;
         var cls = /skin|flesh/.test(k) ? 'skin' : /bone|ash/.test(k) ? 'bone' : /rag|burlap|robe|bandage|tabard|sash|linen|rope|vestment/.test(k) ? 'cloth' : '';
-        if (cls === 'skin') { var tv = u.kTint.value, mx = Math.max(tv.r, tv.g, tv.b, .01); tv.multiplyScalar(Math.min(.8, .6 / mx)); u.kGrime.value = Math.max(u.kGrime.value, .62); u.kContrast.value = Math.max(u.kContrast.value, 1.16); u.kSat.value *= .85; u.kBlood.value = Math.min(1, u.kBlood.value + .1); }
+        if (cls === 'skin') { var tv = u.kTint.value, mx = Math.max(tv.r, tv.g, tv.b, .01); tv.multiplyScalar(Math.min(.8, (B.ActiveChapter === 2 ? .68 : .6) / mx)); /* the moonlit coast keeps a little more value */ u.kGrime.value = Math.max(u.kGrime.value, .62); u.kContrast.value = Math.max(u.kContrast.value, 1.16); u.kSat.value *= .85; u.kBlood.value = Math.min(1, u.kBlood.value + .1); }
         else if (cls === 'bone') { u.kTint.value.multiplyScalar(.6); u.kSat.value *= .7; u.kGrime.value = Math.max(u.kGrime.value, .62); u.kContrast.value = Math.max(u.kContrast.value, 1.1); }
         else if (/brass|gold/.test(k)) { u.kTint.value.multiplyScalar(.62); u.kGrime.value = Math.max(u.kGrime.value, .55); if (u.kRust) u.kRust.value = Math.max(u.kRust.value, .12); }   // tarnished, not toy-gold
         else if (cls === 'cloth') { u.kTint.value.multiplyScalar(.86); u.kGrime.value = Math.max(u.kGrime.value, .62); }
       });
     } catch (e) { if (window.console) console.warn('dread grade ' + type + ': ' + (e && e.message)); }
     (KIT[type] || []).forEach(function (k) { try { add(k[0], k[1], k[2], k[3], k[4]); } catch (e) { if (window.console) console.warn('dread ' + type + ' ' + k[0] + ': ' + (e && e.message)); } });
+    if (BLIND[type]) try {
+      var hcl = A.cloud([R.head], skinKeys, .5); if (hcl.length > 20) {
+        var hb = A.box(hcl), hc2 = hb.getCenter(new T.Vector3()), rx = (hb.max.x - hb.min.x) * .5 + .012 * sc, rz = (hb.max.z - hb.min.z) * .5 + .012 * sc, ey = hc2.y + (hb.max.y - hb.min.y) * .06;
+        var band = G.sheet(36, 3, function (u, v) { var a = u * TAU, wob = Math.sin(a * 3 + 1) * .008 * sc; return [hc2.x + Math.sin(a) * rx, ey + (v - .5) * .055 * sc + wob - (Math.cos(a) < -.3 ? .02 * sc : 0), hc2.z + Math.cos(a) * rz]; }, true);
+        var tail = G.sheet(2, 6, function (u, v) { return [hc2.x + .02 * sc + (u - .5) * .04 * sc, ey - v * .2 * sc, hc2.z - rz - .004 * sc - v * .04 * sc]; }, false);
+        [band, tail].forEach(function (g) { G.wear(g, { edge: 0, cavity: 0, border: 0, curv: 0, paint: function (q) { return q.z > hc2.z ? .55 : .2; }, tear: { amount: .4, width: .012, bottom: .3, base: .01 } }); });
+        A.rigid(ragKey, G.merge([band, tail]), R.head);
+      }
+    } catch (e) { if (window.console) console.warn('dread blind ' + type + ': ' + (e && e.message)); }
     try { signature(SIGNATURE[type]); } catch (e) { if (window.console) console.warn('dread signature ' + type + ': ' + (e && e.message)); }
     if (BOSS[type]) try { bossParts(); } catch (e) { if (window.console) console.warn('dread boss ' + type + ': ' + (e && e.message)); }
 
