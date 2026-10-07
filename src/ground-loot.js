@@ -5,7 +5,7 @@
   'use strict';
   const B = window.BABA, T = window.THREE;
   const CAPACITY = 96, REACH = 3.25, BOSS_REACH = 5, DELAY = .5, BOSS_DELAY = 1.1, FLIGHT = .32;
-  const FALL = .36, LANDED = .5, TAKE_REACH = 1.4, TAKE_KEY = 2, FALLBACK_WAIT = 25, FALLBACK_REACH = 4, MAX_LABELS = 24, LABEL_H = 16;
+  const FALL = .36, LANDED = .5, TAKE_REACH = 1.4, TAKE_KEY = 2, FALLBACK_WAIT = 25, FALLBACK_REACH = 4, MAX_LABELS = 24, LABEL_BASE = 20; let LABEL_H = 20, LK = 1;   // LK: label scale for big screens (1 up to ~2133 px wide, 1.3 max)
   const GLOW_K = [.30, .45, .65, .85, 1.05];   // ground-ring strength by rarity rank (common ... unique)
   let atlas = null, atlasTask = null, labelBox = null, labelPool = null;
   const dict = {
@@ -24,10 +24,10 @@
 
   /* ───────────── name labels (DOM, pooled, positioned from world → screen each frame) ───────────── */
   const CSS = '#loot-labels{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:0}' +
-    '.loot-label{position:absolute;left:0;top:0;height:' + LABEL_H + 'px;padding:0 7px;box-sizing:border-box;white-space:nowrap;opacity:0;font:600 12px/' + LABEL_H + 'px var(--text,system-ui,sans-serif);letter-spacing:.02em;' +
-    'color:var(--lc,#c7bdae);text-shadow:0 1px 2px #000,0 0 4px #000c;background:linear-gradient(90deg,#0a080500,#0a0805a8 16%,#0a0805a8 84%,#0a080500);will-change:transform,opacity;contain:layout paint}' +
+    '.loot-label{position:absolute;left:0;top:0;height:calc(' + LABEL_BASE + 'px*var(--lk,1));padding:0 9px;box-sizing:border-box;white-space:nowrap;opacity:0;font:700 calc(15px*var(--lk,1))/calc(' + LABEL_BASE + 'px*var(--lk,1)) var(--text,system-ui,sans-serif);letter-spacing:.015em;' +
+    'color:var(--lc,#c7bdae);text-shadow:0 1px 2px #000,0 0 3px #000,0 0 6px #000a;background:linear-gradient(90deg,#0a080500,#0a0805c4 14%,#0a0805c4 86%,#0a080500);will-change:transform,opacity;contain:layout paint}' +
     '.loot-label.hl{background:linear-gradient(90deg,#0a080500,#0a0805e0 14%,#0a0805e0 86%,#0a080500);color:#fff;text-shadow:0 1px 2px #000,0 0 7px var(--lc)}' +
-    '.loot-label.reward{font-size:13px;box-shadow:0 1px 0 0 var(--lc);animation:loot-reward 1.7s ease-in-out infinite}' +
+    '.loot-label.reward{font-size:calc(16px*var(--lk,1));box-shadow:0 1px 0 0 var(--lc);animation:loot-reward 1.7s ease-in-out infinite}' +
     '@keyframes loot-reward{50%{filter:brightness(1.35)}}' +
     '@media (prefers-reduced-motion:reduce){.loot-label.reward{animation:none}}';
   function labels() {
@@ -43,7 +43,7 @@
     return labelPool;
   }
   function paintLabel(l, text, color, cls) {
-    if (l.text !== text) { l.text = text; l.el.textContent = text; l.w = text.length * 6.5 + 16; }
+    if (l.text !== text) { l.text = text; l.el.textContent = text; l.w = (text.length * 8.3 + 22) * LK; }
     if (l.color !== color) { l.color = color; l.el.style.setProperty('--lc', color); }
     if (l.cls !== cls) { l.cls = cls; l.el.className = 'loot-label' + cls; }
   }
@@ -291,6 +291,8 @@
     function sweep(m, uid) { if (m.seen !== frame) motion.delete(uid); }
     // Names above the icons in their rarity colour, de-overlapped (a label that would collide climbs above the one in its way), faded with distance.
     function layoutLabels() {
+      const k = Math.max(1, Math.min(1.3, (window.innerWidth || 1920) / 2133));
+      if (Math.abs(k - LK) > .02) { LK = k; LABEL_H = Math.round(LABEL_BASE * k); if (labelBox) labelBox.style.setProperty('--lk', k.toFixed(3)); for (const l of pool) l.text = ''; }
       const all = !!B.GroundLoot.labelsHeld, mx = player.x, mz = player.z; let n = 0;
       for (let k = 0; k < visCount; k++) {
         const m = vis[k], drop = m.drop, hot = m.hl > .3 || m.reward, d = Math.hypot(drop.x - mx, drop.z - mz);
