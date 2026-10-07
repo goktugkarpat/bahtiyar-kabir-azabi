@@ -193,8 +193,7 @@
     const respecWhy = !learned.length ? t('Geri alınacak puan yok.') : inCombat ? t('Savaşın ortasında yol değiştirilemez.') : t('Bütün puanlar ücretsiz geri verilir (savaş dışında).');
     const top = '<div class="tb-top"><div class="tb-points' + (state.points ? ' has' : '') + '"><b>' + state.points + '</b><span>' + esc(t('PUAN')) + '<small>' + esc(t('kalan')) + '</small></span></div>' +
       '<div class="tb-spent" title="' + esc(L.panels.map(p => t(p.name)).join(' / ')) + '"><b>' + counts.join(' / ') + '</b><small>' + spent + ' / ' + total + ' ' + esc(t('harcandı')) + '</small></div>' +
-      (T.presets && T.presets.length ? '<div class="tb-presets"><small>' + esc(t('Hazır yollar')) + '</small>' + T.presets.map(x => '<button type="button" data-char="talent" data-act="preview" data-preset="' + x.id + '" class="' + (x.id === preview ? 'on' : '') + '" aria-pressed="' + (x.id === preview) + '"' + (x.hint ? ' title="' + esc(x.hint) + '"' : '') + '>' + esc(x.name) + '</button>').join('') +
-      (pre ? '<button type="button" class="tb-apply" data-char="talent" data-act="apply" data-preset="' + pre.id + '" ' + (inCombat ? 'disabled' : '') + '>' + esc(t('Uygula')) + '</button>' : '') + '</div>' : '<div class="tb-presets"></div>') +
+      '<div class="tb-presets"></div>' +
       '<button type="button" class="tb-respec" data-char="respec" title="' + esc(respecWhy) + '" ' + (!learned.length || inCombat ? 'disabled' : '') + '>' + esc(t('Puanları sıfırla')) + '</button></div>';
     // ---- side panel (inspect) — keeps the .skt-inspect class: character-ui.js swaps it on a single click ----------
     const a = T.access(state, sel.id), col = colOf(sel), known = a.known;
