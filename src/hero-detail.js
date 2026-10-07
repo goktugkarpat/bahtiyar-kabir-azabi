@@ -56,7 +56,7 @@
     for (var pass = 0; pass < 2; pass++) { var acc = new Float32Array(M), c2 = new Float32Array(M); for (i = 0; i < ea.length; i++) { acc[ea[i]] += lap[eb[i]]; c2[ea[i]]++; } for (k = 0; k < M; k++) lap[k] = c2[k] ? lap[k] * .5 + acc[k] / c2[k] * .5 : lap[k]; }
     if (!g.attributes.kwear) B.Gear.fillWear(g);
     var kw = g.attributes.kwear;
-    for (i = 0; i < N; i++) { var c = lap[ids[i]]; kw.setY(i, Math.max(kw.getY(i), sstep(.015, .2, c) * .62)); kw.setW(i, Math.max(kw.getW(i), sstep(.02, .22, -c) * .13)); }
+    for (i = 0; i < N; i++) { var c = lap[ids[i]]; kw.setY(i, Math.max(kw.getY(i), sstep(.012, .17, c) * .85)); kw.setW(i, Math.max(kw.getW(i), sstep(.02, .2, -c) * .2)); }
     kw.needsUpdate = true;
   }
 
@@ -108,7 +108,22 @@
     ' bu*=bodyM;if(bu>0.){float m=kF(P*95.);diffuseColor.rgb=mix(diffuseColor.rgb,mix(vec3(.11,.035,.025),vec3(.36,.13,.085),m)*(.8+.4*kN(P*420.)),bu*.85);kGloss=max(kGloss,bu*.16);kFaceH+=bu*(m-.5)*.0009;}\n' +
     // mottled, unevenly soot-smeared skin (no even plastic tone), sweat-dark grooves already come from the curvature bake
     ' {float mot=kF(P*7.+vec3(3.)),soot=smoothstep(.52,.86,kF(P*15.+vec3(9.,2.,5.)));diffuseColor.rgb*=mix(1.,.8+.36*mot,bodyM);diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*vec3(.4,.36,.33),soot*bodyM*.6);}\n' +
-    '}}\n#endif\n';
+    '}}\n' +
+    // the face up close (finished-hero metres, as the KARA_FACE block): deep eye sockets, a scowl (glabella furrows, a lowered inner brow),
+    // cheekbone and nose-wing shadows, nasolabial folds, a hard lip line, an old scar down through the left brow onto the cheek, pores
+    '{vec3 w=vKara*1.2965;float ax=abs(w.x),fm=step(.5,kSkinMask)*smoothstep(.02,.06,w.z)*(1.-smoothstep(.12,.15,ax))*smoothstep(2.1,2.13,w.y)*(1.-smoothstep(2.36,2.4,w.y));\n' +
+    ' if(fm>0.){vec2 e=vec2(ax-.042,w.y-2.25);float sock=exp(-dot(e/vec2(.034,.026),e/vec2(.034,.026)));\n' +
+    '  float glab=kFall(.0016,.0004,abs(ax-.009-(w.y-2.285)*.15))*smoothstep(2.268,2.278,w.y)*(1.-smoothstep(2.3,2.312,w.y));\n' +
+    '  float brow=exp(-pow((w.y-2.272)/.008,2.))*(1.-smoothstep(.01,.03,ax));\n' +
+    '  float cheek=smoothstep(.04,.065,ax)*(1.-smoothstep(.09,.11,ax))*exp(-pow((w.y-2.198)/.014,2.));\n' +
+    '  float wing=exp(-dot(vec2(ax-.022,w.y-2.205)/vec2(.008,.01),vec2(ax-.022,w.y-2.205)/vec2(.008,.01)));\n' +
+    '  float t=clamp((2.205-w.y)/.05,0.,1.),fold=kFall(.0022,.0006,abs(ax-mix(.026,.036,t)))*step(0.,t)*step(t,1.)*smoothstep(2.15,2.16,w.y);\n' +
+    '  float lip=kFall(.0012,.0003,abs(w.y-2.153-ax*ax*2.))*(1.-smoothstep(.02,.027,ax));\n' +
+    '  vec2 sa=vec2(.024,2.305),sb=vec2(.068,2.19),sp=vec2(w.x,w.y)-sa,sd=sb-sa;float st=clamp(dot(sp,sd)/dot(sd,sd),0.,1.),sdist=length(sp-sd*st),scar=kFall(.0032,.0012,sdist)*step(0.,w.x)*smoothstep(0.,.05,st)*(1.-smoothstep(.95,1.,st));\n' +
+    '  diffuseColor.rgb*=1.-fm*(.32*sock+.22*glab+.18*brow+.2*cheek+.22*wing+.28*fold+.4*lip);\n' +
+    '  diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*vec3(1.25,1.06,1.)+vec3(.04,.02,.02),scar*fm*.8);\n' +
+    '  kFaceH+=fm*(-.0008*glab-.0006*fold-.0004*lip+.0006*scar+(kN(w*900.)-.5)*.00012);}}\n' +
+    '#endif\n';
   function skinFx(A) {
     if (OFF) return null;
     try {

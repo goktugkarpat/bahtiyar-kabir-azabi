@@ -81,8 +81,8 @@
   const spec = {
     steel:['metal',0xa3adb3,.87,.90], salt:['metal',0xa4bdba,.93,.86], rust:['metal',0x9d8773,.84,.72],
     edge:['metal',0xc5ccd0,.65,.95], brass:['metal',0x9c8661,.65,.88], dark:['metal',0x647078,.64,.88],
-    leather:['leather',0xe0d3c5,.92,0], strap:['leather',0x817063,.95,0], cloth:['cloth',0x655b4e,1,0],
-    rag:['cloth',0xe4caae,1,0], mail:['chain',0x8f979a,.74,.82], wood:['wood',0x65482c,1,0], bone:['bone',0xb9b09a,1,0]
+    leather:['leather',0x8c7663,.92,0], strap:['leather',0x5e4f44,.95,0], cloth:['cloth',0x4f463c,1,0],   /* (ajan:models) dark, worn hide and cloth, not pale plastic */
+    rag:['cloth',0x9a8670,1,0], mail:['chain',0x8f979a,.74,.82], wood:['wood',0x65482c,1,0], bone:['bone',0xb9b09a,1,0]
   };
   // Extra gear surfaces (gear-* sets): tarnished grave gold, blackened iron, horn, dyed cloth, gems.
   Object.assign(spec,{
@@ -94,7 +94,7 @@
   const GLOW={ember:[0xff5a12,0x2a0d04,3.2], frost:[0x8fdcff,0x0c1a24,2.6], venom:[0x7dff3c,0x0b1a06,2.5], void:[0xa86bff,0x120a1c,2.9], holy:[0xffd27a,0x241a08,2.7], gore:[0xff1c10,0x200302,2.6]};
   // The shared character grade (edge wear, cavities, grime, rust, blood, micro relief) per surface kind.
   const GRADE={metal:{cls:'metal',grime:.28,rust:.05,blood:.06,wear:1.05,scale:7},chain:{cls:'metal',grime:.35,rust:.12,wear:.8,scale:9},
-    leather:{cls:'leather',grime:.32,blood:.04},cloth:{cls:'cloth',grime:.42,blood:.05},bone:{cls:'bone',grime:.34,scale:9},wood:{cls:'wood',grime:.3}};
+    leather:{cls:'leather',grime:.58,blood:.16,contrast:1.12,wear:1.25,scale:9},cloth:{cls:'cloth',grime:.62,blood:.14,contrast:1.1,scale:9},bone:{cls:'bone',grime:.34,scale:9},wood:{cls:'wood',grime:.3}};
   const FINISH_GRADE={ash:{grime:.62},rust:{rust:.42,grime:.4},brine:{rust:.18,grime:.38},blood:{blood:.55,grime:.36},bone:{grime:.3}};
   function gradeOf(key,kind,extra){
     const g=Object.assign({},GRADE[kind]||GRADE.metal,extra||{});

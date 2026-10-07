@@ -30,6 +30,7 @@
   // Small parts (shape vertices × instances) are copied into pseudo merges; larger ones are merged as real instances.
   // TOTAL caps the copied vertices (~108 bytes each with matrix and colour).
   var SRC_LIMIT = +(/[?&]mergesrc=(\d+)/.exec(Q) || [0, 5000])[1], TOTAL_LIMIT = +(/[?&]mergetotal=(\d+)/.exec(Q) || [0, 600000])[1];
+  var NO_ADD = /[?&]nomergeadd\b/.test(Q);
   var MARGIN = +(/[?&]mergemargin=([\d.]+)/.exec(Q) || [0, .25])[1];   // metres added to each part's bounds for the camera test (re-tested whenever the camera moves)
   var Perf = B.Perf = B.Perf || {};
   Perf.enabled = !OFF;
@@ -42,13 +43,15 @@
     if (!o.isInstancedMesh || o.isSkinnedMesh || o.isBatchedMesh) return false;
     var m = o.material, g = o.geometry;
     if (!m || Array.isArray(m)) return skip('multi-material');
-    if (m.isShaderMaterial || m.isRawShaderMaterial) return skip('shader');
+    // Additive, depth-free glows (flames, glow decals) add up in any order: these may merge (as real instances) even when animated.
+    var additive = m.transparent && m.blending === T.AdditiveBlending && m.depthWrite === false && !NO_ADD;
+    if ((m.isShaderMaterial || m.isRawShaderMaterial) && !additive) return skip('shader');
     // Blended parts keep their own draws: merging them changes the blend order where decals of two materials overlap.
-    if (m.transparent) return skip('transparent');
+    if (m.transparent && !additive) return skip('transparent');
     if (m.alphaTest > 0 || m.alphaHash) return skip('cutout');
     if (o.morphTexture || g.morphAttributes && Object.keys(g.morphAttributes).length) return skip('morph');
-    if (o.instanceMatrix.usage !== T.StaticDrawUsage) return skip('dynamic');
-    if (o.instanceColor && o.instanceColor.usage !== T.StaticDrawUsage) return skip('dynamic-color');
+    if (!additive && o.instanceMatrix.usage !== T.StaticDrawUsage) return skip('dynamic');
+    if (!additive && o.instanceColor && o.instanceColor.usage !== T.StaticDrawUsage) return skip('dynamic-color');
     if (!o.frustumCulled) return skip('no-frustum');
     if (o.onBeforeRender !== T.Object3D.prototype.onBeforeRender || o.onAfterRender !== T.Object3D.prototype.onAfterRender) return skip('render-hook');
     if (o.children.length) return skip('children');
@@ -249,7 +252,7 @@
   // Before every main render (scene.onBeforeRender; shadow maps render inside that call afterwards).
   // Cheap when nothing changed: the part loop only runs after the camera moved, a wish changed or shadow flags flipped.
   function frame(camera) {
-    if (++lazyClock >= 600) { lazyClock = 0; if (Perf.scene) markLazy(Perf.scene, Perf.root); }   // objects created since (spawns, effects)
+    if (++lazyClock >= 600) { lazyClock = 0; if (Perf.scene) { markLazy(Perf.scene, Perf.root); shadowLod(Perf.scene); } }   // objects created since (spawns, effects)
     var mainCam = B.app && B.app.camera, useCam = camera && camera === mainCam;
     var moved = useCam ? cameraStep(camera) : false;
     var check = (frameNo = (frameNo + 1) % 15) === 0;
@@ -257,7 +260,10 @@
     for (var i = 0; i < gs.length; i++) {
       var G = gs[i]; if (G.dead) continue;
       var srcs = G.sources, s0 = srcs[0], k, s;
-      if (check) for (k = 0; k < srcs.length; k++) if (versionOf(srcs[k]) !== G.versions[k]) { release(G); break; }
+      if (G.live) {   // animated glows: copy again whenever a part changed (every frame while they flicker)
+        for (k = 0; k < srcs.length; k++) { var vv = versionOf(srcs[k]); if (vv !== G.versions[k]) { G.versions[k] = vv; G.sig = ''; } }
+        if (G.sig === '') for (k = 0; k < srcs.length; k++) { s = srcs[k]; if (!s.boundingSphere) s.computeBoundingSphere(); G.wspheres[k].copy(s.boundingSphere).applyMatrix4(s.matrixWorld); G.wspheres[k].radius += MARGIN; }
+      } else if (check) for (k = 0; k < srcs.length; k++) if (versionOf(srcs[k]) !== G.versions[k]) { release(G); break; }
       if (G.dead) continue;
       var flags = (Perf.enabled ? 1 : 0) | (s0.castShadow ? 2 : 0) | (s0.receiveShadow ? 4 : 0) | (s0.parent ? 8 : 0);
       if (flags !== G.flags || check) {
@@ -298,7 +304,7 @@
       var cast = o.castShadow && !(ud.proxied && ud.baseCastShadow), scope = cast ? roomOf(o, world) : 'all';
       var flags = [o.parent.uuid, o.material.uuid, !!o.instanceColor, o.castShadow, ud.baseCastShadow, ud.proxied, o.receiveShadow, o.renderOrder, o.layers.mask,
         o.customDepthMaterial ? o.customDepthMaterial.uuid : '-', scope].join('|');
-      var small = verts <= SRC_LIMIT && !o.material.transparent, map = small ? pseudo : inst, key = small ? flags + '|' + layoutOf(o.geometry) : flags + '|' + geoHash(o.geometry);
+      var small = verts <= SRC_LIMIT && !o.material.transparent && !o.material.isShaderMaterial, map = small ? pseudo : inst, key = small ? flags + '|' + layoutOf(o.geometry) : flags + '|' + geoHash(o.geometry);
       var G = map.get(key); if (!G) map.set(key, G = { key: key, kind: small ? 'pseudo' : 'inst', sources: [], verts: 0 });
       G.sources.push(o); G.verts += verts;
     });
@@ -309,6 +315,7 @@
         var w = s.boundingSphere.clone().applyMatrix4(s.matrixWorld); w.radius += MARGIN; return w;   // static parts: world bounds once
       });
       G.flags = -1; G.ok = false;
+      G.live = G.kind === 'inst' && G.sources.some(function (s) { return s.material.transparent; });
     }
     pseudo.forEach(function (G) {
       if (G.sources.length < 2) return;
@@ -320,11 +327,72 @@
     scene.onBeforeRender = (function (before) {
       return function (renderer, s, camera) { if (before) before.apply(this, arguments); frame(camera); };
     })(scene.onBeforeRender && scene.onBeforeRender !== T.Object3D.prototype.onBeforeRender ? scene.onBeforeRender : null);
-    markLazy(scene, world.root); Perf.scene = scene;
+    markLazy(scene, world.root); Perf.scene = scene; shadowLod(scene);
     if (/[?&]perflog\b/.test(Q)) console.log('perf merge', JSON.stringify(Perf.stats));
     return Perf.stats;
   };
-  Perf.setEnabled = function (on) { Perf.enabled = !!on && !OFF; return Perf.enabled; };
+  Perf.setEnabled = function (on) {
+    Perf.enabled = !!on && !OFF;
+    if (Perf.scene) Perf.scene.traverse(function (o) {   // shadow proxies: welded <-> full geometry
+      var full = o.userData && o.userData.perfFullGeometry; if (!full) return;
+      var lod = shadowDone.get(full); if (lod) o.geometry = Perf.enabled ? lod : full;
+    });
+    return Perf.enabled;
+  };
+
+  /* Shadow-only stand-ins (character/weapon shadow proxies, the world's static shadow proxies) are drawn into depth maps only.
+   * Their vertices are welded on a 1.5 cm grid (a shadow texel is ~4 cm, the receivers' normal bias 5 cm), per dominant bone for
+   * skinned ones so limbs never get stitched together. The map content stays the same at texel scale; the depth pass draws
+   * about half the triangles. `?noshadowlod` keeps the full proxies. */
+  var SH_CELL = +(/[?&]shadowcell=([\d.]+)/.exec(Q) || [0, .015])[1], SH_OFF = OFF || /[?&]noshadowlod\b/.test(Q);
+  var shadowDone = new WeakMap(), shadowStats = Perf.shadowStats = { meshes: 0, before: 0, after: 0 };
+  function weld(geo, cell) {
+    var P = geo.attributes.position, SI = geo.attributes.skinIndex, SW = geo.attributes.skinWeight, n = P.count;
+    var map = new Map(), remap = new Int32Array(n), keep = [], i, j;
+    for (i = 0; i < n; i++) {
+      var dom = 0;
+      if (SI && SW) { var bw = -1; for (j = 0; j < 4; j++) { var w = SW.getComponent(i, j); if (w > bw) { bw = w; dom = SI.getComponent(i, j); } } }
+      var key = Math.floor(P.getX(i) / cell) + ',' + Math.floor(P.getY(i) / cell) + ',' + Math.floor(P.getZ(i) / cell) + (SI ? '|' + dom : '');
+      var r = map.get(key); if (r === undefined) { r = keep.length; keep.push(i); map.set(key, r); }
+      remap[i] = r;
+    }
+    var src = geo.index ? geo.index.array : null, count = src ? src.length : n, tri = [];
+    for (i = 0; i + 2 < count; i += 3) {
+      var a = remap[src ? src[i] : i], b = remap[src ? src[i + 1] : i + 1], c = remap[src ? src[i + 2] : i + 2];
+      if (a !== b && b !== c && a !== c) tri.push(a, b, c);
+    }
+    if (tri.length > count * .85) return null;   // not worth a second geometry
+    var out = new T.BufferGeometry();
+    Object.keys(geo.attributes).forEach(function (name) {
+      var A = geo.attributes[name]; if (A.isInterleavedBufferAttribute || A.isInstancedBufferAttribute) return;
+      var arr = new A.array.constructor(keep.length * A.itemSize);
+      for (var k = 0; k < keep.length; k++) for (var q = 0; q < A.itemSize; q++) arr[k * A.itemSize + q] = A.array[keep[k] * A.itemSize + q];
+      out.setAttribute(name, new T.BufferAttribute(arr, A.itemSize, A.normalized));
+    });
+    out.setIndex(new T.BufferAttribute(keep.length > 65535 ? new Uint32Array(tri) : new Uint16Array(tri), 1));
+    out.boundingSphere = geo.boundingSphere ? geo.boundingSphere.clone() : null; out.boundingBox = geo.boundingBox ? geo.boundingBox.clone() : null;
+    if (!out.boundingSphere) out.computeBoundingSphere();
+    out.userData.perfShadowLod = { from: count / 3, to: tri.length / 3 };
+    return out;
+  }
+  function shadowLod(scene) {
+    if (SH_OFF || !scene) return;
+    var v = new T.Vector3();
+    scene.traverse(function (o) {
+      if (!o.isMesh || o.isInstancedMesh || !o.geometry || !o.castShadow) return;
+      if (!(o.userData.shadowProxy === true || /^shadow-proxy:/.test(o.name))) return;
+      var g = o.geometry; if (g.userData.perfShadowLod || g.morphAttributes && g.morphAttributes.position) return;
+      var done = shadowDone.get(g);
+      if (done === undefined) {
+        o.updateWorldMatrix(true, false); v.setFromMatrixScale(o.matrixWorld);
+        var scale = Math.max(v.x, v.y, v.z) || 1;
+        done = weld(g, SH_CELL / scale) || null; shadowDone.set(g, done);
+        if (done) { shadowStats.before += done.userData.perfShadowLod.from; shadowStats.after += done.userData.perfShadowLod.to; }
+      }
+      if (done) { o.userData.perfFullGeometry = g; o.geometry = done; shadowStats.meshes++; }
+    });
+  }
+  Perf.shadowLod = shadowLod;
 
   /* Hidden subtrees skip their per-frame matrix work. Three recomposes and multiplies the local/world matrix of EVERY object in
    * the scene each frame, visible or not: ~40 parked enemies (≈90 bones each), pooled effects and warm-up groups made that

@@ -88,6 +88,8 @@
     lastjudge: [['g', 'pelvis', 1.2, 0, .9], ['g', 'pelvis', -1.2, 0, .9], ['x', 's3', 2.8, .05, .8], ['x', 's3', 3.5, .05, .8]]
   };
   // signature horrors (one per chapter, plus every boss): see apply()
+  // the licensed body has a clean, handsome mannequin face: types that show it get a blood-soaked rag bound over the eyes
+  var BLIND = { ashbound: 1, emberbound: 1, rootborn: 1, guard: 0 };
   var SIGNATURE = { cultist: 'arms', lantern: 'neckhair', gravemason: 'stone', chainseer: 'draped', verdictseer: 'arms' };
 
   function apply(type, A, recipe) {
@@ -155,13 +157,22 @@
         if (!m || seen.indexOf(m) >= 0 || m.userData.dreadGraded) return; seen.push(m); m.userData.dreadGraded = true;
         var u = m.userData.grade; if (!u || !u.kTint) return;
         var cls = /skin|flesh/.test(k) ? 'skin' : /bone|ash/.test(k) ? 'bone' : /rag|burlap|robe|bandage|tabard|sash|linen|rope|vestment/.test(k) ? 'cloth' : '';
-        if (cls === 'skin') { var tv = u.kTint.value, mx = Math.max(tv.r, tv.g, tv.b, .01); tv.multiplyScalar(Math.min(.8, .6 / mx)); u.kGrime.value = Math.max(u.kGrime.value, .62); u.kContrast.value = Math.max(u.kContrast.value, 1.16); u.kSat.value *= .85; u.kBlood.value = Math.min(1, u.kBlood.value + .1); }
+        if (cls === 'skin') { var tv = u.kTint.value, mx = Math.max(tv.r, tv.g, tv.b, .01); tv.multiplyScalar(Math.min(.8, (B.ActiveChapter === 2 ? .68 : .6) / mx)); /* the moonlit coast keeps a little more value */ u.kGrime.value = Math.max(u.kGrime.value, .62); u.kContrast.value = Math.max(u.kContrast.value, 1.16); u.kSat.value *= .85; u.kBlood.value = Math.min(1, u.kBlood.value + .1); }
         else if (cls === 'bone') { u.kTint.value.multiplyScalar(.6); u.kSat.value *= .7; u.kGrime.value = Math.max(u.kGrime.value, .62); u.kContrast.value = Math.max(u.kContrast.value, 1.1); }
         else if (/brass|gold/.test(k)) { u.kTint.value.multiplyScalar(.62); u.kGrime.value = Math.max(u.kGrime.value, .55); if (u.kRust) u.kRust.value = Math.max(u.kRust.value, .12); }   // tarnished, not toy-gold
         else if (cls === 'cloth') { u.kTint.value.multiplyScalar(.86); u.kGrime.value = Math.max(u.kGrime.value, .62); }
       });
     } catch (e) { if (window.console) console.warn('dread grade ' + type + ': ' + (e && e.message)); }
     (KIT[type] || []).forEach(function (k) { try { add(k[0], k[1], k[2], k[3], k[4]); } catch (e) { if (window.console) console.warn('dread ' + type + ' ' + k[0] + ': ' + (e && e.message)); } });
+    if (BLIND[type]) try {
+      var hcl = A.cloud([R.head], skinKeys, .5); if (hcl.length > 20) {
+        var hb = A.box(hcl), hc2 = hb.getCenter(new T.Vector3()), rx = (hb.max.x - hb.min.x) * .5 + .012 * sc, rz = (hb.max.z - hb.min.z) * .5 + .012 * sc, ey = hc2.y + (hb.max.y - hb.min.y) * .06;
+        var band = G.sheet(36, 3, function (u, v) { var a = u * TAU, wob = Math.sin(a * 3 + 1) * .008 * sc; return [hc2.x + Math.sin(a) * rx, ey + (v - .5) * .055 * sc + wob - (Math.cos(a) < -.3 ? .02 * sc : 0), hc2.z + Math.cos(a) * rz]; }, true);
+        var tail = G.sheet(2, 6, function (u, v) { return [hc2.x + .02 * sc + (u - .5) * .04 * sc, ey - v * .2 * sc, hc2.z - rz - .004 * sc - v * .04 * sc]; }, false);
+        [band, tail].forEach(function (g) { G.wear(g, { edge: 0, cavity: 0, border: 0, curv: 0, paint: function (q) { return q.z > hc2.z ? .55 : .2; }, tear: { amount: .4, width: .012, bottom: .3, base: .01 } }); });
+        A.rigid(ragKey, G.merge([band, tail]), R.head);
+      }
+    } catch (e) { if (window.console) console.warn('dread blind ' + type + ': ' + (e && e.message)); }
     try { signature(SIGNATURE[type]); } catch (e) { if (window.console) console.warn('dread signature ' + type + ': ' + (e && e.message)); }
     if (BOSS[type]) try { bossParts(); } catch (e) { if (window.console) console.warn('dread boss ' + type + ': ' + (e && e.message)); }
 
@@ -229,14 +240,14 @@
   }
 
   // ---------------------------------------------------------------- runtime (create)
-  var vt = new T.Vector3(), qa = new T.Quaternion(), qb = new T.Quaternion(), qp = new T.Quaternion(), va = new T.Vector3(), vb = new T.Vector3(), vc = new T.Vector3(), vs = new T.Vector3(), mInv = new T.Matrix4(), axis = new T.Vector3();
+  var vt = new T.Vector3(), axisZ = new T.Vector3(), qz = new T.Quaternion(), qa = new T.Quaternion(), qb = new T.Quaternion(), qp = new T.Quaternion(), va = new T.Vector3(), vb = new T.Vector3(), vc = new T.Vector3(), vs = new T.Vector3(), mInv = new T.Matrix4(), axis = new T.Vector3();
   var DOWN = new T.Vector3(0, -1, 0);
   function attach(info, ctx) {
     if (OFF || !info) return;
     var root = ctx.root, native = ctx.native, R = info.rig, list = [], time = Math.random() * 10;
     // posture bones
     var post = [];
-    if (info.posture) Object.keys(info.posture).forEach(function (role) { var b = native[R[role]]; if (b) post.push({ b: b, a: info.posture[role], base: new T.Quaternion(), written: new T.Quaternion(0, 0, 0, 0) }); });
+    if (info.posture) Object.keys(info.posture).forEach(function (role) { var b = native[R[role]]; if (b) post.push({ b: b, a: info.posture[role], gait: info.gait ? (info.gait[role] || 0) : 0, base: new T.Quaternion(), written: new T.Quaternion(0, 0, 0, 0) }); });
     info.swing.forEach(function (s) {
       var b = native[s.bone]; if (!b) return;
       var restQ = b.quaternion.clone(), dir = new T.Vector3().fromArray(s.dir).normalize();
@@ -247,19 +258,29 @@
     if (info.phases) phaseVisual(root, 1, false);
     // corpse variety: every foe falls its own way — arms flung or tucked, legs apart, the head lolled (world-up deltas on the death pose,
     // eased in over the fall; they keep the limbs at their height, so nothing sinks into the floor)
-    var sprawl = [], deadT = 0, debrisDone = false;
+    var sprawl = [], deadT = 0, debrisDone = false, shownPhase = 1;
     if (!info.phases) [['armL', 1.1], ['armR', 1.1], ['foreL', .7], ['foreR', .7], ['thighL', .38], ['thighR', .38], ['head', .9]].forEach(function (e) {
       var b = native[R[e[0]]]; if (b) sprawl.push({ b: b, a: (Math.random() * 2 - 1) * e[1], base: new T.Quaternion(), written: new T.Quaternion(0, 0, 0, 0) });
     });
-    if (!post.length && !list.length && !sprawl.length) return;
+    if (!post.length && !list.length && !sprawl.length && !info.phases) return;
     ctx.extras.push(function (dt, state) {
       dt = Math.min(Math.max(Number.isFinite(dt) ? dt : 0, 0), 1 / 20); time += dt;
+      if (info.phases && state) {   // the fight's phase as combat poses it (works with or without boss-framework)
+        var want = state.phase === 'rage' ? (state.enraged ? 3 : 2) : 1;
+        if (state.reset) want = 1;
+        if (want !== shownPhase) { shownPhase = want; phaseVisual(root, want === 3 ? 2 : want, want === 3); }
+      }
       if (post.length && !(state && state.dead)) {
         // world right axis of the model, then a forward bend of each listed bone about it (applied after the animation)
-        root.updateWorldMatrix(true, false); axis.set(1, 0, 0).transformDirection(root.matrixWorld);
+        root.updateWorldMatrix(true, false); axis.set(1, 0, 0).transformDirection(root.matrixWorld); axisZ.set(0, 0, 1).transformDirection(root.matrixWorld);
+        // gait weight transfer (hero): the torso rolls over the planted foot and leans into the stride
+        var mi = root.userData.authoredMotion, mv = info.gait && state ? Math.min(1, Math.max(0, +state.move || 0)) : 0, gph = mi && /walk|run|move|loco/i.test(mi.clip || '') ? (mi.phase || 0) : -1;
+        var roll = mv && gph >= 0 ? Math.sin(gph * TAU) * .05 * mv : 0, lean = mv * .05;
         for (var i = 0; i < post.length; i++) {
-          var b = post[i].b, par = b.parent; if (!par) continue;
-          par.matrixWorld.decompose(vs, qp, vb); qa.setFromAxisAngle(vc.copy(axis).applyQuaternion(qb.copy(qp).invert()), post[i].a);
+          var b = post[i].b, par = b.parent; if (!par) continue; var ax = post[i].a, angX = typeof ax === 'number' ? ax : ax[0], angZ = typeof ax === 'number' ? 0 : ax[1];
+          if (post[i].gait) { angX += lean * post[i].gait; angZ += roll * post[i].gait; }
+          par.matrixWorld.decompose(vs, qp, vb); qb.copy(qp).invert(); qa.setFromAxisAngle(vc.copy(axis).applyQuaternion(qb), angX);
+          if (angZ) qa.multiply(qz.setFromAxisAngle(vc.copy(axisZ).applyQuaternion(qb), angZ));
           // a bone the animation did not set this frame still holds last frame's bent value: bend from the unbent base, never accumulate
           if (b.quaternion.equals(post[i].written)) b.quaternion.copy(post[i].base); post[i].base.copy(b.quaternion);
           b.quaternion.premultiply(qa); post[i].written.copy(b.quaternion); b.updateMatrixWorld(true);
@@ -267,7 +288,7 @@
       }
       if (state && state.dead) {
         deadT += dt;
-        if (!debrisDone && deadT > .35) { debrisDone = true; scatterDebris(root, info); }
+        if (!debrisDone && deadT > .35) { debrisDone = true; if (!info.hero) scatterDebris(root, info); }
         if (sprawl.length) {
           var e = Math.min(1, deadT / .8); e = e * e * (3 - 2 * e);
           for (var j = 0; j < sprawl.length; j++) {
@@ -344,7 +365,8 @@
   // ---------------------------------------------------------------- boss phases
   function phaseVisual(target, phase, enraged) {
     var model = target && target.model ? target.model : target, root = model && model.root ? model.root : model; if (!root || !root.traverse) return;
-    phase = Math.max(1, phase | 0); var heat = (phase - 1) * .35 + (enraged ? .3 : 0);
+    // the bosses run phase 1 -> 2 and then enrage: II at phase 2, III when enraged (or a third phase where a fight has one)
+    phase = Math.min(3, Math.max(1, phase | 0) + (enraged && phase >= 2 ? 1 : 0)); var heat = (phase - 1) * .4;
     root.traverse(function (n) {
       if (!n.isMesh) return;
       if (n.userData.dreadPhase) n.visible = !OFF && phase >= n.userData.dreadPhase;
@@ -357,7 +379,14 @@
   // enemy-horror.js hangs its shroud tatters rigidly on the upper spine; on the stooped prisoner and drowned (their clips bend that bone
   // ~70 degrees) the strips stood up over the head. Here they are swinging strips instead (KIT above), so the rigid ones are dropped.
   if (!OFF && B.EnemyHorror && B.EnemyHorror.kit) ['prisoner', 'drowned'].forEach(function (t) { var k = B.EnemyHorror.kit[t]; if (k) B.EnemyHorror.kit[t] = k.filter(function (x) { return x !== 'tatters'; }); });
-  B.EnemyDread = { pre: OFF ? function () { } : pre, apply: apply, attach: attach, phaseVisual: phaseVisual, kit: KIT, posture: POSTURE };
+  // Bahtiyar: a heavier, planted stance on top of every clip — shoulders sunk, chest a little forward, the head held low and level,
+  // and the torso rolling over the planted foot while he walks or runs (no swinging parts, no corpse debris). ?nohero turns it off.
+  function heroInfo() {
+    if (OFF || /[?&]nohero(&|$)/.test(location.search)) return null;
+    return { type: 'hero', hero: true, swing: [], phases: false, rig: rig(true),
+      posture: { s2: .03, s3: .05, neck: -.03, head: -.03, clavL: [0, -.09], clavR: [0, .09] }, gait: { s2: .6, s3: .5 } };
+  }
+  B.EnemyDread = { heroInfo: heroInfo, pre: OFF ? function () { } : pre, apply: apply, attach: attach, phaseVisual: phaseVisual, kit: KIT, posture: POSTURE };
   // BABA.Models is published by authored-models.js (loaded after this file): install the helper once it exists.
   function install() { if (B.Models && !B.Models.phaseVisual) B.Models.phaseVisual = phaseVisual; }
   install(); if (!B.Models) { var tries = 0, iv = setInterval(function () { install(); if ((B.Models && B.Models.phaseVisual) || ++tries > 200) clearInterval(iv); }, 50); }
