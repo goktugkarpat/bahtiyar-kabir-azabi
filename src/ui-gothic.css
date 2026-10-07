@@ -106,6 +106,10 @@ body:has(#lu-banner.lu-on) #key-hints span:nth-child(2) kbd { border-color: #f0c
 .qc-caption .qc-title { color: #f1dfb8; text-shadow: 0 2px 3px #000, 0 0 24px #6a0f0a66 }
 .qc-caption .qc-text { max-width: 760px; margin: 0 auto; color: #e6d7bd }
 
+/* anlatıcı satırı: eski fade-up animasyonu translateX(-50%)'yi siliyordu, kutu her yeni satırda sağdan kayarak geliyordu */
+#hud #narration.tap { animation: ui-narr-in .5s ease-out }
+@keyframes ui-narr-in { from { opacity: 0; transform: translate(-50%, 10px) } to { opacity: 1; transform: translateX(-50%) } }
+
 /* ───────── 7. Görev bildirimi ve eşya bildirimi ───────── */
 /* --left tanımsızdı (bildirim ekran kenarına yapışıyordu); üstte, kahraman kartının altında dursun ki sol alttaki eşya bildirimleriyle çakışmasın */
 #hud #quest-notice { left: calc(var(--pad) + 4px); top: max(19%, 132px) }
@@ -248,7 +252,7 @@ body #bf-cine .card::before { content: ''; position: absolute; left: 50%; top: 5
 @media (prefers-reduced-motion: reduce) {
   #title .title-shade, #death::before, #lu-banner.lu-on::before, #lu-banner.lu-on .lu-note, #title .title-actions > .btn { animation: none }
   #hud .target-trail { transition: none }
-  #chapter-fade.show::before { animation: none }
+  #chapter-fade.show::before, #hud #narration.tap { animation: none }
   #death::before { opacity: 1 }
 }
 /* /ajan:ui */
