@@ -62,7 +62,7 @@
     stalker: [['s', 'foreL', 0, 0, .3], ['s', 'foreR', 0, 0, .3], ['s', 's3', 3.14, .05, .45]],
     carrier: [['k', 's3', 2.6, -.1, .55], ['k', 's3', 3.7, -.12, .45], ['c', 'pelvis', 1.4, 0, .4]],
     boss: [['k', 'pelvis', 1.2, .02, .7], ['x', 'pelvis', -1.25, .02, .55], ['x', 's3', 3.4, .05, .5], ['c', 's3', 2.8, .05, .6]],
-    drowned: [['s', 'head', 3.14, .02, .5], ['s', 'head', 2.5, .0, .42], ['s', 'head', 3.8, .0, .46], ['k', 'pelvis', 1.3, 0, .45]],
+    drowned: [['s', 's3', 2.8, .04, .6], ['s', 's3', 3.5, .04, .55], ['s', 'head', 3.14, .02, .5], ['s', 'head', 2.5, .0, .42], ['s', 'head', 3.8, .0, .46], ['k', 'pelvis', 1.3, 0, .45]],
     rootborn: [['s', 'foreL', 0, 0, .45], ['s', 'foreR', 0, 0, .5], ['c', 's3', 3.0, 0, .55]],
     crawler: [['s', 's3', 3.14, 0, .45], ['s', 's2', 2.7, 0, .4]],
     urchin: [['k', 'pelvis', 1.3, 0, .5], ['k', 'pelvis', -1.3, 0, .45], ['x', 's3', 3.1, -.05, .4]],
@@ -144,7 +144,7 @@
       var size = (kind === 'c' ? .055 : .05) * sc, ch = chainGeo(at, len, size);
       A.rigid(ironKey, ch.geo, j);
       if (kind === 'k') A.rigid(ironKey, hookGeo(ch.end, 1.1 * sc), j);
-      else if (kind === 'x') { var sk = skullGeo(ch.end, .075 * sc); A.rigid(boneKey, sk.bone, j); if (sk.void) A.rigid(has('void') ? 'void' : ironKey, sk.void, j); }
+      else if (kind === 'x') { var sk = skullGeo(ch.end, .11 * sc); A.rigid(boneKey, sk.bone, j); if (sk.void) A.rigid(has('void') ? 'void' : ironKey, sk.void, j); }
       else if (kind === 'p') { var pl = G.box(.06 * sc, .07 * sc, .025 * sc, [ch.end.x, ch.end.y - .04 * sc, ch.end.z]); A.rigid(ironKey, G.merge([pl, G.ring(.022 * sc, .006 * sc, [ch.end.x, ch.end.y, ch.end.z], [0, 0, 0], 5, 10)]), j); }
       else if (kind === 'g') { var sg = G.sphere(.045 * sc, [ch.end.x, ch.end.y - .04 * sc, ch.end.z], [1, 1, .45], 10, 6); A.rigid(glowKey, sg, j); }
     }
@@ -156,7 +156,7 @@
         var u = m.userData.grade; if (!u || !u.kTint) return;
         var cls = /skin|flesh/.test(k) ? 'skin' : /bone|ash/.test(k) ? 'bone' : /rag|burlap|robe|bandage|tabard|sash|linen|rope|vestment/.test(k) ? 'cloth' : '';
         if (cls === 'skin') { u.kTint.value.multiplyScalar(.8); u.kGrime.value = Math.max(u.kGrime.value, .62); u.kContrast.value = Math.max(u.kContrast.value, 1.16); u.kSat.value *= .85; u.kBlood.value = Math.min(1, u.kBlood.value + .1); }
-        else if (cls === 'bone') { u.kTint.value.multiplyScalar(.74); u.kGrime.value = Math.max(u.kGrime.value, .5); u.kContrast.value = Math.max(u.kContrast.value, 1.1); }
+        else if (cls === 'bone') { u.kTint.value.multiplyScalar(.6); u.kSat.value *= .7; u.kGrime.value = Math.max(u.kGrime.value, .62); u.kContrast.value = Math.max(u.kContrast.value, 1.1); }
         else if (cls === 'cloth') { u.kTint.value.multiplyScalar(.86); u.kGrime.value = Math.max(u.kGrime.value, .62); }
       });
     } catch (e) { if (window.console) console.warn('dread grade ' + type + ': ' + (e && e.message)); }
@@ -353,6 +353,9 @@
     });
     root.userData.dreadPhase = phase;
   }
+  // enemy-horror.js hangs its shroud tatters rigidly on the upper spine; on the stooped prisoner and drowned (their clips bend that bone
+  // ~70 degrees) the strips stood up over the head. Here they are swinging strips instead (KIT above), so the rigid ones are dropped.
+  if (!OFF && B.EnemyHorror && B.EnemyHorror.kit) ['prisoner', 'drowned'].forEach(function (t) { var k = B.EnemyHorror.kit[t]; if (k) B.EnemyHorror.kit[t] = k.filter(function (x) { return x !== 'tatters'; }); });
   B.EnemyDread = { pre: OFF ? function () { } : pre, apply: apply, attach: attach, phaseVisual: phaseVisual, kit: KIT, posture: POSTURE };
   // BABA.Models is published by authored-models.js (loaded after this file): install the helper once it exists.
   function install() { if (B.Models && !B.Models.phaseVisual) B.Models.phaseVisual = phaseVisual; }

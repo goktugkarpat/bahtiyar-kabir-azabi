@@ -804,14 +804,14 @@
     function half(u) { return .33 * smooth(-.02, .07, u) * (1 - .9 * Math.pow(smooth(.5, 1, u), 1.15)) + .02; }
     for (y = 0; y < H; y++) for (x = 0; x < W; x++) {
       var u = x / (W - 1), v = 1 - y / (H - 1), k = (y * W + x) * 4;
-      d[k] = 34; d[k + 1] = 24; d[k + 2] = 18; d[k + 3] = 255 * smooth(-.04, .07, half(u) - Math.abs(v - .5) + (G.hash(x, y, 3) - .5) * .07);
+      d[k] = 62; d[k + 1] = 56; d[k + 2] = 50; d[k + 3] = 255 * smooth(-.04, .07, half(u) - Math.abs(v - .5) + (G.hash(x, y, 3) - .5) * .07);
     }
     g.putImageData(px, 0, 0); g.lineCap = 'round';
     for (i = 0; i < 1100; i++) {
       var u0 = G.hash(i, 1, 8), h0 = half(u0), v0 = .5 + (G.hash(i, 2, 8) - .5) * 1.9 * h0, a = mix(1.05, -.3, Math.pow(u0, .8)) + (G.hash(i, 3, 8) - .5) * .5,
         len = (36 + G.hash(i, 4, 8) * 40) * mix(1, .55, smooth(.6, 1, u0)), x0 = u0 * (W - 1), y0 = (1 - v0) * (H - 1), dx = Math.cos(a), dy = -Math.sin(a), r = G.hash(i, 5, 8);
       len = Math.min(len, dy < 0 ? (y0 - 3) / -dy : (H - 3 - y0) / (dy || 1e-6), dx > 0 ? (W - 3 - x0) / dx : 1e6);
-      g.strokeStyle = r < .06 ? 'rgba(125,116,106,.95)' : r < .3 ? 'rgba(66,48,34,.88)' : r < .42 ? 'rgba(12,9,7,.95)' : 'rgba(32,22,16,.9)'; g.lineWidth = 1.6 + G.hash(i, 6, 8) * 1.6;
+      g.strokeStyle = r < .34 ? 'rgba(150,141,130,.95)' : r < .5 ? 'rgba(96,86,76,.9)' : r < .62 ? 'rgba(66,48,34,.88)' : r < .7 ? 'rgba(18,14,11,.95)' : 'rgba(44,34,27,.9)';   // (ajan:models) salt-and-pepper like the beard, not flat black g.lineWidth = 1.6 + G.hash(i, 6, 8) * 1.6;
       g.beginPath(); g.moveTo(x0, y0); g.quadraticCurveTo(x0 + dx * len * .5 - dy * len * .12, y0 + dy * len * .5 + dx * len * .12, x0 + dx * len, y0 + dy * len); g.stroke();
     }
     browMap = new T.CanvasTexture(c); browMap.colorSpace = T.SRGBColorSpace; browMap.anisotropy = 4; return browMap;
@@ -1049,9 +1049,9 @@
       // the painted iron atlas is busy; keep its relief (normal/AO) with a controlled forged-steel value
       iron: bodyMaterial(A.srcMaterial('LOW_metal_shoulder'), 'hero-iron', { cls: 'metal', sat: 1, tint: [1, 1, 1], blood: .14, grime: .35, rust: .08 }, { map: null, color: new T.Color().setRGB(.15, .152, .16), metalness: .78, roughness: .5 }),
       // salt and pepper: dark brown at the moustache and upper cheeks, greying toward the chin and under the jaw (see kGrey)
-      beard: bodyMaterial(A.srcMaterial('Beard'), 'hero-beard', { sat: 1, tint: 0xffffff, hair: [.05, 1.1, 600, .8] }, { color: new T.Color(0xb4a494) }),
+      beard: bodyMaterial(A.srcMaterial('Beard'), 'hero-beard', { sat: 1, tint: 0xffffff, hair: [.05, 1.1, 600, .8] }, { color: new T.Color(0x93877a) }   /* (ajan:models) dirtier, less white */),
       beardmass: library['hero-beardmass'] || (library['hero-beardmass'] = Object.assign(std({ color: 0x3a2c22, roughness: .92, side: T.DoubleSide }, { hair: [.2, 1, 600, 1], mass: true }), { name: 'kara-hero-beardmass' })),
-      moustache: bodyMaterial(A.srcMaterial('Moustache'), 'hero-moustache', { sat: 1, hair: [-.25, 1.1, 600, .7] }, { color: new T.Color(0xa09080) })
+      moustache: bodyMaterial(A.srcMaterial('Moustache'), 'hero-moustache', { sat: 1, hair: [-.25, 1.1, 600, .7] }, { color: new T.Color(0x887a6a) })
     };
     Object.assign(materials, equipment.materials);
     return { weapon: equipment.weapons['dull-sword'], equipment: equipment, materials: materials };
