@@ -255,3 +255,4 @@
 #character .tb-plaque.tight .tb-or { padding:0 2px; font-size:7px; }
 #character .tb-node.excluded .tb-x { opacity:.6; }
 #character .tb-key.excluded .tb-x { inset:8px; }
+#character .tb-assign button { padding:4px 2px; font-size:9px; }

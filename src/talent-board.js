@@ -38,7 +38,7 @@
   const KIND = { active: t('Aktif yetenek'), form: t('Biçim'), mod: t('Güçlendirme'), passive: t('Yapı'), key: t('Kilit taşı') };
   const ARCH_COL = { bleed: '#c8473f', rage: '#d9884b', guard: '#a9a4c4', charge: '#c9a45a' };
   const PANEL_NAME = { cleave: 'GAZAP', roar: 'VEBA', whirl: 'VEBA', charge: 'KÜL', guard: 'KÜL', hook: 'GAZAP' };   // by the panel's first line
-  const PAINTED = new Set(['p-frenzy', 'p-momentum', 'p-crush', 'k-exec', 'k-blood']);   // painted talent icons (others: engraved glyph)
+  const PAINTED = new Set(['p-frenzy', 'p-momentum', 'p-crush', 'k-exec', 'k-blood', 'k-iron']);   // painted talent icons (others: engraved glyph)
   const colOf = n => B.TalentTree.colOfLine ? B.TalentTree.colOfLine(n.line) : (B.TalentTree.cols.find(c => c.line === n.line) || B.TalentTree.cols[0]);
   // ---- layout from the data (built once) -------------------------------------------------------------------------
   let LAY = null;

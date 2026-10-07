@@ -325,3 +325,6 @@ V hedef portreleri (`assets/ui/target-damned.webp`, `target-verdictseer.webp`, `
 
 #### Cormorant SC (Bold) — oyun adı yazısı
 - Tasarımcı: Christian Thalmann (Catharsis Fonts). Kaynak: https://github.com/CatharsisFonts/Cormorant · Telif: Copyright 2015 The Cormorant Project Authors. Lisans: SIL OFL 1.1 (https://openfontlicense.org). Yalnızca Latin harfleri ve Türkçe karakterleri içeren küçültülmüş (subset) kopya `src/ui-gothic.css` içine gömülüdür; harf şekilleri değiştirilmemiştir.
+
+#### Demir Yemin kilit taşı simgesi
+- `assets/ui/talents/k-iron.png`: projenin kendi `k-exec.png` çerçevesi ile `p-iron.png` kalkanından Python/PIL ile birleştirildi (renk soğutma, maske). Dış kaynak yok.
