@@ -252,7 +252,7 @@
   // Before every main render (scene.onBeforeRender; shadow maps render inside that call afterwards).
   // Cheap when nothing changed: the part loop only runs after the camera moved, a wish changed or shadow flags flipped.
   function frame(camera) {
-    if (++lazyClock >= 600) { lazyClock = 0; if (Perf.scene) markLazy(Perf.scene, Perf.root); }   // objects created since (spawns, effects)
+    if (++lazyClock >= 600) { lazyClock = 0; if (Perf.scene) { markLazy(Perf.scene, Perf.root); shadowLod(Perf.scene); } }   // objects created since (spawns, effects)
     var mainCam = B.app && B.app.camera, useCam = camera && camera === mainCam;
     var moved = useCam ? cameraStep(camera) : false;
     var check = (frameNo = (frameNo + 1) % 15) === 0;
@@ -327,11 +327,72 @@
     scene.onBeforeRender = (function (before) {
       return function (renderer, s, camera) { if (before) before.apply(this, arguments); frame(camera); };
     })(scene.onBeforeRender && scene.onBeforeRender !== T.Object3D.prototype.onBeforeRender ? scene.onBeforeRender : null);
-    markLazy(scene, world.root); Perf.scene = scene;
+    markLazy(scene, world.root); Perf.scene = scene; shadowLod(scene);
     if (/[?&]perflog\b/.test(Q)) console.log('perf merge', JSON.stringify(Perf.stats));
     return Perf.stats;
   };
-  Perf.setEnabled = function (on) { Perf.enabled = !!on && !OFF; return Perf.enabled; };
+  Perf.setEnabled = function (on) {
+    Perf.enabled = !!on && !OFF;
+    if (Perf.scene) Perf.scene.traverse(function (o) {   // shadow proxies: welded <-> full geometry
+      var full = o.userData && o.userData.perfFullGeometry; if (!full) return;
+      var lod = shadowDone.get(full); if (lod) o.geometry = Perf.enabled ? lod : full;
+    });
+    return Perf.enabled;
+  };
+
+  /* Shadow-only stand-ins (character/weapon shadow proxies, the world's static shadow proxies) are drawn into depth maps only.
+   * Their vertices are welded on a 1.5 cm grid (a shadow texel is ~4 cm, the receivers' normal bias 5 cm), per dominant bone for
+   * skinned ones so limbs never get stitched together. The map content stays the same at texel scale; the depth pass draws
+   * about half the triangles. `?noshadowlod` keeps the full proxies. */
+  var SH_CELL = +(/[?&]shadowcell=([\d.]+)/.exec(Q) || [0, .015])[1], SH_OFF = OFF || /[?&]noshadowlod\b/.test(Q);
+  var shadowDone = new WeakMap(), shadowStats = Perf.shadowStats = { meshes: 0, before: 0, after: 0 };
+  function weld(geo, cell) {
+    var P = geo.attributes.position, SI = geo.attributes.skinIndex, SW = geo.attributes.skinWeight, n = P.count;
+    var map = new Map(), remap = new Int32Array(n), keep = [], i, j;
+    for (i = 0; i < n; i++) {
+      var dom = 0;
+      if (SI && SW) { var bw = -1; for (j = 0; j < 4; j++) { var w = SW.getComponent(i, j); if (w > bw) { bw = w; dom = SI.getComponent(i, j); } } }
+      var key = Math.floor(P.getX(i) / cell) + ',' + Math.floor(P.getY(i) / cell) + ',' + Math.floor(P.getZ(i) / cell) + (SI ? '|' + dom : '');
+      var r = map.get(key); if (r === undefined) { r = keep.length; keep.push(i); map.set(key, r); }
+      remap[i] = r;
+    }
+    var src = geo.index ? geo.index.array : null, count = src ? src.length : n, tri = [];
+    for (i = 0; i + 2 < count; i += 3) {
+      var a = remap[src ? src[i] : i], b = remap[src ? src[i + 1] : i + 1], c = remap[src ? src[i + 2] : i + 2];
+      if (a !== b && b !== c && a !== c) tri.push(a, b, c);
+    }
+    if (tri.length > count * .85) return null;   // not worth a second geometry
+    var out = new T.BufferGeometry();
+    Object.keys(geo.attributes).forEach(function (name) {
+      var A = geo.attributes[name]; if (A.isInterleavedBufferAttribute || A.isInstancedBufferAttribute) return;
+      var arr = new A.array.constructor(keep.length * A.itemSize);
+      for (var k = 0; k < keep.length; k++) for (var q = 0; q < A.itemSize; q++) arr[k * A.itemSize + q] = A.array[keep[k] * A.itemSize + q];
+      out.setAttribute(name, new T.BufferAttribute(arr, A.itemSize, A.normalized));
+    });
+    out.setIndex(new T.BufferAttribute(keep.length > 65535 ? new Uint32Array(tri) : new Uint16Array(tri), 1));
+    out.boundingSphere = geo.boundingSphere ? geo.boundingSphere.clone() : null; out.boundingBox = geo.boundingBox ? geo.boundingBox.clone() : null;
+    if (!out.boundingSphere) out.computeBoundingSphere();
+    out.userData.perfShadowLod = { from: count / 3, to: tri.length / 3 };
+    return out;
+  }
+  function shadowLod(scene) {
+    if (SH_OFF || !scene) return;
+    var v = new T.Vector3();
+    scene.traverse(function (o) {
+      if (!o.isMesh || o.isInstancedMesh || !o.geometry || !o.castShadow) return;
+      if (!(o.userData.shadowProxy === true || /^shadow-proxy:/.test(o.name))) return;
+      var g = o.geometry; if (g.userData.perfShadowLod || g.morphAttributes && g.morphAttributes.position) return;
+      var done = shadowDone.get(g);
+      if (done === undefined) {
+        o.updateWorldMatrix(true, false); v.setFromMatrixScale(o.matrixWorld);
+        var scale = Math.max(v.x, v.y, v.z) || 1;
+        done = weld(g, SH_CELL / scale) || null; shadowDone.set(g, done);
+        if (done) { shadowStats.before += done.userData.perfShadowLod.from; shadowStats.after += done.userData.perfShadowLod.to; }
+      }
+      if (done) { o.userData.perfFullGeometry = g; o.geometry = done; shadowStats.meshes++; }
+    });
+  }
+  Perf.shadowLod = shadowLod;
 
   /* Hidden subtrees skip their per-frame matrix work. Three recomposes and multiplies the local/world matrix of EVERY object in
    * the scene each frame, visible or not: ~40 parked enemies (≈90 bones each), pooled effects and warm-up groups made that
