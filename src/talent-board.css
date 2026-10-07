@@ -228,3 +228,6 @@
   #character .tb-wrap *, #character .tb-wrap *::after { animation:none !important; transition:none !important; }
   #character .tb-link.just { stroke-dasharray:none; stroke-dashoffset:0; }
 }
+/* the button itself is the drag source / hit target, never its picture */
+#character .tb-node > *, #character .tb-slot-btn > * { pointer-events:none; }
+#character .tb-node[draggable="true"], #character .tb-slot-btn[draggable="true"] { -webkit-user-drag:element; }
