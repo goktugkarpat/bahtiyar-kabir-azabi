@@ -65,3 +65,6 @@ Object.assign(window.KabirI18n.dictionary,{"Sürüm":"Build","Söz":"Saying","K�
 /* ajan:qa */
 Object.assign(window.KabirI18n.dictionary,{"KIZIL OCAK":"CRIMSON FORGE"," ganimet · ":" loot · "," ile dokun.":" to touch it."," sn.":" sec."});
 /* /ajan:qa */
+/* ajan:talents-slim */
+Object.assign(window.KabirI18n.dictionary,{"I · UYANIŞ":"I · AWAKENING","V · KİLİT TAŞI":"V · KEYSTONE","5 puan harca":"Spend 5 points","8 puan · yalnız biri":"8 points · only one","Yere mühür kaz, her şeyi yak. Alev Saçağı ile ateş düşmandan düşmana geçer.":"Carve seals into the ground and burn everything. With Flame Fringe the fire jumps from foe to foe."});
+/* /ajan:talents-slim */

@@ -30,14 +30,14 @@
     skull: '<path d="M12 2c5 0 9 3.5 9 8.5 0 3-1.5 4.5-3 5.5v3h-3v-2h-2v2h-2v-2H9v2H6v-3c-1.5-1-3-2.5-3-5.5C3 5.5 7 2 12 2zM8 9a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm8 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4z"/>'
   };
   const glyph = (name, color) => '<svg class="tt-glyph" viewBox="0 0 24 24" aria-hidden="true" style="color:' + color + '">' + (GLYPH[name] || GLYPH.circle) + '</svg>';
-  const ROW_Y = { 1: 6.5, 2: 21.5, 3: 36, 3.5: 48.5, 4: 61, 5: 75, 6: 90.5 };
-  // view state that survives re-renders: zoom, scroll, recommended-build preview, last learned list (learn animation)
-  let zoom = 1, scrollX = 0, scrollY = 0, preview = '', seen = null;
+  const ROW_Y = { 1: 9, 2: 29, 3: 50, 4: 70, 5: 90 };
+  // view state that survives re-renders: recommended-build preview, last learned list (learn animation)
+  const zoom = 1;   // the slim tree fits at once: no zoom / pan
+  let preview = '', seen = null;
   const KIND = { active: t('Aktif yetenek'), form: t('Dönüşüm'), mod: t('Mühür'), passive: t('Beden'), key: t('Kilit taşı') };
   function pos(n) {
-    const colW = 100 / 6; let x = (n.col + .5) * colW, y = ROW_Y[n.row];
-    if (n.kind === 'mod') { x += (n.slot - 1) * colW * .31; y += n.slot === 1 ? 3.2 : 0; }
-    return { x, y };
+    const colW = 100 / 6; const x = (n.col + .5) * colW, y = ROW_Y[n.row];
+        return { x, y };
   }
   function render(state, h) {
     const T = B.TalentTree, P = B.Progression, esc = h.escape, nodes = T.nodes(), learned = state.learned;
@@ -56,7 +56,7 @@
     // ---- gates (row labels with the points they ask for)
     const spent = learned.length, bonus = state.boons ? (state.boons().points || 0) : 0;
     const rows = T.rows.map(r => {
-      if (!r.name) return ''; const need = r.row === 3 ? 3 : r.row === 4 ? 4 : r.row === 5 ? 7 : r.row === 6 ? 6 : r.row === 2 ? 1 : 0, open = spent >= need;
+      if (!r.name) return ''; const need = r.gate || 0, open = spent >= need;
       return '<div class="tt-row' + (open ? ' open' : '') + '" style="top:' + ROW_Y[r.row] + '%"><b>' + (() => { const k = r.name.indexOf(' · '); return k > 0 ? '<span class="tt-roman">' + esc(r.name.slice(0, k)) + '</span><span class="tt-rowword"> · ' + esc(r.name.slice(k + 3)) + '</span>' : esc(r.name); })() + '</b><small>' + esc(r.hint) + '</small></div>';
     }).join('');
     const heads = T.cols.map((c, i) => {
@@ -74,7 +74,7 @@
       const title = n.name + ' · ' + KIND[n.kind] + (known ? '' : ' · ' + a.reason);
       return '<button data-char="skill" data-skill="' + n.id + '" class="' + cls + '" style="left:' + p.x.toFixed(2) + '%;top:' + p.y.toFixed(2) + '%;--c:' + c + '" aria-pressed="' + (n.id === sel.id) + '" title="' + esc(title) + '">' +
         '<span class="tt-art">' + art + '</span>' + (fresh.includes(n.id) ? '<i class="tt-burst" aria-hidden="true"></i>' : '') + (n.kind === 'form' ? '<em class="tt-tier">' + (n.skill.tier === 2 ? 'II' : 'III') + '</em>' : '') +
-        (slot >= 0 ? '<span class="tt-cap">' + h.capHtml(h.keys[slot]) + '</span>' : '') + (n.kind !== 'mod' ? '<span class="tt-name">' + esc(n.name) + '</span>' : '') + '</button>';
+        (slot >= 0 ? '<span class="tt-cap">' + h.capHtml(h.keys[slot]) + '</span>' : '') + '<span class="tt-name">' + esc(n.name) + '</span>' + '</button>';
     }).join('');
     // ---- build identity: the two columns with most points
     const weight = T.cols.map((c, i) => ({ c, n: nodes.filter(n => n.col === i && learned.includes(n.id)).length })).filter(o => o.n).sort((a, b) => b.n - a.n);
@@ -84,7 +84,6 @@
     const respecWhy = !learned.length ? t('Geri alınacak puan yok.') : inCombat ? t('Savaşın ortasında yol değiştirilemez.') : t('Bütün puanlar ücretsiz geri verilir (savaş dışında).');
     const head = '<div class="tt-head"><span class="tt-budget"><b>' + state.points + '</b> ' + esc(t('puan')) + ' <small>' + spent + ' / ' + (T.MAX_POINTS + bonus) + ' ' + esc(t('harcandı')) + ' · ' + T.nodes().length + ' ' + esc(t('düğüm')) + '</small></span>' +
       '<span class="tt-identity">' + esc(t('Yolun:')) + ' ' + identity + '</span>' +
-      '<span class="tt-zoom"><button data-char="talent" data-act="zoom" data-dir="-1" aria-label="' + esc(t('Uzaklaştır')) + '">−</button><button data-char="talent" data-act="zoom" data-dir="0" aria-label="' + esc(t('Sığdır')) + '">' + Math.round(zoom * 100) + '%</button><button data-char="talent" data-act="zoom" data-dir="1" aria-label="' + esc(t('Yakınlaştır')) + '">+</button></span>' +
       '<button class="tt-respec" data-char="respec" title="' + esc(respecWhy) + '" ' + (!learned.length || inCombat ? 'disabled' : '') + '>' + esc(t('Yolu sıfırla')) + '</button></div>';
     const presets = '<div class="tt-presets"><small>' + esc(t('Önerilen yollar')) + '</small>' + T.presets.map(x => '<button data-char="talent" data-act="preview" data-preset="' + x.id + '" class="' + (x.id === preview ? 'on' : '') + '" title="' + esc(x.hint) + '">' + esc(x.name) + '</button>').join('') +
       (pre ? '<span class="tt-preinfo">' + esc(pre.hint) + '</span><button class="tt-apply" data-char="talent" data-act="apply" data-preset="' + pre.id + '" ' + (inCombat ? 'disabled' : '') + '>' + esc(t('Bu yolu uygula')) + '</button>' : '') + '</div>';
@@ -100,7 +99,7 @@
     let extra = '';
     if (sel.kind === 'mod') {
       const target = T.get(sel.requires), rivals = nodes.filter(n => n.group === sel.group && n.id !== sel.id);
-      extra = '<p class="tt-rule">' + esc(en() ? 'Seals ' + target.name + ' and all its forms.' : target.name + ' ve bütün dönüşümlerini mühürler.') + '</p><p class="tt-rule excl">✕ ' + esc(en() ? 'Excludes: ' : 'Birlikte alınamaz: ') + rivals.map(r => esc(r.name)).join(', ') + '</p>';
+      extra = '<p class="tt-rule">' + esc(en() ? 'Seal for ' + target.name + '.' : target.name + ' için mühür.') + '</p>' + (rivals.length ? '<p class="tt-rule excl">✕ ' + esc(en() ? 'Excludes: ' : 'Birlikte alınamaz: ') + rivals.map(r => esc(r.name)).join(', ') + '</p>' : '');
     } else if (sel.kind === 'key') {
       extra = '<p class="tt-price">' + esc(sel.price) + '</p><p class="tt-rule excl">✕ ' + esc(t('Bir yolculukta yalnız bir kilit taşı seçilir.')) + '</p>';
     } else if (sel.kind === 'form') extra = '<p class="tt-rule">' + esc(en() ? 'Replaces ' + T.get(sel.requires).name + ' in its slot.' : T.get(sel.requires).name + ' yerine aynı yuvaya geçer.') + '</p>';
@@ -125,7 +124,6 @@
   // Actions from the board (character-ui.js forwards data-char="talent"): zoom, preview a recommended build, apply it.
   function action(button, state, game) {
     const act = button.dataset.act, T = B.TalentTree;
-    if (act === 'zoom') { const d = Number(button.dataset.dir); zoom = d === 0 ? 1 : Math.max(1, Math.min(2, +(zoom + d * .25).toFixed(2))); return { ok: true, quiet: true }; }
     if (act === 'preview') { preview = preview === button.dataset.preset ? '' : button.dataset.preset; return { ok: true, quiet: true }; }
     if (act === 'apply') {
       const pre = T.presets.find(x => x.id === button.dataset.preset); if (!pre || !state) return { ok: false, reason: t('Böyle bir yol yok.') };
@@ -142,21 +140,6 @@
     }
     return { ok: false, reason: '' };
   }
-  // Ctrl + wheel zooms, a drag on the empty board pans; scroll position survives re-renders.
-  document.addEventListener('wheel', e => {
-    const vp = e.target.closest && e.target.closest('.tt-viewport'); if (!vp || !e.ctrlKey) return;
-    e.preventDefault(); zoom = Math.max(1, Math.min(2, +(zoom + (e.deltaY < 0 ? .1 : -.1)).toFixed(2)));
-    const bd = vp.querySelector('.tt-board'); if (bd) bd.style.setProperty('--z', zoom);
-    const label = document.querySelector('.tt-zoom [data-dir="0"]'); if (label) label.textContent = Math.round(zoom * 100) + '%';
-  }, { passive: false, capture: true });
-  document.addEventListener('scroll', e => { const vp = e.target; if (vp && vp.classList && vp.classList.contains('tt-viewport')) { scrollX = vp.scrollLeft; scrollY = vp.scrollTop; } }, true);
-  let drag = null;
-  document.addEventListener('pointerdown', e => { const vp = e.target.closest && e.target.closest('.tt-viewport'); if (!vp || e.target.closest('.tt-node') || zoom <= 1) return; drag = { vp, x: e.clientX, y: e.clientY, l: vp.scrollLeft, t: vp.scrollTop }; vp.classList.add('panning'); }, true);
-  document.addEventListener('pointermove', e => { if (!drag) return; drag.vp.scrollLeft = drag.l - (e.clientX - drag.x); drag.vp.scrollTop = drag.t - (e.clientY - drag.y); }, true);
-  document.addEventListener('pointerup', () => { if (drag) { drag.vp.classList.remove('panning'); drag = null; } }, true);
-  // After character-ui puts the html in place: restore the scroll of the zoomed board.
-  const observer = typeof MutationObserver === 'function' ? new MutationObserver(() => { const vp = document.querySelector('.tt-viewport'); if (vp && !vp.dataset.restored) { vp.dataset.restored = '1'; vp.scrollLeft = scrollX; vp.scrollTop = scrollY; } }) : null;
-  if (observer) { const start = () => observer.observe(document.body, { childList: true, subtree: true }); if (document.body) start(); else document.addEventListener('DOMContentLoaded', start); }
   // Hover card next to the node (mouse only): name, kind, text, price and why it is locked. The inspect panel stays the click target.
   let tip = null, tipFor = null, lastState = null;
   function hoverCard(event) {

@@ -29,10 +29,10 @@
 #character .tt-node .tt-art { position:relative; display:grid; place-items:center; width:var(--s); height:var(--s); overflow:hidden; background:#120c0a; transition:transform .12s, box-shadow .15s, filter .15s;
   border:2px solid #4b3a29; box-shadow:0 0 0 1px #000, inset 0 0 10px #000; }
 #character .tt-node .tt-art img { width:100%; height:100%; object-fit:cover; display:block; }
-#character .tt-active { --s:clamp(34px,11.5cqh,58px); }
-#character .tt-form { --s:clamp(26px,8.6cqh,44px); }
-#character .tt-mod { --s:clamp(20px,6.6cqh,32px); }
-#character .tt-passive { --s:clamp(20px,6.6cqh,32px); }
+#character .tt-active { --s:clamp(36px,13cqh,60px); }
+#character .tt-form { --s:clamp(32px,11cqh,52px); }
+#character .tt-mod { --s:clamp(28px,9cqh,44px); }
+#character .tt-passive { --s:clamp(28px,9cqh,44px); }
 #character .tt-key { --s:clamp(30px,10cqh,50px); }
 #character .tt-active .tt-art, #character .tt-form .tt-art { transform:rotate(45deg); border-radius:4px; }
 #character .tt-active .tt-art img, #character .tt-form .tt-art img { transform:rotate(-45deg) scale(1.42); }
@@ -150,6 +150,6 @@
   #character .tt-presets small, #character .tt-presets .tt-preinfo { display:none; }
   #character .tt-presets { flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; }
   #character .tt-presets button { white-space:nowrap; font-size:11px; padding:1px 6px; }
-  #character .tt-viewport[data-zoom="1"] .tt-passive .tt-name, #character .tt-viewport[data-zoom="1"] .tt-form .tt-name, #character .tt-viewport[data-zoom="1"] .tt-tier { display:none; }
+  #character .tt-viewport[data-zoom="1"] .tt-name { font-size:9px; }
 }
 @media (prefers-reduced-motion: reduce) { #character .tt-node.tt-key.skt-node::before, #character .tt-link.lit, #character .tt-node.just .tt-art, #character .tt-burst { animation:none !important; } }
