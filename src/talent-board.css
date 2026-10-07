@@ -333,3 +333,76 @@
 #character .tb-plaque.tight .tb-or { display:none; }
 #character .tb-facts { gap:2px 8px; }
 #character .tb-facts dt, #character .tb-facts dd { font-size:12px; }
+/* ---------- size pass (ajan:boyut): bigger icons, less dead space, middle-sized text, centred bars ---------- */
+/* board text: never below its design size on a small board, and grows at most 1.25x on a big one */
+#character .tb-fit { --inv:max(calc(1 / var(--s, 1)), min(1, calc(1.25 / var(--s, 1)))); }
+#character .tb-wrap { gap:6px; grid-template-rows:minmax(0,1fr) auto; }
+/* points / spent sit at the left of the bottom bar, the respec button at its right */
+#character .tb-left, #character .tb-right { min-width:0; display:flex; align-items:center; gap:12px; }
+#character .tb-right { justify-content:flex-end; }
+#character .tb-left .tb-ident { flex:1 1 auto; }
+#character .tb-points b { font-size:24px; }
+#character .tb-spent { padding-left:10px; }
+#character .tb-spent b { font-size:14px; }
+#character .tb-respec { flex:none; padding:5px 10px; font:600 12px/1.1 var(--sans); }
+#character .tb-main { gap:6px; grid-template-columns:minmax(0,1fr) clamp(196px,22%,290px); }
+/* panels: slim header strip (30), narrow row gutter (numeral + gate; the row name stays in its tooltip) */
+#character .tb-panel::after { top:36px; }
+#character .tb-panel header { height:32px; gap:6px; padding:0 7px; }
+#character .tb-crest { width:24px; height:24px; }
+#character .tb-ptitle b { font-size:calc(12.5px * var(--inv)); line-height:1.2; }
+#character .tb-ptitle small { line-height:1.1; }
+#character .tb-ptitle small, #character .tb-paths i { font-size:calc(11px * var(--inv)); }
+#character .tb-paths { gap:1px; }
+#character .tb-row { left:2px; width:32px; gap:3px; }
+#character .tb-row b { font-size:calc(14px * var(--inv)); }
+#character .tb-row span { display:none; }
+#character .tb-gate { font-size:calc(11px * var(--inv)); }
+#character .tb-gate svg { width:calc(8px * var(--inv)); height:calc(8px * var(--inv)); }
+/* keystone label sits left of its diamond (two short lines), the diamond hugs the bigger icon */
+#character .tb-keycap { transform:translateY(-50%); white-space:normal; text-align:right; font-size:calc(11px * var(--inv)); line-height:1.15; letter-spacing:.04em; }
+#character .tb-crown { width:calc(var(--sz) * .98); height:calc(var(--sz) * .98); }
+#character .tb-plaque, #character .tb-plaque.tight { margin-top:0; padding-top:0; }
+#character .tb-plaque > b { top:3px; font-size:calc(11px * var(--inv)); }
+#character .tb-plaque.tight > b { font-size:calc(10.5px * var(--inv)); }
+#character .tb-or { font-size:calc(11px * var(--inv)); }
+/* badges: 10-11 px on screen, text centred inside the box */
+#character .tb-rank, #character .tb-tier, #character .tb-cap, #character .tb-lvl, #character .tb-ord { font-size:calc(10.5px * var(--inv)); line-height:1; }
+#character .tb-cap, #character .tb-lvl { justify-content:center; padding:2px 4px; }
+#character .tb-tier { left:3px; bottom:2px; }
+#character .tb-lock { width:18px; height:18px; }
+/* side panel: room above and below, middle-sized bold text */
+#character .tb-wrap aside.tb-side { padding:12px 12px 11px; gap:5px; }
+#character .tb-side .tb-kicker { font-size:11px; }
+#character .tb-sideicon { width:44px; height:44px; }
+#character .tb-side h3 { font-size:17px; }
+#character .tb-side .tb-status { font:italic 600 12px/1.25 var(--sans); }
+#character .tb-side .tb-desc { font:500 clamp(12.5px, .68vw, 13px)/1.36 var(--sans); }
+#character .tb-side .tb-rule, #character .tb-side .tb-delta { font:italic 600 12px/1.3 var(--sans); }
+#character .tb-side .tb-archnote { font:500 clamp(12px, .66vw, 13px)/1.32 var(--sans); }
+#character .tb-facts dt, #character .tb-facts dd { font-size:clamp(12px, .66vw, 13px); }
+#character .tb-learn, #character .tb-refund { font-size:12px; padding:7px 8px; }
+#character .tb-assign small { font-size:11px; }
+#character .tb-assign { grid-template-columns:max-content repeat(3,minmax(0,1fr)); }
+#character .tb-assign button { font-size:11.5px; padding:5px 4px; }
+/* bottom bar: identity, slot bar and help on one middle line, slot bar dead centre */
+#character .tb-bottom { gap:12px; padding:5px 4px 1px; align-items:center; }
+#character .tb-ident { font:600 12.5px/1.3 var(--sans); }
+#character .tb-ident span { font-size:12px; }
+#character .tb-help { font:600 12.5px/1.35 var(--sans); }
+#character .tb-slots { gap:10px; padding:5px 10px 11px; align-self:center; justify-self:center; }
+#character .tb-slot { width:clamp(48px, 3.4vw, 64px); height:clamp(48px, 3.4vw, 64px); }
+#character .tb-slot-btn i { font-size:24px; }
+#character .tb-slotcap { bottom:-9px; justify-content:center; padding:2px 6px; font-size:12.5px; line-height:1; }
+#character .tb-slotcap svg { width:8px; height:12px; }
+@media (max-height:620px), (max-width:1000px) {
+  #character .tb-main { grid-template-columns:minmax(0,1fr) clamp(170px,24%,230px); }
+  #character .tb-wrap aside.tb-side { padding:9px 9px 8px; gap:5px; }
+  #character .tb-side h3 { font-size:15px; }
+  #character .tb-side .tb-desc { font-size:12px; }
+  #character .tb-slot { width:44px; height:44px; }
+  #character .tb-slots { gap:8px; padding:4px 9px 10px; }
+  #character .tb-slotcap { font-size:12px; padding:1px 5px; }
+  #character .tb-ident, #character .tb-help { font-size:12px; }
+}
+/* /ajan:boyut */

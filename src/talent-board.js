@@ -29,12 +29,15 @@
   //   row III the panel's archetype passive pair(s) on a plaque ("ya da" between the rivals),
   //   row IV  the panel's keystone in a big diamond at the bottom (one keystone per run, the others get the red cross).
   // Positions come from the data (line / slot / group / arch), nothing here knows the node ids.
-  const W = 800, H = 410, GUT = 62, GAP = 8;
+  // Sized so the icons stay big on screen: narrow row gutter (numeral + gate only), slim header strips, tight rows.
+  const W = 800, H = 408, GUT = 36, GAP = 4;
   const PW = (W - GUT - 4 - GAP * 2) / 3;
-  const ROW_Y = { 1: 80, 2: 150, 3: 226, 4: 334 };
-  const HEAD = 40;
-  const SIZE = { active: 50, form: 40, mod: 40, passive: 40, key: 52 };
-  const FORK = 25;   // half distance between the two forms of a line
+  const ROW_Y = { 1: 72, 2: 148, 3: 238, 4: 343 };
+  const HEAD = 32;
+  const SIZE = { active: 66, form: 54, mod: 54, passive: 54, key: 74 };
+  const FORK = 31;   // half distance between the two forms of a line
+  const PLQ_TOP = SIZE.passive / 2 + 18, PLQ_BOT = SIZE.passive / 2 + 10;   // build plaque around row III: label strip above, badge room below
+  const CROWN = .98, KEY_R = SIZE.key * CROWN * Math.SQRT1_2;   // keystone diamond: side = key * CROWN, half height = KEY_R
   const KIND = { active: t('Aktif yetenek'), form: t('Biçim'), mod: t('Güçlendirme'), passive: t('Yapı'), key: t('Kilit taşı') };
   const ARCH_COL = { bleed: '#c8473f', rage: '#d9884b', guard: '#a9a4c4', charge: '#c9a45a' };
   const PANEL_NAME = { cleave: 'GAZAP', roar: 'VEBA', whirl: 'VEBA', charge: 'KÜL', guard: 'KÜL', hook: 'GAZAP' };   // by the panel's first line
@@ -70,7 +73,7 @@
     }
     panels.forEach((p, i) => {
       const cells = p.pairs.reduce((s, o) => s + o.list.length, 0); let m = 0;
-      const sz = cells > 2 ? 34 : SIZE.passive; p.tight = cells > 2;
+      const sz = SIZE.passive; p.tight = cells > 2;
       for (const pair of p.pairs) { pair.xs = []; for (const n of pair.list) { const x = p.x + PW * (m + .5) / cells; m++; pair.xs.push(x); at[n.id] = { x, y: ROW_Y[3], sz, panel: i }; } }
       p.keys.forEach((n, k) => { at[n.id] = { x: p.x + PW * (k + .5) / p.keys.length, y: ROW_Y[4], sz: SIZE.key, panel: i }; });
     });
@@ -126,7 +129,7 @@
     L.panels.forEach((p, i) => {
       const forms = p.lines.map(line => nodes.filter(n => n.line === line && n.kind === 'form'));
       const passives = p.pairs.flatMap(o => o.list), gotPassive = passives.some(n => has(n.id)), key = p.keys[0];
-      const plaqueTop = ROW_Y[3] - 34, plaqueBot = ROW_Y[3] + 28, keyTop = ROW_Y[4] - 44, bend = (plaqueBot + keyTop) / 2;
+      const plaqueTop = ROW_Y[3] - PLQ_TOP, plaqueBot = ROW_Y[3] + PLQ_BOT, keyTop = ROW_Y[4] - KEY_R - 2, bend = (plaqueBot + keyTop) / 2;
       p.cx.forEach((x, j) => {
         const gotForm = forms[j].some(n => has(n.id));
         const c = gotForm && gotPassive ? 'lit' : gotForm ? 'open' : '';
@@ -151,14 +154,14 @@
         '<header>' + (acts[0] ? '<span class="tb-crest"><img src="assets/ui/abilities/' + acts[0].id + '.png" alt="" draggable="false"></span>' : '') +
         '<span class="tb-ptitle"><b>' + esc(t(p.name)) + '</b><small><em>' + count + '</em> ' + esc(count === 1 && en() ? 'point' : t('puan')) + '</small></span>' +
         '<span class="tb-paths">' + cols.map(c => '<i style="color:' + c.color + '" title="' + esc(c.hint || '') + '">' + esc(c.name) + '</i>').join('') + '</span></header>' +
-        (p.keys.length ? '<span class="tb-keycap" style="left:' + (pos(p.keys[0]).x - p.x).toFixed(1) + 'px;top:' + (ROW_Y[4] + 50) + 'px">' + esc(t('Kilit taşı')) + '</span>' : '') + '</div>';
+        (p.keys.length ? '<span class="tb-keycap" style="right:' + (p.w - (pos(p.keys[0]).x - p.x) + KEY_R + 6).toFixed(1) + 'px;top:' + ROW_Y[4] + 'px;max-width:' + Math.max(30, pos(p.keys[0]).x - p.x - KEY_R - 10).toFixed(0) + 'px">' + esc(t('Kilit taşı')) + '</span>' : '') + '</div>';
     }).join('');
     // ---- build plaques (row III): one per exclusive pair of passives, "ya da" between the rivals -----------------------
     const plaques = L.panels.flatMap(p => p.pairs.map(g => {
-      const first = g.list[0], half = pos(first).sz / 2 + 9, x0 = Math.min(...g.xs) - half, x1 = Math.max(...g.xs) + half, y = ROW_Y[3];
+      const first = g.list[0], half = pos(first).sz / 2 + (p.tight ? 3 : 9), x0 = Math.min(...g.xs) - half, x1 = Math.max(...g.xs) + half, y = ROW_Y[3], top = y - PLQ_TOP;
       const got = g.list.some(n => has(n.id)), c = ARCH_COL[first.arch] || colOf(first).color;
-      const ors = g.list.slice(1).map((n, k) => '<span class="tb-or" style="left:' + ((g.xs[k] + g.xs[k + 1]) / 2 - x0).toFixed(1) + 'px;top:' + (y - (y - 34) + 2) + 'px">' + esc(t('ya da')) + '</span>').join('');
-      return '<div class="tb-plaque' + (got ? ' got' : '') + (p.tight ? ' tight' : '') + '" style="left:' + x0.toFixed(1) + 'px;width:' + (x1 - x0).toFixed(1) + 'px;top:' + (y - 34) + 'px;height:62px;--c:' + c + '"><b>' + esc(archOf(first) || KIND.passive) + '</b>' + ors + '</div>';
+      const ors = g.list.slice(1).map((n, k) => '<span class="tb-or" style="left:' + ((g.xs[k] + g.xs[k + 1]) / 2 - x0 - 1).toFixed(1) + 'px;top:' + (y - top - 2) + 'px">' + esc(t('ya da')) + '</span>').join('');
+      return '<div class="tb-plaque' + (got ? ' got' : '') + (p.tight ? ' tight' : '') + '" style="left:' + x0.toFixed(1) + 'px;width:' + (x1 - x0).toFixed(1) + 'px;top:' + top + 'px;height:' + (PLQ_TOP + PLQ_BOT) + 'px;--c:' + c + '"><b>' + esc(archOf(first) || KIND.passive) + '</b>' + ors + '</div>';
     })).join('');
     const rows = T.rows.map(r => {
       const [roman, word] = splitRow(r.name), need = r.gate || 0, open = spent >= need;
@@ -191,10 +194,10 @@
       '<svg class="tb-links" viewBox="0 0 ' + W + ' ' + H + '" width="' + W + '" height="' + H + '" aria-hidden="true">' + defs + svg.join('') + '</svg>' + html + '</div></div>';
     // ---- top bar: points left, spent, recommended builds, respec -----------------------------------------------------
     const respecWhy = !learned.length ? t('Geri alınacak puan yok.') : inCombat ? t('Savaşın ortasında yol değiştirilemez.') : t('Bütün puanlar ücretsiz geri verilir (savaş dışında).');
-    const top = '<div class="tb-top"><div class="tb-points' + (state.points ? ' has' : '') + '"><b>' + state.points + '</b><span>' + esc(t('PUAN')) + '<small>' + esc(t('kalan')) + '</small></span></div>' +
-      '<div class="tb-spent" title="' + esc(L.panels.map(p => t(p.name)).join(' / ')) + '"><b>' + counts.join(' / ') + '</b><small>' + spent + ' / ' + total + ' ' + esc(t('harcandı')) + '</small></div>' +
-      '<div class="tb-presets"></div>' +
-      '<button type="button" class="tb-respec" data-char="respec" title="' + esc(respecWhy) + '" ' + (!learned.length || inCombat ? 'disabled' : '') + '>' + esc(t('Puanları sıfırla')) + '</button></div>';
+    // (lives in the bottom bar now: the board gets the full height under the page tabs)
+    const points = '<div class="tb-points' + (state.points ? ' has' : '') + '"><b>' + state.points + '</b><span>' + esc(t('PUAN')) + '<small>' + esc(t('kalan')) + '</small></span></div>' +
+      '<div class="tb-spent" title="' + esc(L.panels.map(p => t(p.name)).join(' / ')) + '"><b>' + counts.join(' / ') + '</b><small>' + spent + ' / ' + total + ' ' + esc(t('harcandı')) + '</small></div>';
+    const respec = '<button type="button" class="tb-respec" data-char="respec" title="' + esc(respecWhy) + '" ' + (!learned.length || inCombat ? 'disabled' : '') + '>' + esc(t('Puanları sıfırla')) + '</button>';
     // ---- side panel (inspect) — keeps the .skt-inspect class: character-ui.js swaps it on a single click ----------
     const a = T.access(state, sel.id), col = colOf(sel), known = a.known;
     let facts = '';
@@ -236,10 +239,10 @@
         (s ? '<img src="assets/ui/abilities/' + s.id + '.png" alt="" draggable="false">' : '<i aria-hidden="true">+</i>') + '</button><span class="tb-slotcap">' + h.capHtml(h.keys[slot]) + '</span>' +
         (s ? '<button type="button" class="tb-slot-x" data-char="assign" data-slot="' + slot + '" data-skill="" aria-label="' + esc(s.name) + ' ×">×</button>' : '') + '</div>';
     }).join('');
-    const bottom = '<div class="tb-bottom"><p class="tb-ident">' + ident + '</p><div class="tb-slots" role="group" aria-label="' + esc(t('Yetenek yuvaları')) + '">' + slots + '</div>' +
-      '<p class="tb-help">' + esc(t('Çift tıkla: öğren')) + '<br>' + esc(t('Simgeyi seç, yuvaya tıkla')) + '</p></div>';
+    const bottom = '<div class="tb-bottom"><div class="tb-left">' + points + '<p class="tb-ident">' + ident + '</p></div><div class="tb-slots" role="group" aria-label="' + esc(t('Yetenek yuvaları')) + '">' + slots + '</div>' +
+      '<div class="tb-right"><p class="tb-help">' + esc(t('Çift tıkla: öğren')) + '<br>' + esc(t('Simgeyi seç, yuvaya tıkla')) + '</p>' + respec + '</div></div>';
     queueMicrotask(fit);
-    return '<div class="tb-wrap">' + top + '<div class="tb-main">' + board + side + '</div>' + bottom + '</div>';
+    return '<div class="tb-wrap"><div class="tb-main">' + board + side + '</div>' + bottom + '</div>';
   }
   // ---- fit the canvas to its frame (no scroll) ------------------------------------------------------------------
   let watched = null;
