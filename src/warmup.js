@@ -276,7 +276,7 @@
         const n = g.index ? g.index.count : g.attributes.position.count;
         if (n >= 1) { dr = [g, g.drawRange.start, g.drawRange.count]; g.setDrawRange(0, Math.min(n, o.isPoints ? 1 : 3)); }
       }
-      rec.push(o, o.visible, o.frustumCulled, o.isInstancedMesh ? o.count : -1, dr);
+      rec.push(o, o.userData && o.userData.perfWant ? o.userData.perfWant() : o.visible, o.frustumCulled, o.isInstancedMesh ? o.count : -1, dr);
       o.visible = true; if (!keepCulling) o.frustumCulled = false;
       if (o.isInstancedMesh && o.count === 0) o.count = 1;
     });

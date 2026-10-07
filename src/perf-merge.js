@@ -26,7 +26,7 @@
   'use strict';
   var B = window.BABA = window.BABA || {};
   var T = window.THREE;
-  var Q = location.search, OFF = !/[?&]opt(?:=|&|$)/.test(Q);
+  var Q = location.search, OFF = /[?&]noopt\b/.test(Q);
   // Small parts (shape vertices × instances) are copied into pseudo merges; larger ones are merged as real instances.
   // TOTAL caps the copied vertices (~108 bytes each with matrix and colour).
   var SRC_LIMIT = +(/[?&]mergesrc=(\d+)/.exec(Q) || [0, 5000])[1], TOTAL_LIMIT = +(/[?&]mergetotal=(\d+)/.exec(Q) || [0, 600000])[1];
@@ -194,6 +194,7 @@
   // Re-pack the merged draw from the included parts (only when that set changes).
   var tmpSphere = new T.Sphere(), tmpBox = new T.Box3(), tmpBox2 = new T.Box3();
   function rebuild(G) {
+    var rbT0 = performance.now();
     var srcs = G.sources, inc = G.included, mesh = G.mesh, k, count = 0, any = false;
     tmpBox.makeEmpty();
     if (G.kind === 'pseudo') {
@@ -229,7 +230,7 @@
       if (mesh.geometry.boundingSphere && G.kind === 'pseudo') mesh.geometry.boundingSphere.copy(mesh.boundingSphere);
     }
     G.drawn = count > 0;
-    Perf.stats.rebuilds++;
+    Perf.stats.rebuilds++; var rbMs = performance.now() - rbT0; Perf.stats.rebuildMs = (Perf.stats.rebuildMs || 0) + rbMs; if (rbMs > (Perf.stats.rebuildMax || 0)) Perf.stats.rebuildMax = rbMs;
   }
 
   function release(G) {
@@ -410,7 +411,7 @@
    * stand-ins (character shadow proxies) are shown inside the shadow pass, after this update. */
   // Only actors, effects and other groups outside the world root take part: the world's static parts already skip their
   // matrix work, and chapter worlds may show helper groups only inside their own render hooks.
-  var LAZY = !OFF && !/[?&]nolazy\b/.test(Q), lazyClock = 0;
+  var LAZY = !OFF && /[?&]lazy\b/.test(Q), lazyClock = 0;   // opt-in (?lazy): perf-hidden.js already skips hidden subtrees and the extra wrapper cost ~15 % of a frame's CPU in A/B runs
   function markLazy(scene, worldRoot) {
     if (!LAZY) return;
     scene.children.forEach(function (top) {
