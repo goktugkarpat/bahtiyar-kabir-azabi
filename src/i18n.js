@@ -68,3 +68,6 @@ Object.assign(window.KabirI18n.dictionary,{"KIZIL OCAK":"CRIMSON FORGE"," ganime
 /* ajan:talents-slim */
 Object.assign(window.KabirI18n.dictionary,{"I · UYANIŞ":"I · AWAKENING","V · KİLİT TAŞI":"V · KEYSTONE","5 puan harca":"Spend 5 points","8 puan · yalnız biri":"8 points · only one","Yere mühür kaz, her şeyi yak. Alev Saçağı ile ateş düşmandan düşmana geçer.":"Carve seals into the ground and burn everything. With Flame Fringe the fire jumps from foe to foe."});
 /* /ajan:talents-slim */
+/* ajan:talentui */
+Object.assign(window.KabirI18n.dictionary,{"GAZAP":"WRATH","VEBA":"PLAGUE","KÜL":"ASH","Geri al":"Refund","Hazır yollar":"Builds","PUAN":"POINTS","kalan":"left","Puanları sıfırla":"Reset points","Simgeyi seç, yuvaya tıkla":"Pick an icon, click a slot","Sürükle ya da seç ve yuvaya tıkla":"Drag it, or pick it and click a slot","Uygula":"Apply","Yetenek yuvaları":"Skill slots","Yuvaya koy":"Put in slot","bütün sıralar açık":"all rows open","Öğren":"Learn","Öğrenilebilir · 1 puan":"Can be learned · 1 point"});
+/* /ajan:talentui */
