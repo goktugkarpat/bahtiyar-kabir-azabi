@@ -384,8 +384,9 @@
           const targets = talents.hookTargets(skill, player.face);
           if (!targets || !targets.length) emit('toast', { text: KabirI18n.t('Çengel için önünde düşman yok.') });
           else {
-            player.attack = { skill: skill.id, line: 'hook', tier: 1, params: P, heavy: true, combo: 0, age: 0, duration: .62, strike: .24, hit: true, face: player.face, damage: 0, radius: 0, serial: ++attackSerial,
-              queued: null, lunge: 0, lunged: 1, lungeLead: .1, whooshed: true, whooshAt: 99, originX: player.x, originZ: player.z, victims: new Set(), skillMove: 'chain' };
+            const HT = skill.id === 'hook2' ? { d: .54, s: .17, m: 'chainLong' } : skill.id === 'hook3' ? { d: .72, s: .28, m: 'chainBarb' } : { d: .62, s: .24, m: 'chain' };   // each form has its own throw timing and pose (talent-runtime HOOK table)
+            player.attack = { skill: skill.id, line: 'hook', tier: 1, params: P, heavy: true, combo: 0, age: 0, duration: HT.d, strike: HT.s, hit: true, face: player.face, damage: 0, radius: 0, serial: ++attackSerial,
+              queued: null, lunge: 0, lunged: 1, lungeLead: .1, whooshed: true, whooshAt: 99, originX: player.x, originZ: player.z, victims: new Set(), skillMove: HT.m };
             player.attack.chainAt = player.attack.duration; player.stamina -= skill.cost; started = talents.cast(skill, player.face, targets);
           }
         } else {

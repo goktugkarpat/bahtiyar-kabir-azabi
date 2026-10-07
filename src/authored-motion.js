@@ -86,6 +86,9 @@
     backhand: { clip: 'attackB', chamber: .20, contact: .25, follow: .317, end: .6, swing: .17, over: .45, twist: .55, bend: -.08, strikeBend: .22, tremble: .05, hold: .2 },
     slam: { clip: 'swordAttack', chamber: .30, contact: .44, follow: .50, end: .96, swing: .17, over: .2, twist: -.1, bend: -.4, strikeBend: .52, tremble: .07, hold: .55 },
     chain: { clip: 'meleeHook', mirror: true, chamber: .215, contact: .25, follow: .34, end: .4667, swing: .15, over: .5, twist: .5, bend: -.14, strikeBend: .24, tremble: .05, hold: .2 },
+    // hero hook forms: Zincirli Fırlatış = a fast, long overhand fling; Dikenli Çengel = a heavy wound-up lash with a deep lean into the pull
+    chainLong: { clip: 'meleeHook', mirror: true, chamber: .215, contact: .25, follow: .34, end: .4667, swing: .11, over: .7, twist: .62, bend: -.2, strikeBend: .34, tremble: .03, hold: .08 },
+    chainBarb: { clip: 'meleeHook', mirror: true, chamber: .215, contact: .25, follow: .34, end: .4667, swing: .19, over: .35, twist: .38, bend: -.32, strikeBend: .52, tremble: .08, hold: .32 },
     charge: { clip: 'crouch', still: true, stillAt: 0, chamber: 0, contact: 0, follow: 0, end: 0, swing: .08, over: 0, twist: 0, bend: -.2, strikeBend: .5, tremble: .06, rush: 'sprint' },
     pounce: { clip: 'crouch', still: true, stillAt: 0, chamber: 0, contact: 0, follow: 0, end: 0, swing: .3, over: 0, twist: 0, bend: .34, strikeBend: 0, tremble: .07, leap: true },
     // Signature moves (combat.js passes the beat's pose): whips, shoves, thrusts, casts, throws, the kick and the roar.

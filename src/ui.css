@@ -351,7 +351,10 @@ body.touch #skill-feedback { bottom: calc(288px * var(--k)) }
 @keyframes lack-pulse { 0%, 100% { transform: none } 20% { transform: translateX(-3px) } 45% { transform: translateX(3px) } 70% { transform: translateX(-1px) } }
 @keyframes lack-fade { to { opacity: 0 } }
 .action-special.cooling { animation: none }
-@media (prefers-reduced-motion: reduce) { .action.lack, .action.lack::before, .action.ready-flash::before { animation: none } .action.lack::before, .action.ready-flash::before { opacity: 0 } }
+/* skills2: a ready skill pops (icon swells and brightens once) so a recovered cooldown is felt */
+.action.ready-flash .skill { animation: ready-pop .5s cubic-bezier(.2, .9, .3, 1.2) }
+@keyframes ready-pop { 0% { transform: scale(.9); filter: brightness(2) } 45% { transform: scale(1.14); filter: brightness(1.5) } 100% { transform: none; filter: none } }
+@media (prefers-reduced-motion: reduce) { .action.ready-flash .skill, .action.lack, .action.lack::before, .action.ready-flash::before { animation: none } .action.lack::before, .action.ready-flash::before { opacity: 0 } }
 
 /* ───────────── Touch layout: orb bottom-left, radial medallions bottom-right ───────────── */
 #touch-controls { position: absolute; inset: 0; pointer-events: none }
