@@ -17,6 +17,8 @@ body:has(#target-hud:not(.hidden)) #lu-banner { top: max(24%, 172px) }
 body:has(#target-hud:not(.hidden) #boss-mechanic:not(.hidden)) #lu-banner { top: max(31%, 228px) }
 /* görev bildirimi seviye afişi/boss kartı sırasında soluklaşır, sonra kendiliğinden geri gelir */
 body:has(#lu-banner.lu-on) #quest-notice.show, body.bf-intro #quest-notice.show { opacity: .25 }
+/* bölge duyurusu (orta üst, geniş) görev bildirimiyle aynı yükseklikte: duyuru sürerken (4 sn) bildirim bekler */
+body:has(#announcement.show) #hud #quest-notice.show { opacity: 0; transition: opacity .3s }
 
 /* ───────── 2. Başlık ekranı ───────── */
 #title .title-shade { animation: ui-breathe 9s ease-in-out infinite alternate }
