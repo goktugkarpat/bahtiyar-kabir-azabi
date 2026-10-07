@@ -26,7 +26,7 @@
   'use strict';
   var B = window.BABA = window.BABA || {};
   var T = window.THREE;
-  var Q = location.search, OFF = !/[?&]opt/.test(Q);
+  var Q = location.search, OFF = !/[?&]opt(?:=|&|$)/.test(Q);
   // Small parts (shape vertices × instances) are copied into pseudo merges; larger ones are merged as real instances.
   // TOTAL caps the copied vertices (~108 bytes each with matrix and colour).
   var SRC_LIMIT = +(/[?&]mergesrc=(\d+)/.exec(Q) || [0, 5000])[1], TOTAL_LIMIT = +(/[?&]mergetotal=(\d+)/.exec(Q) || [0, 600000])[1];
@@ -254,6 +254,10 @@
   function frame(camera) {
     if (++lazyClock >= 600) { lazyClock = 0; if (Perf.scene) { markLazy(Perf.scene, Perf.root); shadowLod(Perf.scene); } }   // objects created since (spawns, effects)
     var mainCam = B.app && B.app.camera, useCam = camera && camera === mainCam;
+    // Safety net (the world could change a part's wish without the merged draw hearing about it, and the camera matrices seen here
+    // are those of the previous frame): every 20 frames all wishes are re-read and the frustum is recomputed. A rebuild only
+    // happens when the included set really changed, so this costs a few microseconds.
+    if (useCam && frameNo % 20 === 19) { wishEpoch++; lastPos.set(1e9, 1e9, 1e9); }
     var moved = useCam ? cameraStep(camera) : false;
     var check = (frameNo = (frameNo + 1) % 15) === 0;
     var gs = Perf.groups;
@@ -322,7 +326,8 @@
       if (total + G.verts > TOTAL_LIMIT) { skip('total-budget'); return; }
       total += G.verts; buildPseudo(G); adopt(G);
     });
-    inst.forEach(function (G) { if (G.sources.length < 2) return; buildInst(G); adopt(G); });
+    var MAXG = +(/[?&]mergemax=(\d+)/.exec(Q) || [0, 1e9])[1], MING = +(/[?&]mergemin=(\d+)/.exec(Q) || [0, 0])[1], gi = 0;
+    inst.forEach(function (G) { if (G.sources.length < 2) return; if (gi++ < MING || gi > MAXG) return; buildInst(G); adopt(G); });
     Perf.stats.vertices = total; Perf.stats.ms = +(performance.now() - t0).toFixed(1);
     scene.onBeforeRender = (function (before) {
       return function (renderer, s, camera) { if (before) before.apply(this, arguments); frame(camera); };
