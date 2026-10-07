@@ -9,13 +9,30 @@
   var B = window.BABA = window.BABA || {};
   var T = window.THREE;
 
+  // ---- GRAFİK AYARLARI (polish round: "biraz daha az karanlık, bulanıklık kısılsın") --------------------------------------
+  // Every softening / darkening effect of the picture has its multiplier here. 1 = old (v304) value where noted. Change here only.
+  var TUNE = {
+    // depth of field (High only): far top of the frame + nearest bottom strip. Old: top .85 from y .66, bottom .45 to y .10, 2.2 px, no safe zone.
+    dofTop: .26, dofTopFrom: .80, dofBottom: .12, dofBottomTo: .06, dofTexels: 1.4,
+    dofSafeMetres: 7,           // ground radius around the hero (his combat area) that is NEVER softened
+    // bloom: global gain on the per-room bloom, spread of the upsample chain (old .9), bloom added by ability flashes (old 1.6 per flash)
+    bloomGain: .8, bloomSpread: .78, abFlashBloom: .8, abFlashExposure: .4,
+    // radial spin blur of abilities (old: from 30 % to 72 % of the screen radius, full gain): now only at the extreme edge and weaker
+    abBlurFrom: .56, abBlurTo: 1.0, abBlurGain: .42,
+    // refraction / fringe warps (they smear the picture): multipliers of the old strengths
+    abChroma: .5, ringWarp: .6, pulseWarp: .6, pulseChroma: .6, hazeWarp: .7,
+    // darkness: vignette from the room grade, the fixed edge vignette over the picture, grain, hero-pool outer dimming (old .22), black toe (old .006), shadow fill
+    vignetteGain: .72, edgeVignette: .6, cssGrain: .11, focusDim: .10, toe: .0025, shadowFill: .004
+  };
   // Everything the quality preset controls in the post chain.
   var PRESETS = {
     // abTaps: radial spin-blur taps of the special ability (0 = none), abChroma: colour fringe (two extra taps)
-    low:  { ao: 0,    samples: 0,  radius: 0,   bloomLevels: 2, bloomHalf: false, haze: false, grain: .014, abTaps: 0, abChroma: false, sharp: 0 },
-    high: { ao: .925, samples: 10, radius: .95, bloomLevels: 4, bloomHalf: true, haze: true, grain: .021, abTaps: 6, abChroma: true, sharp: .55 }
+    low:  { ao: 0,    samples: 0,  radius: 0,   bloomLevels: 2, bloomHalf: false, haze: false, grain: .010, abTaps: 0, abChroma: false, sharp: 0 },
+    high: { ao: .925, samples: 10, radius: .95, bloomLevels: 4, bloomHalf: true, haze: true, grain: .015, abTaps: 6, abChroma: true, sharp: .55 }
   };
   var MAX_HEAT = 6;
+  // number -> GLSL float literal
+  function f(x) { var t = String(+x); return /[.e]/.test(t) ? t : t + '.'; }
 
   var VS = 'varying vec2 vUv; void main(){ vUv = position.xy * .5 + .5; gl_Position = vec4(position.xy, 0., 1.); }';
   var COMMON = [
@@ -110,6 +127,7 @@
     // Hero focus (ajan:visual-dark): xy = hero centre (uv), z = radius (height units), w = strength. The hero carries a soft pool of
     // exposure with him and the frame falls away into darkness around it, so a darker world never swallows the player.
     'uniform vec4 uFocus;',
+    'uniform vec4 uDof;',   // depth-of-field safe zone: xy = hero centre (uv), z = radius (height units), w = sin(camera pitch)
     // Special ability (only in the ABILITY variant, which is drawn while Post.setAbilityFx is being fed; otherwise this block does not exist):
     // A = spin (radial blur), chroma, flash (exposure + bloom), saturation punch; B = vignette pulse, hit-freeze desaturation, ring strength;
     // C = ring centre (uv), ring radius and width (height units of the ground ellipse); D = hero centre (uv), 1 / sin(camera pitch)
@@ -134,7 +152,7 @@
     '  vec2 st = vec2(vUv.x, 1. - vUv.y), px = st * uCss, dd = min(px, uCss - px);',
     // #vignette: radial-gradient(ellipse 78% 72% at 50% 46%, transparent 52%, #03020388 82%, #020101d8 100%)
     '  float r = length((st - vec2(.5, .46)) / vec2(.78, .72));',
-    '  float a = r < .82 ? clamp((r - .52) / .3, 0., 1.) * .533 : .533 + min(1., (r - .82) / .18) * .314;',
+    '  float a = (r < .82 ? clamp((r - .52) / .3, 0., 1.) * .533 : .533 + min(1., (r - .82) / .18) * .314) * ' + f(TUNE.edgeVignette) + ';',
     '  c = mix(c, r < .82 ? vec3(.0118, .0078, .0118) : vec3(.0078, .0039, .0039), a);',
     // low health: inset 0 0 110px 18px #9c0f16aa, pulsing
     '  if (uOvl.z > 0.) c = mix(c, vec3(.612, .059, .086), insetShadow(dd, 18., 110.) * .667 * uOvl.z);',
@@ -145,7 +163,7 @@
     '    c = mix(c, vec3(.761, .275, .122), insetShadow(dd, 30., 140.) * .533 * uOvl.y);',
     '  }',
     // #grain: static warm film grain at opacity .18
-    '  c = mix(c, vec3(.6, .54, .48), .18 * max(0., .36 * (.3 + .4 * hash(floor(px) * .917 + 3.1)) - .12));',
+    '  c = mix(c, vec3(.6, .54, .48), ' + f(TUNE.cssGrain) + ' * max(0., .36 * (.3 + .4 * hash(floor(px) * .917 + 3.1)) - .12));',
     // #damage-flash: radial-gradient(ellipse, transparent 50%, #5a000870) + inset 0 0 160px 40px #9c0f16
     '  if (uOvl.x > 0.) {',
     '    float fr = length((st - .5) / .7071);',
@@ -169,13 +187,13 @@
     '    off += vec2(sin(vUv.y * 165. - uTime * 7.3 + ph) * .65 + sin(vUv.y * 71. + vUv.x * 43. - uTime * 4.1 + ph) * .35,',
     '                sin(vUv.x * 131. - uTime * 5.7 + ph) * .4) * m;',
     '  }',
-    '  uv += off * vec2(.0019, .0013);',
+    '  uv += off * vec2(.0019, .0013) * ' + f(TUNE.hazeWarp) + ';',
     '  #endif',
     '  vec2 pca = vec2(0.); float pring = 0.;',
     '  if (uPulse.w > 0.) {',
     '    vec2 pd = (vUv - uPulse.xy) * vec2(uAspect, 1.); float pl = length(pd), pk = (pl - uPulse.z) / .1;',
     '    pring = exp(-pk * pk) * uPulse.w; vec2 pdir = pd / max(pl, 1e-4) / vec2(uAspect, 1.);',
-    '    uv -= pdir * pring * .03; pca = pdir * pring * .010;',
+    '    uv -= pdir * pring * .03 * ' + f(TUNE.pulseWarp) + '; pca = pdir * pring * .010 * ' + f(TUNE.pulseChroma) + ';',
     '  }',
     '  float abEx = 1., abBl = 1., sat = uSat, abFr = 0., abVg = 0.;',
     '  #if ABILITY',
@@ -184,12 +202,12 @@
     // shock ring on the floor: a ground circle is an ellipse on screen (uAbD.z = 1 / sin(pitch)); refraction = derivative of a gaussian
     '    vec2 rd = (vUv - uAbC.xy) * vec2(uAspect, 1.); vec2 re = vec2(rd.x, rd.y * uAbD.z); float rl = length(re), rk = (rl - uAbC.z) / max(uAbC.w, 1e-3);',
     '    float rg = exp(-rk * rk); abDir = re / max(rl, 1e-4); abDir = vec2(abDir.x / uAspect, abDir.y * uAbD.z);',
-    '    uv -= abDir * (rg * .35 - rk * rg * .9) * uAbB.z * .03; abCa = abDir * rg * uAbB.z * .008; abRim = rg * uAbB.z;',
+    '    uv -= abDir * (rg * .35 - rk * rg * .9) * uAbB.z * .03 * ' + f(TUNE.ringWarp) + '; abCa = abDir * rg * uAbB.z * .008 * ' + f(TUNE.abChroma) + '; abRim = rg * uAbB.z;',
     '  }',
     '  #endif',
     '  vec3 c;',
     '  #if ABILITY && ABTAPS > 0',
-    '  vec2 abV = (uv - uAbD.xy) * vec2(uAspect, 1.); float abR = length(abV), abM = smoothstep(.30, .72, abR) * uAbA.x;',
+    '  vec2 abV = (uv - uAbD.xy) * vec2(uAspect, 1.); float abR = length(abV), abM = smoothstep(' + f(TUNE.abBlurFrom) + ', ' + f(TUNE.abBlurTo) + ', abR) * uAbA.x * ' + f(TUNE.abBlurGain) + ';',
     '  if (abM > .004) {',
     // radial blur toward the screen edges (with a little swirl); the hero keeps his sharp centre. Jittered taps hide the banding.
     '    vec2 ab1 = (uv - uAbD.xy), ab2 = vec2(-abV.y, abV.x) / vec2(uAspect, 1.);',
@@ -209,18 +227,20 @@
     '    float lmn = luma(mn), lmx = luma(mx), sw = uSharp * (1. - smoothstep(.12, .7, (lmx - lmn) / (lmx + .03)));',
     // Very light depth of field: the far top of the frame and the nearest strip at the bottom soften (camera-lens depth, never the
     // play area in the middle); the detail push fades out there instead of fighting the blur.
-    '    float dof = smoothstep(.66, 1., vUv.y) * .85 + (1. - smoothstep(0., .1, vUv.y)) * .45;',
-    '    if (dof > .02) { vec2 dr = uTexel * 2.2;',
+    '    float dof = smoothstep(' + f(TUNE.dofTopFrom) + ', 1., vUv.y) * ' + f(TUNE.dofTop) + ' + (1. - smoothstep(0., ' + f(TUNE.dofBottomTo) + ', vUv.y)) * ' + f(TUNE.dofBottom) + ';',
+    // Safe zone: the hero and every foe in his combat radius stay perfectly sharp (ground circle = ellipse on screen).
+    '    vec2 sd = (vUv - uDof.xy) * vec2(uAspect, 1.); sd.y /= uDof.w; dof *= smoothstep(uDof.z, uDof.z * 1.6, length(sd));',
+    '    if (dof > .02) { vec2 dr = uTexel * ' + f(TUNE.dofTexels) + ';',
     '      vec3 bl = (texture2D(tScene, uv + dr).rgb + texture2D(tScene, uv - dr).rgb + texture2D(tScene, uv + vec2(dr.x, -dr.y)).rgb + texture2D(tScene, uv - vec2(dr.x, -dr.y)).rgb) * .17 + (n0 + n1 + n2 + n3) * .08;',
     '      c = mix(c, bl, dof); }',
     '    else c = clamp(c + (c - (n0 + n1 + n2 + n3) * .25) * sw * 1.6, mn, mx); }',
     '  #endif',
     '  if (pring > 0.) { c.r = texture2D(tScene, uv + pca).r; c.b = texture2D(tScene, uv - pca).b; }',
     '  #if ABILITY',
-    '  abEx = 1. + uAbA.z * .55; abBl = 1. + uAbA.z * 1.6; sat = uSat * (1. + uAbA.w); abFr = uAbB.y; abVg = uAbB.x;',
+    '  abEx = 1. + uAbA.z * ' + f(TUNE.abFlashExposure) + '; abBl = 1. + uAbA.z * ' + f(TUNE.abFlashBloom) + '; sat = uSat * (1. + uAbA.w); abFr = uAbB.y; abVg = uAbB.x;',
     '  #if ABCHROMA',
     // colour fringe: grows toward the edges (blur pulse) and along the shock ring
-    '  vec2 abCq = abCa + (uv - uAbD.xy) * uAbA.y * .022;',
+    '  vec2 abCq = abCa + (uv - uAbD.xy) * uAbA.y * .022 * ' + f(TUNE.abChroma) + ';',
     '  if (dot(abCq, abCq) > 1e-9) { c.r = mix(c.r, texture2D(tScene, uv + abCq).r, .75); c.b = mix(c.b, texture2D(tScene, uv - abCq).b, .75); }',
     '  #endif',
     '  #endif',
@@ -229,9 +249,9 @@
     '  float ao = texture2D(tAO, vUv).r; float l0 = luma(c);',
     '  c *= mix(1., ao, uAO * (1. - .5 * smoothstep(.5, 3., l0)));',
     '  #endif',
-    '  c += texture2D(tBloom, uv).rgb * uBloom * uBloomTint * abBl;',
+    '  c += texture2D(tBloom, uv).rgb * uBloom * ' + f(TUNE.bloomGain) + ' * uBloomTint * abBl;',
     '  if (uFocus.w > 0.) { vec2 fd = (vUv - uFocus.xy) * vec2(uAspect, 1.) / uFocus.z; float ff = exp(-dot(fd, fd));',
-    '    c *= mix(1. - uFocus.w * .22, 1. + uFocus.w * .85, ff); }',
+    '    c *= mix(1. - uFocus.w * ' + f(TUNE.focusDim) + ', 1. + uFocus.w * .85, ff); }',
     '  c = aces(c * uExposure * abEx);',
     '  float l = luma(c);',
     '  c *= mix(uShadowTint, uHighTint, smoothstep(.02, .42, l));',
@@ -243,6 +263,7 @@
     '  { float lc = luma(c); c *= pow(max(lc, 1e-4) / .18, uPunch) ; lc = luma(c); float shd = 1. - smoothstep(0., uCine.y, lc);',
     '    c = mix(c, vec3(lc) * uCineTint, shd * shd * uCine.x);',
     '    c *= (lc + uCine.z * .25) / (lc + uCine.z);',
+    '    c += uCineTint * ' + f(TUNE.shadowFill) + ' * (1. - smoothstep(0., .22, lc));',
     '    c *= mix(vec3(1.), uCineHigh, smoothstep(.3, .9, lc) * uCine.w); }',
     '  #if ABILITY',
     // hit-freeze on the last tick: colour drains and the picture snaps harder for a heartbeat
@@ -254,7 +275,7 @@
     '  c = mix(c, c * c * (3. - 2. * c), uContrast);',
     '  vec2 q = (vUv - .5) * vec2(uAspect * .78, 1.);',
     '  float v = smoothstep(.28, 1.02, length(q) * 1.18);',
-    '  c = mix(c, uVigColor, v * v * uVignette);',
+    '  c = mix(c, uVigColor, v * v * uVignette * ' + f(TUNE.vignetteGain) + ');',
     '  #if ABILITY',
     '  c = mix(c, vec3(.34, .055, .02), v * (.35 + .65 * v) * abVg);',   // vignette pulse: darkening with an ember tint
     '  #endif',
@@ -392,7 +413,7 @@
       uLift: { value: new T.Vector3() }, uGain: { value: new T.Vector3(1, 1, 1) }, uShadowTint: { value: new T.Vector3(1, 1, 1) },
       uHighTint: { value: new T.Vector3(1, 1, 1) }, uVigColor: { value: new T.Vector3(0, 0, 0) }, uBloomTint: { value: new T.Vector3(1, 1, 1) },
       uHeat: { value: heat }, uPulse: { value: new T.Vector4(.5, .5, 0, 0) },
-      uCine: { value: new T.Vector4(.38, .12, .006, .5) }, uCineTint: { value: new T.Vector3(.9, 1, 1.08) }, uCineHigh: { value: new T.Vector3(1.05, 1, .93) }, uSharp: { value: .55 }, uPunch: { value: .08 }, uFocus: { value: new T.Vector4(.5, .5, .5, 0) },
+      uCine: { value: new T.Vector4(.38, .12, TUNE.toe, .5) }, uCineTint: { value: new T.Vector3(.9, 1, 1.08) }, uCineHigh: { value: new T.Vector3(1.05, 1, .93) }, uSharp: { value: .55 }, uPunch: { value: .08 }, uFocus: { value: new T.Vector4(.5, .5, .5, 0) }, uDof: { value: new T.Vector4(.5, .5, .5, .77) },
       uOvl: { value: new T.Vector4() }, uCss: { value: new T.Vector2(typeof innerWidth === 'number' ? innerWidth : 1280, typeof innerHeight === 'number' ? innerHeight : 800) },
       uAbA: { value: new T.Vector4() }, uAbB: { value: new T.Vector4() }, uAbC: { value: new T.Vector4(.5, .5, 0, .1) }, uAbD: { value: new T.Vector4(.5, .5, 1, 0) }
     };
@@ -690,7 +711,7 @@
         }
         for (var j = mips.length - 1; j > 0; j--) {
           upMat.uniforms.tSrc.value = mips[j].texture; upMat.uniforms.uTexel.value.set(1 / mips[j].width, 1 / mips[j].height);
-          upMat.uniforms.uWeight.value = .9;
+          upMat.uniforms.uWeight.value = TUNE.bloomSpread;
           draw(upMat, mips[j - 1]);
         }
       }
@@ -802,12 +823,15 @@
     // Hero focus pool: world point of the hero (call every frame; strength 0 turns it off). Radius in metres at the hero's depth.
     var focusPoint = new T.Vector3();
     function setFocus(x, y, z, radius, strength) {
-      if (!(strength > 0) || !Number.isFinite(x) || !Number.isFinite(z)) { U.uFocus.value.w = 0; return; }
+      if (!Number.isFinite(x) || !Number.isFinite(z)) { U.uFocus.value.w = 0; return; }
       camera.updateMatrixWorld();
       focusPoint.set(x, y, z); var depth = -focusPoint.applyMatrix4(camera.matrixWorldInverse).z;
       if (!(depth > .1)) { U.uFocus.value.w = 0; return; }
       var unit = 1 / (2 * depth * Math.tan(camera.fov * Math.PI / 360));
       focusPoint.set(x, y, z).project(camera);
+      // depth-of-field safe zone around the hero (his combat area), independent of the focus pool's strength
+      U.uDof.value.set(focusPoint.x * .5 + .5, focusPoint.y * .5 + .5, Math.max(.1, TUNE.dofSafeMetres * unit), Math.max(.35, Math.abs(camera.getWorldDirection(abPoint).y)));
+      if (!(strength > 0)) { U.uFocus.value.w = 0; return; }
       U.uFocus.value.set(focusPoint.x * .5 + .5, focusPoint.y * .5 + .5, Math.max(.05, radius * unit), Math.min(1, strength));
     }
     function heatSources() { return heat; }
@@ -861,5 +885,5 @@
     return api;
   }
 
-  B.Post = { create: create, presets: PRESETS, maxHeat: MAX_HEAT };
+  B.Post = { create: create, presets: PRESETS, maxHeat: MAX_HEAT, tune: TUNE };
 }());

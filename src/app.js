@@ -70,7 +70,7 @@
   const TEXTURE_NOTE = KabirI18n.t(' Karakter kaplamaları oyun yeniden açılınca bu ayara geçer.');
   const coarsePointer = matchMedia('(pointer:coarse)').matches;
   // Desktop defaults follow the current display's pixel density. Extra AA is opt-in.
-  const DEFAULTS = { difficulty: 'normal', quality: 'high', qualityVersion: 5, ...DISPLAY.defaults, frameRate: FRAME_LIMIT, exposure: 1.15, shake: .55, master: .65, music: .42, sfx: .75, voice: .85, narrationMode: 'essential', subtitles: true, uiScale: .85 };
+  const DEFAULTS = { difficulty: 'normal', quality: 'high', qualityVersion: 5, ...DISPLAY.defaults, frameRate: FRAME_LIMIT, exposure: 1.15, shake: .55, master: .65, music: .42, sfx: .75, voice: .85, narrationMode: 'essential', subtitles: true, autoLoot: false, uiScale: .85 };
   const FRAME_RATES = [60, 90, 120, 0];   // 0 = follow the display (every refresh; best with G-Sync / FreeSync / ProMotion)
   const UI_STEPS = [.85, 1];
   const LIMITS = { exposure: [.7, 1.7], shake: [0, 1], master: [0, 1], music: [0, 1], sfx: [0, 1], voice: [0, 1] };
@@ -84,6 +84,7 @@
     light: [KabirI18n.t('Hafif saldırı'), KabirI18n.t('Düşmana tıkla, basılı tut · boşluğa tık: yürü')], heavy: [KabirI18n.t('Yetenek · Sağ tık'), KabirI18n.t('Yetenek ağacından bu yuvaya bir güç ata')], stand: [KabirI18n.t('Yerinde vur'), KabirI18n.t('Basılıyken tıkla: yürümeden vurur')], dodge: [KabirI18n.t('Kaçınma'), KabirI18n.t('Yürüdüğün yöne')],
     heal: [KabirI18n.t('Can iksiri'), KabirI18n.t('Anında iyileşir')], rage: [KabirI18n.t('Yetenek · 2 tuşu'), KabirI18n.t('Yetenek ağacından bu yuvaya bir güç ata')], special: [KabirI18n.t('Yetenek · 1 tuşu'), KabirI18n.t('Yetenek ağacından bu yuvaya bir güç ata')], fourth: [KabirI18n.t('Yetenek · 3 tuşu'), KabirI18n.t('Yetenek ağacından bu yuvaya bir güç ata')], interact: [KabirI18n.t('Etkileşim'), KabirI18n.t('Yemin taşı')]
   };
+  BIND_INFO.labels = [KabirI18n.t('Eşya adları'), KabirI18n.t('Basılı tutunca yerdeki bütün eşyaların adı görünür')];
   const BIND_VERSION = 1;
   // The four skill slots are named by their CURRENT key (right mouse button, 1, 2, 3 by default), never "Yetenek I / II / III", and list the equipped skill.
   const SKILL_SLOT = { heavy: 0, special: 1, rage: 2, fourth: 3 };
@@ -93,11 +94,11 @@
     return [KabirI18n.t('Yetenek · ') + (code === 'Mouse2' ? KabirI18n.t('Sağ tık') : code === 'Mouse0' ? KabirI18n.t('Sol tık') : cap + KabirI18n.t(' tuşu')),
       row && row.skill ? KabirI18n.t('Takılı: ') + row.skill.name + ' (' + ['', 'I', 'II', 'III'][row.skill.tier] + KabirI18n.t('. aşama)') : KabirI18n.t('Boş yuva · T ile yetenek öğren ve ata')];
   }
-  const BIND_GROUPS = [['bind-combat', ['heavy', 'special', 'rage', 'fourth', 'light', 'stand', 'dodge', 'heal']], ['bind-misc', ['interact']]];
+  const BIND_GROUPS = [['bind-combat', ['heavy', 'special', 'rage', 'fourth', 'light', 'stand', 'dodge', 'heal']], ['bind-misc', ['interact', 'labels']]];
   const BIND_DEFAULTS = {
     up: ['KeyW', 'ArrowUp'], down: ['KeyS', 'ArrowDown'], left: ['KeyA', 'ArrowLeft'], right: ['KeyD', 'ArrowRight'],
     light: ['Mouse0', 'KeyJ'], heavy: ['Mouse2', 'KeyK'], stand: ['ShiftLeft', ''], dodge: ['Space', ''],
-    heal: ['KeyQ', ''], rage: ['Digit2', ''], special: ['Digit1', ''], interact: ['KeyE', ''], fourth: ['Digit3', '']
+    heal: ['KeyQ', ''], rage: ['Digit2', ''], special: ['Digit1', ''], interact: ['KeyE', ''], labels: ['AltLeft', 'KeyZ'], fourth: ['Digit3', '']
   };
   const BIND_MOUSE_OK = ['light', 'heavy', 'dodge', 'heal', 'rage', 'special', 'fourth'];   // walking and interact stay on the keyboard
   const BIND_RESERVED = ['Escape', 'KeyH', 'KeyI', 'KeyC', 'KeyT', 'KeyM', 'KeyL', 'KeyO', 'Tab', 'MetaLeft', 'MetaRight', 'ContextMenu'];
@@ -177,6 +178,7 @@
       // Difficulty and HUD size always start from the launch defaults.
       for (const k of Object.keys(LIMITS)) if (Number.isFinite(raw[k])) cfg[k] = clamp(raw[k], LIMITS[k][0], LIMITS[k][1]);
       if (typeof raw.subtitles === 'boolean') cfg.subtitles = raw.subtitles;
+      if (typeof raw.autoLoot === 'boolean') cfg.autoLoot = raw.autoLoot;
       if (['essential','story','off'].includes(raw.narrationMode)) cfg.narrationMode = raw.narrationMode;
       // Preserve valid display choices; retired choices fall back to Auto.
       Object.assign(cfg, DISPLAY.settings(raw));
@@ -205,6 +207,7 @@
   function deriveSettings() {
     Object.assign(cfg, QUALITY[cfg.quality] || QUALITY.high);
     cfg.fps = cfg.frameRate;
+    if (B.GroundLoot) B.GroundLoot.auto = cfg.autoLoot === true;   // old proximity auto-pickup of ground items (default off: click / E)
     // 60 Hz-class targets: distant characters cast shadows over a shorter reach (see combat.js); 0 = all cast.
     cfg.shadowReach = cfg.quality === 'low' ? 0 : cfg.fps > 0 && cfg.fps <= 64 ? 10 : 13;   // far characters do not cast into the key light's map (fewer shadow draws = a steadier frame time)
     cfg.preset = cfg.quality;
@@ -286,7 +289,7 @@
   let heldLight = false, lightRepeat = 0, controller = null, controllerState = null, roomId = -1, deathShown = false, wonShown = false;
   const joy = { x: 0, z: 0, id: null, ox: 0, oy: 0 };
   // Pointer for the click-target controls: last position (client px), the foe under it, whether it counts (over the game, or a button held), clicks waiting for the next frame.
-  const cursor = { x: 0, y: 0, has: false, touch: false, target: null, prop: null }, clicks = { light: false, heavy: false }, ndc = new THREE.Vector2(), pickRay = new THREE.Raycaster(), pickA = new THREE.Vector3(), pickB = new THREE.Vector3();
+  const cursor = { x: 0, y: 0, has: false, touch: false, target: null, prop: null, loot: null, score: 1e9 }, clicks = { light: false, heavy: false }, ndc = new THREE.Vector2(), pickRay = new THREE.Raycaster(), pickA = new THREE.Vector3(), pickB = new THREE.Vector3();
   let zoneTap = null, touchHold = null;   // pointerId of the finger that is down on the game (a held left click)
   // Touch controls appear on touch screens, and on any device as soon as a finger is used.
   let touchSeen = coarsePointer;
@@ -354,7 +357,7 @@
     heldLight = false; lightPointer = null; touchHold = null; zoneTap = null; clicks.light = clicks.heavy = false; cursor.target = cursor.prop = null;
     joy.x = joy.z = 0; joy.id = null; resetStick();
     input.aimX = input.aimZ = input.aimFoe = null;
-    input.x = input.z = 0; input.target = input.prop = input.pointX = input.pointZ = null;
+    input.x = input.z = 0; input.target = input.prop = input.loot = input.pointX = input.pointZ = null;
     for (const a of ['light', 'heavy', 'near', 'clickLight', 'clickHeavy', 'holdLight', 'holdHeavy', 'stand', 'dodge', 'heal', 'rage', 'special', 'fourth', 'interact']) input[a] = false;
   }
 
@@ -811,6 +814,11 @@
     sub.innerHTML = KabirI18n.t('<label for="set-subtitles"><b>Altyazılar</b><small>Anlatıcının sözlerini ekranda göster.</small></label><input id="set-subtitles" type="checkbox">');
     const box = sub.querySelector('input'); box.checked = cfg.subtitles;
     box.addEventListener('change', () => { cfg.subtitles = box.checked; applySettings(); });
+    const loot = document.createElement('div'); loot.className = 'setting toggle';
+    loot.innerHTML = '<label for="set-autoloot"><b>' + KabirI18n.t('Eşyaları otomatik topla') + '</b><small>' + KabirI18n.t('Yakına düşen eşyalar kendiliğinden çantaya uçar. Kapalıyken eşyaya tıkla (ya da E).') + '</small></label><input id="set-autoloot" type="checkbox">';
+    const lootBox = loot.querySelector('input'); lootBox.checked = cfg.autoLoot === true;
+    lootBox.addEventListener('change', () => { cfg.autoLoot = lootBox.checked; applySettings(); });
+    $('settings-game').append(loot);
     audio.append(sub, choiceRow('narrationMode', KabirI18n.t('Anlatım'), ['essential','story','off'], v => v === 'essential' ? KabirI18n.t('Önemli anlar') : v === 'story' ? KabirI18n.t('Tüm öykü') : KabirI18n.t('Kapalı')));
     const narrationNote=document.createElement('small'); narrationNote.className='settings-save-info'; narrationNote.textContent=KabirI18n.t('Önemli anlarda anlatıcı giriş, karar ve dönüm noktalarında konuşur; keşif ve savaşın sesi önde kalır.'); audio.append(narrationNote);
     $('settings-note').textContent = B.Audio.silent ? KabirI18n.t('Test modu · sessiz') : KabirI18n.t('Seçimler hemen uygulanır.');
@@ -827,19 +835,16 @@
   function openKeybinds() { open('keybinds'); renderBinds(); }
   function fillPause() {
     if (!game) return;
-    const total = game.enemies.filter(e => !e.reserve).length, kills = game.enemies.filter(e => e.dead && !e.reserve).length;   // reserve = dormant boss adds (boss2.js)
     const r = world && world.roomAt(game.player.x, game.player.z);
     $('pause-room').textContent = r ? r.name : KabirI18n.t('Kurban Tapınağı');
-    $('pause-time').textContent = timeText(game.elapsed || 0);
-    $('pause-kills').textContent = kills + ' / ' + total;
   }
 
   /* ───────────── UI wiring ───────────── */
   function setupUI() {
     document.querySelectorAll('[data-settings-page]').forEach(button => { button.onclick = () => selectSettingsPage(button.dataset.settingsPage); });
-    $('pause-journal').onclick = $('hud-journal').onclick = () => open('journal');
+    $('pause-journal').onclick = () => open('journal');
     $('journal-close').onclick = $('journal-done').onclick = back;
-    $('pause-atlas').onclick = $('hud-atlas').onclick = openAtlas;
+    $('pause-atlas').onclick = openAtlas;
     $('pause-talents').onclick = () => openCharacter('skills');
     $('pause-character').onclick = $('victory-character').onclick = () => openCharacter();
     $('play').onclick = () => begin(false);
@@ -1139,7 +1144,18 @@
   function setCursor(e, count) { cursor.x = e.clientX; cursor.y = e.clientY; cursor.has = !!count; }
   // The floor point under the cursor and the foe under / near it (a capsule from the feet to the head, plus a soft margin of ~3 % of the screen height so that
   // a foe does not have to be hit exactly; the foe that was targeted a moment ago keeps the target a little longer so the ring does not flicker between neighbours).
+  // Ground loot (click = walk there and take it) wins over the ground and over props, and over a foe only when the cursor is nearer to the item than to the foe.
   function updatePointer() {
+    updatePointerFoes();
+    const gl = game && game.groundLoot, was = cursor.loot; cursor.loot = null;
+    B.GroundLoot.labelsHeld = view === 'playing' && isDown('labels');
+    if (gl && cursor.has && view === 'playing') {
+      const hit = gl.pick(cursor.x, cursor.y, Math.max(10, innerHeight * .012));
+      if (hit && (!cursor.target || hit.score < cursor.score)) { cursor.loot = hit.drop; cursor.target = cursor.prop = null; input.pointX = hit.drop.x; input.pointZ = hit.drop.z; }
+    }
+    if (!!cursor.loot !== !!was && renderer) renderer.domElement.style.cursor = cursor.loot ? 'pointer' : '';
+  }
+  function updatePointerFoes() {
     const prev = cursor.target, prevProp = cursor.prop; cursor.target = cursor.prop = null; input.pointX = input.pointZ = null;
     if (!cursor.has || !camera || !game) return;
     ndc.set(cursor.x / innerWidth * 2 - 1, -(cursor.y / innerHeight) * 2 + 1);
@@ -1160,7 +1176,7 @@
       if (e === prev) prevScore = score;
       if (score < bestScore) { bestScore = score; best = e; }
     }
-    cursor.target = best && bestScore <= soft ? best : null;
+    cursor.target = best && bestScore <= soft ? best : null; cursor.score = cursor.target ? bestScore : 1e9;
     if (prev && !prev.dead && prevScore <= soft * 1.8 && (!cursor.target || bestScore > 0)) cursor.target = prev;
     if (cursor.target || !game.propTargets) return;   // Enemy priority and its existing sticky margin stay unchanged.
     const propSoft = Math.max(10, H * .014);
@@ -1190,7 +1206,7 @@
     input.stand = isDown('stand');
     input.holdLight = holdBtn('light'); input.holdHeavy = holdBtn('heavy');
     input.clickLight = clicks.light; input.clickHeavy = clicks.heavy; clicks.light = clicks.heavy = false;
-    input.target = cursor.target; input.prop = cursor.prop;
+    input.target = cursor.target; input.prop = cursor.prop; input.loot = cursor.loot;
     if (cursor.touch && touchHold === null) cursor.has = false;   // a finger that has lifted no longer points at anything
     if (controllerState && controllerState.connected && !controllerState.binding) {
       input.padActive = Math.hypot(controllerState.x, controllerState.z, controllerState.aimX, controllerState.aimZ) > .08 || controllerState.lightHeld || Object.values(controllerState.actions).some(Boolean);
@@ -1452,7 +1468,7 @@
     return null;
   }
   function chapterObjective(room) {
-    if (game.pendingBossReward) return KabirI18n.t('Efendi yenildi. Emanetine yaklaş.');
+    if (game.pendingBossReward) return KabirI18n.t(B.GroundLoot.auto ? 'Efendi yenildi. Emanetine yaklaş.' : 'Efendinin düşürdüğü eşyayı al.');
     const gateText = gateObjective(room); if (gateText) return gateText;
     if(chapter < 3 && room && room.id >= 7){const n=game.enemies.filter(e=>!e.dead&&e.encounter.room===room.id).length;return n?KabirI18n.t('Bu yan alanda ')+n+KabirI18n.t(' düşman var.'):KabirI18n.t('Alan temizlendi. Ana yola geri dön.');}
     if(finaleChapter&&B.FinaleWorld&&B.FinaleWorld.objective){const t=B.FinaleWorld.objective(game,room,binds.interact[0]?capName(binds.interact[0]):'E');if(t)return t;}
@@ -1535,7 +1551,7 @@
     updateOverview();
     if (B.HUD && B.HUD.skills) B.HUD.skills(p, dt, game.skills());   // cooldown sweeps, stamina cost hints (src/hud.js)
     const targetEnemy = !p.dead && game.state === 'playing' ? game.attackTarget || game.enemies.find(e => e.boss && !e.dead && Math.hypot(e.x - p.x, e.z - p.z) < 28) : null;
-    targetUI.update(targetEnemy);
+    targetUI.update(targetEnemy, game);
     updateMechanic();
     const r = world.roomAt(p.x, p.z);
     if (r) hudText('objective', formatObjective(chapterObjective(r)));

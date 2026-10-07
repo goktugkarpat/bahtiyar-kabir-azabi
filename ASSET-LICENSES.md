@@ -323,6 +323,8 @@ Equipment thumbnails in `assets/equipment/thumbnails.js` are offline renders of 
 
 V hedef portreleri (`assets/ui/target-damned.webp`, `target-verdictseer.webp`, `target-voidcrawler.webp`, `target-chainjailer.webp`, `target-verdictwarden.webp`, `target-lastjudge.webp`), `src/finale-models.js` içindeki gerçek oyun modellerinden oyunun kendi çiziciyle hazırlanmıştır. Yukarıdaki karakter, hareket ve kaplama lisansları geçerlidir; yeni dış kaynak yoktur. Bölüm V seslendirmesi (`src/narration-finale.js`) `tools/gen_finale_voices.py` ile edge-tts (Microsoft neural sesler) üzerinden üretilmiştir, diğer anlatıcı dosyalarıyla aynı yöntem.
 
-### Kilit taşı simgesi "Kor Zinciri" — `assets/ui/talents/k-chainfire.png`
-Dış kaynak yok. Oyunun kendi simgelerinden (`k-chains.png` zinciri + `k-pyre.png` çerçevesi) `tools/make-keystone-chainfire.py` ile
-yeniden renklendirilip birleştirildi (Python + Pillow). Lisansı oyunun geri kalanıyla aynıdır.
+#### Cormorant SC (Bold) — oyun adı yazısı
+- Tasarımcı: Christian Thalmann (Catharsis Fonts). Kaynak: https://github.com/CatharsisFonts/Cormorant · Telif: Copyright 2015 The Cormorant Project Authors. Lisans: SIL OFL 1.1 (https://openfontlicense.org). Yalnızca Latin harfleri ve Türkçe karakterleri içeren küçültülmüş (subset) kopya `src/ui-gothic.css` içine gömülüdür; harf şekilleri değiştirilmemiştir.
+
+#### Demir Yemin kilit taşı simgesi
+- `assets/ui/talents/k-iron.png`: projenin kendi `k-exec.png` çerçevesi ile `p-iron.png` kalkanından Python/PIL ile birleştirildi (renk soğutma, maske). Dış kaynak yok.

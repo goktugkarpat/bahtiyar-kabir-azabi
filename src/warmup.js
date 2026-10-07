@@ -49,6 +49,7 @@
     const nar = root.querySelector('#narration p'); text(nar, KabirI18n.t('Anlatıcı konuşuyor, sesi sulara karışıyor.'));
     if (B.app && B.app.questUI) B.app.questUI.warm(root);
     const toasts = root.querySelector('#toasts'); if (toasts) toastStates(toasts);
+    if (B.GroundLoot && B.GroundLoot.warmLabels) B.GroundLoot.warmLabels(root.querySelector('#loot-labels'));   // item name labels (ground-loot.js)
     const warns = root.querySelector('#warnings'); if (warns) warningStates(warns);
     const buffs = root.querySelector('#timed-effects'); if (buffs) buffStates(buffs);
     // State looks the game toggles later (CSS filters / drop-shadows / conic sweeps appear only then): show them all once.

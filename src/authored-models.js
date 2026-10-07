@@ -940,11 +940,12 @@
   function heroEquipment(A) {
     var data = { armor: {}, weapons: {}, materials: {} }, BODY = ['skin', 'leather'], TORSO = ['pelvis', 'spine01', 'spine02', 'spine03', 'shoulderL', 'shoulderR'];
     function part(slot, id, material, geometry, bone, opts) {
-      var key = 'equipment:' + slot + ':' + id + ':' + material;
+      var key = 'equipment:' + slot + ':' + id + ':' + material + (opts && opts.dyn ? '#dyn:' + opts.dyn.anchor + ':' + opts.dyn.mass : '');   // gear-metal: flexible pieces are their own mesh (userData.dyn for the spring solver)
       KEY_CLASS[key] = material === 'cloth' || material === 'rag' ? 'cloth' : material === 'leather' || material === 'strap' ? 'leather' : 'metal';
-      data.materials[key] = equipmentMaterial(material); data.armor[key] = { slot: slot, id: id };
+      data.materials[key] = equipmentMaterial(material); data.armor[key] = { slot: slot, id: id, dyn: opts && opts.dyn || null };
       if (!geometry.attributes.kwear) G.wear(geometry, material === 'rag' ? { edge: .3, tear: { amount: .6, width: .04, bottom: .25, base: .04 } } : { edge: material === 'cloth' ? .3 : .85 });
       if (bone) A.rigid(key, geometry, bone);
+      else if (opts && opts.skin) A.weighted(key, geometry, opts.skin);   // (ajan:secondary) cloth / chain parts skinned onto the secondary-motion helper bones
       else if (opts && opts.rigidWeights) {
         var uniformWeights = opts.rigidWeights.filter(function (b) { return b[1] > 0; }).map(function (b) { return [A.index[b[0]], b[1]]; });
         A.weighted(key, geometry, function () { return uniformWeights; });
@@ -1472,7 +1473,7 @@
     built.meshes.forEach(function (m) {
       m.boundingSphere = new T.Sphere(new T.Vector3(0, h * .5, 0), h * 1.1);
       var equipment = recipe.equipment && recipe.equipment.armor[m.name];
-      if (equipment) { m.userData.equipmentSlot = equipment.slot; m.userData.equipmentId = equipment.id; m.visible = false; }
+      if (equipment) { m.userData.equipmentSlot = equipment.slot; m.userData.equipmentId = equipment.id; if (equipment.dyn) m.userData.dyn = equipment.dyn; m.visible = false; }
       if (type === 'hero' && m.name === 'iron') { m.userData.equipmentSlot = 'chest'; m.userData.equipmentId = 'base-iron'; m.visible = false; }
     });
     var anchors = {};
@@ -1496,7 +1497,7 @@
     }
     var bp = { type: type, scene: built.scene, scale: scale, yOffset: -box.min.y * scale,
       weapon: equipmentWeapons ? equipmentWeapons['dull-sword'] : recipe.weapon ? { art: weaponGroup(recipe.weapon, true), tip: recipe.weapon.tip } : null,
-      equipmentWeapons: equipmentWeapons, anchors: anchors, recipe: recipe, dread: dread };
+      equipmentWeapons: equipmentWeapons, anchors: anchors, recipe: recipe, dread: dread, secondary: A.secondary ? A.secondary.info : null };
     blueprints[type] = bp; return bp;
   }
   // Character maps are resized once, before their first upload: Düşük halves them (2048 -> 1024, 1024 -> 512) and
@@ -1799,6 +1800,7 @@
     var aliases = motion.bones; aliases.weapon = weapon;
     var detailMotion = cfg.detailMotion ? cfg.detailMotion(native, scene, bp.scale) : null;
     if (bp.dread && B.EnemyDread) B.EnemyDread.attach(bp.dread, { root: root, scene: scene, native: native, extras: extras, scale: bp.scale });   // (ajan:models) pendulum bones, posture, phase parts
+    if (bp.secondary && B.Secondary && B.Secondary.attach) B.Secondary.attach(bp.secondary, { root: root, scene: scene, native: native, extras: extras, hero: type === 'hero' });   // (ajan:secondary) cloth / chain springs, after the pose and the dread posture
     // 'staticTree': nothing moves the nodes below the root after authored-motion's pose (no detail motion, no dragged chain), so combat.js may
     // trust the world matrices that animate() just computed instead of walking the tree again in the render pass.
     root.userData.authoredMotion.staticTree = !detailMotion && !bp.anchors.drag;

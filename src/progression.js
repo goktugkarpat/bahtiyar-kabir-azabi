@@ -2,7 +2,7 @@
 (function () {
   'use strict';
   const B = window.BABA = window.BABA || {};
-  const MAX_LEVEL = 13, VERSION = 2, SKILL_TREE = 3;   // SKILL_TREE 3: build tree (src/talent-tree.js); saves of trees 1-2 get every point refunded in restore()
+  const MAX_LEVEL = 13, VERSION = 2, SKILL_TREE = 4;   // SKILL_TREE 4: slim build tree (src/talent-tree.js, 16 nodes); saves of trees 1-2 get every point refunded in restore(), tree 3 maps Kor Mührü / Ölüm Çanı to the new actives and refunds removed nodes
   const POINTS = Object.freeze([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
   const LEGACY_THRESHOLDS = Object.freeze([0, 40, 100, 350, 850, 1450, 2000]);
   // Expanded route: ~60 temple foes, ~59 coastal foes, then ~60 ruin/cave and ~60 forge foes.
@@ -22,53 +22,66 @@
     { id: 'roar', name: KabirI18n.t('KANIN YEMİNİ'), short: KabirI18n.t('Nida'), color: '#c8473f' },
     { id: 'whirl', name: KabirI18n.t('MEZARIN ZİNCİRİ'), short: KabirI18n.t('Kasırga'), color: '#7f9fbd' },
     { id: 'charge', name: KabirI18n.t('KARA ADIM'), short: KabirI18n.t('Hücum'), color: '#c9a45a' },
-    { id: 'pyre', name: KabirI18n.t('KOR'), short: KabirI18n.t('Mühür'), color: '#e0662f' },
-    { id: 'knell', name: KabirI18n.t('ÇÜRÜME'), short: KabirI18n.t('Lanet'), color: '#8fae6a' }
+    { id: 'hook', name: KabirI18n.t('ÇENGEL'), short: KabirI18n.t('Çekiş'), color: '#7aa889' },
+    { id: 'guard', name: KabirI18n.t('DEMİR DURUŞ'), short: KabirI18n.t('Duruş'), color: '#a9a4c4' }
   ]);
   const skills = Object.freeze([
     { id: 'cleave', name: KabirI18n.t('Mezar Yaran'), line: 'cleave', tier: 1, level: 2, requires: null, branch: 0, cost: 22, cooldown: 4,
       params: { damage: 78, radius: 3.7, arc: 3.65, stun: .55 },
       description: KabirI18n.t('Kızıl bir yarım ayla önündeki düşmanları yar. Ağır darbe gardı kırar.'), delta: '' },
-    { id: 'brand', name: KabirI18n.t('Kemik Kıran'), line: 'cleave', tier: 2, level: 6, requires: 'cleave', branch: 0, cost: 33, cooldown: 6,
+    { id: 'brand', name: KabirI18n.t('Kemik Kıran'), line: 'cleave', tier: 2, level: 4, requires: 'cleave', branch: 0, cost: 33, cooldown: 6,
       params: { damage: 106, radius: 4.5, reach: 4.2, duration: .68, strike: .22, stun: 1.1 },
       description: KabirI18n.t('Silahı başının üstüne kaldırıp önündeki zemine var gücüyle indir. Kehribar rengi bir şok halkası ve zemin yarıkları düşmanları ezer, sersemletir.'), delta: KabirI18n.t('Tepeden ezme: daha çok hasar, geniş şok halkası, uzun sersemletme.') },
-    { id: 'temper', name: KabirI18n.t('Kabir Balyozu'), line: 'cleave', tier: 3, level: 10, requires: 'cleave', branch: 0, cost: 44, cooldown: 8,
+    { id: 'temper', name: KabirI18n.t('Kabir Balyozu'), line: 'cleave', tier: 3, level: 4, requires: 'cleave', branch: 0, cost: 44, cooldown: 8,
       params: { damage: 140, radius: 7, arc: 2.5, duration: .74, strike: .26, stun: 1.7 },
       description: KabirI18n.t('İleri sıçra, omuzdan gelen ağır çapraz darbeyle önünü yar. Zemin kara-mor yarıklarla çatlar; önündeki geniş koninin içindeki düşmanlar ezilir ve yere devrilir.'), delta: KabirI18n.t('Sıçrayışlı yer darbesi: çok geniş koni, en yüksek hasar, en uzun sersemletme.') },
     { id: 'roar', name: KabirI18n.t('Kan Nidası'), line: 'roar', tier: 1, level: 2, requires: null, branch: 1, cost: 34, cooldown: 22,
       params: { near: 6.5, far: 10, time: 11, guard: .75, steal: .04, stun: 1.35, fear: 2.2, damage: 0, waves: 1 },
       description: KabirI18n.t('Kanlı bir şok dalgasıyla düşmanları sars; kısa süre saldırırken can kazan.'), delta: '' },
-    { id: 'quake', name: KabirI18n.t('Ölüm Çığlığı'), line: 'roar', tier: 2, level: 6, requires: 'roar', branch: 1, cost: 45, cooldown: 27,
-      params: { near: 8.4, far: 13, time: 14.5, guard: .68, steal: .06, stun: 1.9, fear: 3, damage: 44, waves: 1 },
-      description: KabirI18n.t('Başını geriye atıp çığlık at: kemik beyazı ve kehribar şok halkaları yayılır, zemin yarılır, sarsılan düşmanlar hasar görür ve titrer. Öfke daha uzun sürer.'), delta: KabirI18n.t('Çığlık: daha geniş halkalar, hasar, daha uzun öfke ve can çalma.') },
-    { id: 'chainstorm', name: KabirI18n.t('Kıyamet Narası'), line: 'roar', tier: 3, level: 10, requires: 'roar', branch: 1, cost: 56, cooldown: 34,
+    { id: 'quake', name: KabirI18n.t('Savaş Narası'), line: 'roar', tier: 2, level: 4, requires: 'roar', branch: 1, cost: 40, cooldown: 20,
+      params: { near: 6.5, far: 9, time: 16, guard: .7, steal: .11, stun: 1, fear: 1.6, damage: 0, waves: 1 },
+      description: KabirI18n.t('Kısa ve sert bir savaş narası: öfken uzun sürer, vurdukça çok can çalar ve hasarın artar. Sarsma alanı küçüktür; bu biçim kavgada dayanmak içindir.'), delta: KabirI18n.t('Uzun öfke, yüksek can çalma, küçük alan.') },
+    { id: 'chainstorm', name: KabirI18n.t('Kıyamet Narası'), line: 'roar', tier: 3, level: 4, requires: 'roar', branch: 1, cost: 56, cooldown: 34,
       params: { near: 11, far: 16, time: 18, guard: .6, steal: .09, stun: 2.5, fear: 3.8, damage: 52, waves: 3, waveDamage: 38 },
       description: KabirI18n.t('İki aşamalı kıyamet narası: yer yarılır, kemik ışığıyla kızıl köz parçacıkları savrulur ve üç halka art arda yayılır. Her halka düşmanları yeniden sarsıp yaralar; öfken çok uzun ve güçlü sürer.'), delta: KabirI18n.t('İki aşamalı nara, üç halka, en geniş alan, en uzun ve güçlü öfke.') },
-    { id: 'whirl', name: KabirI18n.t('Zincir Kasırgası'), line: 'whirl', tier: 1, level: 3, requires: null, branch: 2, cost: 36, cooldown: 8,
+    { id: 'whirl', name: KabirI18n.t('Zincir Kasırgası'), line: 'whirl', tier: 1, level: 2, requires: null, branch: 2, cost: 36, cooldown: 8,
       params: { ticks: 4, damage: 33, radius: 3.6, first: .06, gap: .28, duration: 1.3, stun: .6, stunLast: 1.15, pull: .45, fling: .9, grow: 1, turns: 2, move: .6 },
       description: KabirI18n.t('Kızıl zincirlerden bir kasırga içinde dönerek çevrendeki düşmanlara dört kez vur.'), delta: '' },
-    { id: 'reap', name: KabirI18n.t('Ölüm Biçeni'), line: 'whirl', tier: 2, level: 6, requires: 'whirl', branch: 2, cost: 54, cooldown: 11,
-      params: { ticks: 5, damage: 36, radius: 4.8, first: .06, gap: .27, duration: 1.6, stun: .7, stunLast: 1.5, pull: 1.1, fling: 1.8, grow: 1, turns: 4, move: .65 },
-      description: KabirI18n.t('Zincirler uzun, parlak orak yaylarına dönüşür: yerde altın bir biçme izi bırakır, beş vuruş vurur, düşmanları içeri çeker. Son vuruş onları uzağa savurur.'), delta: KabirI18n.t('Beş vuruş, daha geniş çember, daha sert çekiş ve savurma.') },
-    { id: 'rend', name: KabirI18n.t('Son Hüküm'), line: 'whirl', tier: 3, level: 10, requires: 'whirl', branch: 2, cost: 74, cooldown: 15,
+    { id: 'reap', name: KabirI18n.t('Zincir Fırtınası'), line: 'whirl', tier: 2, level: 5, requires: 'whirl', branch: 2, cost: 54, cooldown: 11,
+      params: { ticks: 5, damage: 36, radius: 4.8, first: .06, gap: .27, duration: 1.6, stun: .7, stunLast: 1.5, pull: 1.4, fling: 1.4, grow: 1, turns: 4, move: .95 },
+      description: KabirI18n.t('Zincirler uzun, parlak orak yaylarına dönüşür: dönerken hızla yürüyebilir, düşmanları içeri çekip beş kez vurabilirsin.'), delta: KabirI18n.t('Beş vuruş, dönerken hızlı yürüme, güçlü çekiş.') },
+    { id: 'rend', name: KabirI18n.t('Son Hüküm'), line: 'whirl', tier: 3, level: 5, requires: 'whirl', branch: 2, cost: 74, cooldown: 15,
       params: { ticks: 7, damage: 35, radius: 6.2, first: .06, gap: .24, duration: 2.05, stun: .85, stunLast: 2, pull: 1.9, fling: 3.4, grow: .68, turns: 6, move: .7 },
       description: KabirI18n.t('Zincirler mor ateşli bir ölüm fırtınasına dönüşür: başta yer çatlar, çember dönerken genişler, yedi vuruş vurur. Son vuruş yeri sarsar ve düşmanları fırlatır.'), delta: KabirI18n.t('Yedi vuruş, genişleyen en büyük çember, en güçlü çekiş, sarsıcı son vuruş.') },
-    { id: 'charge', name: KabirI18n.t('Kül Hücumu'), line: 'charge', tier: 1, level: 5, requires: null, branch: 3, cost: 30, cooldown: 7,
+    { id: 'charge', name: KabirI18n.t('Kül Hücumu'), line: 'charge', tier: 1, level: 3, requires: null, branch: 3, cost: 30, cooldown: 7,
       params: { range: 8, speed: 20, damage: 86, ringMul: .55, radius: 2.6, stun: 1.4, width: 1.5, pathDamage: 0, shove: 0, knock: 2.6, hitStop: .07, pull: 0, impacts: 1 },
       description: KabirI18n.t('Fare imlecine doğru kül ve kıvılcımlar içinde atıl. Yoldakileri it, varınca yere çarpıp çevrendekileri sersemlet.'), delta: '' },
-    { id: 'grasp', name: KabirI18n.t('Kor Hücumu'), line: 'charge', tier: 2, level: 6, requires: 'charge', branch: 3, cost: 46, cooldown: 10,
-      params: { range: 11, speed: 27, damage: 116, ringMul: .55, radius: 3.8, stun: 1.9, width: 2.4, pathDamage: 26, shove: 3.6, knock: 3.6, hitStop: .09, pull: 2.4, impacts: 1 },
-      description: KabirI18n.t('Omzunu öne verip kor gibi parlayan bir iz bırakarak koş: yoldaki düşmanları kıvılcımlarla yana devirir, varışta yer çatlaklarla yarılır ve düşmanlar çarpma noktasına çekilir.'), delta: KabirI18n.t('Daha uzun ve hızlı atılış, yoldakileri devirir, çatlak açan daha büyük çarpma.') },
-    { id: 'havoc', name: KabirI18n.t('Mahşer Hücumu'), line: 'charge', tier: 3, level: 10, requires: 'charge', branch: 3, cost: 66, cooldown: 14,
+    { id: 'grasp', name: KabirI18n.t('Boğa Hücumu'), line: 'charge', tier: 2, level: 6, requires: 'charge', branch: 3, cost: 34, cooldown: 5,
+      params: { range: 9, speed: 29, damage: 100, ringMul: .55, radius: 3.4, stun: 1.6, width: 2.4, pathDamage: 26, shove: 3.6, knock: 3.6, hitStop: .09, pull: 2.4, impacts: 1 },
+      description: KabirI18n.t('Omzunu öne verip boğa gibi kısa ve hızlı atıl: yoldakileri yana devirir, varınca çarparsın. Çabuk dinlenir, sık sık tekrarlanabilir.'), delta: KabirI18n.t('Kısa, hızlı, sık tekrarlanan atılış.') },
+    { id: 'havoc', name: KabirI18n.t('Mahşer Hücumu'), line: 'charge', tier: 3, level: 6, requires: 'charge', branch: 3, cost: 66, cooldown: 14,
       params: { range: 14, speed: 32, damage: 160, ringMul: .55, radius: 5, stun: 2.6, width: 3.4, pathDamage: 44, shove: 6.5, knock: 4.8, hitStop: .12, pull: 3.6, impacts: 2, damage2: 110, radius2: 6.6 },
       description: KabirI18n.t('Kükreyip koç gibi atıl: geniş, karanlık bir iz bırakır, yoldakileri havaya fırlatır. Varışta yer iki kez çatlar; ikinci çarpma daha ağırdır ve sersemletir.'), delta: KabirI18n.t('Çifte çarpma, yoldakileri fırlatır, en geniş alan ve en uzun sersemletme.') },
-    // Talent tree 3 actives (runtime: src/talent-runtime.js, look: src/talent-fx.js).
-    { id: 'pyre', name: KabirI18n.t('Kor Mührü'), line: 'pyre', tier: 1, level: 4, requires: null, branch: 4, cost: 30, cooldown: 9,
-      params: { damage: 40, radius: 3.4, time: 5, dps: 14, burn: 24, reach: 2.4, burst: 0 },
-      description: KabirI18n.t('Silahını yere vurup önüne kor bir mühür kaz. Mühür birkaç saniye yanar; içine giren düşmanlar tutuşur.'), delta: '' },
-    { id: 'knell', name: KabirI18n.t('Ölüm Çanı'), line: 'knell', tier: 1, level: 4, requires: null, branch: 5, cost: 26, cooldown: 14,
-      params: { radius: 7, time: 8, amp: 1.3, burst: 52, burstRadius: 3.2, stun: 0, damage: 0 },
-      description: KabirI18n.t('Başının üstünde hayalet bir çan çalar. Çevredeki düşmanlar lanetlenir: daha çok hasar alır, ölünce çürüyüp patlar.'), delta: '' }
+    // Forms of the two new actives (A: stronger version of the same idea, B: a different trade; both need only the active)
+    { id: 'hook2', name: KabirI18n.t('Zincirli Fırlatış'), line: 'hook', tier: 2, level: 5, requires: 'hook', branch: 4, cost: 30, cooldown: 9,
+      params: { damage: 82, range: 15, stun: 2, bleed: 24, keep: 1.9, extra: 0, bleedMul: 1 },
+      description: KabirI18n.t('Çengeli çok daha uzağa fırlat: uzaktaki düşmanı bile yakalayıp önüne çeker ve uzun süre sersemletir.'), delta: KabirI18n.t('Uzun menzil, daha çok hasar, uzun sersemletme.') },
+    { id: 'hook3', name: KabirI18n.t('Dikenli Çengel'), line: 'hook', tier: 2, level: 5, requires: 'hook', branch: 4, cost: 28, cooldown: 8,
+      params: { damage: 62, range: 11, stun: 1.2, bleed: 30, keep: 1.7, extra: 1, bleedMul: 2 },
+      description: KabirI18n.t('Çengelin ucuna diken takılır: yakalanan düşmanın yanındaki bir düşman da çekilir ve kanama iki kat acıtır.'), delta: KabirI18n.t('İki hedef, iki kat kanama.') },
+    { id: 'guard2', name: KabirI18n.t('Demir Yürek'), line: 'guard', tier: 2, level: 5, requires: 'guard', branch: 5, cost: 28, cooldown: 20,
+      params: { time: 9, taken: .5, thorns: 30, stun: .55, bleed: 14, reach: 4.4, heal: .03 },
+      description: KabirI18n.t('Duruş 9 saniye sürer; her karşılık vuruşunda canının %3’ünü geri kazanırsın.'), delta: KabirI18n.t('Uzun duruş, karşılıkta can kazanma.') },
+    { id: 'guard3', name: KabirI18n.t('Dikenli Zırh'), line: 'guard', tier: 2, level: 5, requires: 'guard', branch: 5, cost: 24, cooldown: 14,
+      params: { time: 4.5, taken: .55, thorns: 64, stun: 1, bleed: 32, reach: 4.8, heal: 0 },
+      description: KabirI18n.t('Kısa ama dikenli bir duruş: sana vuran düşman çok daha sert geri savrulur, uzun süre sersemler ve ağır kanar.'), delta: KabirI18n.t('Kısa duruş, çok ağır karşılık.') },
+    // Barbarian actives of tree 4 (runtime: src/talent-runtime.js, look: src/talent-fx.js, pose: authored-motion 'chain' move via attack.skillMove).
+    { id: 'hook', name: KabirI18n.t('Çengelli Çekiş'), line: 'hook', tier: 1, level: 2, requires: null, branch: 4, cost: 24, cooldown: 7,
+      params: { damage: 64, range: 11, stun: 1.2, bleed: 30, keep: 1.7, extra: 0, bleedMul: 1 },
+      description: KabirI18n.t('Zincirli çengeli önündeki düşmana fırlat: onu yakalayıp önüne çek, yere devir ve kanat. Büyük canavarlar yerinden kıpırdamaz ama yine de yaralanır.'), delta: '' },
+    { id: 'guard', name: KabirI18n.t('Demir Duruş'), line: 'guard', tier: 1, level: 2, requires: null, branch: 5, cost: 26, cooldown: 18,
+      params: { time: 6, taken: .5, thorns: 30, stun: .55, bleed: 14, reach: 4.4, heal: 0 },
+      description: KabirI18n.t('Ayaklarını yere bas ve kaslarını sert tut: birkaç saniye boyunca aldığın hasar yarıya iner. Sana vuran yakın düşman geri savrulur, sersemler ve kanar.'), delta: '' }
   ].map(s => Object.freeze(Object.assign({}, s, { params: Object.freeze(s.params), cost: s.cost }))));
   const skillIndex = Object.fromEntries(skills.map(s => [s.id, s]));
   const skillsByLine = line => skills.filter(s => s.line === line).sort((a, b) => a.tier - b.tier);
@@ -99,12 +112,12 @@
         [KabirI18n.t('Öfke süresi'), num(p.time) + KabirI18n.t(' sn')], [KabirI18n.t('Hasar azaltma'), '%' + Math.round((1 - p.guard) * 100)], [KabirI18n.t('Can çalma'), '%' + Math.round(p.steal * 100)], [KabirI18n.t('Dalga'), String(p.waves)]);
     } else if (s.line === 'whirl') {
       out.push([KabirI18n.t('Temel vuruş'), p.ticks + '×' + p.damage + ' = ' + p.ticks * p.damage], [KabirI18n.t('Çember'), p.grow < 1 ? num(p.radius * p.grow) + ' → ' + num(p.radius) + ' m' : num(p.radius) + ' m'], [KabirI18n.t('Çekiş'), num(p.pull) + ' m'], [KabirI18n.t('Son vuruşta savurma'), num(p.fling) + ' m'], [KabirI18n.t('Son vuruş sersemletmesi'), num(p.stunLast) + KabirI18n.t(' sn')]);
-    } else if (s.line === 'pyre') {
-      out.push([KabirI18n.t('Temel vuruş'), String(p.damage)], [KabirI18n.t('Mühür alanı'), num(p.radius) + ' m'], [KabirI18n.t('Mühür süresi'), num(p.time) + KabirI18n.t(' sn')], [KabirI18n.t('Saniyede yanma'), String(p.dps)]);
-      if (p.burst) out.push([KabirI18n.t('Sönerken patlama'), String(p.burst)]);
-    } else if (s.line === 'knell') {
-      out.push([KabirI18n.t('Lanet alanı'), num(p.radius) + ' m'], [KabirI18n.t('Lanet süresi'), num(p.time) + KabirI18n.t(' sn')], [KabirI18n.t('Fazladan hasar'), '%' + Math.round((p.amp - 1) * 100)], [KabirI18n.t('Ölünce patlama'), String(p.burst)]);
-      if (p.stun) out.push([KabirI18n.t('Sersemletme'), num(p.stun) + KabirI18n.t(' sn')]);
+    } else if (s.line === 'hook') {
+      out.push([KabirI18n.t('Temel hasar'), String(p.damage)], [KabirI18n.t('Menzil'), num(p.range) + ' m'], [KabirI18n.t('Sersemletme'), num(p.stun) + KabirI18n.t(' sn')], [KabirI18n.t('Kanama'), String(Math.round(p.bleed * (p.bleedMul || 1)))]);
+      if (p.extra) out.push([KabirI18n.t('Yakalanan düşman'), String(1 + p.extra)]);
+    } else if (s.line === 'guard') {
+      out.push([KabirI18n.t('Süre'), num(p.time) + KabirI18n.t(' sn')], [KabirI18n.t('Hasar azaltma'), '%' + Math.round((1 - p.taken) * 100)], [KabirI18n.t('Karşılık hasarı'), String(p.thorns)], [KabirI18n.t('Karşılık sersemletmesi'), num(p.stun) + KabirI18n.t(' sn')]);
+      if (p.heal) out.push([KabirI18n.t('Karşılıkta can'), '%' + Math.round(p.heal * 100)]);
     } else {
       out.push([KabirI18n.t('Mesafe'), num(p.range) + ' m'], [KabirI18n.t('Temel çarpma'), p.impacts > 1 ? p.damage + ' + ' + p.damage2 : String(p.damage)], [KabirI18n.t('Temel yol hasarı'), p.pathDamage ? String(p.pathDamage) : '—'], [KabirI18n.t('Yol genişliği'), num(p.width) + ' m'], [KabirI18n.t('Yoldakini savurma'), p.shove ? num(p.shove) + ' m' : '—'],
         [KabirI18n.t('Çarpma alanı'), p.impacts > 1 ? num(p.radius) + ' / ' + num(p.radius2) + ' m' : num(p.radius) + ' m'], [KabirI18n.t('Sersemletme'), num(p.stun) + KabirI18n.t(' sn')], [KabirI18n.t('Çekiş'), p.pull ? num(p.pull) + ' m' : '—']);
@@ -126,7 +139,15 @@
   }
   // Maps the learned skills and loadout of a pre-skillTree-2 profile (see migrateLearned); points stay consistent because they derive from level - learned.
   function migrateProfileSkills(profile) {
-    // Tree 3 changed the whole tree: every point of an older save is refunded (level stays, points = level - 1) and the UI says so.
+    // Tree 3 -> 4 (slim barbarian tree): Kor Mührü / Ölüm Çanı become Çengelli Çekiş / Demir Duruş in the same slot; every node that no longer exists is an unknown id
+    // that TalentTree.validate() drops in restore(), which hands its point back (points = level - 1 - learned). Actives and forms are listed first so the gates still open.
+    if (B.TalentTree && profile.skillTree === 3) {
+      const MAP = { pyre: 'hook', knell: 'guard' }, mapId = id => typeof id === 'string' ? MAP[id] || id : null;
+      const learned = (Array.isArray(profile.learned) ? profile.learned : []).map(mapId).filter(id => id && skillIndex[id]).concat((Array.isArray(profile.learned) ? profile.learned : []).map(mapId).filter(id => id && !skillIndex[id]));
+      const loadout = [0, 1, 2, 3].map(n => Array.isArray(profile.loadout) ? mapId(profile.loadout[n]) || null : null);
+      return Object.assign({}, profile, { learned: learned.filter((id, n, all) => all.indexOf(id) === n), loadout, skillTree: SKILL_TREE });
+    }
+    // Tree 1-2 saves: every point is refunded (level stays, points = level - 1) and the UI says so.
     if (B.TalentTree) return Object.assign({}, profile, { learned: [], loadout: [null, null, null, null], skillTree: SKILL_TREE });
     const m = migrateLearned(Array.isArray(profile.learned) ? profile.learned.filter(id => typeof id === 'string') : [], 12);
     const loadout = [0, 1, 2, 3].map(n => { const id = Array.isArray(profile.loadout) ? m.map.get(profile.loadout[n]) : null; return id || null; });
@@ -251,9 +272,10 @@
     ,item('hide-chieftain-chest', KabirI18n.t('Derili Reisin Kürkü'), 'chest', 8, 'epic', 0, .075, 6, null, KabirI18n.t('Kurt postu ve kemik takılarla ağırlaşmış bir reis zırhı. Kayışları eski savaşların izlerini taşır.'), 'torn-chest', 'blood')
     ,item('hide-chieftain-wraps', KabirI18n.t('Reisin Kemik Sargıları'), 'hands', 7, 'rare', 0, .035, 3, null, KabirI18n.t('Ham deri sargıların arasına kemik pullar dikilmiş.'), 'rag-wraps', 'bone')
     /* /ajan:gear */
+    /* ajan:bossloot — boss-only unique items (src/boss-loot.js) */ ,...(Array.isArray(B.BossLootSpecs) ? B.BossLootSpecs.map(spec => item.apply(null, spec)) : []) /* /ajan:bossloot */
   ]);
   const catalog = Object.freeze(Object.fromEntries(items.map(i => [i.id, i])));
-  const bossSignatures = Object.freeze({ 1:Object.freeze(['executioner-axe']),2:Object.freeze(['bell-spear']),3:Object.freeze(['hollow-crown-blade']),4:Object.freeze(['furnace-oath-axe']),5:Object.freeze(['last-verdict-blade']),verdictwarden:Object.freeze(['verdict-warden-helm','verdict-warden-chest']),ruinwarden:Object.freeze(['warden-chainmail','warden-verdict-helm']),ashwarden:Object.freeze(['ash-warden-chest','ash-warden-grasp']) });
+  const bossSignatures = Object.freeze(B.BossLootTables ? Object.assign({}, B.BossLootTables.signatures) : { 1:Object.freeze(['executioner-axe']),2:Object.freeze(['bell-spear']),3:Object.freeze(['hollow-crown-blade']),4:Object.freeze(['furnace-oath-axe']),5:Object.freeze(['last-verdict-blade']),verdictwarden:Object.freeze(['verdict-warden-helm','verdict-warden-chest']),ruinwarden:Object.freeze(['warden-chainmail','warden-verdict-helm']),ashwarden:Object.freeze(['ash-warden-chest','ash-warden-grasp']) });   // ajan:bossloot — tables live in src/boss-loot.js
   const signatureIds = new Set(Object.values(bossSignatures).flat());
   const qualities = Object.freeze({ common: { name: KabirI18n.t('Sıradan'), rank: 0, color:'#c7bdae' }, uncommon: { name: KabirI18n.t('Sıradışı'), rank: 1, color:'#92ad7d' }, rare: { name: KabirI18n.t('Nadir'), rank: 2, color:'#82aac5' }, epic: { name: KabirI18n.t('Epik'), rank: 3, color:'#b394ce' }, boss: { name: KabirI18n.t('Eşsiz'), rank: 4, color:'#d6b475' } });
   // Every identity has a fixed quality. Individual drops vary slightly in craftsmanship.
@@ -278,8 +300,10 @@
     const needs = p => p && typeof p === 'object' && p.skillTree !== SKILL_TREE;
     const state = createState(needs(options.profile) ? Object.assign({}, options, { profile: migrateProfileSkills(options.profile) }) : options);
     const rawRestore = state.restore, rawSnapshot = state.snapshot;
-    state.restore = profile => { const old = needs(profile), ok = rawRestore(old ? migrateProfileSkills(profile) : profile); if (ok && old && Array.isArray(profile.learned) && profile.learned.length) state.talentRefunded = true; return ok; };
-    if (needs(options.profile) && Array.isArray(options.profile.learned) && options.profile.learned.length) state.talentRefunded = true;
+    // talentRefunded: true = everything refunded (tree 1-2), 'trimmed' = tree 3 nodes that no longer exist were refunded (talent-runtime.js shows the matching toast)
+    const refundKind = (profile, keep) => profile.skillTree === 3 ? ((profile.learned || []).length > keep.length ? 'trimmed' : false) : true;
+    state.restore = profile => { const old = needs(profile), ok = rawRestore(old ? migrateProfileSkills(profile) : profile); if (ok && old && Array.isArray(profile.learned) && profile.learned.length) state.talentRefunded = refundKind(profile, state.learned); return ok; };
+    if (needs(options.profile) && Array.isArray(options.profile.learned) && options.profile.learned.length) state.talentRefunded = refundKind(options.profile, state.learned);
     state.snapshot = () => Object.assign(rawSnapshot(), { skillTree: SKILL_TREE });
     return state;
   }
@@ -527,30 +551,55 @@
       for (let n = 0; n < choices.length; n++) { r -= weights[n]; if (r < 0) return choices[n].def.id; }
       return choices[choices.length - 1].def.id;
     }
+    // ajan:bossloot — boss / warden drops. The table's first item is the signature (first kill); later kills pick a random item the hero does not own yet.
+    // A guaranteed item (uid drop-<chapter>:<id>) plus ~35 % for a second and ~10 % for a third table item. Table items never come from lootPick().
+    const bossTaken = id => state.inventory.some(e => e.id === id) || state.groundLoot.some(e => e.id === id) || lootIdentities.has(id);
+    function bossPick(table, key, salt, skip) {
+      const left = table.filter(id => !bossTaken(id) && !(skip && skip.includes(id)));
+      if (!left.length) return null;
+      return left.includes(table[0]) && !skip ? table[0] : left[hash(key + ':boss:' + salt + ':' + lootSeed) % left.length];
+    }
     function loot(enemyId, type, boss, chapter, elite, position) {
       chapter = chapterId(chapter);
       const key = chapter + ':' + String(enemyId), seed = hash(key + ':' + type + ':' + lootSeed);
       const uid = 'drop-' + key;
       if(options.groundLoot&&(!position||!Number.isFinite(position.x)||!Number.isFinite(position.z)))return [];
       if (state.inventory.some(i => i.uid === uid) || state.groundLoot.some(i => i.uid === uid)) return [];
-      let id;
       const signature = boss ? bossSignatures[chapter] : bossSignatures[type];
-      if(signature) { id=signatureClaims[key] || signature.find(id=>!lootIdentities.has(id)); if(!id)return []; signatureClaims[key]=id; }
-      else {
+      const picks = [];   // [id, uid, dx, dz]
+      if(signature) {
+        const claimed = signatureClaims[key] || bossPick(signature, key, 'g');
+        if(!claimed) return [];
+        signatureClaims[key] = claimed; picks.push([claimed, uid, 0, 0]);
+        // One roll: < 10 -> second AND third table item, < 35 -> second item (so ~35 % get a second, ~10 % a third)
+        const chances = B.BossLootTables ? B.BossLootTables.extraChance : [35, 10], roll = hash(key + ':extra:' + lootSeed) % 100;
+        const more = roll < chances[1] ? 2 : roll < chances[0] ? 1 : 0;
+        for (let k = 0; k < more; k++) {
+          const next = bossPick(signature, key, 'x' + k, picks.map(p => p[0]));
+          if (next) { const a = .8 + k * 2.3; picks.push([next, uid + '+' + (k + 1), Math.cos(a) * 1.7, Math.sin(a) * 1.7]); }
+        }
+      } else {
+        let id;
         if (seed % 100 >= (elite ? LOOT_ELITE : LOOT_NORMAL) && lootDry < LOOT_PITY) { lootDry++; return []; }
         id = lootPick(chapter, elite, seed, (hash(key + ':craft:' + lootSeed) % 5) - 2);
         if (!id) return [];   // nothing useful left to offer: no drop, the pity counter keeps waiting
+        if (signatureIds.has(id)) { if (typeof console !== 'undefined') console.error('boss-only item from the general picker', id); return []; }   // exclusivity assert
+        picks.push([id, uid, 0, 0]);
       }
-      lootIdentities.add(id);lootSlots.push(catalog[id].slot);if(lootSlots.length>6)lootSlots.shift();
-      lootDry = 0; lootSeen.push(chapter + ':' + id); if (lootSeen.length > 40) lootSeen.shift();
-      const roll = signature ? 0 : (hash(key + ':craft:' + lootSeed) % 5) - 2;
-      if (options.groundLoot) {
-        // Ground-loot games never bypass pickup by inserting a reward straight into the bag.
-        if (!position || !Number.isFinite(position.x) || !Number.isFinite(position.z)) return [];
-        const entry = {uid,id,roll,x:position.x,z:position.z,chapter,boss:!!signature};
-        state.groundLoot.push(entry); changed('lootDrop', {items:[entry],boss:!!boss,chapter}); return [entry];
+      const made = [];
+      for (const [id, pickUid, dx, dz] of picks) {
+        lootIdentities.add(id);lootSlots.push(catalog[id].slot);if(lootSlots.length>6)lootSlots.shift();
+        lootDry = 0; lootSeen.push(chapter + ':' + id); if (lootSeen.length > 40) lootSeen.shift();
+        const roll = signature ? 0 : (hash(key + ':craft:' + lootSeed) % 5) - 2;
+        if (options.groundLoot) {
+          // Ground-loot games never bypass pickup by inserting a reward straight into the bag.
+          if (!position || !Number.isFinite(position.x) || !Number.isFinite(position.z)) return [];
+          const entry = {uid:pickUid,id,roll,x:position.x+dx,z:position.z+dz,chapter,boss:!!signature,fresh:true};   // fresh: plays the drop pop once (never saved)
+          state.groundLoot.push(entry); made.push(entry);
+        } else made.push(addItem(id, pickUid, roll));
       }
-      const entry = addItem(id, uid, roll); changed('loot', { items: [entry], boss: !!boss, chapter }); return [entry];
+      if (options.groundLoot) changed('lootDrop', {items:made,boss:!!boss,chapter}); else changed('loot', { items: made, boss: !!boss, chapter });
+      return made;
     }
     function grantEnemy(enemyId, type, boss, chapter, difficulty, elite, position) {
       chapter = chapterId(chapter);
@@ -573,6 +622,7 @@
     function collectLoot(uid) {
       const n = state.groundLoot.findIndex(i => i.uid === uid);
       if (n < 0) return null;
+      if (!state.groundLoot[n].boss && state.inventory.length >= state.bagLimit) return null;   // bag full: the item stays on the ground (no limit by default)
       const drop = state.groundLoot.splice(n,1)[0], entry = addItem(drop.id,drop.uid,drop.roll);
       changed('loot', {items:[entry],boss:drop.boss,chapter:drop.chapter}); return entry;
     }
@@ -589,7 +639,7 @@
     }
     Object.assign(state, { grantQuest, boons: () => boons, snapshot, restore, grantEnemy, unlock, assign, equip, stats, loot, completedChapter, reset, refund, respec,
       skillForSlot: slot => { const s = skillIndex[state.loadout[slot]] || null; return s && B.TalentTree ? B.TalentTree.effective(s, state.learned) : s; },
-      collectLoot, unequip, isUpgrade,
+      collectLoot, unequip, isUpgrade, bagLimit: Infinity, bagFull: () => state.inventory.length >= state.bagLimit, debugLootPick: lootPick,   // ajan:bossloot: the exclusivity check scans the general picker
       itemForSlot: slot => { const entry = state.inventory.find(i => i.uid === state.equipment[slot]); return resolveItem(entry); },
       nextLevelXp: () => state.level < MAX_LEVEL ? THRESHOLDS[state.level] : null });
     reset(); state.chapter = chapterId(options.chapter); if (options.profile) restore(options.profile);

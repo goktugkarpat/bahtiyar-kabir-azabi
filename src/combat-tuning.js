@@ -53,10 +53,18 @@
     if (level === 'hard') return t('Zor: hata payı çok az. Düşmanlar daha dayanıklı, daha sert ve dinlenmeden saldırır; seçkin düşmanlar gerçek bir sınavdır. Arka arkaya yuvarlanmak hızla dayanıklılığını tüketir, 3 şifa matarası taşırsın. Son anda yuvarlanmayı öğren.');
     return t('Normal: önerilen deneyim. Düşmanların darbelerini oku, son anda yuvarlan, dayanıklılığını yönet. Seviye atladıkça güçlenirsin ama her bölüm biraz daha sertleşir.');
   }
-  // Talent keystones that read their numbers from here (src/talent-runtime.js). Kor Zinciri (k-chainfire, KÜL panel):
-  //   chain hits (Zincir Kasırgası / Son Hüküm swings, Zincir Kırbacı lashes) ignite: burn = burnFrac x hit damage over burnTime s
-  //   (lashes: lashBurn flat); every blow on a burning foe deals vsBurning x; price: the hero takes `taken` x damage.
-  const TALENT = Object.freeze({ CHAINFIRE: Object.freeze({ burnFrac: .35, burnTime: 3, lashBurn: 16, vsBurning: 1.25, taken: 1.2 }) });
+  // Talent tree 4 (src/talent-tree.js effects(), src/talent-runtime.js): every passive / keystone number lives here. Skill numbers (damage, cooldown, cost, bleed ...) are in progression.js skills[].params.
+  //   frenzy: below `hp` % health, blows deal `dmg` x and stamina refills `regen` x.   momentum: after a roll / charge, `time` s of `dmg` x blows.
+  //   mark (Kanlı İz): skill hits bleed for `skillBleed` of the damage over `time` s; bleeding foes take `taken` x.
+  //   rage (Öfke Birikimi): every `hits` blows open `time` s of `dmg` x blows and `regen` x stamina.   ironhide (Demir Deri): all damage taken x `taken`.
+  //   vengeance (Öç Alma): `share` of the health you lose is added to your next blow (at most `cap` hp).   crush (Ezici Vuruş): staggered foes take `dmg` x.
+  //   breath (Yırtıcı Nefes): each kill gives back `stamina` stamina and `heal` of the health bar.   exec (Cellat): below `below` of its health a foe takes `dmg` x; common foes below `kill` die; max health x `hp`.
+  //   blood (Kan Yemini): `leech` of all damage returns as health, no flasks.
+  //   iron (Demir Yemin): all damage taken x `taken`, each kill gives back `stamina` stamina, the dodge roll costs `dodge` x stamina.
+  const TALENT = Object.freeze({ frenzy: Object.freeze({ hp: 40, dmg: 1.25, regen: 1.15 }), momentum: Object.freeze({ dmg: 1.2, time: 3 }), mark: Object.freeze({ skillBleed: .3, time: 4, taken: 1.15 }),
+    rage: Object.freeze({ hits: 5, time: 3, dmg: 1.2, regen: 1.4 }), ironhide: Object.freeze({ taken: .9 }), vengeance: Object.freeze({ share: .25, cap: 90 }), crush: Object.freeze({ dmg: 1.2 }),
+    breath: Object.freeze({ stamina: 22, heal: .01 }), exec: Object.freeze({ below: .4, dmg: 1.25, kill: .10, hp: .8 }), blood: Object.freeze({ leech: .07 }),
+    iron: Object.freeze({ taken: .8, stamina: 8, dodge: 2 }) });
   B.CombatTuning = Object.freeze({ DIFFICULTY, CHAPTER, BOSS, ECONOMY, FEEL, TALENT, profile, describe });
 })();
 /* Measurements (BABA.Balance.run; every hall / boss fought from full health with the chapter's expected level and gear:

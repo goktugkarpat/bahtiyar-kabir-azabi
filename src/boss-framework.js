@@ -70,7 +70,7 @@
     var css = document.createElement('style');
     css.textContent = '#bf-cine{position:fixed;inset:0;pointer-events:none;z-index:6}' +
       '#bf-cine .bar{position:absolute;left:0;right:0;height:0;background:#000;transition:height .9s cubic-bezier(.2,.8,.2,1)}#bf-cine .bar.t{top:0}#bf-cine .bar.b{bottom:0}' +
-      '#bf-cine.on .bar{height:10.5vh}' +
+      '#bf-cine .bar{display:none}' +
       '#bf-cine .card{position:absolute;left:50%;top:27%;transform:translateX(-50%);width:min(900px,86vw);text-align:center;opacity:0;transition:opacity .6s,top .35s ease-out}' +
       '#bf-cine .card.show{opacity:1}' +
       '#bf-cine .card small{display:block;font-size:clamp(10px,1.15vw,14px);letter-spacing:.55em;color:#b79a73;text-transform:uppercase;margin-bottom:.6em}' +
