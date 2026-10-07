@@ -167,7 +167,7 @@
     C.ring(t + .9, { f: 587.3, partials: [1, 2.01, 3.0, 4.1], decay: 2.6, vol: .018, send: .8, pan: .2 });
   }
   function watchUI() {
-    if (!window.MutationObserver || !document.body || B.__audioPlusUI) return; B.__audioPlusUI = true;
+    if (!window.MutationObserver || !document.body || B.__audioPlusUI || (B.Audio && B.Audio.silent)) return; B.__audioPlusUI = true;   // ?sessiz: no observers at all
     const visible = el => el && !el.classList.contains('hidden') && !el.hidden;
     const state = new WeakMap();
     const watch = (sel, kindOpen, kindClose) => {
@@ -185,7 +185,7 @@
       if (notice && !toastSeen.has(notice)) { toastSeen.add(notice); let was = notice.classList.contains('complete') && notice.classList.contains('show');
         new MutationObserver(() => { const now = notice.classList.contains('complete') && notice.classList.contains('show'); if (now && !was && B.app && B.app.view !== 'title' && !B.app.warming) ui('quest'); was = now; }).observe(notice, { attributes: true, attributeFilter: ['class'] }); }
     };
-    hook(); let n = 0; const iv = setInterval(() => { hook(); if (++n > 30) clearInterval(iv); }, 2000);   // panels are created lazily
+    hook(); setInterval(hook, 3000);   // panels are created lazily (a few querySelector calls every 3 s)
   }
 
   // ------------------------------------------------------------------ hooks from audio.js
