@@ -60,9 +60,11 @@
   //   vengeance (Öç Alma): `share` of the health you lose is added to your next blow (at most `cap` hp).   crush (Ezici Vuruş): staggered foes take `dmg` x.
   //   breath (Yırtıcı Nefes): each kill gives back `stamina` stamina and `heal` of the health bar.   exec (Cellat): below `below` of its health a foe takes `dmg` x; common foes below `kill` die; max health x `hp`.
   //   blood (Kan Yemini): `leech` of all damage returns as health, no flasks.
+  //   iron (Demir Yemin): all damage taken x `taken`, each kill gives back `stamina` stamina, the dodge roll costs `dodge` x stamina.
   const TALENT = Object.freeze({ frenzy: Object.freeze({ hp: 40, dmg: 1.25, regen: 1.15 }), momentum: Object.freeze({ dmg: 1.2, time: 3 }), mark: Object.freeze({ skillBleed: .3, time: 4, taken: 1.15 }),
     rage: Object.freeze({ hits: 5, time: 3, dmg: 1.2, regen: 1.4 }), ironhide: Object.freeze({ taken: .9 }), vengeance: Object.freeze({ share: .25, cap: 90 }), crush: Object.freeze({ dmg: 1.2 }),
-    breath: Object.freeze({ stamina: 22, heal: .01 }), exec: Object.freeze({ below: .4, dmg: 1.25, kill: .10, hp: .8 }), blood: Object.freeze({ leech: .07 }) });
+    breath: Object.freeze({ stamina: 22, heal: .01 }), exec: Object.freeze({ below: .4, dmg: 1.25, kill: .10, hp: .8 }), blood: Object.freeze({ leech: .07 }),
+    iron: Object.freeze({ taken: .8, stamina: 8, dodge: 2 }) });
   B.CombatTuning = Object.freeze({ DIFFICULTY, CHAPTER, BOSS, ECONOMY, FEEL, TALENT, profile, describe });
 })();
 /* Measurements (BABA.Balance.run; every hall / boss fought from full health with the chapter's expected level and gear:

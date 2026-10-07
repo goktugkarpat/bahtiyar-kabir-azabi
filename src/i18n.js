@@ -78,3 +78,6 @@ Object.assign(window.KabirI18n.dictionary,{"I · UYANIŞ":"I · AWAKENING","V ·
 /* ajan:talentui */
 Object.assign(window.KabirI18n.dictionary,{"Geri al":"Refund","Hazır yollar":"Builds","PUAN":"POINTS","kalan":"left","Simgeyi seç, yuvaya tıkla":"Pick an icon, click a slot","Sürükle ya da seç ve yuvaya tıkla":"Drag it, or pick it and click a slot","Uygula":"Apply","Yetenek yuvaları":"Skill slots","Yuvaya koy":"Put in slot","ya da":"or","Öğren":"Learn","Öğrenilebilir · 1 puan":"Can be learned · 1 point"});
 /* /ajan:talentui */
+/* ajan:talentui2 */
+Object.assign(window.KabirI18n.dictionary,{"GAZAP":"WRATH","VEBA":"PLAGUE","KÜL":"ASH","Puanları sıfırla":"Reset points","Çengelci":"Hook Hauler","Demir Yemin":"Iron Oath","Aldığın bütün hasar %20 azalır. Öldürdüğün her düşman 8 dayanıklılık geri verir.":"All damage you take is reduced by 20%. Every foe you kill gives back 8 stamina.","Bedeli: kaçınma atılışı iki kat dayanıklılık harcar.":"Price: your dodge roll costs twice the stamina."});
+/* /ajan:talentui2 */
