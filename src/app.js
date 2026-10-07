@@ -618,7 +618,8 @@
     const hold = (Q.has('sessiz') ? 3.2 : Math.min(14, (narr && narr.duration) || 9) + 1) * 1000;
     fade.querySelector('.eyebrow').textContent = KabirI18n.t('Bölüm ') + chapterNumbers[chapter - 1] + KabirI18n.t(' tamamlandı');
     fade.querySelector('h2').textContent = $('victory-title-text').textContent;
-    fade.querySelector('.end-quote').textContent = document.querySelector('#victory .end-quote').textContent;
+    // Clone the nodes, not the flat text: the boss's last words are a styled block span (quest-side.js .qc-lastwords).
+    fade.querySelector('.end-quote').replaceChildren(...Array.from(document.querySelector('#victory .end-quote').childNodes, n => n.cloneNode(true)));
     fade.querySelector('.next').textContent = KabirI18n.t('BÖLÜM ') + chapterNumbers[chapter] + ' · ' + chapterNames[chapter];
     setTimeout(() => { fade.classList.remove('hidden'); void fade.offsetWidth; fade.classList.add('show'); document.body.classList.add('chapter-fading'); }, 1500);
     // Music and ambience sink under the card so the swap on the next page is not a hard cut.
