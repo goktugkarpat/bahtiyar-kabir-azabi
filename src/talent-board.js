@@ -50,7 +50,7 @@
     ? '<img src="assets/ui/abilities/' + n.id + '.png" alt="" draggable="false" loading="eager">'
     : '<img src="assets/ui/talents/' + n.id + '.png" alt="" draggable="false" onerror="this.remove()"><svg class="tb-glyph" viewBox="0 0 24 24" aria-hidden="true" style="color:' + color + '">' + (GLYPH[n.glyph] || GLYPH.circle) + '</svg>';
   // view state that survives re-renders
-  let preview = '', seen = null, lastState = null, lastGame = null;
+  let seen = null, lastState = null, lastGame = null;
   function shortCap(h, slot) {
     const k = String(h.keys[slot] || '');
     if (k === t('SAĞ TIK')) return '<svg aria-hidden="true"><use href="#i-mouse-r"/></svg>';
@@ -64,7 +64,6 @@
     const game = h.game, inCombat = !!(game && game.talents && game.talents.inCombat && game.talents.inCombat());
     const spent = learned.length, bonus = state.boons ? (state.boons().points || 0) : 0, total = T.MAX_POINTS + bonus;
     const fresh = seen ? learned.filter(id => !seen.includes(id)) : []; seen = learned.slice();
-    const pre = preview ? T.presets.find(x => x.id === preview) : null;
     const slotOf = id => state.loadout.indexOf(id);
     const acc = Object.create(null); for (const n of nodes) acc[n.id] = T.access(state, n.id);
     const gPoints = GROUPS.map(g => nodes.filter(n => g.cols.includes(n.col) && learned.includes(n.id)).length);
@@ -77,7 +76,7 @@
       if (!n.requires) continue; const par = T.get(n.requires); if (!par) continue;
       const a = pos(par), b = pos(n), ra = SIZE[par.kind] / 2, rb = SIZE[n.kind] / 2;
       const lit = learned.includes(n.id) && learned.includes(par.id), ready = !lit && learned.includes(par.id) && acc[n.id].canLearn;
-      const cls = (lit ? 'lit' : ready ? 'ready' : learned.includes(par.id) ? 'open' : '') + (lit && fresh.includes(n.id) ? ' just' : '') + (pre && pre.nodes.includes(n.id) && pre.nodes.includes(par.id) ? ' pre' : '');
+      const cls = (lit ? 'lit' : ready ? 'ready' : learned.includes(par.id) ? 'open' : '') + (lit && fresh.includes(n.id) ? ' just' : '');
       let d;
       if (n.row - par.row <= 1) d = 'M' + a.x.toFixed(1) + ' ' + (a.y + ra + 2) + 'V' + (b.y - rb - 4);
       else { const ox = a.x + a.side * (ra + 13); d = 'M' + (a.x + a.side * (ra + 2)).toFixed(1) + ' ' + a.y + 'H' + ox.toFixed(1) + 'V' + b.y + 'H' + (b.x + b.side * (rb + 5)).toFixed(1); }
@@ -106,9 +105,9 @@
       const a = acc[n.id], known = a.known, slot = slotOf(n.id), p = pos(n), c = T.cols[n.col].color;
       const superseded = known && n.skill && slot < 0 && nodes.some(o => o.requires === n.id && o.skill && learned.includes(o.id));
       const st = known ? 'learned' : a.exclusive || (n.kind === 'key' && keyChosen) ? 'excluded' : a.canLearn ? 'available' : a.blocked ? 'locked' : 'pending';
-      const order = pre ? pre.nodes.indexOf(n.id) : -1, assignable = known && !!n.skill;
+      const assignable = known && !!n.skill;
       const cls = 'skt-node tb-node tb-' + n.kind + ' ' + st + (superseded ? ' superseded' : '') + (slot >= 0 ? ' slotted' : '') + (n.id === sel.id ? ' selected' : '') +
-        (fresh.includes(n.id) ? ' just' : '') + (order >= 0 ? ' pre' : '') + (assignable ? ' tb-assignable' : '');
+        (fresh.includes(n.id) ? ' just' : '') + (assignable ? ' tb-assignable' : '');
       const label = n.name + ' · ' + KIND[n.kind] + ' · ' + (known ? t('Öğrenildi') : a.reason);
       return '<button type="button" data-char="skill" data-skill="' + n.id + '" class="' + cls + '" style="left:' + p.x.toFixed(1) + 'px;top:' + p.y + 'px;--c:' + c + ';--sz:' + SIZE[n.kind] + 'px" data-gx="' + p.x.toFixed(0) + '" data-gy="' + p.y + '" aria-pressed="' + (n.id === sel.id) + '" aria-label="' + esc(label) + '"' + (assignable ? ' draggable="true"' : '') + '>' +
         '<span class="tb-frame">' + art(n, c) + '</span>' + (n.kind === 'key' ? '<span class="tb-crown" aria-hidden="true"></span>' : '') +
@@ -116,18 +115,15 @@
         (n.kind === 'form' ? '<em class="tb-tier">III</em>' : '') +
         (slot >= 0 ? '<span class="tb-cap">' + shortCap(h, slot) + '</span>' : '') +
         (st === 'excluded' ? '<i class="tb-x" aria-hidden="true"></i>' : st === 'locked' ? '<i class="tb-lock" aria-hidden="true">' + LOCK + '</i>' : '') +
-        (order >= 0 ? '<b class="tb-ord">' + (order + 1) + '</b>' : '') +
         (fresh.includes(n.id) ? '<i class="tb-burst" aria-hidden="true"></i>' : '') + '</button>';
     }).join('');
     const empty = GROUPS.map((g, i) => nodes.some(n => n.kind === 'key' && g.cols.includes(n.col)) ? '' : '<span class="tb-nokey" style="left:' + (panelX(i) + PW / 2).toFixed(1) + 'px;top:' + ROW_Y[5] + 'px" aria-hidden="true"></span>').join('');
-    const board = '<div class="tb-fit"><div class="tb-canvas' + (pre ? ' previewing' : '') + '" style="width:' + W + 'px;height:' + H + 'px">' + panels + rows +
+    const board = '<div class="tb-fit"><div class="tb-canvas" style="width:' + W + 'px;height:' + H + 'px">' + panels + rows +
       '<svg class="tb-links" viewBox="0 0 ' + W + ' ' + H + '" width="' + W + '" height="' + H + '" aria-hidden="true">' + defs + svg.join('') + '</svg>' + empty + html + '</div></div>';
-    // ---- top bar: points left, spent per tree, recommended builds, respec ------------------------------------------
+    // ---- top bar: points left, spent per tree, respec ----------------------------------------------------------------
     const respecWhy = !learned.length ? t('Geri alınacak puan yok.') : inCombat ? t('Savaşın ortasında yol değiştirilemez.') : t('Bütün puanlar ücretsiz geri verilir (savaş dışında).');
     const top = '<div class="tb-top"><div class="tb-points' + (state.points ? ' has' : '') + '"><b>' + state.points + '</b><span>' + esc(t('PUAN')) + '<small>' + esc(t('kalan')) + '</small></span></div>' +
       '<div class="tb-spent"><b>' + gPoints.join(' / ') + '</b><small>' + spent + ' / ' + total + ' ' + esc(t('harcandı')) + '</small></div>' +
-      '<div class="tb-presets"><small>' + esc(t('Hazır yollar')) + '</small>' + T.presets.map(x => '<button type="button" data-char="talent" data-act="preview" data-preset="' + x.id + '" class="' + (x.id === preview ? 'on' : '') + '" aria-pressed="' + (x.id === preview) + '" title="' + esc(x.hint) + '">' + esc(x.name) + '</button>').join('') +
-      (pre ? '<button type="button" class="tb-apply" data-char="talent" data-act="apply" data-preset="' + pre.id + '" ' + (inCombat ? 'disabled' : '') + '>' + esc(t('Uygula')) + '</button>' : '') + '</div>' +
       '<button type="button" class="tb-respec" data-char="respec" title="' + esc(respecWhy) + '" ' + (!learned.length || inCombat ? 'disabled' : '') + '>' + esc(t('Puanları sıfırla')) + '</button></div>';
     // ---- side panel (inspect) — keeps the .skt-inspect class: character-ui.js swaps it on a single click ----------
     const a = T.access(state, sel.id), col = T.cols[sel.col], known = a.known;
@@ -155,8 +151,7 @@
     // ---- bottom bar: identity, slot bar, help -------------------------------------------------------------------
     const weight = T.cols.map((c, i) => ({ c, n: nodes.filter(n => n.col === i && learned.includes(n.id)).length })).filter(o => o.n).sort((x, y) => y.n - x.n);
     const title = weight.length > 1 ? T.archetype(weight[0].c.line, weight[1].c.line) : '';
-    const ident = pre ? '<b class="tb-prename">' + esc(pre.name) + '</b> ' + esc(pre.hint)
-      : weight.length ? (title ? '<b class="tb-arch">' + esc(title) + '</b> ' : '') + weight.slice(0, 2).map(o => '<span style="color:' + o.c.color + '">' + esc(o.c.name) + '</span>').join(' + ') + (keyChosen ? ' · <b class="tb-keyname">' + esc(keyChosen.name) + '</b>' : '')
+    const ident = weight.length ? (title ? '<b class="tb-arch">' + esc(title) + '</b> ' : '') + weight.slice(0, 2).map(o => '<span style="color:' + o.c.color + '">' + esc(o.c.name) + '</span>').join(' + ') + (keyChosen ? ' · <b class="tb-keyname">' + esc(keyChosen.name) + '</b>' : '')
         : '<i>' + esc(t('Henüz bir yol seçmedin')) + '</i>';
     const slots = state.loadout.map((id, slot) => {
       const s = id ? T.get(id) : null, c = s ? T.cols[s.col].color : '#6b5638';
@@ -182,25 +177,8 @@
     box.classList.toggle('tiny', s < .72);
   }
   addEventListener('resize', fit);
-  // ---- actions forwarded from character-ui.js (data-char="talent") -----------------------------------------------
-  function action(button, state, game) {
-    const act = button.dataset.act, T = B.TalentTree;
-    if (act === 'preview') { preview = preview === button.dataset.preset ? '' : button.dataset.preset; return { ok: true, quiet: true }; }
-    if (act === 'apply') {
-      const pre = T.presets.find(x => x.id === button.dataset.preset); if (!pre || !state) return { ok: false, reason: t('Böyle bir yol yok.') };
-      if (game && game.talents && game.talents.inCombat()) return { ok: false, reason: t('Savaşın ortasında yol değiştirilemez.') };
-      if (state.learned.length) state.respec();
-      const order = T.validate(pre.nodes, state.level, state.boons ? state.boons().points || 0 : 0);
-      for (const id of order) state.unlock(id);
-      const actives = order.filter(isActive), top = [];
-      for (const id of actives) { const sk = B.Progression.skills.find(k => k.id === id); const i = top.findIndex(o => B.Progression.skills.find(k => k.id === o).line === sk.line); if (i >= 0) top[i] = id; else top.push(id); }
-      top.slice(0, 4).forEach((id, n) => state.assign(n, id));
-      preview = '';
-      try { if (B.Audio && B.Audio.play) B.Audio.play('talentKeystone', { volume: .5 }); } catch (_) { /* optional */ }
-      return { ok: true, message: (en() ? 'Path chosen: ' : 'Yol seçildi: ') + pre.name + ' (' + order.length + '/' + pre.nodes.length + ')' };
-    }
-    return { ok: false, reason: '' };
-  }
+  // ---- actions forwarded from character-ui.js (data-char="talent"): none left since the recommended builds strip was removed
+  function action() { return { ok: false, reason: '' }; }
   // ---- hover card / long press card ------------------------------------------------------------------------------
   let tip = null, tipFor = null, pressTimer = 0, pressAt = null, hoverTimer = 0;
   function card(el) {
