@@ -359,6 +359,7 @@
       route = { target: t, fromX: p.x, fromZ: p.z, points: points ? [{ x: p.x, z: p.z }].concat(points) : null }; routeVersion++;
     }
     function strokeRoute(c, s, alpha) {
+      return;   // the yellow dashed route line was removed on request; the quest diamond still marks the goal
       if (!route || !route.points || route.points.length < 2) return;
       const pts = route.points.slice(); pts[0] = { x: game.player.x, z: game.player.z };
       c.save(); c.lineJoin = 'round'; c.lineCap = 'round'; c.beginPath(); c.moveTo(pts[0].x, pts[0].z); for (let i = 1; i < pts.length; i++) c.lineTo(pts[i].x, pts[i].z);
