@@ -194,6 +194,7 @@
   // Re-pack the merged draw from the included parts (only when that set changes).
   var tmpSphere = new T.Sphere(), tmpBox = new T.Box3(), tmpBox2 = new T.Box3();
   function rebuild(G) {
+    var rbT0 = performance.now();
     var srcs = G.sources, inc = G.included, mesh = G.mesh, k, count = 0, any = false;
     tmpBox.makeEmpty();
     if (G.kind === 'pseudo') {
@@ -229,7 +230,7 @@
       if (mesh.geometry.boundingSphere && G.kind === 'pseudo') mesh.geometry.boundingSphere.copy(mesh.boundingSphere);
     }
     G.drawn = count > 0;
-    Perf.stats.rebuilds++;
+    Perf.stats.rebuilds++; var rbMs = performance.now() - rbT0; Perf.stats.rebuildMs = (Perf.stats.rebuildMs || 0) + rbMs; if (rbMs > (Perf.stats.rebuildMax || 0)) Perf.stats.rebuildMax = rbMs;
   }
 
   function release(G) {
