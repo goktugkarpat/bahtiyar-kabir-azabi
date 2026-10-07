@@ -26,18 +26,32 @@
           vec4 rp=vec4(transformed,1.);vec3 rn=objectNormal;
           ruinP=(modelMatrix*rp).xyz;ruinN=normalize(mat3(modelMatrix)*rn);`);
         // Anything tall that stands between the camera and the hero is cut away in a thin cone along the view ray (never a hole over his head).
-        sh.fragmentShader='varying vec3 ruinP;varying vec3 ruinN;uniform float ruinTile;uniform vec3 ruinHero;\n'+sh.fragmentShader
+        sh.fragmentShader='varying vec3 ruinP;varying vec3 ruinN;uniform float ruinTile;uniform vec3 ruinHero;\n'+(WA?WA_DECL:'')+sh.fragmentShader
           .replace('#include <clipping_planes_fragment>','#include <clipping_planes_fragment>\n if(ruinP.y>1.7){vec3 re=vec3(ruinHero.x,1.2,ruinHero.z),rd=cameraPosition-re;float rt=clamp(dot(ruinP-re,rd)/dot(rd,rd),0.,1.);if(rt>.03&&rt<.97&&distance(ruinP,re+rd*rt)<1.15+rt*.9)discard;}\n float rcd=distance(ruinP,cameraPosition);if(ruinP.y>2.4&&rcd<9.){float dth=fract(52.9829189*fract(dot(gl_FragCoord.xy,vec2(.06711056,.00583715))));if(rcd<5.2||dth>(rcd-5.2)/3.8)discard;}')
           .replace('#include <map_fragment>',`vec3 rn=abs(ruinN);vec2 ru=rn.y>max(rn.x,rn.z)?ruinP.xz:(rn.x>rn.z?ruinP.zy:ruinP.xy);ru*=ruinTile;
-            vec4 sampledDiffuseColor=texture2D(map,ru);diffuseColor*=sampledDiffuseColor;diffuseColor.rgb*=.94+.06*sin(ruinP.x*.31+sin(ruinP.z*.21));`)
+            vec4 sampledDiffuseColor=texture2D(map,ru);diffuseColor*=sampledDiffuseColor;diffuseColor.rgb*=.94+.06*sin(ruinP.x*.31+sin(ruinP.z*.21));`+(WA?WA_ALBEDO:''))
+          .replace('#include <emissivemap_fragment>','#include <emissivemap_fragment>'+(WA?'\n totalEmissiveRadiance+=vec3(.12,.07,.02)*waGold;':''))
           .replace('#include <roughnessmap_fragment>',T.ShaderChunk.roughnessmap_fragment.replace(/vRoughnessMapUv/g,'ru'))
           .replace('#include <metalnessmap_fragment>',T.ShaderChunk.metalnessmap_fragment.replace(/vMetalnessMapUv/g,'ru'))
           .replace('#include <aomap_fragment>',T.ShaderChunk.aomap_fragment.replace(/vAoMapUv/g,'ru'))
           .replace('#include <normal_fragment_begin>',T.ShaderChunk.normal_fragment_begin.replace(/vNormalMapUv/g,'ru'))
-          .replace('#include <normal_fragment_maps>',T.ShaderChunk.normal_fragment_maps.replace(/vNormalMapUv/g,'ru'));
+          .replace('#include <normal_fragment_maps>',T.ShaderChunk.normal_fragment_maps.replace(/vNormalMapUv/g,'ru')+(WA?WA_NORMAL:''));
       };
-      m.customProgramCacheKey=function(){return 'ruin-scan-108';};m.normalScale.set(.65,.65);m.name='ruins-'+key;materials[key]=m;return m;
+      m.customProgramCacheKey=function(){return 'ruin-scan-108'+(WA?'-wa':'');};m.normalScale.set(.65,.65);m.name='ruins-'+key;materials[key]=m;return m;
     }
+    // ajan:world-a — Sessiz Taht stone identity (chapter III only, ?nomat: off): gold-veined basalt / tomb marble. A two-scale tonal field
+    // breaks the scan's repeat, hairline cracks are darkened and pressed into the normal, and in the king's halls (z < -240) thin gold
+    // veins run through the floor and glow faintly. All procedural, no new textures or draws.
+    var WA=!forge&&B.WorldARuins&&B.WorldARuins.active&&!/[?&]nomat\b/.test(location.search);
+    var WA_DECL='float waH1(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}float waN(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(waH1(i),waH1(i+vec2(1.,0.)),f.x),mix(waH1(i+vec2(0.,1.)),waH1(i+vec2(1.,1.)),f.x),f.y);}\n';
+    var WA_ALBEDO='\n float waM=waN(ruinP.xz*.09+ruinP.y*.05)*.6+waN(ruinP.xz*.27+5.3)*.4;'+
+      ' diffuseColor.rgb*=mix(vec3(.8,.83,.9),vec3(1.1,1.0,.88),smoothstep(.3,.7,waM))*(.9+.2*waN(ruinP.xz*1.3+ruinP.y));'+
+      ' float waC=(1.-smoothstep(0.,.03,abs(waN(ruinP.xz*.55+ruinP.y*.3)-.5)))*smoothstep(.5,.72,waN(ruinP.xz*.05+3.1));'+
+      ' diffuseColor.rgb*=1.-waC*.55;'+
+      ' float waGold=(ruinP.z<-240.&&ruinN.y>.7)?(1.-smoothstep(0.,.012,abs(waN(ruinP.xz*.8+7.)-.5)))*smoothstep(.62,.85,waN(ruinP.xz*.12))*(.4+.6*waN(ruinP.xz*3.1)):0.;'+
+      ' diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.9,.66,.3),waGold*.5);\n';
+    var WA_NORMAL='\n { float wh=-waC*.05+(waM-.5)*.01; vec3 sx=dFdx(-vViewPosition),sy=dFdy(-vViewPosition); vec3 r1=cross(sy,normal),r2=cross(normal,sx); float dt=dot(sx,r1);'+
+      ' vec3 gr=sign(dt)*(dFdx(wh)*r1+dFdy(wh)*r2); normal=normalize(abs(dt)*normal-gr); }\n';
     surface('floor','monastery',forge?0xaa8e76:0xc5c1b4,.46);surface('stone','paving',0xc8c4b9,.38);surface('wall','wall',0xa4a7a3,.26);
     surface('rock','rock',forge?0x938575:0xa2adb3,.55);surface('earth','rock',0xb7b1a6,.36);surface('iron','metal',0x8b999f,.6);
     surface('wood','wood',0x9a8070,.5);
