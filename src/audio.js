@@ -110,6 +110,7 @@
     T.wetV = gainNode(volume.ambient, T.verb); T.wetF = gainNode(volume.sfx, T.verb);
     T.gate = 1; T.player = null; T.resetSerial = null; T.until = 0; T.recent = [];
     try { tortTask = bakeTort(); } catch (e) { tortTask = null; console.warn('Audio torture', e); }
+    /* ajan:audio */ if (B.AudioPlus) try { B.AudioPlus.build(CORE); } catch (e) { console.warn('AudioPlus', e); } /* /ajan:audio */
   }
   const busOf = name => name === 'music' ? [N.music, N.wetMusic] : name === 'amb' ? [N.amb, N.wetAmb] : name === 'tort' ? [T.busV, T.wetV] : name === 'tortf' ? [T.busF, T.wetF] : [N.sfx, N.wetSfx];
 
@@ -673,7 +674,7 @@
     if (!throttle('step', .045)) return;
     const v = o.volume == null ? .4 : o.volume, dodge = v > .5;
     stepCount++;
-    sample('step', { vol: (dodge ? 1.3 : 1.1) * k, rate: rand(.92, 1.05), lp: 7000, send: .06 });
+    sample('step', { vol: (dodge ? 1.1 : .85) * k, rate: rand(.92, 1.05), lp: 7000, send: .06 });   // ajan:audio: was 1.3/1.1 — every step peaked at -4.6 dBFS, almost a sword hit (-1.6)
     if (room() === 2 && chance(.6)) sample('wetStep', { vol: .22 * k, rate: rand(.9, 1.1) });
     if (stepCount % 3 === 0) sample('gear', { vol: .07 * k, rate: rand(.9, 1.1) });
     if (dodge) sample('scuff', { vol: .6 * k });
@@ -1097,6 +1098,7 @@
     try {
       const h = H[name] || (B.TalentAudio && B.TalentAudio.has(name) ? (o, k2) => { const [bus, wet] = busOf(); B.TalentAudio.play(name, ctx, bus, wet, now(), k2, o, N); } : null) || (/slam|explosion/.test(name) ? H.slam : null);   // talent tree 3 sounds: src/talent-audio.js
       if (h) h(opts, k, name);
+      /* ajan:audio */ if (B.AudioPlus) B.AudioPlus.after(name, opts, k); /* /ajan:audio */
     } catch (e) { console.warn('Audio', name, e); }
   }
 
@@ -1233,11 +1235,12 @@
   const A = { next: 3, dripNext: 1.5, crackleNext: 0, room: -1, calm: 0, heart: 0 };
   function buildAmbience() {
     A.bus = gainNode(1, N.amb);
-    const air = noiseSrc(N.brown), lp = filter('lowpass', 150, .7, filter('highpass', 32, .7, gainNode(.4, A.bus))); air.connect(lp); air.start();
+    const air = noiseSrc(N.brown), lp = filter('lowpass', 150, .7, filter('highpass', 40, .7, gainNode(.19, A.bus))); air.connect(lp); air.start();   // ajan:audio: was .4 / 32 Hz — the constant sub rumble was as loud as the combat score (-27 LUFS)
+    const air2 = noiseSrc(N.brown); air2.loopEnd = 4.37; air2.connect(lp); air2.start(0, 1.3); A.air2 = air2;   // ajan:audio: a second, shorter loop — the 6 s brown-noise loop was audible as a repeating swell (envelope autocorrelation .65 at 6.0 s)
     const wind = noiseSrc(N.pink), bp = filter('bandpass', 430, 1.4), wg = gainNode(.0, A.bus); wind.connect(bp); bp.connect(wg); wind.start();
     const wl = ctx.createOscillator(), wlg = gainNode(.028); wl.frequency.value = .061; wl.connect(wlg); wlg.connect(wg.gain); wl.start();
     const wf = ctx.createOscillator(), wfg = gainNode(160); wf.frequency.value = .037; wf.connect(wfg); wfg.connect(bp.frequency); wf.start();
-    wg.gain.value = .05; A.nodes = [air, wind, wl, wf]; A.wind = wg; A.next = now() + 4; A.dripNext = now() + 1.5; A.crackleNext = now();
+    wg.gain.value = .05; A.nodes = [air, air2, wind, wl, wf]; A.wind = wg; A.next = now() + 4; A.dripNext = now() + 1.5; A.crackleNext = now();
   }
   function room() {
     const g = game(), p = g && g.player, w = B.app && B.app.world;
@@ -1279,7 +1282,7 @@
     targetParam(A.wind.gain, forge ? .035 : r === 4 ? .045 : .032, t, 2);
     if (!st.playing && !st.title) return;
     if (!forge && t > A.dripNext) { A.dripNext = t + rand(3, 7); drip(t, rand(-.7, .7), rand(.009, .018)); }
-    if (forge && t > A.crackleNext) { A.crackleNext = t + rand(.18, .5); burst(t, rand(.012, .03), rand(.005, .011), rand(1600, 2800), { q: 1.2, bus: 'amb', pan: rand(-.65, .65) }); }
+    if (forge && t > A.crackleNext) { A.crackleNext = t + rand(.18, .5); burst(t, rand(.012, .03), rand(.03, .07), rand(1600, 2800), { q: 1.2, bus: 'amb', pan: rand(-.65, .65) }); }   // ajan:audio: audible furnace crackle (was ~-68 dBFS)
     // Leave room for attack tells and narration; ambience does not add another voice.
     if (t <= A.next || st.combat || st.boss || st.dead || st.won || current || queue.length || nclock - lastTellN < 4 || A.calm < 4) return;
     A.next = t + rand(18, 32);
@@ -1305,7 +1308,7 @@
     // damlalar (revirde daha sık)
     if (t > A.dripNext) { A.dripNext = t + (r === 2 ? rand(.5, 1.8) : rand(1.4, 4.5)); drip(t, rand(-.8, .8), rand(.012, .035)); }
     // meşale çıtırtısı: çok hafif
-    if (t > A.crackleNext) { A.crackleNext = t + rand(.05, .3); burst(t, rand(.008, .025), rand(.004, .014), rand(2200, 4200), { q: 2, bus: 'amb', pan: rand(-.6, .6) }); }
+    if (t > A.crackleNext) { A.crackleNext = t + rand(.05, .3); burst(t, rand(.008, .025), rand(.025, .07), rand(2200, 4200), { q: 2, bus: 'amb', pan: rand(-.6, .6) }); }   // ajan:audio: was .004-.014 (about -69 dBFS, below hearing)
     // uzak olaylar: zincir, inilti, çığlık, vinç, taş gürlemesi, rahip ilahileri
     if (t > A.next) {
       const quiet = !st.combat;
@@ -1730,7 +1733,7 @@
   // State for BABA.Music: room id, danger 0..1 (awake + close enemies), combat, boss + phase, dead/won, title = muffled Kül Eşiği bed.
   function musicState() {
     const a = B.app, g = game();
-    if (!g || !g.player || (a && a.view === 'title')) return { room: 0, paused: true };
+    if (!g || !g.player || (a && a.view === 'title')) return { room: 5, paused: true, title: !!(a && a.view === 'title') };   // ajan:audio: title theme = the chapel bed + src/music-chapters.js
     const P = g.player, scoreRoom = room(), list = g.enemies || [];
     const boss = g.boss || list.find(e => e.boss);
     let danger = 0, combat = false;
@@ -1743,7 +1746,8 @@
     }
     return { room: scoreRoom, danger, combat,
       boss: !!boss && !boss.dead && !!(boss.active || boss.activated) && g.state === 'playing',
-      bossPhase: boss && boss.phase >= 2 ? 2 : 1, dead: g.state === 'dead', won: g.state === 'won', paused: false };
+      bossPhase: boss && boss.phase >= 2 ? 2 : 1, dead: g.state === 'dead', won: g.state === 'won', paused: false,
+      bossPhaseRaw: boss && boss.phase || 1, bossHp: boss && boss.maxHp ? clamp(boss.hp / boss.maxHp, 0, 1) : 1, heroHp: P.maxHp ? clamp(P.hp / P.maxHp, 0, 1) : 1 };   // ajan:audio
   }
   function update(dt, raw = {}) {
     if (suspended) return;
@@ -1754,6 +1758,7 @@
     try {
       if (extMusic) B.Music.update(dt, musicState()); else musicStep(dt, st);
       ambienceStep(dt, st); tortureStep(dt, st); enemiesStep(dt, st);
+      /* ajan:audio */ if (B.AudioPlus) B.AudioPlus.update(dt, st); /* /ajan:audio */
       if (st.combat && A.calm > 8 && st.playing) stinger('encounter', 0);
       A.calm = st.combat ? 0 : A.calm + dt;
       const t = ctx.currentTime;
@@ -1911,6 +1916,11 @@
     return { context: ctx ? ctx.state : 'none', sampleRate: ctx ? ctx.sampleRate : null,
       baseLatency: ctx ? ctx.baseLatency ?? null : null, outputLatency: ctx ? ctx.outputLatency ?? null : null };
   }
+  /* ajan:audio — src/audio-plus.js (BABA.AudioPlus) adds chapter ambience beds, surface footsteps, hero breath, UI cues; this is its window into the engine. */
+  const CORE = { gainNode, filter, panner, sample, burst, thud, ring, tone, swell, whoosh, growl, noiseSrc, busOf, track, throttle, spatial, room, player, game, rand, chance, clamp,
+    get ctx() { return ctx; }, get N() { return N; }, get volume() { return volume; }, get offline() { return offline; }, get voices() { return voices; },
+    get narrating() { return !!current; }, get bank() { return bank; } };
+  /* /ajan:audio */
   B.Audio = {
     say, saySequence, sayQuest, prepare: prepareAudio, onCaption(fn) { caption = fn; },
     resetNarration() { queue = []; heard.clear(); },   // yeni yolculukta bekleyenleri at; mevcut cümle bitsin
