@@ -26,7 +26,7 @@
   'use strict';
   var B = window.BABA = window.BABA || {};
   var T = window.THREE;
-  var Q = location.search, OFF = !/[?&]opt\b/.test(Q);
+  var Q = location.search, OFF = /[?&]noopt\b/.test(Q);
   // Small parts (shape vertices × instances) are copied into pseudo merges; larger ones are merged as real instances.
   // TOTAL caps the copied vertices (~108 bytes each with matrix and colour).
   var SRC_LIMIT = +(/[?&]mergesrc=(\d+)/.exec(Q) || [0, 5000])[1], TOTAL_LIMIT = +(/[?&]mergetotal=(\d+)/.exec(Q) || [0, 600000])[1];
