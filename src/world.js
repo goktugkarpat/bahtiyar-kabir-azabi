@@ -185,7 +185,7 @@
     '  diffuseColor.rgb *= 1.0 - gWet * 0.3;',
     // ajan:world-a — temple stone identity (amber-black limestone): a broad two-scale tonal field breaks the tile repeat,
     // hairline cracks follow a noise ridge (darkened, and fed to the normal as relief), bone-pale dust settles in the joints.
-    '  #ifdef G_WA',
+    '  #if defined(G_WA) && !defined(G_LOW)',   // low quality (iPad saver) keeps the plain stone
     '    vec4 gm1 = texture2D(gNoise, gP.xz * 0.013 + vec2(0.17, 0.53) + gP.y * 0.011);',
     '    float gMac = gm1.g * 0.6 + gm1.r * 0.4;',
     '    diffuseColor.rgb *= mix(vec3(0.78, 0.8, 0.86), vec3(1.12, 0.96, 0.78), smoothstep(0.28, 0.72, gMac)) * (0.86 + 0.28 * gn1.b);',
@@ -205,7 +205,7 @@
     '#endif'].join('\n');
   var SURFACE_FRAG_NORMAL = [
     '#ifdef G_SURFACE',
-    '  #ifdef G_WA',
+    '  #if defined(G_WA) && !defined(G_LOW)',
     '  { float gh = -gWaH * 0.05 + (gn2.r + gn1.g - 1.0) * 0.012;',
     '    vec3 gsx = dFdx(-vViewPosition), gsy = dFdy(-vViewPosition); vec3 gr1 = cross(gsy, normal), gr2 = cross(normal, gsx); float gdet = dot(gsx, gr1);',
     '    vec3 ggrad = sign(gdet) * (dFdx(gh) * gr1 + dFdy(gh) * gr2); normal = normalize(abs(gdet) * normal - ggrad); }',

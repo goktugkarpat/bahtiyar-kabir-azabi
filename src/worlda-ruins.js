@@ -166,7 +166,7 @@
     }());
     // ---- falling drops and their rings in the caves (one GPU-animated instanced draw) ----
     if (env.root && B.WorldADrips) { var dp = []; [6, 7, 8, 9].forEach(function (i) { var r = rooms[i], R = K.rng(i, 72); for (var k = 0; k < 7; k++) dp.push([r.x + (R() - .5) * (r.w - 6), 5.6 + R() * 1.2, r.z + (R() - .5) * (r.d - 6)]); });
-      B.WorldADrips.create(window.THREE, env.root, dp, [.55, .8, 1.0]); }
+      B.WorldADrips.create(window.THREE, env.root, dp, [.3, .5, .7]); }
     // ---- bats in the caverns and over the ruined city; mineral motes drifting through the crystal light ----
     if (env.root && B.WorldABats) B.WorldABats.create(window.THREE, env.root, [[0, 7, 8], [-4, 7.5, -18], [-3, 6.5, -148], [4, 6.5, -174], [-4, 6.5, -200], [5, 6.5, -226]], 30);
     [6, 7, 8, 9].forEach(function (i) { var r = rooms[i], R = K.rng(i, 31);
