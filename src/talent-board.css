@@ -410,3 +410,6 @@
 /* v330: the slot bar sits centred in its strip (more room above, no empty band below) */
 #character .tb-bottom { padding:16px 4px 4px; align-items:center; }
 #character .tb-slots { align-self:center; }
+/* v331: slot group centred top/bottom: the key captions hang 10px below the boxes, so the bottom padding is 10px larger */
+#character .tb-slots { padding:12px 13px 21px; }
+@media (max-height:700px) { #character .tb-slots { padding:9px 11px 17px; } }
