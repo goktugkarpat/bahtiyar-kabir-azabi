@@ -16,7 +16,6 @@
       ] },
       { id: 'blood-verdict', name: KabirI18n.t('Kanla Yazılan Hüküm'), description: KabirI18n.t('Adak Salonu’ndaki hükmü tersine çevir: önce Kül, sonra Kan, son olarak Yemin.'), steps: [
         { id: 'ash', room: 3, dx: -5.4, dz: 3.4, shape: 'censer', name: KabirI18n.t('Kül Çanağı'), verb: KabirI18n.t('Kül çanağını söndür'), objective: KabirI18n.t('Adak Salonu’nda ayini boz: Kül → Kan → Yemin.'), story: KabirI18n.t('Kül çanağı sönüyor. Kazınmış söz ortaya çıktı: “Beden unutulur; kan tanıklık eder.” Sırada Kan Çanağı var.') },
-        { id: 'blood', room: 3, dx: 0, dz: -2.5, shape: 'censer', name: KabirI18n.t('Kan Çanağı'), verb: KabirI18n.t('Kan çanağının bağını çöz'), objective: KabirI18n.t('Adak Salonu’nda ikinci bağı çöz: Kan Çanağı.'), story: KabirI18n.t('Kan çanağının demir bağı açılıyor. Hükmü bozmak için son taşı çevir: Yemin.') },
         { id: 'oath', room: 3, dx: 5.4, dz: 3.4, shape: 'seal', name: KabirI18n.t('Hüküm Mührü'), verb: KabirI18n.t('Yemin mührünü tersine çevir'), objective: KabirI18n.t('Adak Salonu’nda Yemin Mührü’nü tersine çevir.'), story: KabirI18n.t('Kurbanın yemini celladına döndü. Mahkeme kapısının kanla beslenen bağı kırıldı. Yeraltından kıyıya çıkan yolu Cellat koruyor.') }
       ] }
     ] },
@@ -45,9 +44,8 @@
         { id: 'last-shackle', room: 2, dx: -3.8, dz: 2.6, shape: 'relic', name: KabirI18n.t('Son Yemin Halkası'), verb: KabirI18n.t('Yemin halkasını al'), objective: KabirI18n.t('Kömür Mahkûmları’nda son yemin halkasını bul.'), story: KabirI18n.t('Halka elini yakmıyor. Üzerinde mahkûmların ortak yemini var: “Son çıkan, zinciri de kıracak.” Kuyu vincinin kilidine uyuyor.') },
         { id: 'prison-winch', room: 7, dx: 3.8, dz: 2.5, shape: 'winch', name: KabirI18n.t('Mahkûm Vinci'), verb: KabirI18n.t('Halkayı tak ve kuyu zincirlerini bırak'), objective: KabirI18n.t('Zincir Kuyuları’nda yemin halkasıyla vinci aç.'), story: KabirI18n.t('Zincirler kuyuya boşalıyor. Artık ocak yeni bir mahkûmun nefesini çekemeyecek. İlk kilit açıldı.') }
       ] },
-      { id: 'heart-feeds', name: KabirI18n.t('Kalbi Besleyen Ateş'), description: KabirI18n.t('Önce döküm akışını, sonra cüruf dönüşünü, son olarak ana beslemeyi kapat.'), steps: [
+      { id: 'heart-feeds', name: KabirI18n.t('Kalbi Besleyen Ateş'), description: KabirI18n.t('Önce döküm akışını, sonra kalbin ana beslemesini kapat.'), steps: [
         { id: 'casting-feed', room: 5, dx: -3.5, dz: 3.3, shape: 'valve', name: KabirI18n.t('Döküm Vanası'), verb: KabirI18n.t('Döküm akışını kapat'), objective: KabirI18n.t('Sönen Dökümhane’de döküm vanasını kapat.'), story: KabirI18n.t('Sıvı demirin sesi azalıyor. Basıncı geri döndüren cüruf hattı hâlâ açık; sıradaki vana Cüruf Meydanı’nda.') },
-        { id: 'slag-return', room: 9, dx: 3.6, dz: 2.8, shape: 'valve', name: KabirI18n.t('Cüruf Dönüş Vanası'), verb: KabirI18n.t('Cüruf dönüşünü kapat'), objective: KabirI18n.t('Cüruf Meydanı’nda dönüş vanasını kapat.'), story: KabirI18n.t('Geri dönüş sustu. Ana besleme artık güvenle kesilebilir. Son Döküm’deki mühürlü vanaya ulaş.') },
         { id: 'heart-feed', room: 12, dx: -3.6, dz: 2.5, shape: 'valve', name: KabirI18n.t('Kalp Besleme Vanası'), verb: KabirI18n.t('Kalbin ana beslemesini kes'), objective: KabirI18n.t('Son Döküm’de kalbin ana beslemesini kes.'), story: KabirI18n.t('Ana besleme kesildi. Kalp artık tutsaklardan beslenemiyor; ama kendi ateşi hâlâ canlı. Bu yolculuğun son zinciri içeride.') }
       ] }
     ] }
@@ -77,11 +75,9 @@
   // The blood rite becomes a riddle: all three bowls answer, the incisions on their fronts (I, II, III) and the inscription give the order,
   // and a wrong bowl spills the hero's blood and resets the rite.
   (function (rite) {
-    rite.ritual = true;
-    rite.description = L5('Adak Salonu’ndaki hükmü tersine çevir. Duvardaki yazı sırayı söylüyor: “Beden unutulur, kan tanıklık eder, yemin en son konuşur.” Çanakların önündeki çentikleri say.', 'Reverse the sentence in the Hall of Offerings. The inscription gives the order: “The body is forgotten, the blood bears witness, the oath speaks last.” Count the notches on the bowls.');
-    var hint = L5('Adak Salonu’nda üç çanağı doğru sırayla boz. Yanlış çanak kan ister.', 'Break the three bowls in the Hall of Offerings in the right order. A wrong bowl demands blood.');
-    rite.steps.forEach(function (step) { step.objective = hint; });
-    rite.wrong = L5('Yanlış çanak. Ayin kanını istiyor ve baştan başlıyor. “Beden unutulur, kan tanıklık eder, yemin en son konuşur.”', 'The wrong bowl. The rite takes your blood and begins again. “The body is forgotten, the blood bears witness, the oath speaks last.”');
+    rite.description = L5('Adak Salonu’ndaki hükmü tersine çevir: önce Kül Çanağı’nı söndür, sonra Hüküm Mührü’nü çevir.', 'Reverse the sentence in the Hall of Offerings: put out the Ash Bowl first, then turn the Verdict Seal.');
+    rite.steps[0].objective = L5('Adak Salonu’nda Kül Çanağı’nı söndür.', 'Put out the Ash Bowl in the Hall of Offerings.');
+    rite.steps[1].objective = L5('Adak Salonu’nda Hüküm Mührü’nü tersine çevir.', 'Turn the Verdict Seal in the Hall of Offerings.');
   })(CHAPTERS[1].quests[1]);
   // Guarded relics: the urns, the chained echo and the prisoners' winch cannot be touched while their dead still stand nearby.
   CHAPTERS[2].quests[1].steps.forEach(function (step) { step.guard = 9; });
@@ -139,7 +135,7 @@
     { chapter: 2, choice: 'accuse', room: 12, dx: 3.4, dz: 2.6, id: 'bell-testimony', name: KabirI18n.t('Fenercinin Son Tanıklığı'), objective: KabirI18n.t('Fenersiz Sığınak’taki nöbeti kır ve fenercinin tanıklığını çana bağla.'), story: KabirI18n.t('Sığınaktaki nöbet sustu. Fenercinin tanıklığı yas çanına ulaşıyor; Çancı kendi sesinin içinde açıkta kalıyor.'), effect: KabirI18n.t('Fenersiz Sığınak’ın nöbetini yen. Ardından efendiye hasar %10 artar.') },
     { chapter: 3, choice: 'name', room: 10, dx: -3.4, dz: 2.6, id: 'royal-testimony', name: KabirI18n.t('Kralın Son Tanığı'), objective: KabirI18n.t('Yutulan Saray’daki muhafızları yen ve kralın tanıklık mührünü kır.'), story: KabirI18n.t('Sarayın son muhafızı düştü. Taç, mahkûmun adını artık saklayamıyor. Kral kendi geçmişiyle yüzleşmek zorunda.'), effect: KabirI18n.t('Yutulan Saray’ın muhafızlarını yen. Ardından efendiye hasar %10 artar.') },
     { chapter: 4, choice: 'turn', room: 10, dx: 3.2, dz: 2.4, id: 'turned-oath', name: KabirI18n.t('Kalbe Dönen Yemin'), objective: KabirI18n.t('Kızıl Fırınlar’daki bekçileri yen ve halkaları kalbin beslemesine döndür.'), story: KabirI18n.t('Korun bekçileri düştü. Mahkûmların zinciri artık kalbin kendi ateşini bağlıyor; son vuruşun yolu açıldı.'), effect: KabirI18n.t('Kızıl Fırınlar’ın bekçilerini yen. Ardından efendiye hasar %10 artar.') }
-  ].forEach(function (trial) {
+  ].slice(0, 0).forEach(function (trial) {
     var q = CHAPTERS[trial.chapter].quests[0], chosen = q.verdict.options.find(function (choice) { return choice.id === trial.choice; });
     trial.shape = ({ expose: 'tablet', accuse: 'bell', name: 'memorial', turn: 'winch' })[trial.choice];
     trial.verb = ({ expose: KabirI18n.t('Saklı tanıklığı al'), accuse: KabirI18n.t('Tanıklığı yas çanına bağla'), name: KabirI18n.t('Kraliyet mührünü kır'), turn: KabirI18n.t('Halkaları kalbin beslemesine geçir') })[trial.choice]; trial.trial = true;
