@@ -229,14 +229,14 @@
   }
 
   // ---------------------------------------------------------------- runtime (create)
-  var vt = new T.Vector3(), qa = new T.Quaternion(), qb = new T.Quaternion(), qp = new T.Quaternion(), va = new T.Vector3(), vb = new T.Vector3(), vc = new T.Vector3(), vs = new T.Vector3(), mInv = new T.Matrix4(), axis = new T.Vector3();
+  var vt = new T.Vector3(), axisZ = new T.Vector3(), qz = new T.Quaternion(), qa = new T.Quaternion(), qb = new T.Quaternion(), qp = new T.Quaternion(), va = new T.Vector3(), vb = new T.Vector3(), vc = new T.Vector3(), vs = new T.Vector3(), mInv = new T.Matrix4(), axis = new T.Vector3();
   var DOWN = new T.Vector3(0, -1, 0);
   function attach(info, ctx) {
     if (OFF || !info) return;
     var root = ctx.root, native = ctx.native, R = info.rig, list = [], time = Math.random() * 10;
     // posture bones
     var post = [];
-    if (info.posture) Object.keys(info.posture).forEach(function (role) { var b = native[R[role]]; if (b) post.push({ b: b, a: info.posture[role], base: new T.Quaternion(), written: new T.Quaternion(0, 0, 0, 0) }); });
+    if (info.posture) Object.keys(info.posture).forEach(function (role) { var b = native[R[role]]; if (b) post.push({ b: b, a: info.posture[role], gait: info.gait ? (info.gait[role] || 0) : 0, base: new T.Quaternion(), written: new T.Quaternion(0, 0, 0, 0) }); });
     info.swing.forEach(function (s) {
       var b = native[s.bone]; if (!b) return;
       var restQ = b.quaternion.clone(), dir = new T.Vector3().fromArray(s.dir).normalize();
@@ -256,10 +256,15 @@
       dt = Math.min(Math.max(Number.isFinite(dt) ? dt : 0, 0), 1 / 20); time += dt;
       if (post.length && !(state && state.dead)) {
         // world right axis of the model, then a forward bend of each listed bone about it (applied after the animation)
-        root.updateWorldMatrix(true, false); axis.set(1, 0, 0).transformDirection(root.matrixWorld);
+        root.updateWorldMatrix(true, false); axis.set(1, 0, 0).transformDirection(root.matrixWorld); axisZ.set(0, 0, 1).transformDirection(root.matrixWorld);
+        // gait weight transfer (hero): the torso rolls over the planted foot and leans into the stride
+        var mi = root.userData.authoredMotion, mv = info.gait && state ? Math.min(1, Math.max(0, +state.move || 0)) : 0, gph = mi && /walk|run|move|loco/i.test(mi.clip || '') ? (mi.phase || 0) : -1;
+        var roll = mv && gph >= 0 ? Math.sin(gph * TAU) * .05 * mv : 0, lean = mv * .05;
         for (var i = 0; i < post.length; i++) {
-          var b = post[i].b, par = b.parent; if (!par) continue;
-          par.matrixWorld.decompose(vs, qp, vb); qa.setFromAxisAngle(vc.copy(axis).applyQuaternion(qb.copy(qp).invert()), post[i].a);
+          var b = post[i].b, par = b.parent; if (!par) continue; var ax = post[i].a, angX = typeof ax === 'number' ? ax : ax[0], angZ = typeof ax === 'number' ? 0 : ax[1];
+          if (post[i].gait) { angX += lean * post[i].gait; angZ += roll * post[i].gait; }
+          par.matrixWorld.decompose(vs, qp, vb); qb.copy(qp).invert(); qa.setFromAxisAngle(vc.copy(axis).applyQuaternion(qb), angX);
+          if (angZ) qa.multiply(qz.setFromAxisAngle(vc.copy(axisZ).applyQuaternion(qb), angZ));
           // a bone the animation did not set this frame still holds last frame's bent value: bend from the unbent base, never accumulate
           if (b.quaternion.equals(post[i].written)) b.quaternion.copy(post[i].base); post[i].base.copy(b.quaternion);
           b.quaternion.premultiply(qa); post[i].written.copy(b.quaternion); b.updateMatrixWorld(true);
@@ -267,7 +272,7 @@
       }
       if (state && state.dead) {
         deadT += dt;
-        if (!debrisDone && deadT > .35) { debrisDone = true; scatterDebris(root, info); }
+        if (!debrisDone && deadT > .35) { debrisDone = true; if (!info.hero) scatterDebris(root, info); }
         if (sprawl.length) {
           var e = Math.min(1, deadT / .8); e = e * e * (3 - 2 * e);
           for (var j = 0; j < sprawl.length; j++) {
@@ -357,7 +362,14 @@
   // enemy-horror.js hangs its shroud tatters rigidly on the upper spine; on the stooped prisoner and drowned (their clips bend that bone
   // ~70 degrees) the strips stood up over the head. Here they are swinging strips instead (KIT above), so the rigid ones are dropped.
   if (!OFF && B.EnemyHorror && B.EnemyHorror.kit) ['prisoner', 'drowned'].forEach(function (t) { var k = B.EnemyHorror.kit[t]; if (k) B.EnemyHorror.kit[t] = k.filter(function (x) { return x !== 'tatters'; }); });
-  B.EnemyDread = { pre: OFF ? function () { } : pre, apply: apply, attach: attach, phaseVisual: phaseVisual, kit: KIT, posture: POSTURE };
+  // Bahtiyar: a heavier, planted stance on top of every clip — shoulders sunk, chest a little forward, the head held low and level,
+  // and the torso rolling over the planted foot while he walks or runs (no swinging parts, no corpse debris). ?nohero turns it off.
+  function heroInfo() {
+    if (OFF || /[?&]nohero(&|$)/.test(location.search)) return null;
+    return { type: 'hero', hero: true, swing: [], phases: false, rig: rig(true),
+      posture: { s2: .03, s3: .05, neck: -.03, head: -.03, clavL: [0, -.09], clavR: [0, .09] }, gait: { s2: .6, s3: .5 } };
+  }
+  B.EnemyDread = { heroInfo: heroInfo, pre: OFF ? function () { } : pre, apply: apply, attach: attach, phaseVisual: phaseVisual, kit: KIT, posture: POSTURE };
   // BABA.Models is published by authored-models.js (loaded after this file): install the helper once it exists.
   function install() { if (B.Models && !B.Models.phaseVisual) B.Models.phaseVisual = phaseVisual; }
   install(); if (!B.Models) { var tries = 0, iv = setInterval(function () { install(); if ((B.Models && B.Models.phaseVisual) || ++tries > 200) clearInterval(iv); }, 50); }

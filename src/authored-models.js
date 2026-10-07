@@ -1045,7 +1045,7 @@
       skin: bodyMaterial(A.srcMaterial('LOW_body'), 'hero-skin', { cls: 'skin', skin: 1, skinMap: true, sat: .44, tint: [.78, .68, .58], contrast: 1.2, grime: .52, blood: .18, scars: scars, face: true, bodyFx: B.HeroDetail && B.HeroDetail.skinFx ? B.HeroDetail.skinFx(A) : null }),
       brow: library['hero-brow'] || (library['hero-brow'] = Object.assign(std({ map: browTexture(), alphaTest: .4, roughness: .8, side: T.DoubleSide }, { sat: 1 }), { name: 'kara-hero-brow' })),
       eye: library['hero-eye'] || (library['hero-eye'] = Object.assign(new T.MeshPhysicalMaterial({ map: eyeTexture(), roughness: .4, clearcoat: .6, clearcoatRoughness: .18 }), { name: 'kara-hero-eye' })),
-      leather: bodyMaterial(A.srcMaterial('LOW_cloth'), 'hero-leather', { cls: 'leather', sat: .8, tint: [1.25, 1.12, 1.0], grime: .3, blood: .12 }),
+      leather: bodyMaterial(A.srcMaterial('LOW_cloth'), 'hero-leather', { cls: 'leather', sat: .7, tint: [.82, .7, .6], contrast: 1.15, grime: .55, blood: .22, wear: 1.2 }),   // (ajan:models) worn, stained hide
       // the painted iron atlas is busy; keep its relief (normal/AO) with a controlled forged-steel value
       iron: bodyMaterial(A.srcMaterial('LOW_metal_shoulder'), 'hero-iron', { cls: 'metal', sat: 1, tint: [1, 1, 1], blood: .14, grime: .35, rust: .08 }, { map: null, color: new T.Color().setRGB(.15, .152, .16), metalness: .78, roughness: .5 }),
       // salt and pepper: dark brown at the moustache and upper cheeks, greying toward the chin and under the jaw (see kGrey)
@@ -1463,7 +1463,7 @@
     var recipe = R[type](A);
     if (type !== 'hero' && B.EnemyHorror) B.EnemyHorror.apply(type, A, recipe);
     if (type === 'hero' && B.HeroDetail) B.HeroDetail.apply(A, recipe, { sleeve: sleeve, gearMaterial: gearMaterial, place: place, onBody: onBody, frameFrom: frameFrom });   // (ajan:visual-dark) hero-detail.js   // (ajan:visual-dark) silhouette growths, enemy-horror.js
-    var dread = type !== 'hero' && B.EnemyDread ? B.EnemyDread.apply(type, A, recipe) : null;   // (ajan:models) swinging chains/shrouds, signature growths, boss phase parts
+    var dread = B.EnemyDread ? (type === 'hero' ? (B.EnemyDread.heroInfo ? B.EnemyDread.heroInfo() : null) : B.EnemyDread.apply(type, A, recipe)) : null;   // (ajan:models) swinging chains/shrouds, signature growths, boss phase parts
     var built = A.build(recipe.materials || {});
     // body height from body parts only (helmets, horns and crowns may rise above it)
     var box = new T.Box3(); built.meshes.forEach(function (m) { if (A.parts.some(function (p) { return p.body && p.key === m.name; })) { m.geometry.computeBoundingBox(); box.union(m.geometry.boundingBox); } });
