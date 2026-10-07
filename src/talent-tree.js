@@ -3,7 +3,7 @@
      row 1  actives (Mezar Yaran, Kan Nidası, Zincir Kasırgası, Kül Hücumu, Çengelli Çekiş, Demir Duruş), levels 2-4
      row 2  TWO exclusive forms under every active (A or B), each replaces the active in its slot; needs only that active + a modest level
      row 3  four archetype passives in two exclusive pairs (Öfke | Kanama, Savunma | Hücum)
-     row 4  two exclusive keystones (Cellat | Kan Yemini)
+     row 4  three exclusive keystones (Cellat | Kan Yemini | Demir Yemin), one under each board panel
    Every node costs one point; points = level - 1 (12 at level 13) + up to 5 quest points, the tree costs 24: nobody takes everything.
    Exclusive groups: one node per `group`. No gates on points spent. Removed tree-3 nodes are unknown ids: validate() drops them (and later exclusive siblings), the points come back.
    Form ids reuse the older tiers (temper/brand, chainstorm/quake, rend/reap, havoc/grasp) so slots, art, motion and skill-fx keep working.
@@ -48,6 +48,7 @@
   // ---- row 4 keystones: exactly one per run ---------------------------------------------------------------------
   key('k-exec', 2, 'cleave', 'Cellat', 'Canı %40’ın altına düşen düşmanlara %25 fazla hasar verirsin. Canı %10’un altına inen sıradan düşmanlar tek vuruşta ölür.', 'Bedeli: en yüksek canın %20 azalır.', 'axe', { exec: true, hpMul: .8 });
   key('k-blood', 3, 'roar', 'Kan Yemini', 'Verdiğin bütün hasarın %7’si can olarak sana döner.', 'Bedeli: şifa matarası taşıyamazsın.', 'drop', { leech: .07, noFlask: true });
+  key('k-iron', 5, 'guard', 'Demir Yemin', 'Aldığın bütün hasar %20 azalır. Öldürdüğün her düşman 8 dayanıklılık geri verir.', 'Bedeli: kaçınma atılışı iki kat dayanıklılık harcar.', 'shield', { taken: .8, killStamina: 8, dodgeMul: 2 });
 
   // ---- actives / forms come from progression.js (same ids, same params); placed in the grid here: [col, row, slot] ----
   const PLACE = { cleave: [0, 1], temper: [0, 2, 0], brand: [0, 2, 1], roar: [1, 1], chainstorm: [1, 2, 0], quake: [1, 2, 1], whirl: [2, 1], rend: [2, 2, 0], reap: [2, 2, 1],
@@ -128,6 +129,8 @@
     e.bleedMul = 1; e.bleedingTaken = h('p-bleed') ? M.taken : 1; e.skillBleed = h('p-bleed') ? M.skillBleed : 0; e.bleedTime = M.time;
     e.exec = exec; e.execBelow = X.below; e.execDmg = X.dmg; e.execKill = X.kill; e.leech = h('k-blood') ? g('blood', { leech: .07 }).leech : 0;
     e.taken = h('p-ironhide') ? g('ironhide', { taken: .9 }).taken : 1;
+    const I = g('iron', { taken: .8, stamina: 8, dodge: 2 });   // Demir Yemin (keystone)
+    e.iron = h('k-iron'); if (e.iron) e.taken *= I.taken; e.killStamina = e.iron ? I.stamina : 0; e.dodgeMul = e.iron ? I.dodge : 1;
     e.frenzy = h('p-frenzy') ? g('frenzy', { hp: 40, dmg: 1.25, regen: 1.15 }) : null; e.momentum = h('p-momentum') ? g('momentum', { dmg: 1.2, time: 3 }) : null;
     e.rage = h('p-rage') ? g('rage', { hits: 5, time: 3, dmg: 1.2, regen: 1.4 }) : null; e.vengeance = h('p-vengeance') ? g('vengeance', { share: .25, cap: 90 }) : null;
     e.vsStunned = h('p-crush') ? g('crush', { dmg: 1.2 }).dmg : 1; e.breath = h('p-breath') ? g('breath', { stamina: 22, heal: .01 }) : null;
@@ -143,7 +146,7 @@
   const PRESETS = Object.freeze([
     { id: 'warlord', name: t('Savaş Beyi'), hint: '', nodes: ['cleave', 'whirl', 'roar', 'charge', 'temper', 'rend', 'p-frenzy', 'havoc', 'k-exec'] },
     { id: 'hook-haul', name: t('Çengelci'), hint: '', nodes: ['hook', 'cleave', 'charge', 'hook3', 'brand', 'p-bleed', 'grasp', 'whirl', 'k-exec'] },
-    { id: 'iron-wall', name: t('Demir Duvar'), hint: '', nodes: ['guard', 'cleave', 'roar', 'guard2', 'quake', 'p-guard', 'temper', 'whirl', 'k-blood'] }
+    { id: 'iron-wall', name: t('Demir Duvar'), hint: '', nodes: ['guard', 'cleave', 'roar', 'guard2', 'quake', 'p-ironhide', 'temper', 'whirl', 'k-iron'] }
   ]);
   const archetype = () => '';
   const colOfLine = line => COLS.find(c => c.line === line) || COLS[0];

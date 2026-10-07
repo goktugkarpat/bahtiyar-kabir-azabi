@@ -130,6 +130,7 @@
     function onKill(e) {
       status.delete(e); if (look) look.clear(e);
       const B2 = fx().breath; if (B2 && !player.dead) { player.stamina = Math.min(player.maxStamina, player.stamina + B2.stamina); heal(B2.heal); if (look) look.puff(player.x, 0, player.z, 'bone', 4); }   // Yırtıcı Nefes
+      const KS = fx().killStamina; if (KS && !player.dead) { player.stamina = Math.min(player.maxStamina, player.stamina + KS); if (look) look.puff(player.x, 0, player.z, 'stone', 3); }   // Demir Yemin
     }
     // The build shows on the hero: the keystone's path, else a path with at least three nodes.
     const AURA = { cleave: 'stone', roar: 'blood', whirl: 'chain', charge: 'gold', hook: 'chain', guard: 'stone' };
@@ -146,7 +147,7 @@
     const regenMul = () => { const F = fx(); return (F.frenzy && player.hp < F.frenzy.hp ? F.frenzy.regen : 1) * (F.rage && rageLeft > 0 ? F.rage.regen : 1); };
     const flaskHealMul = () => fx().flaskHeal;
     const maxFlasks = base => Math.max(0, base + fx().flasks);
-    const dodgeCost = base => base;
+    const dodgeCost = base => base * fx().dodgeMul;   // Demir Yemin: the roll costs more
     const dodgeBlocked = () => false;
     function onDodge() { if (fx().momentum) momentum = fx().momentum.time; }
     // ---- per-frame ------------------------------------------------------------------------------------------

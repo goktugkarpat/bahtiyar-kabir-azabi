@@ -17,32 +17,66 @@
     burst: '<path d="m12 1 2 7 6-4-3 7 6 1-6 3 4 6-7-3-2 7-2-7-7 3 4-6-6-3 6-1-3-7 6 4z"/>', spread: '<path d="M12 9a3 3 0 1 1 0 6 3 3 0 0 1 0-6zM4 3a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5zm16 0a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5zM4 16a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5zm16 0a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5z"/>',
     axe: '<path d="M4 22 15 5l2 1L6 23zM13 3c5-2 9 0 10 5l-7 6c0-3-2-5-5-5z"/>', skull: '<path d="M12 2c5 0 9 3.5 9 8.5 0 3-1.5 4.5-3 5.5v3h-3v-2h-2v2h-2v-2H9v2H6v-3c-1.5-1-3-2.5-3-5.5C3 5.5 7 2 12 2zM8 9a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm8 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4z"/>',
     chain: '<path d="M7 3a4 4 0 0 1 4 4v2H9V7a2 2 0 1 0-4 0v4a2 2 0 0 0 2 2v2a4 4 0 0 1-4-4V7a4 4 0 0 1 4-4zm10 6a4 4 0 0 1 4 4v4a4 4 0 0 1-8 0v-2h2v2a2 2 0 1 0 4 0v-4a2 2 0 0 0-2-2zM10 9h4v6h-4z"/>',
+    shield: '<path d="M12 1 21 4.5v6.5c0 5.5-3.8 10-9 12-5.2-2-9-6.5-9-12V4.5zm0 3.2L6 6.6V11c0 3.8 2.4 7.1 6 8.8 3.6-1.7 6-5 6-8.8V6.6z"/>',
     circle: '<path d="M12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20zm0 3a7 7 0 1 0 0 14 7 7 0 0 0 0-14z"/>'
   };
   const LOCK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10V7a5 5 0 0 1 10 0v3h2v12H5V10zm3 0h4V7a2 2 0 0 0-4 0z"/></svg>';
   const OPEN = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10V7a5 5 0 0 1 9.6-2l-2.7 1.3A2 2 0 0 0 10 7v3h9v12H5V10z"/></svg>';
   // ---- design canvas ----------------------------------------------------------------------------------------------
-  // Upper half: one tree panel per skill line (talent-tree.js COLS): active on top, its two exclusive forms (A | B) below.
-  // Lower half: the build plaques — every exclusive pair of passives (group) on its own plaque, then the keystone altar.
-  // Positions come from the data (col / slot / x), nothing here knows the node ids.
-  const W = 800, H = 410, GUT = 50, RIGHT = 4;
-  const AREA = W - GUT - RIGHT;
-  const ROW_Y = { 1: 70, 2: 160, 3: 266, 4: 360 };
-  const PANEL = { top: 2, bottom: 204 };
-  const SIZE = { active: 54, form: 44, mod: 44, passive: 44, key: 54 };
-  const FORK = 27;   // half distance between the two forms of a line
+  // THREE tree panels side by side (WoW "talents forever" look): the six skill lines are grouped two by two by their build
+  // archetype (talent-tree.js ARCH_OF_LINE: cleave+hook, roar+whirl, the rest together). Every panel has two columns:
+  //   row I   the active of each column, row II its two exclusive forms (A | B) right under it,
+  //   row III the panel's archetype passive pair(s) on a plaque ("ya da" between the rivals),
+  //   row IV  the panel's keystone in a big diamond at the bottom (one keystone per run, the others get the red cross).
+  // Positions come from the data (line / slot / group / arch), nothing here knows the node ids.
+  const W = 800, H = 410, GUT = 44, GAP = 8;
+  const PW = (W - GUT - 4 - GAP * 2) / 3;
+  const ROW_Y = { 1: 80, 2: 150, 3: 226, 4: 334 };
+  const HEAD = 40;
+  const SIZE = { active: 50, form: 40, mod: 40, passive: 40, key: 52 };
+  const FORK = 25;   // half distance between the two forms of a line
   const KIND = { active: t('Aktif yetenek'), form: t('Biçim'), mod: t('Güçlendirme'), passive: t('Yapı'), key: t('Kilit taşı') };
   const ARCH_COL = { bleed: '#c8473f', rage: '#d9884b', guard: '#a9a4c4', charge: '#c9a45a' };
-  const PAINTED = new Set(['p-frenzy', 'p-momentum', 'p-crush', 'k-exec', 'k-blood']);   // painted talent icons (others: engraved glyph)
+  const PANEL_NAME = { cleave: 'GAZAP', roar: 'VEBA', whirl: 'VEBA', charge: 'KÜL', guard: 'KÜL', hook: 'GAZAP' };   // by the panel's first line
+  const PAINTED = new Set(['p-frenzy', 'p-momentum', 'p-crush', 'k-exec', 'k-blood', 'k-iron']);   // painted talent icons (others: engraved glyph)
   const colOf = n => B.TalentTree.colOfLine ? B.TalentTree.colOfLine(n.line) : (B.TalentTree.cols.find(c => c.line === n.line) || B.TalentTree.cols[0]);
-  const xOfCol = c => GUT + AREA * (c + .5) / 6;
-  function pos(n) {
-    let x;
-    if (n.x != null) x = GUT + AREA * n.x / 100;
-    else if (n.kind === 'key') x = xOfCol(n.col);
-    else x = xOfCol(n.col) + (n.slot != null ? (n.slot ? FORK : -FORK) : 0);
-    return { x, y: ROW_Y[n.row] || ROW_Y[4] };
+  // ---- layout from the data (built once) -------------------------------------------------------------------------
+  let LAY = null;
+  function layout() {
+    if (LAY) return LAY;
+    const T = B.TalentTree, nodes = T.nodes(), ci = line => T.cols.findIndex(c => c.line === line);
+    const archOfLine = line => { const a = nodes.find(n => n.kind === 'active' && n.line === line); return (a && a.arch) || line; };
+    const by = {}; for (const c of T.cols) (by[archOfLine(c.line)] = by[archOfLine(c.line)] || []).push(c.line);
+    const panels = [], singles = [];
+    for (const k of Object.keys(by)) { if (by[k].length >= 2) panels.push({ arch: [k], lines: by[k].slice(0, 2) }); else singles.push(k); }
+    for (let i = 0; i < singles.length; i += 2) panels.push({ arch: singles.slice(i, i + 2), lines: singles.slice(i, i + 2).map(k => by[k][0]) });
+    panels.sort((a, b) => Math.min(...a.lines.map(ci)) - Math.min(...b.lines.map(ci)));
+    const at = Object.create(null);
+    panels.forEach((p, i) => {
+      p.lines.sort((a, b) => ci(a) - ci(b));
+      p.x = GUT + i * (PW + GAP); p.w = PW; p.cx = p.lines.map((_, j) => p.x + PW * (j ? .75 : .25)); p.pairs = []; p.keys = [];
+      p.name = PANEL_NAME[p.lines[0]] || T.cols[ci(p.lines[0])].name;   // translated at render time
+    });
+    const panelOfLine = line => panels.find(p => p.lines.includes(line)) || panels[0];
+    for (const n of nodes) {
+      if (n.kind === 'active' || n.kind === 'form' || n.kind === 'mod') {
+        const p = panelOfLine(n.line), x = p.cx[p.lines.indexOf(n.line)] + (n.slot != null ? (n.slot ? FORK : -FORK) : 0);
+        at[n.id] = { x, y: ROW_Y[n.row] || ROW_Y[2], sz: SIZE[n.kind], panel: panels.indexOf(p) };
+      } else if (n.kind === 'key') panelOfLine(n.line).keys.push(n);
+      else if (n.kind === 'passive') {
+        const p = panels.find(o => o.arch.includes(n.arch)) || panelOfLine(n.line), key = n.group || n.id;
+        let pair = p.pairs.find(o => o.id === key); if (!pair) p.pairs.push(pair = { id: key, list: [] }); pair.list.push(n);
+      }
+    }
+    panels.forEach((p, i) => {
+      const cells = p.pairs.reduce((s, o) => s + o.list.length, 0); let m = 0;
+      const sz = cells > 2 ? 34 : SIZE.passive; p.tight = cells > 2;
+      for (const pair of p.pairs) { pair.xs = []; for (const n of pair.list) { const x = p.x + PW * (m + .5) / cells; m++; pair.xs.push(x); at[n.id] = { x, y: ROW_Y[3], sz, panel: i }; } }
+      p.keys.forEach((n, k) => { at[n.id] = { x: p.x + PW * (k + .5) / p.keys.length, y: ROW_Y[4], sz: SIZE.key, panel: i }; });
+    });
+    return (LAY = { panels, at });
   }
+  const pos = n => layout().at[n.id] || { x: -99, y: -99, sz: 40, panel: 0 };
   // Ranks: every node is one point today. A node with maxRank > 1 (future data) shows a "rank / maxRank" counter.
   const maxRank = n => Math.max(1, n.maxRank | 0);
   const rankOf = (n, learned) => { if (maxRank(n) === 1) return learned.includes(n.id) ? 1 : 0; let k = 0; for (const id of learned) if (id === n.id) k++; return k; };
@@ -75,11 +109,11 @@
     const pre = preview ? T.presets.find(x => x.id === preview) : null;
     const slotOf = id => state.loadout.indexOf(id);
     const acc = Object.create(null); for (const n of nodes) acc[n.id] = T.access(state, n.id);
-    // ---- links: arrow from a node to every node that needs it ------------------------------------------------------
-    const svg = [];
+    // ---- links: arrow from a node to every node that needs it (active -> its forms) ---------------------------------
+    const L = layout(), svg = [];
     for (const n of nodes) {
       if (!n.requires) continue; const par = T.get(n.requires); if (!par) continue;
-      const a = pos(par), b = pos(n), ra = SIZE[par.kind] / 2, rb = SIZE[n.kind] / 2;
+      const a = pos(par), b = pos(n), ra = a.sz / 2, rb = b.sz / 2;
       const lit = learned.includes(n.id) && learned.includes(par.id), ready = !lit && learned.includes(par.id) && acc[n.id].canLearn;
       const cls = (lit ? 'lit' : ready ? 'ready' : learned.includes(par.id) ? 'open' : '') + (lit && fresh.includes(n.id) ? ' just' : '') + (pre && pre.nodes.includes(n.id) && pre.nodes.includes(par.id) ? ' pre' : '');
       const mid = (a.y + ra + b.y - rb) / 2;
@@ -87,31 +121,45 @@
         : 'M' + a.x.toFixed(1) + ' ' + (a.y + ra + 2) + 'V' + mid.toFixed(1) + 'H' + b.x.toFixed(1) + 'V' + (b.y - rb - 4);
       svg.push('<path class="tb-link ' + cls + '" d="' + d + '" marker-end="url(#tb-ah-' + (lit ? 'lit' : ready ? 'ready' : 'dim') + ')"/>');
     }
+    // the panel's chain goes on: both columns run down into the build plaque, the plaque into the keystone diamond
+    const has = id => learned.includes(id);
+    L.panels.forEach((p, i) => {
+      const forms = p.lines.map(line => nodes.filter(n => n.line === line && n.kind === 'form'));
+      const passives = p.pairs.flatMap(o => o.list), gotPassive = passives.some(n => has(n.id)), key = p.keys[0];
+      const plaqueTop = ROW_Y[3] - 34, plaqueBot = ROW_Y[3] + 28, keyTop = ROW_Y[4] - 44, bend = (plaqueBot + keyTop) / 2;
+      p.cx.forEach((x, j) => {
+        const gotForm = forms[j].some(n => has(n.id));
+        const c = gotForm && gotPassive ? 'lit' : gotForm ? 'open' : '';
+        svg.push('<path class="tb-link tb-rail ' + c + '" d="M' + x.toFixed(1) + ' ' + (ROW_Y[2] + SIZE.form / 2 + 4) + 'V' + (plaqueTop - 3) + '" marker-end="url(#tb-ah-' + (c === 'lit' ? 'lit' : 'dim') + ')"/>');
+        if (key) {
+          const kc = gotPassive && has(key.id) ? 'lit' : gotPassive ? 'open' : '';
+          svg.push('<path class="tb-link tb-rail ' + kc + '" d="M' + x.toFixed(1) + ' ' + (plaqueBot + 2) + 'V' + bend.toFixed(1) + 'H' + pos(key).x.toFixed(1) + (j ? '' : 'V' + (keyTop - 3)) + '"' + (j ? '' : ' marker-end="url(#tb-ah-' + (kc === 'lit' ? 'lit' : 'dim') + ')"') + '/>');
+        }
+      });
+    });
     const defs = '<defs>' + [['lit', '#f3c56f'], ['ready', '#e4cf7a'], ['dim', '#4a3a2a']].map(([k, c]) => '<marker id="tb-ah-' + k + '" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="4.5" markerHeight="4.5" orient="auto-start-reverse"><path d="M0 0 10 5 0 10 3 5z" fill="' + c + '"/></marker>').join('') +
       '<filter id="tb-glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>';
-    // ---- skill-line panels (upper half) ----------------------------------------------------------------------------
-    const lead = Math.max(0, ...T.cols.map(c => nodes.filter(n => n.line === c.line && learned.includes(n.id)).length));
-    const panels = T.cols.map((c, i) => {
-      const act = nodes.find(n => n.kind === 'active' && n.line === c.line), count = nodes.filter(n => n.line === c.line && learned.includes(n.id)).length;
-      const pw = AREA / 6 - 6, x = xOfCol(i) - pw / 2;
-      return '<div class="tb-panel' + (count && count === lead ? ' lead' : count ? ' used' : '') + '" style="left:' + x.toFixed(1) + 'px;width:' + pw.toFixed(1) + 'px;top:' + PANEL.top + 'px;height:' + (PANEL.bottom - PANEL.top) + 'px;--c1:' + c.color + '" title="' + esc(c.hint || '') + '">' +
-        (act ? '<span class="tb-panelart" style="background-image:url(assets/ui/abilities/' + act.id + '.png)"></span>' : '') +
-        '<header><b>' + esc(c.name) + '</b><small>' + (count ? '<em>' + count + '</em> ' + esc(count === 1 && en() ? 'point' : t('puan')) : esc(c.hint || '')) + '</small></header>' +
-        '<span class="tb-or tb-or-fork" style="top:' + (ROW_Y[2] - PANEL.top) + 'px">' + esc(t('ya da')) + '</span></div>';
+    // ---- the three tree panels: header strip (crest, name, points, the two lines), faded art, two columns ------------
+    const counts = L.panels.map((p, i) => learned.filter(id => { const n = T.get(id); return n && pos(n).panel === i; }).length);
+    const lead = Math.max(0, ...counts);
+    const panels = L.panels.map((p, i) => {
+      const acts = p.lines.map(line => nodes.find(n => n.kind === 'active' && n.line === line)).filter(Boolean);
+      const cols = p.lines.map(line => T.cols.find(c => c.line === line) || T.cols[0]), count = counts[i];
+      const bg = acts.map((a, j) => 'url(assets/ui/abilities/' + a.id + '.png) ' + (j ? '100%' : '0%') + ' 40%/auto 82% no-repeat').join(',');
+      return '<div class="tb-panel' + (count && count === lead ? ' lead' : count ? ' used' : '') + '" style="left:' + p.x.toFixed(1) + 'px;width:' + p.w.toFixed(1) + 'px;--c1:' + cols[0].color + ';--c2:' + (cols[1] || cols[0]).color + '">' +
+        '<span class="tb-panelart" style="background:' + bg + '"></span>' +
+        '<header>' + (acts[0] ? '<span class="tb-crest"><img src="assets/ui/abilities/' + acts[0].id + '.png" alt="" draggable="false"></span>' : '') +
+        '<span class="tb-ptitle"><b>' + esc(t(p.name)) + '</b><small><em>' + count + '</em> ' + esc(count === 1 && en() ? 'point' : t('puan')) + '</small></span>' +
+        '<span class="tb-paths">' + cols.map(c => '<i style="color:' + c.color + '" title="' + esc(c.hint || '') + '">' + esc(c.name) + '</i>').join('') + '</span></header>' +
+        (p.keys.length ? '<span class="tb-keycap" style="left:' + (pos(p.keys[0]).x - p.x).toFixed(1) + 'px;top:' + (ROW_Y[4] + 50) + 'px">' + esc(t('Kilit taşı')) + '</span>' : '') + '</div>';
     }).join('');
-    // ---- build plaques (lower half): one per exclusive group of passives / keystones ------------------------------
-    const groups = [];
-    for (const n of nodes) if ((n.kind === 'passive' || n.kind === 'key') && n.group) { let g = groups.find(o => o.id === n.group); if (!g) groups.push(g = { id: n.group, list: [] }); g.list.push(n); }
-    for (const n of nodes) if ((n.kind === 'passive' || n.kind === 'key') && !n.group) groups.push({ id: n.id, list: [n] });
-    const plaques = groups.map(g => {
-      const xs = g.list.map(n => pos(n).x), y = pos(g.list[0]).y, first = g.list[0], key = first.kind === 'key';
-      const half = key ? 60 : 44, x0 = Math.min(...xs) - half, x1 = Math.max(...xs) + half;
-      const got = g.list.some(n => learned.includes(n.id));
-      const title = key ? t('Kilit taşı') + ' · ' + t('Yalnız biri') : archOf(first) || KIND.passive;
-      const c = key ? '#d8b678' : ARCH_COL[first.arch] || colOf(first).color;
-      const ors = g.list.slice(1).map((n, k) => '<span class="tb-or" style="left:' + ((xs[k] + xs[k + 1]) / 2 - x0).toFixed(1) + 'px;top:' + (y - (y - (key ? 54 : 46))) + 'px">' + esc(t('ya da')) + '</span>').join('');
-      return '<div class="tb-plaque' + (key ? ' tb-altar' : '') + (got ? ' got' : '') + '" style="left:' + x0.toFixed(1) + 'px;width:' + (x1 - x0).toFixed(1) + 'px;top:' + (y - (key ? 54 : 46)) + 'px;height:' + (key ? 98 : 84) + 'px;--c:' + c + '"><b>' + esc(title) + '</b>' + ors + '</div>';
-    }).join('');
+    // ---- build plaques (row III): one per exclusive pair of passives, "ya da" between the rivals -----------------------
+    const plaques = L.panels.flatMap(p => p.pairs.map(g => {
+      const first = g.list[0], half = pos(first).sz / 2 + 9, x0 = Math.min(...g.xs) - half, x1 = Math.max(...g.xs) + half, y = ROW_Y[3];
+      const got = g.list.some(n => has(n.id)), c = ARCH_COL[first.arch] || colOf(first).color;
+      const ors = g.list.slice(1).map((n, k) => '<span class="tb-or" style="left:' + ((g.xs[k] + g.xs[k + 1]) / 2 - x0).toFixed(1) + 'px;top:' + (y - (y - 34) + 2) + 'px">' + esc(t('ya da')) + '</span>').join('');
+      return '<div class="tb-plaque' + (got ? ' got' : '') + (p.tight ? ' tight' : '') + '" style="left:' + x0.toFixed(1) + 'px;width:' + (x1 - x0).toFixed(1) + 'px;top:' + (y - 34) + 'px;height:62px;--c:' + c + '"><b>' + esc(archOf(first) || KIND.passive) + '</b>' + ors + '</div>';
+    })).join('');
     const rows = T.rows.map(r => {
       const [roman, word] = splitRow(r.name), need = r.gate || 0, open = spent >= need;
       const gate = need ? '<em class="tb-gate">' + (open ? OPEN : LOCK) + '<span>' + Math.min(spent, need) + '/' + need + '</span></em>' : '';
@@ -126,7 +174,8 @@
       const cls = 'skt-node tb-node tb-' + n.kind + ' ' + st + (superseded ? ' superseded' : '') + (slot >= 0 ? ' slotted' : '') + (n.id === sel.id ? ' selected' : '') +
         (fresh.includes(n.id) ? ' just' : '') + (order >= 0 ? ' pre' : '') + (assignable ? ' tb-assignable' : '') + (a.low && !known ? ' low' : '');
       const label = n.name + ' · ' + KIND[n.kind] + ' · ' + (known ? t('Öğrenildi') : a.reason);
-      return '<button type="button" data-char="skill" data-skill="' + n.id + '" class="' + cls + '" style="left:' + p.x.toFixed(1) + 'px;top:' + p.y + 'px;--c:' + c + ';--sz:' + SIZE[n.kind] + 'px" data-gx="' + p.x.toFixed(0) + '" data-gy="' + p.y + '"' + (n.arch ? ' data-arch="' + n.arch + '"' : '') + ' aria-pressed="' + (n.id === sel.id) + '" aria-label="' + esc(label) + '"' + (assignable ? ' draggable="true"' : '') + '>' +
+      return '<button type="button" data-char="skill" data-skill="' + n.id + '" class="' + cls + '" style="left:' + p.x.toFixed(1) + 'px;top:' + p.y + 'px;--c:' + c + ';--sz:' + p.sz + 'px" data-gx="' + p.x.toFixed(0) + '" data-gy="' + p.y + '"' + (n.arch ? ' data-arch="' + n.arch + '"' : '') + ' aria-pressed="' + (n.id === sel.id) + '" aria-label="' + esc(label) + '"' + (assignable ? ' draggable="true"' : '') + '>' +
+        (n.kind === 'key' ? '<span class="tb-crown" aria-hidden="true"></span>' : '') +
         '<span class="tb-frame">' + art(n, c) + '</span>' +
         (maxRank(n) > 1 ? '<span class="tb-rank">' + rankOf(n, learned) + '/' + maxRank(n) + '</span>' : '') +
         (n.kind === 'form' ? '<em class="tb-tier">' + (n.slot ? 'B' : 'A') + '</em>' : '') +
@@ -143,10 +192,10 @@
     // ---- top bar: points left, spent, recommended builds, respec -----------------------------------------------------
     const respecWhy = !learned.length ? t('Geri alınacak puan yok.') : inCombat ? t('Savaşın ortasında yol değiştirilemez.') : t('Bütün puanlar ücretsiz geri verilir (savaş dışında).');
     const top = '<div class="tb-top"><div class="tb-points' + (state.points ? ' has' : '') + '"><b>' + state.points + '</b><span>' + esc(t('PUAN')) + '<small>' + esc(t('kalan')) + '</small></span></div>' +
-      '<div class="tb-spent"><b>' + spent + ' / ' + total + '</b><small>' + esc(t('harcandı')) + ' · ' + nodes.length + ' ' + esc(t('düğüm')) + '</small></div>' +
+      '<div class="tb-spent" title="' + esc(L.panels.map(p => t(p.name)).join(' / ')) + '"><b>' + counts.join(' / ') + '</b><small>' + spent + ' / ' + total + ' ' + esc(t('harcandı')) + '</small></div>' +
       (T.presets && T.presets.length ? '<div class="tb-presets"><small>' + esc(t('Hazır yollar')) + '</small>' + T.presets.map(x => '<button type="button" data-char="talent" data-act="preview" data-preset="' + x.id + '" class="' + (x.id === preview ? 'on' : '') + '" aria-pressed="' + (x.id === preview) + '"' + (x.hint ? ' title="' + esc(x.hint) + '"' : '') + '>' + esc(x.name) + '</button>').join('') +
       (pre ? '<button type="button" class="tb-apply" data-char="talent" data-act="apply" data-preset="' + pre.id + '" ' + (inCombat ? 'disabled' : '') + '>' + esc(t('Uygula')) + '</button>' : '') + '</div>' : '<div class="tb-presets"></div>') +
-      '<button type="button" class="tb-respec" data-char="respec" title="' + esc(respecWhy) + '" ' + (!learned.length || inCombat ? 'disabled' : '') + '>' + esc(t('Yolu sıfırla')) + '</button></div>';
+      '<button type="button" class="tb-respec" data-char="respec" title="' + esc(respecWhy) + '" ' + (!learned.length || inCombat ? 'disabled' : '') + '>' + esc(t('Puanları sıfırla')) + '</button></div>';
     // ---- side panel (inspect) — keeps the .skt-inspect class: character-ui.js swaps it on a single click ----------
     const a = T.access(state, sel.id), col = colOf(sel), known = a.known;
     let facts = '';
