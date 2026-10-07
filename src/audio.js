@@ -1235,11 +1235,12 @@
   const A = { next: 3, dripNext: 1.5, crackleNext: 0, room: -1, calm: 0, heart: 0 };
   function buildAmbience() {
     A.bus = gainNode(1, N.amb);
-    const air = noiseSrc(N.brown), lp = filter('lowpass', 150, .7, filter('highpass', 40, .7, gainNode(.26, A.bus))); air.connect(lp); air.start();   // ajan:audio: was .4 / 32 Hz — the constant sub rumble was as loud as the combat score (-27 LUFS)
+    const air = noiseSrc(N.brown), lp = filter('lowpass', 150, .7, filter('highpass', 40, .7, gainNode(.19, A.bus))); air.connect(lp); air.start();   // ajan:audio: was .4 / 32 Hz — the constant sub rumble was as loud as the combat score (-27 LUFS)
+    const air2 = noiseSrc(N.brown); air2.loopEnd = 4.37; air2.connect(lp); air2.start(0, 1.3); A.air2 = air2;   // ajan:audio: a second, shorter loop — the 6 s brown-noise loop was audible as a repeating swell (envelope autocorrelation .65 at 6.0 s)
     const wind = noiseSrc(N.pink), bp = filter('bandpass', 430, 1.4), wg = gainNode(.0, A.bus); wind.connect(bp); bp.connect(wg); wind.start();
     const wl = ctx.createOscillator(), wlg = gainNode(.028); wl.frequency.value = .061; wl.connect(wlg); wlg.connect(wg.gain); wl.start();
     const wf = ctx.createOscillator(), wfg = gainNode(160); wf.frequency.value = .037; wf.connect(wfg); wfg.connect(bp.frequency); wf.start();
-    wg.gain.value = .05; A.nodes = [air, wind, wl, wf]; A.wind = wg; A.next = now() + 4; A.dripNext = now() + 1.5; A.crackleNext = now();
+    wg.gain.value = .05; A.nodes = [air, air2, wind, wl, wf]; A.wind = wg; A.next = now() + 4; A.dripNext = now() + 1.5; A.crackleNext = now();
   }
   function room() {
     const g = game(), p = g && g.player, w = B.app && B.app.world;
