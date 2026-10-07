@@ -247,13 +247,18 @@
     if (info.phases) phaseVisual(root, 1, false);
     // corpse variety: every foe falls its own way — arms flung or tucked, legs apart, the head lolled (world-up deltas on the death pose,
     // eased in over the fall; they keep the limbs at their height, so nothing sinks into the floor)
-    var sprawl = [], deadT = 0, debrisDone = false;
+    var sprawl = [], deadT = 0, debrisDone = false, shownPhase = 1;
     if (!info.phases) [['armL', 1.1], ['armR', 1.1], ['foreL', .7], ['foreR', .7], ['thighL', .38], ['thighR', .38], ['head', .9]].forEach(function (e) {
       var b = native[R[e[0]]]; if (b) sprawl.push({ b: b, a: (Math.random() * 2 - 1) * e[1], base: new T.Quaternion(), written: new T.Quaternion(0, 0, 0, 0) });
     });
-    if (!post.length && !list.length && !sprawl.length) return;
+    if (!post.length && !list.length && !sprawl.length && !info.phases) return;
     ctx.extras.push(function (dt, state) {
       dt = Math.min(Math.max(Number.isFinite(dt) ? dt : 0, 0), 1 / 20); time += dt;
+      if (info.phases && state) {   // the fight's phase as combat poses it (works with or without boss-framework)
+        var want = state.phase === 'rage' ? (state.enraged ? 3 : 2) : 1;
+        if (state.reset) want = 1;
+        if (want !== shownPhase) { shownPhase = want; phaseVisual(root, want === 3 ? 2 : want, want === 3); }
+      }
       if (post.length && !(state && state.dead)) {
         // world right axis of the model, then a forward bend of each listed bone about it (applied after the animation)
         root.updateWorldMatrix(true, false); axis.set(1, 0, 0).transformDirection(root.matrixWorld); axisZ.set(0, 0, 1).transformDirection(root.matrixWorld);
@@ -349,7 +354,8 @@
   // ---------------------------------------------------------------- boss phases
   function phaseVisual(target, phase, enraged) {
     var model = target && target.model ? target.model : target, root = model && model.root ? model.root : model; if (!root || !root.traverse) return;
-    phase = Math.max(1, phase | 0); var heat = (phase - 1) * .35 + (enraged ? .3 : 0);
+    // the bosses run phase 1 -> 2 and then enrage: II at phase 2, III when enraged (or a third phase where a fight has one)
+    phase = Math.min(3, Math.max(1, phase | 0) + (enraged && phase >= 2 ? 1 : 0)); var heat = (phase - 1) * .4;
     root.traverse(function (n) {
       if (!n.isMesh) return;
       if (n.userData.dreadPhase) n.visible = !OFF && phase >= n.userData.dreadPhase;

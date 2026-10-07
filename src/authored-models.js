@@ -1884,6 +1884,7 @@
     };
   }
   B.Models = { register: function (type, cfg, recipe) { if (prepared) throw Error(KabirI18n.t('Karakter kaydı hazırlıktan önce yapılmalı.')); TYPES[type] = cfg; R[type] = function (A) { return recipe(A, { bases: bases, bodyMaterial: bodyMaterial, gearMaterial: gearMaterial, clothWeights: clothWeights, sleeve: sleeve, whiteMap: function () { return NO_WHITE ? null : whiteMap(); }, forgedBlock: forgedBlock, forgedBlade: forgedBlade, forgedGrip: forgedGrip }); }; }, create: create, prepare: prepare, templates: bases, blueprints: blueprints, types: TYPES };
-  B.Models.gearMaterial = gearMaterial;   // (ajan:models) enemy-dread.js: shared fallback materials for phase parts
+  B.Models.gearMaterial = gearMaterial;
+  B.Models.phaseVisual = function (target, phase, enraged) { if (B.EnemyDread) B.EnemyDread.phaseVisual(target, phase, enraged); };   // (ajan:models) boss phase parts (enemy-dread.js)   // (ajan:models) enemy-dread.js: shared fallback materials for phase parts
   B.Models.grade = grade;   // gear-*: equipment surfaces share the character grade (edge wear, cavities, rust, blood)
 })();
