@@ -188,7 +188,7 @@
     var wanted = pose(), extra = pose(), output = pose(), transition = pose(), locomotion = pose(), mirrored = pose(), roarBuf = pose();
     var wakeCut = false, clock = 0, gait = 0, moveWeight = 0, speed = 0, mode = '', modeAge = 0, previousAttack = 0, comboMemory = -1, legacySerial = 0;
     var qb2 = new T.Quaternion(), qc2 = new T.Quaternion(), blendPrev = null, blendOn = false, guardPose = null, guardOn = false, repPose = null, repOn = false, enterFade = 0, deathTime = 0, deathYaw = 0, deathKind = '', hurtTime = 2, previousHurt = 0, previousDodge = 0, previousYaw = 0, turnRate = 0, rollRecover = 9;
-    var fingerPrev = null, fingerReady = false, leanCur = 0, bankCur = 0, lastLeanSpeed = 0;
+    var popTarget = new T.Quaternion(), fingerPrev = null, fingerReady = false, leanCur = 0, bankCur = 0, lastLeanSpeed = 0;
     // One profile per rig instance; later chapters retain their own weight and character even
     // when they share the same licensed skeleton. These feed the existing secondary-life layer.
     var lifeRate = boss ? 1.5 : 2.1, lifeLean = .035, lifeSway = .07;
@@ -1240,7 +1240,7 @@
           var fr = dt * 60 * PI / 180, limLimb = 62 * fr, limFinger = 26 * fr, cosLimb = Math.cos(limLimb / 2), cosFinger = Math.cos(limFinger / 2);
           for (var f1 = 6; f1 < nb; f1++) {
             var fq = output.q[f1], fo = fingerPrev[f1], isFinger = f1 >= 22 && f1 < 52, fd = Math.abs(fq.x * fo.x + fq.y * fo.y + fq.z * fo.z + fq.w * fo.w);
-            if (fd < (isFinger ? cosFinger : cosLimb)) fq.copy(fo).slerp(fq, (isFinger ? limFinger : limLimb) / (2 * Math.acos(Math.min(1, fd))));
+            if (fd < (isFinger ? cosFinger : cosLimb)) { popTarget.copy(fq); fq.copy(fo).slerp(popTarget, (isFinger ? limFinger : limLimb) / (2 * Math.acos(Math.min(1, fd)))); }   // slerp toward the real target (a copy of it): fq.copy(fo).slerp(fq) froze the bone
             fo.copy(fq);
           }
           for (var f2 = 0; f2 < 6 && f2 < nb; f2++) fingerPrev[f2].copy(output.q[f2]);

@@ -168,11 +168,12 @@
         (p.keys.length ? '<span class="tb-keycap" style="right:' + (p.w - (pos(p.keys[0]).x - p.x) + KEY_R + 6).toFixed(1) + 'px;top:' + ROW_Y[4] + 'px;max-width:' + Math.max(30, pos(p.keys[0]).x - p.x - KEY_R - 10).toFixed(0) + 'px">' + esc(t('Kilit taşı')) + '</span>' : '') + '</div>';
     }).join('');
     // ---- build plaques (row III): one per exclusive pair of passives, "ya da" between the rivals -----------------------
+    const GAP = 2;   // neighbouring plaques (Hücum | Savunma) leave a hair of space between them
     const plaques = L.panels.flatMap(p => p.pairs.map(g => {
       const first = g.list[0], half = pos(first).sz / 2 + (p.tight ? 3 : 9), x0 = Math.min(...g.xs) - half, x1 = Math.max(...g.xs) + half, y = ROW_Y[3], top = y - PLQ_TOP;
       const got = g.list.some(n => has(n.id)), c = ARCH_COL[first.arch] || colOf(first).color;
-      const ors = g.list.slice(1).map((n, k) => '<span class="tb-or" style="left:' + ((g.xs[k] + g.xs[k + 1]) / 2 - x0 - 1).toFixed(1) + 'px;top:' + (y - top - 2) + 'px">' + esc(t('ya da')) + '</span>').join('');
-      return '<div class="tb-plaque' + (got ? ' got' : '') + (p.tight ? ' tight' : '') + '" style="left:' + x0.toFixed(1) + 'px;width:' + (x1 - x0).toFixed(1) + 'px;top:' + top + 'px;height:' + (PLQ_TOP + PLQ_BOT) + 'px;--c:' + c + '"><b>' + esc(archOf(first) || KIND.passive) + '</b>' + ors + '</div>';
+      const ors = g.list.slice(1).map((n, k) => '<span class="tb-or" style="left:' + ((g.xs[k] + g.xs[k + 1]) / 2 - x0 - 1 - GAP).toFixed(1) + 'px;top:' + (y - top - 2) + 'px">' + esc(t('ya da')) + '</span>').join('');
+      return '<div class="tb-plaque' + (got ? ' got' : '') + (p.tight ? ' tight' : '') + '" style="left:' + (x0 + GAP).toFixed(1) + 'px;width:' + (x1 - x0 - 2 * GAP).toFixed(1) + 'px;top:' + top + 'px;height:' + (PLQ_TOP + PLQ_BOT) + 'px;--c:' + c + '"><b>' + esc(archOf(first) || KIND.passive) + '</b>' + ors + '</div>';
     })).join('');
     const rows = T.rows.map(r => {
       const [roman, word] = splitRow(r.name), need = r.gate || 0, open = spent >= need;
