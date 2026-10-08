@@ -12,7 +12,9 @@
   // threshold = colour-edge sensitivity, steps = maximum search steps (each covers 2 px)
   var PRESETS = {
     low:    { threshold: .15, steps: 4 },
-    high:   { threshold: .1,  steps: 8 }
+    medium: { threshold: .12, steps: 6 },
+    high:   { threshold: .1,  steps: 8 },
+    ultra:  { threshold: .08, steps: 12 }
   };
 
   // Full-screen triangle; vUv covers 0..1 over the screen. Offsets are computed per vertex (three varyings, no per-pixel work).

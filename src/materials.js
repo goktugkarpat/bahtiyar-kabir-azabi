@@ -33,7 +33,7 @@
       t.source = entry.source; t.name = name;
       t.colorSpace = color ? T.SRGBColorSpace : T.NoColorSpace;
       t.wrapS = t.wrapT = T.RepeatWrapping;
-      t.anisotropy = 8;
+      t.anisotropy = (window.BABA && window.BABA.Aniso) || 8;
       if (repeat) t.repeat.set(repeat, repeat);
       if (entry.ready) t.needsUpdate = true; else entry.users.push(t);
       return t;

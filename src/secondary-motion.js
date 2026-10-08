@@ -196,13 +196,14 @@
       if (wasOff) { wasOff = false; }
       if (!root.visible) { for (var q = 0; q < chains.length; q++) chains[q].live = false; return; }
       // far / crowded foes: nearest few only, 30 Hz beyond ~12 m
+      var ultra = !!(B.app && B.app.settings && B.app.settings.quality === 'ultra');   // Azami: every active foe, out to 40 m, never below the display rate
       if (!hero) {
         if (!cam && B.app) cam = B.app.camera; if (!cam) return;
         var e = root.matrixWorld.elements, dx = e[12] - cam.position.x, dz = e[14] - cam.position.z, dd = Math.sqrt(dx * dx + dz * dz);
-        if (dd > 26) { for (q = 0; q < chains.length; q++) chains[q].live = false; return; }
+        if (dd > (ultra ? 40 : 26)) { for (q = 0; q < chains.length; q++) chains[q].live = false; return; }
         if (S.usedFrame !== S.frame) { S.usedFrame = S.frame; S.used = 0; }
-        if (S.used >= 8) return; S.used++;
-        acc += dt; if (dd > 12 && acc < 1 / 30) return; dt = Math.min(acc, 1 / 20); acc = 0;
+        if (S.used >= (ultra ? 24 : B.app && B.app.settings && B.app.settings.quality === 'medium' ? 4 : 8)) return; S.used++;
+        acc += dt; if (dd > 12 && acc < 1 / 30 && !ultra) return; dt = Math.min(acc, 1 / 20); acc = 0;
       }
       var rev = root.userData.equipmentRevision || 0; var resetAll = !!(state && state.reset) || rev !== revision; revision = rev;
       scene.matrixWorld.decompose(sP, sQs, sS); var sc = sS.x; sQsi.copy(sQs).invert();
@@ -240,7 +241,7 @@
         }
       }
       if (!any) { dtPrev = dt; return; }
-      var iters = B.app && B.app.settings && B.app.settings.quality === 'low' ? 2 : 3;
+      var iters = B.app && B.app.settings && B.app.settings.quality === 'low' ? 2 : ultra ? 4 : 3;
       for (var it = 0; it < iters; it++) {
         for (c = 0; c < chains.length; c++) {
           ch = chains[c]; if (!ch.live) continue; base = ch.base; n = ch.n; var lens = ch.d.lens, bend = ch.P.bend;

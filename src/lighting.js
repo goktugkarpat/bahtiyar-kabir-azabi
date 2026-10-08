@@ -216,7 +216,9 @@
   // ---------------------------------------------------------------- presets
   var PRESET = {
     low:  { scatter: 2, moonShadow: 0,    shadowHz: 0, rimWrap: .8, mistDetail: 0 },
-    high: { scatter: 8, moonShadow: 1024, shadowHz: 30, rimWrap: .95, mistDetail: 1 }
+    medium: { scatter: 5, moonShadow: 512, shadowHz: 20, rimWrap: .9, mistDetail: 0 },
+    high: { scatter: 8, moonShadow: 1024, shadowHz: 30, rimWrap: .95, mistDetail: 1 },
+    ultra: { scatter: 8, moonShadow: 2048, shadowHz: 60, rimWrap: .95, mistDetail: 1 }
   };
 
   function smooth(t) { t = Math.max(0, Math.min(1, t)); return t * t * (3 - 2 * t); }
@@ -487,6 +489,37 @@
       }
       for (var z = count; z < MAX_SCATTER; z++) { U[z].set(0, -99, 0, 1); Cc[z].set(0, 0, 0); rays[z].set(0, 0, 0, 0); }
       FOG.karaMist.value[0].x = count;
+    }
+
+    // Azami: up to 4 light-shaft centres for the post chain (the 3 brightest in-air glows + the nearest window). Other presets: nothing is fed, nothing runs.
+    var rayOut = [], rayOn = false, mbPrev = null, mbVx = 0, mbVz = 0;
+    for (var ro = 0; ro < 4; ro++) rayOut.push({ x: 0, y: 0, z: 0, r: 0, g: 0, b: 0, k: 0, a: 0 });
+    function feedAzami(p, dt) {
+      var post = opts.post; if (!post || !post.setRays) return;
+      if (preset !== PRESET.ultra) { if (rayOn) { post.setRays(null, 0); post.setMotion(0, 0, 0, 0); rayOn = false; mbPrev = null; } return; }
+      rayOn = true;
+      var n = 0, j, o, m;
+      for (j = 0; j < scatterList.length && n < 3; j++) {
+        var src = scatterList[j], sw = src.scW || 0; if (sw < .3) continue;
+        var pos = src.livePos || src, col = src.liveColor || src.color, mx = Math.max(col.r, col.g, col.b, .01), kk = Math.min(1, src.intensity * src.live / 5) * sw;
+        o = rayOut[n++]; o.x = pos.x; o.y = pos.y; o.z = pos.z; o.r = col.r / mx; o.g = col.g / mx; o.b = col.b / mx; o.k = kk * (src.scatter || 1); o.a = 0;
+      }
+      var sh = L && L.shafts, best = null, bd = 18 * 18;
+      if (sh) for (j = 0; j < sh.length; j++) { var s = sh[j], dx = s[3] - p.x, dz = s[5] - p.z, d2 = dx * dx + dz * dz; if (d2 < bd) { bd = d2; best = s; } }
+      if (best) {
+        var g = L.groupGain ? L.groupGain(best[11]) : 1, f = 1 - bd / (18 * 18);
+        m = Math.max(best[8][0], best[8][1], best[8][2], .01);
+        o = rayOut[n++]; o.x = best[0]; o.y = best[1]; o.z = best[2]; o.r = best[8][0] / m; o.g = best[8][1] / m; o.b = best[8][2] / m; o.k = Math.min(1.2, best[9] * 4.5 * g * f); o.a = 1;
+      }
+      post.setRays(rayOut, n);
+      // hero ground speed (smoothed) for the light motion blur
+      if (mbPrev && dt > 0) {
+        var vx = (p.x - mbPrev.x) / dt, vz = (p.z - mbPrev.z) / dt;
+        if (vx * vx + vz * vz > 45 * 45) { vx = vz = 0; }
+        var kf = Math.min(1, dt * 14); mbVx += (vx - mbVx) * kf; mbVz += (vz - mbVz) * kf;
+      } else mbPrev = { x: p.x, z: p.z };
+      mbPrev.x = p.x; mbPrev.z = p.z;
+      post.setMotion(mbVx, mbVz, p.x, p.z);
     }
 
     // Heat haze above the nearest big flames (screen space; the post pass distorts there).
@@ -820,6 +853,7 @@
       grade.exposure = (cfgRef.exposure || 1.15) * a.exposure * LOOK_TUNE.exposureLift;
       var fx = p.x, fz = p.z - 2;
       updateScatter(fx, fz, dt);
+      feedAzami(p, dt);
       if (opts.post) { updateHeat(opts.post.heat(), fx, fz); if (opts.post.pulse) warCryPost(opts.post.heat(), opts.post.pulse(), p); chapterLook(dt); opts.post.setGrade(grade); if (opts.post.setFocus) opts.post.setFocus(p.x, .9, p.z, Number.isFinite(a.focusRadius) ? a.focusRadius : FOCUS[1], Number.isFinite(a.focus) ? a.focus : FOCUS[0] * (FOCUS_CH[B.ActiveChapter] || 1)); }
       if (!ab.stepped) abilityStep(dt, game, time);
       ab.stepped = false;

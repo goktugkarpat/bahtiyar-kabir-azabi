@@ -186,7 +186,7 @@
     var up = new T.Vector3(0, 1, 0), va = new T.Vector3(), vb = new T.Vector3(), desired = new T.Vector3(), euler = new T.Euler(0, 0, 0, 'YXZ');
     var inverse = new T.Matrix4(), rootNow = new T.Vector3(), rootBefore = new T.Vector3(), velocity = new T.Vector3(), localVelocity = new T.Vector3();
     var wanted = pose(), extra = pose(), output = pose(), transition = pose(), locomotion = pose(), mirrored = pose(), roarBuf = pose();
-    var clock = 0, gait = 0, moveWeight = 0, speed = 0, mode = '', modeAge = 0, previousAttack = 0, comboMemory = -1, legacySerial = 0;
+    var wakeCut = false, clock = 0, gait = 0, moveWeight = 0, speed = 0, mode = '', modeAge = 0, previousAttack = 0, comboMemory = -1, legacySerial = 0;
     var qb2 = new T.Quaternion(), qc2 = new T.Quaternion(), blendPrev = null, blendOn = false, guardPose = null, guardOn = false, repPose = null, repOn = false, enterFade = 0, deathTime = 0, deathYaw = 0, deathKind = '', hurtTime = 2, previousHurt = 0, previousDodge = 0, previousYaw = 0, turnRate = 0, rollRecover = 9;
     var fingerPrev = null, fingerReady = false, leanCur = 0, bankCur = 0, lastLeanSpeed = 0;
     // One profile per rig instance; later chapters retain their own weight and character even
@@ -1094,13 +1094,33 @@
           }
         }
       }
-      // Waking at the start of a chapter / after a fall: the hero pushes himself up off the ground (the death clip played backwards, eased out into the idle).
-      var wakeT = hero ? finite(state.wakeTime, -1) : -1;
-      if (wakeT >= 0 && !acting && !dodge && !state.dead && !stagger) {
-        var wu = clamp(wakeT / 1.3, 0, 1), we = Math.pow(wu, 1.45), wb = 1 - smooth((wu - .62) / .38);
-        sample('death', clip('death').duration * (1 - we), extra, false); blendPose(wanted, extra, wb);
-        wanted.p.z -= .42 * (1 - we) * wb / Math.max(.4, characterScale);
-        nextMode = 'wake'; fade = wakeT < .1 ? .001 : .06;
+      // Waking at the start of a chapter / after a fall (1.4 s, procedural, never the death clip): phase 1 he kneels on one knee, one hand on the ground, head bowed, breathing heavily;
+      // phase 2 he pushes up off the hand, the trailing leg comes forward and the spine straightens; phase 3 he stands, a breath pulls the shoulders back and he settles into the idle.
+      // Walking, attacking or rolling cancels it: the pose is dropped and the normal blend (0.15 s) carries him out.
+      var wakeT = hero ? finite(state.wakeTime, -1) : -1, wakeLive = false;
+      if (wakeT < 0) wakeCut = false; else if (moveWeight > .2 || acting || dodge > 0 || state.dead || stagger) wakeCut = true;
+      if (wakeT >= 0 && wakeCut && !acting && !dodge && !state.dead && !stagger) fade = Math.max(fade, .15);
+      if (wakeT >= 0 && !wakeCut && !acting && !dodge && !state.dead && !stagger) {
+        var wk = 1 / Math.max(.4, characterScale), wrise = smooth((wakeT - .35) / .55), wback = smooth((wakeT - .5) / .5), whand = 1 - smooth((wakeT - .5) / .35),
+          wkn = 1 - wrise, wkb = 1 - wback, wbreath = Math.sin(clamp((wakeT - .8) / .6, 0, 1) * PI), wheavy = Math.sin(wakeT * 5.2) * (1 - smooth((wakeT - .35) / .3)), wsettle = 1 - smooth((wakeT - 1.1) / .3);
+        // legs (absolute angles about x: negative swings a limb forward, positive back); each child gets its own angle minus its parent's.
+        var wT1 = -1.3 * wkn, wS1 = .25 * wkn, wF1 = 0, wT2 = .35 * wkb, wS2 = 1.5 * wkb, wF2 = 2.3 * wkb;
+        euler.set(wT1, 0, 0, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(wanted, 14, qa);
+        euler.set(wS1 - wT1, 0, 0, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(wanted, 15, qa);
+        euler.set(wF1 - wS1, 0, 0, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(wanted, 16, qa);
+        euler.set(wT2, 0, 0, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(wanted, 18, qa);
+        euler.set(wS2 - wT2, 0, 0, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(wanted, 19, qa);
+        euler.set(wF2 - wS2, 0, 0, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(wanted, 20, qa);
+        // torso: leaned over the knee, heavy breath rocking it, then straightening and a chest-out breath at the top
+        spineLayer(wanted, 0, .62 * wkn + .035 * wheavy * wkn - .1 * wbreath * wsettle, .05 * wkn);
+        euler.set(.5 * wkn + .04 * wheavy * wkn - .05 * wbreath, 0, 0, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(wanted, 4, qa);
+        // support arm (bone 7) reaches down to the ground and lets go as he rises; weapon arm (11) hangs loose
+        euler.set(-1.2 * whand, 0, .08 * whand, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(wanted, 7, qa);
+        euler.set(-.2 * whand, 0, 0, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(wanted, 8, qa);
+        euler.set(.18 * wkn, 0, -.1 * wkn - .1 * wbreath, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(wanted, 11, qa);
+        euler.set(0, 0, .1 * wbreath, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(wanted, 7, qa);
+        wanted.p.z += (-.04 * wkn) * wk; wanted.p.y -= .02 * wkn * wk;
+        nextMode = 'wake'; fade = wakeT < .1 ? .001 : .06; wakeLive = true;
       }
       // Gestures laid over the idle / walk pose (hero only, never while striking, rolling, staggering or dying).
       if (hero && !acting && !dodge && !stagger && !state.dead && !strikePhase) {
@@ -1215,7 +1235,7 @@
       if (hero && B.heroPopLimit !== false) {
         var nb = output.q.length;
         if (!fingerPrev) { fingerPrev = []; for (var fp = 0; fp < nb; fp++) fingerPrev.push(new T.Quaternion()); fingerReady = false; }
-        if (!initialized || dt === 0 || !fingerReady || state.reset) { for (var f0 = 0; f0 < nb; f0++) fingerPrev[f0].copy(output.q[f0]); fingerReady = true; }
+        if (!initialized || dt === 0 || !fingerReady || state.reset || (wakeLive && wakeT < .1)) { for (var f0 = 0; f0 < nb; f0++) fingerPrev[f0].copy(output.q[f0]); fingerReady = true; }
         else {
           var fr = dt * 60 * PI / 180, limLimb = 62 * fr, limFinger = 26 * fr, cosLimb = Math.cos(limLimb / 2), cosFinger = Math.cos(limFinger / 2);
           for (var f1 = 6; f1 < nb; f1++) {
@@ -1257,6 +1277,10 @@
         var authoredClearance = Math.max(0, Math.min(output.sole[0], output.sole[1])) * characterScale;
         if (prof && groundCap && !leap && !state.dead) authoredClearance = Math.min(authoredClearance, (prof.buckle >= .3 ? .05 : .08) * characterScale);   // (ajan:chars2b) a foe never hovers through the stock sword clips (Sword_Attack is a jumping slash): only a real leap leaves the floor
         moveHipY(clamp(floorReference + authoredClearance - lowest, -.45 * characterScale, .45 * characterScale));
+      }
+      if (wakeLive) {
+        // kneeling: the trailing knee rests on the ground and may never sink through it
+        for (var wki = 0; wki < 2; wki++) { var wkj = mapping[wki ? 19 : 15]; if (!wkj) continue; wpos(wkj, va); var wlow = floorReference + .055 * characterScale - va.y; if (wlow > 0) moveHipY(wlow); }
       }
       if (dodge > 0 || (state.dead && (deathKind === 'blown' || prof))) {
         var rollFloor = Infinity;

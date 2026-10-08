@@ -54,10 +54,10 @@
       return out;
     }
     // Per form: when the head bites (matches the pose contact in combat.js), how long the foe slides, how hard the camera jolts, the sound variant.
-    const HOOK = { hook: { style: 'hook', strike: .24, drag: .34, shake: .6 }, hook2: { style: 'long', strike: .17, drag: .26, shake: .5 }, hook3: { style: 'barb', strike: .28, drag: .42, shake: .85 } };
+    const HOOK = { hook: { style: 'hook', strike: .24, drag: .2, shake: .5, flight: .1 }, hook2: { style: 'long', strike: .17, drag: .17, shake: .4, flight: .08 }, hook3: { style: 'barb', strike: .28, drag: .25, shake: .7, flight: .11 } };
     function castHook(skill, face, targets) {
       const P = skill.params, H = HOOK[skill.id] || HOOK.hook;
-      if (look) look.chains(player, targets, true, { life: H.strike + H.drag + .5, hook: true, style: H.style, throw: H.strike });
+      if (look) look.chains(player, targets, true, { life: H.strike + H.drag + .5, hook: true, style: H.style, throw: H.strike, flight: H.flight });
       sound('talentHook', { style: H.style });
       later.push({ at: clock + H.strike, fn() {
         let landed = 0;
@@ -67,7 +67,7 @@
           landed++;
           if (r && r.killed) return;
           bleed(e, P.bleed, 4);
-          if (!e.boss) { pulls.push({ e, left: H.drag, total: H.drag, keep: P.keep + n * .9, d0: dist(e, player.x, player.z), dust: 0, style: H.style }); ctx.stun(e, P.stun + H.drag); }
+          if (!e.boss) { pulls.push({ e, left: H.drag, total: H.drag, keep: Math.max(1.25, P.keep * .72) + n * .9, d0: dist(e, player.x, player.z), dust: 0, style: H.style }); ctx.stun(e, P.stun + H.drag); }
           if (look) look.puff(e.x, (e.model && e.model.root.position.y) || 0, e.z, 'bone', 8);
         });
         if (landed) { sound('talentHookHit', { style: H.style }); ctx.emit('impact', { x: player.x + Math.sin(face) * 2, z: player.z + Math.cos(face) * 2, strength: H.shake, radius: 2.2 }); }
@@ -173,7 +173,7 @@
       for (let i = pulls.length - 1; i >= 0; i--) {
         const p = pulls[i];
         if (!alive(p.e)) { pulls.splice(i, 1); continue; }
-        p.left -= dt; const u = Math.min(1, Math.max(0, 1 - p.left / p.total)), k = u * u * (3 - 2 * u), want = Math.max(p.keep, p.d0 + (p.keep - p.d0) * k), d = dist(p.e, player.x, player.z);
+        p.left -= dt; const u = Math.min(1, Math.max(0, 1 - p.left / p.total)), k = 1 - Math.pow(1 - u, 3), want = Math.max(p.keep, p.d0 + (p.keep - p.d0) * k), d = dist(p.e, player.x, player.z);
         if (d > want + .02) {
           ctx.yank(p.e, player.x, player.z, want);
           if (look && (p.dust -= dt) <= 0) { p.dust = .035; const ax = (player.x - p.e.x) / (d || 1), az = (player.z - p.e.z) / (d || 1); look.dust(p.e.x, p.e.z, -ax * 2, -az * 2, p.style === 'barb' ? 3 : 2); }

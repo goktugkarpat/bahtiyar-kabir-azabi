@@ -17,7 +17,7 @@
     entry.make = function () {
       var t = new T.Texture(); t.source = entry.source; t.name = 'coast-scan-' + name + '-' + channel;
       t.colorSpace = channel === 'albedo' ? T.SRGBColorSpace : T.NoColorSpace;
-      t.wrapS = t.wrapT = T.RepeatWrapping; t.anisotropy = 8;
+      t.wrapS = t.wrapT = T.RepeatWrapping; t.anisotropy = B.Aniso || 8;
       t.userData.source = 'https://polyhaven.com/a/' + (B.CoastSurfaceData[name].source || 'three.js-ocean');
       if (entry.loaded) t.needsUpdate = true; else entry.users.push(t); return t;
     };

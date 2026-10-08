@@ -141,7 +141,7 @@ Her bölümde onlarca düşman vardır.
 Esc ile **Mola** açılır: devam, ayarlar, karakter, yetenekler, görev günlüğü, kontroller, baştan başla, ana menü. Mola, karakter, yetenek ve ayar ekranları ortak gotik taş, metal ve kumaş görünümü kullanır; sözlerin bulunduğu flamalar demon kabartmalarıyla çevrilidir.
 
 - **Oynanış:** zorluk **Kolay / Normal / Zor**. Oyun her açılışta Normal başlar.
-- **Görüntü:** grafik kalitesi **Düşük / Yüksek**; görüntü boyutu **Otomatik / Tam boyut**; kare hızı **60, 90, 120 FPS veya ekran hızı** (Mac'te başlangıç 60); arayüz boyutu **Küçük / Normal**; parlaklık; kamera sarsıntısı. Kenar yumuşatma her zaman açıktır.
+- **Görüntü:** grafik kalitesi **Düşük / Orta / Yüksek / Azami** (Mac'te başlangıç Orta, güçlü ekran kartlı bilgisayarda Yüksek; Azami yalnızca elle seçilir: keskin gölgeler, ışık huzmeleri, ıslak zemin yansımaları, hafif hareket bulanıklığı); görüntü boyutu **Otomatik / Tam boyut**; kare hızı **60, 90, 120 FPS veya ekran hızı** (Mac'te başlangıç 60); arayüz boyutu **Küçük / Normal**; parlaklık; kamera sarsıntısı. Kenar yumuşatma her zaman açıktır.
 - **Ses:** ana ses, müzik, efekt ve konuşma sesi kaydırıcıları; **altyazılar** açma/kapama.
 - **Kontroller:** tuş atamaları ve kol ayarları.
 - **Varsayılanlar** düğmesi ayarları sıfırlar.

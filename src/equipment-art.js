@@ -48,14 +48,14 @@
         await B.CoastMaterials.ready();return;
       }
       const map=await loader.loadAsync(B.EquipmentTextureData[kind]);
-      map.wrapS=map.wrapT=T.RepeatWrapping;map.anisotropy=8;
+      map.wrapS=map.wrapT=T.RepeatWrapping;map.anisotropy=B.Aniso||8;
       map.colorSpace=T.SRGBColorSpace;
       map.name='equipment-scan-'+kind;
       // Companion maps are derived once, before shader warm-up. A local file
       // origin can deny canvas readback; retain the procedural companions there.
       if(kind==='metal'&&B.EquipmentTextureData.metalNormal&&B.EquipmentTextureData.metalRoughness){
         const [normalMap,roughnessMap]=await Promise.all([loader.loadAsync(B.EquipmentTextureData.metalNormal),loader.loadAsync(B.EquipmentTextureData.metalRoughness)]);
-        for(const texture of[normalMap,roughnessMap]){texture.wrapS=texture.wrapT=T.RepeatWrapping;texture.anisotropy=8;texture.colorSpace=T.NoColorSpace;}
+        for(const texture of[normalMap,roughnessMap]){texture.wrapS=texture.wrapT=T.RepeatWrapping;texture.anisotropy=B.Aniso||8;texture.colorSpace=T.NoColorSpace;}
         normalMap.name='equipment-scan-metal-normal';roughnessMap.name='equipment-scan-metal-roughness';
         scanned[kind]={map,normalMap,roughnessMap};return;
       }

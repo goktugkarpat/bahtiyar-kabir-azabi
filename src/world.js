@@ -1763,17 +1763,17 @@
         g.setIndex(index); uniqueGeometries.push(g);
         // Volumetric beams: soft core, drifting dust density, slow cloud shadow, dimmer where they meet the floor.
         var m = new T.ShaderMaterial({ transparent: true, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide, toneMapped: false,
-          uniforms: { uNoise: { value: noiseMap }, uTime: flameUniforms.time, uGain: { value: shaftGain } },
+          uniforms: { uNoise: { value: noiseMap }, uTime: flameUniforms.time, uGain: { value: shaftGain }, uShaft: { value: 1 } },
           vertexShader: 'attribute vec3 aA; attribute vec3 aB; attribute vec3 aP; attribute vec2 aW; attribute vec4 aCol; uniform float uGain[8]; varying vec3 vP; varying vec4 vCol; varying float vFace;' +
             'void main(){ vec3 axis=aB-aA; vec3 dir=normalize(axis); vec3 wp=mix(aA,aB,aP.y); vec3 toCam=normalize(cameraPosition-wp); vec3 side=normalize(cross(dir,toCam));' +
             ' wp+=side*aP.x*mix(aW.x,aW.y,aP.y); vP=aP; int si=int(aP.z+.5); vCol=vec4(aCol.rgb,aCol.a*uGain[si]); vFace=abs(dot(dir,toCam)); gl_Position=projectionMatrix*viewMatrix*vec4(wp,1.0); }',
-          fragmentShader: 'uniform sampler2D uNoise; uniform float uTime; varying vec3 vP; varying vec4 vCol; varying float vFace;' +
+          fragmentShader: 'uniform sampler2D uNoise; uniform float uTime; uniform float uShaft; varying vec3 vP; varying vec4 vCol; varying float vFace;' +
             'void main(){ float x=abs(vP.x)*2.0; float across=exp(-x*x*2.6)*(1.0-smoothstep(0.82,1.0,x));' +
             ' float along=smoothstep(0.0,0.22,vP.y)*(1.0-smoothstep(0.78,1.0,vP.y));' +
             ' float z=vP.z*0.37; float n=texture2D(uNoise,vec2(vP.x*0.35+z,vP.y*0.6-uTime*0.012)).g; float n2=texture2D(uNoise,vec2(vP.x*0.9-z,vP.y*1.4-uTime*0.025)).b;' +
             ' float streak=0.75+0.5*texture2D(uNoise,vec2(vP.x*1.7+z*3.0,vP.y*0.08+uTime*0.003)).r;' +
             ' float cloud=0.78+0.22*sin(uTime*0.21+vP.z*1.7)*sin(uTime*0.13+vP.z);' +
-            ' float a=across*along*(0.4+n*0.75)*(0.7+n2*0.5)*streak*cloud*vCol.a*0.46*(1.0-vFace*0.5); gl_FragColor=vec4(vCol.rgb*a,1.0); }' });
+            ' float a=across*along*(0.4+n*0.75)*(0.7+n2*0.5)*streak*cloud*vCol.a*0.46*uShaft*(1.0-vFace*0.5); gl_FragColor=vec4(vCol.rgb*a,1.0); }' });
         uniqueMaterials.push(m);
         shaftMesh = new T.Mesh(g, m); shaftMesh.frustumCulled = false; shaftMesh.renderOrder = 6; shaftMesh.userData.detail = 1;
         root.add(shaftMesh); decorationBatches.push(shaftMesh);
@@ -2563,7 +2563,7 @@
       // ---- quality ----------------------------------------------------------------------------------------
       var particlesEnabled = true, particleScale = 1;
       // Only Low and High remain; High is the former Medium (budget index 1 below).
-      var PRESET_LEVEL = { low: 0, high: 2 };
+      var PRESET_LEVEL = { low: 0, medium: 1, high: 2, ultra: 2 };   // Azami (ultra) is High's level plus its own budget row 2 below   // Medium (budget index 3 below) is its own table row; Low/High numbers are unchanged
       function setQuality(settings) {
         if (typeof settings === 'string') settings = { preset: settings };
         settings = settings || {};
@@ -2574,21 +2574,22 @@
           var value = settings.detail;
           preset = typeof value === 'number' ? (value <= 0 ? 'low' : 'high') : (PRESET_LEVEL[value] != null ? value : 'high');
         }
-        var level = PRESET_LEVEL[preset], budget = preset === 'low' ? 0 : 1;
-        shadowHz = [0, 30, 60][budget]; shadowSlot = null;
+        var level = PRESET_LEVEL[preset], mid = preset === 'medium', ultra = preset === 'ultra', budget = preset === 'low' ? 0 : mid ? 3 : ultra ? 2 : 1;
+        shadowHz = [0, 30, 60, 20][budget]; shadowSlot = null;
         deferredShadow = refreshShadow = null; deferredSlot = null; refreshCanDefer = renderedDeferred = false;
         qualityLevel = level;
         var detail = Math.min(2, level);
         decorationBatches.forEach(function (mesh) { mesh.userData.detailOK = mesh.userData.detail <= detail; });
         applyRange(true);
         particlesEnabled = settings.particles !== 0 && settings.particles !== false;
-        particleScale = [.4, .85, 1][budget];
+        particleScale = [.4, .85, 1, .7][budget];
         embersSys.points.visible = particlesEnabled;
         smokeSys.points.visible = ashSys.points.visible = oathSys.points.visible = particlesEnabled && level >= 1;
-        moteSys.points.visible = flySys.points.visible = dripSys.points.visible = particlesEnabled && level >= 2;
+        moteSys.points.visible = flySys.points.visible = dripSys.points.visible = particlesEnabled && (level >= 2 || mid);
         shaftMesh.visible = level >= 1;
+        shaftMesh.material.uniforms.uShaft.value = ultra ? .72 : 1;   // Azami adds screen-space light shafts (post.js): the 3D beams step back so the two never double up
         var shadows = settings.shadows !== false && settings.shadows !== 0;
-        proxyBudget = budget; proxyShadows = shadows; refreshProxyState();
+        proxyBudget = mid || ultra ? 1 : budget; proxyShadows = shadows; refreshProxyState();
         occluders.forEach(function (mesh) { mesh.castShadow = shadows; });
         var wantLow = level === 0;
         if (wantLow !== lowShader) {
@@ -2599,11 +2600,13 @@
         materials.stone.normalScale.setScalar(level === 0 ? .5 : 1);
         // Fixed light pools: Low 2 / Medium 5 / High 6. Both upper presets keep
         // the same fire/window shadows; High restores their full 1024 px maps.
-        setPoolSize([2, 5, 6][budget]);
-        setSpotSlots(shadows && level > 0 ? 1 : 0, [0, 768, 1024][budget]);
-        setMoonSpot(shadows ? [0, 768, 1024][budget] : 0);
+        setPoolSize([2, 5, 8, 3][budget]);   // Azami: 8 real lights
+        setSpotSlots(shadows && level > 0 && !mid ? (ultra ? 3 : 1) : 0, [0, 768, 1536, 512][budget]);   // Azami: 3 shadow-casting torch/window spots at 1536 px
+        setMoonSpot(shadows ? [0, 768, 1536, 512][budget] : 0);
+        // Medium keeps the moonbeam's light and cookie but drops its own shadow map (one fewer shadowed light to sample every pixel).
+        if (moonSpot) moonSpot.castShadow = !mid;
         // Painted light pools stand in for real lights on Low; with more real lights they only add bounce.
-        materials.decalGlow.color.setScalar([1.15, .775, .7][budget]);
+        materials.decalGlow.color.setScalar([1.15, .775, .6, .9][budget]);
         lightGain = typeof settings.lights === 'number' ? Math.max(.5, Math.min(1, .55 + settings.lights * .45)) : 1;
         if (settings.lights === false) lightGain = .5;
       }

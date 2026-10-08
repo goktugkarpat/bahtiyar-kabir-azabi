@@ -279,7 +279,7 @@
   function bodyMaterial(src, key, g, extra) {
     if (library[key]) return library[key];
     var m = src.clone(); Object.assign(m, extra || {}); grade(m, g); m.name = 'kara-' + key;
-    ['map', 'normalMap', 'roughnessMap', 'metalnessMap', 'aoMap'].forEach(function (t) { if (m[t]) m[t].anisotropy = 8; });
+    ['map', 'normalMap', 'roughnessMap', 'metalnessMap', 'aoMap'].forEach(function (t) { if (m[t]) m[t].anisotropy = B.Aniso || 8; });
     library[key] = m; return m;
   }
 
@@ -1528,7 +1528,7 @@
     prepared = Promise.all(Object.keys(data).filter(function(name){return !coastal || neededBases.has(name);}).map(function (name) {
       return new T.GLTFLoader().parseAsync(decode(data[name]), '').then(function (gltf) {
         var model = gltf.scene; model.updateMatrixWorld(true); bases[name] = model;
-        model.traverse(function (n) { if (!n.isMesh) return; var ms = Array.isArray(n.material) ? n.material : [n.material]; ms.forEach(function (m) { ['map', 'normalMap', 'roughnessMap', 'aoMap', 'metalnessMap'].forEach(function (k) { if (m[k]) m[k].anisotropy = 8; }); }); });
+        model.traverse(function (n) { if (!n.isMesh) return; var ms = Array.isArray(n.material) ? n.material : [n.material]; ms.forEach(function (m) { ['map', 'normalMap', 'roughnessMap', 'aoMap', 'metalnessMap'].forEach(function (k) { if (m[k]) m[k].anisotropy = B.Aniso || 8; }); }); });
         return fitTextures(model, opts);
       });
     })).then(async function () {

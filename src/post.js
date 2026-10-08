@@ -22,13 +22,20 @@
     // refraction / fringe warps (they smear the picture): multipliers of the old strengths
     abChroma: .5, ringWarp: .6, pulseWarp: .6, pulseChroma: .6, hazeWarp: .7,
     // darkness: vignette from the room grade, the fixed edge vignette over the picture, grain, hero-pool outer dimming (old .22), black toe (old .006), shadow fill
-    vignetteGain: .72, edgeVignette: .6, cssGrain: .11, focusDim: .10, toe: .0025, shadowFill: .004
+    vignetteGain: .72, edgeVignette: .6, cssGrain: .11, focusDim: .10, toe: .0025, shadowFill: .004,
+    // Azami only (nothing below runs on the other presets): anamorphic streak gain (x room bloom), light-shaft gain, wet-floor reflection gain/range (m),
+    // motion blur: speed (m/s) where it starts / is full, blur length in screen heights at full speed, ray length 0..1 of the way to the light
+    streakGain: .3, raysGain: .42, reflGain: .85, reflRange: 7, mbFrom: 6.5, mbTo: 13, mbLen: .016, rayReach: .62
   };
   // Everything the quality preset controls in the post chain.
   var PRESETS = {
     // abTaps: radial spin-blur taps of the special ability (0 = none), abChroma: colour fringe (two extra taps)
     low:  { ao: 0,    samples: 0,  radius: 0,   bloomLevels: 2, bloomHalf: false, haze: false, grain: .010, abTaps: 0, abChroma: false, sharp: 0 },
-    high: { ao: .925, samples: 10, radius: .95, bloomLevels: 4, bloomHalf: true, haze: true, grain: .015, abTaps: 6, abChroma: true, sharp: .55 }
+    medium: { ao: .925, samples: 6, radius: .75, bloomLevels: 3, bloomHalf: true, haze: true, grain: .013, abTaps: 0, abChroma: false, sharp: 0 },
+    high: { ao: .925, samples: 10, radius: .95, bloomLevels: 4, bloomHalf: true, haze: true, grain: .015, abTaps: 6, abChroma: true, sharp: .55 },
+    // Azami: full-resolution AO (16 taps), 5 bloom levels, plus the four ultra-only passes (fx): thin anamorphic streak, light shafts (radial scatter),
+    // wet-floor reflections (screen-space) and light motion blur. fx targets / defines exist only while this preset is active.
+    ultra: { ao: .925, samples: 16, radius: 1, aoFull: true, aoBlur: 2.1, bloomLevels: 5, bloomHalf: true, haze: true, grain: .015, abTaps: 6, abChroma: true, sharp: .55, fx: true }
   };
   var MAX_HEAT = 6;
   // number -> GLSL float literal
@@ -114,6 +121,74 @@
     '  gl_FragColor = vec4(o * (uWeight / 16.), 1.);',
     '}'].join('\n');
 
+  // ---- Azami only: thin horizontal anamorphic streak of the brightest lights (one pass on the 1/8 bloom level, 17 taps) ----
+  var STREAK_FS = [
+    'uniform sampler2D tSrc; uniform vec2 uTexel; varying vec2 vUv;',
+    'void main(){',
+    '  vec3 o = vec3(0.); float w = 0.;',
+    '  for (int i = -8; i <= 8; i++) { float k = exp(-float(i * i) * .045); o += texture2D(tSrc, vUv + vec2(float(i) * 2., 0.) * uTexel).rgb * k; w += k; }',
+    '  o /= w; gl_FragColor = vec4(max(o - .03, 0.), 1.);',
+    '}'].join('\n');
+  // ---- Azami only: light shafts. Radial scatter of the bright-pass (half-res bloom level 0) toward up to 4 projected light sources, quarter resolution,
+  // 4 x 7 taps; the full-resolution composite adds the result. uRay[i] = (uv x, uv y, strength, reach), uRayCol[i] = tint. ----
+  var RAYS_FS = [
+    'uniform sampler2D tSrc; uniform vec4 uRay[4]; uniform vec4 uRayCol[4]; uniform float uAspect, uTime; varying vec2 vUv;', COMMON,
+    'void main(){',
+    '  vec3 acc = vec3(0.); float jit = ign(gl_FragCoord.xy + fract(uTime) * 31.);',
+    '  for (int l = 0; l < 4; l++) {',
+    '    vec4 r = uRay[l]; if (r.z <= 0.) continue;',
+    '    vec2 d = r.xy - vUv; float dist = length(d * vec2(uAspect, 1.));',
+    '    float fall = (1. - smoothstep(.05, .62, dist)) * smoothstep(.0, .04, dist); if (fall <= .002) continue;',
+    '    vec2 stepv = d * r.w / 7.; vec2 p = vUv + stepv * jit; float a = 0., decay = 1.;',
+    '    for (int j = 0; j < 7; j++) { vec3 s = texture2D(tSrc, p).rgb; a += min(luma(s), 4.) * decay; p += stepv; decay *= .9; }',
+    '    float sh = a / 7.;',
+    // window lights have no bright source in the picture: add soft angular spokes fanning out of the opening (analytic, same falloff)
+    '    if (uRayCol[l].a > 0.) { float an = atan(d.y, d.x * uAspect); float sp = .5 + .5 * sin(an * 5. + uTime * .05) * sin(an * 11. - uTime * .035); sh += uRayCol[l].a * (.6 + .4 * sp) * exp(-dist * 3.5) * .12; }',
+    '    acc += uRayCol[l].rgb * (sh * r.z * fall);',
+    '  }',
+    '  gl_FragColor = vec4(acc, 1.);',
+    '}'].join('\n');
+  // ---- Azami only: wet-floor reflections (half resolution). A floor pixel (flat, at ground height) reflects about the up axis; the reflected ray is
+  // marched in view space against the depth buffer (12 taps) and the hit's colour is read from the finished scene. Wet areas = blood (red floor)
+  // and slow world-space patches, so the dry stone stays dry. ----
+  var REFL_FS = [
+    'uniform sampler2D tDepth, tScene; uniform vec2 uTexel; uniform vec2 uInvP; uniform float uNear, uFar, uRange, uTime; uniform mat4 uCamW; uniform vec3 uUpV;',
+    'varying vec2 vUv;', COMMON,
+    'float viewZ(vec2 uv){ float d = textureLod(tDepth, uv, 0.).r; return (uNear * uFar) / ((uFar - uNear) * d - uFar); }',
+    'vec3 viewPos(vec2 uv){ float z = viewZ(uv); return vec3((uv * 2. - 1.) * uInvP * -z, z); }',
+    'float vh(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }',
+    'float vn(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3. - 2. * f); return mix(mix(vh(i), vh(i + vec2(1., 0.)), f.x), mix(vh(i + vec2(0., 1.)), vh(i + vec2(1., 1.)), f.x), f.y); }',
+    'void main(){',
+    '  gl_FragColor = vec4(0., 0., 0., 1.);',
+    '  if (textureLod(tDepth, vUv, 0.).r >= .99999) return;',
+    '  vec3 P = viewPos(vUv);',
+    '  vec3 Pw = (uCamW * vec4(P, 1.)).xyz;',
+    '  if (Pw.y > .16 || Pw.y < -.3) return;',
+    '  vec2 e = uTexel * 2.;',
+    '  if (abs((uCamW * vec4(viewPos(vUv + vec2(e.x, 0.)), 1.)).y - Pw.y) > .06 || abs((uCamW * vec4(viewPos(vUv + vec2(0., e.y)), 1.)).y - Pw.y) > .06) return;',
+    '  vec3 sc = texture2D(tScene, vUv).rgb;',
+    '  float blood = smoothstep(1.4, 2.4, sc.r / (max(sc.g, sc.b) + .004)) * smoothstep(.004, .03, sc.r);',
+    '  float pud = smoothstep(.56, .82, vn(Pw.xz * .42 + vec2(3.7, 1.3)) * .65 + vn(Pw.xz * 1.3) * .35);',
+    '  float wet = max(blood, pud * .55);',
+    '  if (wet < .02) return;',
+    '  vec3 V = normalize(P), R = reflect(V, uUpV);',
+    '  float fres = .3 + .7 * pow(1. - clamp(dot(-V, uUpV), 0., 1.), 3.);',
+    '  float jit = ign(gl_FragCoord.xy + fract(uTime) * 17.);',
+    '  vec3 hit = vec3(0.); float ha = 0.;',
+    '  for (int i = 0; i < 12; i++) {',
+    '    float t = (float(i) + jit) / 12.; float s = .12 + t * t * uRange;',
+    '    vec3 Q = P + R * s; if (Q.z > -.2) break;',
+    '    vec2 uq = (Q.xy / -Q.z) / uInvP * .5 + .5;',
+    '    if (uq.x < .005 || uq.x > .995 || uq.y < .005 || uq.y > .995) break;',
+    '    float zs = viewZ(uq), df = zs - Q.z;',
+    '    if (df > .03 && df < .45 + s * .3) {',
+    '      vec3 h = texture2D(tScene, uq).rgb + texture2D(tScene, uq + vec2(e.x, 0.) * 2.).rgb + texture2D(tScene, uq - vec2(e.x, 0.) * 2.).rgb + texture2D(tScene, uq + vec2(0., e.y) * 2.).rgb + texture2D(tScene, uq - vec2(0., e.y) * 2.).rgb;',
+    '      float ef = smoothstep(.0, .08, min(min(uq.x, 1. - uq.x), min(uq.y, 1. - uq.y)));',
+    '      hit = min(h * .2, vec3(6.)); ha = (1. - t) * ef; break; }',
+    '  }',
+    '  gl_FragColor = vec4(hit * ha * wet * fres, 1.);',
+    '}'].join('\n');
+
   // ---- composite: haze, AO, bloom, exposure, filmic curve, grade, vignette ----
   var COMPOSITE_FS = [
     'uniform sampler2D tScene, tBloom, tAO; uniform vec2 uTexel; uniform float uAspect, uTime;',
@@ -127,6 +202,10 @@
     // Hero focus (ajan:visual-dark): xy = hero centre (uv), z = radius (height units), w = strength. The hero carries a soft pool of
     // exposure with him and the frame falls away into darkness around it, so a darker world never swallows the player.
     'uniform vec4 uFocus;',
+    '#if STREAK\nuniform sampler2D tStreak; uniform float uStreak;\n#endif',
+    '#if RAYS\nuniform sampler2D tRays; uniform float uRays;\n#endif',
+    '#if REFL\nuniform sampler2D tRefl; uniform float uRefl;\n#endif',
+    '#if MBLUR\nuniform vec4 uMB;\n#endif',   // Azami motion blur: xy = blur vector (uv, whole length), z = strength 0..1
     'uniform vec4 uDof;',   // depth-of-field safe zone: xy = hero centre (uv), z = radius (height units), w = sin(camera pitch)
     // Special ability (only in the ABILITY variant, which is drawn while Post.setAbilityFx is being fed; otherwise this block does not exist):
     // A = spin (radial blur), chroma, flash (exposure + bloom), saturation punch; B = vignette pulse, hit-freeze desaturation, ring strength;
@@ -235,6 +314,17 @@
     '      c = mix(c, bl, dof); }',
     '    else c = clamp(c + (c - (n0 + n1 + n2 + n3) * .25) * sw * 1.6, mn, mx); }',
     '  #endif',
+    '  #if MBLUR',
+    // Azami: light directional blur along the screen motion of the world (rolls, charges, fast skills); never on the hero's own area.
+    '  if (uMB.z > .004) {',
+    '    vec2 sdm = (vUv - uDof.xy) * vec2(uAspect, 1.); sdm.y /= uDof.w;',
+    '    float mk = smoothstep(uDof.z * .7, uDof.z * 2.2, length(sdm)) * uMB.z;',
+    '    if (mk > .01) {',
+    '      float jm = ign(gl_FragCoord.xy + fract(uTime) * 57.) - .5; vec3 ma = c;',
+    '      for (int i = 0; i < 5; i++) { float t = (float(i) + .5 + jm) / 5. - .5; ma += texture2D(tScene, uv + uMB.xy * t).rgb; }',
+    '      c = mix(c, ma / 6., min(1., mk)); }',
+    '  }',
+    '  #endif',
     '  if (pring > 0.) { c.r = texture2D(tScene, uv + pca).r; c.b = texture2D(tScene, uv - pca).b; }',
     '  #if ABILITY',
     '  abEx = 1. + uAbA.z * ' + f(TUNE.abFlashExposure) + '; abBl = 1. + uAbA.z * ' + f(TUNE.abFlashBloom) + '; sat = uSat * (1. + uAbA.w); abFr = uAbB.y; abVg = uAbB.x;',
@@ -249,7 +339,16 @@
     '  float ao = texture2D(tAO, vUv).r; float l0 = luma(c);',
     '  c *= mix(1., ao, uAO * (1. - .5 * smoothstep(.5, 3., l0)));',
     '  #endif',
+    '  #if REFL',
+    '  c += texture2D(tRefl, uv).rgb * uRefl;',
+    '  #endif',
     '  c += texture2D(tBloom, uv).rgb * uBloom * ' + f(TUNE.bloomGain) + ' * uBloomTint * abBl;',
+    '  #if STREAK',
+    '  c += texture2D(tStreak, uv).rgb * uBloom * uBloomTint * uStreak;',
+    '  #endif',
+    '  #if RAYS',
+    '  c += texture2D(tRays, uv).rgb * uRays;',
+    '  #endif',
     '  if (uFocus.w > 0.) { vec2 fd = (vUv - uFocus.xy) * vec2(uAspect, 1.) / uFocus.z; float ff = exp(-dot(fd, fd));',
     '    c *= mix(1. - uFocus.w * ' + f(TUNE.focusDim) + ', 1. + uFocus.w * .85, ff); }',
     '  c = aces(c * uExposure * abEx);',
@@ -401,6 +500,7 @@
 
     var aoMat = pass(AO_FS, { tDepth: { value: sceneRT.depthTexture }, uTexel: { value: new T.Vector2() }, uInvP: { value: new T.Vector2() },
       uNear: { value: .15 }, uFar: { value: 150 }, uRadius: { value: 1 }, uIntensity: { value: 1 }, uProjScale: { value: 500 } }, { SAMPLES: 12 });
+    var streakMat = null, raysMat = null, reflMat = null;   // Azami passes: created on first use, so other presets never compile them
     var blurMat = pass(BLUR_FS, { tAO: { value: null }, uDir: { value: new T.Vector2() } });
     var downMat = pass(DOWN_FS, { tSrc: { value: null }, uTexel: { value: new T.Vector2() }, uFirst: { value: 0 }, uThreshold: { value: 1.05 }, uKnee: { value: .6 } });
     var upMat = pass(UP_FS, { tSrc: { value: null }, uTexel: { value: new T.Vector2() }, uWeight: { value: 1 } },
@@ -415,19 +515,36 @@
       uHeat: { value: heat }, uPulse: { value: new T.Vector4(.5, .5, 0, 0) },
       uCine: { value: new T.Vector4(.38, .12, TUNE.toe, .5) }, uCineTint: { value: new T.Vector3(.9, 1, 1.08) }, uCineHigh: { value: new T.Vector3(1.05, 1, .93) }, uSharp: { value: .55 }, uPunch: { value: .08 }, uFocus: { value: new T.Vector4(.5, .5, .5, 0) }, uDof: { value: new T.Vector4(.5, .5, .5, .77) },
       uOvl: { value: new T.Vector4() }, uCss: { value: new T.Vector2(typeof innerWidth === 'number' ? innerWidth : 1280, typeof innerHeight === 'number' ? innerHeight : 800) },
-      uAbA: { value: new T.Vector4() }, uAbB: { value: new T.Vector4() }, uAbC: { value: new T.Vector4(.5, .5, 0, .1) }, uAbD: { value: new T.Vector4(.5, .5, 1, 0) }
+      uAbA: { value: new T.Vector4() }, uAbB: { value: new T.Vector4() }, uAbC: { value: new T.Vector4(.5, .5, 0, .1) }, uAbD: { value: new T.Vector4(.5, .5, 1, 0) },
+      tStreak: { value: black }, tRays: { value: black }, tRefl: { value: black }, uStreak: { value: TUNE.streakGain }, uRays: { value: TUNE.raysGain }, uRefl: { value: TUNE.reflGain },
+      uMB: { value: new T.Vector4() }
     };
     var compositeMat = null, abilityMat = null;
     var settingsRef = settings || {}, preset = PRESETS.high, width = 1, height = 1, compositeKey = '';
     function buildComposite() {
-      var key = [preset.ao > 0, preset.haze, preset.abTaps, preset.abChroma, preset.sharp > 0].join();
+      var key = [preset.ao > 0, preset.haze, preset.abTaps, preset.abChroma, preset.sharp > 0, !!preset.fx].join();
       if (key === compositeKey && compositeMat) return;
-      compositeKey = key;
+      compositeKey = key; var fxOn = preset.fx ? 1 : 0;
       [compositeMat, abilityMat].forEach(function (m) { if (m) { m.dispose(); materials.splice(materials.indexOf(m), 1); } });
-      compositeMat = pass(COMPOSITE_FS, U, { AO: preset.ao > 0 ? 1 : 0, HAZE: preset.haze ? 1 : 0, ABILITY: 0, ABTAPS: 0, ABCHROMA: 0, SHARP: preset.sharp > 0 ? 1 : 0 });
+      compositeMat = pass(COMPOSITE_FS, U, { AO: preset.ao > 0 ? 1 : 0, HAZE: preset.haze ? 1 : 0, ABILITY: 0, ABTAPS: 0, ABCHROMA: 0, SHARP: preset.sharp > 0 ? 1 : 0, STREAK: fxOn, RAYS: fxOn, REFL: fxOn, MBLUR: fxOn });
       // The special-ability variant is a second program (compiled with the rest in compile(), so its first use never stalls); it is only
       // drawn while setAbilityFx is being fed, otherwise the frame is exactly the plain composite above.
-      abilityMat = pass(COMPOSITE_FS, U, { AO: preset.ao > 0 ? 1 : 0, HAZE: preset.haze ? 1 : 0, ABILITY: 1, ABTAPS: preset.abTaps || 0, ABCHROMA: preset.abChroma ? 1 : 0, SHARP: preset.sharp > 0 ? 1 : 0 });
+      abilityMat = pass(COMPOSITE_FS, U, { AO: preset.ao > 0 ? 1 : 0, HAZE: preset.haze ? 1 : 0, ABILITY: 1, ABTAPS: preset.abTaps || 0, ABCHROMA: preset.abChroma ? 1 : 0, SHARP: preset.sharp > 0 ? 1 : 0, STREAK: fxOn, RAYS: fxOn, REFL: fxOn, MBLUR: fxOn });
+    }
+    // ---- Azami extras: streak (1/8), light-shaft (1/4) and reflection (1/2) targets. Null on every other preset (no allocation, no pass). ----
+    var ex = null;
+    function aoSize(w, h) { var d = preset.aoFull ? 1 : 2; return [Math.max(1, Math.round(w / d)), Math.max(1, Math.round(h / d))]; }
+    function half(v) { return Math.max(1, Math.round(v / 2)); }
+    function makeExtras(w, h) {
+      if (!preset.fx) return null;
+      var fmt = packedBloom ? T.RGBFormat : T.RGBAFormat, ifmt = packedBloom ? 'R11F_G11F_B10F' : null;
+      return { refl: target(half(w), half(h), T.HalfFloatType, false, fmt, ifmt), rays: target(half(half(w)), half(half(h)), T.HalfFloatType, false, fmt, ifmt),
+        streak: target(half(half(half(w))), half(half(half(h))), T.HalfFloatType, false, fmt, ifmt) };
+    }
+    function disposeExtras(e) { if (e) { e.refl.dispose(); e.rays.dispose(); e.streak.dispose(); } }
+    function resizeExtras(e, w, h) { if (e) { e.refl.setSize(half(w), half(h)); e.rays.setSize(half(half(w)), half(half(h))); e.streak.setSize(half(half(half(w))), half(half(half(h)))); } }
+    function bindExtras() {
+      U.tStreak.value = ex ? ex.streak.texture : black; U.tRays.value = ex ? ex.rays.texture : black; U.tRefl.value = ex ? ex.refl.texture : black;
     }
     function rebuildMips() {
       mips.forEach(function (m) { m.dispose(); }); mips = [];
@@ -445,7 +562,7 @@
     // (prewarm, under the loading cover) and later steps only swap references.
     var sets = {}, keepSets = false, MAX_SETS = 6;
     function disposeSet(st) {
-      [st.sceneRT, st.aoA, st.aoB, st.ldrRT, st.edgesRT, st.weightsRT].concat(st.mips).forEach(function (t) { t.dispose(); });
+      [st.sceneRT, st.aoA, st.aoB, st.ldrRT, st.edgesRT, st.weightsRT].concat(st.mips).forEach(function (t) { t.dispose(); }); disposeExtras(st.ex);
       if (st.sceneRT.depthTexture) st.sceneRT.depthTexture.dispose();
     }
     function flushSets() { for (var k in sets) disposeSet(sets[k]); sets = {}; }
@@ -460,6 +577,7 @@
       return list;
     }
     function adopt(st, w, h) {
+      ex = st.ex || null; bindExtras();
       sceneRT = st.sceneRT; aoA = st.aoA; aoB = st.aoB; mips = st.mips; ldrRT = st.ldrRT; edgesRT = st.edgesRT; weightsRT = st.weightsRT;
       edgesMat.uniforms.tColor.value = blendMat.uniforms.tColor.value = ldrRT.texture;
       weightsMat.uniforms.tEdges.value = edgesRT.texture; blendMat.uniforms.tWeights.value = weightsRT.texture;
@@ -474,16 +592,16 @@
       var s = target(w, h, T.HalfFloatType, true);
       s.texture.format = sceneRT.texture.format; s.texture.internalFormat = sceneRT.texture.internalFormat;
       s.depthTexture = new T.DepthTexture(w, h, T.UnsignedIntType);
-      var hw = Math.max(1, Math.round(w / 2)), hh = Math.max(1, Math.round(h / 2));
+      var az = aoSize(w, h), hw = az[0], hh = az[1];
       return { sceneRT: s, aoA: target(hw, hh, T.HalfFloatType, false, T.RGFormat), aoB: target(hw, hh, T.HalfFloatType, false, T.RGFormat), mips: buildMips(w, h),
-        ldrRT: ldrTarget(w, h), edgesRT: ldrTarget(w, h, true), weightsRT: ldrTarget(w, h) };
+        ldrRT: ldrTarget(w, h), edgesRT: ldrTarget(w, h, true), weightsRT: ldrTarget(w, h), ex: makeExtras(w, h) };
     }
     function setSize(w, h) {
       w = Math.max(1, Math.round(w)); h = Math.max(1, Math.round(h));
       if (w === width && h === height) return;
       resetTiming(); // Old-resolution GPU samples must not describe the new buffers.
       if (keepSets && width > 1) {
-        sets[width + 'x' + height] = { sceneRT: sceneRT, aoA: aoA, aoB: aoB, mips: mips, ldrRT: ldrRT, edgesRT: edgesRT, weightsRT: weightsRT };
+        sets[width + 'x' + height] = { sceneRT: sceneRT, aoA: aoA, aoB: aoB, mips: mips, ldrRT: ldrRT, edgesRT: edgesRT, weightsRT: weightsRT, ex: ex };
         width = w; height = h;
         var key = w + 'x' + h, st = sets[key];
         if (!st) {
@@ -495,8 +613,8 @@
       }
       width = w; height = h;
       sceneRT.setSize(w, h);
-      var hw = Math.max(1, Math.round(w / 2)), hh = Math.max(1, Math.round(h / 2));
-      aoA.setSize(hw, hh); aoB.setSize(hw, hh);
+      var az = aoSize(w, h), hw = az[0], hh = az[1];
+      aoA.setSize(hw, hh); aoB.setSize(hw, hh); resizeExtras(ex, w, h);
       ldrRT.setSize(w, h); edgesRT.setSize(w, h); weightsRT.setSize(w, h); smaaRes.value.set(1 / w, 1 / h);
       U.uTexel.value.set(1 / w, 1 / h); U.uAspect.value = w / h;
       aoMat.uniforms.uTexel.value.set(1 / hw, 1 / hh);
@@ -527,12 +645,24 @@
       if (changed) flushSets();
       if (cfg) settingsRef = cfg;
       preset = p;
+      if (changed) {
+        // AO resolution (full on Azami) and the Azami-only targets follow the preset; the cached sets above were built for the old one.
+        var az = aoSize(width, height); aoA.setSize(az[0], az[1]); aoB.setSize(az[0], az[1]); aoMat.uniforms.uTexel.value.set(1 / az[0], 1 / az[1]);
+        disposeExtras(ex); ex = makeExtras(width, height); bindExtras();
+      }
       // Edge smoothing (SMAA) is independent of the AO/bloom preset but its search depth follows the quality tier.
       smaaPreset = SM.presets[cfg && (cfg.quality || cfg.preset)] || SM.presets.high;
       if (changed) resetTiming();
       var thr = String(smaaPreset.threshold);
       if (edgesMat.defines.SMAA_THRESHOLD !== thr) { edgesMat.defines.SMAA_THRESHOLD = thr; edgesMat.needsUpdate = true; }
       if (weightsMat.defines.SMAA_MAX_SEARCH_STEPS !== smaaPreset.steps) { weightsMat.defines.SMAA_MAX_SEARCH_STEPS = smaaPreset.steps; weightsMat.needsUpdate = true; }
+      if (p.fx && !streakMat) {
+        streakMat = pass(STREAK_FS, { tSrc: { value: null }, uTexel: { value: new T.Vector2() } });
+        var rc = [], rv = []; for (var ri = 0; ri < 4; ri++) { rv.push(new T.Vector4()); rc.push(new T.Vector4()); }
+        raysMat = pass(RAYS_FS, { tSrc: { value: null }, uRay: { value: rv }, uRayCol: { value: rc }, uAspect: { value: 1 }, uTime: { value: 0 } });
+        reflMat = pass(REFL_FS, { tDepth: { value: null }, tScene: { value: null }, uTexel: { value: new T.Vector2() }, uInvP: { value: new T.Vector2() }, uNear: { value: .15 }, uFar: { value: 150 },
+          uRange: { value: TUNE.reflRange }, uTime: { value: 0 }, uCamW: { value: new T.Matrix4() }, uUpV: { value: new T.Vector3(0, 1, 0) } });
+      }
       sceneRT.resolveDepthBuffer = true;
       if (aoMat.defines.SAMPLES !== Math.max(1, p.samples)) { aoMat.defines.SAMPLES = Math.max(1, p.samples); aoMat.needsUpdate = true; }
       U.uAO.value = p.ao; U.uGrain.value = p.grain; U.uSharp.value = p.sharp || 0;
@@ -712,8 +842,8 @@
         aoMat.uniforms.uProjScale.value = P[5] * .5 * aoA.height;
         aoMat.uniforms.uRadius.value = preset.radius; aoMat.uniforms.uIntensity.value = 1;
         draw(aoMat, aoA);
-        blurMat.uniforms.tAO.value = aoA.texture; blurMat.uniforms.uDir.value.set(1.4 / aoA.width, 0); draw(blurMat, aoB);
-        blurMat.uniforms.tAO.value = aoB.texture; blurMat.uniforms.uDir.value.set(0, 1.4 / aoA.height); draw(blurMat, aoA);
+        blurMat.uniforms.tAO.value = aoA.texture; blurMat.uniforms.uDir.value.set((preset.aoBlur || 1.4) / aoA.width, 0); draw(blurMat, aoB);
+        blurMat.uniforms.tAO.value = aoB.texture; blurMat.uniforms.uDir.value.set(0, (preset.aoBlur || 1.4) / aoA.height); draw(blurMat, aoA);
       }
       if (timingFrame) { tEnd(); tBegin('bloom'); }
       if (mips.length) {
@@ -724,6 +854,7 @@
           downMat.uniforms.tSrc.value = mips[i - 1].texture; downMat.uniforms.uTexel.value.set(1 / mips[i - 1].width, 1 / mips[i - 1].height);
           draw(downMat, mips[i]);
         }
+        if (ex && preset.fx && mips.length > 2) runAzami();
         for (var j = mips.length - 1; j > 0; j--) {
           upMat.uniforms.tSrc.value = mips[j].texture; upMat.uniforms.uTexel.value.set(1 / mips[j].width, 1 / mips[j].height);
           upMat.uniforms.uWeight.value = TUNE.bloomSpread;
@@ -731,6 +862,24 @@
         }
       }
       if (timingFrame) tEnd();
+    }
+    // Azami-only passes, drawn between the bloom down- and up-chain (bright-pass levels are still un-accumulated): wet-floor reflection (1/2), light shafts (1/4),
+    // thin anamorphic streak (1/8). Three small fullscreen passes; the other presets never get here.
+    var rayList = null, rayN = 0, mbVec = new T.Vector4(), motionSet = false;
+    function runAzami() {
+      var P = camera.projectionMatrix.elements, i, r;
+      // reflections
+      var ru = reflMat.uniforms; ru.tDepth.value = sceneRT.depthTexture; ru.tScene.value = sceneRT.texture; ru.uTexel.value.set(1 / ex.refl.width, 1 / ex.refl.height);
+      ru.uInvP.value.set(1 / P[0], 1 / P[5]); ru.uNear.value = camera.near; ru.uFar.value = camera.far; ru.uTime.value = U.uTime.value;
+      ru.uCamW.value.copy(camera.matrixWorld); ru.uUpV.value.set(0, 1, 0).transformDirection(camera.matrixWorldInverse);
+      draw(reflMat, ex.refl);
+      // light shafts
+      var ra = raysMat.uniforms; ra.tSrc.value = mips[0].texture; ra.uAspect.value = U.uAspect.value; ra.uTime.value = U.uTime.value;
+      for (i = 0; i < 4; i++) { r = ra.uRay.value[i]; if (i < rayN && rayList) { var q = rayList[i]; r.set(q.u, q.v, q.k, TUNE.rayReach); ra.uRayCol.value[i].set(q.r, q.g, q.b, q.a); } else r.set(0, 0, 0, 0); }
+      draw(raysMat, ex.rays);
+      // streak
+      streakMat.uniforms.tSrc.value = mips[2].texture; streakMat.uniforms.uTexel.value.set(1 / mips[2].width, 1 / mips[2].height);
+      draw(streakMat, ex.streak);
     }
     // Edge detection -> blending weights -> neighbourhood blend into `out` (null = canvas). The edge target is cleared because the
     // edge shader discards flat pixels; the weights and blend passes write every pixel.
@@ -852,6 +1001,29 @@
       if (!(strength > 0)) { U.uFocus.value.w = 0; return; }
       U.uFocus.value.set(focusPoint.x * .5 + .5, focusPoint.y * .5 + .5, Math.max(.05, radius * unit), Math.min(1, strength));
     }
+    // ---- Azami-only inputs (ignored on every other preset) ----
+    // setRays(list, n): up to 4 world-space light sources {x, y, z, r, g, b, k} whose shafts are scattered (colour x strength in r/g/b, k = overall gain).
+    var rayPool = [{ u: 0, v: 0, k: 0, r: 0, g: 0, b: 0, a: 0 }, { u: 0, v: 0, k: 0, r: 0, g: 0, b: 0, a: 0 }, { u: 0, v: 0, k: 0, r: 0, g: 0, b: 0, a: 0 }, { u: 0, v: 0, k: 0, r: 0, g: 0, b: 0, a: 0 }], rayPt = new T.Vector3();
+    function setRays(list, n) {
+      rayN = 0; rayList = rayPool;
+      if (!preset.fx || !list || !(n > 0)) return;
+      for (var i = 0; i < n && rayN < 4; i++) {
+        var l = list[i]; rayPt.set(l.x, l.y, l.z).project(camera);
+        if (rayPt.z > 1 || Math.abs(rayPt.x) > 1.3 || Math.abs(rayPt.y) > 1.3) continue;
+        var q = rayPool[rayN++]; q.u = rayPt.x * .5 + .5; q.v = rayPt.y * .5 + .5; q.k = l.k; q.r = l.r; q.g = l.g; q.b = l.b; q.a = l.a || 0;
+      }
+    }
+    // setMotion(vx, vz, hx, hz): the hero's ground velocity (m/s) and position -> a light blur vector along the world's screen motion. Off while walking.
+    var mbA = new T.Vector3(), mbB = new T.Vector3();
+    function setMotion(vx, vz, hx, hz) {
+      var calm = reduced.matches || settingsRef.reducedMotion === true, sp = Math.sqrt(vx * vx + vz * vz);
+      if (!preset.fx || calm || !(sp > TUNE.mbFrom) || sp > 40) { U.uMB.value.set(0, 0, 0, 0); return; }
+      var k = Math.min(1, (sp - TUNE.mbFrom) / (TUNE.mbTo - TUNE.mbFrom)); k = k * k * (3 - 2 * k);
+      mbA.set(hx, .9, hz).project(camera); mbB.set(hx + vx / 60, .9, hz + vz / 60).project(camera);
+      var dx = (mbB.x - mbA.x) * .5 * .8, dy = (mbB.y - mbA.y) * .5 * .8, len = Math.sqrt(dx * dx + dy * dy), cap = TUNE.mbLen * 1.25;
+      if (len > cap) { dx *= cap / len; dy *= cap / len; }
+      U.uMB.value.set(dx, dy, k, 0);
+    }
     function heatSources() { return heat; }
     function pulse() { return U.uPulse.value; }
     function dispose() {
@@ -860,7 +1032,7 @@
         timingCanvas.removeEventListener('webglcontextlost', timingContextLost);
         timingCanvas.removeEventListener('webglcontextrestored', timingContextRestored);
       }
-      [sceneRT, aoA, aoB, ldrRT, edgesRT, weightsRT].concat(mips).forEach(function (t) { t.dispose(); });
+      [sceneRT, aoA, aoB, ldrRT, edgesRT, weightsRT].concat(mips).forEach(function (t) { t.dispose(); }); disposeExtras(ex);
       smaaTex.dispose();
       if (sceneRT.depthTexture) sceneRT.depthTexture.dispose();
       materials.forEach(function (m) { m.dispose(); }); tri.dispose(); white.dispose(); black.dispose();
@@ -883,11 +1055,12 @@
         U.uOvl.value.set(flash || 0, (rage || 0) * .32, low || 0, 0);
         if (cssW > 0 && cssH > 0) U.uCss.value.set(cssW, cssH);
       },
-      render: render, setSize: setSize, setQuality: setQuality, setGrade: setGrade, heat: heatSources, pulse: pulse, setAbilityFx: setAbilityFx, clearAbilityFx: clearAbilityFx, setFocus: setFocus, dispose: dispose, compile: compile,
+      render: render, setSize: setSize, setQuality: setQuality, setGrade: setGrade, heat: heatSources, pulse: pulse, setAbilityFx: setAbilityFx, clearAbilityFx: clearAbilityFx, setFocus: setFocus, setRays: setRays, setMotion: setMotion, dispose: dispose, compile: compile,
       setTiming: setTiming, resetTiming: resetTiming,
       uniforms: U, get target() { return sceneRT; }, prewarm: prewarm, keepSizes: setKeepSets,
       get samples() { return 0; },
       get smaa() { return { threshold: smaaPreset.threshold, steps: smaaPreset.steps, texturesReady: smaaTex.ready }; },
+      get fx() { return !!(preset.fx && ex); },
       get bufferFormats() { return { scene: packedScene ? 'R11F_G11F_B10F' : 'RGBA16F', ao: 'RG16F', smaa: 'RGBA8', bloom: packedBloom ? 'R11F_G11F_B10F' : 'RGBA16F' }; },
       get width() { return width; }, get height() { return height; },
       get timingEnabled() { return timingEnabled; }, get timingAvailable() { return timingAvailable; },

@@ -90,7 +90,7 @@
     }
     // ---- chains (Çengelli Çekiş + forms, gear powers): real links, instanced, thrown out then held taut while the foe is dragged, then whipped home.
     //      styles: hook = single cold-steel chain, long = twin helical strands (Zincirli Fırlatış), barb = blackened chain, spiked head, dripping blood (Dikenli Çengel)
-    const LINKS = 40, CHAINS = 6, LCAP = LINKS * CHAINS * 2;
+    const LINKS = 90, CHAINS = 6, LCAP = LINKS * CHAINS * 2;
     const linkMat = new T.MeshStandardMaterial({ color: 0xffffff, metalness: .62, roughness: .36, emissive: new T.Color(.008, .012, .02) });
     const links = new T.InstancedMesh(new T.TorusGeometry(.11, .03, 5, 9).rotateY(Math.PI / 2), linkMat, LCAP); links.frustumCulled = false; links.count = 0; group.add(links);
     links.setColorAt(0, new T.Color(1, 1, 1));
@@ -116,9 +116,9 @@
     const spikes = new T.InstancedMesh(merged, headMat, CHAINS), barbs = new T.InstancedMesh(mergeParts(barbParts), headMat, CHAINS);
     for (const m of [spikes, barbs]) { m.frustumCulled = false; m.count = 0; group.add(m); m.setColorAt(0, new T.Color(1, 1, 1)); }
     const STY = {   // chain colour, head colour, head scale, strands, link scale
-      hook: { link: [.4, .48, .6], head: [.52, .6, .72], hs: .8, strands: 1, ls: 1, spark: [1.4, 1.3, 1.1] },
-      long: { link: [.55, .7, .95], head: [.8, .92, 1.15], hs: .88, strands: 2, ls: .68, spark: [.8, 1.0, 1.5] },
-      barb: { link: [.2, .17, .18], head: [.26, .2, .2], hs: .86, strands: 1, ls: 1.1, spark: [1.5, .08, .05] } };
+      hook: { link: [.4, .48, .6], head: [.52, .6, .72], hs: .5, strands: 1, ls: .5, spark: [1.4, 1.3, 1.1] },
+      long: { link: [.55, .7, .95], head: [.8, .92, 1.15], hs: .55, strands: 2, ls: .42, spark: [.8, 1.0, 1.5] },
+      barb: { link: [.2, .17, .18], head: [.26, .2, .2], hs: .6, strands: 1, ls: .6, spark: [1.5, .08, .05] } };
     const _m = new T.Matrix4(), _q = new T.Quaternion(), _q2 = new T.Quaternion(), _e = new T.Euler(), _p = new T.Vector3(), _s = new T.Vector3(1, 1, 1), _c = new T.Color(), _ax = new T.Vector3(0, 0, 1), _o = new T.Vector3();
     // ---- particles
     const MAX = 900, pos = new Float32Array(MAX * 3), col = new Float32Array(MAX * 4), size = new Float32Array(MAX);
@@ -193,7 +193,7 @@
       for (const e of foes.slice(0, CHAINS)) {
         if (chainList.length >= CHAINS) chainList.shift();
         const hk = !!(opt && opt.hook);
-        chainList.push({ from: p, to: e, x: e.x, z: e.z, t: 0, life: opt && opt.life || (lash ? .45 : .55), lash: !!lash, hook: hk, style: (opt && opt.style) || 'hook', throwT: (opt && opt.throw) || .24, landed: false, acc: 0 });
+        chainList.push({ from: p, to: e, x: e.x, z: e.z, t: 0, life: opt && opt.life || (lash ? .45 : .55), lash: !!lash, hook: hk, style: (opt && opt.style) || 'hook', throwT: (opt && opt.throw) || .24, flight: (opt && opt.flight) || .1, landed: false, acc: 0 });
         if (!hk) { const y = (e.model && e.model.root.position.y) || 0; for (let i = 0; i < 10; i++) spark(e.x, y + 1, e.z, rnd(-2, 2), rnd(.5, 2.5), rnd(-2, 2), i % 2 ? [1.8, 1.5, 1.1] : [1.6, .4, .12], .35, .07, -6); }
       }
       if (!lash) ring(p.x, p.z, 7, [.55, .55, .62], .4);
@@ -201,7 +201,8 @@
     // the grapnel bites: sparks off the steel, a short ring, blood from the barbs
     function hookLand(c, x, y, z) {
       const S = STY[c.style] || STY.hook, barb = c.style === 'barb', n = barb ? 22 : 14;
-      ring(x, z, barb ? 1.9 : 1.5, barb ? [1.1, .1, .07] : [.7, .75, .95], .28);
+      ring(x, z, barb ? 1.5 : 1.2, barb ? [1.1, .1, .07] : [.7, .75, .95], .2); ring(x, z, .6, [2, 1.9, 1.7], .1);
+      for (let i = 0; i < 3; i++) spark(x, y, z, rnd(-.3, .3), rnd(-.1, .3), rnd(-.3, .3), [3, 2.8, 2.4], .09, rnd(.38, .55), 0);   // the flash of the strike: a few hot, big, very short-lived motes
       for (let i = 0; i < n; i++) { const a = Math.random() * 6.283, v = rnd(1.2, 4); spark(x, y, z, Math.sin(a) * v, rnd(.3, 2.6), Math.cos(a) * v, barb && i % 3 ? COLORS.blood : i % 2 ? S.spark : [1.8, 1.6, 1.3], rnd(.25, .5), rnd(.06, .12), barb ? -9 : -5); }
     }
     // dust scraped up by a foe dragged along the floor (call every .04 s while he slides) and the thud when he stops
@@ -305,9 +306,10 @@
         const ch = chainList[c]; ch.t += dt;
         if (ch.t >= ch.life) { chainList.splice(c, 1); continue; }
         const p = ch.from, tx = ch.to.dead ? ch.x : ch.to.x, tz = ch.to.dead ? ch.z : ch.to.z, hk = ch.hook, S = STY[ch.style] || STY.hook;
+        if (ch.hook && ch.t < ch.throwT - ch.flight) continue;   // wind-up: the chain is still coiled in the fist
         let reach;
         if (!hk) { const k = ch.t / ch.life; reach = k < .25 ? k / .25 : k > .7 ? 1 - (k - .7) / .3 : 1; }
-        else if (ch.t < ch.throwT) { const u = ch.t / ch.throwT; reach = 1 - (1 - u) * (1 - u); }
+        else if (ch.t < ch.throwT) { const u = Math.max(0, (ch.t - (ch.throwT - ch.flight)) / ch.flight); reach = 1 - Math.pow(1 - u, 3); }   // whip: hidden in the wind-up, then a sharp ease-out flight (~.1 s)
         else { const back = ch.life - .2; reach = ch.t > back ? Math.max(0, 1 - Math.pow((ch.t - back) / .2, 2)) : 1; }
         // the chain leaves the left hand (the 'chain' pose is mirrored), not the hip
         let ox = p.x, oy = gy(p.x, p.z) + 1.05, oz = p.z;
@@ -316,21 +318,23 @@
           if (mdl.__ttHandL) { mdl.__ttHandL.getWorldPosition(_o); if (Math.abs(_o.x - p.x) < 1.6 && Math.abs(_o.z - p.z) < 1.6 && Math.abs(_o.y - oy) < 1.5) { ox = _o.x; oy = _o.y; oz = _o.z; } }
         }
         const ty = ((ch.to.model && ch.to.model.root.position.y) || 0) + 1, dx = tx - ox, dz = tz - oz, len = Math.hypot(dx, dz) || 1, yaw = Math.atan2(dx, dz), pitch = Math.atan2(oy - ty, len);
-        const sag0 = hk ? (ch.t < ch.throwT ? .18 * (1 - reach) : Math.max(0, 1 - len / 3.2) * .22) : (ch.lash ? .5 : .25) * (1 - reach * .6);
+        const sag0 = hk ? (ch.t < ch.throwT ? .08 * (1 - reach) : Math.max(0, 1 - len / 3.2) * .16) : (ch.lash ? .5 : .25) * (1 - reach * .6);
         const headLen = Math.max(0, len * reach - (hk && ch.t >= ch.throwT * .98 ? .32 : 0)), tipx = ox + dx / len * headLen, tipz = oz + dz / len * headLen, tipy = oy + (ty - oy) * (headLen / len);
         if (hk) {
           if (!ch.landed && ch.t >= ch.throwT) { ch.landed = true; hookLand(ch, tx, ty, tz); }
           // trailing sparks behind the flying head, blood drips off the barbs while held
-          ch.acc += dt * (ch.t < ch.throwT ? 90 : ch.style === 'barb' ? 16 : 0);
+          ch.acc += dt * (ch.t < ch.throwT ? 150 : ch.style === 'barb' ? 16 : 0);
           while (ch.acc >= 1) { ch.acc--; if (ch.style === 'barb' && ch.t >= ch.throwT) spark(tipx + rnd(-.1, .1), tipy, tipz + rnd(-.1, .1), rnd(-.2, .2), rnd(-.2, .3), rnd(-.2, .2), COLORS.blood, rnd(.4, .7), rnd(.06, .1), -9); else spark(tipx, tipy, tipz, rnd(-.5, .5), rnd(-.2, .7), rnd(-.5, .5), S.spark, rnd(.15, .3), rnd(.04, .08), -2); }
         }
-        const strands = hk ? S.strands : 1, n = Math.min(LINKS, Math.max(2, Math.round(headLen / (hk ? .27 * S.ls : .2))));
+        const strands = hk ? S.strands : 1, n = Math.min(LINKS, Math.max(2, Math.round(headLen / (hk ? .25 * S.ls : .2))));
+        // S-wave of the whip: big while the head flies, a short ripple after the bite (hooks only)
+        const wAmp = !hk ? 0 : ch.t < ch.throwT ? Math.min(.5, .05 * len) * (1 - reach * reach) : .06 * Math.exp(-(ch.t - ch.throwT) * 14), wPh = ch.t * 55;
         const side = _p.set(Math.cos(yaw), 0, -Math.sin(yaw));
         const sx = side.x, sz = side.z;
         for (let sd = 0; sd < strands; sd++) for (let i = 0; i < n && li < LCAP; i++) {
-          const u = (i + .5) / n, h = headLen * u / len, sag = Math.sin(u * Math.PI) * sag0, tw = hk && strands > 1 ? u * headLen * 1.3 - time * 5 + sd * Math.PI : 0, off = strands > 1 ? .06 : 0;
-          const wob = Math.sin(time * 30 + i) * (hk ? .004 : .02);
-          _p.set(ox + dx * h + sx * Math.cos(tw) * off, oy + (ty - oy) * h - sag + Math.sin(tw) * off + wob, oz + dz * h + sz * Math.cos(tw) * off);
+          const u = (i + .5) / n, h = headLen * u / len, sag = Math.sin(u * Math.PI) * sag0, tw = hk && strands > 1 ? u * headLen * 1.3 - time * 5 + sd * Math.PI : 0, off = strands > 1 ? .095 : 0;
+          const wob = Math.sin(time * 30 + i) * (hk ? .002 : .02), wv = wAmp ? Math.sin(u * Math.PI * 2 - wPh * (ch.t < ch.throwT ? .15 : .3)) * Math.sin(u * Math.PI) * wAmp : 0;
+          _p.set(ox + dx * h + sx * (Math.cos(tw) * off + wv), oy + (ty - oy) * h - sag + Math.sin(tw) * off + wob, oz + dz * h + sz * (Math.cos(tw) * off + wv));
           _e.set(pitch, yaw, 0, 'YXZ'); _q.setFromEuler(_e); if ((i + sd) % 2) { _q2.setFromAxisAngle(_ax, Math.PI / 2); _q.multiply(_q2); }
           const ls = hk ? S.ls : 1; _s.set(ls, ls, hk ? 1.5 : 1.6); _m.compose(_p, _q, _s); links.setMatrixAt(li, _m);
           if (hk) _c.setRGB(S.link[0], S.link[1], S.link[2]); else _c.setRGB(.5, .54, .62); links.setColorAt(li, _c); li++;

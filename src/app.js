@@ -60,17 +60,40 @@
   const FRAME_LIMIT = /Mac/i.test(navigator.userAgentData?.platform || navigator.platform || navigator.userAgent) ? 60 : 120;
   const QUALITY = {
     low:    { scale: 1, shadows: 0,    detail: 'low',    lights: .35, particles: 180, fog: .014, bloom: .08, corpses: 20, decals: 20, aa: true, occlusion: 0 },
-    high:   { scale: 1, shadows: 1024, detail: 'high',   lights: .7,  particles: 440, fog: .019, bloom: .205, corpses: 58, decals: 58, aa: true, occlusion: .5 }
+    medium: { scale: 1, shadows: 512,  detail: 'medium', lights: .55, particles: 300, fog: .017, bloom: .15, corpses: 38, decals: 38, aa: true, occlusion: .5 },
+    high:   { scale: 1, shadows: 1024, detail: 'high',   lights: .7,  particles: 440, fog: .019, bloom: .205, corpses: 58, decals: 58, aa: true, occlusion: .5 },
+    // Azami: best picture for strong gaming PCs (RTX class). Never picked automatically (see detectQuality); only chosen in Settings (or ?q=ultra for tests).
+    ultra:  { scale: 1, shadows: 2048, detail: 'high',   lights: .85, particles: 1100, fog: .02, bloom: .22, corpses: 120, decals: 120, aa: true, occlusion: .5 }
   };
   const QUALITY_TEXT = {
     low: [KabirI18n.t('Düşük'), KabirI18n.t('Akıcılık öncelikli. Hafif ışıklar ve daha az parçacık.')],
-    high: [KabirI18n.t('Yüksek'), KabirI18n.t('Ayrıntılı yüzeyler, yumuşak gölgeler, ışıklar, sis ve savaş efektleri.')]
+    medium: [KabirI18n.t('Orta'), KabirI18n.t('Dengeli. Gölgeler ve ışıklar açık, ağır efektler kısılmış; çoğu Mac için önerilir.')],
+    high: [KabirI18n.t('Yüksek'), KabirI18n.t('Ayrıntılı yüzeyler, yumuşak gölgeler, ışıklar, sis ve savaş efektleri.')],
+    ultra: [KabirI18n.t('Azami'), KabirI18n.t('En iyi görüntü. Güçlü ekran kartı gerekir: keskin gölgeler, ışık huzmeleri, ıslak zemin yansımaları, hafif hareket bulanıklığı.')]
   };
   // Character textures are sized once at start (Düşük halves them); a later change of preset takes full effect after a reload.
   const TEXTURE_NOTE = KabirI18n.t(' Karakter kaplamaları oyun yeniden açılınca bu ayara geçer.');
   const coarsePointer = matchMedia('(pointer:coarse)').matches;
   // Desktop defaults follow the current display's pixel density. Extra AA is opt-in.
-  const DEFAULTS = { difficulty: 'normal', quality: 'high', qualityVersion: 5, ...DISPLAY.defaults, frameRate: FRAME_LIMIT, exposure: 1.15, shake: .55, master: .65, music: .42, sfx: .75, voice: .85, narrationMode: 'essential', subtitles: true, autoLoot: false, uiScale: .85 };
+  // First-run quality: Apple GPUs / Macs / touch devices / unknown or integrated GPUs -> Medium; a clearly discrete desktop GPU -> High.
+  function detectQuality() {
+    try {
+      const plat = String(navigator.userAgentData?.platform || navigator.platform || navigator.userAgent);
+      let renderer = '';
+      const c = document.createElement('canvas'), gl = c.getContext('webgl2') || c.getContext('webgl');
+      if (gl) {
+        const ext = gl.getExtension('WEBGL_debug_renderer_info');
+        renderer = String(gl.getParameter(ext ? ext.UNMASKED_RENDERER_WEBGL : gl.RENDERER) || '');
+        const lose = gl.getExtension('WEBGL_lose_context'); if (lose) lose.loseContext();
+      }
+      if (/Apple/i.test(renderer) || /Mac|iPad|iPhone|iOS/i.test(plat) || coarsePointer) return 'medium';
+      if (/NVIDIA|GeForce|\bRTX\b|\bGTX\b|Radeon\s+(RX|PRO\s+W|VII)|\bArc\b/i.test(renderer) && !/Intel\(R\)\s+(UHD|HD|Iris)/i.test(renderer)) return 'high';
+    } catch (_) {}
+    return 'medium';
+  }
+  const AUTO_QUALITY = detectQuality();
+  let qualityForce = null, qualityStored = null;   // ?q=low|medium|high|ultra forces a preset for this page load only (never saved)
+  const DEFAULTS = { difficulty: 'normal', quality: AUTO_QUALITY, qualityUser: false, qualityVersion: 6, ...DISPLAY.defaults, frameRate: FRAME_LIMIT, exposure: 1.15, shake: .55, master: .65, music: .42, sfx: .75, voice: .85, narrationMode: 'essential', subtitles: true, autoLoot: false, uiScale: .85 };
   const FRAME_RATES = [60, 90, 120, 0];   // 0 = follow the display (every refresh; best with G-Sync / FreeSync / ProMotion)
   const UI_STEPS = [.85, 1];
   const LIMITS = { exposure: [.7, 1.7], shake: [0, 1], master: [0, 1], music: [0, 1], sfx: [0, 1], voice: [0, 1] };
@@ -165,16 +188,20 @@
       try { raw = JSON.parse(localStorage.getItem(OLD_KEY) || 'null'); } catch (e) { raw = null; }
       if (raw && typeof raw === 'object') {
         migrated = legacySettings = true;
-        if (raw.preset === 'ultra' || raw.preset === 'medium') raw.preset = 'high';
         if (!Object.prototype.hasOwnProperty.call(QUALITY, raw.preset)) raw.preset = ({ 0: 'low', 1024: 'high', 1536: 'high', 2048: 'high', 4096: 'high' })[raw.shadows] || DEFAULTS.quality;
         raw.quality = raw.preset;
       }
     }
     if (raw && typeof raw === 'object') {
-      // Version 5: only Low and High remain; the former Medium is the new High.
-      if (raw.quality === 'ultra' || raw.quality === 'medium') raw.quality = 'high';
-      if (raw.qualityVersion !== DEFAULTS.qualityVersion) migrated = true;
-      if (Object.prototype.hasOwnProperty.call(QUALITY, raw.quality)) cfg.quality = raw.quality;
+      // Version 5 dropped the old Medium into High; version 6 brings a real Medium back and picks the default by GPU.
+      // Before v6 nobody could choose Medium, so only a stored 'low' counts as a deliberate choice; everything else follows the new default.
+      if (raw.qualityVersion !== DEFAULTS.qualityVersion) {
+        migrated = true;
+        raw.qualityUser = raw.quality === 'low';
+        if (!raw.qualityUser) raw.quality = DEFAULTS.quality;
+      }
+      cfg.qualityUser = raw.qualityUser === true;
+      if (cfg.qualityUser && Object.prototype.hasOwnProperty.call(QUALITY, raw.quality)) cfg.quality = raw.quality;
       // Difficulty and HUD size always start from the launch defaults.
       for (const k of Object.keys(LIMITS)) if (Number.isFinite(raw[k])) cfg[k] = clamp(raw[k], LIMITS[k][0], LIMITS[k][1]);
       if (typeof raw.subtitles === 'boolean') cfg.subtitles = raw.subtitles;
@@ -201,6 +228,9 @@
         if (UI_STEPS.includes(handoff.uiScale)) cfg.uiScale = handoff.uiScale;
       }
     } catch (_) {}
+    qualityStored = cfg.quality;
+    const forced = (Q.get('q') || '').toLowerCase();
+    if (Object.prototype.hasOwnProperty.call(QUALITY, forced)) { qualityForce = forced; cfg.quality = forced; }
     deriveSettings();
     if (migrated) { saveSettings(); safe(() => localStorage.removeItem(OLD_KEY)); }
   }
@@ -209,18 +239,20 @@
     cfg.fps = cfg.frameRate;
     if (B.GroundLoot) B.GroundLoot.auto = cfg.autoLoot === true;   // old proximity auto-pickup of ground items (default off: click / E)
     // 60 Hz-class targets: distant characters cast shadows over a shorter reach (see combat.js); 0 = all cast.
-    cfg.shadowReach = cfg.quality === 'low' ? 0 : cfg.fps > 0 && cfg.fps <= 64 ? 10 : 13;   // far characters do not cast into the key light's map (fewer shadow draws = a steadier frame time)
+    cfg.shadowReach = cfg.quality === 'low' ? 0 : cfg.quality === 'medium' ? 8 : cfg.quality === 'ultra' ? 18 : cfg.fps > 0 && cfg.fps <= 64 ? 10 : 13;   // far characters do not cast into the key light's map (fewer shadow draws = a steadier frame time)
     cfg.preset = cfg.quality;
     cfg.ambient = cfg.sfx * .66;   // dungeon ambience follows the effects slider
   }
   function saveSettings() {
     const out = {};
     for (const k of Object.keys(DEFAULTS)) out[k] = cfg[k];
+    if (qualityForce) { out.quality = qualityStored; }   // a ?q= test override is never written to the save
     out.binds = binds;
     out.bindVersion = BIND_VERSION;
     safe(() => localStorage.setItem(KEY, JSON.stringify(out)));
   }
   readSettings();
+  B.Aniso = cfg.quality === 'ultra' ? 16 : 8;   // Azami: 16x anisotropic filtering on world / character maps (clamped by the GPU's own maximum); read when each texture is made
   B.Audio.set({ master: cfg.master, music: cfg.music, sfx: cfg.sfx, ambient: cfg.ambient, voice: cfg.voice, narrationMode: cfg.narrationMode });
 
   /* ───────────── State ───────────── */
@@ -800,8 +832,9 @@
     video.querySelectorAll('.advanced-graphics, .setting').forEach(n => n.remove()); audio.querySelectorAll('.setting').forEach(n => n.remove());
     const q = document.createElement('div'); q.className = 'setting quality';
     q.innerHTML = `${KabirI18n.t("<div class=\"setting-head\"><label id=\"quality-label\">Grafik kalitesi</label></div><div class=\"segmented\" role=\"radiogroup\" aria-labelledby=\"quality-label\">")}${Object.keys(QUALITY).map(k => `<button type="button" role="radio" data-quality="${k}">${QUALITY_TEXT[k][0]}</button>`).join('')}</div><small id="quality-note"></small>`;
-    const paintQuality = () => { q.querySelectorAll('[data-quality]').forEach(b => { const on = b.dataset.quality === cfg.quality; b.classList.toggle('selected', on); b.setAttribute('aria-checked', on); }); q.querySelector('#quality-note').textContent = QUALITY_TEXT[cfg.quality][1] + ((cfg.quality === 'low') !== lowTextures ? TEXTURE_NOTE : ''); };
-    q.querySelectorAll('[data-quality]').forEach(b => b.addEventListener('click', () => { if (b.dataset.quality === cfg.quality) return; cfg.quality = b.dataset.quality; paintQuality(); applySettings(); warmShaders(true); }));
+    const paintQuality = () => { q.querySelectorAll('[data-quality]').forEach(b => { const on = b.dataset.quality === cfg.quality; b.classList.toggle('selected', on); b.setAttribute('aria-checked', on); }); q.querySelector('#quality-note').textContent = QUALITY_TEXT[cfg.quality][1] + ((cfg.quality === 'low' ? 'low' : cfg.quality === 'ultra' ? 'ultra' : 'std') !== texTier ? TEXTURE_NOTE : ''); };
+    q.querySelectorAll('[data-quality]').forEach(b => b.addEventListener('click', () => { if (b.dataset.quality === cfg.quality) { if (!cfg.qualityUser || qualityForce) { cfg.qualityUser = true; qualityForce = null; qualityStored = cfg.quality; applySettings(); } return; } cfg.quality = b.dataset.quality; cfg.qualityUser = true; qualityForce = null; qualityStored = cfg.quality; paintQuality(); applySettings(); warmShaders(true); }));
+    q.querySelector('.segmented').classList.add('quad');   // four presets in one row (Düşük | Orta | Yüksek | Azami)
     paintQuality(); video.append(q);
     const displayNote = document.createElement('small'); displayNote.id = 'display-note'; q.append(displayNote);
     video.append(choiceRow('displayMode', KabirI18n.t('Görüntü boyutu'), ['auto', 'native'], v => ({ auto: KabirI18n.t('Otomatik'), native: KabirI18n.t('Tam boyut') })[v]),
@@ -857,7 +890,7 @@
     $('pause-button').onclick = () => { if (view === 'playing') show('pause'); };
     $('resume').onclick = () => show('playing');
     $('settings-close').onclick = $('settings-done').onclick = $('controls-close').onclick = $('confirm-no').onclick = back;
-    $('settings-reset').onclick = () => { const q = cfg.quality; Object.assign(cfg, DEFAULTS); applySettings(); renderSettings(); selectSettingsPage($('settings').dataset.page || 'video'); if (q !== cfg.quality) warmShaders(true); };
+    $('settings-reset').onclick = () => { const q = cfg.quality; qualityForce = null; Object.assign(cfg, DEFAULTS); applySettings(); renderSettings(); selectSettingsPage($('settings').dataset.page || 'video'); if (q !== cfg.quality) warmShaders(true); };
     $('restart').onclick = () => open('confirm');
     $('confirm-yes').onclick = () => { clearFX(); begin(true); };
     for (const id of ['return-title', 'death-title', 'victory-title']) $(id).onclick = () => {
@@ -1830,7 +1863,7 @@
   // program blocks the page. So before the title appears (and after a preset change) every program is started in
   // small batches with a painted frame between them (the browser compiles in parallel where it can:
   // KHR_parallel_shader_compile), then the big textures are uploaded a few per frame. The bar follows the work.
-  let warming = null, lowTextures = false, warmStats = null;
+  let warming = null, lowTextures = false, texTier = 'std', warmStats = null;
   // Each batch waits for its new programs before starting another. Keep the
   // default small so a many-core PC does not receive a large compile burst.
   const WARM_BATCH = Math.floor(clamp(+(Q.get('warmbatch') || 8) || 8, 1, 32)), WARM_LOG = Q.has('warmlog'), WARM_SYNC = /HeadlessChrome/.test(navigator.userAgent) && !Q.has('warm');
@@ -2215,10 +2248,10 @@
   }
   loadProgress(.18, KabirI18n.t('Karakterler hazırlanıyor…'));
   // Düşük loads the character textures at half size and touch tablets cap them at 1024 px (up to ~88 MB less video memory).
-  lowTextures = cfg.quality === 'low';
+  lowTextures = cfg.quality === 'low'; texTier = cfg.quality === 'ultra' ? 'ultra' : lowTextures ? 'low' : 'std';
   Promise.resolve().then(async () => {
     await Promise.all([
-      B.Models.prepare({ textureScale: lowTextures ? .5 : 1, maxTexture: coarsePointer ? 1024 : 2048 }),
+      B.Models.prepare({ textureScale: lowTextures ? .5 : 1, maxTexture: coarsePointer ? 1024 : cfg.quality === 'ultra' ? 4096 : 2048 }),
       B.TargetHUD.prepare(),
       B.GroundLoot.prepare(),
       B.SkillArt.prepare()

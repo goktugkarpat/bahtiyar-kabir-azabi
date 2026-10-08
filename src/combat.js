@@ -2670,7 +2670,7 @@
       hs.drinkTime = drinkLeft > 0 ? DRINK - drinkLeft : -1; hs.drinkDuration = DRINK;
       hs.hurt = player.hurt; hs.dead = player.dead; hs.phase = player.healing ? 'heal' : 'idle'; hs.face = player.face; hs.rage = player.rageTime > 0;
       hs.skillMove = atk && atk.skillMove || ''; hs.roarTier = player.roar ? ROAR.tier : 1; hs.skillTier = atk && atk.skill && atk.line === 'cleave' ? atk.tier : 0; hs.leapAir = LEAP_AIR;
-      if (cheerAge >= 0) { cheerAge += dt; if (cheerAge > 1.5) cheerAge = -1; } if (reachAge >= 0) { reachAge += dt; if (reachAge > .55) reachAge = -1; } if (wakeAge >= 0) { wakeAge += dt; if (wakeAge > 1.3) wakeAge = -1; }
+      if (cheerAge >= 0) { cheerAge += dt; if (cheerAge > 1.5) cheerAge = -1; } if (reachAge >= 0) { reachAge += dt; if (reachAge > .55) reachAge = -1; } if (wakeAge >= 0) { wakeAge += dt; if (wakeAge > 1.4) wakeAge = -1; }
       hs.cheerTime = cheerAge; hs.reachTime = reachAge; hs.wakeTime = wakeAge;
       hs.roarTime = player.roar ? player.roar.age : -1; hs.roarRelease = ROAR.release; hs.roarDuration = ROAR.duration; hs.roarSerial = player.roar ? player.roar.serial : 0;
       // Poses are only needed for a callback that is drawn (a 200 Hz screen under a 120 FPS cap, or a 120 Hz screen under 60, runs the

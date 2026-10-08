@@ -52,18 +52,19 @@
       }
       case 'talentHook': {
         // the hook leaves the hand: a rising whistle, links paying out one by one, then the head biting in exactly on the contact frame
-        const st = style === 'long' ? .17 : style === 'barb' ? .28 : .24, links = style === 'long' ? 18 : 12, span = st - .04;
-        whoosh(t, st * .95, style === 'long' ? 520 : 380, style === 'long' ? 3400 : 2600, style === 'long' ? .3 : .26, 1.6);
-        for (let i = 0; i < links; i++) metal(t + .03 + i * span / links + Math.random() * .008, (style === 'barb' ? 1300 : 1700) + Math.random() * 1100, .06, .13, [1, 1.47, 2.31]);
+        const st = style === 'long' ? .17 : style === 'barb' ? .28 : .24, fl = style === 'long' ? .08 : style === 'barb' ? .11 : .1, links = style === 'long' ? 9 : 7, t0 = st - fl;
+        for (let i = 0; i < 3; i++) metal(t + .02 + i * .035, 1500 + Math.random() * 700, .05, .08, [1, 1.47, 2.31]);   // the coil rattles in the fist during the wind-up
+        whoosh(t + t0, fl * 1.05, style === 'long' ? 900 : 700, style === 'long' ? 4200 : 3400, style === 'long' ? .3 : .26, 1.6);   // the short, sharp crack of the throw
+        for (let i = 0; i < links; i++) metal(t + t0 + i * fl / links + Math.random() * .004, (style === 'barb' ? 1500 : 2000) + Math.random() * 1300, .04, .11, [1, 1.47, 2.31]);
         thump(t + st, style === 'barb' ? 90 : 110, 46, .28, style === 'barb' ? .55 : .42); metal(t + st, style === 'barb' ? 300 : 380, .1, .5, [1, 1.58, 2.4]); crackle(t + st, .12, style === 'barb' ? 9 : 5, .12, 2200);
         if (style === 'barb') { const a = g(0), bp = f('bandpass', 700, 1.4, a); hiss(t + st, .18, bp); env(a, t + st, .16 * k, .004, .16); }   // barbs tearing into flesh
         break;
       }
       case 'talentHookHit':
         // the foe is dragged in: chain strain, a heavy scrape (longer for the barbed form) and a body-weight thud on the arrival
-        whoosh(t, style === 'long' ? .22 : .32, 2400, 500, .2, 1.1); crackle(t + .02, style === 'barb' ? .38 : .24, 9, .1, 1800);
-        { const a = g(0), bp = f('bandpass', 260, 2.2, a); hiss(t, .3, bp); env(a, t, .1 * k, .03, .3); }   // links grinding under load
-        thump(t + (style === 'long' ? .2 : style === 'barb' ? .36 : .28), 82, 36, .4, .55); break;
+        whoosh(t, style === 'long' ? .15 : .2, 2400, 500, .2, 1.1); crackle(t + .02, style === 'barb' ? .26 : .16, 9, .1, 1800);
+        { const a = g(0), bp = f('bandpass', 260, 2.2, a); hiss(t, .2, bp); env(a, t, .1 * k, .02, .2); }   // links grinding under load, the boots scraping
+        thump(t + (style === 'long' ? .17 : style === 'barb' ? .25 : .2), 82, 36, .4, .55); break;
       case 'talentHookLand':
         thump(t, 78, 34, .4, .5); { const a = g(0), lp = f('lowpass', 700, .8, a); hiss(t, .25, lp); env(a, t, .22 * k, .004, .22); } metal(t, 210, .07, .35, [1, 1.7, 2.7]); break;
       case 'talentStance':
