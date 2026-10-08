@@ -1,0 +1,52 @@
+/* Earned story ledger: the existing brass/stone chamber, one scrolling reading surface. */
+#journal .journal-tabs {position:absolute;top:23%;left:6.5%;right:6.5%;display:flex;gap:8px;align-items:center;z-index:2;}
+#journal .journal-tabs button {appearance:none;border:1px solid #8d744a;background:linear-gradient(#181613,#0d0d0c);color:#c9bea9;min-height:32px;padding:5px 22px;font:600 15px/1.2 Georgia,serif;box-shadow:inset 0 0 0 2px #0007;cursor:pointer;}
+#journal .journal-tabs button[aria-selected="true"] {color:#f0dfba;border-color:#c5a669;background:linear-gradient(#4b2228,#281419);box-shadow:inset 0 0 0 2px #0006,0 1px 0 #d5ae65;}
+#journal .journal-tabs button:disabled {opacity:.55;cursor:default;}
+#journal .journal-tabs button:focus-visible,#journal .story-chapter:focus-visible,#journal summary:focus-visible {outline:2px solid #f0d28e;outline-offset:3px;}
+#journal #journal-intro {top:16%;font-size:15px;line-height:1.45;max-height:none;}
+#journal #journal-content {top:30%;overflow-x:hidden;}
+#journal .journal-tasks {display:contents;}
+#journal .journal-tasks[hidden],#journal .journal-story[hidden] {display:none!important;}
+#journal .journal-tasks>.journal-quest {min-height:max-content;}
+#journal .journal-story {grid-column:1/-1;display:grid;grid-template-columns:190px minmax(0,1fr);gap:24px;align-items:start;min-width:0;}
+#journal .story-chapters {position:sticky;top:0;display:grid;gap:7px;min-width:0;align-self:start;}
+#journal .story-chapter {appearance:none;display:grid;grid-template-columns:24px minmax(0,1fr);gap:3px 8px;text-align:left;padding:11px 12px;border:1px solid #806b493f;background:#15130fed;color:#c5baa4;cursor:pointer;font:400 14px/1.3 Georgia,serif;}
+#journal .story-chapter>span {grid-row:1/3;color:#b49866;font-size:16px;align-self:center;}
+#journal .story-chapter strong {font-weight:600;overflow-wrap:anywhere;}
+#journal .story-chapter small {font-size:12px;color:#a59b88;}
+#journal .story-chapter[aria-pressed="true"] {border-color:#b29562;background:linear-gradient(100deg,#3f2026d9,#181512);color:#f0dfba;}
+#journal .story-main {min-width:0;border-left:1px solid #8c744640;padding:0 0 6px 24px;}
+#journal .story-heading {font:400 24px/1.25 Georgia,serif;color:#edddbe;margin:0 0 18px;letter-spacing:.025em;}
+#journal .story-section {padding:0 0 18px;margin:0 0 17px;border-bottom:1px solid #967c482e;}
+#journal .story-section:last-child {margin-bottom:0;border-bottom:0;}
+#journal .story-section h3 {font:600 15px/1.3 Georgia,serif;color:#c3a778;margin:0 0 8px;}
+#journal .story-section h4 {font:600 15px/1.4 Georgia,serif;color:#dcc8a6;margin:16px 0 5px;}
+#journal .story-section p {font:400 16px/1.7 Georgia,serif;color:#d4ccbc;margin:0 0 12px;max-width:72ch;}
+#journal .story-section p:last-child {margin-bottom:0;}
+#journal .story-purpose {border-left:2px solid #bc995e;padding:12px 16px;background:linear-gradient(90deg,#84653919,transparent);}
+#journal .story-purpose p {color:#f0dfbf;}
+#journal .story-section details {border-top:1px solid #a38a552c;padding:10px 0;}
+#journal .story-section summary {color:#dccbae;cursor:pointer;font:600 15px/1.4 Georgia,serif;padding:3px 0;}
+#journal .story-section details p {margin-top:10px;padding-left:17px;}
+#journal .story-ending {border-left:2px solid #99ad8d;padding-left:16px;}
+@media(max-height:850px) and (min-width:1000px) {
+ #journal #journal-intro {font-size:14px;line-height:1.4;}
+ #journal .journal-tabs button {min-height:29px;font-size:14px;padding:4px 20px;}
+ #journal .journal-story {grid-template-columns:174px minmax(0,1fr);gap:18px;}
+ #journal .story-main {padding-left:18px;}
+ #journal .story-heading {font-size:22px;margin-bottom:14px;}
+ #journal .story-section p {font-size:15px;line-height:1.65;}
+}
+@media(max-width:699px) {
+ #journal #journal-intro {top:16%;font-size:13px;line-height:1.35;}
+ #journal .journal-tabs {top:24%;gap:6px;}
+ #journal .journal-tabs button {font-size:14px;padding:4px 17px;}
+ #journal #journal-content {top:32%;}
+ #journal .journal-story {grid-template-columns:minmax(0,1fr);gap:16px;}
+ #journal .story-chapters {position:static;display:flex;gap:6px;flex-wrap:wrap;}
+ #journal .story-chapter {padding:7px 9px;grid-template-columns:18px minmax(0,1fr);font-size:13px;}
+ #journal .story-chapter small {display:none;}
+ #journal .story-main {border-left:0;padding-left:0;}
+ #journal .story-section p {font-size:15px;line-height:1.6;}
+}

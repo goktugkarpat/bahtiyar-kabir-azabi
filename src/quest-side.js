@@ -230,6 +230,8 @@
     function boons() { var p = prog(); return p && p.boons ? p.boons() : { points: 0, flasks: 0, hp: 0, damage: 0, claimed: [] }; }
     function say(key) { if (key && B.Audio && B.Audio.say) B.Audio.say(key); }
     function lineText(key) { var lines = KabirI18n.lang === 'en' ? B.NarrationEN : B.Narration; return lines && lines[key] ? lines[key].text : ''; }
+    function lineDuration(key) { var lines = KabirI18n.lang === 'en' ? B.NarrationEN : B.Narration; return lines && lines[key] && Number.isFinite(lines[key].duration) ? lines[key].duration : 0; }
+    var storyGateClock = 0;
     // Campaign leaning from every main-quest verdict so far: mercy (rest, break, free…) against judgment.
     function tally() {
       var v = boons().claimed.filter(function (k) { return k.indexOf(':verdict:') > 0; });
@@ -496,6 +498,7 @@
         s.bits |= 1 << n.page; refresh(); api.sound('sealOpen', { x: n.x, z: n.z });
         var count = 0; for (var i = 0; i < d.pages.length; i++) if (s.bits & (1 << i)) count++;
         var pg = d.pages[n.page];
+        grant('read:' + pg.site, {});   // Recorded page only; no XP, points, equipment or other reward.
         if (cinema()) cinema().reader({ title: pg.name, text: pg.text, note: count === d.pages.length ? d.story : count + ' / ' + d.pages.length + L(' sayfa bulundu.', ' pages found.') });
         if (count === d.pages.length) complete(q, d.story);
         else { if (api.onChange) api.onChange(); notify(q, pg.name + ' · ' + count + ' / ' + d.pages.length, false); }
@@ -588,19 +591,34 @@
         if (q.def.kind === 'rescue') updateFollower(q, dt);
         if (q.def.kind === 'rescue' && q.def.requiresMain != null && !s.stage && mainDone(q.def.requiresMain)) { s.stage = 1; q.actor.x = q.captive.x + .9; q.actor.z = q.captive.z + .6; dirty = true; }
       }
-      // Story beats: a recollection once the first calm minute passes, and the master's last words when it falls.
-      beatClock += dt;
+      // Captions and narration belong to visible play, not time spent in menus or reading a page.
+      var gm = B.app && B.app.game, storyUi = cinema();
+      var liveStory = gm && gm.state === 'playing' && B.app.view === 'playing' && (typeof document === 'undefined' || !document.hidden);
+      var storyBusy = storyUi && (storyUi.isReading || storyUi.isCaptionVisible);
+      if (liveStory && !(storyUi && storyUi.isReading)) beatClock += dt;
       var beats = STORY_BEATS[chapter];
-      if (beats && !(local.beats & 1) && beatClock > 40) { local.beats |= 1; say(beats.start); }
-      var gm = B.app && B.app.game;
-      if (!(local.beats & 4) && beatClock > 4.5 && gm && gm.state === 'playing' && !gm.checkpointIndex && (gm.elapsed || 0) < 20) {
-        local.beats |= 4; if (cinema()) cinema().letterbox({ eyebrow: L('Bölüm ', 'Chapter ') + ['I', 'II', 'III', 'IV', 'V'][chapter - 1] + (chapter === 5 ? ' · ' + info.title : ''), title: chapter === 5 ? L('Son Mahkeme', 'The Last Court') : info.title, text: info.introduction, seconds: chapter === 5 ? 13 : 11 });   // V: one name (ajan:chapter5); the quest arc is the subtitle
+      if (!(local.beats & 4) && beatClock > 2 && liveStory && !storyBusy && storyUi && !gm.checkpointIndex && (gm.elapsed || 0) < 20) {
+        var openingVoice = ['intro', 'coastIntro', 'ruinsIntro', 'forgeIntro', 'ch5Intro'][chapter - 1];
+        var chapterStory = B.StoryJournal && B.StoryJournal.chapter ? B.StoryJournal.chapter(chapter) : null;
+        local.beats |= 4;
+        storyUi.letterbox({ kind: 'chapter', eyebrow: L('Bölüm ', 'Chapter ') + ['I', 'II', 'III', 'IV', 'V'][chapter - 1], title: chapterStory ? chapterStory.title : info.title,
+          text: lineText(openingVoice) || info.introduction, voiceKey: openingVoice, audioSeconds: lineDuration(openingVoice) });
       }
-      if (!(local.beats & 8) && beatClock > 95 && chapter >= 2) { var tl = tally().lean; if (tl) { local.beats |= 8; say(tl === 'mercy' ? 'leanMercy' : 'leanWrath'); } }
+      if (beats && !(local.beats & 1) && beatClock > 40 && liveStory && !storyBusy && beatClock >= storyGateClock) {
+        storyGateClock = beatClock + .5;
+        var narration = B.Audio && B.Audio.debug ? B.Audio.debug() : null;
+        var calm = !(gm.enemies || []).some(function(e) { return !e.dead && Number.isFinite(e.x) && Math.hypot(e.x - player.x, e.z - player.z) < 13; });
+        var recollection = lineText(beats.start);
+        if (calm && recollection && (!narration || !narration.current && !(narration.queue || []).length)) {
+          local.beats |= 1; say(beats.start);
+          if (storyUi) storyUi.letterbox({ eyebrow: info.title, title: L('Hatıra', 'Recollection'), text: recollection, voiceKey: beats.start, audioSeconds: lineDuration(beats.start) });
+        }
+      }
+      if (!(local.beats & 8) && beatClock > 95 && chapter >= 2 && liveStory && !storyBusy) { var tl = tally().lean; if (tl) { local.beats |= 8; say(tl === 'mercy' ? 'leanMercy' : 'leanWrath'); } }
       var g = B.app && B.app.game, boss = g && (g.boss || (g.enemies || []).find(function (e) { return e.boss; }));
       if (boss && boss.dead && !bossSeen) {
         bossSeen = true;
-        if (beats && beats.boss && !(local.beats & 2)) { local.beats |= 2; say(beats.boss); if (cinema()) cinema().letterbox({ eyebrow: boss.name || '', title: L('Son söz', 'Last words'), text: lineText(beats.boss), seconds: 10 });
+        if (beats && beats.boss && !(local.beats & 2)) { local.beats |= 2; say(beats.boss); if (cinema()) cinema().letterbox({ eyebrow: boss.name || '', title: L('Son söz', 'Last words'), text: lineText(beats.boss), voiceKey: beats.boss, audioSeconds: lineDuration(beats.boss) });
           // The chapter card that follows quotes the master's last words.
           var lw = lineText(beats.boss), tries = 0;
           if (lw && typeof document !== 'undefined') (function stamp() {
@@ -623,6 +641,7 @@
     }
     function restore(saved) {
       local.flaskDebt = 0; local.finale = null; local.beats = 0; finaleOpen = false;
+      beatClock = 0; storyGateClock = 0; bossSeen = false;
             quests.forEach(function (q) { state[q.def.id] = { stage: 0, bits: 0, choice: null, done: false, discovered: true }; });
       if (saved && saved.v === 1 && saved.q) {
         local.flaskDebt = Math.max(0, Math.min(2, saved.flaskDebt | 0)); local.finale = typeof saved.finale === 'string' ? saved.finale : null; local.beats = saved.beats | 0;

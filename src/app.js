@@ -379,7 +379,7 @@
     document.body.dataset.view = next;
     if (next !== 'playing' && B.HUD && B.HUD.dismissTips) B.HUD.dismissTips();
     if (['victory', 'death', 'title'].includes(next) && B.QuestCinema && B.QuestCinema.hideReader) B.QuestCinema.hideReader();   // qa: a lore page left open sat on top of the end screens
-    paused = next !== 'playing';
+    paused = next !== 'playing' || !!B.QuestCinema?.isReading;
     clearInput();
     // Settings keep the sound running so volume changes can be heard; the pause menu itself is silent.
     if (next === 'playing' || next === 'settings') B.Audio.resume();
@@ -429,6 +429,7 @@
     setTimeout(() => d.remove(), kind.startsWith('rarity-') ? 6600 : 4200);
   }
   function clearNotices() {
+    B.QuestCinema?.clear?.();
     levelUpTimer = 0; pendingLevel = null; $('level-up').classList.remove('show'); if (B.LevelUp) B.LevelUp.cancel(); if (B.Charge && B.Charge.cancel) B.Charge.cancel();
     buffUI.clear(); chapterBuffUI.clear(); if (questUI) questUI.clear();
     targetUI.clear();
@@ -515,10 +516,10 @@
     else { introBlend = 1; cameraPos.set(game.player.x, 16, game.player.z + 13); look.set(game.player.x, .7, game.player.z); }
     if (!(finaleChapter && B.QuestCinema && B.QuestSide)) announce(chapterNames[chapter-1],KabirI18n.t('BÖLÜM ')+chapterNumbers[chapter-1],'chapter');   // V: the opening letterbox carries the chapter card
     // A carried profile enters a fresh chapter at zero; a resumed journey has already lived this opening.
-    if (B.Audio.say && !game.checkpointIndex && game.elapsed === 0 && game.kills === 0) B.Audio.say(finaleChapter ? 'ch5Intro' : forgeChapter ? 'forgeIntro' : ruinsChapter ? 'ruinsIntro' : coastChapter ? 'coastIntro' : 'intro');
+    if (B.Audio.say && !game.checkpointIndex && game.elapsed === 0 && game.kills === 0) B.Audio.say(finaleChapter ? 'ch5Intro' : forgeChapter ? 'forgeIntro' : ruinsChapter ? 'ruinsIntro' : coastChapter ? 'coastIntro' : 'intro', true);
   }
   const questVoices = { 'lost-names': 'questNames', 'blood-verdict': 'questVerdict', 'last-voice': 'questBell', 'root-memory': 'questMemory', 'kings-name': 'questKing', 'cave-breath': 'questEcho', 'last-prisoner': 'questPrisoner', 'heart-feeds': 'questHeart' };
-  // Level-up banner waits (max 8 s) until the chapter title, the story caption (cinema bars) or a boss card is gone, so the texts never overlap.
+  // Keep the earned reward queued while a story caption or a reader owns the text lane.
   let pendingLevel = null, pendingLevelWait = 0;
   function levelLaneBusy() {
     const b = document.body, vis = e => !!e && +getComputedStyle(e).opacity > .04 && getComputedStyle(e).visibility !== 'hidden';
@@ -529,9 +530,9 @@
     else { pendingLevel = Object.assign({}, d); pendingLevelWait = 0; }
   }
   function flushLevelUp(dt) {
-    if (!pendingLevel || view !== 'playing') return;
+    if (!pendingLevel || view !== 'playing' || B.QuestCinema?.isReading) return;
     pendingLevelWait += dt;
-    if (levelLaneBusy() && pendingLevelWait < 8) return;
+    if (levelLaneBusy()) return;
     const d = pendingLevel; pendingLevel = null;
     if (B.LevelUp) B.LevelUp.trigger(d, game.player);
     if (game.cheer) game.cheer();   // (ajan:hero3) the hero's fist-raise on level-up
@@ -698,8 +699,13 @@
   function advanceChapter(winKey) {
     if (advancing) return; advancing = true;
     clearInput(); B.HUD && B.HUD.dismissTips && B.HUD.dismissTips();
-    const fade = $('chapter-fade'), narr = B.Narration && B.Narration[winKey];
-    const hold = (Q.has('sessiz') ? 3.2 : Math.min(14, (narr && narr.duration) || 9) + 1) * 1000;
+    const fade = $('chapter-fade');
+    const lines = KabirI18n.lang === 'en' ? B.NarrationEN : B.Narration;
+    const narr = lines?.[winKey], truth = lines?.[B.StoryJournal?.chapter(chapter)?.voiceEnd];
+    const closing = [document.querySelector('#victory .end-quote').textContent, truth?.text || ''].join(' ');
+    const readSeconds = Math.max(18, Math.min(40, 4 + closing.trim().split(/\s+/).length / 2.5));
+    const voiceSeconds = Q.has('sessiz') ? 0 : (narr?.duration || 0) + (truth?.duration || 0) + 2;
+    const hold = Math.max(readSeconds, voiceSeconds) * 1000;
     fade.querySelector('.eyebrow').textContent = KabirI18n.t('Bölüm ') + chapterNumbers[chapter - 1] + KabirI18n.t(' tamamlandı');
     fade.querySelector('h2').textContent = $('victory-title-text').textContent;
     // Clone the nodes, not the flat text: the boss's last words are a styled block span (quest-side.js .qc-lastwords).
@@ -1041,9 +1047,9 @@
     window.addEventListener('resize', resize);
     watchPixelDensity();
     controller = B.Controller.create({
-      getView: () => view, getMenuRoot: () => $(view), notify,
-      onPause: () => { if (view === 'playing') show('pause'); else if (view === 'pause') show('playing'); else if (['settings', 'controls', 'keybinds', 'character', 'journal', 'atlas'].includes(view)) back(); },
-      onBack: () => { if (view === 'pause') show('playing'); else if (view !== 'title' && view !== 'death' && view !== 'victory') back(); },
+      getView: () => B.QuestCinema?.isReading ? 'reader' : view, getMenuRoot: () => B.QuestCinema?.isReading ? document.querySelector('.qc-reader') : $(view), notify,
+      onPause: () => { if (B.QuestCinema?.isReading) return B.QuestCinema.hideReader(); if (view === 'playing') show('pause'); else if (view === 'pause') show('playing'); else if (['settings', 'controls', 'keybinds', 'character', 'journal', 'atlas'].includes(view)) back(); },
+      onBack: () => { if (B.QuestCinema?.isReading) return B.QuestCinema.hideReader(); if (view === 'pause') show('playing'); else if (view !== 'title' && view !== 'death' && view !== 'victory') back(); },
       onCharacter: () => openCharacter(),
       onDisconnect: () => { clearInput(); if (view === 'playing') show('pause'); }
     });
@@ -1815,7 +1821,7 @@
   }
   // Gaps between presented frames (last ~600), so the counter can also show the longest frame: a few slow frames are
   // what the eye reads as stutter even when the FPS average looks fine.
-  const BUILD_TAG = 375, fpsGaps = new Float32Array(600);
+  const BUILD_TAG = 376, fpsGaps = new Float32Array(600);
   let fpsGapAt = 0, fpsGapLast = 0;
   function frameStats() {
     let longest = 0, slow = 0;
@@ -1869,7 +1875,7 @@
     // Controllers keep polling on every menu too, so reconnect, remapping and navigation never depend on combat.
     controllerState = controller ? controller.poll(dt) : null;
     if (B.LevelUp) B.LevelUp.step(dt);   // level-up screen layer: banner timeline, edge flash / colour fringe via Post.setAbilityFx (real time)
-    const playing = view === 'playing' && game.state === 'playing';
+    const playing = view === 'playing' && game.state === 'playing' && !B.QuestCinema?.isReading;
     if (playing) {
       if (heldLight || (!kbMode() && keyDown('light')) || controllerState?.lightHeld) { lightRepeat += dt; if (lightRepeat >= .12) { actions.light = true; if (heldLight) actions.near = true; lightRepeat = 0; } }
       const stopped = Math.min(dt, hitPause), simDt = (dt - stopped) * (B.LevelUp ? B.LevelUp.timeScale() : 1) * (B.Charge && B.Charge.timeScale ? B.Charge.timeScale() : 1) * (B.SkillFx ? B.SkillFx.timeScale() : 1) * (B.UILanes && B.UILanes.timeScale ? B.UILanes.timeScale() : 1); hitPause -= stopped;
@@ -1878,9 +1884,9 @@
       if (simDt > .000001) { const inp = pollInput(); if (view === 'playing') { game.update(simDt, inp); fxStep(simDt); footstepFeedback(); } }
       hudTimer += dt; if (hudTimer > .08) { hud(hudTimer); hudTimer = 0; }
     }
-    else if ((game.state === 'dead' || game.state === 'won') && view === 'playing') { game.update(dt, { ...input, x: 0, z: 0, light: false, heavy: false, clickLight: false, clickHeavy: false, holdLight: false, holdHeavy: false, target: null, dodge: false, heal: false, rage: false }); fxStep(dt); }
+    else if ((game.state === 'dead' || game.state === 'won') && view === 'playing' && !B.QuestCinema?.isReading) { game.update(dt, { ...input, x: 0, z: 0, light: false, heavy: false, clickLight: false, clickHeavy: false, holdLight: false, holdHeavy: false, target: null, dodge: false, heal: false, rage: false }); fxStep(dt); }
 
-    if (announceTimer > 0) { announceTimer -= dt; if (announceTimer <= 0) $('announcement').classList.remove('show'); }
+    if (announceTimer > 0 && view === 'playing' && !B.QuestCinema?.isReading) { announceTimer -= dt; if (announceTimer <= 0) $('announcement').classList.remove('show'); }
     flushLevelUp(dt);
     if (levelUpTimer > 0 && view === 'playing') { levelUpTimer -= dt; if (levelUpTimer <= 0) $('level-up').classList.remove('show'); }
     flash = Math.max(0, flash - dt * 1.7);
@@ -2280,6 +2286,11 @@
     game = B.Game.create(world, { scene, emit: event, sound: (n, o) => B.Audio.play(n, o), fx });
     characterUI = B.CharacterUI.create({ game, keyLabels: () => ['heavy', 'special', 'rage', 'fourth'].map(a => { const c = binds[a][0] || binds[a][1]; return c ? capName(c) : '—'; }), onPreview: (canvas,nowMs,preparing) => characterPreview.draw(canvas,nowMs,preparing), onPreviewTurn: direction => characterPreview.turn(direction), onClose: back, onChange: () => { game.syncProgression(); if (game.saveProfileChoices) game.saveProfileChoices(); hud(0); } });
     questUI = B.QuestUI.create({ game });
+    B.QuestCinema?.configure?.({
+      onCaptionOpen: o => { $('narration').dataset.storyDuplicate = String(!!o.text && $('narration').querySelector('p').textContent === o.text); if (o.kind === 'chapter') { announceTimer = 0; $('announcement').classList.remove('show'); } },
+      onReaderOpen: () => { clearInput(); paused = true; resetPerformance(); return true; },
+      onReaderClose: () => { clearInput(); paused = view !== 'playing'; resetPerformance(); }
+    });
     atlasUI = B.Atlas.create({ world, game, onClose: back, onJournal: () => { if (stack[stack.length - 1] === 'journal') stack.pop(); show('journal'); } }); document.body.append(atlasUI.element); if (atlasUI.attachMinimap) atlasUI.attachMinimap($('minimap'));
     makeFX(); postProcess(); characterPreview = B.CharacterPreview.create({ renderer, camera, game, post, worldScene: scene }); setupUI();
     titleCamera();
@@ -2291,7 +2302,7 @@
       const noticeLayout = new ResizeObserver(placeNotices);
       noticeLayout.observe($('narration')); noticeLayout.observe($('tutorial'));
     }
-    B.Audio.onCaption((text, speaker = KabirI18n.t('Anlatıcı')) => { const n = $('narration'); n.querySelector('.narration-text span').textContent = speaker; n.querySelector('p').textContent = text; n.classList.toggle('hidden', !text || !cfg.subtitles); if (text) { tap(n); $('tutorial').classList.add('hidden'); } else if (firstHint > 0 && view === 'playing' && !document.body.classList.contains('in-combat')) { $('tutorial').classList.remove('hidden'); } placeNotices(); });
+    B.Audio.onCaption((text, speaker = KabirI18n.t('Anlatıcı')) => { const n = $('narration'); n.querySelector('.narration-text span').textContent = speaker; n.querySelector('p').textContent = text; n.dataset.storyDuplicate = String(!!text && document.querySelector('.qc-bars.show .qc-text')?.textContent === text); n.classList.toggle('hidden', !text || !cfg.subtitles); if (text) { tap(n); $('tutorial').classList.add('hidden'); } else if (firstHint > 0 && view === 'playing' && !document.body.classList.contains('in-combat')) { $('tutorial').classList.remove('hidden'); } placeNotices(); });
     placeNotices();
     // The embedded UI fonts are also offered to canvas text (damage numbers, labels) once decoded.
     if (document.fonts && document.fonts.load) safe(() => { document.fonts.load('800 40px "Source Sans 3"'); });

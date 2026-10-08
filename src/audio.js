@@ -1755,6 +1755,8 @@
       // duraklaması oyun sayacıyla ses saatini ayırsa da kaydı erken kesme.
       if (!voiceNode && current.left <= 0) finishVoice();
     }
+    // Finish the current sentence, but keep queued narration for after the player folds the page.
+    if (B.QuestCinema && B.QuestCinema.isReading) return;
     const settings = !!(B.app && B.app.view === 'settings');
     // Volume preview keeps audio running, but a waiting story beat belongs to the journey.
     for (const q of queue) if (!settings || q.force || URGENT.has(q.key)) q.age += dt;

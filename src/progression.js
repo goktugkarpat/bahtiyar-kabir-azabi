@@ -2,18 +2,21 @@
 (function () {
   'use strict';
   const B = window.BABA = window.BABA || {};
-  const MAX_LEVEL = 13, VERSION = 2, ECONOMY_VERSION = 1, SKILL_TREE = 4;   // SKILL_TREE 4: slim build tree (src/talent-tree.js, 29 nodes); saves of trees 1-2 get every point refunded in restore(), tree 3 maps Kor Mührü / Ölüm Çanı to the new actives and refunds removed nodes
+  const MAX_LEVEL = 13, VERSION = 2, ECONOMY_VERSION = 1, XP_CURVE_VERSION = 2, SKILL_TREE = 4;   // SKILL_TREE 4: slim build tree (src/talent-tree.js, 29 nodes); saves of trees 1-2 get every point refunded in restore(), tree 3 maps Kor Mührü / Ölüm Çanı to the new actives and refunds removed nodes
   const POINTS = Object.freeze([0, 1, 2, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8]);
   const PREVIOUS_THRESHOLDS = Object.freeze([0, 60, 160, 550, 1200, 2100, 3200, 4600, 6000, 7600, 11000, 13000, 15000]);
+  const PREVIOUS_CURVE_THRESHOLDS = Object.freeze([0, 60, 350, 1600, 3500, 6000, 9000, 12000, 15500, 18500, 22000, 26000, 30000]);
   const QUEST_POINTS = 5;
   const LEGACY_THRESHOLDS = Object.freeze([0, 40, 100, 350, 850, 1450, 2000]);
   // Complete authored routes earn about 1.9k / 6.6k / 12.4k / 20.3k / 30.8k cumulative XP.
   // Full clears reach levels 4 / 6 / 8 / 10 / 13; rushed routes keep only modest chapter safety floors.
-  // Three opening prisoners award 60 XP: the first seal clear grants level 2 and its first active skill point.
+  // Three opening prisoners award 60 XP: level 2 and the first skill point.
+  // Four more courtyard foes reach 140 XP regardless of kill order: level 3 and a second skill point.
+  // Level 4 onward retains the measured late-game curve; early gains do not add points to the final budget.
   // Final chapter skills arrive before the forge boss on a mostly-cleared route.
   // Active skill slots: right mouse, key 1, key 2, key 3 (round 7; saves with a 3-entry loadout load with the 4th slot empty / auto-filled).
   const SLOT_COUNT = 4;
-  const THRESHOLDS = Object.freeze([0, 60, 350, 1600, 3500, 6000, 9000, 12000, 15500, 18500, 22000, 26000, 30000]);
+  const THRESHOLDS = Object.freeze([0, 60, 140, 1600, 3500, 6000, 9000, 12000, 15500, 18500, 22000, 26000, 30000]);
   const FINAL_CHAPTER = B.FINAL_CHAPTER = 5;   // chapter V (Son Mahkeme) ends the journey
   const MILESTONES = Object.freeze([3, 5, 7, 9, 11]);
   const chapterId = n => Number.isInteger(n) && n >= 1 && n <= FINAL_CHAPTER ? n : 1;
@@ -363,7 +366,7 @@
       changed(); return state;
     }
     function snapshot() {
-      return { version: VERSION, economyVersion: ECONOMY_VERSION, pointCredit, level: state.level, xp: state.xp, points: state.points,
+      return { version: VERSION, economyVersion: ECONOMY_VERSION, xpCurveVersion: XP_CURVE_VERSION, pointCredit, level: state.level, xp: state.xp, points: state.points,
         learned: state.learned.slice(), loadout: state.loadout.slice(), inventory: state.inventory.map(i => ({ uid: i.uid, id: i.id, roll: i.roll || 0 })),
         equipment: Object.assign({}, state.equipment), chapter: state.chapter, completed: state.completed.slice(),
         rewards: Object.keys(rewards), serial, boons: { points: boons.points, flasks: boons.flasks, hp: boons.hp, damage: boons.damage, claimed: boons.claimed.slice() }, lootSeed, lootDry, lootSeen: lootSeen.slice(-40), lootIdentities:Array.from(lootIdentities), lootSlots:lootSlots.slice(-6), signatureClaims:Object.assign({},signatureClaims),
@@ -380,13 +383,15 @@
       signatureClaims=Object.create(null);if(profile.signatureClaims&&typeof profile.signatureClaims==='object')for(const key of Object.keys(profile.signatureClaims)){const id=profile.signatureClaims[key];if(/^[1-5]:/.test(key)&&key.length<240&&signatureIds.has(id))signatureClaims[key]=id;}
       let restoredXp = int(profile.xp, 0);
       const legacyEconomy = profile.economyVersion !== ECONOMY_VERSION;
-      if (legacyEconomy) {
-        // Map earned XP, never a claimed level/point count. New snapshots skip this exactly once.
-        const old = profile.version === 1 ? LEGACY_THRESHOLDS : PREVIOUS_THRESHOLDS;
+      if (legacyEconomy || profile.xpCurveVersion !== XP_CURVE_VERSION) {
+        // Preserve the earned level and progress within it; early-curve changes do not grant extra save points.
+        // Older economies map directly once. Economy 1 uses its prior curve without changing point-credit rules.
+        const old = legacyEconomy ? (profile.version === 1 ? LEGACY_THRESHOLDS : PREVIOUS_THRESHOLDS) : PREVIOUS_CURVE_THRESHOLDS;
         let tier = 0;
         for (let n = 1; n < old.length; n++) if (restoredXp >= old[n]) tier = n;
         const fraction = tier < old.length - 1 ? Math.min(1, (restoredXp - old[tier]) / (old[tier + 1] - old[tier])) : 0;
-        restoredXp = Math.floor(THRESHOLDS[tier] + fraction * (tier < MAX_LEVEL - 1 ? THRESHOLDS[tier + 1] - THRESHOLDS[tier] : 0));
+        if (old[tier] !== THRESHOLDS[tier] || (tier < old.length - 1 && old[tier + 1] !== THRESHOLDS[tier + 1]))
+          restoredXp = Math.floor(THRESHOLDS[tier] + fraction * (tier < MAX_LEVEL - 1 ? THRESHOLDS[tier + 1] - THRESHOLDS[tier] : 0));
       }
       boons = cleanBoons(profile.boons); pointCredit = 0;
       state.xp = Math.min(THRESHOLDS[MAX_LEVEL - 1], restoredXp); recalculate();
@@ -662,5 +667,5 @@
     reset(); state.chapter = chapterId(options.chapter); if (options.profile) restore(options.profile);
     return state;
   }
-  B.Progression = Object.freeze({ create, skills, lines: LINES, skillsByLine, skillFacts, skillAccess, SKILL_TREE, items, catalog, bossSignatures, qualities, resolveItem, slots, MAX_LEVEL, VERSION, ECONOMY_VERSION, QUEST_POINTS, thresholds: THRESHOLDS, earnedPoints: POINTS, milestones: MILESTONES, FINAL_CHAPTER });
+  B.Progression = Object.freeze({ create, skills, lines: LINES, skillsByLine, skillFacts, skillAccess, SKILL_TREE, items, catalog, bossSignatures, qualities, resolveItem, slots, MAX_LEVEL, VERSION, ECONOMY_VERSION, XP_CURVE_VERSION, QUEST_POINTS, thresholds: THRESHOLDS, earnedPoints: POINTS, milestones: MILESTONES, FINAL_CHAPTER });
 }());

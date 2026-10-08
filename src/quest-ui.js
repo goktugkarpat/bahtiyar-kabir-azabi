@@ -100,6 +100,78 @@
     const bottom = tracker.parentElement && tracker.parentElement.querySelector('.quest-bottom');
     if (bottom) bottom.prepend(compass); else tracker.after(compass);
     const arrow = compass.querySelector('svg'), compassName = compass.querySelector('span'), compassDist = compass.querySelector('b');
+    // Campaign recap uses only earned quest/profile markers. It never changes the quest state.
+    const tabs = document.createElement('div'); tabs.className = 'journal-tabs'; tabs.setAttribute('role', 'tablist'); tabs.setAttribute('aria-label', L('Günlük bölümleri', 'Journal sections'));
+    const questTab = document.createElement('button'), storyTab = document.createElement('button');
+    for (const [button, id, label] of [[questTab, 'quests', L('Görevler', 'Quests')], [storyTab, 'story', L('Hikâye', 'Story')]]) {
+      button.type = 'button'; button.id = 'journal-tab-' + id; button.setAttribute('role', 'tab'); button.setAttribute('aria-controls', 'journal-' + id + '-body'); button.textContent = label; tabs.append(button);
+    }
+    journal.before(tabs);
+    const questBody = document.createElement('div'); questBody.id = 'journal-quests-body'; questBody.className = 'journal-tasks'; questBody.setAttribute('role', 'tabpanel'); questBody.setAttribute('aria-labelledby', questTab.id);
+    while (journal.firstChild) questBody.append(journal.firstChild); journal.append(questBody);
+    const storyBody = document.createElement('section'); storyBody.id = 'journal-story-body'; storyBody.className = 'journal-story'; storyBody.setAttribute('role', 'tabpanel'); storyBody.setAttribute('aria-labelledby', storyTab.id); storyBody.hidden = true;
+    const storyNav = document.createElement('nav'); storyNav.className = 'story-chapters'; storyNav.setAttribute('aria-label', L('Yaşanan bölümler', 'Chapters experienced'));
+    const storyMain = document.createElement('div'); storyMain.className = 'story-main'; storyBody.append(storyNav, storyMain); journal.append(storyBody);
+    let journalTab = 'quests', storyChapter = q.chapter, storyKey = '', storyGoal = '';
+    const paragraph = text => { const p = document.createElement('p'); p.textContent = text; return p; };
+    function storySection(title, texts, cls = '') {
+      const section = document.createElement('section'); section.className = 'story-section ' + cls;
+      const h = document.createElement('h3'); h.textContent = title; section.append(h);
+      texts.filter(Boolean).forEach(text => section.append(paragraph(text))); storyMain.append(section); return section;
+    }
+    function renderStory(force = false) {
+      if (!B.StoryJournal) { storyTab.hidden = true; return; }
+      const p = game.progression, key = (p ? p.revision : 0) + '|' + q.revision + '|' + storyChapter + '|' + KabirI18n.lang;
+      if (!force && key === storyKey) return; storyKey = key;
+      const entries = B.StoryJournal.entries(game);
+      if (!entries.some(e => e.chapter === storyChapter)) storyChapter = q.chapter;
+      const entry = entries.find(e => e.chapter === storyChapter) || entries[entries.length - 1];
+      storyNav.textContent = ''; storyMain.textContent = ''; if (!entry) return;
+      entries.forEach(e => {
+        const button = document.createElement('button'); button.type = 'button'; button.className = 'story-chapter'; button.dataset.chapter = e.chapter;
+        const number = document.createElement('span'), name = document.createElement('strong'), state = document.createElement('small');
+        number.textContent = ['I', 'II', 'III', 'IV', 'V'][e.chapter - 1]; name.textContent = e.title; state.textContent = e.completed ? L('Geride kalan', 'Completed') : L('Şimdi', 'Current');
+        button.append(number, name, state); button.setAttribute('aria-pressed', String(e.chapter === storyChapter));
+        button.onclick = () => { storyChapter = e.chapter; renderStory(true); journal.scrollTop = 0; storyNav.querySelector('[data-chapter="' + e.chapter + '"]').focus({ preventScroll: true }); };
+        storyNav.append(button);
+      });
+      const heading = document.createElement('h2'); heading.className = 'story-heading'; heading.textContent = ['I', 'II', 'III', 'IV', 'V'][entry.chapter - 1] + ' · ' + entry.title; storyMain.append(heading);
+      storySection(L('Neden buradasın?', 'Why you are here'), [entry.opening]);
+      storySection(entry.current && !entry.completed ? L('Amacın', 'Your purpose') : L('Bu bölümdeki amacın', 'Your purpose in this chapter'), [entry.goal], 'story-purpose');
+      if (entry.narration && entry.narration.length) {
+        const section = document.createElement('section'); section.className = 'story-section story-transcripts';
+        const detail = document.createElement('details'), summary = document.createElement('summary'); summary.textContent = L('Bölüm anlatısı', 'Chapter narration'); detail.append(summary);
+        entry.narration.forEach(line => { const h = document.createElement('h4'); h.textContent = line.title; detail.append(h, paragraph(line.text)); });
+        section.append(detail); storyMain.append(section);
+      }
+      if (entry.closing) storySection(L('Ne öğrendin?', 'What you learned'), [entry.closing]);
+      if (entry.learnedPages) storySection(L('Sayfaların açığa çıkardığı', 'What the pages revealed'), [entry.learnedPages]);
+      if (entry.discoveries.length) storySection(L('Bulduğun izler', 'Clues you found'), entry.discoveries.map(e => e.text));
+      if (entry.decisions.length) {
+        const section = storySection(L('Verdiğin hükümler', 'Your verdicts'), []);
+        entry.decisions.forEach(e => { const h = document.createElement('h4'); h.textContent = e.title; section.append(h, paragraph(e.text)); });
+      }
+      const pages = storySection(L('Okuduğun sayfalar', 'Pages you have read'), []);
+      if (!entry.pages.length) pages.append(paragraph(L('Bu bölümden henüz bir sayfa okumadın. Bulduğun sayfalar burada kalır.', 'You have not read a page from this chapter yet. Pages you find remain here.')));
+      entry.pages.forEach(pg => {
+        const detail = document.createElement('details'), summary = document.createElement('summary'); summary.textContent = pg.title; detail.append(summary, paragraph(pg.text)); pages.append(detail);
+      });
+      if (entry.ending) storySection(entry.ending.title, [entry.ending.text], 'story-ending');
+    }
+    function setJournalTab(tab, focus = false) {
+      if (tab === 'story' && (!B.StoryJournal || q.pendingChoice)) tab = 'quests';
+      journalTab = tab; questBody.hidden = tab !== 'quests'; storyBody.hidden = tab !== 'story';
+      questTab.setAttribute('aria-selected', String(tab === 'quests')); storyTab.setAttribute('aria-selected', String(tab === 'story'));
+      questTab.tabIndex = tab === 'quests' ? 0 : -1; storyTab.tabIndex = tab === 'story' ? 0 : -1;
+      journal.setAttribute('aria-label', tab === 'story' ? L('Hikâye özeti', 'Story recap') : L('Görev adımları', 'Quest steps'));
+      journal.scrollTop = 0; if (tab === 'story') renderStory();
+      if (focus) (tab === 'story' ? storyTab : questTab).focus({ preventScroll: true });
+    }
+    questTab.onclick = () => setJournalTab('quests'); storyTab.onclick = () => setJournalTab('story');
+    tabs.addEventListener('keydown', e => {
+      if (['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) { e.preventDefault(); setJournalTab(e.key === 'Home' ? 'quests' : e.key === 'End' ? 'story' : journalTab === 'quests' ? 'story' : 'quests', true); }
+    });
+    setJournalTab('quests');
     function target() {
       const p = game.player; let best = null, bestScore = Infinity;
       const consider = (m, weight) => { if (!m || !m.active || m.complete || !Number.isFinite(m.x)) return; const d = Math.hypot(m.x - p.x, m.z - p.z) * weight; if (d < bestScore) { bestScore = d; best = m; } };
@@ -129,6 +201,13 @@
     function update(dt = 0) {
       if (noticeLeft > 0 && dt > 0) { noticeLeft -= dt; if (noticeLeft <= 0) { notice.classList.remove('show'); showing = false; } }
       updateCompass(); updateHead();
+      storyTab.disabled = !!q.pendingChoice;
+      if (q.pendingChoice && journalTab !== 'quests') setJournalTab('quests');
+      if (B.StoryJournal) {
+        const goal = B.StoryJournal.currentGoal(game);
+        if (goal !== storyGoal) { storyGoal = goal; $('journal-intro').textContent = goal; }
+        if (opened && journalTab === 'story') renderStory();
+      }
       if (revision === q.revision) return;
       revision = q.revision;
       for (let i = 0; i < 2; i++) {
@@ -213,13 +292,17 @@
         e.preventDefault(); journal.scrollTop = next;
       }
     }
+    function focusPending() {
+      const pendingCard = (finale.classList.contains('awaiting-choice') && !finale.hidden ? finale : null) || cards.map(c => c.card).concat(sideCards.map(c => c.card)).find(card => card.classList.contains('awaiting-choice') && !card.hidden);
+      if (!pendingCard) return false;
+      pendingCard.scrollIntoView({ block: 'nearest' }); const b = pendingCard.querySelector('.journal-options button:not([disabled])'); if (b) b.focus({ preventScroll: true }); return true;
+    }
     function open() {
-      update(); if (opened) return;
+      if (q.pendingChoice) setJournalTab('quests');
+      update(); if (opened) { if (q.pendingChoice) focusPending(); return; }
       opened = true; previousFocus = document.activeElement;
       window.addEventListener('keydown', keydown, true);
-      const pendingCard = (finale.classList.contains('awaiting-choice') && !finale.hidden ? finale : null) || cards.map(c => c.card).concat(sideCards.map(c => c.card)).find(card => card.classList.contains('awaiting-choice') && !card.hidden);
-      if (pendingCard) { pendingCard.scrollIntoView({ block: 'nearest' }); const b = pendingCard.querySelector('.journal-options button:not([disabled])'); if (b) b.focus({ preventScroll: true }); }
-      else $('journal-close').focus({ preventScroll: true });
+      if (!focusPending()) $('journal-close').focus({ preventScroll: true });
     }
     function close(restore = true) {
       if (!opened) return;
@@ -236,7 +319,7 @@
       el.querySelector('p').textContent = definition.quests[0].steps[0].story;
     }
     update();
-    return { update, event, clear, warm, open, close, get showing() { return showing; } };
+    return { update, event, clear, warm, open, close, get showing() { return showing; }, get activeTab() { return journalTab; } };
   }
   B.QuestUI = { create };
 })();
