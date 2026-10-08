@@ -944,6 +944,14 @@
         var slide = (blown ? 1.2 : boss ? .25 : .42) * easeOut(deathTime / (blown ? .45 : .5)) / characterScale;
         wanted.p.z -= slide; yawPose(wanted, deathYaw);
       }
+      // Waking at the start of a chapter / after a fall: the hero pushes himself up off the ground (the death clip played backwards, eased out into the idle).
+      var wakeT = hero ? finite(state.wakeTime, -1) : -1;
+      if (wakeT >= 0 && !acting && !dodge && !state.dead && !stagger) {
+        var wu = clamp(wakeT / 1.3, 0, 1), we = Math.pow(wu, 1.45), wb = 1 - smooth((wu - .62) / .38);
+        sample('death', clip('death').duration * (1 - we), extra, false); blendPose(wanted, extra, wb);
+        wanted.p.z -= .42 * (1 - we) * wb / Math.max(.4, characterScale);
+        nextMode = 'wake'; fade = wakeT < .1 ? .001 : .06;
+      }
       // Gestures laid over the idle / walk pose (hero only, never while striking, rolling, staggering or dying).
       if (hero && !acting && !dodge && !stagger && !state.dead && !strikePhase) {
         var cheerT = finite(state.cheerTime, -1), reachT = finite(state.reachTime, -1);
