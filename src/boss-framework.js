@@ -426,6 +426,7 @@
         api.sound('bossPhase'); api.sound('bossLayer', { kind: p.sound, size: 'intro' }); camFocus = 2.4;
         api.emit('impact', { x: e.x, z: e.z, strength: .8, radius: 12 });
         api.fx('glowBurst', { x: e.x, y: .05, z: e.z, radius: 5.5, color: p.color || 0xb8452d, duration: 1.4 });
+        api.fx('bossDome', { x: e.x, z: e.z, radius: 7, color: p.color || 0xb8452d, height: 2, life: .8 });   // ajan:boss3 wake-up shock
       }
       if (!e.active) { aura.visible = false; return; }
       body(e, p, dt); notches(e, p, dt);
@@ -435,7 +436,8 @@
         st.phaseKey = key;
         if (B.Models && B.Models.phaseVisual) try { B.Models.phaseVisual(e, e.phase, e.enraged); } catch (err) { }   // (ajan:models) phase parts / hotter glow (enemy-dread.js)
         if (label) showCard(e.enraged ? tr('ÖFKE') : ['', 'I', 'II', 'III', 'IV', 'V'][e.phase] + ' · ' + tr('EVRE'), label, p.title || e.name, 3.2, 2.2, true, p.color);
-        api.fx('glowBurst', { x: e.x, y: .05, z: e.z, radius: 7, color: p.color || 0xb8452d, duration: 1.1 });
+        api.fx('glowBurst', { x: e.x, y: .05, z: e.z, radius: 7, color: p.color || 0xb8452d, duration: 1.1, peak: .24 });
+        api.fx('bossDome', { x: e.x, z: e.z, radius: 9, color: p.color || 0xb8452d, height: 2.6, life: .85 });   // ajan:boss3 floor shock wall at the phase break
         if (api.slowMotion) api.slowMotion(.3);
         api.emit('impact', { x: e.x, z: e.z, strength: 1, radius: 9 });
         st.sigAt = Math.min(st.sigAt, time + 6); st.sig2At = Math.min(st.sig2At, time + 14);
@@ -467,6 +469,8 @@
       st.slain = true; showCard(tr('YENİLDİ'), p.title || e.name, p.epithet || '', 30, 30, true, p.color, true);
       if (api.slowMotion) api.slowMotion(.5);
       api.fx('glowBurst', { x: e.x, y: .05, z: e.z, radius: 8, color: p.color || 0xb8452d, duration: 1.6 });
+      api.fx('bossDome', { x: e.x, z: e.z, radius: 6, color: p.color || 0xb8452d, height: 3, life: .8 });   // ajan:boss3 the fall: a first wall, then a wider slow one
+      api.fx('bossDome', { x: e.x, z: e.z, radius: 13, color: 0xffe3b0, height: 2.2, life: 1.5, delay: .45 });
       setTimeout(function () { if (cine) { cine.barsT = 0; cine.el.classList.remove('on'); } }, 2600);
       setTimeout(hideOverlay, 3600);
     }

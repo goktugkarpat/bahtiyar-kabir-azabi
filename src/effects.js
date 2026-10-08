@@ -585,7 +585,25 @@
     }
     // Enemy blows land: matter, not rings. Sparks along a blade's arc, dust kicked by blunt weight, motes rising
     // from a burnt rune, chips and a glowing crack from a quake, a green splash of bile.
+    // ajan:boss3 — the landing of a boss blow: one pooled shock wall (fx-impact dome) coloured by the move's element, so a boss hit
+    // reads as weight on the floor, not just dust. Throttled (a checkerboard / ring volley fires many cells in one frame) and size-gated.
+    const BOSS_BLOW = { ember: [[1.7, .55, .12], [2, 1.3, .7]], quake: [[1.3, .5, .2], [1.9, 1.4, .9]], rune: [[1.5, .3, .22], [2, 1.2, .9]], tide: [[.15, .7, .75], [.9, 1.8, 1.8]],
+      chain: [[1.1, .8, .45], [2, 1.8, 1.4]], blade: [[1.1, .75, .5], [2, 1.7, 1.3]], blunt: [[1.2, .6, .3], [1.9, 1.4, .9]], fall: [[1.1, .5, .3], [1.8, 1.3, .9]],
+      shadow: [[.5, .2, .9], [1.3, .9, 1.8]], root: [[.4, .8, .2], [1.2, 1.6, .8]], bile: [[.4, .9, .15], [1.3, 1.8, .8]], thrust: [[1.1, .8, .5], [2, 1.7, 1.3]] };
+    let bossBlowAt = -9, bossBlowClock = 0;
+    function bossBlow(d) {
+      if (!impactFx || !d.boss || !d.heavy) return;
+      const R = d.radius || 2; if (d.shape !== 'line' && R < 2.2) return;
+      if (bossBlowClock - bossBlowAt < .09) return; bossBlowAt = bossBlowClock;
+      const c = BOSS_BLOW[d.style] || BOSS_BLOW.blunt, f = d.face || 0;
+      const x = d.shape === 'line' ? d.x + Math.sin(f) * d.length * .85 : d.shape === 'cone' ? d.ix : d.x, z = d.shape === 'line' ? d.z + Math.cos(f) * d.length * .85 : d.shape === 'cone' ? d.iz : d.z;
+      const r = d.shape === 'line' ? Math.max(1.8, (d.width || 2) * 1.1) : Math.min(R, 9) * .95;
+      impactFx.dome(x, z, { r: r, h: d.unblockable ? 1.9 : 1.3, life: d.unblockable ? .6 : .42, col: c[0], hot: c[1], a: d.unblockable ? .6 : .46, style: 0 });
+      if (tells && d.shape !== 'line') tells.wave(x, z, { radius: Math.min(R, 9) + .6, life: .5, width: .16, color: [c[0][0] * .55, c[0][1] * .55, c[0][2] * .55], crack: d.scar ? 0 : .4, crackR: Math.min(R, 6) * .8, crackLife: 1.1, soft: .2 });
+    }
+    // /ajan:boss3
     function strike(d) {
+      bossBlow(d);
       const x = d.x, z = d.z, f = d.face || 0, style = d.style || 'blade', unb = !!d.unblockable, big = !!d.heavy || !!d.boss;
       const sp = unb ? [3.0, .55, .3] : SPARK, n = k => scaleCount(k * (big ? 1.4 : 1));
       const polar = (a, r) => ({ x: x + Math.sin(f + a) * r, z: z + Math.cos(f + a) * r });
@@ -1226,7 +1244,11 @@
       }
       if (name === 'slash') return; // the smear follows the actual blade
       if (name === 'strike') { strike(Object.assign({ x, z }, d)); return; }
-      if (name === 'glowBurst') { if (tells) tells.glowBurst(x, z, { radius: d.radius || 1.5, life: d.duration || .5, color: linear(d.color == null ? '#f0d293' : d.color, 1.6), peak: .5 }); return; }
+      if (name === 'bossDome') {   // ajan:boss3 — phase change / fall: a wide shock wall + ground wave tinted by the boss colour
+        if (impactFx) { const c = linear(d.color == null ? '#f0d293' : d.color, 1.6), r = d.radius || 8; impactFx.dome(x, z, { r: r, h: d.height || 2.4, life: d.life || .9, col: c, hot: [Math.min(1.5, c[0] * 1.1 + .25), Math.min(1.2, c[1] * 1.1 + .2), Math.min(1, c[2] * 1.1 + .18)], a: d.a == null ? .26 : d.a, style: 0, delay: d.delay || 0 }); if (tells) tells.wave(x, z, { radius: r + 1.5, life: .9, width: .3, color: c.map(v => v * .6), crack: .5, crackR: r * .5, crackLife: 1.6, soft: .3, delay: d.delay || 0 }); }
+        return;
+      }
+      if (name === 'glowBurst') { if (tells) tells.glowBurst(x, z, { radius: d.radius || 1.5, life: d.duration || .5, color: linear(d.color == null ? '#f0d293' : d.color, d.peak ? 1.3 : 1.6), peak: d.peak || .5 }); return; }
       if (name === 'strikeGather' || name === 'strikeImpact' || name === 'shoutGather' || name === 'shoutRelease' || name === 'shoutWave') { if (skillFx) skillFx.event(name, Object.assign({ x, z }, d)); return; }
       if (name === 'skillFxDemo') { if (skillFx) skillFx.demo(Object.assign({ x, z }, d)); return; }   // warm-up only
       if (name === 'warCryGather') { warCryGather({ x, z, life: d.life }); return; }
@@ -1340,6 +1362,7 @@
     // ------------------------------------------------------------ per frame
     let ghostClock = 0, wasIframe = false;
     function update(dt) {
+      bossBlowClock += dt;   // ajan:boss3
       const game = getGame(), cfg = getSettings(), frozen = !!(game && game.hitStop > 0);
       if (gear && game && game.player && game.player.model !== gear.model) { gear = null; gearApply(); }   // new hero model after a restart
       const canvas = B.app && B.app.renderer ? B.app.renderer.domElement : document.getElementById('game');
