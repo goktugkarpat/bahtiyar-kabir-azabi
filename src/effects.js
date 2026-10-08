@@ -1268,6 +1268,12 @@
         for (let i = 0; i < scaleCount(64); i++) particle(x, y, z, 1, i % 3 ? SPARK : STEEL, 1.35, f + rnd(-1.3, 1.3), .7);
         return;
       }
+      if (name === 'land') {   // a dying body hits the floor: a low ring of dust and a few grit specks (cheap: ~12-26 soft particles)
+        const nn = scaleCount(d.big ? 26 : d.blown ? 18 : 12), v = d.big ? 1.1 : d.blown ? .9 : .6;
+        for (let i = 0; i < nn; i++) { const a = i / nn * Math.PI * 2 + Math.random() * .4; particle(x + Math.sin(a) * .35, .06, z + Math.cos(a) * .35, 2, DUST, v, a, .12, 1.1 + Math.random() * 1.4 * v); }
+        for (let i = 0; i < (d.big ? 6 : 3); i++) particle(x, .1, z, 1, STEEL, .5, Math.random() * Math.PI * 2, .5);
+        return;
+      }
       const red = /blood|death/.test(name), spark = /spark|block/.test(name), poison = name === 'poison', large = d.heavy || d.boss || name === 'bossPhase';
       if (spark) {
         flash(x, y, z, d.glance ? .6 : d.block ? 1.25 : .95, new T.Color(d.glance ? '#dfe6ee' : d.block ? '#ffe3b8' : '#ffd29a'), .08);
