@@ -36,7 +36,7 @@
   const HEAD = 32;
   const SIZE = { active: 62, form: 44, mod: 44, passive: 46, key: 56 };
   const FORK = 37;   // half distance between the two forms of a line
-  const PLQ_TOP = SIZE.passive / 2 + 18, PLQ_BOT = SIZE.passive / 2 + 10;   // build plaque around row III: label strip above, badge room below
+  const PLQ_TOP = SIZE.passive / 2 + 26, PLQ_BOT = SIZE.passive / 2 + 18;   // build plaque around row III: label strip above, badge room below
   const CROWN = .98, KEY_R = SIZE.key * CROWN * Math.SQRT1_2;   // keystone diamond: side = key * CROWN, half height = KEY_R
   const KIND = { active: t('Aktif yetenek'), form: t('Biçim'), mod: t('Güçlendirme'), passive: t('Yapı'), key: t('Kilit taşı') };
   const ARCH_COL = { bleed: '#c8473f', rage: '#d9884b', guard: '#a9a4c4', charge: '#c9a45a' };
