@@ -166,6 +166,7 @@
     var inverse = new T.Matrix4(), rootNow = new T.Vector3(), rootBefore = new T.Vector3(), velocity = new T.Vector3(), localVelocity = new T.Vector3();
     var wanted = pose(), extra = pose(), output = pose(), transition = pose(), locomotion = pose(), mirrored = pose(), roarBuf = pose();
     var clock = 0, gait = 0, moveWeight = 0, speed = 0, mode = '', modeAge = 0, previousAttack = 0, comboMemory = -1, legacySerial = 0;
+    var fingerPrev = null, fingerReady = false;
     var deathTime = 0, deathYaw = 0, deathKind = '', hurtTime = 2, previousHurt = 0, previousDodge = 0, previousYaw = 0, turnRate = 0, rollRecover = 9;
     // One profile per rig instance; later chapters retain their own weight and character even
     // when they share the same licensed skeleton. These feed the existing secondary-life layer.
@@ -970,6 +971,23 @@
       if (nextMode !== mode) { copyPose(transition, output); mode = nextMode; modeAge = 0; } else modeAge += dt;
       if (!initialized || dt === 0) copyPose(output, wanted);
       else { copyPose(output, transition); blendPose(output, wanted, smooth((modeAge + dt) / fade)); }
+      // Hero pop limiter: the clips' hand / foot shapes differ by up to ~170 degrees (roll start, flask, stagger, death) and a 2-frame crossfade showed it
+      // as a twitch. Limbs (pose bones 6+) turn at most ~62 deg and fingers (22-51) ~26 deg per 1/60 s from the pose drawn last frame: real swings
+      // (peak ~47 deg/frame measured) pass untouched, flips are spread over a few frames. Allocation-free; the dot test skips the acos for calm bones.
+      if (hero && B.heroPopLimit !== false) {
+        var nb = output.q.length;
+        if (!fingerPrev) { fingerPrev = []; for (var fp = 0; fp < nb; fp++) fingerPrev.push(new T.Quaternion()); fingerReady = false; }
+        if (!initialized || dt === 0 || !fingerReady || state.reset) { for (var f0 = 0; f0 < nb; f0++) fingerPrev[f0].copy(output.q[f0]); fingerReady = true; }
+        else {
+          var fr = dt * 60 * PI / 180, limLimb = 62 * fr, limFinger = 26 * fr, cosLimb = Math.cos(limLimb / 2), cosFinger = Math.cos(limFinger / 2);
+          for (var f1 = 6; f1 < nb; f1++) {
+            var fq = output.q[f1], fo = fingerPrev[f1], isFinger = f1 >= 22 && f1 < 52, fd = Math.abs(fq.x * fo.x + fq.y * fo.y + fq.z * fo.z + fq.w * fo.w);
+            if (fd < (isFinger ? cosFinger : cosLimb)) fq.copy(fo).slerp(fq, (isFinger ? limFinger : limLimb) / (2 * Math.acos(Math.min(1, fd))));
+            fo.copy(fq);
+          }
+          for (var f2 = 0; f2 < 6 && f2 < nb; f2++) fingerPrev[f2].copy(output.q[f2]);
+        }
+      }
       var yaw = Math.atan2(root.matrixWorld.elements[8], root.matrixWorld.elements[10]);
       turnRate += ((initialized && dt > 0 ? clamp(signedAngle(yaw - previousYaw) / dt, -6, 6) : 0) - turnRate) * damp(12, dt); previousYaw = yaw;
       if (nextMode === 'locomotion') { qTurn.setFromAxisAngle(up, -turnRate * .018); output.q[2].premultiply(qTurn); output.q[3].premultiply(qTurn); }
