@@ -188,6 +188,7 @@
     var wanted = pose(), extra = pose(), output = pose(), transition = pose(), locomotion = pose(), mirrored = pose(), roarBuf = pose();
     var clock = 0, gait = 0, moveWeight = 0, speed = 0, mode = '', modeAge = 0, previousAttack = 0, comboMemory = -1, legacySerial = 0;
     var qb2 = new T.Quaternion(), qc2 = new T.Quaternion(), blendPrev = null, blendOn = false, guardPose = null, guardOn = false, repPose = null, repOn = false, enterFade = 0, deathTime = 0, deathYaw = 0, deathKind = '', hurtTime = 2, previousHurt = 0, previousDodge = 0, previousYaw = 0, turnRate = 0, rollRecover = 9;
+    var fingerPrev = null, fingerReady = false, leanCur = 0, bankCur = 0, lastLeanSpeed = 0;
     // One profile per rig instance; later chapters retain their own weight and character even
     // when they share the same licensed skeleton. These feed the existing secondary-life layer.
     var lifeRate = boss ? 1.5 : 2.1, lifeLean = .035, lifeSway = .07;
@@ -855,7 +856,7 @@
       if (disposed) return; state = state || {}; dt = clamp(finite(dt, 0), 0, .1); clock += dt;
       motionInfo.refreshed = false;
       if (state.reset) {
-        initialized = false; clock = finite(state.time, 0); gait = 0; speed = 0; moveWeight = 0; mode = ''; modeAge = 0; deathTime = 0; deathYaw = 0; deathKind = '';
+        initialized = false; leanCur = bankCur = lastLeanSpeed = 0; clock = finite(state.time, 0); gait = 0; speed = 0; moveWeight = 0; mode = ''; modeAge = 0; deathTime = 0; deathYaw = 0; deathKind = '';
         wasAwake = false; noticeT = 9; slump = 0; hurtTime = 2; previousHurt = 0; previousAttack = 0; comboMemory = -1; previousDodge = 0; wasDead = false; turnRate = 0; footfall.serial = 0; rollRecover = 9; lookCur = 0; lookPitch = 0; shiftCur = 0; legYawCur = 0; backwardMotion = false; fearCur = 0;
         originalLocal.forEach(function (r) { r.node.position.copy(r.p); r.node.quaternion.copy(r.q); }); feet.forEach(function (f) { f.locked = false; f.weight = 0; });
       }
@@ -959,7 +960,12 @@
       if (Number.isFinite(state.attackTime) && state.attackTime >= 0) {
         // Hero: exact gameplay clock (seconds), so the blade crosses the target on the damage frame.
         var m = state.skillMove && MOVES[state.skillMove] ? MOVES[state.skillMove] : state.skillTier > 1 ? (state.skillTier > 2 ? MOVES.strikePound : MOVES.strikeBrand) : heroMove(combo, heavy, state.weaponType); nextMode = 'attack' + finite(state.attackSerial, 0); fade = .06;
-        strikePhase = applyMove(m, state.attackTime, finite(state.attackStrike, .2), finite(state.attackDuration, .51), wanted, state).phase;
+        var heroCurve = applyMove(m, state.attackTime, finite(state.attackStrike, .2), finite(state.attackDuration, .51), wanted, state); strikePhase = heroCurve.phase;
+        if (hero && state.weaponType === 'axe' && !state.skillMove && !state.skillTier && !state.heavy) {
+          // Axe weight: the body sinks into the wind-up and the whole mass is thrown behind the head of the axe on the cut (pelvis and torso only; clip, contact frame and timing unchanged).
+          var axeLoad = clamp(Math.max(0, heroCurve.coil) * .6 + heroCurve.strike, 0, 1.2), axeSc = Math.max(.4, characterScale);
+          wanted.p.y -= .045 * axeLoad / axeSc; wanted.p.z += .05 * heroCurve.strike / axeSc; spineLayer(wanted, 0, .1 * heroCurve.strike, 0);
+        }
       } else if (Number.isFinite(state.beatTime) && state.beatTime >= 0) {
         var em = enemyMove(type, action, finite(state.beat, 0), state.pose); nextMode = 'act' + finite(state.attackSerial, 0) + ':' + finite(state.beat, 0); fade = .09;
         strikePhase = applyMove(em, state.beatTime, finite(state.beatContact, .9), finite(state.beatEnd, 1.5), wanted, state).phase;
@@ -1088,10 +1094,44 @@
           }
         }
       }
+      // Waking at the start of a chapter / after a fall: the hero pushes himself up off the ground (the death clip played backwards, eased out into the idle).
+      var wakeT = hero ? finite(state.wakeTime, -1) : -1;
+      if (wakeT >= 0 && !acting && !dodge && !state.dead && !stagger) {
+        var wu = clamp(wakeT / 1.3, 0, 1), we = Math.pow(wu, 1.45), wb = 1 - smooth((wu - .62) / .38);
+        sample('death', clip('death').duration * (1 - we), extra, false); blendPose(wanted, extra, wb);
+        wanted.p.z -= .42 * (1 - we) * wb / Math.max(.4, characterScale);
+        nextMode = 'wake'; fade = wakeT < .1 ? .001 : .06;
+      }
+      // Gestures laid over the idle / walk pose (hero only, never while striking, rolling, staggering or dying).
+      if (hero && !acting && !dodge && !stagger && !state.dead && !strikePhase) {
+        var cheerT = finite(state.cheerTime, -1), reachT = finite(state.reachTime, -1);
+        if (cheerT >= 0) {
+          // Level-up: chest lifts, head tips up, the weapon fist is thrust overhead for a beat and lowered; the other arm opens out.
+          var cu = cheerT / 1.5, cw = smooth(cu / .16) * (1 - smooth((cu - .62) / .38)), cs = Math.sin(clamp(cu, 0, 1) * PI);
+          spineLayer(wanted, .12 * cw, -.26 * cw, 0);
+          euler.set(-.3 * cw, 0, 0, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(wanted, 4, qa);
+          euler.set(-2.55 * cw, 0, -.18 * cw, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(wanted, 11, qa);
+          euler.set(-.35 * cw, 0, .62 * cw, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(wanted, 7, qa);
+          wanted.p.y += .03 * cs / Math.max(.4, characterScale); nextMode = 'cheer'; fade = .12;
+        } else if (reachT >= 0) {
+          // Interaction (door, lever, pickup, seal): lean in and reach the weapon-free arm toward the thing, then draw back.
+          var ru = reachT / .55, rw = Math.pow(Math.sin(clamp(ru, 0, 1) * PI), .8);
+          spineLayer(wanted, -.16 * rw, .2 * rw, 0);
+          euler.set(.12 * rw, 0, 0, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(wanted, 4, qa);
+          euler.set(-1.25 * rw, 0, .1 * rw, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(wanted, 7, qa);
+          wanted.p.z += .04 * rw / Math.max(.4, characterScale); nextMode = 'reach'; fade = .08;
+        }
+      }
       // Secondary life: slow breathing, a shifting stance, the head drifting and turning toward the foe (never while striking or falling).
       if (!state.dead && !dodge && !strikePhase && !roaring && !whirling && !charging && dt > 0) {
         var still = 1 - moveWeight * .7, lt2 = clock + lifeSeed, breath = Math.sin(lt2 * lifeRate), sway = Math.sin(lt2 * .55) * Math.sin(lt2 * .31 + 1);
         shiftCur += (sway - shiftCur) * damp(3, dt);
+        if (hero) {
+          // Inertia: the torso pitches into a start, rocks back when braking, and banks into a turn at a run (pelvis keeps the planted feet; spine only).
+          var leanAcc = (speed - lastLeanSpeed) / dt, leanWant = clamp(leanAcc * .004, -.12, .16), bankWant = clamp(-turnRate * .02, -.14, .14) * moveWeight * clamp(speed / (2 * characterScale), 0, 1);
+          leanCur += (leanWant - leanCur) * damp(12, dt); bankCur += (bankWant - bankCur) * damp(9, dt);
+          spineLayer(wanted, 0, leanCur, bankCur);
+        }
         spineLayer(wanted, .05 * Math.sin(lt2 * .7) * still, lifeLean * breath * still, lifeSway * shiftCur * still);
         euler.set(-.03 * breath * still, 0, 0, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(wanted, 7, qa); rotateSubtree(wanted, 11, qa);
         wanted.p.x += .03 * shiftCur * still / Math.max(.4, characterScale); wanted.p.y += .012 * breath * still / Math.max(.4, characterScale);
@@ -1168,6 +1208,23 @@
         }
         for (var gj = 0; gj < output.q.length; gj++) guardPose.q[gj].copy(output.q[gj]);
         guardOn = dt > 0;
+      }
+      // Hero pop limiter: the clips' hand / foot shapes differ by up to ~170 degrees (roll start, flask, stagger, death) and a 2-frame crossfade showed it
+      // as a twitch. Limbs (pose bones 6+) turn at most ~62 deg and fingers (22-51) ~26 deg per 1/60 s from the pose drawn last frame: real swings
+      // (peak ~47 deg/frame measured) pass untouched, flips are spread over a few frames. Allocation-free; the dot test skips the acos for calm bones.
+      if (hero && B.heroPopLimit !== false) {
+        var nb = output.q.length;
+        if (!fingerPrev) { fingerPrev = []; for (var fp = 0; fp < nb; fp++) fingerPrev.push(new T.Quaternion()); fingerReady = false; }
+        if (!initialized || dt === 0 || !fingerReady || state.reset) { for (var f0 = 0; f0 < nb; f0++) fingerPrev[f0].copy(output.q[f0]); fingerReady = true; }
+        else {
+          var fr = dt * 60 * PI / 180, limLimb = 62 * fr, limFinger = 26 * fr, cosLimb = Math.cos(limLimb / 2), cosFinger = Math.cos(limFinger / 2);
+          for (var f1 = 6; f1 < nb; f1++) {
+            var fq = output.q[f1], fo = fingerPrev[f1], isFinger = f1 >= 22 && f1 < 52, fd = Math.abs(fq.x * fo.x + fq.y * fo.y + fq.z * fo.z + fq.w * fo.w);
+            if (fd < (isFinger ? cosFinger : cosLimb)) fq.copy(fo).slerp(fq, (isFinger ? limFinger : limLimb) / (2 * Math.acos(Math.min(1, fd))));
+            fo.copy(fq);
+          }
+          for (var f2 = 0; f2 < 6 && f2 < nb; f2++) fingerPrev[f2].copy(output.q[f2]);
+        }
       }
       var yaw = Math.atan2(root.matrixWorld.elements[8], root.matrixWorld.elements[10]);
       turnRate += ((initialized && dt > 0 ? clamp(signedAngle(yaw - previousYaw) / dt, -6, 6) : 0) - turnRate) * damp(12, dt); previousYaw = yaw;
@@ -1285,6 +1342,7 @@
         }
         lastStrikePhase = strikePhase;
       }
+      lastLeanSpeed = speed;
       motionInfo.clip = nextMode; motionInfo.phase = attack || dodge || wrap(gait); motionInfo.strike = strikePhase; motionInfo.deathTime = deathTime; motionInfo.cs = characterScale; motionInfo.wj = walkJog; motionInfo.js = jogSprint;
       rootBefore.copy(rootNow); previousDodge = dodge; initialized = true;
       if (state.dead && dt > 0 && mode === 'death' && modeAge > fade) {
