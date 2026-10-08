@@ -194,8 +194,11 @@ body:has(#lu-banner.lu-on) #announcement{opacity:0!important}   /* the arena / r
     d = d || {}; const level = d.level | 0 || 2, levels = Math.max(1, d.levels | 0 || 1), old = Math.max(1, level - levels);
     S.on = true; S.t = 0; S.calm = !!reduced.matches; S.level = level; S.old = old; S.hx = hero ? hero.x : 0; S.hz = hero ? hero.z : 0;
     elOld.textContent = String(old); elNew.textContent = String(level); 
-    const pts = d.points | 0;
-    elNote.innerHTML = '+' + levels + KabirI18n.t(' YETENEK PUANI') + (pts > levels ? ' (<b>' + pts + '</b>)' : '') + ' · <b>T</b>';
+    const pts = d.points | 0, earned = Math.max(0, d.earnedPoints | 0);
+    // Some levels improve the character without granting a tree point.
+    elNote.innerHTML = earned > 0
+      ? '+' + earned + KabirI18n.t(' YETENEK PUANI') + (pts > earned ? ' (<b>' + pts + '</b>)' : '') + ' · <b>T</b>'
+      : (KabirI18n.lang === 'en' ? 'LEVEL GAINED' : 'SEVİYE YÜKSELDİ');
     const sk = skillsGained(old, level);
     elSkill.textContent = sk.length ? (sk.length > 1 ? KabirI18n.t('YENİ YETENEKLER: ') : KabirI18n.t('YENİ YETENEK: ')) + sk.join(' · ') : '';
     el.setAttribute('aria-live', 'polite'); el.setAttribute('aria-hidden', 'false');

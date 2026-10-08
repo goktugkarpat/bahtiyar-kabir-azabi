@@ -2,7 +2,7 @@
    combat.js creates one instance per run: BABA.TalentRuntime.create(ctx) and calls the hooks below (each guarded, one line each).
    ctx: { game, player, enemies, progression, fx, sound, emit, root,
           strike(enemy, amount, face) -> hurtEnemy result (a real heavy blow),
-          dot(enemy, amount, kind) -> { killed } (light tick: no knock-back, no stagger), stun(enemy, s), canHit(enemy), yank(enemy, x, z, keepDistance) }
+          dot(enemy, amount, kind, {resolved:true}?) -> { killed } (light tick: no knock-back, no stagger), stun(enemy, s), canHit(enemy), yank(enemy, x, z, keepDistance) }
    Numbers live in src/talent-tree.js (passives / keystones) and progression.js (hook / guard params). Look: src/talent-fx.js, sound: src/talent-audio.js.
    Tree 3 (bell / ground seal / curses / burning ground) is gone: no zones, no curses. Only physical, body-and-weapon actions remain. */
 (function () {
@@ -25,12 +25,16 @@
     const sound = (name, o) => ctx.sound(name, Object.assign({ x: player.x, z: player.z }, o || {}));
     const st = e => { let s = status.get(e); if (!s) { s = { bleed: null, tick: TICK * Math.random() }; status.set(e, s); } return s; };
 
-    function bleed(e, amount, seconds) {
-      if (!alive(e) || !(amount > 0)) return;
+    function bleed(e, amount, seconds, resolved = false) {
+      if (!alive(e) || !Number.isFinite(amount) || !(amount > 0) || !(seconds > 0)) return;
       const s = st(e), mul = fx().bleedMul, dps = amount * mul / seconds;
-      // Stacks: a fresh wound adds to what still flows (capped), the clock restarts.
-      const left = s.bleed && s.bleed.time > 0 ? s.bleed.dps * s.bleed.time : 0;
-      s.bleed = { dps: Math.min(dps * 3.2, (left + amount * mul) / seconds), time: seconds };
+      // Authored wounds and shares of a resolved hit never share a scaling channel.
+      const bag = s.bleed || { raw: null, resolved: null, dps: 0, time: 0 }, key = resolved ? 'resolved' : 'raw';
+      const wound = bag[key], left = wound && wound.time > 0 ? wound.dps * wound.time : 0;
+      bag[key] = { dps: Math.min(dps * 3.2, (left + amount * mul) / seconds), time: seconds };
+      bag.dps = (bag.raw ? bag.raw.dps : 0) + (bag.resolved ? bag.resolved.dps : 0);
+      bag.time = Math.max(bag.raw ? bag.raw.time : 0, bag.resolved ? bag.resolved.time : 0);
+      s.bleed = bag;
       if (look) look.mark(e, 'bleed');
     }
 
@@ -138,7 +142,7 @@
     function onHit(e, damage, attack) {
       if (!attack || attack.talent) return;
       const F = fx();
-      if (F.skillBleed && attack.line && !e.dead && e.hp > 0) bleed(e, damage * F.skillBleed, F.bleedTime);   // Kanlı İz: skill hits cut
+      if (F.skillBleed && attack.line && !e.dead && e.hp > 0) bleed(e, damage * F.skillBleed, F.bleedTime, true);   // Kanlı İz: skill hits cut
       if (F.rage && ++rageHits >= F.rage.hits) { rageHits = 0; rageLeft = F.rage.time; if (look) look.puff(player.x, 0, player.z, 'blood', 5); }   // Öfke Birikimi
       if (F.leech && !player.dead) { heal(damage * F.leech / (player.effectiveMaxHp || 100)); if (look && clock - leechAt > .18) { leechAt = clock; look.leech(e, player); } }
     }
@@ -202,11 +206,16 @@
       // bleeding
       for (const [e, s] of status) {
         if (e.dead) { status.delete(e); if (look) look.clear(e); continue; }
-        if (s.bleed) { s.bleed.time -= dt; if (s.bleed.time <= 0) { s.bleed = null; if (look) look.unmark(e, 'bleed'); } }
+        if (s.bleed) {
+          for (const key of ['raw', 'resolved']) { const wound = s.bleed[key]; if (wound && (wound.time -= dt) <= 0) s.bleed[key] = null; }
+          s.bleed.dps = (s.bleed.raw ? s.bleed.raw.dps : 0) + (s.bleed.resolved ? s.bleed.resolved.dps : 0);
+          s.bleed.time = Math.max(s.bleed.raw ? s.bleed.raw.time : 0, s.bleed.resolved ? s.bleed.resolved.time : 0);
+          if (!s.bleed.raw && !s.bleed.resolved) { s.bleed = null; if (look) look.unmark(e, 'bleed'); }
+        }
         s.tick -= dt;
         if (s.tick <= 0) {
           s.tick += TICK;
-          if (s.bleed && s.bleed.dps * TICK >= .5) ctx.dot(e, s.bleed.dps * TICK, 'bleed');
+          if (s.bleed) for (const key of ['raw', 'resolved']) { const wound = s.bleed[key]; if (wound && wound.dps * TICK >= .5) ctx.dot(e, wound.dps * TICK, 'bleed', key === 'resolved' ? { resolved: true } : undefined); }
         }
         if (!s.bleed) status.delete(e);
       }

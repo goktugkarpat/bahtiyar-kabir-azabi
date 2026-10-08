@@ -47,7 +47,7 @@
   passive('p-breath', 92.5, 'charge', 'pair-d', 'charge', 7, 'Yırtıcı Nefes', 'Bir düşmanı öldürünce 22 dayanıklılık ve canının %1’i geri gelir.', 'flame');
   // ---- row 4 keystones: exactly one per run ---------------------------------------------------------------------
   key('k-exec', 2, 'cleave', 'Cellat', 'Canı %40’ın altına düşen düşmanlara %25 fazla hasar verirsin. Canı %10’un altına inen sıradan düşmanlar tek vuruşta ölür.', 'Bedeli: en yüksek canın %20 azalır.', 'axe', { exec: true, hpMul: .8 });
-  key('k-blood', 3, 'roar', 'Kan Yemini', 'Verdiğin bütün hasarın %7’si can olarak sana döner.', 'Bedeli: şifa matarası taşıyamazsın.', 'drop', { leech: .07, noFlask: true });
+  key('k-blood', 3, 'roar', 'Kan Yemini', 'Verdiğin bütün hasarın %2,5’i can olarak sana döner.', 'Bedeli: şifa matarası taşıyamazsın.', 'drop', { leech: .025, noFlask: true });
   key('k-iron', 5, 'guard', 'Demir Yemin', 'Aldığın bütün hasar %20 azalır. Öldürdüğün her düşman 8 dayanıklılık geri verir.', 'Bedeli: kaçınma atılışı iki kat dayanıklılık harcar.', 'shield', { taken: .8, killStamina: 8, dodgeMul: 2 });
 
   // ---- actives / forms come from progression.js (same ids, same params); placed in the grid here: [col, row, slot] ----
@@ -69,6 +69,7 @@
   const get = id => { build(); return index[id] || null; };
   const nodes = () => { build(); return list; };
   const spentOf = learned => learned.length;
+  function legalCapacity() { build(); return new Set(list.map(n => n.group || 'single-' + n.id)).size; }
   function blockerOf(learned, n) {
     if (!n.group) return null;
     const other = learned.find(id => id !== n.id && index[id] && index[id].group === n.group);
@@ -93,10 +94,11 @@
   }
   // Rebuilds a legal learned list from any (possibly hand-edited / older) list for this level. Order of the result = learning order.
   // extra: skill points earned outside levels (quest boons, progression.js boons.points).
-  function validate(ids, level, extra) {
+  function validate(ids, level, extra, previousBudget) {
     build();
     const want = (Array.isArray(ids) ? ids : []).filter((id, n, all) => typeof id === 'string' && index[id] && all.indexOf(id) === n);
-    const budget = Math.max(0, Math.min(B.Progression ? B.Progression.MAX_LEVEL - 1 : 12, level - 1)) + Math.max(0, extra | 0), out = [];
+    const base = B.Progression ? B.Progression.earnedPoints[Math.max(0, Math.min(B.Progression.MAX_LEVEL - 1, level - 1))] : 0;
+    const budget = Math.min(legalCapacity(), Number.isFinite(previousBudget) ? Math.max(0, Math.floor(previousBudget)) : base + Math.max(0, extra | 0)), out = [];
     let grew = true;
     while (grew && out.length < budget) {
       grew = false;
@@ -127,7 +129,7 @@
     e.flasks = h('k-blood') ? -99 : 0; e.flaskHeal = 1; e.cd = 1;
     const M = g('mark', { skillBleed: .3, time: 4, taken: 1.15 });
     e.bleedMul = 1; e.bleedingTaken = h('p-bleed') ? M.taken : 1; e.skillBleed = h('p-bleed') ? M.skillBleed : 0; e.bleedTime = M.time;
-    e.exec = exec; e.execBelow = X.below; e.execDmg = X.dmg; e.execKill = X.kill; e.leech = h('k-blood') ? g('blood', { leech: .07 }).leech : 0;
+    e.exec = exec; e.execBelow = X.below; e.execDmg = X.dmg; e.execKill = X.kill; e.leech = h('k-blood') ? g('blood', { leech: .025 }).leech : 0;
     e.taken = h('p-ironhide') ? g('ironhide', { taken: .9 }).taken : 1;
     const I = g('iron', { taken: .8, stamina: 8, dodge: 2 });   // Demir Yemin (keystone)
     e.iron = h('k-iron'); if (e.iron) e.taken *= I.taken; e.killStamina = e.iron ? I.stamina : 0; e.dodgeMul = e.iron ? I.dodge : 1;
@@ -152,5 +154,5 @@
   const colOfLine = line => COLS.find(c => c.line === line) || COLS[0];
   const archOf = n => n && n.arch ? ARCH[n.arch] : '';
   const archMates = n => n && n.arch ? nodes().filter(o => o.arch === n.arch && (o.kind === 'active' || o.kind === 'passive') && o.id !== n.id).map(o => o.name) : [];
-  B.TalentTree = Object.freeze({ presets: PRESETS, archetype, archOf, archMates, colOfLine, cols: COLS, rows: ROWS, nodes, get, access, validate, canRefund, effects, effective, get MAX_POINTS() { return B.Progression ? B.Progression.MAX_LEVEL - 1 : 12; } });
+  B.TalentTree = Object.freeze({ presets: PRESETS, archetype, archOf, archMates, colOfLine, cols: COLS, rows: ROWS, nodes, get, access, validate, canRefund, effects, effective, get legalCapacity() { return legalCapacity(); }, get MAX_POINTS() { return B.Progression ? B.Progression.earnedPoints[B.Progression.MAX_LEVEL - 1] : 8; } });
 }());

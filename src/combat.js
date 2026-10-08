@@ -14,7 +14,7 @@
   const RESOURCES = Object.freeze({
     costs: Object.freeze({ light: 0, heavy: 8*RESOURCE_SCALE, dodge: 20*RESOURCE_SCALE, special: 45*RESOURCE_SCALE, rage: 45*RESOURCE_SCALE }),
     cooldowns: Object.freeze({ special: 8, rage: 24 }),
-    durations: Object.freeze({ rage: 11 })
+    durations: Object.freeze({ rage: 8 })
   });
   const STATS = {
     prisoner: { name: 'Zincirli Mahkûm', hp: 118, speed: 2.4, radius: .58, reach: 2.5, cooldown: 1.25, color: 0xb77c63 },
@@ -72,11 +72,11 @@
   const ORDER = { reach: 2.6, reachHeavy: 3.0, arrive: .3, hold: .8, stuck: .7 };
   // Hero war cry: the roar releases its shockwave at ROAR.release; the father is committed until ROAR.duration
   // (quick: he keeps moving at ROAR.move of his speed and the blows-halved window is only this long).
-  // Kan öfkesi: wider shockwave (near 6.5 m stagger / far 10 m cow), 11 s buff, -25 % damage taken (guard .75), 4 % of damage dealt returns as hp (steal);
+  // Base cry: 8 s buff, -25% damage taken and 2.5% of actual life removed returned as HP; learned forms configure their own values.
   // while it burns, blows stagger lighter foes (see canStagger). The cry uses the same stamina as rolls/Girdap,
   // with its own cooldown; there is no separate fury meter to fill by fighting.
   const ROAR = { cost: RESOURCES.costs.rage, cooldown: RESOURCES.cooldowns.rage, duration: .36, release: .08, move: .6,
-    near: 6.5, far: 10, time: RESOURCES.durations.rage, guard: .75, steal: .04 };
+    near: 6.5, far: 10, time: RESOURCES.durations.rage, guard: .75, steal: .025 };
   // Special ability "Zincir Girdabı" (key 1, a whirlwind): the father spins with the chained cleaver for SPECIAL.duration s, walks on at SPECIAL.move of his speed
   // (steer with the movement keys) and hits every foe within SPECIAL.radius m SPECIAL.ticks times (first after SPECIAL.first s, then every SPECIAL.gap s) for SPECIAL.damage each
   // (ticks x damage = 132, what the old lane strike did). Ticks stagger small foes (SPECIAL.stagger s, the last one SPECIAL.staggerLast s and a knock-back), pull loose ones a
@@ -174,20 +174,25 @@
     // Talent tree 4 (src/talent-runtime.js): bleed, Çengelli Çekiş + Demir Duruş (barbarian actives), passives and keystones.
     const talents = BABA.TalentRuntime ? BABA.TalentRuntime.create({ game, player, enemies, progression, root, fx, sound, emit, groundY: (x, z) => world.effectHeightAt ? world.effectHeightAt(x, z, .6) : .06,
       strike: (e, amount, face) => { if (!e || e.dead) return null; if (!e.active) { e.active = true; e.activated = true; if (e.encounter) e.encounter.activated = true; } return hurtEnemy(e, Math.round(amount), true, face, { talent: true, combo: 0, face, heavy: true, gained: 99 }); },   // gained: talent bursts never refill the stamina orb (ECONOMY.HIT)
-      dot: (e, amount, kind) => talentTick(e, amount, kind), stun: (e, s) => stunEnemy(e, s, 'heavy'),
+      dot: (e, amount, kind, options) => talentTick(e, amount, kind, options), stun: (e, s) => stunEnemy(e, s, 'heavy'),
       yank: (e, x, z, keep) => { const d = Math.hypot(x - e.x, z - e.z); if (d > keep) { e.push = null; moveBody(e, (x - e.x) / d * (d - keep), (z - e.z) / d * (d - keep), e.radius); } },
       canHit: e => !!e && !e.dead && !enemyUnderground(e) && e.model.root.visible && clearStrike(player, e), hitStop: s => hitStop(s) }) : null;
     game.talents = talents;
     /* ajan:gear */ if (talents && BABA.GearPowers) BABA.GearPowers.attach(talents, { game, player, enemies, progression, root, sound, emit, groundY: (x, z) => world.effectHeightAt ? world.effectHeightAt(x, z, .6) : .06, hurtEnemy: (...a) => hurtEnemy(...a), stunEnemy: (...a) => stunEnemy(...a), talentTick: (...a) => talentTick(...a) });
     // A damage-over-time tick: no knock-back, no stagger, no on-hit procs; numbers and kills as usual.
-    function talentTick(enemy, amount, kind) {
-      if (!enemy || enemy.dead || enemyUnderground(enemy) || game.state !== 'playing') return null;
+    function talentTick(enemy, amount, kind, options) {
+      if (!enemy || enemy.dead || enemyUnderground(enemy) || game.state !== 'playing' || !Number.isFinite(amount) || !(amount > 0)) return null;
       if (!enemy.active) { enemy.active = true; enemy.activated = true; if (enemy.encounter) enemy.encounter.activated = true; }
-      let damage = Math.max(1, Math.round(amount * (player.damageMultiplier || 1)));
-      { const P = tuning(); damage = Math.max(1, Math.round(damage * (P ? P.playerDmg : game.difficulty !== 'hard' ? 1.18 : 1))); }   // same difficulty scale as hurtEnemy
-      if (talents) damage = talents.outgoing(enemy, damage, null);
-      if (mobMods) damage = mobMods.hurt(enemy, damage, false, false, true);   // armoured / warded champions also dampen burn and bleed
-      if (director && enemy.boss) damage = director.hurt(enemy, damage);
+      let damage = Math.max(1, Math.round(amount));
+      // A wound derived from a landed hit already includes gear, talents and target mitigation.
+      // Raw hook wounds and fixed burns enter the ordinary damage pipeline exactly once.
+      if (!(options && options.resolved)) {
+        damage = Math.max(1, Math.round(amount * (player.damageMultiplier || 1)));
+        { const P = tuning(); damage = Math.max(1, Math.round(damage * (P ? P.playerDmg : game.difficulty !== 'hard' ? 1.18 : 1))); }
+        if (talents) damage = talents.outgoing(enemy, damage, null);
+        if (mobMods) damage = mobMods.hurt(enemy, damage, false, false, true);
+        if (director && enemy.boss) damage = director.hurt(enemy, damage);
+      }
       enemy.hp = Math.max(0, enemy.hp - damage); if (enemy.boss && !enemy.action) enemy.wrath += damage;
       const killed = enemy.hp <= 0;
       fx('talentTick', { x: enemy.x, y: 1.4, z: enemy.z, damage, kind, labelTarget: enemy, kill: killed });
@@ -1758,10 +1763,11 @@
       if (director && enemy.boss) damage = director.hurt(enemy, damage);
       if (mobAbil && !blocked) damage = mobAbil.hurt(enemy, damage, attackFace);
       if (talents && !blocked) damage = talents.outgoing(enemy, damage, attack);
+      const dealt = Math.max(0, Math.min(enemy.hp, damage));   // Healing and wounds use actual life removed, including mitigation, never overkill.
       enemy.hp = Math.max(0, enemy.hp - damage); if (enemy.boss && !enemy.action) enemy.wrath += damage;
-      if (player.rageTime > 0 && !blocked && player.hp > 0) player.hp = Math.min(player.maxHp, player.hp + damage * ROAR.steal * (1 + questBenefit('healingBonus', .20)) * 100 / player.effectiveMaxHp);   // blood fury: a little of every blow comes back
+      if (player.rageTime > 0 && !blocked && player.hp > 0) player.hp = Math.min(player.maxHp, player.hp + dealt * ROAR.steal * (1 + questBenefit('healingBonus', .20)) * 100 / player.effectiveMaxHp);   // blood fury: a little of every blow comes back
       const killed = enemy.hp <= 0;
-      if (talents && !blocked) talents.onHit(enemy, damage, attack, killed);
+      if (talents && !blocked) talents.onHit(enemy, dealt, attack, killed);
       if (killed) enemy.deathKind = !enemy.boss && (heavy || finisher) ? 'blown' : '';
       const spray = attack ? sweepAngle(attack) : attackFace;
       emit('hit', { target: 'enemy', x: enemy.x, z: enemy.z, damage, blocked, braced, heavy, critical: critical || opening, opening, face: attackFace, combo: attack ? attack.combo : 0, finisher, kill: killed,

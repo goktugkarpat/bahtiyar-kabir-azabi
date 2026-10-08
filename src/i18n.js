@@ -92,3 +92,5 @@ Object.assign(window.KabirI18n.dictionary,{"KANAMA":"BLEED","ÖFKE":"RAGE","DEM�
 /* ajan:loot3 */
 Object.assign(window.KabirI18n.dictionary,{"Eşya alındı:":"Item acquired:","Giydiğin: ":"Wearing: ","Çanta dolu. Yer açmadan bu eşyayı alamazsın.":"Bag full. Make room before you can take this item.","Çanta dolu":"Bag full"});
 /* /ajan:loot3 */
+/* Balance localization: keep the Blood Oath description aligned with its 3.5% runtime leech. */
+Object.assign(window.KabirI18n.dictionary,{"Verdiğin bütün hasarın %2,5’i can olarak sana döner.":"2.5% of all the damage you deal returns to you as life."});

@@ -111,7 +111,7 @@
     const title = '';
     const identity = weight.length ? (title ? '<b class="tt-arch">' + esc(title) + '</b> · ' : '') + weight.slice(0, 2).map(o => '<b style="color:' + o.c.color + '">' + esc(o.c.name) + '</b>').join(' + ') + (keystone ? ' · <b class="tt-keyname">' + esc(keystone.name) + '</b>' : '') : '<i>' + esc(t('Henüz bir yol seçmedin')) + '</i>';
     const respecWhy = !learned.length ? t('Geri alınacak puan yok.') : inCombat ? t('Savaşın ortasında yol değiştirilemez.') : t('Bütün puanlar ücretsiz geri verilir (savaş dışında).');
-    const head = '<div class="tt-head"><span class="tt-budget"><b>' + state.points + '</b> ' + esc(t('puan')) + ' <small>' + spent + ' / ' + (T.MAX_POINTS + bonus) + ' ' + esc(t('harcandı')) + ' · ' + T.nodes().length + ' ' + esc(t('düğüm')) + '</small></span>' +
+    const head = '<div class="tt-head"><span class="tt-budget"><b>' + state.points + '</b> ' + esc(t('puan')) + ' <small>' + spent + ' / ' + (Number.isFinite(state.totalPointBudget) ? state.totalPointBudget : T.MAX_POINTS + bonus) + ' ' + esc(t('harcandı')) + ' · ' + T.nodes().length + ' ' + esc(t('düğüm')) + '</small></span>' +
       '<span class="tt-identity">' + esc(t('Yolun:')) + ' ' + identity + '</span>' +
       '<button class="tt-respec" data-char="respec" title="' + esc(respecWhy) + '" ' + (!learned.length || inCombat ? 'disabled' : '') + '>' + esc(t('Yolu sıfırla')) + '</button></div>';
     const presets = '';

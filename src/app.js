@@ -62,14 +62,11 @@
     low:    { scale: 1, shadows: 0,    detail: 'low',    lights: .35, particles: 180, fog: .014, bloom: .08, corpses: 20, decals: 20, aa: true, occlusion: 0 },
     medium: { scale: 1, shadows: 512,  detail: 'medium', lights: .55, particles: 300, fog: .017, bloom: .15, corpses: 38, decals: 38, aa: true, occlusion: .5 },
     high:   { scale: 1, shadows: 1024, detail: 'high',   lights: .7,  particles: 440, fog: .019, bloom: .205, corpses: 58, decals: 58, aa: true, occlusion: .5 },
-    // Azami: best picture for strong gaming PCs (RTX class). Never picked automatically (see detectQuality); only chosen in Settings (or ?q=ultra for tests).
-    ultra:  { scale: 1, shadows: 2048, detail: 'high',   lights: .85, particles: 1100, fog: .02, bloom: .22, corpses: 120, decals: 120, aa: true, occlusion: .5 }
   };
   const QUALITY_TEXT = {
     low: [KabirI18n.t('Düşük'), KabirI18n.t('Akıcılık öncelikli. Hafif ışıklar ve daha az parçacık.')],
     medium: [KabirI18n.t('Orta'), KabirI18n.t('Dengeli. Gölgeler ve ışıklar açık, ağır efektler kısılmış; çoğu Mac için önerilir.')],
-    high: [KabirI18n.t('Yüksek'), KabirI18n.t('Ayrıntılı yüzeyler, yumuşak gölgeler, ışıklar, sis ve savaş efektleri.')],
-    ultra: [KabirI18n.t('Azami'), KabirI18n.t('En iyi görüntü. Güçlü ekran kartı gerekir: keskin gölgeler, ışık huzmeleri, ıslak zemin yansımaları, hafif hareket bulanıklığı.')]
+    high: [KabirI18n.t('Yüksek'), KabirI18n.t('Ayrıntılı yüzeyler, yumuşak gölgeler, ışıklar, sis ve savaş efektleri.')]
   };
   // Character textures are sized once at start (Düşük halves them); a later change of preset takes full effect after a reload.
   const TEXTURE_NOTE = KabirI18n.t(' Karakter kaplamaları oyun yeniden açılınca bu ayara geçer.');
@@ -92,8 +89,8 @@
     return 'medium';
   }
   const AUTO_QUALITY = detectQuality();
-  let qualityForce = null, qualityStored = null;   // ?q=low|medium|high|ultra forces a preset for this page load only (never saved)
-  const DEFAULTS = { difficulty: 'normal', quality: AUTO_QUALITY, qualityUser: false, qualityVersion: 6, ...DISPLAY.defaults, frameRate: FRAME_LIMIT, exposure: 1.15, shake: .55, master: .65, music: .42, sfx: .75, voice: .85, narrationMode: 'essential', subtitles: true, autoLoot: false, kbOnly: false, uiScale: .85 };
+  let qualityForce = null, qualityStored = null;   // ?q= forces this load only; retired ultra aliases high and is never saved
+  const DEFAULTS = { difficulty: 'normal', quality: AUTO_QUALITY, qualityUser: false, qualityVersion: 7, ...DISPLAY.defaults, frameRate: FRAME_LIMIT, exposure: 1.15, shake: .55, master: .65, music: .42, sfx: .75, voice: .85, narrationMode: 'essential', subtitles: true, autoLoot: false, kbOnly: false, uiScale: .85 };
   const FRAME_RATES = [60, 90, 120, 0];   // 0 = follow the display (every refresh; best with G-Sync / FreeSync / ProMotion)
   const UI_STEPS = [.75, .85, 1];   // Küçük (new, smaller) | Normal (was 'Küçük') | Büyük (was 'Normal')
   const LIMITS = { exposure: [.7, 1.7], shake: [0, 1], master: [0, 1], music: [0, 1], sfx: [0, 1], voice: [0, 1] };
@@ -193,17 +190,21 @@
       try { raw = JSON.parse(localStorage.getItem(OLD_KEY) || 'null'); } catch (e) { raw = null; }
       if (raw && typeof raw === 'object') {
         migrated = legacySettings = true;
+        if (raw.preset === 'ultra') { raw.preset = 'high'; raw.qualityUser = true; }
         if (!Object.prototype.hasOwnProperty.call(QUALITY, raw.preset)) raw.preset = ({ 0: 'low', 1024: 'high', 1536: 'high', 2048: 'high', 4096: 'high' })[raw.shadows] || DEFAULTS.quality;
         raw.quality = raw.preset;
       }
     }
     if (raw && typeof raw === 'object') {
-      // Version 5 dropped the old Medium into High; version 6 brings a real Medium back and picks the default by GPU.
-      // Before v6 nobody could choose Medium, so only a stored 'low' counts as a deliberate choice; everything else follows the new default.
+      // The retired Ultra preset maps to High, including older saved settings.
+      // Keep deliberate v6 choices; automatic defaults may still follow the current GPU.
+      if (raw.quality === 'ultra') { raw.quality = 'high'; raw.qualityUser = true; migrated = true; }
       if (raw.qualityVersion !== DEFAULTS.qualityVersion) {
         migrated = true;
-        raw.qualityUser = raw.quality === 'low';
-        if (!raw.qualityUser) raw.quality = DEFAULTS.quality;
+        if (!Number.isFinite(raw.qualityVersion) || raw.qualityVersion < 6) {
+          raw.qualityUser = raw.qualityUser === true || raw.quality === 'low';
+          if (!raw.qualityUser) raw.quality = DEFAULTS.quality;
+        }
       }
       cfg.qualityUser = raw.qualityUser === true;
       if (cfg.qualityUser && Object.prototype.hasOwnProperty.call(QUALITY, raw.quality)) cfg.quality = raw.quality;
@@ -235,7 +236,8 @@
       }
     } catch (_) {}
     qualityStored = cfg.quality;
-    const forced = (Q.get('q') || '').toLowerCase();
+    const requested = (Q.get('q') || '').toLowerCase();
+    const forced = requested === 'ultra' ? 'high' : requested;
     if (Object.prototype.hasOwnProperty.call(QUALITY, forced)) { qualityForce = forced; cfg.quality = forced; }
     deriveSettings();
     if (migrated) { saveSettings(); safe(() => localStorage.removeItem(OLD_KEY)); }
@@ -251,7 +253,7 @@
     if (document.body) document.body.classList.toggle('kb-only', kbMode());
     if (B.GroundLoot) B.GroundLoot.auto = cfg.autoLoot === true;   // old proximity auto-pickup of ground items (default off: click / E)
     // 60 Hz-class targets: distant characters cast shadows over a shorter reach (see combat.js); 0 = all cast.
-    cfg.shadowReach = cfg.quality === 'low' ? 0 : cfg.quality === 'medium' ? 8 : cfg.quality === 'ultra' ? 18 : cfg.fps > 0 && cfg.fps <= 64 ? 10 : 13;   // far characters do not cast into the key light's map (fewer shadow draws = a steadier frame time)
+    cfg.shadowReach = cfg.quality === 'low' ? 0 : cfg.quality === 'medium' ? 8 : cfg.fps > 0 && cfg.fps <= 64 ? 10 : 13;   // far characters do not cast into the key light's map (fewer shadow draws = a steadier frame time)
     cfg.preset = cfg.quality;
     cfg.ambient = cfg.sfx * .66;   // dungeon ambience follows the effects slider
   }
@@ -264,7 +266,7 @@
     safe(() => localStorage.setItem(KEY, JSON.stringify(out)));
   }
   readSettings();
-  B.Aniso = cfg.quality === 'ultra' ? 16 : 8;   // Azami: 16x anisotropic filtering on world / character maps (clamped by the GPU's own maximum); read when each texture is made
+  B.Aniso = 8;   // Preserve the High preset's texture filtering budget.
   B.Audio.set({ master: cfg.master, music: cfg.music, sfx: cfg.sfx, ambient: cfg.ambient, voice: cfg.voice, narrationMode: cfg.narrationMode });
 
   /* ───────────── State ───────────── */
@@ -523,7 +525,7 @@
     return vis($('announcement')) || b.classList.contains('bf-intro') || vis(document.querySelector('.qc-bars.show .qc-caption')) || !!document.querySelector('.qc-bars.show');
   }
   function queueLevelUp(d) {
-    if (pendingLevel) { pendingLevel.levels = (pendingLevel.levels | 0) + (d.levels | 0); pendingLevel.level = d.level; pendingLevel.points = d.points; }
+    if (pendingLevel) { pendingLevel.levels = (pendingLevel.levels | 0) + (d.levels | 0); pendingLevel.level = d.level; pendingLevel.points = d.points; pendingLevel.earnedPoints = (pendingLevel.earnedPoints | 0) + (d.earnedPoints | 0); }
     else { pendingLevel = Object.assign({}, d); pendingLevelWait = 0; }
   }
   function flushLevelUp(dt) {
@@ -853,9 +855,9 @@
     video.querySelectorAll('.advanced-graphics, .setting').forEach(n => n.remove()); audio.querySelectorAll('.setting').forEach(n => n.remove());
     const q = document.createElement('div'); q.className = 'setting quality';
     q.innerHTML = `${KabirI18n.t("<div class=\"setting-head\"><label id=\"quality-label\">Grafik kalitesi</label></div><div class=\"segmented\" role=\"radiogroup\" aria-labelledby=\"quality-label\">")}${Object.keys(QUALITY).map(k => `<button type="button" role="radio" data-quality="${k}">${QUALITY_TEXT[k][0]}</button>`).join('')}</div><small id="quality-note"></small>`;
-    const paintQuality = () => { q.querySelectorAll('[data-quality]').forEach(b => { const on = b.dataset.quality === cfg.quality; b.classList.toggle('selected', on); b.setAttribute('aria-checked', on); }); q.querySelector('#quality-note').textContent = QUALITY_TEXT[cfg.quality][1] + ((cfg.quality === 'low' ? 'low' : cfg.quality === 'ultra' ? 'ultra' : 'std') !== texTier ? TEXTURE_NOTE : ''); };
+    const paintQuality = () => { q.querySelectorAll('[data-quality]').forEach(b => { const on = b.dataset.quality === cfg.quality; b.classList.toggle('selected', on); b.setAttribute('aria-checked', on); }); q.querySelector('#quality-note').textContent = QUALITY_TEXT[cfg.quality][1] + ((cfg.quality === 'low' ? 'low' : 'std') !== texTier ? TEXTURE_NOTE : ''); };
     q.querySelectorAll('[data-quality]').forEach(b => b.addEventListener('click', () => { if (b.dataset.quality === cfg.quality) { if (!cfg.qualityUser || qualityForce) { cfg.qualityUser = true; qualityForce = null; qualityStored = cfg.quality; applySettings(); } return; } cfg.quality = b.dataset.quality; cfg.qualityUser = true; qualityForce = null; qualityStored = cfg.quality; paintQuality(); applySettings(); warmShaders(true); }));
-    q.querySelector('.segmented').classList.add('quad');   // four presets in one row (Düşük | Orta | Yüksek | Azami)
+    // Three quality choices use the existing equal-width segmented layout.
     paintQuality(); video.append(q);
     const displayNote = document.createElement('small'); displayNote.id = 'display-note'; q.append(displayNote);
     video.append(choiceRow('displayMode', KabirI18n.t('Görüntü boyutu'), ['auto', 'native'], v => ({ auto: KabirI18n.t('Otomatik'), native: KabirI18n.t('Tam boyut') })[v]),
@@ -1813,7 +1815,7 @@
   }
   // Gaps between presented frames (last ~600), so the counter can also show the longest frame: a few slow frames are
   // what the eye reads as stutter even when the FPS average looks fine.
-  const BUILD_TAG = 150, fpsGaps = new Float32Array(600);
+  const BUILD_TAG = 375, fpsGaps = new Float32Array(600);
   let fpsGapAt = 0, fpsGapLast = 0;
   function frameStats() {
     let longest = 0, slow = 0;
@@ -2339,10 +2341,10 @@
   }
   loadProgress(.18, KabirI18n.t('Karakterler hazırlanıyor…'));
   // Düşük loads the character textures at half size and touch tablets cap them at 1024 px (up to ~88 MB less video memory).
-  lowTextures = cfg.quality === 'low'; texTier = cfg.quality === 'ultra' ? 'ultra' : lowTextures ? 'low' : 'std';
+  lowTextures = cfg.quality === 'low'; texTier = lowTextures ? 'low' : 'std';
   Promise.resolve().then(async () => {
     await Promise.all([
-      B.Models.prepare({ textureScale: lowTextures ? .5 : 1, maxTexture: coarsePointer ? 1024 : cfg.quality === 'ultra' ? 4096 : 2048 }),
+      B.Models.prepare({ textureScale: lowTextures ? .5 : 1, maxTexture: coarsePointer ? 1024 : 2048 }),
       B.TargetHUD.prepare(),
       B.GroundLoot.prepare(),
       B.SkillArt.prepare()

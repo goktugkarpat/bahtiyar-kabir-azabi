@@ -31,6 +31,19 @@
 
   function setupOnce(K) {
     if (K.finaleSetup) return; K.finaleSetup = true;
+    // Cosmetic heat halos only. Keep the baked geometry, pooled sources and hazard art unchanged.
+    var heatSpr = K.spr, heatDec = K.dec, heatPut = K.putM;
+    K.spr = function(id,kind,x,y,z,w,h,col,a,phase,speed,ex) {
+      var gain = kind === K.SPR.pool ? 0.74 : kind === K.SPR.glow ? 0.84 : 1;
+      return heatSpr.call(K,id,kind,x,y,z,w,h,col,(a == null ? 1 : a)*gain,phase,speed,ex);
+    };
+    K.dec = function(id,cell,x,z,w,d,rot,col,alpha,mode,y) {
+      return heatDec.call(K,id,cell,x,z,w,d,rot,col,(alpha == null ? 1 : alpha)*(mode === 'glow' ? 0.72 : 1),mode,y);
+    };
+    K.putM = function(id,kind,key,m,tint,ao,aoH,cast) {
+      if(key === 'hot' && tint) { var s = Math.min(0.9,1.2/Math.max(.001,tint[0],tint[1],tint[2])); tint=[tint[0]*s,tint[1]*s,tint[2]*s]; }
+      return heatPut.call(K,id,kind,key,m,tint,ao,aoH,cast);
+    };
     var T = window.THREE;
     K.addShape('pebble', new T.IcosahedronGeometry(.5, 0));
     K.addShape('hemi', new T.SphereGeometry(.5, 12, 5, 0, PI * 2, 0, PI / 2));

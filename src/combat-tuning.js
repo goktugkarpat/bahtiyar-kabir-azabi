@@ -1,6 +1,6 @@
 /* KABİR AZABI — combat tuning: difficulty profiles, stamina economy and hit feel (read by combat.js, app.js, character-ui.js).
-   Every number here was set with the balance bench (src/combat-balance.js, BABA.Balance.run) — see the measurements in the
-   comment block at the end of the file. Loaded before combat.js. */
+   Difficulty and resource values are shared with the runtime and UI. Loaded before combat.js.
+   The current Normal calibration and its measurement limits are described below. */
 (function () {
   'use strict';
   const B = window.BABA = window.BABA || {};
@@ -13,10 +13,10 @@
   const DIFFICULTY = Object.freeze({
     easy: Object.freeze({ enemyHp: .70, enemyDmg: .48, eliteHp: 1, eliteDmg: 1, playerDmg: 1.18, pace: 1.22, rest: 1.30, attackers: 2, melee: 1,
       hitCap: .30, iframe: .44, dodgeStep: .15, regenDelay: .25, regen: 1.15, flasks: 5, flaskHeal: 1.15, perfectWindow: .26 }),
-    normal: Object.freeze({ chapterDmg: Object.freeze({ 1: .66, 2: .74, 3: .84, 4: .92, 5: 1.1 }),   // BAL: chapterDmg = Normal's curve for BOSS blows (I-III +6-8 %, IV-V unchanged: their phase/rest/hp changes already hit hard)
-      foeDmg: Object.freeze({ 1: .62, 2: .70, 3: .92, 4: 1.05, 5: 1.35 }),   // BAL: Normal's curve for common foes and elites (was = chapterDmg .62/.70/.78/.92/1.1; chapters III-V raised so the gear/talent growth does not outrun them)
-      enemyHp: .88, enemyDmg: 1.08, eliteHp: 1.10, eliteDmg: 1.08, playerDmg: 1.12, pace: 1.10, rest: 1.08, attackers: 3, melee: 2,
-      hitCap: .26, iframe: .40, dodgeStep: .28, regenDelay: .32, regen: 1.12, flasks: 6, flaskHeal: 1.2, perfectWindow: .22 }),
+    normal: Object.freeze({ chapterDmg: Object.freeze({ 1: .76, 2: .95, 3: 1.17, 4: 1.34, 5: 1.50 }),   // Normal contact curve: later gear and passive defences leave less room to ignore boss tells.
+      foeDmg: Object.freeze({ 1: .68, 2: .82, 3: 1.10, 4: 1.26, 5: 1.50 }),   // Common foes keep their authored tells; health and simultaneous attack limits are unchanged.
+      enemyHp: .88, enemyDmg: 1.08, eliteHp: 1.10, eliteDmg: 1.08, playerDmg: 1.0, pace: 1.10, rest: 1.08, attackers: 3, melee: 2,
+      hitCap: .26, iframe: .40, dodgeStep: .28, regenDelay: .32, regen: 1.12, flasks: 4, flaskHeal: 1.0, perfectWindow: .22 }),
     hard: Object.freeze({ enemyHp: 1.15, enemyDmg: 1.32, eliteHp: 1.25, eliteDmg: 1.25, playerDmg: 1, pace: 1, rest: .82, attackers: 3, melee: 2,
       hitCap: .45, iframe: .32, dodgeStep: .40, regenDelay: .50, regen: 1, flasks: 3, flaskHeal: .85, perfectWindow: .18 })
   });
@@ -68,63 +68,15 @@
   //   iron (Demir Yemin): all damage taken x `taken`, each kill gives back `stamina` stamina, the dodge roll costs `dodge` x stamina.
   const TALENT = Object.freeze({ frenzy: Object.freeze({ hp: 40, dmg: 1.25, regen: 1.15 }), momentum: Object.freeze({ dmg: 1.2, time: 3 }), mark: Object.freeze({ skillBleed: .3, time: 4, taken: 1.15 }),
     rage: Object.freeze({ hits: 5, time: 3, dmg: 1.2, regen: 1.4 }), ironhide: Object.freeze({ taken: .9 }), vengeance: Object.freeze({ share: .25, cap: 90 }), crush: Object.freeze({ dmg: 1.2 }),
-    breath: Object.freeze({ stamina: 22, heal: .01 }), exec: Object.freeze({ below: .4, dmg: 1.25, kill: .10, hp: .8 }), blood: Object.freeze({ leech: .07 }),
+    breath: Object.freeze({ stamina: 22, heal: .01 }), exec: Object.freeze({ below: .4, dmg: 1.25, kill: .10, hp: .8 }), blood: Object.freeze({ leech: .025 }),
     iron: Object.freeze({ taken: .8, stamina: 8, dodge: 2 }) });
   B.CombatTuning = Object.freeze({ DIFFICULTY, CHAPTER, BOSS, BOSS_REST, BOSS_PHASE, ECONOMY, FEEL, TALENT, profile, describe });
 })();
-/* Measurements (BABA.Balance.run; every hall / boss fought from full health with the chapter's expected level and gear:
-   ch I L3, ch II L6, ch III L9, ch IV L11). Bots: novice (sees a tell after .42 s, ignores 35 %), average (.30 s, 18 %),
-   skilled (.20 s, 6 %, rolls late), spam (rolls at every tell at once plus random rolls). Numbers = % health lost summed over the chapter's
-   12-13 fights (deaths / flasks used). BEFORE = old code (flat 12/s regen, .45 s i-frames, hard = no ease), AFTER = this file.
-                      ch I            ch II           ch III          ch IV
-   Normal average  B 117 (0/0)     B  33 (0/0)     B 204 (0/0)       -
-                   A 256 (0/1)     A 169..235      A 334 (0/0)     A 440 (0/1)
-   Normal skilled  B  66           -               B  97             -
-                   A  17           A  72           A 160           A 216
-   Normal spam     B 485 (0/3)     -               B 859 (0/7)       -
-                   A 803 (0/7)     A 821 (0/10)    A 1158 (1/13)   A 1506 (2/20)
-   Hard average    B 228 (0/0)     B 100 (0/0)     B 457 (0/1)       -
-                   A 963 (0/9)     A 475 (1/3)     A 1118 (1/10)   A 1356 (0/22)
-   Hard skilled    B  35           -               B 108             -
-                   A 263 (0/0)     A 156 (0/1)     A 697 (0/3)     A 995 (1/11)
-   Easy novice     A 212 (0/0)     A 150           A 225           A 321 (0/1)
-   Old Hard let a skilled roller lose 35 % over all of chapter I; the spam roller now loses 3-6x what a timed roller loses on Normal.
-   Long Hard fights (> 100 s, the 150 s timeouts of the first pass): the elite wardens (ashwarden / ruinwarden, already mini-boss health)
-   took the profile's elite bonus on top: ch IV hall #9 measured 100-111 s on Hard, 88 % of it the warden alone (kills at 13-26 s, warden at 79-88 s),
-   vs 18 s on Normal. Hard eliteHp 1.40 -> 1.25 (and Normal 1.12 -> 1.10); stamina from landed blows (ECONOMY.HIT) also keeps a rolling hero swinging.
-   Chapter II common foes were raised again after this table (dmg 2.0 -> 2.15; 2.3 measured 311 / 610 / 301 for normal avg / hard avg / hard skilled, a touch above chapter III). */
-/* BALANCE TABLE (after merging `gece`: 5 chapters; tools/combat_balance.py 1,2,3,4,5 easy,normal,hard novice,average,skilled,spam).
-   % health lost per fight (each fight from full health, chapter's expected level/gear L3/L6/L9/L11/L13), deaths in brackets.
-   Measured with Normal enemyDmg 1.0, CHAPTER[4].dmg .8, CHAPTER[5].dmg 1.0 (was .5), BOSS[5].dmg 1.0 (was .8):
-                 ch I        ch II       ch III      ch IV       ch V
-   Easy skilled   2           5           2           3           3          (target ~5)
-   Easy novice   25          26          20          33          35
-   Normal skill   6           8          15          13          21          (target 15 20 28 38 50)
-   Normal avg    12          23          26          43          39
-   Normal novice 100         117         97          127 (2)    167 (3)
-   Hard skilled  42          46 (2)      54          66 (1)      81 (3)      (target ~2x Normal: on curve; chapter V now the hardest, QA had 73 -> 29 for IV -> V)
-   Hard avg      71          77 (2)      90 (1)     109 (1)     122 (3)
-   Spam (Normal) 73          108         126 (1)    161 (5)     209 (5)      rolling through everything is always the worst player
-   Final boss (Last Judge) Normal: skilled 96 s / average 103 s (1.6-1.7 min, target 1.5-3); Hard skilled 124 s. No 150 s timeouts on Normal/Hard bosses.
-   After this table, NOT yet re-measured: Normal enemyDmg 1.0 -> 1.25 (skilled Normal sat ~2.5x under the target curve; expected ~8/10/19/18/26),
-   CHAPTER[4].dmg .8 -> .9 (chapter IV was below III on Normal). The bench's flask column is off after the merge (fights start with the profile's
-   flask count; negative values on Hard), ignore it. gear-powers.js (unique item powers) was not in `gece` at this merge: not measured. */
-/* BALANCE TABLE 2 (after merging `gece` with gear-powers.js). % health lost per fight, deaths in brackets.
-                     ch I     ch II    ch III   ch IV    ch V     target
-   Normal skilled     13       17       13       29       22      15 20 28 38 50   (Normal has its own chapterDmg 1.3/1.2/1.08/1.6/1.7)
-   Normal average     41       36       39       38       71 (2)
-   Hard skilled       44       40       62       71 (1)   48 (1)   ~2x Normal
-   Hard novice       172 (3)  184 (10) 181 (4)  222 (13) 204 (7)
-   Bosses, Hard skilled: 89 / 76 / 99 / 87 / 85 s, all survived; Hard novice dies to every boss (biggest boss hit 41 %).
-   Fairness: the largest single hit on Hard was 62 % (chapter II elite shore foes: mob mods on top of CHAPTER[2].dmg 2.15 x Hard 1.32).
-   Rule added after the table: hitCap = no single blow takes more than 30 / 38 / 45 % of the bar (Easy / Normal / Hard). No one-shot deaths.
-   Unique powers A/B (gear-powers.js; chapter V, Normal, average bot, 6 halls, power on vs the same item with the power off):
-     bell-spear -56 % fight time, -47 % health lost -> cut to 8 % proc / .4 s stun (was 15 % / .6 s). The rest stayed within the
-     bench's noise (+-30..50 % on 6 fights). Re-check sunken-vow-chest (-56 % health lost) and bone-rite-chest (-39 %) with more fights.
-   Bench fix: the flask column counts drinks (it was start - end, negative when kills / talents refilled flasks). */
-
-/* NORMAL EASED (bench, tools-free CDP run of BABA.Balance.run; total % health lost over a chapter's halls, deaths in brackets, before -> after):
-   Normal chapterDmg 1.3/1.2/1.08/1.6/1.7 -> .85/.85/.82/.95/1.1, Normal hitCap .38 -> .30, regenDelay .40 -> .35, regen 1 -> 1.08, flasks 4 -> 5, flaskHeal 1 -> 1.1. Hard untouched.
-   Normal novice  ch I 1516 (2) -> 1089 (0)   ch IV 3560 (9) -> 2755 (3)   ch V 2877 (5) -> 2048 (1)
-   Normal average ch I 400 -> 220 (0 flasks)  ch IV 948 -> 590            ch V 1105 -> 833
-   Hard average   ch I ~840-1000 / ch IV 2068 (3) -> 2064 (1) / ch V 1704 -> 1688: unchanged within noise (Hard / Normal average 2.0-4.7x). */
+/* Normal calibration, 2026-10-08: actual five-world combat/skill/talent/gear/globe logic, with renderer-free model poses.
+   Three legal builds and five deterministic combat seeds per chapter were tested to the real boss death, including late phases.
+   Entry levels from canonical reward ledgers: full side routes 4/6/8/10/13; minimum main routes 3/4/6/8/11.
+   All 75 minimum main-route cases remained playable with four base flasks and ordinary 1.0 flask healing.
+   The new contact curve leaves health, telegraph clocks, simultaneous-attack limits and the 26% single-hit cap unchanged.
+   Derived bleed/burn no longer repeats the already-resolved attacker and target multipliers; lifesteal uses actual life removed.
+   Controlled encounter placement, full-health starts and scripted reactions are calibration tools, not a continuous human playthrough.
+   Historical tables from the former weak-kit/early-stop bench have been removed because they describe obsolete profiles. */

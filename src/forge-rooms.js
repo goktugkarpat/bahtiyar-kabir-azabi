@@ -61,6 +61,19 @@
   function setupOnce(K) {
     if (K.forgeSetup) return; K.forgeSetup = true;
     var m = K.materials && K.materials.lava; if (m && m.isShaderMaterial) { m.fragmentShader = LAVA_FRAG; m.needsUpdate = true; }
+    // Cosmetic heat halos only. Keep the baked geometry, pooled sources and hazard art unchanged.
+    var heatSpr = K.spr, heatDec = K.dec, heatPut = K.putM;
+    K.spr = function(id,kind,x,y,z,w,h,col,a,phase,speed,ex) {
+      var gain = kind === K.SPR.pool ? 0.64 : kind === K.SPR.glow ? 0.78 : 1;
+      return heatSpr.call(K,id,kind,x,y,z,w,h,col,(a == null ? 1 : a)*gain,phase,speed,ex);
+    };
+    K.dec = function(id,cell,x,z,w,d,rot,col,alpha,mode,y) {
+      return heatDec.call(K,id,cell,x,z,w,d,rot,col,(alpha == null ? 1 : alpha)*(mode === 'glow' ? 0.62 : 1),mode,y);
+    };
+    K.putM = function(id,kind,key,m,tint,ao,aoH,cast) {
+      if(key === 'hot' && tint) { var s = Math.min(0.88,1.2/Math.max(.001,tint[0],tint[1],tint[2])); tint=[tint[0]*s,tint[1]*s,tint[2]*s]; }
+      return heatPut.call(K,id,kind,key,m,tint,ao,aoH,cast);
+    };
     // One mesh per material and room: small low props no longer split into a second, non-casting bucket (fewer draw calls in the main and the shadow pass).
     var putM = K.putM, MERGE = { iron: 1, rock: 1, stone: 1, wood: 1, wall: 1, slag: 1 };
     K.putM = function (id, kind, key, m, tint, ao, aoH, cast) { return putM.call(K, id, kind, key, m, tint, ao, aoH, cast == null && MERGE[key] ? true : cast); };

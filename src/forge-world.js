@@ -135,7 +135,10 @@
       fragmentShader: 'varying float vA;void main(){vec2 c=gl_PointCoord-.5;float a=exp(-dot(c,c)*18.)*vA;gl_FragColor=vec4(vec3(1.,.42,.1)*a,a);}' }); own.push(erM);
     var emberRain = new T.Points(erG, erM); emberRain.frustumCulled = false; emberRain.name = 'forge-ember-rain'; fxRoot.add(emberRain);
     var heatNow = .5, baseAtmo = w.atmosphereAt;
-    w.atmosphereAt = function (x, z) { var a = baseAtmo.apply(w, arguments); if (a) { if (a.exposure != null) a.exposure *= 1 + (heatNow - .5) * .12; if (a.bloom != null) a.bloom *= 1 + (heatNow - .5) * .3; } return a; };
+    w.atmosphereAt = function (x, z) { var a = baseAtmo.apply(w, arguments); if (a) { if (a.exposure != null) a.exposure *= 1 + (heatNow - .5) * .04; if (a.bloom != null) a.bloom *= 1 + (heatNow - .5) * .1; } return a; };
+    // Soot remains dark, but the scanned rock and forged surfaces retain visible grain.
+    w.materials.rock.color.multiplyScalar(1.40); w.materials.wall.color.multiplyScalar(1.12); w.materials.iron.color.multiplyScalar(1.08);
+    w.materials.floor.color.setHex(0xb3a89a);
     // Floor detail for the forge (this chapter's own material instances only): glowing heat cracks in the black stone and iron
     // floor plates, a cell-noise network that breathes with the heat waves; no textures, same meshes.
     var forgeClock = { value: 0 }, forgeHeat = { value: .5 }, forgeDetail = { value: 1 }, baseSetQuality = w.setQuality;
@@ -147,7 +150,7 @@
         if (prev) prev.call(this, sh, r); sh.uniforms.fcT = forgeClock; sh.uniforms.fcHeat = forgeHeat; sh.uniforms.fcDetail = forgeDetail;
         sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 fcW;').replace('#include <project_vertex>', '#include <project_vertex>\nfcW=(modelMatrix*vec4(transformed,1.)).xyz;');
         sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec3 fcW;uniform float fcT;uniform float fcHeat;uniform float fcDetail;vec2 fcH(vec2 p){p=vec2(dot(p,vec2(127.1,311.7)),dot(p,vec2(269.5,183.3)));return fract(sin(p)*43758.5453);}float fcC(vec2 p){vec2 i=floor(p),f=fract(p);float d1=8.,d2=8.;for(int y=-1;y<=1;y++)for(int x=-1;x<=1;x++){vec2 g=vec2(float(x),float(y));float d=length(g+fcH(i+g)-f);if(d<d1){d2=d1;d1=d;}else if(d<d2)d2=d;}return d2-d1;}')
-          .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\nif(fcDetail>.5){float up=dot(normal,normalize((viewMatrix*vec4(0.,1.,0.,0.)).xyz));float fl=smoothstep(.75,.95,up)*(1.-smoothstep(.15,.6,fcW.y));float c1=1.-smoothstep(0.,.032,fcC(fcW.xz*.55));float c2=1.-smoothstep(0.,.035,fcC(fcW.xz*1.7+3.1));float msk=smoothstep(.4,.95,.5+.5*sin(fcW.x*.23+sin(fcW.z*.19)*2.3)*sin(fcW.z*.14+fcT*.04));float pul=.75+.25*sin(fcT*1.3+fcW.x*.4+fcW.z*.3);totalEmissiveRadiance+=vec3(1.,.26,.04)*(c1*1.1+c2*.25)*msk*fl*pul*(.5+fcHeat);diffuseColor.rgb*=1.-(c1*.5+c2*.2)*fl;float vt=(1.-smoothstep(.25,.6,abs(up)))*(1.-smoothstep(.6,3.6,fcW.y));float c3=1.-smoothstep(0.,.028,fcC(vec2(fcW.x+fcW.z,fcW.y*1.6)*.8));totalEmissiveRadiance+=vec3(1.,.24,.035)*c3*vt*(.35+.65*msk)*pul*(.35+fcHeat)*1.6;totalEmissiveRadiance+=vec3(.5,.11,.02)*fl*msk*(.04+.05*fcHeat);}');
+          .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\nif(fcDetail>.5){float up=dot(normal,normalize((viewMatrix*vec4(0.,1.,0.,0.)).xyz));float fl=smoothstep(.75,.95,up)*(1.-smoothstep(.15,.6,fcW.y));float c1=1.-smoothstep(0.,.032,fcC(fcW.xz*.55));float c2=1.-smoothstep(0.,.035,fcC(fcW.xz*1.7+3.1));float msk=smoothstep(.4,.95,.5+.5*sin(fcW.x*.23+sin(fcW.z*.19)*2.3)*sin(fcW.z*.14+fcT*.04));float pul=.75+.25*sin(fcT*1.3+fcW.x*.4+fcW.z*.3);totalEmissiveRadiance+=vec3(1.,.26,.04)*(c1*.32+c2*.08)*msk*fl*pul*(.5+fcHeat);diffuseColor.rgb*=1.-(c1*.5+c2*.2)*fl;float vt=(1.-smoothstep(.25,.6,abs(up)))*(1.-smoothstep(.6,3.6,fcW.y));float c3=1.-smoothstep(0.,.028,fcC(vec2(fcW.x+fcW.z,fcW.y*1.6)*.8));totalEmissiveRadiance+=vec3(1.,.24,.035)*c3*vt*(.35+.65*msk)*pul*(.35+fcHeat)*.55;totalEmissiveRadiance+=vec3(.5,.11,.02)*fl*msk*(.04+.05*fcHeat);}');
       };
       if (k === 'iron') { var pob = m.onBeforeCompile; m.onBeforeCompile = function (sh, r) { pob.call(this, sh, r); sh.fragmentShader = sh.fragmentShader.replace('#include <alphamap_fragment>', '#include <alphamap_fragment>\nif(fcDetail>.5){vec2 fq=fcW.xz+fcW.y;float fsc=smoothstep(.96,1.,sin(dot(fq,vec2(31.,7.))+sin(fq.y*2.7)*5.))*smoothstep(.4,.8,fract(sin(dot(floor(fq*1.3),vec2(12.9,78.2)))*43758.5));float frs=smoothstep(.62,.92,(.5+.5*sin(fcW.x*3.9+sin(fcW.z*2.9+fcW.y)*2.))*(.5+.5*sin(fcW.z*3.3-fcW.y*1.7+sin(fcW.x*1.1)*3.)));float fht=1.-smoothstep(.2,1.6,fcW.y);diffuseColor.rgb=mix(diffuseColor.rgb,vec3(.3,.14,.06),frs*.45);diffuseColor.rgb*=mix(vec3(1.),vec3(1.12,.9,.85),fht*.6);diffuseColor.rgb+=vec3(.12,.11,.1)*fsc;}'); }; }
       m.customProgramCacheKey = function () { return (pk ? pk.call(this) : '') + '-forgecracks4' + k; }; m.needsUpdate = true;
@@ -174,10 +177,10 @@
           if (pour > .15) { var sx = L.x + L.W.side * (2.5 + 1.2 * pour), top = 6.1; L.stream.position.set(sx, top / 2, z); L.stream.scale.set(.12 + pour * .08, top, .12 + pour * .08); L.splash.position.set(sx, .12, z); L.splash.material.opacity = .45 * pour; L.sparks.position.set(sx, .1, z); }
           spM.uniforms.gain.value = Math.max(spM.uniforms.gain.value * .98, pour);
         } else if (L.kind === 'gate') {
-          var gv = Math.abs(p.z - L.z) < 60; L.m.visible = L.seam.visible = L.back.visible = gv; if (gv) L.back.material.opacity = .45 + .4 * heatNow; if (gv) L.seam.material.color.setRGB(.55 + .25 * heatNow + .1 * Math.sin(t * 2.3), .14 + .06 * heatNow, .03);
+          var gv = Math.abs(p.z - L.z) < 60; L.m.visible = L.seam.visible = L.back.visible = gv; if (gv) L.back.material.opacity = .18 + .14 * heatNow; if (gv) L.seam.material.color.setRGB(.55 + .25 * heatNow + .1 * Math.sin(t * 2.3), .14 + .06 * heatNow, .03);
         } else {
           var on = Math.abs(p.z - L.z) < 40; L.m.visible = on; if (!on) continue;
-          var br = .5 + .5 * Math.sin(t * 2.1 + L.phase); L.m.material.opacity = .18 + .5 * br * br; L.m.scale.x = L.m.scale.z * (1.05 + br * .2) / 1.05 * 4 / 3.4;
+          var br = .5 + .5 * Math.sin(t * 2.1 + L.phase); L.m.material.opacity = .12 + .24 * br * br; L.m.scale.x = L.m.scale.z * (1.05 + br * .2) / 1.05 * 4 / 3.4;
         }
       }
     };

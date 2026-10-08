@@ -2,17 +2,20 @@
 (function () {
   'use strict';
   const B = window.BABA = window.BABA || {};
-  const MAX_LEVEL = 13, VERSION = 2, SKILL_TREE = 4;   // SKILL_TREE 4: slim build tree (src/talent-tree.js, 16 nodes); saves of trees 1-2 get every point refunded in restore(), tree 3 maps Kor Mührü / Ölüm Çanı to the new actives and refunds removed nodes
-  const POINTS = Object.freeze([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+  const MAX_LEVEL = 13, VERSION = 2, ECONOMY_VERSION = 1, SKILL_TREE = 4;   // SKILL_TREE 4: slim build tree (src/talent-tree.js, 29 nodes); saves of trees 1-2 get every point refunded in restore(), tree 3 maps Kor Mührü / Ölüm Çanı to the new actives and refunds removed nodes
+  const POINTS = Object.freeze([0, 1, 2, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8]);
+  const PREVIOUS_THRESHOLDS = Object.freeze([0, 60, 160, 550, 1200, 2100, 3200, 4600, 6000, 7600, 11000, 13000, 15000]);
+  const QUEST_POINTS = 5;
   const LEGACY_THRESHOLDS = Object.freeze([0, 40, 100, 350, 850, 1450, 2000]);
-  // Expanded route: ~60 temple foes, ~59 coastal foes, then ~60 ruin/cave and ~60 forge foes.
+  // Complete authored routes earn about 1.9k / 6.6k / 12.4k / 20.3k / 30.8k cumulative XP.
+  // Full clears reach levels 4 / 6 / 8 / 10 / 13; rushed routes keep only modest chapter safety floors.
   // Three opening prisoners award 60 XP: the first seal clear grants level 2 and its first active skill point.
   // Final chapter skills arrive before the forge boss on a mostly-cleared route.
   // Active skill slots: right mouse, key 1, key 2, key 3 (round 7; saves with a 3-entry loadout load with the 4th slot empty / auto-filled).
   const SLOT_COUNT = 4;
-  const THRESHOLDS = Object.freeze([0, 60, 160, 550, 1200, 2100, 3200, 4600, 6000, 7600, 11000, 13000, 15000]);
+  const THRESHOLDS = Object.freeze([0, 60, 350, 1600, 3500, 6000, 9000, 12000, 15500, 18500, 22000, 26000, 30000]);
   const FINAL_CHAPTER = B.FINAL_CHAPTER = 5;   // chapter V (Son Mahkeme) ends the journey
-  const MILESTONES = Object.freeze([5, 8, 10, 13, MAX_LEVEL]);
+  const MILESTONES = Object.freeze([3, 5, 7, 9, 11]);
   const chapterId = n => Number.isInteger(n) && n >= 1 && n <= FINAL_CHAPTER ? n : 1;
   // Skill tree: 4 lines (columns), 3 tiers each (rows). A lower tier REPLACES its predecessor in the slot it is learned into.
   // line: 'cleave' heavy strike | 'roar' war cry | 'whirl' chain whirlwind | 'charge' dash. params feed combat.js, so numbers in
@@ -35,14 +38,14 @@
     { id: 'temper', name: KabirI18n.t('Kabir Balyozu'), line: 'cleave', tier: 3, level: 4, requires: 'cleave', branch: 0, cost: 44, cooldown: 8,
       params: { damage: 140, radius: 7, arc: 2.5, duration: .74, strike: .26, stun: 1.7 },
       description: KabirI18n.t('İleri sıçra, omuzdan gelen ağır çapraz darbeyle önünü yar. Zemin kara-mor yarıklarla çatlar; önündeki geniş koninin içindeki düşmanlar ezilir ve yere devrilir.'), delta: KabirI18n.t('Sıçrayışlı yer darbesi: çok geniş koni, en yüksek hasar, en uzun sersemletme.') },
-    { id: 'roar', name: KabirI18n.t('Kan Nidası'), line: 'roar', tier: 1, level: 2, requires: null, branch: 1, cost: 34, cooldown: 22,
-      params: { near: 6.5, far: 10, time: 11, guard: .75, steal: .04, stun: 1.35, fear: 2.2, damage: 0, waves: 1 },
+    { id: 'roar', name: KabirI18n.t('Kan Nidası'), line: 'roar', tier: 1, level: 2, requires: null, branch: 1, cost: 34, cooldown: 24,
+      params: { near: 6.5, far: 10, time: 8, guard: .75, steal: .025, stun: 1.35, fear: 2.2, damage: 0, waves: 1 },
       description: KabirI18n.t('Kanlı bir şok dalgasıyla düşmanları sars; kısa süre saldırırken can kazan.'), delta: '' },
-    { id: 'quake', name: KabirI18n.t('Savaş Narası'), line: 'roar', tier: 2, level: 4, requires: 'roar', branch: 1, cost: 40, cooldown: 20,
-      params: { near: 6.5, far: 9, time: 16, guard: .7, steal: .11, stun: 1, fear: 1.6, damage: 0, waves: 1 },
+    { id: 'quake', name: KabirI18n.t('Savaş Narası'), line: 'roar', tier: 2, level: 4, requires: 'roar', branch: 1, cost: 40, cooldown: 26,
+      params: { near: 6.5, far: 9, time: 10, guard: .7, steal: .045, stun: 1, fear: 1.6, damage: 0, waves: 1 },
       description: KabirI18n.t('Kısa ve sert bir savaş narası: öfken uzun sürer, vurdukça çok can çalar ve hasarın artar. Sarsma alanı küçüktür; bu biçim kavgada dayanmak içindir.'), delta: KabirI18n.t('Uzun öfke, yüksek can çalma, küçük alan.') },
     { id: 'chainstorm', name: KabirI18n.t('Kıyamet Narası'), line: 'roar', tier: 3, level: 4, requires: 'roar', branch: 1, cost: 56, cooldown: 34,
-      params: { near: 11, far: 16, time: 18, guard: .6, steal: .09, stun: 2.5, fear: 3.8, damage: 120, waves: 1, waveDamage: 0 },
+      params: { near: 11, far: 16, time: 12, guard: .6, steal: .04, stun: 2.5, fear: 3.8, damage: 120, waves: 1, waveDamage: 0 },
       description: KabirI18n.t('Tek, ağır bir kıyamet narası: yer yarılır, kemik ışığıyla kızıl köz parçacıkları savrulur ve geniş bir şok halkası düşmanları sarsıp yaralar; öfken çok uzun ve güçlü sürer.'), delta: KabirI18n.t('Tek ağır nara: en geniş alan, en çok hasar ve sersemletme, en uzun ve güçlü öfke.') },
     { id: 'whirl', name: KabirI18n.t('Zincir Kasırgası'), line: 'whirl', tier: 1, level: 2, requires: null, branch: 2, cost: 36, cooldown: 8,
       params: { ticks: 4, damage: 33, radius: 3.6, first: .06, gap: .28, duration: 1.3, stun: .6, stunLast: 1.15, pull: 0, fling: 0, grow: 1, turns: 2, move: .6 },
@@ -109,7 +112,7 @@
       out.push([KabirI18n.t('Temel hasar'), String(p.damage)], [KabirI18n.t('Alan'), num(p.radius) + ' m'], [KabirI18n.t('Sersemletme'), num(p.stun) + KabirI18n.t(' sn')]);
     } else if (s.line === 'roar') {
       out.push([KabirI18n.t('Sarsma alanı'), num(p.near) + ' m'], [KabirI18n.t('Korkutma alanı'), num(p.far) + ' m'], [KabirI18n.t('Temel hasar'), p.damage ? (p.waves > 1 ? p.damage + ' + ' + (p.waves - 1) + '×' + p.waveDamage : String(p.damage)) : '—'],
-        [KabirI18n.t('Öfke süresi'), num(p.time) + KabirI18n.t(' sn')], [KabirI18n.t('Hasar azaltma'), '%' + Math.round((1 - p.guard) * 100)], [KabirI18n.t('Can çalma'), '%' + Math.round(p.steal * 100)], [KabirI18n.t('Dalga'), String(p.waves)]);
+        [KabirI18n.t('Öfke süresi'), num(p.time) + KabirI18n.t(' sn')], [KabirI18n.t('Hasar azaltma'), '%' + Math.round((1 - p.guard) * 100)], [KabirI18n.t('Can çalma'), '%' + num(p.steal * 100)], [KabirI18n.t('Dalga'), String(p.waves)]);
     } else if (s.line === 'whirl') {
       out.push([KabirI18n.t('Temel vuruş'), p.ticks + '×' + p.damage + ' = ' + p.ticks * p.damage], [KabirI18n.t('Çember'), p.grow < 1 ? num(p.radius * p.grow) + ' → ' + num(p.radius) + ' m' : num(p.radius) + ' m'], [KabirI18n.t('Son vuruş sersemletmesi'), num(p.stunLast) + KabirI18n.t(' sn')]);
     } else if (s.line === 'hook') {
@@ -171,8 +174,8 @@
     item('grave-sword', KabirI18n.t('Mezar Nöbetçisi'), 'weapon', 2, 'uncommon', .06, 0, 0, 'sword', KabirI18n.t('Küller içinden çıkarılmış, hâlâ keskin bir demir kılıç.')),
     item('rust-axe', KabirI18n.t('Paslı Yemin Baltası'), 'weapon', 2, 'uncommon', .065, 0, 0, 'axe', KabirI18n.t('Sapına bozulmuş yeminler kazınmış bir savaş baltası.')),
     item('bone-spear', KabirI18n.t('Kemik Geçidi Mızrağı'), 'weapon', 3, 'uncommon', .085, 0, 0, 'spear', KabirI18n.t('Kemik halkalarla bağlanmış uzun bir mezar mızrağı.')),
-    item('executioner-axe', KabirI18n.t('Celladın Son Hükmü'), 'weapon', 4, 'boss', .12, 0, 0, 'axe', KabirI18n.t('Zincir Celladı’nın kırılmış mührünü taşıyan baltası. Garantili ganimet.')),
-    item('bell-spear', KabirI18n.t('Derinliklerin Suskunluğu'), 'weapon', 7, 'boss', .18, 0, 0, 'spear', KabirI18n.t('Çancının sustuğu anda karaya bıraktığı karanlık mızrak. Garantili ganimet.')),
+    item('executioner-axe', KabirI18n.t('Celladın Son Hükmü'), 'weapon', 3, 'boss', .12, 0, 0, 'axe', KabirI18n.t('Zincir Celladı’nın kırılmış mührünü taşıyan baltası. Garantili ganimet.')),
+    item('bell-spear', KabirI18n.t('Derinliklerin Suskunluğu'), 'weapon', 5, 'boss', .18, 0, 0, 'spear', KabirI18n.t('Çancının sustuğu anda karaya bıraktığı karanlık mızrak. Garantili ganimet.')),
     item('torn-chest', KabirI18n.t('Yırtık Mahkûm Yeleği'), 'chest', 1, 'common', 0, 0, 0, null, KabirI18n.t('Soğuk taşın üstünde parçalanmış bir deri yelek.')),
     item('grave-chest', KabirI18n.t('Kül Muhafızının Zırhı'), 'chest', 3, 'uncommon', 0, .05, 4, null, KabirI18n.t('Kararmış demir plakalar eski yaraları örter.')),
     item('coast-chest', KabirI18n.t('Boğulmuşun Zırhı'), 'chest', 5, 'rare', 0, .08, 5, null, KabirI18n.t('Tuzla aşınmış zırhın altında kalın, koyu deri vardır.')),
@@ -215,9 +218,9 @@
     item('starved-spear', KabirI18n.t('Açlığın Son Yemini'), 'weapon', 8, 'epic', .175, .015, 2, 'spear', KabirI18n.t('Yeraltında açlıktan ölmüş bir nöbetçinin mızrağı. Sapı kuru deriyle tekrar bağlanmış.'), 'bone-spear', 'rust'),
     item('cave-verdict-sword', KabirI18n.t('Kör Mağaranın Hükmü'), 'weapon', 9, 'epic', .21, 0, 1, 'sword', KabirI18n.t('Işıksız kayaların arasından keskin bir ağız olarak doğmuş siyah demir.'), 'grave-sword', 'blood'),
     item('broken-throne-axe', KabirI18n.t('Kırık Tahtın İntikamı'), 'weapon', 9, 'epic', .195, 0, 4, 'axe', KabirI18n.t('Çökmüş tahtın demirinden yapılmış balta. Keskinlik yerine sahibini hayatta tutar.'), 'executioner-axe', 'ash'),
-    item('hollow-crown-blade', KabirI18n.t('Tahtsız Kralın Son Sözü'), 'weapon', 10, 'boss', .25, 0, 3, 'sword', KabirI18n.t('Boş Kral düştüğünde bıraktığı kemik kabzalı kılıç. Artık hiçbir tahta yemin etmez.'), 'grave-sword', 'bone'),
+    item('hollow-crown-blade', KabirI18n.t('Tahtsız Kralın Son Sözü'), 'weapon', 7, 'boss', .25, 0, 3, 'sword', KabirI18n.t('Boş Kral düştüğünde bıraktığı kemik kabzalı kılıç. Artık hiçbir tahta yemin etmez.'), 'grave-sword', 'bone'),
     item('ruin-burial-chest', KabirI18n.t('Yıkıntının Kefen Zırhı'), 'chest', 7, 'epic', 0, .095, 2, null, KabirI18n.t('Harabe taşlarının altında çürümüş deri ve ağır demir, son bir kez bir araya getirildi.'), 'grave-chest', 'ash'),
-    item('warden-chainmail', KabirI18n.t('Mezar Ustasının Son Nöbeti'), 'chest', 8, 'epic', 0, .10, 3, null, KabirI18n.t('Harabe bekçisinin örülmüş karanlık zırhı. Pasın altında sağlam halkalar kalmış.'), 'coast-chest', 'rust'),
+    item('warden-chainmail', KabirI18n.t('Mezar Ustasının Son Nöbeti'), 'chest', 5, 'epic', 0, .10, 3, null, KabirI18n.t('Harabe bekçisinin örülmüş karanlık zırhı. Pasın altında sağlam halkalar kalmış.'), 'coast-chest', 'rust'),
     item('hollow-heart-chest', KabirI18n.t('İçi Boş Kalbin Kefeni'), 'chest', 9, 'epic', 0, .065, 8, null, KabirI18n.t('Kalp hizasındaki demir sökülmüş; geriye kalın, kanla sertleşmiş deri bırakılmış.'), 'torn-chest', 'blood'),
     item('sunless-vow-chest', KabirI18n.t('Güneşsiz Yeminin Zırhı'), 'chest', 10, 'epic', 0, .115, 1, null, KabirI18n.t('Işığa hiç çıkmamış demir plakalar ağır darbeleri keser; içinde bir umut saklamaz.'), 'coast-chest', 'bone'),
     item('forgotten-face-helm', KabirI18n.t('Unutulan Yüzün Demiri'), 'head', 7, 'epic', 0, .07, 1, null, KabirI18n.t('Yüz kısmı külle tıkanmış bir mezar miğferi. İçinde bir isim bulunmaz.'), 'iron-helm', 'ash'),
@@ -236,9 +239,9 @@
     item("ember-vow-axe", KabirI18n.t("Sönmeyen Yemin"), "weapon", 11, "epic", 0.255, 0, 0, "axe", KabirI18n.t("Kızgın ocak demirinden dövülmüş çentikli balta. Sahibinin yemini çoktan yanmış, metal kalmıştır."), "executioner-axe", "blood"),
     item("black-forge-sword", KabirI18n.t("Kara Dövmenin Hükmü"), "weapon", 11, "epic", 0.24, 0, 4, "sword", KabirI18n.t("Ağzına açılmış küçük deliklerde ocak isi birikir. Keskinlikten vazgeçip savaşçıyı ayakta tutar."), "grave-sword", "bone"),
     item("last-coal-spear", KabirI18n.t("Son Kömürün Duası"), "weapon", 12, "epic", 0.27, 0, 1, "spear", KabirI18n.t("Demir ucunun üzerinde dua yerine kül durur. Ocağın son kömürü bu silah için söndürülmüş."), "bell-spear", "rust"),
-    item("furnace-oath-axe", KabirI18n.t("Ocağın Son Hükmü"), "weapon", 12, "boss", 0.3, 0, 0, "axe", KabirI18n.t("Ocak Kalbi sustuğunda geriye bıraktığı ağır infaz baltası. Artık hiçbir ateşe hizmet etmez."), "executioner-axe", "blood"),
+    item("furnace-oath-axe", KabirI18n.t("Ocağın Son Hükmü"), "weapon", 9, "boss", 0.3, 0, 0, "axe", KabirI18n.t("Ocak Kalbi sustuğunda geriye bıraktığı ağır infaz baltası. Artık hiçbir ateşe hizmet etmez."), "executioner-axe", "blood"),
     item("slag-burial-chest", KabirI18n.t("Cüruf Kefeni"), "chest", 10, "epic", 0, 0.12, 2, null, KabirI18n.t("Soğuyan demir parçaları mezar derisine dikilmiş. Ölü bir ocağın ağırlığını taşır."), "coast-chest", "rust"),
-    item("ash-warden-chest", KabirI18n.t("Kül Nöbetinin Son Zırhı"), "chest", 11, "epic", 0, 0.125, 3, null, KabirI18n.t("Kül nöbetçisinin kararmış plakalarında yalnız son vardiyanın izleri kalmış."), "coast-chest", "ash"),
+    item("ash-warden-chest", KabirI18n.t("Kül Nöbetinin Son Zırhı"), "chest", 7, "epic", 0, 0.125, 3, null, KabirI18n.t("Kül nöbetçisinin kararmış plakalarında yalnız son vardiyanın izleri kalmış."), "coast-chest", "ash"),
     item("hollow-ember-chest", KabirI18n.t("İçi Boş Korun Kefeni"), "chest", 11, "epic", 0, 0.08, 9, null, KabirI18n.t("Kalın bezin içine kat kat deri dikilmiş. Demirden zayıf, bedeni ayakta tutmakta daha kuvvetli."), "torn-chest", "blood"),
     item("buried-fire-chest", KabirI18n.t("Gömülen Ateşin Demiri"), "chest", 12, "epic", 0, 0.135, 1, null, KabirI18n.t("Ateşte unutulup yeniden sertleşmiş plakalar. Sahibinin adı da onlar kadar kararmış."), "grave-chest", "bone"),
     item("last-shift-helm", KabirI18n.t("Son Vardiyanın Yüzü"), "head", 10, "epic", 0, 0.085, 1, null, KabirI18n.t("Siperindeki kurum hiç çıkmamış. Vardiya bitmiş ama miğfer sahibine dönememiş."), "iron-helm", "ash"),
@@ -251,13 +254,13 @@
     item("ash-road-boots", KabirI18n.t("Kül Yolunun Son Adımları"), "boots", 10, "epic", 0, 0.08, 2, null, KabirI18n.t("Tabanlarına kül ve çelik talaşı dolmuş. Geldikleri yol artık bir göçüğün altında."), "grave-boots", "ash"),
     item("last-worker-boots", KabirI18n.t("Son İşçinin Çizmeleri"), "boots", 11, "epic", 0, 0.055, 6, null, KabirI18n.t("Yırtık tabanları kat kat deriyle kapanmış. Sahibi ocağın son sesini bunlarla duymuş."), "worn-boots", "blood"),
     item("dead-forge-steps", KabirI18n.t("Ölü Dövmenin İzleri"), "boots", 12, "epic", 0, 0.1, 1, null, KabirI18n.t("Demir uçlarında kapanmış dökümhanenin işaretleri bulunur. Hiçbir kapı artık bu izleri tanımaz."), "tide-boots", "rust")
-    ,item('warden-verdict-helm', KabirI18n.t('Harabe Yargıcının Son Yüzü'), 'head', 8, 'boss', 0, .065, 3, null, KabirI18n.t('Harabelerin ikinci muhafızının kemik perçinli hüküm miğferi. Bir daha aynı hüküm verilmeyecek.'), 'iron-helm', 'bone')
+    ,item('warden-verdict-helm', KabirI18n.t('Harabe Yargıcının Son Yüzü'), 'head', 5, 'boss', 0, .065, 3, null, KabirI18n.t('Harabelerin ikinci muhafızının kemik perçinli hüküm miğferi. Bir daha aynı hüküm verilmeyecek.'), 'iron-helm', 'bone')
     /* ajan:quests */ ,...(Array.isArray(B.QuestItemSpecs) ? B.QuestItemSpecs.map(spec => item.apply(null, spec)) : []) /* /ajan:quests */
-    ,item('ash-warden-grasp', KabirI18n.t('Kül Muhafızının Son Pençesi'), 'hands', 11, 'boss', 0, .085, 3, null, KabirI18n.t('İkinci ocak muhafızının kan çizgili döküm eldiveni. Tutsakları ocağa sürükleyen parmaklar artık sessiz.'), 'salt-gauntlets', 'blood')
+    ,item('ash-warden-grasp', KabirI18n.t('Kül Muhafızının Son Pençesi'), 'hands', 7, 'boss', 0, .085, 3, null, KabirI18n.t('İkinci ocak muhafızının kan çizgili döküm eldiveni. Tutsakları ocağa sürükleyen parmaklar artık sessiz.'), 'salt-gauntlets', 'blood')
     /* chapter V — Son Mahkeme (finale) */
-    ,item('last-verdict-blade', KabirI18n.t('Son Hükmün Kırığı'), 'weapon', 13, 'boss', .34, 0, 4, 'sword', KabirI18n.t('Kara Kadı’nın kırılan hüküm kılıcı. Ağzında dört efendinin mührü yan yana kararmış; artık kimseyi mahkûm etmez.'), 'grave-sword', 'blood')
-    ,item('verdict-warden-helm', KabirI18n.t('Hüküm Bekçisinin Kör Yüzü'), 'head', 13, 'boss', 0, .1, 5, null, KabirI18n.t('Göz yarıkları zincirle dikilmiş bir yargı miğferi. Bekçi hiçbir sanığın yüzüne bakmazdı.'), 'iron-helm', 'blood')
-    ,item('verdict-warden-chest', KabirI18n.t('Hüküm Bekçisinin Zincir Cübbesi'), 'chest', 13, 'boss', 0, .14, 6, null, KabirI18n.t('Zincir halkaların arasına mahkûmların adları işlenmiş ağır cübbe. Adlar artık serbest; demir kaldı.'), 'coast-chest', 'rust')
+    ,item('last-verdict-blade', KabirI18n.t('Son Hükmün Kırığı'), 'weapon', 11, 'boss', .34, 0, 4, 'sword', KabirI18n.t('Kara Kadı’nın kırılan hüküm kılıcı. Ağzında dört efendinin mührü yan yana kararmış; artık kimseyi mahkûm etmez.'), 'grave-sword', 'blood')
+    ,item('verdict-warden-helm', KabirI18n.t('Hüküm Bekçisinin Kör Yüzü'), 'head', 9, 'boss', 0, .1, 5, null, KabirI18n.t('Göz yarıkları zincirle dikilmiş bir yargı miğferi. Bekçi hiçbir sanığın yüzüne bakmazdı.'), 'iron-helm', 'blood')
+    ,item('verdict-warden-chest', KabirI18n.t('Hüküm Bekçisinin Zincir Cübbesi'), 'chest', 9, 'boss', 0, .14, 6, null, KabirI18n.t('Zincir halkaların arasına mahkûmların adları işlenmiş ağır cübbe. Adlar artık serbest; demir kaldı.'), 'coast-chest', 'rust')
     ,item('void-oath-axe', KabirI18n.t('Boşluğa Düşen Yemin'), 'weapon', 13, 'epic', .29, 0, 3, 'axe', KabirI18n.t('Mahkemenin kenarından boşluğa düşmüş bir gardiyan baltası. Ağzı hâlâ zincir kırar.'), 'executioner-axe', 'ash')
     ,item('chain-court-spear', KabirI18n.t('Zincir Mahkemesinin Mızrağı'), 'weapon', 13, 'epic', .285, .015, 3, 'spear', KabirI18n.t('Sanıkları kürsüye çeken zincir mızrak. Ucunda kurumuş kan ve kırık bir mühür var.'), 'bell-spear', 'blood')
     ,item('sentence-wraps', KabirI18n.t('Okunmamış Hükmün Sargıları'), 'hands', 13, 'epic', 0, .08, 6, null, KabirI18n.t('Hükmü okunmadan ölenlerin sargıları. Parmaklarda mürekkep değil, kül var.'), 'rag-wraps', 'ash')
@@ -287,8 +290,8 @@
       damage: def.damage * factor, defense: def.defense * factor, hp: Math.round(def.hp * factor) });
   }
   const slots = Object.freeze(['weapon', 'head', 'chest', 'hands', 'boots']);
-  // Drop tuning (round 6): ordinary foes 9 %, elites 35 %, guaranteed after 14 dry kills; see lootPick().
-  const LOOT_NORMAL = 18, LOOT_ELITE = 45, LOOT_PITY = 14, LOOT_JUNK = .12;
+  // Ordinary foes 9%, elites 28%, useful-item pity after 20 dry kills. Signatures are independent.
+  const LOOT_NORMAL = 9, LOOT_ELITE = 28, LOOT_PITY = 20;
   const XP = Object.freeze({ prisoner: 20, guard: 25, cultist: 23, stalker: 23, carrier: 25 });
   const hash = value => { let h = 2166136261; for (let n = 0; n < value.length; n++) h = Math.imul(h ^ value.charCodeAt(n), 16777619); return h >>> 0; };
   const result = (ok, reason) => ({ ok, reason: reason || '' });
@@ -314,23 +317,26 @@
       equipment: {}, groundLoot: [], revision: 0, chapter: chapterId(options.chapter), completed: [] };
     let lootSeed = 0, lootDry = 0, lootSeen = [], lootIdentities = new Set(), lootSlots = [], signatureClaims = Object.create(null), rewards = Object.create(null), serial = 0, statCache = null, statRevision = -1;
     // ajan:quests — permanent quest boons (skill tokens, flask capacity, small vitality / damage) travel with the profile.
-    let boons = { points: 0, flasks: 0, hp: 0, damage: 0, claimed: [] };
+    let boons = { points: 0, flasks: 0, hp: 0, damage: 0, claimed: [] }, pointCredit = 0;
+    const pointCapacity = () => B.TalentTree ? B.TalentTree.legalCapacity : 17;
+    const totalPointBudget = () => Math.min(pointCapacity(), POINTS[state.level - 1] + boons.points + pointCredit);
     function cleanBoons(raw) {
       const b = raw && typeof raw === 'object' ? raw : {}, n = (v, lo, hi) => Number.isFinite(v) ? Math.max(lo, Math.min(hi, v)) : 0;
-      return { points: Math.round(n(b.points, 0, 8)), flasks: Math.round(n(b.flasks, 0, 3)), hp: Math.round(n(b.hp, -40, 40)), damage: n(b.damage, -.2, .2),
-        claimed: (Array.isArray(b.claimed) ? b.claimed : []).filter(k => typeof k === 'string' && k.length < 80).slice(0, 120) };
+      return { points: Math.round(n(b.points, 0, QUEST_POINTS)), flasks: Math.round(n(b.flasks, 0, 3)), hp: Math.round(n(b.hp, -40, 40)), damage: n(b.damage, -.2, .2),
+        claimed: (Array.isArray(b.claimed) ? b.claimed : []).filter((k, i, all) => typeof k === 'string' && k.length < 80 && all.indexOf(k) === i).slice(0, 120) };
     }
     function grantQuest(key, reward) {
-      if (typeof key !== 'string' || !key || boons.claimed.includes(key)) return null;
-      reward = reward || {}; boons.claimed.push(key);
+      if (typeof key !== 'string' || !key || key.length >= 80 || boons.claimed.includes(key)) return null;
+      const oldLevel = state.level;
+      reward = reward && typeof reward === 'object' ? reward : {}; boons.claimed.push(key);
       const gained = { key, items: [] };
-      if (reward.points) { boons.points = Math.min(8, boons.points + reward.points); gained.points = reward.points; }
-      if (reward.flasks) { boons.flasks = Math.min(3, boons.flasks + reward.flasks); gained.flasks = reward.flasks; }
-      if (reward.hp) { boons.hp = Math.max(-40, Math.min(40, boons.hp + reward.hp)); gained.hp = reward.hp; }
-      if (reward.damage) { boons.damage = Math.max(-.2, Math.min(.2, boons.damage + reward.damage)); gained.damage = reward.damage; }
-      if (reward.xp) { const before = state.xp; state.xp = Math.min(THRESHOLDS[MAX_LEVEL - 1], state.xp + reward.xp); gained.xp = state.xp - before; }
+      if (Number.isFinite(reward.points) && reward.points > 0) { const before = boons.points; boons.points = Math.min(QUEST_POINTS, boons.points + Math.floor(reward.points)); gained.points = boons.points - before; }
+      if (Number.isFinite(reward.flasks) && reward.flasks > 0) { const before = boons.flasks; boons.flasks = Math.min(3, boons.flasks + Math.floor(reward.flasks)); gained.flasks = boons.flasks - before; }
+      if (Number.isFinite(reward.hp)) { const before = boons.hp; boons.hp = Math.max(-40, Math.min(40, boons.hp + Math.round(reward.hp))); gained.hp = boons.hp - before; }
+      if (Number.isFinite(reward.damage)) { const before = boons.damage; boons.damage = Math.max(-.2, Math.min(.2, boons.damage + reward.damage)); gained.damage = boons.damage - before; }
+      if (Number.isFinite(reward.xp) && reward.xp > 0) { const before = state.xp; state.xp = Math.min(THRESHOLDS[MAX_LEVEL - 1], state.xp + Math.floor(reward.xp)); gained.xp = state.xp - before; }
       for (const id of [].concat(reward.item || [])) { const entry = catalog[id] && !state.inventory.some(i => i.id === id) ? addItem(id, 'quest-' + id) : null; if (entry) gained.items.push(entry); }
-      recalculate(); changed('progression', Object.assign({ quest: true, level: state.level, points: state.points }, gained));
+      recalculate(); changed('progression', Object.assign({}, gained, { quest: true, level: state.level, points: state.points, levels: state.level - oldLevel, earnedPoints: POINTS[state.level - 1] - POINTS[oldLevel - 1] }));
       if (gained.items.length) changed('loot', { items: gained.items, boss: false, chapter: state.chapter, quest: true });
       return gained;
     }
@@ -338,7 +344,7 @@
     function recalculate() {
       state.level = 1;
       for (let i = 1; i < MAX_LEVEL; i++) if (state.xp >= THRESHOLDS[i]) state.level = i + 1;
-      state.points = Math.max(0, POINTS[state.level - 1] + boons.points - state.learned.length);
+      state.points = Math.max(0, totalPointBudget() - state.learned.length);
     }
     function addItem(id, uid, roll = 0) {
       if (!catalog[id]) return null;
@@ -351,13 +357,13 @@
       state.level = 1; state.xp = 0; state.points = 0; state.learned = []; state.loadout = [null, null, null, null];
       state.inventory = []; state.groundLoot = []; state.equipment = { weapon: null, head: null, chest: null, hands: null, boots: null };
       lootSeed = Math.floor(Math.random() * 4294967296) >>> 0; lootDry = 0; lootSeen = []; lootIdentities = new Set(); lootSlots = []; signatureClaims = Object.create(null);
-      state.chapter = 1; state.completed = []; rewards = Object.create(null); serial = 0; boons = cleanBoons(null);
+      state.chapter = 1; state.completed = []; rewards = Object.create(null); serial = 0; boons = cleanBoons(null); pointCredit = 0;
       state.equipment.weapon = addItem('dull-sword').uid;
       state.equipment.chest = addItem('torn-chest').uid;
       changed(); return state;
     }
     function snapshot() {
-      return { version: VERSION, level: state.level, xp: state.xp, points: state.points,
+      return { version: VERSION, economyVersion: ECONOMY_VERSION, pointCredit, level: state.level, xp: state.xp, points: state.points,
         learned: state.learned.slice(), loadout: state.loadout.slice(), inventory: state.inventory.map(i => ({ uid: i.uid, id: i.id, roll: i.roll || 0 })),
         equipment: Object.assign({}, state.equipment), chapter: state.chapter, completed: state.completed.slice(),
         rewards: Object.keys(rewards), serial, boons: { points: boons.points, flasks: boons.flasks, hp: boons.hp, damage: boons.damage, claimed: boons.claimed.slice() }, lootSeed, lootDry, lootSeen: lootSeen.slice(-40), lootIdentities:Array.from(lootIdentities), lootSlots:lootSlots.slice(-6), signatureClaims:Object.assign({},signatureClaims),
@@ -373,16 +379,23 @@
       lootSlots=(Array.isArray(profile.lootSlots)?profile.lootSlots:[]).filter(slot=>slots.includes(slot)).slice(-6);
       signatureClaims=Object.create(null);if(profile.signatureClaims&&typeof profile.signatureClaims==='object')for(const key of Object.keys(profile.signatureClaims)){const id=profile.signatureClaims[key];if(/^[1-5]:/.test(key)&&key.length<240&&signatureIds.has(id))signatureClaims[key]=id;}
       let restoredXp = int(profile.xp, 0);
-      if (profile.version === 1) {
-        // Preserve earned levels in older two-chapter saves, using XP rather than a claimed level/point count.
+      const legacyEconomy = profile.economyVersion !== ECONOMY_VERSION;
+      if (legacyEconomy) {
+        // Map earned XP, never a claimed level/point count. New snapshots skip this exactly once.
+        const old = profile.version === 1 ? LEGACY_THRESHOLDS : PREVIOUS_THRESHOLDS;
         let tier = 0;
-        for (let n = 1; n < LEGACY_THRESHOLDS.length; n++) if (restoredXp >= LEGACY_THRESHOLDS[n]) tier = n;
-        const fraction = tier < LEGACY_THRESHOLDS.length - 1 ? (restoredXp - LEGACY_THRESHOLDS[tier]) / (LEGACY_THRESHOLDS[tier + 1] - LEGACY_THRESHOLDS[tier]) : 0;
-        restoredXp = Math.floor(THRESHOLDS[tier] + fraction * (THRESHOLDS[tier + 1] - THRESHOLDS[tier]));
+        for (let n = 1; n < old.length; n++) if (restoredXp >= old[n]) tier = n;
+        const fraction = tier < old.length - 1 ? Math.min(1, (restoredXp - old[tier]) / (old[tier + 1] - old[tier])) : 0;
+        restoredXp = Math.floor(THRESHOLDS[tier] + fraction * (tier < MAX_LEVEL - 1 ? THRESHOLDS[tier + 1] - THRESHOLDS[tier] : 0));
       }
-      boons = cleanBoons(profile.boons);
+      boons = cleanBoons(profile.boons); pointCredit = 0;
       state.xp = Math.min(THRESHOLDS[MAX_LEVEL - 1], restoredXp); recalculate();
-      const learned = new Set(B.TalentTree ? B.TalentTree.validate(profile.learned, state.level, boons.points) : []);
+      if (legacyEconomy && B.TalentTree) {
+        const previousBonus = Math.min(8, int(profile.boons && profile.boons.points, 0));
+        const legal = B.TalentTree.validate(profile.learned, state.level, 0, Math.min(pointCapacity(), state.level - 1 + previousBonus));
+        pointCredit = Math.max(0, legal.length - POINTS[state.level - 1] - boons.points);
+      } else pointCredit = Math.min(pointCapacity(), int(profile.pointCredit, 0));
+      const learned = new Set(B.TalentTree ? B.TalentTree.validate(profile.learned, state.level, boons.points + pointCredit) : []);
       if (!B.TalentTree) for (const skill of skills) if (learned.size < POINTS[state.level - 1] + boons.points && Array.isArray(profile.learned) && profile.learned.includes(skill.id) && state.level >= skill.level &&
         (!skill.requires || learned.has(skill.requires))) learned.add(skill.id);
       state.learned = B.TalentTree ? Array.from(learned) : Array.isArray(profile.learned) ? profile.learned.filter((id, n, list) => learned.has(id) && list.indexOf(id) === n) : []; recalculate();
@@ -431,7 +444,7 @@
     }
     // Talent tree 3: give one node back (when the rest of the tree stays legal) or every node at once. The caller decides when (out of combat).
     function refund(id) {
-      if (!B.TalentTree || !B.TalentTree.canRefund(state.learned, id, state.level, boons.points)) return result(false, KabirI18n.t('Bu düğüme ya da harcanan puan sayısına bağlı başka düğümler var; önce onları geri al.'));
+      if (!B.TalentTree || !B.TalentTree.canRefund(state.learned, id, state.level, boons.points + pointCredit)) return result(false, KabirI18n.t('Bu düğüme ya da harcanan puan sayısına bağlı başka düğümler var; önce onları geri al.'));
       const skill = skillIndex[id];
       state.learned = state.learned.filter(x => x !== id); recalculate();
       state.loadout = state.loadout.map(o => o !== id ? o : skill && skill.requires && state.learned.includes(skill.requires) ? skill.requires : null);
@@ -537,15 +550,18 @@
       }
       const scored = available.filter(def => !taken(def.id)).map(def => {
         const d = resolveItem({ id: def.id, roll });   // judged with the craftsmanship this very drop will have
-        return { def, up: slotValue(d, contexts[def.slot]) > best[def.slot] + .00001 };
+        const own = state.inventory.map(resolveItem).filter(o => o && o.slot === def.slot && o.level <= state.level);
+        const power = B.GearPowers && B.GearPowers.text && B.GearPowers.text[def.id];
+        const newType = def.slot === 'weapon' && !own.some(o => o.type === def.type);
+        const ctx = contexts[def.slot];
+        const trade = def.slot !== 'weapon' && !own.some(o => Math.min(184, ctx.hp + o.hp) >= Math.min(184, ctx.hp + d.hp) && Math.min(.30, ctx.defense + o.defense) >= Math.min(.30, ctx.defense + d.defense));
+        return { def, up: slotValue(d, ctx) > best[def.slot] + .00001, alternative: !!power || newType || trade };
       });
       if (!scored.length) return null;
       const ups = scored.filter(c => c.up);
-      // Roughly one drop in five may be a lesser piece (and only when the hero has none better on offer).
-      const wantJunk = ((seed >>> 20) % 100) / 100 < LOOT_JUNK;
-      const lesser = scored.filter(c => !c.up);
-      const choices = ups.length ? (wantJunk && lesser.length ? lesser : ups) : scored;
-      if (!ups.length && ((seed >>> 24) % 3)) return null;   // nothing to gain: two of three such drops simply do not happen
+      const alternatives = scored.filter(c => !c.up && c.alternative);
+      const choices = ups.concat(alternatives);
+      if (!choices.length) return null;   // pity waits for a meaningful reward rather than creating junk
       let total = 0; const weights = choices.map(c => { const w = (1 + .3 * qualities[c.def.rarity].rank) * (1 + .35 * need[c.def.slot]) * (c.up ? 3 : 1) * (lootSlots[lootSlots.length-1] === c.def.slot ? .18 : lootSlots.slice(-3).includes(c.def.slot) ? .6 : 1); total += w; return w; });
       let r = (((seed >>> 8) & 0xfff) / 4096) * total;
       for (let n = 0; n < choices.length; n++) { r -= weights[n]; if (r < 0) return choices[n].def.id; }
@@ -616,7 +632,7 @@
       recalculate();
       const dropped = loot(enemyId, type, boss, chapter, elite || type === 'ruinwarden' || type === 'ashwarden' || type === 'verdictwarden', position);
       const reward = { xp: state.xp - before, levels: state.level - oldLevel, items: dropped, duplicate: false,
-        level: state.level, points: state.points, enemyId: String(enemyId), chapter };
+        level: state.level, points: state.points, earnedPoints: POINTS[state.level - 1] - POINTS[oldLevel - 1], enemyId: String(enemyId), chapter };
       changed('progression', reward); return reward;
     }
     function collectLoot(uid) {
@@ -642,8 +658,9 @@
       collectLoot, unequip, isUpgrade, bagLimit: Infinity, bagFull: () => state.inventory.length >= state.bagLimit, debugLootPick: lootPick,   // ajan:bossloot: the exclusivity check scans the general picker
       itemForSlot: slot => { const entry = state.inventory.find(i => i.uid === state.equipment[slot]); return resolveItem(entry); },
       nextLevelXp: () => state.level < MAX_LEVEL ? THRESHOLDS[state.level] : null });
+    Object.defineProperty(state, 'totalPointBudget', { get: totalPointBudget });
     reset(); state.chapter = chapterId(options.chapter); if (options.profile) restore(options.profile);
     return state;
   }
-  B.Progression = Object.freeze({ create, skills, lines: LINES, skillsByLine, skillFacts, skillAccess, SKILL_TREE, items, catalog, bossSignatures, qualities, resolveItem, slots, MAX_LEVEL, VERSION, thresholds: THRESHOLDS, earnedPoints: POINTS, milestones: MILESTONES, FINAL_CHAPTER });
+  B.Progression = Object.freeze({ create, skills, lines: LINES, skillsByLine, skillFacts, skillAccess, SKILL_TREE, items, catalog, bossSignatures, qualities, resolveItem, slots, MAX_LEVEL, VERSION, ECONOMY_VERSION, QUEST_POINTS, thresholds: THRESHOLDS, earnedPoints: POINTS, milestones: MILESTONES, FINAL_CHAPTER });
 }());

@@ -118,7 +118,7 @@
     const T = B.TalentTree, P = B.Progression, nodes = T.nodes(), learned = state.learned;
     const sel = T.get(h.selected) || nodes[0];
     const game = h.game, inCombat = !!(game && game.talents && game.talents.inCombat && game.talents.inCombat());
-    const spent = learned.length, bonus = state.boons ? (state.boons().points || 0) : 0, total = T.MAX_POINTS + bonus;
+    const spent = learned.length, bonus = state.boons ? (state.boons().points || 0) : 0, total = Number.isFinite(state.totalPointBudget) ? state.totalPointBudget : T.MAX_POINTS + bonus;
     const fresh = seen ? learned.filter(id => !seen.includes(id)) : []; seen = learned.slice();
     const pre = preview ? T.presets.find(x => x.id === preview) : null;
     const slotOf = id => state.loadout.indexOf(id);

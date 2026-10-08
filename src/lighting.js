@@ -824,15 +824,21 @@
       directorStep(dt, time, game, a);
       corpseClock -= dt; if (corpseClock <= 0 && L && L.setCorpses) { corpseClock = .5; flyCorpses(game); }
       var k = ready ? 1 - Math.exp(-dt * 2.2) : 1; ready = true;
+      // Diffuse fill reveals the stone and silhouettes without lifting emissive fire.
+      // Outdoor rooms receive more sky bounce; enclosed foundry halls keep their contrast.
+      var ch = B.ActiveChapter || 1, wing = ch === 4 && Math.abs(p.x) > 20;
+      var diffuse = ch === 2 ? 1.16 : ch === 5 ? 1.12 : ch === 4 ? (wing ? 1.20 : 1.14) : 1.14;
+      var bounce = ch === 2 ? 1.16 : ch === 5 ? 1.12 : ch === 4 ? (wing ? 1.22 : 1.15) : 1.15;
+      var edge = ch === 2 || ch === 5 ? .91 : wing ? .92 : ch === 4 ? 1 : .95;
       // Fog, ambient and key/rim.
       if (!scene.background || !scene.background.isColor) scene.background = new T.Color();
       scene.background.lerp(a.fog, k);
       if (scene.fog) { scene.fog.color.copy(scene.background); scene.fog.density += (a.fogDensity * LOOK_TUNE.fogGain * (cfgRef.fog || .02) / .02 - scene.fog.density) * k; }
-      hemi.color.lerp(a.sky, k); hemi.groundColor.lerp(a.ground, k); hemi.intensity += (a.hemi * LOOK_TUNE.ambientLift - hemi.intensity) * k;
+      hemi.color.lerp(a.sky, k); hemi.groundColor.lerp(a.ground, k); hemi.intensity += (a.hemi * LOOK_TUNE.ambientLift * diffuse - hemi.intensity) * k;
       moon.color.lerp(a.key, k); moon.intensity += (a.keyI - moon.intensity) * k;
       rim.color.lerp(a.rim, k); rim.intensity += (a.rimI - rim.intensity) * k;
       keyDir.lerp(tmpV.fromArray(a.keyDir), k);
-      scene.environmentIntensity += (a.env - scene.environmentIntensity) * k;
+      scene.environmentIntensity += (a.env * bounce - scene.environmentIntensity) * k;
       // Mist.
       var M = FOG.karaMist.value;
       M[0].y += (a.mistA * LOOK_TUNE.mistGain - M[0].y) * k; M[0].z += (a.mistH - M[0].z) * k; M[0].w = reducedMotion ? 0 : time;
@@ -844,11 +850,11 @@
       tmpC.copy(a.charRim).multiplyScalar(a.charRimI);
       RIM.karaRimColor.value.lerp(tmpV.set(tmpC.r, tmpC.g, tmpC.b), k);
       RIM.karaRimParams.value.set(2.3, 1, a.rimWrap * preset.rimWrap, 0);
-      var fl = a.charFill; RIM.karaFill.value.set(fl, fl * .95, fl * 1.05);
+      var fl = a.charFill * (ch === 4 ? 1.05 : 1.1); RIM.karaFill.value.set(fl, fl * .95, fl * 1.05);
       // Grade.
       grade.lift.lerp(a.lift, k); grade.gain.lerp(a.gain, k); grade.saturation += (a.sat - grade.saturation) * k;
       grade.shadowTint.lerp(a.shadowTint, k); grade.highTint.lerp(a.highTint, k); grade.contrast += (a.contrast - grade.contrast) * k;
-      grade.vignette += (a.vignette - grade.vignette) * k; grade.vignetteColor.lerp(a.vigColor, k);
+      grade.vignette += (a.vignette * edge - grade.vignette) * k; grade.vignetteColor.lerp(a.vigColor, k);
       grade.bloom += (a.bloom - grade.bloom) * k; grade.bloomTint.lerp(a.bloomTint, k);
       grade.exposure = (cfgRef.exposure || 1.15) * a.exposure * LOOK_TUNE.exposureLift;
       var fx = p.x, fz = p.z - 2;

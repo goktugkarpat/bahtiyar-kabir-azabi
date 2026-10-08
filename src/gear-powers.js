@@ -78,7 +78,14 @@
       if (look) look.burst(x, z, r, kind);
       for (const e of enemies) { if (!alive(e) || dist(e, x, z) > r + (e.radius || .5) * .5) continue; const res = strike(e, amount, Math.atan2(e.x - x, e.z - z)); if (extra && res && !res.killed) extra(e); }
     }
-    function dot(e, total, seconds, kind) { const d = dots.get(e); dots.set(e, { dps: total / seconds + (d && d.time > 0 ? d.dps * .5 : 0), time: seconds, kind, tick: .5 }); }
+    function dot(e, total, seconds, kind, resolved = false) {
+      if (!Number.isFinite(total) || !(total > 0) || !(seconds > 0)) return;
+      const bag = dots.get(e) || { raw: null, resolved: null, dps: 0, time: 0, kind, tick: .5 }, key = resolved ? 'resolved' : 'raw', old = bag[key];
+      bag[key] = { dps: total / seconds + (old && old.time > 0 ? old.dps * .5 : 0), time: seconds, kind };
+      bag.dps = (bag.raw ? bag.raw.dps : 0) + (bag.resolved ? bag.resolved.dps : 0);
+      bag.time = Math.max(bag.raw ? bag.raw.time : 0, bag.resolved ? bag.resolved.time : 0); bag.kind = kind;
+      dots.set(e, bag);
+    }
     const base = { outgoing: talents.outgoing, onHit: talents.onHit, onKill: talents.onKill, onDodge: talents.onDodge, incoming: talents.incoming, update: talents.update, reset: talents.reset };
     talents.outgoing = function (e, damage, attack) {
       let d = base.outgoing(e, damage, attack);
@@ -110,17 +117,17 @@
       try {
         hits++;
         const face = Math.atan2(e.x - player.x, e.z - player.z);
-        if (has('executioner-axe') && hits % 4 === 0 && !killed) { P('executioner-axe'); dot(e, damage * .5, 4, 'bleed'); if (look) look.burst(e.x, e.z, 1.4, 'blood'); sound('talentBlood', { x: e.x, z: e.z, volume: .7 }); }
+        if (has('executioner-axe') && hits % 4 === 0 && !killed) { P('executioner-axe'); dot(e, damage * .5, 4, 'bleed', true); if (look) look.burst(e.x, e.z, 1.4, 'blood'); sound('talentBlood', { x: e.x, z: e.z, volume: .7 }); }
         if (has('bell-spear') && Math.random() < .08) { P('bell-spear'); sound('talentKnell', { x: e.x, z: e.z, volume: .6 }); burstHit(e.x, e.z, 2.6, 16, 'chain', o => stunEnemy(o, .4, 'heavy')); }   // combat bench: 15 % / .6 s stun cut fights by 56 % (A/B), now 8 % / .4 s
         if (has('furnace-oath-axe') && hits % 5 === 0) { P('furnace-oath-axe'); sound('talentBurst', { x: e.x, z: e.z }); ctx.emit && ctx.emit('impact', { x: e.x, z: e.z, strength: .6, radius: 2.6 }); burstHit(e.x, e.z, 2.6, 24, 'fire', o => dot(o, 18, 3, 'burn')); }
-        if (has('ash-warden-grasp') && hits % 3 === 0 && !killed) { P('ash-warden-grasp'); dot(e, Math.max(10, damage * .35), 3, 'burn'); if (look) look.mark(e, 'burn'); sound('talentIgnite', { x: e.x, z: e.z, volume: .5 }); }
+        if (has('ash-warden-grasp') && hits % 3 === 0 && !killed) { P('ash-warden-grasp'); dot(e, Math.max(10, damage * .35), 3, 'burn', true); if (look) look.mark(e, 'burn'); sound('talentIgnite', { x: e.x, z: e.z, volume: .5 }); }
         if (primed && has('hearth-forged-gauntlets')) { P('hearth-forged-gauntlets'); primed = false; sound('talentBurst', { x: e.x, z: e.z }); burstHit(e.x, e.z, 2.4, 28, 'fire'); }
         if (has('black-tide-sword') && hits % 6 === 0) { P('black-tide-sword');
           const x = player.x + Math.sin(player.face) * 2, z = player.z + Math.cos(player.face) * 2;
           sound('talentChain', { x, z, volume: .7 }); burstHit(x, z, 2.6, 26, 'chain');
         }
         // ajan:bossloot
-        if (attack.critical && has('headsman-hood') && !killed) { P('headsman-hood'); dot(e, damage * .4, 3, 'bleed'); if (look) look.burst(e.x, e.z, 1.2, 'blood'); sound('talentBlood', { x: e.x, z: e.z, volume: .6 }); }
+        if (attack.critical && has('headsman-hood') && !killed) { P('headsman-hood'); dot(e, damage * .4, 3, 'bleed', true); if (look) look.burst(e.x, e.z, 1.2, 'blood'); sound('talentBlood', { x: e.x, z: e.z, volume: .6 }); }
         if (hits % 6 === 0 && has('hook-chain-gauntlets') && !killed) { P('hook-chain-gauntlets'); stunEnemy(e, .5, 'heavy'); if (look) look.burst(e.x, e.z, 1.2, 'chain'); sound('talentChain', { x: e.x, z: e.z, volume: .6 }); }
         if (hits % 7 === 0 && has('cinder-breath-boots')) { P('cinder-breath-boots'); heal(.015); }
         if (attack.critical && has('black-gavel-axe')) { P('black-gavel-axe'); heal(.02); }
@@ -182,9 +189,12 @@
         crown = crown.filter(at => at > clock);
         for (const [e, d] of dots) {
           if (!alive(e)) { dots.delete(e); continue; }
-          d.time -= dt; d.tick -= dt;
-          if (d.tick <= 0) { d.tick += .5; talentTick(e, d.dps * .5, d.kind); }
-          if (d.time <= 0) dots.delete(e);
+          d.tick -= dt;
+          if (d.tick <= 0) { d.tick += .5; for (const key of ['raw', 'resolved']) { const wound = d[key]; if (wound && wound.time > 0) talentTick(e, wound.dps * .5, wound.kind, key === 'resolved' ? { resolved: true } : undefined); } }
+          for (const key of ['raw', 'resolved']) { const wound = d[key]; if (wound && (wound.time -= dt) <= 0) d[key] = null; }
+          d.dps = (d.raw ? d.raw.dps : 0) + (d.resolved ? d.resolved.dps : 0);
+          d.time = Math.max(d.raw ? d.raw.time : 0, d.resolved ? d.resolved.time : 0);
+          if (!d.raw && !d.resolved) dots.delete(e);
         }
         for (let i = trails.length - 1; i >= 0; i--) {
           const tr = trails[i]; if (clock < tr.at) continue;
