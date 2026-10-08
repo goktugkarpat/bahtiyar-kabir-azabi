@@ -562,7 +562,7 @@
     // Opt-in asynchronous GPU timings. No extension lookup, queries or polling when disabled.
     // Pair scene + post from the same frame so their sum and percentile describe real whole frames.
     var timerExt = null, timingEnabled = false, timingRequested = false, timingAvailable = null, timingError = null;
-    var pending = [], samples = { scene: [], post: [], total: [] }, api = null, openQuery = null, timingFrame = null;
+    var pending = [], samples = { scene: [], post: [], total: [], shadow: [], main: [], ao: [], bloom: [], comp: [], smaa: [] }, api = null, openQuery = null, timingFrame = null;
     var nextTimingAt = 0;
     var timingCanvas = renderer.domElement;
     // CPU sections and resource deltas identify a late upload/compile or a slow
@@ -583,19 +583,23 @@
     }
     function shadowRender() {
       if (arguments[1] !== scene) return originalShadowRender.apply(this, arguments);
-      var start = performance.now(), calls = renderer.info.render.calls;
+      var start = performance.now(), calls = renderer.info.render.calls, seg = timingFrame && openQuery === timingFrame.segs[timingFrame.segs.length - 1].q;
+      if (seg) { tEnd(); tBegin('shadow'); }
       try { return originalShadowRender.apply(this, arguments); }
-      finally { cpuSections.shadows += performance.now() - start; frameResources.shadowCalls += renderer.info.render.calls - calls; }
+      finally {
+        if (seg && timingFrame) { tEnd(); tBegin('main'); }
+        cpuSections.shadows += performance.now() - start; frameResources.shadowCalls += renderer.info.render.calls - calls;
+      }
     }
     function deleteTimingFrame(f) {
       if (!f) return;
-      ['scene', 'post'].forEach(function (name) { if (f[name]) { try { gl.deleteQuery(f[name]); } catch (_) {} } });
+      (f.segs || []).forEach(function (sg) { try { gl.deleteQuery(sg.q); } catch (_) {} });
     }
     function resetTiming() {
       if (openQuery) { try { gl.endQuery(timerExt.TIME_ELAPSED_EXT); } catch (_) {} openQuery = null; }
       deleteTimingFrame(timingFrame); timingFrame = null;
       pending.forEach(deleteTimingFrame); pending.length = 0;
-      samples.scene.length = samples.post.length = samples.total.length = 0;
+      for (var k in samples) samples[k].length = 0;
       nextTimingAt = 0;
     }
     function failTiming(message) {
@@ -605,7 +609,7 @@
       // The browser invalidates query objects on loss. Drop references without
       // asking the lost context to end/delete them, and preserve the user's opt-in.
       openQuery = timingFrame = null; pending.length = 0;
-      samples.scene.length = samples.post.length = samples.total.length = 0;
+      for (var k in samples) samples[k].length = 0;
       timerExt = null; timingEnabled = false; timingAvailable = null; timingError = 'WebGL context lost';
       untraceShadows();
     }
@@ -653,26 +657,35 @@
         while (pending.length) {
           var f = pending[0];
           // Never request QUERY_RESULT until both queries are ready; do not wait or flush the GPU.
-          if (!gl.getQueryParameter(f.scene, gl.QUERY_RESULT_AVAILABLE) || !gl.getQueryParameter(f.post, gl.QUERY_RESULT_AVAILABLE)) break;
+          var ready = true;
+          for (var si = 0; si < f.segs.length; si++) if (!gl.getQueryParameter(f.segs[si].q, gl.QUERY_RESULT_AVAILABLE)) { ready = false; break; }
+          if (!ready) break;
           if (gl.getParameter(timerExt.GPU_DISJOINT_EXT)) { resetTiming(); return false; }
-          var sceneMs = gl.getQueryParameter(f.scene, gl.QUERY_RESULT) / 1e6;
-          var postMs = gl.getQueryParameter(f.post, gl.QUERY_RESULT) / 1e6;
-          if (Number.isFinite(sceneMs) && sceneMs >= 0 && Number.isFinite(postMs) && postMs >= 0) {
+          var sum = { shadow: 0, main: 0, ao: 0, bloom: 0, comp: 0, smaa: 0 }, okSum = true;
+          for (si = 0; si < f.segs.length; si++) {
+            var ms = gl.getQueryParameter(f.segs[si].q, gl.QUERY_RESULT) / 1e6;
+            if (!Number.isFinite(ms) || ms < 0) okSum = false; else sum[f.segs[si].name] += ms;
+          }
+          if (okSum) {
+            var sceneMs = sum.shadow + sum.main, postMs = sum.ao + sum.bloom + sum.comp + sum.smaa;
             pushTime('scene', sceneMs); pushTime('post', postMs); pushTime('total', sceneMs + postMs);
+            for (var nk in sum) pushTime(nk, sum[nk]);
           }
           deleteTimingFrame(pending.shift());
         }
         // Bound query storage when the GPU is late, and leave another profiler's active query alone.
         if (pending.length >= 8 || gl.getQuery(timerExt.TIME_ELAPSED_EXT, gl.CURRENT_QUERY)) return false;
-        timingFrame = { scene: null, post: null };
-        timingFrame.scene = gl.createQuery(); timingFrame.post = gl.createQuery();
-        if (!timingFrame.scene || !timingFrame.post) { failTiming('GPU timing query allocation failed'); return false; }
+        timingFrame = { segs: [] };
         return true;
       } catch (_) { failTiming('GPU timing query failed'); return false; }
     }
     function tBegin(name) {
       if (!timingFrame) return;
-      try { gl.beginQuery(timerExt.TIME_ELAPSED_EXT, timingFrame[name]); openQuery = timingFrame[name]; }
+      try {
+        var q = gl.createQuery(); if (!q) { failTiming('GPU timing query allocation failed'); return; }
+        timingFrame.segs.push({ name: name, q: q });
+        gl.beginQuery(timerExt.TIME_ELAPSED_EXT, q); openQuery = q;
+      }
       catch (_) { failTiming('GPU timing query failed'); }
     }
     function tEnd() {
@@ -691,6 +704,7 @@
     function p95(a) { if (!a.length) return null; return a.slice().sort(function (x, y) { return x - y; })[Math.ceil(a.length * .95) - 1]; }
     // Ambient occlusion and the bloom chain, reading the finished scene target.
     function runPasses() {
+      if (timingFrame) tBegin('ao');
       if (preset.ao > 0) {
         var P = camera.projectionMatrix.elements;
         aoMat.uniforms.uInvP.value.set(1 / P[0], 1 / P[5]);
@@ -701,6 +715,7 @@
         blurMat.uniforms.tAO.value = aoA.texture; blurMat.uniforms.uDir.value.set(1.4 / aoA.width, 0); draw(blurMat, aoB);
         blurMat.uniforms.tAO.value = aoB.texture; blurMat.uniforms.uDir.value.set(0, 1.4 / aoA.height); draw(blurMat, aoA);
       }
+      if (timingFrame) { tEnd(); tBegin('bloom'); }
       if (mips.length) {
         downMat.uniforms.tSrc.value = sceneRT.texture; downMat.uniforms.uTexel.value.set(1 / width, 1 / height); downMat.uniforms.uFirst.value = 1;
         draw(downMat, mips[0]);
@@ -715,6 +730,7 @@
           draw(upMat, mips[j - 1]);
         }
       }
+      if (timingFrame) tEnd();
     }
     // Edge detection -> blending weights -> neighbourhood blend into `out` (null = canvas). The edge target is cleared because the
     // edge shader discards flat pixels; the weights and blend passes write every pixel.
@@ -734,14 +750,14 @@
       if (trace) { cpuSections.gpuProbe = sceneStart - start; cpuSections.shadows = 0; frameResources.shadowCalls = 0; }
       var autoClear = renderer.autoClear;
       try {
-      if (measured) tBegin('scene');
+      if (measured) tBegin('main');
       U.uTime.value = time || 0;
       renderer.setRenderTarget(sceneRT);
       // render() already clears when autoClear is enabled. Preserve the explicit clear only for external users that disable it.
       if (!autoClear) renderer.clear();
       renderer.render(scene, camera);
       // Shadow rendering finishes before render returns and belongs to scene; the post query (AO, bloom, composite, SMAA) starts next.
-      if (measured) { tEnd(); tBegin('post'); }
+      if (measured) { tEnd(); }
       if (trace) {
         postStart = performance.now(); cpuSections.sceneDraw = postStart - sceneStart - cpuSections.shadows;
         frameResources.sceneCalls = info ? info.render.calls - calls - frameResources.shadowCalls : 0;
@@ -749,7 +765,9 @@
       }
       renderer.autoClear = false;
       runPasses();
+      if (measured) tBegin('comp');
       draw(abilityUniforms() ? abilityMat : compositeMat, ldrRT);
+      if (measured) { tEnd(); tBegin('smaa'); }
       runSmaa(null);
       complete = true;
       } finally {
@@ -878,7 +896,8 @@
       get timingSampleIntervalMs() { return 100; },
       get gpuMs() { return avg(samples.total); },
       get gpuSections() { return { scene: avg(samples.scene), post: avg(samples.post), total: avg(samples.total),
-        sceneP95: p95(samples.scene), postP95: p95(samples.post), totalP95: p95(samples.total), samples: samples.total.length }; },
+        sceneP95: p95(samples.scene), postP95: p95(samples.post), totalP95: p95(samples.total), samples: samples.total.length,
+        parts: ['shadow', 'main', 'ao', 'bloom', 'comp', 'smaa'].reduce(function (o, k) { o[k] = { mean: avg(samples[k]), p95: p95(samples[k]) }; return o; }, {}) }; },
       get preset() { return preset; }
     };
     if (/[?&]gpums(&|$)/.test(location.search)) setTiming(true);
