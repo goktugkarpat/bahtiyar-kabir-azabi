@@ -166,7 +166,7 @@
     var inverse = new T.Matrix4(), rootNow = new T.Vector3(), rootBefore = new T.Vector3(), velocity = new T.Vector3(), localVelocity = new T.Vector3();
     var wanted = pose(), extra = pose(), output = pose(), transition = pose(), locomotion = pose(), mirrored = pose(), roarBuf = pose();
     var clock = 0, gait = 0, moveWeight = 0, speed = 0, mode = '', modeAge = 0, previousAttack = 0, comboMemory = -1, legacySerial = 0;
-    var fingerPrev = null, fingerReady = false;
+    var fingerPrev = null, fingerReady = false, leanCur = 0, bankCur = 0, lastLeanSpeed = 0;
     var deathTime = 0, deathYaw = 0, deathKind = '', hurtTime = 2, previousHurt = 0, previousDodge = 0, previousYaw = 0, turnRate = 0, rollRecover = 9;
     // One profile per rig instance; later chapters retain their own weight and character even
     // when they share the same licensed skeleton. These feed the existing secondary-life layer.
@@ -753,7 +753,7 @@
       if (disposed) return; state = state || {}; dt = clamp(finite(dt, 0), 0, .1); clock += dt;
       motionInfo.refreshed = false;
       if (state.reset) {
-        initialized = false; clock = finite(state.time, 0); gait = 0; speed = 0; moveWeight = 0; mode = ''; modeAge = 0; deathTime = 0; deathYaw = 0; deathKind = '';
+        initialized = false; leanCur = bankCur = lastLeanSpeed = 0; clock = finite(state.time, 0); gait = 0; speed = 0; moveWeight = 0; mode = ''; modeAge = 0; deathTime = 0; deathYaw = 0; deathKind = '';
         hurtTime = 2; previousHurt = 0; previousAttack = 0; comboMemory = -1; previousDodge = 0; wasDead = false; turnRate = 0; footfall.serial = 0; rollRecover = 9; lookCur = 0; lookPitch = 0; shiftCur = 0; legYawCur = 0; backwardMotion = false; fearCur = 0;
         originalLocal.forEach(function (r) { r.node.position.copy(r.p); r.node.quaternion.copy(r.q); }); feet.forEach(function (f) { f.locked = false; f.weight = 0; });
       }
@@ -976,6 +976,12 @@
       if (!state.dead && !dodge && !strikePhase && !roaring && !whirling && !charging && dt > 0) {
         var still = 1 - moveWeight * .7, lt2 = clock + lifeSeed, breath = Math.sin(lt2 * lifeRate), sway = Math.sin(lt2 * .55) * Math.sin(lt2 * .31 + 1);
         shiftCur += (sway - shiftCur) * damp(3, dt);
+        if (hero) {
+          // Inertia: the torso pitches into a start, rocks back when braking, and banks into a turn at a run (pelvis keeps the planted feet; spine only).
+          var leanAcc = (speed - lastLeanSpeed) / dt, leanWant = clamp(leanAcc * .004, -.12, .16), bankWant = clamp(-turnRate * .02, -.14, .14) * moveWeight * clamp(speed / (2 * characterScale), 0, 1);
+          leanCur += (leanWant - leanCur) * damp(12, dt); bankCur += (bankWant - bankCur) * damp(9, dt);
+          spineLayer(wanted, 0, leanCur, bankCur);
+        }
         spineLayer(wanted, .05 * Math.sin(lt2 * .7) * still, lifeLean * breath * still, lifeSway * shiftCur * still);
         euler.set(-.03 * breath * still, 0, 0, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(wanted, 7, qa); rotateSubtree(wanted, 11, qa);
         wanted.p.x += .03 * shiftCur * still / Math.max(.4, characterScale); wanted.p.y += .012 * breath * still / Math.max(.4, characterScale);
@@ -1120,6 +1126,7 @@
         }
         if (previousDodge > 0 && dodge === 0) emit(feet[0], .95, 'roll');
       }
+      lastLeanSpeed = speed;
       motionInfo.clip = nextMode; motionInfo.phase = attack || dodge || wrap(gait); motionInfo.strike = strikePhase;
       rootBefore.copy(rootNow); previousDodge = dodge; initialized = true;
       if (state.dead && dt > 0 && mode === 'death' && modeAge > fade) {
