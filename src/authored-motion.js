@@ -153,6 +153,10 @@
   // Gait cycle lengths (source metres per loop), tuned in-engine so the support sole stays put at each
   // type's gameplay speed (see _qa slide test); the gait phase advances by ground speed / stride.
   var STRIDE = { walk: 1.9, jog: 3.4, sprint: 4.8 };
+  // (ajan:chars2a) per-type stride factor (> 1 = longer steps per metre of travel), tuned against the planted-foot slide test (chars2a/metrics_walk.py)
+  var STRIDE_MUL = {};
+  // (ajan:chars2a) foe blend knobs (read every frame): lock = sign-continuous blend, enter = fade (s) into a held wind-up from a run, back = fade out of an attack, cap = joint snap guard (0 = off)
+  var TUNE_AM = { rec: true, lock: false, enter: .14, back: .16, cap: .79 };
   // Everyone runs on the same walk/jog/sprint cycle; monsters hunch into it (forward bend, radians).
   var HUNCH = { prisoner: .34, stalker: .5, carrier: .24, cultist: .06, boss: .08 };
   function create(options) {
@@ -166,7 +170,7 @@
     var inverse = new T.Matrix4(), rootNow = new T.Vector3(), rootBefore = new T.Vector3(), velocity = new T.Vector3(), localVelocity = new T.Vector3();
     var wanted = pose(), extra = pose(), output = pose(), transition = pose(), locomotion = pose(), mirrored = pose(), roarBuf = pose();
     var clock = 0, gait = 0, moveWeight = 0, speed = 0, mode = '', modeAge = 0, previousAttack = 0, comboMemory = -1, legacySerial = 0;
-    var deathTime = 0, deathYaw = 0, deathKind = '', hurtTime = 2, previousHurt = 0, previousDodge = 0, previousYaw = 0, turnRate = 0, rollRecover = 9;
+    var qb2 = new T.Quaternion(), qc2 = new T.Quaternion(), blendPrev = null, blendOn = false, guardPose = null, guardOn = false, repPose = null, repOn = false, enterFade = 0, deathTime = 0, deathYaw = 0, deathKind = '', hurtTime = 2, previousHurt = 0, previousDodge = 0, previousYaw = 0, turnRate = 0, rollRecover = 9;
     // One profile per rig instance; later chapters retain their own weight and character even
     // when they share the same licensed skeleton. These feed the existing secondary-life layer.
     var lifeRate = boss ? 1.5 : 2.1, lifeLean = .035, lifeSway = .07;
@@ -327,6 +331,7 @@
     var hipPoint = new T.Vector3(), kneePoint = new T.Vector3(), anklePoint = new T.Vector3(), reach = new T.Vector3(), bend = new T.Vector3(), kneeGoal = new T.Vector3();
     // A small contact correction preserves the authored pose while holding the
     // supporting sole in world space as the gameplay capsule moves over it.
+    var kneeFwd = new T.Vector3();
     function lockFoot(foot, weight) {
       if (!foot.upper || !foot.lower || !foot.ankle || weight < .001) return;
       wpos(foot.upper, hipPoint); wpos(foot.lower, kneePoint); wpos(foot.ankle, anklePoint); wquat(foot.ankle, foot.orientation);
@@ -335,6 +340,12 @@
       reach.copy(desired).sub(hipPoint); var length = clamp(reach.length(), Math.abs(a - b) + .001, a + b - .002 * characterScale); reach.normalize();
       bend.copy(kneePoint).sub(hipPoint).addScaledVector(reach, -bend.dot(reach));
       if (bend.lengthSq() < .00001) bend.set(0, 0, 1).applyQuaternion(qRoot).addScaledVector(reach, -bend.dot(reach));
+      // (ajan:chars2a) a nearly straight leg gives a noisy knee direction (the foot lock then flipped the knee 120-170 degrees for a frame): for foes the knee leans on the model's forward side the straighter the leg is
+      var bendLen = Math.sqrt(bend.lengthSq());
+      if (!hero && bendLen < .1 * a) {
+        kneeFwd.set(0, 0, 1).applyQuaternion(qRoot); kneeFwd.addScaledVector(reach, -kneeFwd.dot(reach)).normalize();
+        bend.normalize().lerp(kneeFwd, 1 - bendLen / (.1 * a));
+      }
       bend.normalize(); var along = (a * a + length * length - b * b) / (2 * length);
       kneeGoal.copy(hipPoint).addScaledVector(reach, along).addScaledVector(bend, Math.sqrt(Math.max(0, a * a - along * along)));
       va.copy(kneePoint).sub(hipPoint).normalize(); vb.copy(kneeGoal).sub(hipPoint).normalize(); qa.setFromUnitVectors(va, vb);
@@ -803,7 +814,7 @@
       legYaw = legYawCur;
       var normalizedSpeed = speed / characterScale, walkJog = smooth((normalizedSpeed - 1.0) / 1.5), jogSprint = smooth((normalizedSpeed - 3.3) / 1.8);
       var gaitName = 'walk', walking = true;
-      var stride = (STRIDE.walk + (STRIDE.jog - STRIDE.walk) * walkJog + (STRIDE.sprint - STRIDE.jog) * jogSprint) * characterScale, oldGait = gait;
+      var stride = (STRIDE.walk + (STRIDE.jog - STRIDE.walk) * walkJog + (STRIDE.sprint - STRIDE.jog) * jogSprint) * characterScale * (STRIDE_MUL[type] || 1), oldGait = gait;
       var roaring = hero && finite(state.roarTime, -1) >= 0, whirling = hero && finite(state.whirl, -1) >= 0, charging = hero && finite(state.chargeTime, -1) >= 0;
       var swinging = attack > 0 || finite(state.attackTime, -1) >= 0 || finite(state.beatTime, -1) >= 0, acting = swinging || roaring || whirling || charging;
       if (moveWeight > .02 && !swinging && !dodge && !state.dead) gait += dt * speed / Math.max(.3, stride) * (backward ? -1 : 1);
@@ -877,7 +888,7 @@
         // Directional flinch: the torso snaps away from the blow and settles; heavy blows double it.
         sample('hitChest', Math.min(clip('hitChest').duration, hurtTime * 1.15), extra, false);
         var reaction = clamp(hurt * .85, 0, .92) * (1 - smooth((hurtTime - .12) / .3)) * (state.hurtHeavy ? 1.35 : 1) * (acting ? .55 : 1);
-        blendPose(wanted, extra, Math.min(.85, reaction), 1, 14);
+        blendPose(wanted, extra, Math.min(.85, reaction), 1, !hero && acting ? 6 : 14);   // (ajan:chars2a) a foe struck mid-swing flinches in spine / head only: its arms keep the attack (no 150-degree wrist flips)
         var jolt = easeOut(hurtTime / .06) * reaction;
         spineLayer(wanted, -Math.sin(lastHitAngle) * .55 * jolt, -Math.cos(lastHitAngle) * .6 * jolt, Math.sin(lastHitAngle) * .22 * jolt);
         // Knock-back lean: the hips are shoved away from the blow and the head whips after the torso (heavy blows more), then it all rebounds.
@@ -934,7 +945,13 @@
         nextMode = 'death'; fade = .07;
         var blown = deathKind === 'blown';
         if (blown) sample('hitKnockback', Math.min(clip('hitKnockback').duration, deathTime * 1.05), wanted, false);
-        else sample('death', deathTime * (boss ? 1.05 : 1.75), wanted, false);
+        else {
+          // Gravity feel: the knees give and the body sags slowly for the first beat (about 0.6 x speed), then the fall accelerates into the floor and
+          // lands at the same moment as before (clip time = 1.75 t at t = .48 s). Bosses keep their slow collapse, only with the same slow-in.
+          var dr = boss ? 1.05 : 1.75, dT = boss ? .8 : .48, du = deathTime / dT;
+          // clip time = dr * integral of (.55 + .9 smooth(t/dT)): same clip time as dr * t at t = dT, slower before, faster into the floor
+          sample('death', dr * (du >= 1 ? deathTime : dT * (.55 * du + .9 * (du * du * du - du * du * du * du * .5))), wanted, false);
+        }
         var slide = (blown ? 1.2 : boss ? .25 : .42) * easeOut(deathTime / (blown ? .45 : .5)) / characterScale;
         wanted.p.z -= slide; yawPose(wanted, deathYaw);
       }
@@ -967,9 +984,58 @@
         euler.set(-.045 * cower, 0, -.055 * cower, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(wanted, 11, qa);
         wanted.p.y -= .014 * cower / Math.max(.4, characterScale);
       }
+      // (ajan:chars2a) A foe's pose changes between a run and a held wind-up are large: give them time (TUNE_AM.enter / back, 0.14 / 0.16 s) instead of the 0.09 s of a beat-to-beat blend, otherwise legs and
+      // torso whip round in 4 frames when an attack starts and when the body returns to walking. Beat-to-beat blends and the strike itself keep their exact timing.
+      if (!hero) {
+        if (nextMode !== mode) enterFade = nextMode.indexOf('act') === 0 && mode.indexOf('act') !== 0 && finite(state.beatContact, 0) > .45 ? TUNE_AM.enter : mode.indexOf('act') === 0 && nextMode === 'locomotion' ? TUNE_AM.back : 0;
+        if (enterFade && (nextMode.indexOf('act') === 0 || nextMode === 'locomotion')) fade = enterFade;
+      }
       if (nextMode !== mode) { copyPose(transition, output); mode = nextMode; modeAge = 0; } else modeAge += dt;
-      if (!initialized || dt === 0) copyPose(output, wanted);
-      else { copyPose(output, transition); blendPose(output, wanted, smooth((modeAge + dt) / fade)); }
+      if (!initialized || dt === 0) { copyPose(output, wanted); repOn = false; blendOn = false; }
+      else if (!hero && TUNE_AM.rec) {
+        // (ajan:chars2a) Recursive blend for foes: every frame moves the CURRENT pose a fraction of the way to the target (k chosen so a still target reproduces the smoothstep),
+        // so slerp's shortest way is always taken from where the limb is now. A fixed transition pose could sit ~180 degrees from a moving target and flip the way round
+        // between two frames (forearms / spine snapped 100-170 degrees at attack onset).
+        var s1 = smooth((modeAge + dt) / fade), s0 = modeAge > 0 ? smooth(modeAge / fade) : 0, kk = s0 >= 1 ? 1 : (s1 - s0) / Math.max(1e-4, 1 - s0);
+        if (!blendPrev) blendPrev = pose();
+        if (modeAge > 0 && blendOn) copyPose(output, blendPrev); else copyPose(output, transition);
+        blendPose(output, wanted, kk); copyPose(blendPrev, output); blendOn = true;
+      }
+      else if (hero || !TUNE_AM.lock) { copyPose(output, transition); blendPose(output, wanted, smooth((modeAge + dt) / fade)); }
+      else {
+        // (ajan:chars2a) Sign-continuous blend for foes. slerp always takes the shortest way, so when a blend target sits ~180 degrees from the pose it fades
+        // from (a hook arm against a casting arm), the way round can swap from one frame to the next and the forearm / spine snapped 100-170 degrees in one frame
+        // (cultist + drowned attack onset, hits during a strike). The target keeps the quaternion sign of the previous frame, so the path never swaps.
+        if (!repPose) repPose = pose();
+        copyPose(output, transition); var bw = smooth((modeAge + dt) / fade), fresh = modeAge === 0 || !repOn;
+        for (var bi = 0; bi < output.q.length; bi++) {
+          var oq = output.q[bi], wq1 = wanted.q[bi], rq = repPose.q[bi], ref = fresh ? oq : rq;
+          rq.copy(wq1); if (ref.x * rq.x + ref.y * rq.y + ref.z * rq.z + ref.w * rq.w < 0) { rq.x = -rq.x; rq.y = -rq.y; rq.z = -rq.z; rq.w = -rq.w; }
+          var ch = oq.x * rq.x + oq.y * rq.y + oq.z * rq.z + oq.w * rq.w;
+          if (ch > .9995 || ch < -.9995) { oq.x += (rq.x - oq.x) * bw; oq.y += (rq.y - oq.y) * bw; oq.z += (rq.z - oq.z) * bw; oq.w += (rq.w - oq.w) * bw; oq.normalize(); }
+          else { var hh = Math.acos(ch), sh = Math.sqrt(1 - ch * ch), ka = Math.sin((1 - bw) * hh) / sh, kb = Math.sin(bw * hh) / sh; oq.set(oq.x * ka + rq.x * kb, oq.y * ka + rq.y * kb, oq.z * ka + rq.z * kb, oq.w * ka + rq.w * kb); }
+        }
+        blendPose(output, wanted, bw, 0, 0); repOn = true;
+      }
+      // (ajan:chars2a) Last-resort snap guard for foes: no joint turns more than ~90 degrees RELATIVE TO ITS PARENT in one frame (a stagger clip or a layered flinch
+      // could still flip a forearm 130-170 degrees; the pose quaternions are absolute, so the local turn is parent^-1 * child). Real motion stays far below this;
+      // a flip becomes a 2-frame turn. Bones run parents first (PARENT indices ascend).
+      if (!hero) {
+        if (!guardPose) guardPose = pose();
+        if (initialized && dt > 0 && guardOn && TUNE_AM.cap) {
+          var capC = Math.cos(Math.min(3, TUNE_AM.cap * dt * 60)), capA = TUNE_AM.cap * dt * 60;
+          for (var gi = 0; gi < output.q.length; gi++) {
+            var gq = output.q[gi], gp = guardPose.q[gi], gpar = PARENT[gi];
+            if (gpar < 0) { var gd0 = Math.abs(gq.x * gp.x + gq.y * gp.y + gq.z * gp.z + gq.w * gp.w); if (gd0 < capC) { qa.copy(gp).slerp(gq, Math.min(1, capA / Math.acos(Math.min(1, gd0)))); gq.copy(qa); } continue; }
+            qb2.copy(guardPose.q[gpar]).invert().multiply(gp);          // local rotation last frame
+            qc2.copy(output.q[gpar]).invert().multiply(gq);             // local rotation now (parent already limited)
+            var gd = Math.abs(qb2.x * qc2.x + qb2.y * qc2.y + qb2.z * qc2.z + qb2.w * qc2.w);
+            if (gd < capC) { qb2.slerp(qc2, Math.min(1, capA / Math.acos(Math.min(1, gd)))); gq.copy(output.q[gpar]).multiply(qb2); }
+          }
+        }
+        for (var gj = 0; gj < output.q.length; gj++) guardPose.q[gj].copy(output.q[gj]);
+        guardOn = dt > 0;
+      }
       var yaw = Math.atan2(root.matrixWorld.elements[8], root.matrixWorld.elements[10]);
       turnRate += ((initialized && dt > 0 ? clamp(signedAngle(yaw - previousYaw) / dt, -6, 6) : 0) - turnRate) * damp(12, dt); previousYaw = yaw;
       if (nextMode === 'locomotion') { qTurn.setFromAxisAngle(up, -turnRate * .018); output.q[2].premultiply(qTurn); output.q[3].premultiply(qTurn); }
@@ -1012,7 +1078,7 @@
         }
         if (rollFloor < floorReference + .015) moveHipY(floorReference + .015 - rollFloor);
       }
-      var canPlant = initialized && dt > 0 && !teleported && !state.dead && !dodge && !leap && moveWeight > .05 && !acting && !stagger && modeAge > .1;
+      var canPlant = initialized && dt > 0 && !teleported && !state.dead && !dodge && !leap && moveWeight > .05 && !acting && !stagger && modeAge > .1 && (hero || hurt < .5);   // (ajan:chars2a) a struck foe is shoved away from its planted foot: release the lock for the flinch
       for (var f = 0; f < feet.length; f++) {
         var planted = feet[f], onGround = output.sole[f] < .07;
         if (canPlant) {
@@ -1088,5 +1154,5 @@
     var t = [0]; for (var i = 1; i <= 96; i++) { var u = i / 96; t.push(t[i - 1] + smooth(u / .12) * (1 - smooth((u - .5) / .28))); } return t.map(function (v) { return v / t[96]; });
   })();
   function whirlAngle(u, turns) { var f = clamp(u, 0, 1) * 96, i = Math.min(95, Math.floor(f)); return (SPIN_TAB[i] + (SPIN_TAB[i + 1] - SPIN_TAB[i]) * (f - i)) * turns * TAU; }
-  B.AuthoredMotion = { create: create, moves: MOVES, strides: STRIDE, whirlAngle: whirlAngle };
+  B.AuthoredMotion = { create: create, moves: MOVES, strides: STRIDE, strideMul: STRIDE_MUL, tune: TUNE_AM, whirlAngle: whirlAngle };
 })();

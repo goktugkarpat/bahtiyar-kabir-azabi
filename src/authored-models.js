@@ -1799,6 +1799,7 @@
     var motion = B.AuthoredMotion.create({ root: root, modelScene: scene, type: cfg.motionType || type, style: type, bones: native, weapon: weapon, weaponTip: marker, scale: bp.scale });
     var aliases = motion.bones; aliases.weapon = weapon;
     var detailMotion = cfg.detailMotion ? cfg.detailMotion(native, scene, bp.scale) : null;
+    if (type !== 'hero' && B.EnemyPolish) B.EnemyPolish.attach({ root: root, native: native, extras: extras, type: type, scale: bp.scale });   // (ajan:chars2a) spring layer: notice / wind-up / hit / death / phase (enemy-polish.js)
     if (bp.dread && B.EnemyDread) B.EnemyDread.attach(bp.dread, { root: root, scene: scene, native: native, extras: extras, scale: bp.scale });   // (ajan:models) pendulum bones, posture, phase parts
     if (bp.secondary && B.Secondary && B.Secondary.attach) B.Secondary.attach(bp.secondary, { root: root, scene: scene, native: native, extras: extras, hero: type === 'hero' });   // (ajan:secondary) cloth / chain springs, after the pose and the dread posture
     // 'staticTree': nothing moves the nodes below the root after authored-motion's pose (no detail motion, no dragged chain), so combat.js may

@@ -195,6 +195,7 @@
     game.syncProgression = syncProgression;
     game.criticalChance = .08; game.criticalMultiplier = 1.5;
     game.useSkill = useSkill;
+    game.debugHurt = (e, dmg, heavy, face) => hurtEnemy(e, dmg, !!heavy, face == null ? angleTo(player, e) : face, { combo: heavy ? 0 : 1, face: face == null ? angleTo(player, e) : face });   // test hook: a real hit through the whole pipeline (QA frame sequences)
     game.saveProfileChoices = saveProfileChoices;
     game.skills = () => skillKeys.map((key, slot) => {
       const skill = selectedSkill(slot);
@@ -832,7 +833,7 @@
           cycle: 0, retreat: 0, shieldBroken: 0, poiseRecovery: 0, shield: enemy.type === 'guard', faceLocked: false,
           push: null, staggerTotal: 0, staggerKind: '', deathKind: '', hitAngle: 0, hurtHeavy: false, lastStrike: -9, navigation: null
         });
-        enemy.model.root.position.set(enemy.x, 0, enemy.z); enemy.model.root.rotation.y = enemy.face;
+        enemy.model.root.position.set(enemy.x, 0, enemy.z); enemy.model.root.rotation.y = enemy.yaw = enemy.face;
         Object.assign(enemy, freshEnemyFields(enemy));
         enemy.model.root.visible = !enemy.dead; enemy.bar.root.visible = false;
         const pose = { reset: true, time: 0, move: 0, attack: 0, dead: enemy.dead, phase: 'idle', face: enemy.face };
@@ -1554,7 +1555,15 @@
     }
     function updateEnemy(enemy, dt) {
       enemy.hurt = Math.max(0, enemy.hurt - dt * 3); enemy.blockImpact = Math.max(0, (enemy.blockImpact || 0) - dt * 5);
-      if (enemy.dead) { enemy.deadAge += dt; enemy.move = 0; return; }
+      if (enemy.dead) {
+        enemy.deadAge += dt; enemy.move = 0;
+        // the body hits the floor: a kick of dust (the matching bounce is in enemy-polish.js, same landTime)
+        if (!enemy._landed && BABA.EnemyPolish && enemy.deadAge >= BABA.EnemyPolish.landTime(enemy.deathKind === 'blown', enemy.boss) && enemy.deadAge < 3) {
+          enemy._landed = true; fx('land', { x: enemy.x, y: .05, z: enemy.z, big: enemy.boss || enemy.radius > .6, blown: enemy.deathKind === 'blown', face: enemy.face });
+          if (enemy.boss || enemy.radius > .6) emit('impact', { x: enemy.x, z: enemy.z, strength: enemy.boss ? .8 : .3 });   // a heavy body hitting the floor: camera jolt that fades with distance
+        }
+        return;
+      }
       const homeDistance = Math.hypot(enemy.x - enemy.spawnX, enemy.z - enemy.spawnZ);
       if (!enemy.boss && (enemy.returning || (enemy.active && (distance(enemy, player) > 18 || homeDistance > 13)))) {
         if (!enemy.returning) { enemy.action = null; enemy.faceLocked = false; cancelHazards(enemy, false); }
@@ -1659,7 +1668,7 @@
     }
     function killEnemy(enemy) {
       if (enemy.dead) return;
-      enemy.dead = true; enemy.hp = 0; enemy.deadAge = 0; enemy.action = null; enemy.shield = false; enemy.active = false; enemy.stagger = 0;
+      enemy.dead = true; enemy._landed = false; enemy.hp = 0; enemy.deadAge = 0; enemy.action = null; enemy.shield = false; enemy.active = false; enemy.stagger = 0;
       if (game.attackTarget === enemy) game.attackTarget = null;
       cancelHazards(enemy, false); if (!enemy.reserve) game.kills++;
       if (mobMods) mobMods.kill(enemy);
@@ -2671,7 +2680,7 @@
         if (enemy.inView === false) {
           // Outside the camera's view (plus margin): no pose, no bar, no scene walk. Position stays current so nothing jumps on return.
           enemy.model.root.visible = visible; enemy.holder.visible = false; enemy.bar.root.visible = false;
-          enemy.model.root.position.set(enemy.x, 0, enemy.z); enemy.model.root.rotation.y = enemy.face;
+          enemy.model.root.position.set(enemy.x, 0, enemy.z); enemy.model.root.rotation.y = enemy.yaw = enemy.face;
           enemy._lodPosed = false;
           continue;
         }
@@ -2680,7 +2689,7 @@
         // render pass still carries them with the root). Anything awake, hurt, dead, a boss, or newly in view is posed every callback.
         let lodSkip = false;
         if (posing && visible && enemy._lodPosed && !enemy.active && !enemy.returning && !enemy.boss && !enemy.dead && !enemy.action && !(enemy.hurt > 0) && !(enemy.stagger > 0) &&
-            enemy.x === enemy._lodX && enemy.z === enemy._lodZ && enemy.face === enemy._lodFace && d >= 5) {
+            enemy.x === enemy._lodX && enemy.z === enemy._lodZ && enemy.face === enemy._lodFace && enemy.yaw === enemy.face && d >= 5) {
           enemy._lodTick = (enemy._lodTick | 0) + 1;
           if ((enemy._lodTick + enemy.index) % (d < 14 ? 2 : 3) !== 0) { enemy._lodAcc = (enemy._lodAcc || 0) + dt; lodSkip = true; }
         }
@@ -2704,8 +2713,12 @@
         }
         const launchAge=!enemy.dead&&!enemy.boss?simTime-(enemy.launchAt==null?-99:enemy.launchAt):-1;
         const launchU=launchAge>=0&&launchAge<.40?launchAge/.40:-1;
-        const launchLift=launchU>=0?4*launchU*(1-launchU)*(enemy.launchHeight||0):0;
-        enemy.model.root.position.set(enemy.x, launchLift, enemy.z); enemy.model.root.rotation.y = enemy.face;
+        const launchLift=(launchU>=0?4*launchU*(1-launchU)*(enemy.launchHeight||0):0)-(enemy.dead&&corpseLifetime>4&&enemy.deadAge>corpseLifetime-3?clamp((enemy.deadAge-(corpseLifetime-3))/3,0,1)*.55:0);   // old corpses sink into the floor over their last 3 s instead of vanishing
+        // (ajan:chars2a) The body turns toward the gameplay facing instead of snapping to it (enemy.face stays exact for hits and telegraphs): quick while an attack
+        // is committed (the blow always lands on a squared-up body), slow for bosses and stunned foes. The head leads the turn (lookYaw below).
+        if (enemy.yaw === undefined || enemy.dead || !(dt > 0) || (enemy.action && enemy.action.faceAt && enemy.action.age >= enemy.action.faceAt.t)) enemy.yaw = enemy.face;
+        else { const yd = angleDifference(enemy.face, enemy.yaw); enemy.yaw = Math.abs(yd) < .004 ? enemy.face : enemy.yaw + yd * (1 - Math.exp(-(enemy.action ? (enemy.boss ? 16 : 28) : enemy.stagger > 0 ? 5 : enemy.boss ? 7 : 11) * dt)); }
+        enemy.model.root.position.set(enemy.x, launchLift, enemy.z); enemy.model.root.rotation.y = enemy.yaw;
         if (visible && !posing) {
           enemy._lodAcc = (enemy._lodAcc || 0) + dt;
           const action = enemy.action;
@@ -2722,7 +2735,7 @@
           es.time = simTime + enemy.index * .31;
           es.beat = beat ? beat.index : 0; es.beatTime = beat ? beat.t : -1; es.beatContact = beat ? beat.contact : 0; es.beatEnd = beat ? beat.end : 0;
           es.attackSerial = action ? action.serial : 0; es.rushTime = action && action.movement ? action.movement.duration : 0;
-          es.lookYaw = enemy.active && !enemy.dead && !player.dead ? angleDifference(angleTo(enemy, player), enemy.face) : undefined;
+          es.lookYaw = enemy.active && !enemy.dead && !player.dead ? angleDifference(angleTo(enemy, player), enemy.yaw) : undefined;
           es.hitAngle = enemy.hitAngle || 0; es.hurtHeavy = !!enemy.hurtHeavy; es.deathKind = enemy.deathKind || ''; es.blockImpact = enemy.blockImpact || 0;
           es.stagger = enemy.stagger > 0 && !enemy.dead ? 1 - enemy.stagger / Math.max(enemy.stagger, enemy.staggerTotal || 0) : 0; es.staggerTime = enemy.staggerTotal || 0; es.staggerVariant = enemy.staggerVariant || 0; es.fear = enemy.fear || 0;
           es.attack = enemyAttackPose(enemy); es.contactPhase = enemy.boss || enemy.type === 'guard' ? .56 : .41; es.pose = beat ? beat.pose : '';
@@ -2732,6 +2745,12 @@
           es.block = enemy.shield && !enemy.dead; es.dodge = 0; es.hurt = enemy.hurt; es.hitDirection = enemy.hitDirection || 0; es.dead = enemy.dead;
           es.phase = enemy.phase >= 2 ? 'rage' : action ? 'attack' : 'idle'; es.face = enemy.face; es.rage = enemy.buff > 0 || enemy.phase >= 2; es.enraged = !!enemy.enraged;   // (ajan:models) boss phase III visuals
           enemy.model.animate(dt + (enemy._lodAcc || 0), es); enemy._lodAcc = 0;
+          if (enemy._leapPrev > .5 && leap < .02 && d < 24) fx('land', { x: enemy.x, y: .05, z: enemy.z, big: false, blown: false, face: enemy.face });   // a pounce / leap comes down: dust ring
+          enemy._leapPrev = leap;
+          if (enemy.boss || enemy.radius > .6) {   // heavy bodies kick up dust at every footfall (and the boss's tread is felt in the camera)
+            const ff = enemy.model.root.userData.footfall;
+            if (ff && ff.serial !== enemy._ff) { if (enemy._ff !== undefined && ff.serial > enemy._ff && d < 22) { fx('footstep', { x: ff.x, z: ff.z, y: .045, heavy: true }); if (enemy.boss && d < 12) emit('impact', { x: ff.x, z: ff.z, strength: .1 }); } enemy._ff = ff.serial; }
+          }
           if (enemy._limb) enemy.model.root.userData.authoredMotion.refreshed = false;   // the limb hook shakes the spine after the pose
           enemy._lodPosed = true; enemy._lodX = enemy.x; enemy._lodZ = enemy.z; enemy._lodFace = enemy.face;
         }
