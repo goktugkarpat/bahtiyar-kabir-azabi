@@ -157,6 +157,7 @@
       10: [['damned', -6, 4], ['damned', 6, 4], ['voidcrawler', -11, 0], ['voidcrawler', 11, 0], ['verdictseer', 0, -8.5], ['chainjailer', 0, 0]],
       12: [['chainjailer', -4, -4], ['chainjailer', 4, -4], ['verdictseer', -9, 2], ['verdictseer', 9, -2], ['damned', 0, 2]]
     };
+    if (B.MobsC5) B.MobsC5.place(FORM);   // mobs-c5.js: Mühür Kazıcı + Boşluk Tanığı join the formations
     rooms.forEach(function (r, i) {
       if (i === 11) return;
       if (i === 13) { solid(0, r.z - 13.2, 9, 2.4); encounters.push({ id: 'last-judgement', room: i, name: KabirI18n.t('Son Hükmün Kürsüsü'), spawns: [{ type: 'lastjudge', x: 0, z: r.z - 2, boss: true }], stage: 1.24 }); return; }

@@ -254,7 +254,7 @@
         if (h.owner === e) return true; if (hyp(h.x - player.x, h.z - player.z) < 9 && ++crowd >= 3) return true; }
       return st.tether !== null;
     }
-    function pace() { return game.difficulty === 'easy' ? 1.35 : game.difficulty === 'normal' ? 1.12 : 1; }
+    function pace() { return game.difficulty === 'easy' ? 1.35 : game.difficulty === 'normal' ? 1.0 : 1; }   // BAL: Normal 1.12 -> 1.0 (signature / arena moves ~11 % more often)
 
     /* ---- pursuit: answer the end of a roll */
     function trackRolls(dt) {

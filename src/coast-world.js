@@ -16,17 +16,17 @@
       { type: 'drowned', x: -4, z: 1 }, { type: 'drowned', x: 1.5, z: -3.5 }, { type: 'crawler', x: -1.5, z: -5.5 }] },
     { id: 'root-road', room: 1, name: KabirI18n.t('Kara Kök Nöbeti'), clearText: KabirI18n.t('Yanmış ağaçlar sustu. Kasaba aşağıda.'), spawns: [
       { type: 'rootborn', x: -5, z: -18 }, { type: 'crawler', x: 5, z: -20 }, { type: 'drowned', x: -3, z: -25 },
-      { type: 'urchin', x: 4, z: -27 }, { type: 'crawler', x: 0, z: -30 }] },
+      { type: 'urchin', x: 4, z: -27 }, { type: 'crawler', x: 0, z: -30 }, { type: 'netcaster', x: 1, z: -33 }] },
     { id: 'drowned-street', room: 2, name: KabirI18n.t('Denizin Geri Verdiği'), clearText: KabirI18n.t('Boğulmuş sokak açıldı. İskeleye git.'), spawns: [
       { type: 'drowned', x: -4, z: -45 }, { type: 'rootborn', x: 4, z: -47 }, { type: 'lantern', x: -6, z: -53 },
-      { type: 'urchin', x: 5, z: -55 }, { type: 'drowned', x: -2, z: -58 }, { type: 'crawler', x: 3, z: -60 }] },
+      { type: 'urchin', x: 5, z: -55 }, { type: 'drowned', x: -2, z: -58 }, { type: 'crawler', x: 3, z: -60 }, { type: 'tidecaller', x: 0, z: -57 }, { type: 'netcaster', x: -7, z: -49 }] },
     { id: 'rotting-pier', room: 3, name: KabirI18n.t('İskelenin Altındaki Sesler'), clearText: KabirI18n.t('İskele sustu. Meydanın köklerini kes.'), spawns: [
       { type: 'urchin', x: -5, z: -73 }, { type: 'drowned', x: 4, z: -74 }, { type: 'crawler', x: -3, z: -79 },
-      { type: 'lantern', x: 6, z: -81 }, { type: 'rootborn', x: 0, z: -84 }, { type: 'urchin', x: -5, z: -88 }, { type: 'crawler', x: 4, z: -90 }] },
+      { type: 'lantern', x: 6, z: -81 }, { type: 'rootborn', x: 0, z: -84 }, { type: 'urchin', x: -5, z: -88 }, { type: 'crawler', x: 4, z: -90 }, { type: 'tidecaller', x: -2, z: -86 }, { type: 'netcaster', x: 6, z: -76 }] },
     { id: 'black-root-square', room: 4, name: KabirI18n.t('Kıyının Son Nöbeti'), clearText: KabirI18n.t('Meydan açıldı. Son Fener’de yemini mühürle.'), spawns: [
       { type: 'rootborn', x: -6, z: -104 }, { type: 'rootborn', x: 6, z: -104 }, { type: 'lantern', x: 0, z: -111 },
       { type: 'drowned', x: -4, z: -112 }, { type: 'crawler', x: 5, z: -114 }, { type: 'urchin', x: -6, z: -118 },
-      { type: 'lantern', x: 5, z: -120 }, { type: 'drowned', x: 0, z: -121 }] },
+      { type: 'lantern', x: 5, z: -120 }, { type: 'drowned', x: 0, z: -121 }, { type: 'netcaster', x: -3, z: -108 }, { type: 'tidecaller', x: 3, z: -117 }, { type: 'tidecaller', x: -7, z: -121 }] },
     { id: 'bell-of-the-deep', room: 6, name: KabirI18n.t('Derinliklerin Çancısı'), spawns: [{ type: 'bell', x: 0, z: -178, boss: true }] }
   ];
   function build(scene) {

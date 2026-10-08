@@ -93,9 +93,9 @@
   }
   const AUTO_QUALITY = detectQuality();
   let qualityForce = null, qualityStored = null;   // ?q=low|medium|high|ultra forces a preset for this page load only (never saved)
-  const DEFAULTS = { difficulty: 'normal', quality: AUTO_QUALITY, qualityUser: false, qualityVersion: 6, ...DISPLAY.defaults, frameRate: FRAME_LIMIT, exposure: 1.15, shake: .55, master: .65, music: .42, sfx: .75, voice: .85, narrationMode: 'essential', subtitles: true, autoLoot: false, uiScale: .85 };
+  const DEFAULTS = { difficulty: 'normal', quality: AUTO_QUALITY, qualityUser: false, qualityVersion: 6, ...DISPLAY.defaults, frameRate: FRAME_LIMIT, exposure: 1.15, shake: .55, master: .65, music: .42, sfx: .75, voice: .85, narrationMode: 'essential', subtitles: true, autoLoot: false, kbOnly: false, uiScale: .85 };
   const FRAME_RATES = [60, 90, 120, 0];   // 0 = follow the display (every refresh; best with G-Sync / FreeSync / ProMotion)
-  const UI_STEPS = [.85, 1];
+  const UI_STEPS = [.75, .85, 1];   // Küçük (new, smaller) | Normal (was 'Küçük') | Büyük (was 'Normal')
   const LIMITS = { exposure: [.7, 1.7], shake: [0, 1], master: [0, 1], music: [0, 1], sfx: [0, 1], voice: [0, 1] };
   // `cfg` is shared with effects.js / world.js / combat.js (they read the technical fields).
   const cfg = { ...DEFAULTS, impact: .65, touch: 'auto', showFps: false };
@@ -179,6 +179,11 @@
     return next;
   }
   const isDown = a => binds[a].some(c => c && keys.has(c));
+  // Keyboard-only play (settings 'kbOnly', or ?klavye for tests: forced on, never saved). Hidden on touch devices unless forced.
+  const KB_FORCED = Q.has('klavye');
+  const kbMode = () => KB_FORCED || (cfg.kbOnly === true && !coarsePointer);
+  const kbClick = { light: false, heavy: false };
+  let kbTarget = null, kbLock = null, cursorT = 0;
 
   function readSettings() {
     let raw = null, migrated = false, legacySettings = false;
@@ -206,6 +211,7 @@
       for (const k of Object.keys(LIMITS)) if (Number.isFinite(raw[k])) cfg[k] = clamp(raw[k], LIMITS[k][0], LIMITS[k][1]);
       if (typeof raw.subtitles === 'boolean') cfg.subtitles = raw.subtitles;
       if (typeof raw.autoLoot === 'boolean') cfg.autoLoot = raw.autoLoot;
+      if (typeof raw.kbOnly === 'boolean') cfg.kbOnly = raw.kbOnly;
       if (['essential','story','off'].includes(raw.narrationMode)) cfg.narrationMode = raw.narrationMode;
       // Preserve valid display choices; retired choices fall back to Auto.
       Object.assign(cfg, DISPLAY.settings(raw));
@@ -234,9 +240,15 @@
     deriveSettings();
     if (migrated) { saveSettings(); safe(() => localStorage.removeItem(OLD_KEY)); }
   }
+  function kbKeysNote() {
+    const n = document.getElementById('kb-keys-note'); if (!n) return;
+    const k = a => capName(binds[a].find(c => c && !mouseCode(c)) || binds[a][0]);
+    n.textContent = KabirI18n.t('Normal vuruş: ') + k('light') + KabirI18n.t(' · Sağ tık yeteneği: ') + k('heavy') + KabirI18n.t(' · Hedef değiştir: Tab · Hareket: WASD. Tuşları Kontroller sayfasından değiştirebilirsin.');
+  }
   function deriveSettings() {
     Object.assign(cfg, QUALITY[cfg.quality] || QUALITY.high);
     cfg.fps = cfg.frameRate;
+    if (document.body) document.body.classList.toggle('kb-only', kbMode());
     if (B.GroundLoot) B.GroundLoot.auto = cfg.autoLoot === true;   // old proximity auto-pickup of ground items (default off: click / E)
     // 60 Hz-class targets: distant characters cast shadows over a shorter reach (see combat.js); 0 = all cast.
     cfg.shadowReach = cfg.quality === 'low' ? 0 : cfg.quality === 'medium' ? 8 : cfg.quality === 'ultra' ? 18 : cfg.fps > 0 && cfg.fps <= 64 ? 10 : 13;   // far characters do not cast into the key light's map (fewer shadow draws = a steadier frame time)
@@ -304,10 +316,19 @@
   const performanceMeter = B.Performance.create();
   let graphicsAdapter = null, multiDraw = false, worldSubmission = null;
   let introMs = 1100, introArc = 0, introBlend = 1, introStart = 0, deaths = 0, lastHp = null, lastFlasks = null;
-  const buffUI = B.Buffs.create($('timed-effects'));
+  { const bar = document.createElement('div'); bar.id = 'buff-bar'; const hudEl = $('hud'), chap = $('chapter-buffs'), timed = $('timed-effects'); chap.parentNode.insertBefore(bar, chap); bar.append(chap, timed); }   // one strip under the minimap: chapter boons + every timed effect
+  let placeTick = 0, placeW = 0, placeH = 0;
+  function placeShortStrip() {
+    const q = document.querySelector('.flask-button'), strip = document.getElementById('timed-short'); if (!q || !strip) return;
+    const r = q.getBoundingClientRect(); if (!r.width) return; placeW = innerWidth; placeH = innerHeight;
+    strip.style.right = 'auto'; strip.style.transform = 'none'; strip.style.left = Math.round(r.left) + 'px'; strip.style.bottom = Math.round(innerHeight - r.top + 57) + 'px';   // starts over the Q potion slot, effects run to the right
+  }
+  const shortStrip = document.createElement('div'); shortStrip.id = 'timed-short'; shortStrip.setAttribute('role', 'list'); $('hud').appendChild(shortStrip);   // short effects (<= 6 s): above the skill bar, centred
+  const buffUI = B.Buffs.create($('timed-effects'), shortStrip);
+  let flaskLeft = 0, lastFlaskCount = null;
   const chapterBuffUI = B.Buffs.createChapter($('chapter-buffs'));
   const targetUI = B.TargetHUD.create($('target-hud'));
-  const cryEffect = { id: 'rage', name: KabirI18n.t('Kan Öfkesi'), icon: 'rage', remaining: 0, duration: B.Game.resources.durations.rage };
+  const cryEffect = { id: 'rage', name: KabirI18n.t('Kan Öfkesi'), icon: 'rage', tone: 'blood', tip: 'Saldırdıkça can kazanır, vuruşların daha ağır iner, aldığın hasar azalır.', remaining: 0, duration: B.Game.resources.durations.rage };
   const timedEffects = [cryEffect];
   let lastBuffRows = -1;
   const keys = new Set(), actions = {}, cameraPos = new THREE.Vector3(), look = new THREE.Vector3(), target = new THREE.Vector3(), projected = new THREE.Vector3();
@@ -386,7 +407,7 @@
   function openAtlas() { if (advancing || !game || !atlasUI || !['playing','pause','character','journal','atlas'].includes(view)) return; if (view === 'atlas') back(); else open('atlas'); }
   function clearInput() {
     keys.clear(); for (const k in actions) delete actions[k];
-    heldLight = false; lightPointer = null; touchHold = null; zoneTap = null; clicks.light = clicks.heavy = false; cursor.target = cursor.prop = null;
+    heldLight = false; lightPointer = null; touchHold = null; zoneTap = null; clicks.light = clicks.heavy = false; cursor.target = cursor.prop = null; kbClick.light = kbClick.heavy = false; kbTarget = kbLock = null;
     joy.x = joy.z = 0; joy.id = null; resetStick();
     input.aimX = input.aimZ = input.aimFoe = null;
     input.x = input.z = 0; input.target = input.prop = input.loot = input.pointX = input.pointZ = null;
@@ -840,10 +861,10 @@
     video.append(choiceRow('displayMode', KabirI18n.t('Görüntü boyutu'), ['auto', 'native'], v => ({ auto: KabirI18n.t('Otomatik'), native: KabirI18n.t('Tam boyut') })[v]),
       choiceRow('renderScale', KabirI18n.t('Render çözünürlüğü'), [1, 1.25, 1.5], v => v.toFixed(v === 1 ? 1 : 2) + '×'),
       choiceRow('frameRate', KabirI18n.t('Kare hızı'), FRAME_RATES, v => v ? v + ' FPS' : KabirI18n.t('Ekran hızı')),
-      choiceRow('uiScale', KabirI18n.t('Arayüz boyutu'), UI_STEPS, v => v < 1 ? KabirI18n.t('Küçük') : 'Normal'));
+      choiceRow('uiScale', KabirI18n.t('Arayüz boyutu'), UI_STEPS, v => v < .8 ? KabirI18n.t('Küçük') : v < 1 ? KabirI18n.t('Normal') : KabirI18n.t('Büyük')));
     // Edge smoothing (SMAA post pass in post.js) is always on: no settings row.
     paintGraphicsNotes();
-    $('uiScale-note').textContent = KabirI18n.t('Alt çubuk, küreler, harita ve yazıları ölçekler. Yeniden açılışta Küçük başlar.');
+    $('uiScale-note').textContent = KabirI18n.t('Alt çubuk, küreler, harita ve yazıları ölçekler. Yeniden açılışta Normal başlar.');
     for (const f of SLIDERS.video) video.append(sliderRow(f));
     for (const f of SLIDERS.audio) audio.append(sliderRow(f));
     const sub = document.createElement('div'); sub.className = 'setting toggle';
@@ -855,6 +876,7 @@
     const lootBox = loot.querySelector('input'); lootBox.checked = cfg.autoLoot === true;
     lootBox.addEventListener('change', () => { cfg.autoLoot = lootBox.checked; applySettings(); });
     $('settings-game').append(loot);
+    ensureKbToggle();
     audio.append(sub, choiceRow('narrationMode', KabirI18n.t('Anlatım'), ['essential','story','off'], v => v === 'essential' ? KabirI18n.t('Önemli anlar') : v === 'story' ? KabirI18n.t('Tüm öykü') : KabirI18n.t('Kapalı')));
     const narrationNote=document.createElement('small'); narrationNote.className='settings-save-info'; narrationNote.textContent=KabirI18n.t('Önemli anlarda anlatıcı giriş, karar ve dönüm noktalarında konuşur; keşif ve savaşın sesi önde kalır.'); audio.append(narrationNote);
     $('settings-note').textContent = B.Audio.silent ? KabirI18n.t('Test modu · sessiz') : KabirI18n.t('Seçimler hemen uygulanır.');
@@ -868,7 +890,17 @@
   }
   function openSettings() { open('settings'); renderSettings(); selectSettingsPage($('settings').dataset.page || 'video'); }
   function openControls() { open('controls'); }
-  function openKeybinds() { open('keybinds'); renderBinds(); }
+  // "Sadece klavye" lives on the key-binding page (Kontroller): the toggle is built once and put under the page heading.
+  function ensureKbToggle() {
+    if (coarsePointer || document.getElementById('set-kbonly')) { kbKeysNote(); return; }
+    const host = document.getElementById('bind-combat'); if (!host) return;
+    const kb = document.createElement('div'); kb.className = 'setting toggle kb-toggle';
+    kb.innerHTML = '<label for="set-kbonly"><b>' + KabirI18n.t('Sadece klavye') + '</b><small>' + KabirI18n.t('Fare olmadan oyna: sol ve sağ tık işlevleri klavye tuşlarına bağlanır, hedef otomatik seçilir.') + ' <span id="kb-keys-note"></span></small></label><input id="set-kbonly" type="checkbox">';
+    const kbBox = kb.querySelector('input'); kbBox.checked = kbMode(); kbBox.disabled = KB_FORCED;
+    kbBox.addEventListener('change', () => { cfg.kbOnly = kbBox.checked; applySettings(); paintCaps(); kbKeysNote(); });
+    const h = host.querySelector('h3'); host.insertBefore(kb, h ? h.nextSibling : host.firstChild); kbKeysNote();
+  }
+  function openKeybinds() { open('keybinds'); ensureKbToggle(); renderBinds(); }
   function fillPause() {
     if (!game) return;
     const r = world && world.roomAt(game.player.x, game.player.z);
@@ -968,6 +1000,7 @@
       }
       if (view !== 'playing' || browserChord) return;
       if (e.code === 'KeyH' && !e.repeat) { show('pause'); openControls(); return; }
+      if (e.code === 'Tab' && kbMode() && !e.repeat) { kbCycle(e.shiftKey ? -1 : 1); return; }
       if (e.repeat) keys.add(normCode(e.code)); else pressBind(normCode(e.code));
     });
     document.addEventListener('keyup', e => releaseBind(normCode(e.code)));
@@ -1023,6 +1056,7 @@
     const a = bindMap[code];
     if (!a || a === 'stand' || ['up', 'down', 'left', 'right'].includes(a)) return;
     tap(document.querySelector(`[data-action="${a}"]`));
+    if (kbMode() && (a === 'light' || a === 'heavy') && !code.startsWith('Mouse')) { kbClick[a] = true; return; }   // keyboard-only: the key is a click on the auto-picked foe (kbAssist)
     // A mouse press on light / heavy is a click (target a foe, walk, or Shift + click in place); a key press is the attack key (foe in the front cone only).
     if (code.startsWith('Mouse') && (a === 'light' || a === 'heavy')) { clicks[a] = true; return; }
     actions[a] = true;
@@ -1049,7 +1083,7 @@
       const p = k.parentElement, a = k.dataset.bind || p.dataset.action || p.dataset.hold || (p.id === 'interact' ? 'interact' : '');
       if (a === 'move') k.textContent = moveCaps[0];
       else if (binds[a]) {
-        const code = binds[a][0] || binds[a][1], m = { Mouse0: 'l', Mouse2: 'r' }[code];
+        const code = kbMode() && (a === 'light' || a === 'heavy') && binds[a].some(c => c && !mouseCode(c)) ? binds[a].find(c => c && !mouseCode(c)) : binds[a][0] || binds[a][1], m = { Mouse0: 'l', Mouse2: 'r' }[code];
         k.classList.toggle('mouse', !!m);
         if (m) k.innerHTML = `<svg aria-hidden="true"><use href="#i-mouse-${m}"/></svg><em>${capName(code)}</em>`; else k.textContent = capName(code);
       }
@@ -1114,7 +1148,7 @@
       const sec = $(id); if (!sec) continue;
       sec.querySelectorAll('.bindrow, .bind-cols, .bind-subhead').forEach(n => n.remove());
       const head = document.createElement('div'); head.className = 'bind-cols'; head.innerHTML = KabirI18n.t('<span></span><span>Ana tuş</span><span>Yedek</span><span></span>'); sec.append(head);
-      const fixed = id === 'bind-misc' ? [[KabirI18n.t('Mola'), KabirI18n.t('Menü ve ayarlar'), 'ESC'], [KabirI18n.t('Karakter ve çanta'), KabirI18n.t('Yetenek ağacı: T'), 'I / C'], [KabirI18n.t('Yardım'), KabirI18n.t('Kontroller ekranı'), 'H']] : [];
+      const fixed = id === 'bind-misc' ? [[KabirI18n.t('Mola'), KabirI18n.t('Menü ve ayarlar'), 'ESC'], [KabirI18n.t('Karakter ve çanta'), KabirI18n.t('Yetenek ağacı: T'), 'I / C'], [KabirI18n.t('Yardım'), KabirI18n.t('Kontroller ekranı'), 'H']].concat(kbMode() ? [[KabirI18n.t('Hedef değiştir'), KabirI18n.t('Sadece klavye: en yakın sonraki düşman'), 'TAB']] : []) : [];
       for (const a of list) {
         if (a === 'heavy' || a === 'light') {
           const sub = document.createElement('div'); sub.className = 'bind-subhead'; sub.setAttribute('role', 'presentation');
@@ -1134,7 +1168,7 @@
       }
       for (const [name, note, cap] of fixed) {
         const row = document.createElement('div'); row.className = 'setting bindrow fixed';
-        row.innerHTML = `<div class="bind-name"><label>${name}</label><small>${note} · sabit</small></div><span class="bind-slot">${cap}</span><span class="bind-slot empty">—</span><span></span>`; sec.append(row);
+        row.innerHTML = `<div class="bind-name"><label>${name}</label><small>${note} · ${KabirI18n.t('sabit')}</small></div><span class="bind-slot">${cap}</span><span class="bind-slot empty">—</span><span></span>`; sec.append(row);
       }
     }
   }
@@ -1177,7 +1211,7 @@
   const heldMouse = () => ['Mouse0', 'Mouse1', 'Mouse2', 'Mouse3', 'Mouse4'].some(c => keys.has(c));
   const holdBtn = a => binds[a].some(c => c && c.startsWith('Mouse') && keys.has(c)) || (a === 'light' && touchHold !== null);   // the mouse button (or the finger) of this attack is down
   const keyDown = a => binds[a].some(c => c && !c.startsWith('Mouse') && keys.has(c));   // ... the keyboard key is down
-  function setCursor(e, count) { cursor.x = e.clientX; cursor.y = e.clientY; cursor.has = !!count; }
+  function setCursor(e, count) { cursorT = performance.now(); cursor.x = e.clientX; cursor.y = e.clientY; cursor.has = !!count; }
   // The floor point under the cursor and the foe under / near it (a capsule from the feet to the head, plus a soft margin of ~3 % of the screen height so that
   // a foe does not have to be hit exactly; the foe that was targeted a moment ago keeps the target a little longer so the ring does not flicker between neighbours).
   // Ground loot (click = walk there and take it) wins over the ground and over props, and over a foe only when the cursor is nearer to the item than to the foe.
@@ -1234,6 +1268,59 @@
     if (prevProp && prevProp.isTargetable() && propPrevScore <= propSoft * 1.3 && (!cursor.prop || propScore > 0)) cursor.prop = prevProp;
     if (cursor.prop) { input.pointX = cursor.prop.x; input.pointZ = cursor.prop.z; }
   }
+  /* ───────────── Keyboard-only play: auto-target ─────────────
+     The attack keys act like clicks on a foe picked for you: the nearest living foe inside a +-60 degree cone in front of the hero (else the nearest foe at all, else a swing
+     in place along the facing). Tab picks the next nearest foe and keeps it until it dies. The hero keeps combat.js's own click orders (walk up, combo, hold to repeat). */
+  const KB_RANGE = 16, KB_CONE = Math.PI / 3;
+  const kbValid = e => !!e && !e.dead && e.model && e.model.root.visible && (!e.hp || e.hp > 0);
+  const kbDist = e => Math.max(0, Math.hypot(e.x - game.player.x, e.z - game.player.z) - (e.radius || 0));
+  function kbPick() {
+    const p = game.player; let best = null, bs = 1e9, near = null, nd = 1e9;
+    for (const e of game.enemies) {
+      if (!kbValid(e)) continue;
+      const d = kbDist(e); if (d > KB_RANGE) continue;
+      const ang = Math.abs(Math.atan2(Math.sin(Math.atan2(e.x - p.x, e.z - p.z) - p.face), Math.cos(Math.atan2(e.x - p.x, e.z - p.z) - p.face)));
+      if (ang <= KB_CONE && d + ang * 3 < bs) { bs = d + ang * 3; best = e; }
+      if (d < nd) { nd = d; near = e; }
+    }
+    return best || near;
+  }
+  function kbSet(e) { kbTarget = e; if (e && game.state === 'playing') game.attackTarget = e; }
+  function kbCycle(dir) {
+    if (!game || game.state !== 'playing') return;
+    const p = game.player, list = game.enemies.filter(e => kbValid(e) && kbDist(e) <= 24).sort((a, b) => kbDist(a) - kbDist(b));
+    if (!list.length) { kbLock = null; kbTarget = null; return; }
+    const i = list.indexOf(kbTarget), next = list[i < 0 ? (dir > 0 ? 0 : list.length - 1) : (i + dir + list.length) % list.length];
+    kbLock = next; kbSet(next);
+  }
+  // Returns the keyboard walking vector and rewrites `input` (target / point / clicks / holds) for this frame.
+  function kbAssist() {
+    const p = game.player, L = kbClick.light, H = kbClick.heavy; kbClick.light = kbClick.heavy = false;
+    const hL = keyDown('light'), hH = keyDown('heavy');
+    if (kbLock && !kbValid(kbLock)) kbLock = null;
+    if (kbTarget && (!kbValid(kbTarget) || kbDist(kbTarget) > 24)) kbTarget = null;
+    const mouseRecent = cursor.has && performance.now() - cursorT < 1500;
+    if (L || H || hL || hH) {
+      let tgt = kbLock || ((hL || hH) && !L && !H && kbTarget) || kbPick();
+      if (tgt && !kbValid(tgt)) tgt = kbPick();
+      kbSet(tgt || null);
+      input.prop = input.loot = null;
+      if (tgt) { input.target = tgt; input.pointX = tgt.x; input.pointZ = tgt.z; }
+      else { input.target = null; input.pointX = p.x + Math.sin(p.face) * 3; input.pointZ = p.z + Math.cos(p.face) * 3; input.stand = true; }
+      input.clickLight = input.clickLight || L; input.clickHeavy = input.clickHeavy || H;
+      input.holdLight = input.holdLight || hL; input.holdHeavy = input.holdHeavy || hH;
+    } else {
+      if (actions.special || actions.rage || actions.fourth) {   // ground skills (charge, hook ...) aim at the target, else along the facing
+        const tgt = kbLock || kbTarget || kbPick();
+        if (tgt && !mouseRecent) { kbSet(tgt); input.pointX = tgt.x; input.pointZ = tgt.z; }
+        else if (!mouseRecent) { input.pointX = p.x + Math.sin(p.face) * 6; input.pointZ = p.z + Math.cos(p.face) * 6; }
+      }
+      if (kbTarget && !cursor.target && !input.target) input.target = kbTarget;   // the ember ring stays on the picked foe
+    }
+    let mx = 0, mz = 0;
+    if (isDown('left')) mx -= 1; if (isDown('right')) mx += 1; if (isDown('up')) mz -= 1; if (isDown('down')) mz += 1;
+    return { x: mx, z: mz };
+  }
   function pollInput() {
     input.aimX = input.aimZ = input.aimFoe = null; input.padActive = false;   // controller aim never inherits a stale mouse cursor
     // Like Diablo IV on PC: the keyboard does not walk the hero (the mouse does); only the touch stick and the gamepad stick give a direction.
@@ -1244,6 +1331,7 @@
     input.clickLight = clicks.light; input.clickHeavy = clicks.heavy; clicks.light = clicks.heavy = false;
     input.target = cursor.target; input.prop = cursor.prop; input.loot = cursor.loot;
     if (cursor.touch && touchHold === null) cursor.has = false;   // a finger that has lifted no longer points at anything
+    const kb = kbMode() ? kbAssist() : null; if (kb) { x += kb.x; z += kb.z; }
     if (controllerState && controllerState.connected && !controllerState.binding) {
       input.padActive = Math.hypot(controllerState.x, controllerState.z, controllerState.aimX, controllerState.aimZ) > .08 || controllerState.lightHeld || Object.values(controllerState.actions).some(Boolean);
       x += controllerState.x; z += controllerState.z;
@@ -1562,11 +1650,14 @@
     const xpTitle = progression.level === B.Progression.MAX_LEVEL ? KabirI18n.t('En yüksek seviye') : (progression.xp - baseXp) + ' / ' + (nextXp - baseXp) + KabirI18n.t(' tecrübe');
     if (xpBar.title !== xpTitle) xpBar.title = xpTitle;
     cryEffect.remaining = !p.dead && game.state === 'playing' ? p.rageTime || 0 : 0; if (p.rageMax > 0) cryEffect.duration = p.rageMax;
-    buffUI.update(timedEffects);
+    if ((placeTick = (placeTick + 1) % 20) === 0 || placeW !== innerWidth || placeH !== innerHeight) placeShortStrip();   // keep the short-effect strip lined up with the Q (flask) slot
+    const heroBuffs = game.talents && game.talents.buffs ? game.talents.buffs() : [];
+    if (lastFlaskCount !== null && p.flasks < lastFlaskCount) flaskLeft = 2.5; lastFlaskCount = p.flasks; flaskLeft = p.dead ? 0 : Math.max(0, flaskLeft - dt);   // the flask heals at once: a short 'Elixir' chip confirms it
+    const all = timedEffects.concat(heroBuffs); if (flaskLeft > 0) all.push({ id: 'flask', name: KabirI18n.t('İksir'), icon: 'flask', remaining: flaskLeft, duration: 2.5, tone: 'heart', tip: 'Şifa matarasıyla can yenilendi.' });
+    buffUI.update(all);
     chapterBuffUI.update(game.quests);
     let buffCount = 0;
-    for (const effect of timedEffects) if (Number.isFinite(effect.remaining) && effect.remaining > 0) buffCount++;
-    const buffRows = Math.ceil(buffCount / 3);
+    const buffRows = buffUI.shortCount() ? 1 : 0;   // short effects sit in a row above the skill bar; the long ones sit under the minimap
     if (buffRows !== lastBuffRows) { lastBuffRows = buffRows; $('hud').style.setProperty('--buff-rows', buffRows); }
     const hp = clamp(p.hp / p.maxHp, 0, 1);
     const actualMaxHp = Number.isFinite(p.effectiveMaxHp) && p.effectiveMaxHp > 0 ? p.effectiveMaxHp : p.maxHp;
@@ -1778,7 +1869,7 @@
     if (B.LevelUp) B.LevelUp.step(dt);   // level-up screen layer: banner timeline, edge flash / colour fringe via Post.setAbilityFx (real time)
     const playing = view === 'playing' && game.state === 'playing';
     if (playing) {
-      if (heldLight || keyDown('light') || controllerState?.lightHeld) { lightRepeat += dt; if (lightRepeat >= .12) { actions.light = true; if (heldLight) actions.near = true; lightRepeat = 0; } }
+      if (heldLight || (!kbMode() && keyDown('light')) || controllerState?.lightHeld) { lightRepeat += dt; if (lightRepeat >= .12) { actions.light = true; if (heldLight) actions.near = true; lightRepeat = 0; } }
       const stopped = Math.min(dt, hitPause), simDt = (dt - stopped) * (B.LevelUp ? B.LevelUp.timeScale() : 1) * (B.Charge && B.Charge.timeScale ? B.Charge.timeScale() : 1) * (B.SkillFx ? B.SkillFx.timeScale() : 1) * (B.UILanes && B.UILanes.timeScale ? B.UILanes.timeScale() : 1); hitPause -= stopped;
       // Input events remain queued during contact emphasis; all combat clocks share simDt
       // so neither enemies nor i-frames gain a hidden time advantage.

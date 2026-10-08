@@ -11,6 +11,7 @@
       lantern: { name: KabirI18n.t('Sırıtan Fenerci'), hp: 121, speed: 2.05, radius: .42, reach: 13, cooldown: 2.4, color: 0x8abbb0, coast: true, ranged: true },
       bell: { name: KabirI18n.t('Derinliklerin Çancısı'), hp: 2500, speed: 2, radius: 1.03, reach: 16, cooldown: 1.05, color: 0xa6b4a0, coast: true, boss: true }
     },
+    // EN2: new stats come from mobs-c2.js (Object.assign right after this literal)
     create: function (api) {
       var player = api.player;
       function hit(at, warn, shape, size, dmg, pose, more) {
@@ -130,6 +131,7 @@
       }
       return {
         attack: function (e, d) {
+          if (B.MobsC2 && B.MobsC2.stats[e.type]) return api.pick(e, B.MobsC2.list(e, d, { api: api, hit: hit, cone: cone, point: point }));   // EN2
           var list = [];
           if (e.type === 'drowned') list = [
             { id: 'oar', ok: d < 3.5, w: 4, move: function () { return cone(e, 'oar', KabirI18n.t('Kırık Kürek'), 3.1, 2.3, 13, 'sweep', .72); } },
@@ -208,4 +210,5 @@
       };
     }
   };
+  if (B.MobsC2) Object.assign(B.CoastCombat.stats, B.MobsC2.stats);   // EN2: netcaster, tidecaller (mobs-c2.js)
 }());

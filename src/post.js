@@ -173,7 +173,7 @@
     '  if (wet < .02) return;',
     '  vec3 V = normalize(P), R = reflect(V, uUpV);',
     '  float fres = .3 + .7 * pow(1. - clamp(dot(-V, uUpV), 0., 1.), 3.);',
-    '  float jit = ign(gl_FragCoord.xy + fract(uTime) * 17.);',
+    '  float jit = ign(gl_FragCoord.xy);   // static dither: a pattern that moves every frame shimmers on bright flames even when the hero stands still',
     '  vec3 hit = vec3(0.); float ha = 0.;',
     '  for (int i = 0; i < 12; i++) {',
     '    float t = (float(i) + jit) / 12.; float s = .12 + t * t * uRange;',
@@ -184,7 +184,7 @@
     '    if (df > .03 && df < .45 + s * .3) {',
     '      vec3 h = texture2D(tScene, uq).rgb + texture2D(tScene, uq + vec2(e.x, 0.) * 2.).rgb + texture2D(tScene, uq - vec2(e.x, 0.) * 2.).rgb + texture2D(tScene, uq + vec2(0., e.y) * 2.).rgb + texture2D(tScene, uq - vec2(0., e.y) * 2.).rgb;',
     '      float ef = smoothstep(.0, .08, min(min(uq.x, 1. - uq.x), min(uq.y, 1. - uq.y)));',
-    '      hit = min(h * .2, vec3(6.)); ha = (1. - t) * ef; break; }',
+    '      hit = min(h * .2, vec3(2.2)); ha = (1. - t) * ef; break; }',
     '  }',
     '  gl_FragColor = vec4(hit * ha * wet * fres, 1.);',
     '}'].join('\n');

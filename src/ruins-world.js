@@ -172,6 +172,7 @@
       var types=forge?(i<6?['emberbound','chainseer','forgesentinel','emberbound','slagcrawler']:['slagcrawler','forgesentinel','chainseer','slagcrawler','emberbound']):i<6?['ashbound','shardseer','gravemason','ashbound','cavefang']:['cavefang','gravemason','shardseer','cavefang','ashbound'];
       var spawns=types.map(function(type,n){return {type:type,x:r.x+(n===4?0:n%2?3.4:-3.4),z:r.z+(n===4?0:n<2?-4:4)};});
       if(i===4||i===9)spawns.push({type:forge?'ashwarden':'ruinwarden',x:r.x,z:r.z-7,elite:true});
+      if(!forge&&B.MobsC3)B.MobsC3.addSpawns(spawns,i,r); /* ajan:EN3 */
       encounters.push({id:(forge?'forge-':'ruin-')+i,room:i,name:r.name,clearText:KabirI18n.t('Buradaki sesler sustu. Kuzeydeki yol açık.'),stage:forge?1.08+i*.016:1.02+i*.018,spawns:spawns});
     });
     // Each room's own composition.
@@ -240,6 +241,7 @@
       if(materials.crystal)materials.crystal.emissiveIntensity=1.1+.12*Math.sin((time||0)*.9);
       if(materials.crystalV)materials.crystalV.emissiveIntensity=1.15+.14*Math.sin((time||0)*1.1+2);
     }
+    if(!forge&&B.MobsC3)B.MobsC3.fixSpawns(encounters,isWalkable); /* ajan:EN3 */
     root.updateMatrixWorld(true);
     B.RuinsWorld.lastBuildMs=Math.round(performance.now()-buildT0);
     return {chapter:chapter,name:forge?KabirI18n.t('Kızıl Ocak'):KabirI18n.t('Sessiz Taht'),root:root,rooms:rooms,paths:paths,encounters:encounters,colliders:colliders,occluders:[],materials:materials,questSites:!forge&&B.WorldARuins&&B.WorldARuins.active?Object.assign({},B.WorldARuins.sites):undefined,spawn:{x:0,z:14},checkpoint:{x:0,z:rooms[11].z},bossSpawn:{x:0,z:rooms[13].z-1},

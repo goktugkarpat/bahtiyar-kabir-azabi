@@ -692,8 +692,9 @@
         var lx = r.x + (n - 1) * 4.2, lz = r.z + (n % 2 ? 1.8 : -1.2) + (r.theme === 'graves' ? 2 : 0); if (inHole(holes, lx, lz, 1.5)) continue;
         put('slab' + n, 'pale', lx, -.118, lz, 1.5, .24, 2.5, 0, U(-.05, .05), 0, 0, new T.Color().setScalar(U(.75, .95)));
         put('slab' + (n + 1) % 4, 'dark', lx, -.112, lz, 1.1, .24, 2.05, 0, U(-.04, .04), 0, 1);
-        K.floorDecal('matte', CELL.runes, lx, lz, 1.2, 1.9, 0, COL.chalk, 1);
-        K.floorDecal('matte', CELL.cracks, lx + U(-.3, .3), lz, 1.4, 1.4, null, COL.crack, 1);
+        // the dark ledger slab's top face sits at y = .008: decals must float above it (they used to sit at .004-.007 and z-fought / sank into the stone, blacking out as the camera moved)
+        K.decal('matte', CELL.runes, lx, .018, lz, 1.2, 1.9, 0, COL.chalk, 1);
+        K.decal('matte', CELL.cracks, lx + U(-.3, .3), .016, lz, 1.4, 1.4, U(0, 6.28), COL.crack, 1);
       }
     }
   }

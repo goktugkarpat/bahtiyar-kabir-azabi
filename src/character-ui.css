@@ -380,3 +380,7 @@
 .cd-unique-power strong { display: block; color: #f3d79b; font-size: 14px; margin: 2px 0 3px; text-shadow: 0 0 8px rgba(231,194,122,.45); }
 .cd-unique-power p { margin: 0; font-size: 12px; line-height: 1.35; color: #d9cdb6; }
 /* /ajan:gear */
+
+/* hover / focus explanation bubble for the item chips (Level / Power / Craftsmanship): one floating element, clamped to the screen */
+.cd-chip[data-tip] { cursor: help; }
+#cd-tip { position: fixed; z-index: 9999; display: none; width: max-content; max-width: min(280px, calc(100vw - 16px)); padding: 8px 11px; border: 1px solid #8a6a3a; border-radius: 3px; background: #14100df5; color: #e9dec6; font: 400 13px/1.45 var(--text, sans-serif); text-align: left; white-space: normal; box-shadow: 0 6px 18px #000c; pointer-events: none; }

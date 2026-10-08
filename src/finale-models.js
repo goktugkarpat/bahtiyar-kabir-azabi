@@ -23,12 +23,15 @@
       var exec = cfg.base === 'executioner', head = exec ? 'head' : 'Head', spine = exec ? 'spine03' : 'spine_03', handL = exec ? 'handL' : 'hand_l', handR = exec ? 'handR' : 'hand_r', armL = exec ? 'upper_armL' : 'upperarm_l', armR = exec ? 'upper_armR' : 'upperarm_r', foreL = exec ? 'forearmL' : 'lowerarm_l', foreR = exec ? 'forearmR' : 'lowerarm_r', thighL = exec ? 'thighL' : 'thigh_l', thighR = exec ? 'thighR' : 'thigh_r';
       var skin = A.addFrom(C.bases[cfg.base], function () { return true; }, 'skin')[0]; if (exec) A.remapBone('neutral_bone', 'pelvis');
       var p = A.P(head), chest = A.P(spine), hip = A.P('pelvis');
+      if (type === 'chainjailer' && exec) A.slim(skin, {spine01:.68,spine02:.72,spine03:.8,pelvis:.86}, 1);   // fat-fix
       if (type === 'voidcrawler') { A.lengthen({ lowerarm_l: 1.5, lowerarm_r: 1.5, hand_l: 1.35, hand_r: 1.35 }); var slim = {}; slim[spine] = .7; A.slim(skin, slim, 1); }
       if (type === 'damned') { var thin = {}; thin[spine] = .82; A.slim(skin, thin, 1); }
+      if (B.FinaleExtra && B.FinaleExtra.pre[type]) B.FinaleExtra.pre[type](A, skin, spine, exec);   // mobs-c5.js: extra court cast
       var fitted = torsoFit(A, exec, chest), fb = fitted.box, bw = Math.max(.34, fb.max.x - fb.min.x), torsoH = fb.max.y - fb.min.y;
       var boss = type === 'lastjudge', elite = type === 'verdictwarden', armour = type === 'chainjailer' || elite || boss;
       var clothTint = type === 'verdictseer' ? [.2, .03, .03] : boss ? [.13, .018, .02] : elite ? [.04, .035, .035] : type === 'damned' ? [.32, .27, .22] : [.12, .1, .1];
       var skinTint = type === 'voidcrawler' ? [.3, .28, .3] : type === 'damned' ? [.78, .64, .58] : [.86, .7, .62];
+      var XT = B.FinaleExtra && B.FinaleExtra.tints[type]; if (XT) { clothTint = XT.cloth || clothTint; skinTint = XT.skin || skinTint; }   // mobs-c5.js
       var materials = {
         skin: C.bodyMaterial(A.srcMaterial(exec ? 'Exec_mesh' : 'SuperHero_Male', C.bases[cfg.base]), 'finale-' + type + '-skin', { cls: 'skin', skin: 1, skinMap: exec, tint: skinTint, sat: .36, grime: type === 'voidcrawler' ? .75 : .55, blood: type === 'damned' ? .4 : .22, scale: 9, fresh: true }, { roughness: .78 }),
         iron: C.bodyMaterial(C.gearMaterial('iron'), 'finale-' + type + '-iron', { cls: 'metal', tint: boss ? [.5, .44, .42] : [.66, .6, .58], rust: .4, grime: .45, wear: .5, scale: 8 }, { roughness: .64 }),
@@ -188,11 +191,13 @@
         function covered(q) { return /^thigh_[lr]$/.test(q.bone) && q.p.y < hip.y - .025 && q.p.y > knee; }
         A.trim(skin, function (a, b, c) { return !(covered(a) && covered(b) && covered(c)); });
       });
+      if (B.FinaleExtra && B.FinaleExtra.build[type]) safe(type, function () { B.FinaleExtra.build[type]({ A: A, C: C, G: G, T: T, V: V, arr: arr, p: p, chest: chest, hip: hip, head: head, spine: spine, handL: handL, handR: handR, armL: armL, armR: armR, foreL: foreL, foreR: foreR, thighL: thighL, thighR: thighR, fitted: fitted, fb: fb, bw: bw, torsoH: torsoH, materials: materials, limbCover: limbCover, boot: boot, seam: seam, shackle: shackle, robe: robe, hood: hood, plateWear: plateWear }); });   // mobs-c5.js
       var weapon;
       if (type === 'verdictseer') weapon = { parts: { iron: [G.cyl(.022, .03, 1.2, 10, [0, .42, 0]), G.box(.5, .025, .025, [0, 1.06, 0]), G.ring(.07, .01, [-.22, .86, 0], [Math.PI / 2, 0, 0], 5, 14), G.ring(.07, .01, [.22, .86, 0], [Math.PI / 2, 0, 0], 5, 14), G.cyl(.004, .004, .2, 4, [-.22, .96, 0]), G.cyl(.004, .004, .2, 4, [.22, .96, 0])], glow: [G.sphere(.04, [0, 1.12, 0], [1, 1.3, 1], 10, 8), G.disc ? G.sphere(.05, [.22, .86, 0], [1, .25, 1], 10, 4) : G.sphere(.05, [.22, .86, 0], [1, .25, 1], 10, 4)] }, tip: new T.Vector3(0, 1.15, 0) };
       else if (type === 'chainjailer') weapon = { parts: { wood: [G.cyl(.04, .05, 1.0, 10, [0, .3, 0])], iron: [G.sphere(.17, [0, 1.18, 0], [1, 1, 1], 12, 8), G.ring(.03, .009, [0, .84, 0], [0, 0, 0], 4, 9), G.ring(.03, .009, [0, .92, 0], [Math.PI / 2, 0, 0], 4, 9), G.ring(.03, .009, [0, 1.0, 0], [0, 0, 0], 4, 9)].concat([0, 1, 2, 3, 4, 5].map(function (k) { var a = k / 6 * TAU; return G.spike(.04, V(Math.sin(a) * .15, 1.18, Math.cos(a) * .15), V(Math.sin(a) * .27, 1.18, Math.cos(a) * .27)); })), glow: [G.ring(.172, .008, [0, 1.18, 0], [Math.PI / 2, 0, 0], 5, 22)] }, tip: new T.Vector3(0, 1.3, 0) };
       else if (elite || boss) weapon = { parts: { iron: [C.forgedBlade(boss ? 1.5 : 1.2, boss ? .2 : .16, true), C.forgedBlock(boss ? .5 : .38, .06, .09, [0, .05, 0], .012), G.cyl(.045, .05, .05, 8, [0, -.36, 0])], leather: [C.forgedGrip(.035, .34, -.2)], glow: [G.extrude([[-.01, .16], [.006, .16], [.02, .5], [.01, .85], [.014, (boss ? 1.3 : 1.0)], [.002, (boss ? 1.25 : .95)], [.0, .5]], .04, .001)] }, tip: new T.Vector3(.22, boss ? 1.45 : 1.15, 0) };
       else if (type === 'damned') weapon = { parts: { iron: [G.cyl(.02, .025, .55, 8, [0, .25, 0]), G.ring(.04, .01, [0, .55, 0], [0, 0, 0], 4, 10)].concat([0, 1, 2, 3, 4, 5, 6].map(function (k) { return G.ring(.028, .008, [0, .6 + k * .05, .01 * (k % 2)], [k % 2 ? Math.PI / 2 : 0, 0, 0], 4, 9); })), glow: [G.sphere(.05, [0, .98, 0], [1, 1.3, 1], 8, 6)] }, tip: new T.Vector3(0, 1.0, 0) };
+      if (B.FinaleExtra && B.FinaleExtra.weapon[type]) weapon = B.FinaleExtra.weapon[type]({ G: G, C: C, T: T, V: V });   // mobs-c5.js
       if (weapon) weapon.materials = { iron: materials.iron, leather: materials.leather, glow: materials.glow, wood: materials.leather };
       return { materials: materials, weapon: weapon };
     });
@@ -203,5 +208,5 @@
   make('chainjailer', { base: 'executioner', height: 3.0, radius: .74, motionType: 'carrier' });
   make('verdictwarden', { base: 'executioner', height: 3.3, radius: .84, motionType: 'guard' });
   make('lastjudge', { base: 'executioner', height: 4.7, radius: 1.15, motionType: 'boss' });
-  B.FinaleModels = { types: ['damned', 'verdictseer', 'voidcrawler', 'chainjailer', 'verdictwarden', 'lastjudge'], glow: GLOW };
+  B.FinaleModels = { make: make, types: ['damned', 'verdictseer', 'voidcrawler', 'chainjailer', 'verdictwarden', 'lastjudge'], glow: GLOW };
 }());

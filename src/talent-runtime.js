@@ -54,11 +54,11 @@
       return out;
     }
     // Per form: when the head bites (matches the pose contact in combat.js), how long the foe slides, how hard the camera jolts, the sound variant.
-    const HOOK = { hook: { style: 'hook', strike: .24, drag: .5, shake: .5, flight: .1 }, hook2: { style: 'long', strike: .17, drag: .42, shake: .4, flight: .08 }, hook3: { style: 'barb', strike: .28, drag: .62, shake: .7, flight: .11 } };
+    const HOOK = { hook: { style: 'hook', strike: .24, drag: .22, shake: .5, flight: .1 }, hook2: { style: 'long', strike: .17, drag: .18, shake: .4, flight: .08 }, hook3: { style: 'barb', strike: .28, drag: .26, shake: .7, flight: .11 } };
     function castHook(skill, face, targets) {
       const P = skill.params, H = HOOK[skill.id] || HOOK.hook;
-      // The head flies out fast, but the foe is hauled in slowly (longer for a longer pull) so he is not teleported to the hero.
-      const dragOf = (e, n) => H.drag + Math.min(.4, Math.max(0, dist(e, player.x, player.z) - Math.max(1.25, P.keep * .72) - n * .9) * .04);
+      // The head flies out fast; the foe is hauled in briskly (a touch longer for a longer pull, ~.3 s) with a hard yank that settles, so he is not teleported.
+      const dragOf = (e, n) => H.drag + Math.min(.2, Math.max(0, dist(e, player.x, player.z) - Math.max(1.25, P.keep * .72) - n * .9) * .02);
       const drags = targets.map(dragOf), maxDrag = drags.length ? Math.max(...drags) : H.drag;
       if (look) look.chains(player, targets, true, { life: H.strike + maxDrag + .5, hook: true, style: H.style, throw: H.strike, flight: H.flight });
       sound('talentHook', { style: H.style });
@@ -78,13 +78,22 @@
       return true;
     }
     // Demir Duruş: the stance lasts P.time seconds (the pose itself is the war-cry body of combat.js).
+    const STANCE_HIT = .38;
     const stanceStyle = skill => skill && skill.id === 'guard2' ? 'heart' : skill && skill.id === 'guard3' ? 'thorn' : 'iron';
     function castGuard(skill) {
       const P = skill.params;
-      guard = { time: P.time, taken: P.taken, thorns: P.thorns, stun: P.stun, bleed: P.bleed, reach: P.reach, heal: P.heal || 0, cool: 0, puff: 0, style: stanceStyle(skill) };
-      sound('talentStance', { style: guard.style });
-      if (look) { look.plant(player, guard.style); look.puff(player.x, (player.model && player.model.root.position.y) || 0, player.z, 'bone', 6); }
-      ctx.emit('impact', { x: player.x, z: player.z, strength: .75, radius: 3 });
+      guard = { name: skill.name, art: skill.id, total: P.time, time: P.time, taken: P.taken, thorns: P.thorns, stun: P.stun, bleed: P.bleed, reach: P.reach, heal: P.heal || 0, cool: 0, puff: 0, style: stanceStyle(skill) };
+      // the pose winds up for STANCE_HIT s (authored-motion stancePose); the planting (sound, ring, cracks, sparks, shake) lands on the blow. The stance itself is armed at once.
+      guard.delay = STANCE_HIT; guard.slam = STANCE_HIT;
+      if (look) look.gather(player, guard.style, STANCE_HIT);
+      const style = guard.style;
+      later.push({ at: clock + STANCE_HIT, fn() {
+        if (player.dead) return;
+        sound('talentStance', { style });
+        if (look) { look.plant(player, style); look.puff(player.x, (player.model && player.model.root.position.y) || 0, player.z, 'bone', 6); }
+        ctx.emit('impact', { x: player.x, z: player.z, strength: .95, radius: 3 });
+        if (ctx.hitStop) ctx.hitStop(.03);
+      } });
       return true;
     }
     // Called by combat.js once the pose started; returns true when the effect is armed.
@@ -176,7 +185,7 @@
       for (let i = pulls.length - 1; i >= 0; i--) {
         const p = pulls[i];
         if (!alive(p.e)) { pulls.splice(i, 1); continue; }
-        p.left -= dt; const u = Math.min(1, Math.max(0, 1 - p.left / p.total)), k = u * (1.6 - .6 * u), want = Math.max(p.keep, p.d0 + (p.keep - p.d0) * k), d = dist(p.e, player.x, player.z);
+        p.left -= dt; const u = Math.min(1, Math.max(0, 1 - p.left / p.total)), k = 1 - Math.pow(1 - u, 2.4), want = Math.max(p.keep, p.d0 + (p.keep - p.d0) * k), d = dist(p.e, player.x, player.z);
         if (d > want + .02) {
           ctx.yank(p.e, player.x, player.z, want);
           if (look && (p.dust -= dt) <= 0) { p.dust = .035; const ax = (player.x - p.e.x) / (d || 1), az = (player.z - p.e.z) / (d || 1); look.dust(p.e.x, p.e.z, -ax * 2, -az * 2, p.style === 'barb' ? 3 : 2); }
@@ -185,7 +194,7 @@
       }
       // the stance
       if (guard) {
-        if (look) look.setGuard(player, guard.time, guard.style);
+        if (look) look.setGuard(player, guard.time, guard.style, guard.delay);
         guard.time -= dt; guard.cool = Math.max(0, guard.cool - dt); guard.puff -= dt;
         if (guard.puff <= 0 && look && !player.dead) { guard.puff = .22; look.puff(player.x, (player.model && player.model.root.position.y) || 0, player.z, 'stone', 2); }
         if (guard.time <= 0 || player.dead) { guard = null; if (look) look.setGuard(null); if (look && !player.dead) look.puff(player.x, 0, player.z, 'bone', 6); }
@@ -203,9 +212,17 @@
       }
       if (look) look.update(dt, status, null, auraKind() ? { player, kind: auraKind(), moving: false } : null);
     }
+    // Active timed effects on the hero for the buff bar under the minimap: [{ id, name, icon (skill art id), remaining, duration }]
+    function heroBuffs() {
+      const out = [];
+      if (guard && guard.time > 0) out.push({ id: 'stance', name: guard.name || KabirI18n.t('Demir Duruş'), icon: guard.art || 'guard', remaining: guard.time, duration: guard.total || guard.time, tone: guard.style, tip: 'Aldığın hasar azalır; yakındaki düşmana karşılık verirsin.' });
+      if (rageLeft > 0) out.push({ id: 'rageStacks', name: KabirI18n.t('Öfke Birikimi'), icon: 'rage', remaining: rageLeft, duration: (fx().rage && fx().rage.time) || rageLeft, tone: 'blood', tip: 'Vuruşların daha ağır iner ve gücün daha hızlı yenilenir.' });
+      if (momentum > 0 && fx().momentum) out.push({ id: 'momentum', name: KabirI18n.t('Hız Kazanımı'), icon: 'dodge', remaining: Math.min(momentum, fx().momentum.time), duration: fx().momentum.time, tone: 'gold', tip: 'Kaçınma ya da hücumdan sonra vuruşların daha ağır iner.' });
+      return out;
+    }
     function reset() { status.clear(); rageHits = rageLeft = vengeance = 0; later.length = 0; pulls.length = 0; guard = null; if (look) look.reset(); }
     function dispose() { reset(); if (look) look.dispose(); }
-    const api = { isActive, cast, hookTargets, onCast, onHurt, outgoing, onHit, onKill, incoming, regenMul, flaskHealMul, maxFlasks, dodgeCost, dodgeBlocked, onDodge, update, reset, dispose,
+    const api = { buffs: heroBuffs, isActive, cast, hookTargets, onCast, onHurt, outgoing, onHit, onKill, incoming, regenMul, flaskHealMul, maxFlasks, dodgeCost, dodgeBlocked, onDodge, update, reset, dispose,
       guardActive: () => !!guard,
       effective: skill => skill && tree ? tree.effective(skill, progression.learned) : skill,
       inCombat: () => enemies.some(e => !e.dead && e.active && Math.hypot(e.x - player.x, e.z - player.z) < 16),

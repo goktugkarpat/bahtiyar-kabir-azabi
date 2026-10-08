@@ -31,7 +31,7 @@
     reflect:  { name: tr('Aynalı'), color: [.95, .4, 1.35], shell: true },
     warded:   { name: tr('Mühürlü'), color: [1.35, 1.0, .4], shell: true },
     fire:     { name: tr('Kor İzli'), color: [1.5, .45, .1] },
-    venom:    { name: tr('Zehir İzli'), color: [.5, 1.15, .25] },
+    venom:    { name: tr('Zehir İzli'), color: [.62, .5, .95] },
     volatile: { name: tr('Patlayan'), color: [1.5, .22, .1] },
     mending:  { name: tr('Şifacı'), color: [.35, 1.3, .7] },
     echoing:  { name: tr('Yankılı'), color: [1.25, .9, .35] },

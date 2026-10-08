@@ -27,6 +27,7 @@
   if (BABA.CoastCombat) Object.assign(STATS, BABA.CoastCombat.stats);
   if (BABA.RuinsCombat) Object.assign(STATS, BABA.RuinsCombat.stats);
   if (BABA.ForgeCombat) Object.assign(STATS, BABA.ForgeCombat.stats);
+  if (BABA.MobsC1) Object.assign(STATS, BABA.MobsC1.stats);   // chapter I extra foes (mobs-c1.js)
   if (BABA.FinaleCombat) Object.assign(STATS, BABA.FinaleCombat.stats);   // chapter V (finale-combat.js): stats carry forge:true + finale:true
   // Stronger enemies resist an unbuffed full Girdap; the boss has faster, explicitly timed normal moves.
   // Apply health once at spawn and damage once at contact so every enemy move follows the same balance.
@@ -37,7 +38,7 @@
     buffer: .22, chainEarly: .12, finisherChainEarly: .06, queueAfter: .06,
     hitstop: { light: .014, finisher: .030, heavy: .038, extraTarget: .003, kill: .006, bossKill: .012, shield: .010, guardBreak: .044,
       hurt: .012, hurtHeavy: .026 },
-    knock: { light: .32, finisher: .62, heavy: 1.05, shield: .12, boss: .05, bossHeavy: .16 },
+    knock: { light: .14, finisher: .2, heavy: .24, shield: .1, boss: .03, bossHeavy: .06 },   // small flinch only; skills never shove (they stun instead)
     lunge: [.34, .42, .56], heavyLunge: .72, lungeLead: [.12, .12, .14], heavyLungeLead: .2,
     whoosh: { light: .09, finisher: .11, heavy: .15 },
     // How fast the body swings round to the facing the game decided on (per second): walking, aimed swing, roll.
@@ -109,6 +110,7 @@
   // rest time, specials in 1.2 of it (SPECIAL_IDS lists the specials for that).
   const SPECIAL_HOLD = 1.5, PLAIN_REST = .62, SPECIAL_REST = .9;
   const SPECIAL_IDS = ['rush', 'grab', 'over', 'shove', 'rite', 'pair', 'rune', 'leap', 'flank', 'vial', 'exhale', 'hook', 'slam', 'cyclone', 'hooks', 'waterLunge', 'gurgle', 'rootRows', 'rootCrown', 'skitter', 'brine', 'falseLights', 'tide', 'bells', 'ashTrail', 'caveLeap', 'stoneCrown', 'hollowPulse', 'fall', 'fissures', 'shards', 'chainLanes', 'piston', 'vents', 'bellows', 'slagLeap', 'furnaceCrown'];
+  if (BABA.MobsC2) SPECIAL_IDS.push.apply(SPECIAL_IDS, BABA.MobsC2.specialIds);   // EN2
   SPECIAL_IDS.push('pull', 'orbs', 'rite', 'lanterns', 'toll', 'tides');   // round 7 (boss-mech.js / bossAttack / coast-combat.js)
   SPECIAL_IDS.push('kingRush', 'bellRush', 'orbs', 'crystalStar', 'hollowNova', 'hollowBurrow', 'hollowEcho', 'hollowCall', 'wardenOrb', 'wardenBurrow', 'lavaLanes', 'slagOrbs', 'anvilSlam', 'furnaceClock', 'overheatDash', 'furnaceCall', 'drownedCall', 'ashLava', 'ashDash');   // round 7 (boss2.js)
 
@@ -125,7 +127,7 @@
     const spawn = finitePoint(world.spawn) ? world.spawn : { x: 0, z: 7 };
     const checkpoint = finitePoint(world.checkpoint) ? world.checkpoint : { x: 0, z: -128 };
     const player = {
-      x: spawn.x, z: spawn.z, face: Math.PI, yaw: Math.PI, hp: 100, maxHp: 100, effectiveMaxHp:95,
+      x: spawn.x, z: spawn.z, face: Math.PI, yaw: Math.PI, hp: 100, maxHp: 100, effectiveMaxHp:100,
       stamina: 100, maxStamina: 100,
       flasks: 4, maxFlasks: 4, dead: false, model: hero,
       attack: null, dodge: 0, healing: 0, rageTime: 0,
@@ -174,7 +176,7 @@
       strike: (e, amount, face) => { if (!e || e.dead) return null; if (!e.active) { e.active = true; e.activated = true; if (e.encounter) e.encounter.activated = true; } return hurtEnemy(e, Math.round(amount), true, face, { talent: true, combo: 0, face, heavy: true, gained: 99 }); },   // gained: talent bursts never refill the stamina orb (ECONOMY.HIT)
       dot: (e, amount, kind) => talentTick(e, amount, kind), stun: (e, s) => stunEnemy(e, s, 'heavy'),
       yank: (e, x, z, keep) => { const d = Math.hypot(x - e.x, z - e.z); if (d > keep) { e.push = null; moveBody(e, (x - e.x) / d * (d - keep), (z - e.z) / d * (d - keep), e.radius); } },
-      canHit: e => !!e && !e.dead && !enemyUnderground(e) && e.model.root.visible && clearStrike(player, e) }) : null;
+      canHit: e => !!e && !e.dead && !enemyUnderground(e) && e.model.root.visible && clearStrike(player, e), hitStop: s => hitStop(s) }) : null;
     game.talents = talents;
     /* ajan:gear */ if (talents && BABA.GearPowers) BABA.GearPowers.attach(talents, { game, player, enemies, progression, root, sound, emit, groundY: (x, z) => world.effectHeightAt ? world.effectHeightAt(x, z, .6) : .06, hurtEnemy: (...a) => hurtEnemy(...a), stunEnemy: (...a) => stunEnemy(...a), talentTick: (...a) => talentTick(...a) });
     // A damage-over-time tick: no knock-back, no stagger, no on-hit procs; numbers and kills as usual.
@@ -294,17 +296,7 @@
           return hurtEnemy(enemy, Math.round(amount * (player.rageTime > 0 ? 1.48 : 1)), true, opts && Number.isFinite(opts.face) ? opts.face : attack.face, attack);
         },
         stun(enemy, seconds) { stunEnemy(enemy, seconds, 'heavy'); },
-        push(enemy, dx, dz, force) {
-          if (enemy && !enemy.dead && force > 0 && (dx || dz)) {
-            const direction=Math.atan2(dx,dz);enemy.push=null;push(enemy,direction,enemy.boss?force*.3:force);
-            // Tier III displacement carries a brief airborne reaction, never a standing slide.
-            // Walls still constrain the same ground capsule; bosses retain their immunity.
-            if(skill.tier===3&&!enemy.boss&&force>1){
-              enemy.launchAt=simTime;enemy.launchDirection=direction;enemy.launchHeight=Math.min(.65,.24+force*.055);
-              stunEnemy(enemy,.40,'heavy');
-            }
-          }
-        },
+        push() { /* sersemletme: abilities no longer shove foes (they stun instead) */ },
         move(dx, dz) { moveBody(player, dx, dz, hero.radius || .5); },
         canHit(enemy) {
           return !!enemy && !enemy.dead && !enemyUnderground(enemy) && enemy.model.root.visible && clearStrike(player, enemy);
@@ -325,7 +317,7 @@
           const d = Math.hypot(e.x - p.x, e.z - p.z);
           if (d > R + e.radius * .6 || !ctx.canHit(e)) continue;
           const r = ctx.damage(e, amount * (d < 1.6 ? 1 : P.ringMul)); if (!r) continue;
-          if (!r.killed) { ctx.stun(e, P.stun); ctx.push(e, e.x - p.x, e.z - p.z, .5 + .7 * (1 - Math.min(1, d / R))); shudder.push({ body: e, model: e.model, amp: .08 }); }
+          if (!r.killed) { ctx.stun(e, P.stun); shudder.push({ body: e, model: e.model, amp: .08 }); }
         }
         ctx.hitStop(.008, shudder); ctx.sound('heavyHit', { x: p.x, z: p.z }); ctx.emit('impact', { x: p.x, z: p.z, strength: 1, radius: R });
         inst.impacted = true; inst.impactX = p.x; inst.impactZ = p.z;
@@ -338,7 +330,7 @@
           const moved = Math.hypot(p.x - bx, p.z - bz); travelled += moved;
           if (P.pathDamage) for (const e of ctx.enemies) {
             if (e.dead || hit.has(e.id) || !ctx.canHit(e) || Math.hypot(e.x - p.x, e.z - p.z) > .95 + e.radius) continue;
-            hit.add(e.id); const r = ctx.damage(e, P.pathDamage); if (r && !r.killed) { ctx.stun(e, .5); ctx.push(e, e.x - p.x, e.z - p.z, .7); }
+            hit.add(e.id); const r = ctx.damage(e, P.pathDamage); if (r && !r.killed) { ctx.stun(e, .6); }
           }
           if (moved < step * .35 || travelled >= total - .02) {
             dashing = false; ctx.fx('heroSkill', { skill: 'charge', phase: 'release', x: sx, y: .1, z: sz, face: p.face, length: Math.hypot(p.x - sx, p.z - sz), width: 1.8, duration: .35 });
@@ -397,7 +389,7 @@
           // Demir Duruş: the hero plants his feet in the war-cry body (no shout, no shockwave: the pose is released at once), the stance itself lives in talent-runtime.js.
           Object.assign(ROAR, { tier: 1, release: .1, duration: .75, move: .55 });
           player.attack = null; player.healing = 0; healingAge = 0; comboStep = 0; comboWindow = 0;
-          player.roar = { age: 0, released: true, serial: ++attackSerial, gather: ROAR.release };
+          player.roar = { age: 0, released: true, stance: true, serial: ++attackSerial, gather: ROAR.release };
           player.stamina -= skill.cost; started = talents.cast(skill, player.face);
         }
       } else if (skill.line === 'charge') {
@@ -452,18 +444,6 @@
       if (player.stagger > 0) { handle.cancel(); player.chargeHandle = null; player.attack = null; return; }
       const done = handle.update(dt);
       if (handle.invulnerable) player.invulnerable = true;   // wind-up and the first moments of the dash
-      // Kor Hücumu / Mahşer Hücumu: on landing the chains drag the foes around the impact point in.
-      const pull = attack.params.pull;
-      if (pull && !attack.pulled && handle.impacted) {
-        attack.pulled = true;
-        for (const e of enemies) {
-          if (e.dead || e.boss || enemyUnderground(e) || !e.model.root.visible) continue;
-          const d = Math.hypot(e.x - handle.impactX, e.z - handle.impactZ);
-          if (d > attack.params.radius + 3 || d < 1.4 || !clearStrike({ x: handle.impactX, z: handle.impactZ }, e)) continue;
-          e.push = null; moveBody(e, (handle.impactX - e.x) / d * Math.min(pull, d - 1.2), (handle.impactZ - e.z) / d * Math.min(pull, d - 1.2), e.radius);
-        }
-        fx('glowBurst', { x: handle.impactX, z: handle.impactZ, radius: attack.params.radius + 2, duration: .45, color: attack.tier > 2 ? '#2a1244' : '#4a2a0c' });
-      }
       if (done) { player.chargeHandle = null; attack.duration = Math.min(attack.duration, attack.age + .001); }
     }
     function releaseSkill(attack) {
@@ -480,9 +460,7 @@
           if (Math.hypot(enemy.x - cx, enemy.z - cz) > P.radius + enemy.radius * .6) continue;
         } else if (Math.hypot(dx, dz) > P.radius + enemy.radius * .5 || Math.abs(angleDifference(Math.atan2(dx, dz), attack.face)) > P.arc / 2) continue;
         const r = skillContact(enemy, attack); if (!r) continue; hits++;
-        if (r && !r.killed && P.stun > .55) stunEnemy(enemy, P.stun, 'heavy');
-        // The blow throws them off the point of impact: the heavier the tier, the farther.
-        if (r && !r.killed && !enemy.boss) { const from = attack.skill === 'brand' ? { x: cx, z: cz } : { x: ox, z: oz }, d = Math.hypot(enemy.x - from.x, enemy.z - from.z); push(enemy, Math.atan2(enemy.x - from.x, enemy.z - from.z), (T >= 3 ? .55 + 1.25 : .4 + .75) * (1 - Math.min(1, d / (P.radius + 1)) * .6)); }
+        if (r && !r.killed && P.stun > 0) stunEnemy(enemy, P.stun, 'heavy');
         if (r && !r.killed) shudder.push({ body: enemy, model: enemy.model, amp: T >= 3 ? .1 : .08 });
         if (game.state === 'won') break;
       }
@@ -685,7 +663,7 @@
         const campaignPace = chapter === 1 || isBoss ? 1 : chapter === 2 ? 1 - .08 * pressure : chapter === 3 ? .92 - .04 * pressure : .88 - (chapter - 4) * .02 - .03 * pressure;
         const campaignDamage = chapter === 1 ? (ei === 0 ? .65 : ei === 1 ? .72 : .72 + .28 * Math.min(ei,5) / 5) : chapter === 2 ? 1.05 + .12 * pressure : chapter === 3 ? 1.22 + .12 * pressure : 1.36 + (chapter - 4) * .1 + .12 * pressure;
         // Chapter smoothing (combat-tuning.js CHAPTER, measured): common foes of each chapter against the hero's expected level and gear there.
-        const chapterTune = TUNE ? (isBoss ? { hp: 1, dmg: (TUNE.BOSS[chapter] || { dmg: 1 }).dmg } : TUNE.CHAPTER[chapter] || { hp: 1, dmg: 1 }) : { hp: 1, dmg: 1 };
+        const chapterTune = TUNE ? (isBoss ? { hp: (TUNE.BOSS[chapter] || {}).hp || 1, dmg: (TUNE.BOSS[chapter] || { dmg: 1 }).dmg } : TUNE.CHAPTER[chapter] || { hp: 1, dmg: 1 }) : { hp: 1, dmg: 1 };
         const maxHp = Math.round(stats.hp * (isBoss ? BALANCE.bossHealth : BALANCE.health) * stage * campaignHealth * chapterTune.hp * (s.elite && !stats.elite ? 1.45 : 1));
         const holder = new THREE.Group(); holder.name = 'enemy-holder'; holder.add(model.root); root.add(holder);
         guardRenderMatrices(holder); guardRenderMatrices(model.root); model.root.userData.skipFresh = true;
@@ -1417,6 +1395,7 @@
     const coast = BABA.CoastCombat ? BABA.CoastCombat.create({ player, pick, beginMove, clipLine, walkable, cancelHazards, emit, sound, fx, bonus: (x,z,n) => { if (globes) globes.bonus(x,z,n); } }) : null;
     const ruins = BABA.RuinsCombat ? BABA.RuinsCombat.create({ player, pick, beginMove, clipLine, walkable, cancelHazards, emit, sound, fx, bonus: (x,z,n) => { if (globes) globes.bonus(x,z,n); } }) : null;
     const forge = BABA.ForgeCombat ? BABA.ForgeCombat.create({ player, pick, beginMove, clipLine, walkable, cancelHazards, emit, sound, fx, bonus: (x,z,n) => { if (globes) globes.bonus(x,z,n); } }) : null;
+    const mobsC1 = BABA.MobsC1 && chapter === 1 ? BABA.MobsC1.create({ player, enemies, game, pick, beginMove, clipLine, clearStrike, walkable, addHazard, emit, sound, fx }) : null;   // mobs-c1.js
     const finale = BABA.FinaleCombat && chapter === FINAL ? BABA.FinaleCombat.create({ player, pick, beginMove, clipLine, walkable, cancelHazards, emit, sound, fx, game, enemies, slow: s => slowMotion(s), bonus: (x,z,n) => { if (globes) globes.bonus(x,z,n); } }) : null;
     // Round 7: chapter III / IV boss set pieces (orbs, cover pillars, adds, burning ground) live in boss2.js; the move tables get a handle on it.
     if (BABA.Boss2 && chapter >= 2) {
@@ -1548,7 +1527,7 @@
         let cd = action.cooldown != null ? action.cooldown : enemy.stats.cooldown;
         // The executioner gives no breathing room to a hero standing inside his axe's reach; step out to earn it.
         cd *= SPECIAL_IDS.includes(action.moveId) ? SPECIAL_REST : action.moveId === 'roar' ? 1 : PLAIN_REST;
-        if (enemy.boss) cd *= (enemy.enraged ? .65 : enemy.phase === 2 ? .75 : 1) * (distance(enemy, player) < 3.6 && action.cooldown == null ? .55 : 1);
+        if (enemy.boss) cd *= (enemy.enraged ? .65 : enemy.phase === 2 ? .75 : 1) * (distance(enemy, player) < 3.6 && action.cooldown == null ? .55 : 1) * (TUNE && TUNE.BOSS_REST || 1);   // BAL: bosses rest ~12 % less
         if (enemy.cdScale) cd *= enemy.cdScale;   // round 7: the chapter I / II bosses rest less (set per phase / frenzy in their attack tables)
         else if (enemy.type === 'prisoner' && enemy.hp < enemy.maxHp * .3) cd *= .7;
         const scaled = cd * (enemy.campaignPace || 1) * (tuning() ? tuning().rest : game.difficulty === 'easy' ? 1.25 : game.difficulty === 'normal' ? 1.15 : 1) * (enemy.tutorialStage === 0 ? 1.2 : enemy.tutorialStage === 1 ? 1.1 : 1);
@@ -1605,6 +1584,7 @@
         if (enemy.boss && director && director.attack(enemy, d)) attacked = true;
         else if (enemy.stats.finale && finale) attacked = finale.attack(enemy, d);
         else if (enemy.stats.forge) attacked = forge.attack(enemy, d);
+        else if (enemy.stats.c1 && mobsC1) attacked = mobsC1.attack(enemy, d);
         else if (enemy.stats.ruins) attacked = ruins.attack(enemy, d);
         else if (enemy.stats.coast) attacked = coast.attack(enemy, d);
         else if (enemy.type === 'prisoner') attacked = prisonerAttack(enemy, d);
@@ -1771,7 +1751,7 @@
           enemy.poiseRecovery = heavy ? 3 : 1.1;
           enemy.cooldown = Math.max(enemy.cooldown, heavy ? .9 : .3); cancelHazards(enemy, true);
         }
-        push(enemy, away, enemy.boss ? (heavy ? FEEL.knock.bossHeavy : FEEL.knock.boss) : heavy ? FEEL.knock.heavy : finisher ? FEEL.knock.finisher : FEEL.knock.light);
+        if (!(attack && (attack.skill || attack.whirl || attack.line))) push(enemy, away, enemy.boss ? (heavy ? FEEL.knock.bossHeavy : FEEL.knock.boss) : heavy ? FEEL.knock.heavy : finisher ? FEEL.knock.finisher : FEEL.knock.light);   // abilities never shove
         if (breaksGuard) enemy.guardBroke = true;
       }
       if (mobMods && !blocked) damage = mobMods.hurt(enemy, damage, heavy || !!(attack && (attack.whirl || attack.rage)), blocked);
@@ -1843,9 +1823,9 @@
       const attackSource = hazard.owner && !hazard.owner.dead ? hazard.owner : hazard;
       const incomingAngle = angleTo(player, attackSource);
       let damage = hazard.damage;
-      if (hazard.owner) damage = Math.round(damage * (hazard.owner.boss ? EASE.bossDamage : EASE.damage) * BALANCE.damage * (hazard.owner.campaignDamage || 1));
+      if (hazard.owner) damage = Math.round(damage * (hazard.owner.boss ? EASE.bossDamage * (TUNE && TUNE.BOSS_PHASE && TUNE.BOSS_PHASE[Math.min(3, hazard.owner.phase || 1)] || 1) : EASE.damage) * BALANCE.damage * (hazard.owner.campaignDamage || 1));   // BAL: boss phase 2/3 hit a little harder
       { const P = tuning(), elite = !!(hazard.owner && hazard.owner.elite && !hazard.owner.boss);
-        if (P) damage = Math.round(damage * P.enemyDmg * (elite ? P.eliteDmg : 1) * (P.chapterDmg ? P.chapterDmg[chapter] || 1 : 1));   // chapterDmg: Normal's own chapter curve (Hard already sits on it)
+        if (P) damage = Math.round(damage * P.enemyDmg * (elite ? P.eliteDmg : 1) * (P.chapterDmg ? ((hazard.owner && hazard.owner.boss ? P.chapterDmg : P.foeDmg || P.chapterDmg)[chapter] || 1) : 1));   // chapterDmg: Normal's own chapter curve (Hard already sits on it)
         else if (game.difficulty !== 'hard') damage = Math.round(damage * (game.difficulty==='easy'?.5:.75)); }
       damage = Math.max(1, Math.round(damage * (1 - (player.defense || 0)) * (1 - questBenefit('damageReduction', .12))));
       // The display event and the wound use the same final amount after the cry/fury's defence.
@@ -2079,8 +2059,8 @@
           e.staggerVariant = last ? 2 : (n + e.index) % 2;
           e.stagger = e.staggerTotal = last ? SPECIAL.staggerLast : SPECIAL.stagger; e.staggerKind = last ? 'heavy' : 'light'; e.action = null; e.faceLocked = false; e.shield = false;
           e.poiseRecovery = 2.2; e.cooldown = Math.max(e.cooldown, 1.2); cancelHazards(e, true);
-          if (last) push(e, away, SPECIAL.fling || .9); else if (d > 1.7) push(e, angleTo(e, player), Math.min(SPECIAL.pull, d - 1.6));   // loose foes are drawn in, the last tick throws them out
-        } else push(e, away, .04);
+          // (no more pull / fling: the foe stays where it stands and reels, dazed)
+        }
         shudder.push({ body: e, model: e.model, amp: last ? .09 : .05 });
       }
       shudder.push({ body: player, model: hero, amp: last ? .03 : .015 });
@@ -2180,6 +2160,7 @@
         const damage = Math.round(attack.damage * (player.rageTime > 0 ? 1.48 : 1)); attack.rage = player.rageTime > 0;
         const r = hurtEnemy(enemy, damage, attack.heavy, attack.face, attack); if (!r) continue;
         hits++; if (r.blocked) blocks++; if (r.killed) kills++; if (r.guardBreak) breaks++; if (r.blocked || r.braced) metalContacts++;
+        if (attack.skill === 'cleave' && !r.killed && !r.blocked && attack.params && attack.params.stun > 0) stunEnemy(enemy, attack.params.stun, 'heavy');   // Mezar Yaran: sersemletir
         if (!r.killed) shudder.push({ body: enemy, model: enemy.model, amp: r.blocked ? .02 : attack.heavy ? .07 : .045 });
         if (game.state === 'won') break;
       }
@@ -2233,7 +2214,7 @@
         e.hitAngle = angleDifference(angleTo(e, player), e.face);
         if (e.boss) {
           if (d < ROAR.near + 1.5) {
-            push(e, away, .22); e.hurt = Math.max(e.hurt, .7); e.hurtHeavy = true;
+            e.hurt = Math.max(e.hurt, .7); e.hurtHeavy = true;
             if (ROAR.damage && d < ROAR.near && clearStrike(player, e)) { cry.face = away; hurtEnemy(e, ROAR.damage, true, away, cry); }
           }
           continue;
@@ -2244,8 +2225,7 @@
           if (ROAR.damage && clearStrike(player, e)) { cry.face = away; const r = hurtEnemy(e, ROAR.damage, true, away, cry); if (r && r.killed) continue; }
           e.stagger = e.staggerTotal = ROAR.stun; e.staggerKind = 'fear'; e.action = null; e.faceLocked = false; e.shield = false;
           cancelHazards(e, true); e.fear = ROAR.fear; e.cooldown = Math.max(e.cooldown, 1.1); e.hurt = Math.max(e.hurt, .6);
-          push(e, away, .45 + 1.3 * (1 - d / ROAR.near));
-        } else { e.fear = Math.max(e.fear, 1.5 + .4 * (ROAR.tier - 1)); e.cooldown = Math.max(e.cooldown, 1.3); push(e, away, .4); }
+        } else { e.fear = Math.max(e.fear, 1.5 + .4 * (ROAR.tier - 1)); e.cooldown = Math.max(e.cooldown, 1.3); }
       }
       // Tier 3: more rings follow the first one (Kıyamet Narası), see stepRoarWaves.
       roarWaves = ROAR.waves > 1 ? { age: 0, next: 1, count: ROAR.waves, near: ROAR.near, damage: ROAR.waveDamage, stun: ROAR.stun * .6, face: player.face } : null;
@@ -2262,7 +2242,7 @@
           const d = distance(e, player); if (d > R + e.radius * .5 || !clearStrike(player, e)) continue;
           const away = angleTo(player, e); cry.face = away;
           const r = hurtEnemy(e, w.damage, true, away, cry);
-          if (r && !r.killed && !e.boss) { stunEnemy(e, w.stun, 'fear'); e.fear = Math.max(e.fear, 2); push(e, away, .35); }
+          if (r && !r.killed && !e.boss) { stunEnemy(e, w.stun, 'fear'); e.fear = Math.max(e.fear, 2); }
         }
       }
       if (w.next >= w.count) roarWaves = null;
@@ -2633,6 +2613,7 @@
     const SPIN = (() => { const sm = x => { x = clamp(x, 0, 1); return x * x * (3 - 2 * x); }, t = [0]; for (let i = 1; i <= 64; i++) { const u = i / 64; t.push(t[i - 1] + sm(u / .1) * (1 - sm((u - .78) / .22))); } return t.map(v => v / t[64]); })();
     function whirlAngle(u) { return BABA.AuthoredMotion.whirlAngle(u, reducedMotion.matches ? 1 : SPECIAL.turns); }
     function animateAll(dt) {
+      dazeFX.update(dt);
       const pm = movementState(player, hero, dt, 5.35, heroAnim);
       player.move = pm.move;
       // player.face is the facing the game acts on and changes at once; the body swings round to it fast but smoothly (shortest way).
@@ -2672,7 +2653,7 @@
       hs.skillMove = atk && atk.skillMove || ''; hs.roarTier = player.roar ? ROAR.tier : 1; hs.skillTier = atk && atk.skill && atk.line === 'cleave' ? atk.tier : 0; hs.leapAir = LEAP_AIR;
       if (cheerAge >= 0) { cheerAge += dt; if (cheerAge > 1.5) cheerAge = -1; } if (reachAge >= 0) { reachAge += dt; if (reachAge > .55) reachAge = -1; } if (wakeAge >= 0) { wakeAge += dt; if (wakeAge > 1.4) wakeAge = -1; }
       hs.cheerTime = cheerAge; hs.reachTime = reachAge; hs.wakeTime = wakeAge;
-      hs.roarTime = player.roar ? player.roar.age : -1; hs.roarRelease = ROAR.release; hs.roarDuration = ROAR.duration; hs.roarSerial = player.roar ? player.roar.serial : 0;
+      hs.roarTime = player.roar ? player.roar.age : -1; hs.roarRelease = ROAR.release; hs.roarDuration = ROAR.duration; hs.roarSerial = player.roar ? player.roar.serial : 0; hs.roarStance = !!(player.roar && player.roar.stance);
       // Poses are only needed for a callback that is drawn (a 200 Hz screen under a 120 FPS cap, or a 120 Hz screen under 60, runs the
       // simulation more often than it draws): the time of the skipped callbacks is handed to the next pose, so nothing is lost.
       const posing = game.drawing !== false;
@@ -2743,7 +2724,7 @@
           es.attackSerial = action ? action.serial : 0; es.rushTime = action && action.movement ? action.movement.duration : 0;
           es.lookYaw = enemy.active && !enemy.dead && !player.dead ? angleDifference(angleTo(enemy, player), enemy.yaw) : undefined;
           es.hitAngle = enemy.hitAngle || 0; es.hurtHeavy = !!enemy.hurtHeavy; es.deathKind = enemy.deathKind || ''; es.blockImpact = enemy.blockImpact || 0;
-          es.stagger = enemy.stagger > 0 && !enemy.dead ? 1 - enemy.stagger / Math.max(enemy.stagger, enemy.staggerTotal || 0) : 0; es.staggerTime = enemy.staggerTotal || 0; es.staggerVariant = enemy.staggerVariant || 0; es.fear = enemy.fear || 0;
+          es.stagger = enemy.stagger > 0 && !enemy.dead ? 1 - enemy.stagger / Math.max(enemy.stagger, enemy.staggerTotal || 0) : 0; es.staggerTime = enemy.staggerTotal || 0; es.staggerVariant = enemy.staggerVariant || 0; es.staggerKind = enemy.staggerKind || ''; es.fear = enemy.fear || 0;
           es.attack = enemyAttackPose(enemy); es.contactPhase = enemy.boss || enemy.type === 'guard' ? .56 : .41; es.pose = beat ? beat.pose : '';
           es.launchTime=launchU>=0?launchAge:-1;es.launchDuration=.40;es.launchDirection=angleDifference(enemy.launchDirection||0,enemy.face);
           es.action = action ? action.attack : ''; es.actionProgress = action ? action.age / action.duration : 0; es.leap = leap;
@@ -2854,6 +2835,7 @@
     function dispose() {
       if (disposed) return; disposed = true;
       if (talents) talents.dispose();
+      dazeFX.dispose();
       cancelPlayerCharge();
       renderTraversal = false;
       for (const { node, guard, descriptor } of matrixGuards) {
@@ -2876,7 +2858,55 @@
       if (gate) gate.dispose();
       scene.remove(root);
     }
+    // ---- Sersemleme işareti: a stunned (>= .75 s) common foe wears 2-3 small pale-gold stars slowly circling above its head (and a faint ring) while the stun lasts.
+    // One pooled set of 12 sprites (procedural canvas texture, no files); 'low' quality: one small star, no ring; reduced motion: no orbiting. Bosses / the dead never get one.
+    const dazeFX = (() => {
+      const POOL = 12, marks = []; let low = false, tex = null, ringGeo = null, group = null;
+      const ok = e => !e.dead && !e.boss && e.stagger > 0 && e.staggerTotal >= .75 && e.staggerKind !== 'guardBreak' && e.model && e.model.root.visible;
+      function texture() {
+        if (tex) return tex;
+        const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d');
+        const glow = g.createRadialGradient(32, 32, 0, 32, 32, 30); glow.addColorStop(0, 'rgba(255,248,215,.85)'); glow.addColorStop(.35, 'rgba(255,222,140,.28)'); glow.addColorStop(1, 'rgba(255,210,120,0)');
+        g.fillStyle = glow; g.fillRect(0, 0, 64, 64);
+        g.fillStyle = '#fff6d6'; g.beginPath();
+        for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4 - Math.PI / 2, r = i % 2 ? 6 : 22; g.lineTo(32 + Math.cos(a) * r, 32 + Math.sin(a) * r); }
+        g.closePath(); g.fill();
+        tex = new THREE.CanvasTexture(c); if (THREE.SRGBColorSpace) tex.colorSpace = THREE.SRGBColorSpace; return tex;
+      }
+      function make() {
+        if (!group) { group = new THREE.Group(); group.name = 'DazeMarks'; root.add(group); ringGeo = new THREE.RingGeometry(.3, .325, 28); }
+        const g = new THREE.Group(), stars = [];
+        for (let i = 0; i < 3; i++) { const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture(), transparent: true, depthWrite: false, toneMapped: false, fog: false, color: 0xffeeb8 })); sp.renderOrder = 8; g.add(sp); stars.push(sp); }
+        const ring = new THREE.Mesh(ringGeo, new THREE.MeshBasicMaterial({ color: 0xffe3a0, transparent: true, depthWrite: false, toneMapped: false, fog: false, side: THREE.DoubleSide })); ring.rotation.x = -Math.PI / 2; ring.renderOrder = 7; g.add(ring);
+        g.visible = false; group.add(g); return { g, stars, ring, e: null, age: 0 };
+      }
+      function update(dt) {
+        let used = 0;
+        for (const m of marks) if (m.e && !ok(m.e)) { m.e = null; m.g.visible = false; }
+        for (const e of enemies) {
+          if (used >= POOL) break;
+          if (!ok(e)) continue;
+          const elapsed = e.staggerTotal - e.stagger; if (elapsed < .12 || e.stagger < .08) continue;
+          let m = marks.find(q => q.e === e);
+          if (!m) { m = marks.find(q => !q.e); if (!m) { if (marks.length >= POOL) continue; m = make(); marks.push(m); } m.e = e; m.age = 0; }
+          used++; m.age += dt;
+          const k = clamp(((e.model.height || 2.2) / 2.1), .75, 1.5), fade = Math.min(1, m.age / .18) * Math.min(1, e.stagger / .25);
+          const spin = reducedMotion.matches ? 0 : m.age * 2.3, n = low ? 1 : 3, rad = (low ? .0 : .3) * k;
+          m.g.visible = true; m.g.position.set(e.x, (e.model.height || 2.2) + .16 * k, e.z);
+          for (let i = 0; i < 3; i++) {
+            const sp = m.stars[i]; sp.visible = i < n; if (i >= n) continue;
+            const a = spin + i * Math.PI * 2 / 3 + e.index;
+            sp.position.set(Math.sin(a) * rad, (reducedMotion.matches ? 0 : Math.sin(m.age * 3 + i * 2) * .035) * k, Math.cos(a) * rad);
+            const sz = (low ? .2 : .16) * k * (.9 + (reducedMotion.matches ? 0 : .1 * Math.sin(m.age * 5 + i * 2.1))); sp.scale.set(sz, sz, 1); sp.material.opacity = .95 * fade;
+          }
+          m.ring.visible = !low; if (!low) { m.ring.scale.setScalar(k); m.ring.material.opacity = .32 * fade; }
+        }
+      }
+      function dispose() { if (!group) return; root.remove(group); group.traverse(o => { if (o.material) o.material.dispose(); }); if (ringGeo) ringGeo.dispose(); if (tex) tex.dispose(); group = null; marks.length = 0; tex = null; }
+      return { update, dispose, setLow(v) { low = !!v; }, marks };
+    })();
     function setQuality(settings) {
+      dazeFX.setLow(settings && settings.quality === 'low');
       if (limbs) limbs.setQuality(settings);
       if (globes) globes.setQuality(settings);
       if (settings && Number.isFinite(settings.shadowReach)) shadowReach = clamp(settings.shadowReach, 0, 60);

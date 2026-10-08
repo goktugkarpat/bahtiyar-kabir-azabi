@@ -15,8 +15,8 @@
   var OFF = /[?&]nopolish(&|$)/.test(location.search);
   var EXEC = { carrier: 1, boss: 1, urchin: 1, bell: 1, gravemason: 1, ruinwarden: 1, hollowking: 1, forgesentinel: 1, ashwarden: 1, furnaceheart: 1, chainjailer: 1, verdictwarden: 1, lastjudge: 1 };
   var BOSS = { boss: 1, bell: 1, hollowking: 1, furnaceheart: 1, lastjudge: 1 };
-  var COIL = { stalker: 1, crawler: 1, cavefang: 1, slagcrawler: 1, voidcrawler: 1, urchin: 0, prisoner: .5, damned: .4 };   // foes that crouch at the notice beat instead of rearing
-  var MASS = { carrier: .6, urchin: .62, rootborn: .55, gravemason: .6, ruinwarden: .6, forgesentinel: .6, ashwarden: .6, chainjailer: .62, verdictwarden: .6, guard: .8, stalker: 1.3, crawler: 1.3, cavefang: 1.3, slagcrawler: 1.3, voidcrawler: 1.3, lantern: 1.15, cultist: 1.1, shardseer: 1.1, chainseer: 1.1, verdictseer: 1.1 };
+  var COIL = { snarer: .8, stalker: 1, crawler: 1, cavefang: 1, slagcrawler: 1, voidcrawler: 1, urchin: 0, prisoner: .5, damned: .4 };   // foes that crouch at the notice beat instead of rearing
+  var MASS = { mourner: 1.1, snarer: 1.25, carrier: .6, urchin: .62, rootborn: .55, gravemason: .6, ruinwarden: .6, forgesentinel: .6, ashwarden: .6, chainjailer: .62, verdictwarden: .6, guard: .8, stalker: 1.3, crawler: 1.3, cavefang: 1.3, slagcrawler: 1.3, voidcrawler: 1.3, lantern: 1.15, cultist: 1.1, shardseer: 1.1, chainseer: 1.1, verdictseer: 1.1 };
   function rig(exec) {
     return exec ? { pelvis: 'pelvis', s1: 'spine01', s2: 'spine02', s3: 'spine03', neck: 'neck', head: 'head', clavL: 'shoulderL', clavR: 'shoulderR' }
       : { pelvis: 'pelvis', s1: 'spine_01', s2: 'spine_02', s3: 'spine_03', neck: 'neck_01', head: 'Head', clavL: 'clavicle_l', clavR: 'clavicle_r' };

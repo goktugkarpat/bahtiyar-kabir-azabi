@@ -52,7 +52,7 @@
   function plate(A,bone,target,r,stretch,key,seed){
     var q=A.nearest(target,['skin']);if(!q)return;var p=new T.Vector3(q.x+q.nx*.013,q.y+q.ny*.013,q.z+q.nz*.013),n=new T.Vector3(q.nx,q.ny,q.nz).normalize();
     var ey=new T.Vector3(0,1,0);ey.addScaledVector(n,-ey.dot(n));if(ey.lengthSq()<.01)ey.set(0,0,1);ey.normalize();var ex=new T.Vector3().crossVectors(ey,n).normalize();
-    function point(a,t){var theta=t*Math.PI*.5,rr=r*(1+.035*Math.sin(a*9+seed)),lift=Math.cos(theta)*r*.42+.009*Math.pow(Math.max(0,Math.sin(a*12+seed*.3)),4)*Math.sin(theta);return p.clone().addScaledVector(ex,Math.cos(a)*Math.sin(theta)*rr).addScaledVector(ey,Math.sin(a)*Math.sin(theta)*rr*stretch).addScaledVector(n,lift);}
+    function point(a,t){var theta=t*Math.PI*.5,rr=r*(1+.035*Math.sin(a*9+seed)),lift=Math.cos(theta)*r*.2+.009*Math.pow(Math.max(0,Math.sin(a*12+seed*.3)),4)*Math.sin(theta);return p.clone().addScaledVector(ex,Math.cos(a)*Math.sin(theta)*rr).addScaledVector(ey,Math.sin(a)*Math.sin(theta)*rr*stretch).addScaledVector(n,lift);}
     var g=G.shell(24,8,function(u,v){return arr(point(u*TAU,v));},.012,true,true);G.uvScale(g,2,2);A.rigid(key||'ash',g,bone);
     var lip=[];for(var j=0;j<=32;j++)lip.push(arr(point(j/32*TAU,1)));tube(A,'bone',bone,lip,.008);
   }
@@ -82,6 +82,7 @@
       if(type==='bell'){turn(spine,x,breathe*.022*idle);turn(head,x,-breathe*.012*idle);if(s.pose==='roar'||s.pose==='castHigh'){var toll=Math.sin(Math.min(1,s.attack||0)*Math.PI);turn(spine,x,-.09*toll);turn(neck,x,.10*toll);}}
     };
   };}
+  B.CoastKit=Object.assign(B.CoastKit||{},{growth:growth,roots:roots,grin:grin,eye:eye,skinPoint:skinPoint,plate:plate,tube:tube});   // EN2: mobs-c2.js parça kiti
   function make(type, cfg) {
     cfg.chapter = 2;if(!cfg.detailMotion)cfg.detailMotion=coastMotion(type);
     B.Models.register(type, cfg, function (A, C) {
@@ -139,6 +140,7 @@
         A.transfer('rag',mantle,['skin']);
       }
       // Every new creature has original readable anatomy and gear, rather than the first chapter's outfit.
+      if (B.CoastKit.extra && B.CoastKit.extra[type]) return B.CoastKit.extra[type](A, { head: head, spine: spine, neck: neck, handL: handL, handR: handR, chest: chest, hip: hip, p: p, top: top, bottom: bottom, materials: materials, C: C, skin: skin });   // EN2 (mobs-c2.js)
       if (type === 'drowned') {
         growth(A, spine, chest.clone().add(new T.Vector3(.13, -.09, .1)), .18, 19);
         growth(A, 'lowerarm_l', A.P('lowerarm_l'), .09, 10);
@@ -180,18 +182,18 @@
       }
       if (type === 'urchin') {
         // Dorsal armoured shell and asymmetric salt spines.
-        A.rigid('ash', G.blob(.31, [chest.x, chest.y -.12, chest.z -.19], [1.1, 1.3, .65], .20, 3, 20), spine);
+        A.rigid('ash', G.blob(.31, [chest.x, chest.y -.12, chest.z -.16], [1.1, 1.3, .45], .20, 3, 20), spine);
         var spines = [];
         for (var i = 0; i < 38; i++) { var a = i * 2.399, u = (i / 37 - .5) * .57, base = new T.Vector3(Math.cos(a) * .28, chest.y -.12 + u, chest.z -.2 + Math.sin(a) * .11), tip = base.clone().add(new T.Vector3(Math.cos(a) * (.20 + i % 4 * .04), u * .4, -.18 - Math.abs(Math.sin(a)) * .12)); spines.push(G.spike(.028, base, tip)); }
         A.rigid('bone', G.merge(spines), spine);
-        for(var k=0;k<4;k++)plate(A,spine,chest.clone().add(new T.Vector3(0,.10-k*.13,-.30)),.23-k*.024,.60,'ash',k);
+        for(var k=0;k<4;k++)plate(A,spine,chest.clone().add(new T.Vector3(0,.10-k*.13,-.24)),.23-k*.024,.60,'ash',k);
         growth(A, head, p, .12, 12); grin(A, head, p, .10);
         roots(A, handL, A.P(handL), 4, .2); roots(A, handR, A.P(handR), 4, .2);
       } else if (type === 'crawler') {
         // Low, long-armed anatomy with an open segmented jaw and a ridged carapace.
         grin(A, head, p.clone().add(new T.Vector3(0, -.015, .07)), .16); eye(A, head, p, .018);
-        A.rigid('ash', G.blob(.22, [chest.x, chest.y, chest.z -.15], [1.1, 1.5, .7], .15, 3, 18), spine);
-        for(var k=0;k<4;k++)plate(A,spine,chest.clone().add(new T.Vector3(0,.12-k*.10,-.30)),.16-k*.013,.70,'ash',k);
+        A.rigid('ash', G.blob(.22, [chest.x, chest.y, chest.z -.12], [1.1, 1.5, .48], .15, 3, 18), spine);
+        for(var k=0;k<4;k++)plate(A,spine,chest.clone().add(new T.Vector3(0,.12-k*.10,-.24)),.16-k*.013,.70,'ash',k);
         for (var j = 0; j < 8; j++) tube(A, 'bone', spine, [[-.18, chest.y + .12 - j * .06, chest.z -.10], [0, chest.y + .16 - j * .06, chest.z -.33], [.18, chest.y + .12 - j * .06, chest.z -.10]], .025);
         [handL, handR].forEach(function (b) { var h = A.P(b), claws = []; for (var j = 0; j < 4; j++) { var q = h.clone().add(new T.Vector3((j - 1.5) * .04, -.08, .015)); claws.push(G.tube([arr(q), arr(q.clone().add(new T.Vector3(0, -.12, .07))), arr(q.clone().add(new T.Vector3(0, -.16, .19)))], .018, 6, 14, true)); } A.rigid('bone', G.merge(claws), b); });
       } else if (type === 'lantern') {
@@ -227,4 +229,5 @@
   make('urchin', { base: 'executioner', height: 2.2, radius: .61, motionType: 'carrier' });
   make('lantern', { base: 'ubc', height: 2.55, radius: .42, motionType: 'cultist' });
   make('bell', { base: 'executioner', height: 3.85, radius: 1.03, motionType: 'boss' });
+  if (B.CoastKit.registerExtra) B.CoastKit.registerExtra(make);   // EN2: netcaster, tidecaller
 }());

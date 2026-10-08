@@ -294,7 +294,18 @@
       const head = '<div class="cd-head"><span class="char-item-art cd-art">' + menuGearIcon(def) + '</span><div class="cd-title"><span class="cd-sub">' + RARITY[def.rarity] + ' · ' + (TYPE[def.type] || LABELS[def.slot]) + (B.GearArmor && B.GearArmor.familyName && B.GearArmor.familyName(def) ? ' · ' + B.GearArmor.familyName(def) : '') + '</span><h3>' + escape(def.name) + '</h3></div></div>' + (B.BossLoot ? B.BossLoot.cardLine(def.id) : '');   // ajan:bossloot: boss-source line + crest
       const primary = '<div class="cd-primary"><span class="cd-plabel">' + lines.main.label + '</span><div class="cd-pline"><strong>' + lines.main.text + '</strong>' + lines.main.arrow + '</div></div>';
       const rest = lines.rest.length ? '<div class="cd-rest">' + lines.rest.map(r => '<div class="cd-row"><span>' + r.label + '</span><strong>' + r.text + '</strong>' + r.arrow + '</div>').join('') + '</div>' : '';
-      const req = '<div class="cd-chips"><span class="cd-chip ' + (locked ? 'bad' : 'ok') + '">' + (locked ? (KabirI18n.lang === 'en' ? 'Requires level ' + def.level : def.level + KabirI18n.t('. seviye gerekli')) : KabirI18n.t('Seviye ') + def.level) + KabirI18n.t('</span><span class="cd-chip power" title="Eşya gücü">Güç ') + def.power + '</span>' + (def.roll ? '<span class="cd-chip ' + (def.roll > 0 ? 'ok' : 'bad') + KabirI18n.t('" title="İşçilik">İşçilik ') + (def.roll > 0 ? '+' : '−') + Math.abs(def.roll) + '</span>' : '') + '</div>';
+      let req = '<div class="cd-chips"><span class="cd-chip ' + (locked ? 'bad' : 'ok') + '">' + (locked ? (KabirI18n.lang === 'en' ? 'Requires level ' + def.level : def.level + KabirI18n.t('. seviye gerekli')) : KabirI18n.t('Seviye ') + def.level) + KabirI18n.t('</span><span class="cd-chip power" title="Eşya gücü">Güç ') + def.power + '</span>' + (def.roll ? '<span class="cd-chip ' + (def.roll > 0 ? 'ok' : 'bad') + KabirI18n.t('" title="İşçilik">İşçilik ') + (def.roll > 0 ? '+' : '−') + Math.abs(def.roll) + '</span>' : '') + '</div>';
+      // Hover / focus explanations for the three chips (level, power, craftsmanship); the plain title="" tooltips were slow and said almost nothing.
+      const en = KabirI18n.lang === 'en', tipAttr = text => ' data-tip="' + escape(text) + '" tabindex="0"';
+      const lvlTip = en ? (locked ? 'Level needed to wear this item. Your level is still too low.' : 'Level needed to wear this item. You meet it.')
+        : (locked ? 'Bu eşyayı giymek için gereken seviye. Senin seviyen henüz yetmiyor.' : 'Bu eşyayı giymek için gereken seviye. Seviyen yeterli.');
+      const powTip = en ? 'Item power: level, rarity and craftsmanship added together. A quick way to compare items; higher is usually better.'
+        : 'Eşya gücü: seviye, nadirlik ve işçiliğin toplamı. Eşyaları hızlıca karşılaştırmak içindir; yüksek olan genelde daha iyidir.';
+      const crfTip = en ? 'Craftsmanship: how well this copy was made (−2 to +2). Each point changes its damage, defense and health by 2.5%.'
+        : 'İşçilik: bu eşyanın ne kadar iyi yapıldığı (−2 ile +2 arası). Her puan hasarı, savunmayı ve canı %2,5 değiştirir.';
+      req = req.replace('<div class="cd-chips"><span class="cd-chip ', '<div class="cd-chips"><span' + tipAttr(lvlTip) + ' class="cd-chip ')
+        .replace(/<span class="cd-chip power" title="[^"]*">/, '<span' + tipAttr(powTip) + ' class="cd-chip power">')
+        .replace(/<span class="cd-chip (ok|bad)" title="[^"]*">/, (m, c) => '<span' + tipAttr(crfTip) + ' class="cd-chip ' + c + '">');
       const worn = equipped ? KabirI18n.t('<div class="cd-worn"><i aria-hidden="true">✓</i> Kuşanılmış parça</div>') : '';
       if (compact) return head + worn + primary + rest + (B.GearPowers ? B.GearPowers.describe(def) : '') + (compare ? '<p class="cd-vs">' + KabirI18n.t('Giydiğin: ') + '<b>' + escape(old.name) + '</b></p>' : '') + req + '<p class="cd-hint ' + (locked ? 'bad' : 'ok') + '">' + (equipped ? KabirI18n.t('Çift tıkla: çıkar') : locked ? KabirI18n.t('Henüz giyemezsin') : KabirI18n.t('Çift tıkla: kuşan')) + '</p>';
       const note = equipped ? '' : '<p class="cd-note">' + (old ? KabirI18n.t('Giydiğinle karşılaştırma: <b>') + escape(old.name) + '</b>' : KabirI18n.t('Bu yuva şu anda boş')) + '</p>';
@@ -330,7 +341,7 @@
       const attackDamage = attackProfile && Array.isArray(attackProfile.damage) ? attackProfile.damage : [25, 29, 36];
       const equipment = B.Progression.slots.map(slot => {
         const def = state.itemForSlot(slot), uid = state.equipment[slot], active = uid ? uid === selected : slot === selectedSlot;
-        return '<button class="char-equipment ' + (def ? 'worn rarity-' + def.rarity : 'empty') + (active ? ' selected' : '') + '" data-slot="' + slot + '" data-char="select" data-uid="' + escape(uid || '') + '" aria-pressed="' + active + '" aria-label="' + escape(LABELS[slot] + ' · ' + (def ? def.name + KabirI18n.t(' · Kuşanıldı · Çift tıkla çıkar') : KabirI18n.t('Boş yuva'))) + '">' + (def ? KabirI18n.t('<i class="eq-ribbon" aria-hidden="true" title="Kuşanıldı">✓</i>') : '') + '<span class="char-item-art">' + (def ? menuGearIcon(def) : icon(slot)) + '</span><span class="eq-label">' + LABELS[slot] + '</span><span class="eq-name">' + escape(def ? def.name : KabirI18n.t('Boş')) + '</span></button>';
+        return '<button class="char-equipment ' + (def ? 'worn rarity-' + def.rarity : 'empty') + (active ? ' selected' : '') + '"' + (def ? ' data-tip="' + escape(def.name) + '"' : '') + ' data-slot="' + slot + '" data-char="select" data-uid="' + escape(uid || '') + '" aria-pressed="' + active + '" aria-label="' + escape(LABELS[slot] + ' · ' + (def ? def.name + KabirI18n.t(' · Kuşanıldı · Çift tıkla çıkar') : KabirI18n.t('Boş yuva'))) + '">' + (def ? KabirI18n.t('<i class="eq-ribbon" aria-hidden="true" title="Kuşanıldı">✓</i>') : '') + '<span class="char-item-art">' + (def ? menuGearIcon(def) : icon(slot)) + '</span><span class="eq-label">' + LABELS[slot] + '</span><span class="eq-name">' + escape(def ? def.name : KabirI18n.t('Boş')) + '</span></button>';
       }).join('');
       const pageCount = Math.max(1, Math.ceil(visible.length / 16));
       bagPage = Math.min(bagPage, pageCount - 1);
@@ -712,3 +723,20 @@
   }
   B.CharacterUI = Object.freeze({ create, gearIcon });
 }());
+
+/* floating item-chip explanations: positioned in the viewport so the bubble is never clipped by the item panel */
+(function () {
+  let cdTipEl = null;
+  const tipOf = e => e.target && e.target.closest ? e.target.closest('.cd-chip[data-tip], .char-equipment[data-tip]') : null;
+  function show(chip) {
+    if (!cdTipEl) { cdTipEl = document.createElement('div'); cdTipEl.id = 'cd-tip'; cdTipEl.setAttribute('role', 'tooltip'); document.body.appendChild(cdTipEl); }
+    cdTipEl.textContent = chip.dataset.tip; cdTipEl.style.display = 'block';
+    const r = chip.getBoundingClientRect(), w = cdTipEl.offsetWidth, h = cdTipEl.offsetHeight;
+    const left = Math.max(8, Math.min(innerWidth - w - 8, r.left + r.width / 2 - w / 2)), above = r.top - h - 8 >= 8;
+    cdTipEl.style.left = left + 'px'; cdTipEl.style.top = (above ? r.top - h - 8 : r.bottom + 8) + 'px';
+  }
+  const hide = () => { if (cdTipEl) cdTipEl.style.display = 'none'; };
+  document.addEventListener('mouseover', e => { const c = tipOf(e); if (c) show(c); else hide(); });
+  document.addEventListener('focusin', e => { const c = tipOf(e); if (c) show(c); });
+  document.addEventListener('focusout', hide); document.addEventListener('scroll', hide, true);
+})();

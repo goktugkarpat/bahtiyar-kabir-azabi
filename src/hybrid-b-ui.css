@@ -451,12 +451,12 @@ body.in-combat #hud #interact.unavailable {display:none;}
 #pause .pause-footer {top:90%;bottom:4%;}
 #pause #pause-difficulty,#pause .pause-escape,#pause .pause-secondary button {font:400 14px/1.4 Arial,sans-serif;color:#e7d8bd;text-shadow:0 1px 2px #000;}
 #pause .funeral-card kbd,#pause #resume kbd {display:inline-block;position:static;font:600 12px/1.3 Arial,sans-serif;color:#e8d8b3;background:none;border:0;box-shadow:none;text-shadow:none;padding:2px 4px;opacity:1;-webkit-text-fill-color:#e8d8b3;}
-#chapter-buffs {position:absolute;right:calc(225px * var(--k));top:18px;display:flex;flex-direction:row-reverse;gap:7px;z-index:8;pointer-events:auto;}
+#chapter-buffs {position:absolute;right:calc(262px * var(--k));top:10px;display:flex;flex-direction:row-reverse;gap:7px;z-index:8;pointer-events:auto;}
 .chapter-buff {position:relative;width:42px;height:42px;flex:none;padding:2px;border:1px solid #a28b59;background:#120e0c;border-radius:3px;box-shadow:inset 0 0 0 1px #000,0 2px 5px #0008;cursor:help;}
 .chapter-buff img {width:100%;height:100%;object-fit:contain;display:block;}
 .chapter-buff-tip {display:none;position:absolute;top:calc(100% + 8px);right:0;width:270px;padding:13px 15px;background:#101010f5;border:1px solid #ad915b;color:#ede0c6;font:13px/1.65 Arial,sans-serif;white-space:pre-line;text-align:left;box-shadow:0 6px 18px #000a;pointer-events:none;}
 .chapter-buff:hover .chapter-buff-tip,.chapter-buff:focus .chapter-buff-tip {display:block;}
-@media(max-width:900px){#pause #pause-difficulty,#pause .pause-secondary button{font-size:12px;}#chapter-buffs{right:calc(185px * var(--k));}.chapter-buff{width:35px;height:35px;}}
+@media(max-width:900px){#pause #pause-difficulty,#pause .pause-secondary button{font-size:12px;}#chapter-buffs{right:calc(222px * var(--k));}.chapter-buff{width:35px;height:35px;}}
 @media(max-height:550px){#pause .pause-footer{top:88%;bottom:5%;}#pause #pause-difficulty,#pause .pause-secondary button{font-size:11px;}}
 @media(max-width:600px) and (orientation:portrait){#pause .pause-footer{top:81%;bottom:8%;}#chapter-buffs{right:calc(185px * var(--k));top:60px;}.chapter-buff-tip{right:-100px;width:230px;}}
 
@@ -572,3 +572,30 @@ body.in-combat #hud #interact.unavailable {display:none;}
 #pause .pause-resume-row {display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;}
 #pause .pause-resume-row #resume,#pause .pause-resume-row #pause-atlas.pause-map-btn {width:100%;min-width:0;}
 #pause .pause-resume-row .funeral-quote {grid-column:3 / 5;margin:0;min-width:0;}
+
+/* one buff strip next to the minimap: chapter boons (nearest the minimap) and all timed effects (stance, rage...) */
+#buff-bar { position:absolute; right:calc(262px * var(--k)); top:10px; display:flex; flex-direction:row-reverse; align-items:flex-start; gap:12px; z-index:8; }
+#buff-bar #chapter-buffs { position:static; }
+#buff-bar .timed-effects { position:static; left:auto; right:auto; bottom:auto; transform:none; display:flex; flex-direction:row-reverse; flex-wrap:nowrap; width:auto; column-gap:7px; row-gap:0; z-index:auto; }
+#buff-bar .timed-buff { width:42px; height:42px; }
+#buff-bar .buff-seconds { font-size:12px; }
+@media(max-width:900px){ #buff-bar{right:calc(222px * var(--k));} #buff-bar .timed-buff{width:35px;height:35px;} }
+@media(max-width:600px) and (orientation:portrait){ #buff-bar{right:calc(185px * var(--k));top:60px;} }
+
+/* ajan:stance — timed-effect chips: vivid icon, tone-coloured frame and inner glow, a circular countdown ring, one floating bubble (#buff-tip) */
+.timed-buff { --tc:#d9a860; --p:100; border:2px solid var(--tc); background:#120a08; box-shadow:0 2px 8px #000b, inset 0 0 11px color-mix(in srgb, var(--tc) 55%, transparent), 0 0 7px color-mix(in srgb, var(--tc) 45%, transparent); cursor:help; outline:none }
+.timed-buff[data-tone="iron"] { --tc:#9fc4ff } .timed-buff[data-tone="heart"] { --tc:#ff5a3c } .timed-buff[data-tone="thorn"] { --tc:#7fe05a } .timed-buff[data-tone="blood"] { --tc:#e8402e } .timed-buff[data-tone="gold"] { --tc:#f0c050 }
+.timed-buff .skill { filter:saturate(1.45) brightness(1.22) contrast(1.06) }
+.timed-buff::before { content:''; position:absolute; inset:-7px; border-radius:8px; padding:3px; pointer-events:none; background:conic-gradient(from 0deg, var(--tc) calc(var(--p) * 1%), #0000 0);
+  -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite:xor; mask-composite:exclude; filter:drop-shadow(0 0 3px var(--tc)) }
+.timed-buff:focus-visible { box-shadow:0 0 0 2px #fff8, 0 2px 8px #000b }
+.timed-buff.expiring { border-color:var(--tc) }
+@media (prefers-reduced-motion: reduce) { .timed-buff.expiring { box-shadow:0 0 0 1px var(--tc), 0 0 10px var(--tc) } }
+#buff-bar .timed-effects { column-gap:14px }
+#timed-short { position:absolute; left:50%; transform:translateX(-50%); bottom:calc(var(--effect-floor) + 4px); display:flex; flex-direction:row; gap:16px; z-index:7; pointer-events:none }   /* app.js placeShortStrip(): right edge = the Q slot's right edge, effects grow to the left */
+#timed-short:empty { display:none }
+#timed-short .timed-buff { width:38px; height:38px; pointer-events:auto }
+#timed-short .buff-seconds { top:calc(100% + 4px); font-size:12px }
+.chapter-buff-tip { display:none !important }
+.chapter-buff:focus-visible { outline:2px solid #fff8 }
+#buff-tip { position:fixed; display:none; z-index:60; max-width:300px; padding:10px 13px; background:#101010f5; border:1px solid #ad915b; border-radius:3px; color:#ede0c6; font:13px/1.5 Arial,sans-serif; white-space:pre-line; text-align:left; box-shadow:0 6px 18px #000a; pointer-events:none }

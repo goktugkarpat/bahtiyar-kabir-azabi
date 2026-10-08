@@ -589,7 +589,7 @@
     // reads as weight on the floor, not just dust. Throttled (a checkerboard / ring volley fires many cells in one frame) and size-gated.
     const BOSS_BLOW = { ember: [[1.7, .55, .12], [2, 1.3, .7]], quake: [[1.3, .5, .2], [1.9, 1.4, .9]], rune: [[1.5, .3, .22], [2, 1.2, .9]], tide: [[.15, .7, .75], [.9, 1.8, 1.8]],
       chain: [[1.1, .8, .45], [2, 1.8, 1.4]], blade: [[1.1, .75, .5], [2, 1.7, 1.3]], blunt: [[1.2, .6, .3], [1.9, 1.4, .9]], fall: [[1.1, .5, .3], [1.8, 1.3, .9]],
-      shadow: [[.5, .2, .9], [1.3, .9, 1.8]], root: [[.4, .8, .2], [1.2, 1.6, .8]], bile: [[.4, .9, .15], [1.3, 1.8, .8]], thrust: [[1.1, .8, .5], [2, 1.7, 1.3]] };
+      shadow: [[.5, .2, .9], [1.3, .9, 1.8]], root: [[.4, .8, .2], [1.2, 1.6, .8]], bile: [[.45, .25, .6], [1.1, .9, 1.4]], thrust: [[1.1, .8, .5], [2, 1.7, 1.3]] };
     let bossBlowAt = -9, bossBlowClock = 0;
     function bossBlow(d) {
       if (!impactFx || !d.boss || !d.heavy) return;
@@ -621,11 +621,11 @@
         return;
       }
       if (d.poison || style === 'bile') {
-        if (d.burst) { if (tells) tells.wave(x, z, { radius: R + .4, life: .5, width: .6, color: [.45, .9, .15], soft: .6 }); flash(x, .6, z, 2.6, new T.Color('#d8ff9a'), .1); }
+        if (d.burst) { if (tells) tells.wave(x, z, { radius: R + .4, life: .5, width: .6, color: [.5, .3, .7], soft: .6 }); flash(x, .6, z, 2.6, new T.Color('#b89ae0'), .1); }
         const cx = d.shape === 'cone' ? d.ix : x, cz = d.shape === 'cone' ? d.iz : z;
-        for (let i = 0; i < n(d.burst ? 60 : 24); i++) particle(cx, .25, cz, 2, [.07, .14, .02], d.burst ? 1.6 : .9, Math.random() * Math.PI * 2);
-        for (let i = 0; i < n(14); i++) particle(cx, .3, cz, 3, [.35, .6, .08], .6, Math.random() * Math.PI * 2, .6);
-        if (d.shape === 'cone') for (let i = 0; i < n(18); i++) { const p = polar((Math.random() - .5) * arc, R * Math.random()); particle(p.x, .1, p.z, 0, [.06, .12, .02], .5, Math.random() * 6, .4); }
+        for (let i = 0; i < n(d.burst ? 60 : 24); i++) particle(cx, .25, cz, 2, [.07, .045, .09], d.burst ? 1.6 : .9, Math.random() * Math.PI * 2);
+        for (let i = 0; i < n(14); i++) particle(cx, .3, cz, 3, [.4, .3, .55], .6, Math.random() * Math.PI * 2, .6);
+        if (d.shape === 'cone') for (let i = 0; i < n(18); i++) { const p = polar((Math.random() - .5) * arc, R * Math.random()); particle(p.x, .1, p.z, 0, [.06, .04, .08], .5, Math.random() * 6, .4); }
         return;
       }
       if (style === 'blade' || style === 'grab') {
@@ -1366,9 +1366,9 @@
         for (let i = 0; i < scaleCount(14); i++) particle(x + rnd(-.3, .3), .1, z + rnd(-.3, .3), 2, DUST, .7, f + rnd(-.8, .8), .3);
         return;
       }
-      const n = large ? 65 : 22, color = poison ? [.075, .15, .02] : DUST;
+      const n = large ? 65 : 22, color = poison ? [.07, .045, .09] : DUST;
       for (let i = 0; i < scaleCount(n); i++) particle(x, y, z, 2, color, large ? 1.4 : 1, Math.random() * Math.PI * 2);
-      if (poison) for (let i = 0; i < scaleCount(12); i++) particle(x, y, z, 3, [.35, .6, .08], .5, Math.random() * Math.PI * 2, .5);
+      if (poison) for (let i = 0; i < scaleCount(12); i++) particle(x, y, z, 3, [.4, .3, .55], .5, Math.random() * Math.PI * 2, .5);
     }
     // ------------------------------------------------------------ per frame
     let ghostClock = 0, wasIframe = false;

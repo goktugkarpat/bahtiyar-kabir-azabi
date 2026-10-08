@@ -35,7 +35,7 @@ Ana ekranda **Yolculuğa başla** (kayıt varsa **Yolculuğa devam**) düğmesin
 | Esc | Mola |
 | . (nokta) | Kare hızı göstergesini açıp kapatır |
 
-- **Klavye yürütmez:** yürümek için fare (veya kol / dokunmatik) kullanılır. Hafif saldırının klavye karşılığı (J) önündeki yakın düşmana vurur; K sağ tık yuvasının yedeğidir.
+- **Sadece klavye (isteğe bağlı):** Ayarlar › Kontroller (Tuşlar) sayfasında açılır. Açıkken WASD / oklar yürütür, **J** normal vuruş (sol tık), **K** sağ tık yeteneği, **Tab / Shift+Tab** hedef değiştirir; hedef, baktığın yöndeki en yakın düşmandan otomatik seçilir. Kapalıyken yürümek için fare (veya kol / dokunmatik) kullanılır.
 - Tuşların çoğu **Ayarlar → Kontroller → Tuş atamaları** ekranından değiştirilebilir.
 - **Xbox kolu:** sol çubuk hareket, A normal saldırı, B kaçınma, RT sağ tık yuvası, X 1 yuvası, Y 2 yuvası, LT 3 yuvası, LB iksir, RB etkileşim, Start mola. Kol tuşları Ayarlar'dan değiştirilebilir.
 - **Dokunmatik:** düşmana dokun, ona yürür ve vurur; yere dokun, oraya yürürsün; sol başparmakla kaydırarak da yürünür. Sağdaki düğmeler en yakın düşmana vurur.
@@ -45,6 +45,7 @@ Ana ekranda **Yolculuğa başla** (kayıt varsa **Yolculuğa devam**) düğmesin
 - Düşmanlar vurmadan önce yerde bir **uyarı işareti** gösterir. **Altın kenar** sıradan darbe, **kızıl kenar** ağır darbedir; ağır darbeden mutlaka kaçmalısın.
 - **Kaçınma** yuvarlanmanın başında seni korur ve dayanıklılık harcar. Yetenekler de dayanıklılık harcar ve bekleme süreleri vardır.
 - Öldürdüğün bazı düşmanlar yere **kızıl sağlık küresi** bırakır; içinden geçince biraz can kazanırsın. Küreler kaydedilmez.
+- Geri iten saldırı yoktur: bağırmalar, kasırga ve hücum düşmanı yerinden oynatmaz, **sersemletir**. Sersemleyen düşman sendeleyerek durur ve başının üstünde altın bir halka döner. Çengel ise düşmanı kendine çeker.
 - Dört **şifa matarası** taşırsın (Q). Yemin taşında dolar.
 - Boss savaşlarında boss'un sağlığı ve saldırı açıklamaları ekranda görünür.
 
@@ -109,6 +110,8 @@ Ağaç **6 yol × 5 sıra, toplam 26 düğümden** oluşur; tek ekranda görün�
 - Düşen eşyalar mümkün olduğunca elindekilerden daha iyi olanlara yönelir.
 
 ## Bölümler
+
+Her bölümde iki yeni düşman türü vardır: **I** Pranga Bekçisi (tuzak kurucu) ve Ağıtçı (koruma veren destek); **II** Ağ Dökücü (tuzak) ve Dip Çağırıcısı (alan baskılayıcı); **III** Taht Yasçısı (koruma veren destek) ve Mezar Kapancısı (tuzak); **IV** Körük Ustası (iyileştirip öfkelendiren destek) ve Pranga Ustası (tuzak); **V** Mühür Kazıcı (mühür tuzakları) ve Boşluk Tanığı (çeken kontrolcü). Zehir, mor-zeytin kabarcıklı bir sıvı olarak çizilir; altın kenar normal, kızıl kenar ağır, mavi alan güvenli bölgedir.
 
 ### I. Kurban Tapınağı
 Zincirli mahkûmların, muhafızların ve ayin yapanların mahzeni. Odalar: Kül Eşiği, Zincir Avlusu, Çürüyen Revir, Adak Salonu, Kemik Geçidi, Sessiz Şapel (yemin taşı), Zincir Mahkemesi; ayrıca yan odalar (Unutulanların Mahzeni, Sönmüş Kandiller ve diğerleri).

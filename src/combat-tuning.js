@@ -13,7 +13,9 @@
   const DIFFICULTY = Object.freeze({
     easy: Object.freeze({ enemyHp: .70, enemyDmg: .48, eliteHp: 1, eliteDmg: 1, playerDmg: 1.18, pace: 1.22, rest: 1.30, attackers: 2, melee: 1,
       hitCap: .30, iframe: .44, dodgeStep: .15, regenDelay: .25, regen: 1.15, flasks: 5, flaskHeal: 1.15, perfectWindow: .26 }),
-    normal: Object.freeze({ chapterDmg: Object.freeze({ 1: .62, 2: .70, 3: .78, 4: .92, 5: 1.1 }), enemyHp: .88, enemyDmg: 1.08, eliteHp: 1.10, eliteDmg: 1.08, playerDmg: 1.12, pace: 1.10, rest: 1.08, attackers: 3, melee: 2,
+    normal: Object.freeze({ chapterDmg: Object.freeze({ 1: .66, 2: .74, 3: .84, 4: .92, 5: 1.1 }),   // BAL: chapterDmg = Normal's curve for BOSS blows (I-III +6-8 %, IV-V unchanged: their phase/rest/hp changes already hit hard)
+      foeDmg: Object.freeze({ 1: .62, 2: .70, 3: .92, 4: 1.05, 5: 1.35 }),   // BAL: Normal's curve for common foes and elites (was = chapterDmg .62/.70/.78/.92/1.1; chapters III-V raised so the gear/talent growth does not outrun them)
+      enemyHp: .88, enemyDmg: 1.08, eliteHp: 1.10, eliteDmg: 1.08, playerDmg: 1.12, pace: 1.10, rest: 1.08, attackers: 3, melee: 2,
       hitCap: .26, iframe: .40, dodgeStep: .28, regenDelay: .32, regen: 1.12, flasks: 6, flaskHeal: 1.2, perfectWindow: .22 }),
     hard: Object.freeze({ enemyHp: 1.15, enemyDmg: 1.32, eliteHp: 1.25, eliteDmg: 1.25, playerDmg: 1, pace: 1, rest: .82, attackers: 3, melee: 2,
       hitCap: .45, iframe: .32, dodgeStep: .40, regenDelay: .50, regen: 1, flasks: 3, flaskHeal: .85, perfectWindow: .18 })
@@ -33,7 +35,7 @@
   const FEEL = Object.freeze({
     hitstop: Object.freeze({ light: .030, finisher: .052, heavy: .066, extraTarget: .006, kill: .022, bossKill: .085, shield: .016, guardBreak: .075,
       hurt: .034, hurtHeavy: .062, cap: .09 }),
-    knock: Object.freeze({ light: .42, finisher: .82, heavy: 1.3, shield: .16, boss: .06, bossHeavy: .2 }),
+    knock: Object.freeze({ light: .14, finisher: .2, heavy: .24, shield: .1, boss: .03, bossHeavy: .06 }),
     // Slow motion (s at 30 % speed): the last foe of a hall, the boss.
     lastKillSlowmo: .32, bossKillSlowmo: 1.1,
     // While waiting for a free attack slot, close melee foes circle the hero instead of standing still (fraction of walk speed).
@@ -42,9 +44,12 @@
   // Per-chapter correction for common foes (not bosses), on top of the campaign ramp in combat.js. Measured with the average bot on Normal
   // (hero at the expected level/gear of the chapter: L3 / L6 / L9 / L11), health lost per hall without -> with this table:
   // ch I 23.6 -> ~20 %, ch II 12.3 (the hero's level-6 jump outran the shore foes) -> ~19 %, ch III 33 -> ~26 %, ch IV 42 -> ~34 %.
-  const CHAPTER = Object.freeze({ 1: { hp: 1, dmg: .85 }, 2: { hp: 1.12, dmg: 2.15 }, 3: { hp: 1, dmg: .88 }, 4: { hp: 1, dmg: .9 }, 5: { hp: 1, dmg: 1.0 } });   // V: ajan:chapter5 (measured, see tools/combat_balance.py 5)
+  const CHAPTER = Object.freeze({ 1: { hp: 1, dmg: .85 }, 2: { hp: 1.12, dmg: 2.15 }, 3: { hp: 1.12, dmg: .88 }, 4: { hp: 1.15, dmg: .9 }, 5: { hp: 1.20, dmg: 1.0 } });   // BAL: hp of III-V 1 -> 1.12 / 1.15 / 1.20 (type-independent, also applies to the new foes)   // V: ajan:chapter5 (measured, see tools/combat_balance.py 5)
   // Chapter bosses (their own blows only; adds follow CHAPTER): the forge heart hit softer than the hollow king it follows.
-  const BOSS = Object.freeze({ 1: { dmg: 1 }, 2: { dmg: 1 }, 3: { dmg: 1 }, 4: { dmg: 1.3 }, 5: { dmg: 1.0 } });
+  const BOSS = Object.freeze({ 1: { dmg: 1, hp: 1.25 }, 2: { dmg: 1, hp: 1.30 }, 3: { dmg: 1, hp: 1.30 }, 4: { dmg: 1.2, hp: 1.25 }, 5: { dmg: .95, hp: 1.20 } });
+  // BAL boss knobs: hp = health multiplier per chapter (on top of BALANCE.bossHealth / campaignHealth in combat.js); REST = multiplier on the pause between two boss moves
+  // (the .36 / .58 s punish floor and every tell time stay untouched); PHASE = damage of the boss's own blows in phase 2 / 3 (and the late-phase signature cadence: boss-framework.js pace()).
+  const BOSS_REST = .88, BOSS_PHASE = Object.freeze({ 1: 1, 2: 1.06, 3: 1.12 });
   function profile(level) { return DIFFICULTY[level] || DIFFICULTY.normal; }
   // Text for the settings screen (Turkish source, translated through KabirI18n; English in i18n.js block "ajan:combat").
   function describe(level) {
@@ -65,7 +70,7 @@
     rage: Object.freeze({ hits: 5, time: 3, dmg: 1.2, regen: 1.4 }), ironhide: Object.freeze({ taken: .9 }), vengeance: Object.freeze({ share: .25, cap: 90 }), crush: Object.freeze({ dmg: 1.2 }),
     breath: Object.freeze({ stamina: 22, heal: .01 }), exec: Object.freeze({ below: .4, dmg: 1.25, kill: .10, hp: .8 }), blood: Object.freeze({ leech: .07 }),
     iron: Object.freeze({ taken: .8, stamina: 8, dodge: 2 }) });
-  B.CombatTuning = Object.freeze({ DIFFICULTY, CHAPTER, BOSS, ECONOMY, FEEL, TALENT, profile, describe });
+  B.CombatTuning = Object.freeze({ DIFFICULTY, CHAPTER, BOSS, BOSS_REST, BOSS_PHASE, ECONOMY, FEEL, TALENT, profile, describe });
 })();
 /* Measurements (BABA.Balance.run; every hall / boss fought from full health with the chapter's expected level and gear:
    ch I L3, ch II L6, ch III L9, ch IV L11). Bots: novice (sees a tell after .42 s, ignores 35 %), average (.30 s, 18 %),

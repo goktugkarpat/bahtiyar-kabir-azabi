@@ -180,7 +180,7 @@
     function halfCape(id, mat, len, narrow) {
       // (ajan:secondary) hangs from the shoulder blades on the 'cape' sheet; the lower hem is cut into tabs so it reads as strips when it flares
       const hem = u => SX ? 1 - .15 * Math.abs(((u * 6) % 1) - .5) * 2 : 1, a0 = narrow ? .39 : .36;
-      const cape = (u, v0) => { const v = v0 * hem(u), a = mix(a0, 1 - a0, u), p = chest(a, .97, .05); const flare = 1 + v * .28; return [p[0] * flare, p[1] - v * len, p[2] - .03 * v - .05 * v * v + .01 * Math.sin(u * PI * 7) * v]; };
+      const cape = (u, v0) => { const v = v0 * hem(u), a = mix(a0, 1 - a0, u), p = chest(a, .97, .05); const flare = 1 + v * .18; return [p[0] * flare, p[1] - v * len, p[2] - .02 * v - .035 * v * v + .01 * Math.sin(u * PI * 7) * v]; };
       const skc = sk('cape');
       part('chest', id, mat, G.shell(24, 14, cape, .005, false), null, skc || { bones: ['spine03', 'spine02', 'spine01', 'pelvis'] });
       part('chest', id, 'gold', G.tube(line(u => cape(u, 0), 24), .005, 6, 32, true), 'spine03');

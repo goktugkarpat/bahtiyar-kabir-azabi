@@ -62,9 +62,9 @@
       }
       case 'talentHookHit':
         // the foe is dragged in: chain strain, a heavy scrape (longer for the barbed form) and a body-weight thud on the arrival
-        whoosh(t, style === 'long' ? .15 : .2, 2400, 500, .2, 1.1); crackle(t + .02, style === 'barb' ? .26 : .16, 9, .1, 1800);
-        { const a = g(0), bp = f('bandpass', 260, 2.2, a); hiss(t, .2, bp); env(a, t, .1 * k, .02, .2); }   // links grinding under load, the boots scraping
-        thump(t + (style === 'long' ? .17 : style === 'barb' ? .25 : .2), 82, 36, .4, .55); break;
+        whoosh(t, style === 'long' ? .22 : style === 'barb' ? .3 : .27, 2400, 500, .2, 1.1); crackle(t + .02, style === 'barb' ? .3 : .2, 9, .1, 1800);
+        { const a = g(0), bp = f('bandpass', 260, 2.2, a); hiss(t, .28, bp); env(a, t, .1 * k, .02, .28); }   // links grinding under load, the boots scraping
+        thump(t + (style === 'long' ? .26 : style === 'barb' ? .34 : .3), 82, 36, .4, .55); break;
       case 'talentHookLand':
         thump(t, 78, 34, .4, .5); { const a = g(0), lp = f('lowpass', 700, .8, a); hiss(t, .25, lp); env(a, t, .22 * k, .004, .22); } metal(t, 210, .07, .35, [1, 1.7, 2.7]); break;
       case 'talentStance':

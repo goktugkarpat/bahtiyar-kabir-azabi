@@ -37,23 +37,61 @@ void main(){
   // Continuous curved bands: no lattice cells or texture-resolution steps in warning light.
   float n = .5+.14*sin(dot(vW,vec2(1.13,.79))+uSeed)+.10*sin(dot(vW,vec2(-.67,1.41))-.7*uSeed);
   float aa = max(fwidth(sd),.004), inside = 1.-smoothstep(-aa, aa, sd);
-  if (uStyle == 13) {   // shelter: blue is safe, muted red outside is damaging water
+  if (uStyle == 13) {   // shelter: blue is safe (frost light, ripples, scalloped rune line), patterned muted red outside is damaging water
     if (r > uDim.y+.3) discard;
+    float tm = uCalm > .5 ? 0. : uTime;
     float rimD = r-uDim.x, rimAA=max(fwidth(rimD),.015);
-    float safe=1.-smoothstep(-rimAA,rimAA,rimD), rim=exp(-pow(rimD/.07,2.));
+    float safe=1.-smoothstep(-rimAA,rimAA,rimD), rim=exp(-pow(rimD/.07,2.)), halo=exp(-pow(rimD/.30,2.)), halo2=exp(-pow(rimD/.75,2.));
     float dashed=mix(.32,1.,smoothstep(-.1,.2,cos(ang*18.)));
-    float ready=max(uActive,uSafeReady), border=mix(dashed*.38,1.,ready);
-    float ink=(.035+.025*n)*uActive;
-    vec3 c=mix(vec3(.23,.045,.032),vec3(.10,.27,.34),safe);
-    c+=vec3(.19,.46,.57)*rim*border;
-    float al=(1.-safe)*ink + safe*(.025+.07*ready) + rim*(.18+.50*border);
+    float turn = fract(ang/6.2832+.5), ig = 1.-smoothstep(uU-.03, uU, turn);
+    float ready=max(uActive,uSafeReady), border=mix(dashed*.38,1.,max(ready,ig));
+    float dep = max(-rimD,0.), K = max(6., floor(uDim.x*2.5));
+    float rip = smoothstep(.84,1.,.5+.5*sin(r*3.6-tm*.55+n*2.));
+    float hair = exp(-pow((dep-.2)/.026,2.));
+    float scal = exp(-pow((dep-(.46+.09*sin(ang*K)))/.03,2.));
+    float tick = exp(-pow((dep-.13)/.04,2.))*smoothstep(.25,1.,cos(ang*K*2.));
+    float spark = 0.;
+    if (uDetail > 1.5) { vec2 g=(vW+vec2(0.,tm*.12))*1.9, ci=floor(g), f=fract(g); float h1=fract(sin(dot(ci,vec2(127.1,311.7)))*43758.5453), h2=fract(sin(dot(ci,vec2(269.5,183.3)))*43758.5453);
+      float tw=.5+.5*sin(tm*.7+h1*40.); spark = step(.62,h1)*pow(tw,5.)*exp(-dot(f-vec2(.25+.5*h2,.25+.5*fract(h1*7.)),f-vec2(.25+.5*h2,.25+.5*fract(h1*7.)))/.002); }
+    float lines = smoothstep(.6,.95,.5+.5*sin(r*2.5+tm*.35+n*3.)), hatch = smoothstep(.55,.95,.5+.5*sin((vW.x+vW.y)*4.6));
+    vec3 c=mix(vec3(.23,.045,.032),vec3(.08,.20,.27),safe);
+    c+=vec3(.19,.46,.57)*(rim*border + halo*.22*border + halo2*.07*ready + hair*.5*ready + scal*.38*ready + tick*.3*ready + rip*.07*safe*ready + spark*.8*safe);
+    c+=vec3(.30,.07,.05)*(1.-safe)*(lines*.35+hatch*.25)*uActive;
+    float edgeFade=1.-smoothstep(uDim.y-.55,uDim.y+.25,r);
+    float ink=(.032+.022*n+.02*hatch+.016*lines)*uActive*edgeFade;
+    float al = (1.-safe)*ink + safe*(.03+.06*ready+.045*smoothstep(0.,uDim.x,r)) + rim*(.18+.50*border) + halo*.10*border + halo2*.03*ready + (hair*.2+scal*.16+tick*.12)*ready*safe + rip*.03*safe*ready + spark*.5*safe;
     gl_FragColor=vec4(c,al*uFade); return; }
-  if (uStyle == 12) {   // settled bile: murky liquid with a wet meniscus (normal blending)
+  if (uStyle == 12) {   // settled liquid (lava, brine): murky liquid with a wet meniscus (normal blending)
     float wob = .5+.20*sin(dot(vW,vec2(.73,.91))+uTime*.07+uSeed)+.12*sin(dot(vW,vec2(-1.31,.59))-uTime*.05);
     float men = exp(-abs(sd+.06)/(.05+.03*n)) * (.8+.2*sin(dot(vW,vec2(2.31,3.17))+uTime*.2));
     vec3 c = mix(uPA, uPB, wob) + uEdge*men*.6;
     float al = clamp(inside*(.62+.22*wob) + men*.35, 0., .9);
     gl_FragColor = vec4(c, al*uFade*uGain); return; }
+  if (uStyle == 14) {   // poison / plague bile: bruised violet and olive liquid, wavy meniscus, rising bubble rings. No gold, red or blue.
+    float tm = uCalm > .5 ? 0. : uTime, heavy = uF;
+    float wob = .05*sin(dot(vW,vec2(2.3,1.9))+tm*.6+uSeed)+.04*sin(dot(vW,vec2(-2.1,2.7))-tm*.45+uSeed*1.7)+.03*sin(dot(vW,vec2(4.1,-1.3))+tm*.8);
+    float sdw = sd + wob - .04, aaw = max(fwidth(sdw),.004), ins = 1.-smoothstep(-aaw, aaw, sdw);
+    float prog = uActive > .5 ? 1. : uU;
+    float mw = .5+.25*sin(dot(vW,vec2(.9,1.1))+tm*.08+uSeed)+.15*sin(dot(vW,vec2(-1.7,.8))-tm*.06);
+    vec3 body = mix(uPA, uPB, mw);
+    float mist = (.5+.5*sin(dot(vW,vec2(1.3,.9))+tm*.2+uSeed))*(.5+.5*sin(dot(vW,vec2(-.8,1.6))-tm*.15+uSeed));
+    float ring = 0., spec = 0., fillb = 0.;
+    for (int L = 0; L < 2; L++) { if (L == 1 && uDetail < 1.5) break;
+      float cs = L == 0 ? .95 : .55; vec2 g = vW/cs + float(L)*vec2(3.7,1.3), ci = floor(g), f = fract(g);
+      float h1 = fract(sin(dot(ci,vec2(127.1,311.7))+uSeed)*43758.5453), h2 = fract(sin(dot(ci,vec2(269.5,183.3))+uSeed)*43758.5453);
+      vec2 ctr = vec2(.4+.2*h1, .4+.2*h2); float d = length(f-ctr);
+      float life = fract(tm*.12*(.6+.8*h2)+h1), rad, amp;
+      if (uActive > .5) { rad = .05+.28*life; amp = 1.-smoothstep(.72,1.,life); amp *= smoothstep(0.,.12,life); if (uCalm > .5) { rad = .1+.2*h2; amp = .8; } }
+      else { rad = (.10+.20*h2)*clamp(prog*1.5,0.,1.); amp = 1.-smoothstep(prog*.9+.06+heavy*.12+.3*smoothstep(-.9,-.1,sdw), prog*.9+.12+heavy*.12+.3*smoothstep(-.9,-.1,sdw), h1); }
+      float rr = exp(-pow((d-rad)/.03,2.))*amp, hl = exp(-pow((length(f-ctr-vec2(-.3,.3)*rad)-.06)/.025,2.))*amp*step(.05,rad);
+      ring += rr*(L == 0 ? 1. : .7); spec += hl*.6*step(.5,h2); fillb += (1.-smoothstep(rad*.8,rad,d))*amp*.22; }
+    float edgeAmp = mix(.30+.2*heavy, .85, prog);
+    float men = exp(-pow((sdw+.05)/.045,2.)), men2 = exp(-pow((sdw-.10)/.07,2.))*(.4+.6*prog);
+    float conv = heavy > .5 && uActive < .5 ? exp(-pow((t-(1.-prog))/.05,2.))*ins : 0.;
+    vec3 olive = vec3(.52,.60,.20), mauve = vec3(.58,.38,.80);
+    vec3 c = body*(1.+.5*mist) + olive*(ring*.55 + fillb*.25) + mauve*(men*edgeAmp*.55 + men2*.18 + spec*.5 + conv*.5 + mist*.05*ins + uHit*.4*ins);
+    float al = ins*mix(.30,.78,prog)*(.82+.18*mw) + (1.-ins)*men2*.18 + men*edgeAmp*.4 + ring*.5*ins + fillb*.3*ins + conv*.4 + heavy*ins*.08*prog;
+    gl_FragColor = vec4(c, clamp(al,0.,.92)*uFade*uGain); return; }
   float sw = clamp((ang*uSweepDir + span*.5)/span, 0., 1.), tc = clamp(t, 0., 1.);
   float ft = uFill == 2 ? sw : uFill == 3 ? 1.-tc : uFill == 4 ? 1.-abs(2.*tc-1.) : tc;
   float e = 1.-(1.-uU)*(1.-uU), front = mix(.10, 1.06, e);
@@ -98,6 +136,14 @@ void main(){
   col += uEdge*exp(-max(sdj, 0.)/.5)*(1.-inJ)*(uUnblock > .5 ? .13 : .06)*(.4+.6*lamp+uFlare)*(1.-smoothstep(.3, .69, sd));
   if (uUnblock > .5) { float crawl = 1.;
     col += vec3(1.25,1.05,.9)*exp(-abs(sd+.19)/.045)*crawl*(uHl.x+uHl.y*uU*uU+uHl.z*uFlare)*inJ*.8; }
+  if (uUnblock > .5) {   // severe blow: serrated fang line, ritual cross-hatching, wider layered halo (all inside the same boundary)
+    float perimU = uShape==2 ? fwd+side*2.7 : ang*R, tri = abs(fract(perimU*1.7)-.5)*2., toothTop = .07+.20*tri;
+    float tooth = exp(-pow((depth-toothTop)/.03,2.))*inJ, fang = step(depth,toothTop)*smoothstep(0.,.025,depth)*inJ;
+    float hatch = smoothstep(.82,.98,sin((vW.x-vW.y)*7.5)) *.30 + smoothstep(.9,.99,sin((vW.x+vW.y)*7.5)) *.20;
+    col += uEdge*tooth*(.14+.55*lamp+.9*uFlare)*.7 + uEdge*fang*(.05+.10*lamp+.4*uFlare);
+    col += uFillCol*inJ*hatch*uK.z*2.4*lit*(.3+.7*lamp)*(.5+.5*exp(-depth/1.2));
+    col += uEdge*exp(-pow(sd/.42,2.))*rimK*.10;
+    dark += inJ*(1.-exp(-depth/.9))*.06; }
   if (uStyle == 4) { vec2 cuv = uShape==2 ? vec2(side/uDim.x*.25+.5, fwd/uDim.y) : vec2(side,fwd)/(2.*R)+.5;
     float texEdge=min(min(cuv.x,1.-cuv.x),min(cuv.y,1.-cuv.y));
     float crack = (uShape==2 ? texture2D(uCrack,cuv).g : texture2D(uCrack,cuv).r)*smoothstep(0.,.04,texEdge);
@@ -253,7 +299,7 @@ void main(){ vec2 p = (vUv-.5)*2.*uMax; float r = length(p), a = r > 1e-6 ? atan
   const STYLE = { blade: 0, blunt: 1, rune: 2, bile: 3, quake: 4, shadow: 5, chain: 6, ember: 7, fall: 8, thrust: 9, grab: 10, roar: 11, root: 4, tide: 6 };
   const DETAIL = { low: 1, high: 3 }, PFACTOR = { low: .3, high: .675 };
   const GOLD = { edge: [1.6, 1.05, .5], fill: [.7, .28, .07], front: [1.5, .95, .5] }, CRIMSON = { edge: [1.9, .16, .1], fill: [.85, .05, .04], front: [1.5, .3, .2] };
-  const AMBER_RIM = [1.6, .7, .25], CRIMSON_RIM = [1.7, .12, .08], BILE_RIM = [1.2, .5, .12], RAGE_RIM = [1.05, .20, .055], COOL_RIM = [.55, .065, .025];
+  const AMBER_RIM = [1.6, .7, .25], CRIMSON_RIM = [1.7, .12, .08], BILE_RIM = [.62, .34, .85], RAGE_RIM = [1.05, .20, .055], COOL_RIM = [.55, .065, .025];
 
   B.Telegraphs = { create(root, getGame, getSettings, out) {
     // out: { emit(x,y,z,kind,color,vx,vy,vz,life,size), sound(name, opts) } from effects.js.
@@ -297,10 +343,10 @@ void main(){ vec2 p = (vUv-.5)*2.*uMax; float r = length(p), a = r > 1e-6 ? atan
     function free(t) { t.busy = false; t.releasing = false; t.h = null; t.mesh.visible = false; t.rib.visible = false; }
     function vec(v, a) { v.set(a[0], a[1], a[2]); }
     const POOLS = { lava: { a: [.04, .008, .003], b: [.19, .04, .008], edge: [1.2, .22, .07], bub: [3, 1, .2] }, dark: { a: [.002, .008, .011], b: [.007, .026, .03], edge: [.3, .9, .85], bub: [.2, .7, .6] }, brine: { a: [.003, .014, .014], b: [.014, .05, .044], edge: [1.15, .19, .12], bub: [.3, .85, .6] } };   // round 7: hazard.pool tints persistent floor liquids (burning strips, brine, drowning dark)
-    const styleOf = h => h.pool === 'dark' ? 13 : (h.poison || h.pool) && h.persistent && h.active ? 12 : STYLE[h.style] != null ? STYLE[h.style] : 0;
+    const styleOf = h => h.pool === 'dark' ? 13 : (h.poison || h.style === 'bile') && !h.pool ? 14 : (h.poison || h.pool) && h.persistent && h.active ? 12 : STYLE[h.style] != null ? STYLE[h.style] : 0;
     function place(t, h) {
       const u = t.mat.uniforms, shape = SHAPE[h.shape] != null ? SHAPE[h.shape] : 0, style = styleOf(h);
-      const liquid = style === 12 || style === 13, unb = !!h.unblockable && !liquid, pal = unb ? CRIMSON : GOLD;
+      const liquid = style >= 12, unb = !!h.unblockable && !liquid, pal = unb ? CRIMSON : GOLD;
       // Capture this once: recovery must not brighten if the owner's action finishes first.
       t.burrow = !!(h.owner && h.owner.action && h.owner.action.burrow &&
         (h.shape === 'circle' || h.shape === 'ring') && (h.style === 'fall' || h.style === 'quake'));
@@ -313,7 +359,8 @@ void main(){ vec2 p = (vUv-.5)*2.*uMax; float r = length(p), a = r > 1e-6 ? atan
       // Gold = continuous ordinary boundary; crimson = severe boundary plus a pale inner hairline.
       u.uBreak.value = unb ? .1 : .3; u.uHl.value.set(unb ? .4 : .08, .5, 1);
       u.uSeed.value = ((h.x * 3.1 + h.z) % 7 + 7) % 7;
-      if (liquid) { const pl = POOLS[h.pool]; if (pl) { vec(u.uEdge.value, pl.edge); vec(u.uFront.value, pl.edge); vec(u.uFillCol.value, pl.b); vec(u.uPA.value, pl.a); vec(u.uPB.value, pl.b); } else { vec(u.uEdge.value, [.35, .55, .12]); vec(u.uFront.value, [.12, .2, .04]); vec(u.uFillCol.value, [.1, .18, .03]); u.uPA.value.set(.006, .011, .003); u.uPB.value.set(.028, .05, .009); } }
+      if (style === 14) { vec(u.uEdge.value, [.58,.38,.8]); vec(u.uFront.value, [.58,.38,.8]); vec(u.uFillCol.value, [.09,.10,.025]); u.uPA.value.set(.05,.032,.07); u.uPB.value.set(.085,.095,.028); }
+      else if (liquid) { const pl = POOLS[h.pool]; if (pl) { vec(u.uEdge.value, pl.edge); vec(u.uFront.value, pl.edge); vec(u.uFillCol.value, pl.b); vec(u.uPA.value, pl.a); vec(u.uPB.value, pl.b); } else { vec(u.uEdge.value, [.35, .55, .12]); vec(u.uFront.value, [.12, .2, .04]); vec(u.uFillCol.value, [.1, .18, .03]); u.uPA.value.set(.006, .011, .003); u.uPB.value.set(.028, .05, .009); } }
       // A flying vial lands inside a gold (or crimson) ring like every other blow; only its olive fill hints at the bile.
       else { vec(u.uEdge.value, pal.edge); vec(u.uFront.value, pal.front); vec(u.uFillCol.value, h.style === 'bile' ? [pal.fill[0] * .85, pal.fill[1] * .9 + .05, pal.fill[2]] : pal.fill); }
       if(h.style==='tide') u.uFillCol.value.set(.10,.25,.27);
@@ -342,12 +389,12 @@ void main(){ vec2 p = (vUv-.5)*2.*uMax; float r = length(p), a = r > 1e-6 ? atan
     }
     function update(t, h, cfg, calm) {
       if (t.placed !== styleOf(h)) place(t, h);
-      const u = t.mat.uniforms, s = tellState(h, t.state), liquid = u.uStyle.value === 12 || u.uStyle.value === 13;
+      const u = t.mat.uniforms, s = tellState(h, t.state), tox = u.uStyle.value === 14, liquid = u.uStyle.value === 12 || u.uStyle.value === 13;
       let fade = clamp(h.age / .08, 0, 1);
-      if (liquid) fade *= clamp((h.warn + h.duration - h.age) / .6, 0, 1);
+      if (liquid || tox && h.active) fade *= clamp((h.warn + h.duration - h.age) / .6, 0, 1);
       u.uActive.value = h.active ? 1 : 0; u.uSafeReady.value = h.warn-h.age <= 1 ? 1 : 0;
-      u.uU.value = liquid ? 1 : s.u; u.uFlare.value = liquid ? 0 : s.flare; u.uHit.value = liquid ? 0 : s.hit; u.uFade.value = fade;
-      u.uGain.value = (liquid ? (h.poolGain || .55) : (h.tellGain || 1)) * (cfg.tellGain || 1) * (u.uStyle.value === 5 && u.uShape.value !== 0 ? .4 : 1) * (t.burrow ? (u.uUnblock.value > .5 ? .64 : .42) : t.riteSpike ? .55 : 1);   // narrow 'shadow' lanes (shard volleys, pulses) would bloom to white: keep their light well under the bloom knee
+      u.uU.value = liquid && !tox && u.uStyle.value !== 13 ? 1 : s.u; u.uFlare.value = liquid && !tox ? 0 : s.flare; u.uHit.value = liquid && !tox ? 0 : s.hit; u.uFade.value = fade;
+      u.uGain.value = (tox ? (h.tellGain || 1) : liquid ? (h.poolGain || .55) : (h.tellGain || 1)) * (cfg.tellGain || 1) * (u.uStyle.value === 5 && u.uShape.value !== 0 ? .4 : 1) * (t.burrow ? (u.uUnblock.value > .5 ? .64 : .42) : t.riteSpike ? .55 : 1);   // narrow 'shadow' lanes (shard volleys, pulses) would bloom to white: keep their light well under the bloom knee
       // Big areas (boss sweeps, rings) cover a lot of screen: their interior light is scaled down so it never reads as paint.
       const R = h.shape === 'line' ? Math.max(h.width, h.length * .35) : h.radius, big = clamp(2.8 / Math.max(.5, R), .38, 1);
       const open = h.owner && h.owner.boss && R > 8 ? .48 : 1;
@@ -358,6 +405,7 @@ void main(){ vec2 p = (vUv-.5)*2.*uMax; float r = length(p), a = r > 1e-6 ? atan
       u.uE.value.set(unbT ? .85 : .8, (unbT ? .9 : .9) * (1 + (unbT ? .25 : .6) * p2), 1.6, t.burrow || t.riteSpike ? .045 : .07);
       u.uCk.value = t.burrow ? .24 : t.riteSpike ? .3 : .8;
       u.uHl.value.set((unbT ? .4 : .08) * (1 + 1.6 * p2), .5 * (1 + p2), 1); u.uDetail.value = DETAIL[cfg.quality] || 3; u.uTime.value = clock; u.uCalm.value = calm ? 1 : 0;
+      if (tox) u.uF.value = h.damage >= 26 || h.burst ? 1 : 0;
       t.mesh.visible = fade > .001; t.fade = fade; t.last = s;
       if (h.active && !h.harmless) t.struck = true;
       if (t.ribbon) {
@@ -404,10 +452,15 @@ void main(){ vec2 p = (vUv-.5)*2.*uMax; float r = length(p), a = r > 1e-6 ? atan
     // ------------------------------------------------------------------ per-style particles (rates per second per tell)
     function emitFor(t, h, dt, factor, calm) {
       const e = out.emit; if (!e || dt <= 0 || !t.last) return;
-      const s = t.last, drift = calm ? .5 : 1, liquid = h.persistent && (h.poison || h.pool) && h.active;
+      const s = t.last, drift = calm ? .5 : 1, liquid = h.persistent && (h.poison || h.pool) && h.active, dark = h.pool === 'dark' && h.persistent && !calm;
       const rate = (key, n, fn) => { t.acc[key] = (t.acc[key] || 0) + n * factor * dt; while (t.acc[key] >= 1) { t.acc[key] -= 1; fn(); } };
       const eFront = 1 - (1 - s.u) * (1 - s.u), front = Math.min(1, .1 + .96 * eFront), left = h.warn - h.age;
-      if (liquid) { const pl = POOLS[h.pool], bc = pl ? pl.bub : [.35, .6, .1]; rate('bub', h.shape === 'ring' ? 0 : pl && h.pool === 'lava' ? 6 : 3, () => { const p = sample(h, 'in'); e(p.x, .06, p.z, h.pool === 'lava' ? 4 : 5, bc, 0, (h.pool === 'lava' ? .5 : .12) * drift, 0, .45, h.pool === 'lava' ? .045 : .05); }); return; }
+      if (dark) {   // blue shelter: cold sparks and ice dust drift up from the safe disc
+        const sr = h.inner || h.radius * .5, ps = () => { const a = Math.random() * TAU, rr = sr * Math.sqrt(Math.random()); return { x: h.x + Math.sin(a) * rr, z: h.z + Math.cos(a) * rr }; };
+        rate('ic', 7, () => { const p = ps(); e(p.x, .08, p.z, 4, [.5, 1.1, 1.5], (Math.random() - .5) * .15, .3 + Math.random() * .25, (Math.random() - .5) * .15, 1.0, .04); });
+        rate('id', 5, () => { const p = ps(); e(p.x, .06, p.z, 2, [.05, .09, .11], 0, .12, 0, 1.1, .16); });
+      }
+      if (liquid) { const pl = POOLS[h.pool], bc = pl ? pl.bub : Math.random() < .5 ? [.45, .35, .62] : [.4, .5, .16]; rate('bub', h.shape === 'ring' ? 0 : pl && h.pool === 'lava' ? 6 : 3, () => { const p = sample(h, 'in'); e(p.x, .06, p.z, h.pool === 'lava' ? 4 : 5, bc, 0, (h.pool === 'lava' ? .5 : .12) * drift, 0, .45, h.pool === 'lava' ? .045 : .05); }); return; }
       if (h.active) return;
       switch (h.style) {
         case 'blade': case 'grab':
@@ -423,8 +476,8 @@ void main(){ vec2 p = (vUv-.5)*2.*uMax; float r = length(p), a = r > 1e-6 ? atan
         case 'ember':
           if (left > .45) rate('fa', 24, () => { const p = sample(h, 'in'); e(p.x, 4.2 + Math.random() * 1.2, p.z, 1, [3.4, 1.4, .35], (Math.random() - .5) * .3, -5.5, (Math.random() - .5) * .3, .6, .07); }); break;
         case 'bile':
-          rate('sm', 14, () => { const p = sample(h, 'in'); e(p.x, .1, p.z, 2, [.05, .09, .02], 0, .25 * drift, 0, .8, .28); });
-          rate('mo', 4, () => { const p = sample(h, 'in'); e(p.x, .1, p.z, 5, [.6, .9, .2], 0, .25 * drift, 0, .6, .05); }); break;
+          rate('sm', 10, () => { const p = sample(h, 'in'); e(p.x, .1, p.z, 2, [.05, .035, .065], 0, .2 * drift, 0, .9, .26); });
+          rate('mo', 7 + (h.burst ? 8 : 0), () => { const p = sample(h, 'in'); e(p.x, .1, p.z, 5, Math.random() < .5 ? [.42, .3, .6] : [.36, .46, .14], 0, .22 * drift, 0, .8, .05); }); break;
         case 'quake':
           rate('du', 20, () => { const p = sample(h, 'in'); e(p.x, .05, p.z, 2, [.09, .075, .06], 0, .2 * drift, 0, .8, .22); });
           if (left < .4) rate('ch', 10, () => { const p = sample(h, 'in'); e(p.x, .05, p.z, 0, [.05, .04, .035], (Math.random() - .5), 1.5, (Math.random() - .5), .5, .06); }); break;
@@ -433,6 +486,10 @@ void main(){ vec2 p = (vUv-.5)*2.*uMax; float r = length(p), a = r > 1e-6 ? atan
         case 'fall':
           rate('fa', 16, () => { const p = sample(h, 'in'); e(p.x, 4 + Math.random(), p.z, 2, [.09, .075, .065], 0, -2.2, 0, 1.1, .16); });
           if (left < .3) rate('sp', 8, () => { const p = sample(h, 'in'); e(p.x, 2 + Math.random(), p.z, 1, [3.0, 2.0, .9], 0, -4, 0, .35, .06); }); break;
+      }
+      if (h.unblockable && !h.persistent && !calm) {   // ash drawn inward and a few ember sparks lifting off the floor
+        rate('ash', 12, () => { const p = sample(h, 'edge'), cx = h.shape === 'line' ? local(h, 0, h.length / 2) : { x: h.x, z: h.z }, dx = cx.x - p.x, dz = cx.z - p.z; e(p.x, .08, p.z, 2, [.08, .055, .055], dx * .5 * drift, .1, dz * .5 * drift, .8, .17); });
+        rate('ks', 6, () => { const p = sample(h, 'in'); e(p.x, .08, p.z, 4, [2.6, .35, .14], 0, .55 + Math.random() * .4, 0, .5, .035); });
       }
       if (h.unblockable && !h.persistent) {
         // The floor drinks: crimson motes drawn inward from just outside the edge.
@@ -725,8 +782,9 @@ void main(){ vec2 p = (vUv-.5)*2.*uMax; float r = length(p), a = r > 1e-6 ? atan
       emberbound: [4, [2.2, .8, .25], 1.6, .5, 1.1, .04], chainseer: [4, [2.2, .8, .25], 1.4, .5, 1.1, .04], slagcrawler: [4, [2.4, .7, .2], 3.2, .6, .9, .04],
       forgesentinel: [4, [2.2, .75, .22], 4, .6, 1.2, .045], ashwarden: [4, [2.2, .75, .22], 4, .6, 1.2, .045], furnaceheart: [4, [2.4, .8, .25], 12, .8, 1.4, .05],
       shardseer: [4, [.9, .65, 2.2], 3, .35, 1.5, .04], hollowking: [4, [.9, .65, 2.2], 7, .4, 1.6, .05],
+      mourner: [4, [.45, 1.4, 1.2], 3.2, .35, 1.5, .04], snarer: [2, [.07, .06, .055], 1.0, .2, 1.4, .1],
       ashbound: [2, [.07, .06, .055], .8, .2, 1.6, .12], gravemason: [2, [.07, .06, .055], 1.2, .2, 1.6, .14], ruinwarden: [2, [.08, .065, .06], 2, .25, 1.7, .14], cavefang: [2, [.07, .06, .055], .8, .2, 1.4, .1],
-      damned: [2, [.07, .055, .055], .9, .2, 1.5, .11], verdictseer: [4, [2.4, .32, .16], 1.6, .45, 1.2, .04], voidcrawler: [2, [.04, .03, .035], 1.4, .25, 1.4, .12], chainjailer: [4, [2.3, .3, .15], 2.6, .5, 1.2, .045], verdictwarden: [4, [2.4, .3, .15], 4, .6, 1.3, .045], lastjudge: [4, [2.6, .32, .16], 12, .8, 1.5, .05]   // chapter V: blood embers
+      damned: [2, [.07, .055, .055], .9, .2, 1.5, .11], verdictseer: [4, [2.4, .32, .16], 1.6, .45, 1.2, .04], voidcrawler: [2, [.04, .03, .035], 1.4, .25, 1.4, .12], chainjailer: [4, [2.3, .3, .15], 2.6, .5, 1.2, .045], verdictwarden: [4, [2.4, .3, .15], 4, .6, 1.3, .045], lastjudge: [4, [2.6, .32, .16], 12, .8, 1.5, .05], sealwright: [4, [2.2, .3, .16], 1.8, .45, 1.2, .04], voidwitness: [4, [.5, .7, 2.4], 2.6, .4, 1.5, .045]   // chapter V: blood embers
     };
     function ambient(game, dt, factor, calm) {
       if (!out.emit || !(dt > 0)) return;

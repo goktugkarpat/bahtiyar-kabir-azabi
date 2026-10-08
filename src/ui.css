@@ -964,3 +964,9 @@ body.chapter-fading #hud, body.chapter-fading #tutorial { visibility: hidden }
 #key-hints span { display: flex; align-items: center; }
 #key-hints kbd { display: inline-block; min-width: 2.2em; padding: .1em .5em .26em; line-height: 1; margin-right: .65em; border: 1px solid #9c8452; border-bottom-width: 2px; border-radius: 3px; background: #1a1610; color: #ecd9ae; font: 700 .9em var(--text, system-ui); line-height: 1; text-align: center; }
 @media (pointer: coarse), (max-width: 1100px) { #key-hints { display: none; } }
+
+/* keyboard-only play (settings 'Sadece klavye' / ?klavye) */
+#key-hints .kbhint, .hint-kbd { display: none }
+body.kb-only #key-hints .kbhint { display: flex }
+body.kb-only .hint-kbd { display: inline }
+body.kb-only .hint-desk { display: none }

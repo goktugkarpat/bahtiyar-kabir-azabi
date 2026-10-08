@@ -120,4 +120,23 @@
   #pause .sepulchral-pause, #character .character-panel, #journal .journal-panel, #settings .settings-panel:not(.keybinds-panel), #controls .controls-panel, #atlas .atlas-panel {
     zoom:1.3; width:min(1745px, calc(96vw / 1.3)); max-width:none; height:calc(94dvh / 1.3); max-height:none; }
   #keybinds .keybinds-panel, #confirm .confirm-panel { zoom:1.3; }
+  #keybinds .keybinds-panel { max-height:calc(94dvh / 1.3); }
 }
+
+/* settings: a wider left menu so the one-line descriptions ("Difficulty and journey", "Mouse, keyboard and Xbox") never wrap */
+@media (min-width: 901px) {
+  #settings .settings-workspace { grid-template-columns: min(262px, 25%) minmax(0, 1fr); gap: 18px; }
+  #settings .settings-nav { padding-right: 12px; }
+  #settings .settings-nav button { min-height: 58px; padding: 8px 10px; gap: 10px; }
+  #settings .settings-nav button > span { display: block; min-width: 0; }
+  #settings .settings-nav button > span > small { display: block; margin-top: 3px; font-size: 12.5px; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+}
+
+/* the boss "where to stand" explanation card under the target bar (colour-zone hints) is switched off */
+#boss-mechanic, #target-hud #boss-mechanic { display: none !important; }
+
+/* the level badge on the portrait already shows the level: no second "SEVİYE n" line under the hero name */
+#hud .hero-info #hero-subtitle { display: none; }
+
+/* worn gear slots show the icon and the slot label only (like WoW): the full item name is in the hover bubble (#cd-tip) and the detail panel */
+#character .char-equipment.worn .eq-name { display: none; }

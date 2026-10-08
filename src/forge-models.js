@@ -57,8 +57,8 @@
     var fb=fitted.box,height=fb.max.y-fb.min.y,panels=[];
     for(var row=0;row<4;row++)for(var side=-1;side<=1;side+=2)(function(row,side){
       var center=side*(forge?.70:.68),width=.59-row*.045,top=fb.max.y-.028-row*height*.18;
-      panels.push(G.shell(9,4,function(u,v){var a=center+(u-.5)*width,y=top-v*height*.185+Math.sin(u*Math.PI)*.012-.006*Math.sin(u*13+row)*v*v;return fitted.at(a,y,.017+.019*Math.sin(v*Math.PI)+.006*Math.sin(u*11+row)*v);},.009,false,true));
-      panels.push(G.shell(9,4,function(u,v){var a=Math.PI+side*.46+(u-.5)*.62,y=top-v*height*.18+.008*Math.sin(u*9+row)*v*v;return fitted.at(a,y,.015+.024*Math.sin(v*Math.PI));},.009,false,true));
+      panels.push(G.shell(9,4,function(u,v){var a=center+(u-.5)*width,y=top-v*height*.185+Math.sin(u*Math.PI)*.012-.006*Math.sin(u*13+row)*v*v;return fitted.at(a,y,.012+.010*Math.sin(v*Math.PI)+.006*Math.sin(u*11+row)*v);},.009,false,true));
+      panels.push(G.shell(9,4,function(u,v){var a=Math.PI+side*.46+(u-.5)*.62,y=top-v*height*.18+.008*Math.sin(u*9+row)*v*v;return fitted.at(a,y,.012+.012*Math.sin(v*Math.PI));},.009,false,true));
     })(row,side);
     var shell=G.merge(panels);G.uvScale(shell,1.4,1.3);plateWear(shell,.18);fitted.attach(key,shell);
     // A few organic outer limb scales interrupt the exposed humanoid outline without covering a joint.
@@ -80,6 +80,7 @@
     var exec=cfg.base==='executioner',head=exec?'head':'Head',spine=exec?'spine03':'spine_03',handL=exec?'handL':'hand_l',handR=exec?'handR':'hand_r',armL=exec?'upper_armL':'upperarm_l',armR=exec?'upper_armR':'upperarm_r',foreL=exec?'forearmL':'lowerarm_l',foreR=exec?'forearmR':'lowerarm_r',thighL=exec?'thighL':'thigh_l',thighR=exec?'thighR':'thigh_r';
     var skin=A.addFrom(C.bases[cfg.base],function(){return true;},'skin')[0];if(exec)A.remapBone('neutral_bone','pelvis');
     var p=A.P(head),chest=A.P(spine),hip=A.P('pelvis');
+    if(type==='forgesentinel'&&exec)A.slim(skin,{spine01:.68,spine02:.72,spine03:.8,pelvis:.86},1);   // fat-fix: barrel torso of the executioner base slimmed toward the spine axis
     if(type==='slagcrawler'){A.lengthen({lowerarm_l:1.4,lowerarm_r:1.4,hand_l:1.28,hand_r:1.28});var slim={};slim[spine]=.75;A.slim(skin,slim,1);}
     var fitted=torsoFit(A,exec,chest),fb=fitted.box,bw=Math.max(.34,fb.max.x-fb.min.x),torsoH=fb.max.y-fb.min.y;
     var armour=type==='forgesentinel'||type==='ashwarden'||type==='furnaceheart';
@@ -275,6 +276,7 @@
     if(type==='chainseer'){weapon={parts:{iron:[G.cyl(.025,.035,1.08,10,[0,.40,0]),G.ring(.15,.026,[0,1.02,0],[0,0,0],8,24)],glow:[G.sphere(.045,[0,1.02,0],[1,1,1],10,8),G.ring(.15,.01,[0,1.02,0],[0,0,0],5,26),G.sphere(.03,[0,1.02,.14],[1,1,1],8,6)]},tip:new T.Vector3(0,1.2,0)};}
     else if(type==='forgesentinel'||type==='furnaceheart'){weapon={parts:{wood:[G.cyl(.04,.055,1.2,12,[0,.38,0])],iron:[C.forgedBlock(.52,.27,.25,[0,1.02,0],.052),C.forgedBlock(.42,.08,.29,[0,.87,0],.019),G.ring(.071,.012,[0,.80,0],[Math.PI/2,0,0],5,16)],glow:[G.box(.36,.02,.02,[0,1.10,.133]),G.box(.36,.02,.02,[0,.95,.133])]},tip:new T.Vector3(0,1.17,0)};}
     else if(type!=='slagcrawler'){weapon={parts:{iron:[C.forgedBlade(.98,.14,true),C.forgedBlock(.33,.05,.075,[0,.05,0],.010),G.cyl(.043,.048,.04,8,[0,-.27,0])],leather:[C.forgedGrip(.033,.25,-.255)],glow:[G.extrude([[-.008,.14],[.005,.14],[.018,.40],[.008,.60],[.012,.73],[.002,.68],[.0,.41]],.038,.001)]},tip:new T.Vector3(.20,.98,0)};}
+    /* ajan:EN4 */ if(B.ForgeModels&&B.ForgeModels.ext&&B.ForgeModels.ext[type])safe('ext '+type,function(){var x=B.ForgeModels.ext[type]({A:A,C:C,G:G,T:T,V:V,arr:arr,materials:materials,fitted:fitted,fb:fb,bw:bw,torsoH:torsoH,p:p,chest:chest,hip:hip,head:head,spine:spine,handL:handL,handR:handR,armL:armL,armR:armR,foreL:foreL,foreR:foreR,thighL:thighL,thighR:thighR,limbCover:limbCover,boot:boot,lames:lames,seam:seam,plateWear:plateWear});if(x&&x.weapon)weapon=x.weapon;}); /* /ajan:EN4 */
     if(weapon)weapon.materials={iron:materials.iron,leather:materials.leather,glow:materials.glow};
     return {materials:materials,weapon:weapon};
   });}
@@ -284,5 +286,5 @@
   make('forgesentinel',{base:'executioner',height:2.90,radius:.72,motionType:'carrier'});
   make('ashwarden',{base:'executioner',height:3.15,radius:.82,motionType:'guard'});
   make('furnaceheart',{base:'executioner',height:4.2,radius:1.10,motionType:'boss'});
-  B.ForgeModels={types:['emberbound','chainseer','slagcrawler','forgesentinel','ashwarden','furnaceheart'],glow:GLOW};
+  B.ForgeModels={types:['emberbound','chainseer','slagcrawler','forgesentinel','ashwarden','furnaceheart'],glow:GLOW,make:make,ext:{}};
 }());

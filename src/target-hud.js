@@ -132,19 +132,21 @@
     prisoner: 'assets/ui/target-prisoner.webp', guard: 'assets/ui/target-guard.webp',
     cultist: 'assets/ui/target-cultist.webp', stalker: 'assets/ui/target-stalker.webp',
     carrier: 'assets/ui/target-carrier.webp', boss: 'assets/ui/target-boss.webp',
+    shacklewarden: 'assets/ui/target-shacklewarden.webp', dirgeweeper: 'assets/ui/target-dirgeweeper.webp',   // mobs-c1.js (nearest existing busts)
     drowned: 'assets/ui/target-drowned.webp', rootborn: 'assets/ui/target-rootborn.webp', crawler: 'assets/ui/target-crawler.webp',
-    urchin: 'assets/ui/target-urchin.webp', lantern: 'assets/ui/target-lantern.webp', bell: 'assets/ui/target-bell.webp',
+    urchin: 'assets/ui/target-urchin.webp', netcaster: 'assets/ui/target-netcaster.webp', tidecaller: 'assets/ui/target-tidecaller.webp', lantern: 'assets/ui/target-lantern.webp', bell: 'assets/ui/target-bell.webp',
     ashbound: 'assets/ui/target-ashbound.webp', shardseer: 'assets/ui/target-shardseer.webp', cavefang: 'assets/ui/target-cavefang.webp',
-    gravemason: 'assets/ui/target-gravemason.webp', ruinwarden: 'assets/ui/target-ruinwarden.webp', hollowking: 'assets/ui/target-hollowking.webp',
+    mourner: 'assets/ui/target-mourner.webp', snarer: 'assets/ui/target-snarer.webp', /* ajan:EN3 portre: en yakın mevcut */ gravemason: 'assets/ui/target-gravemason.webp', ruinwarden: 'assets/ui/target-ruinwarden.webp', hollowking: 'assets/ui/target-hollowking.webp',
     emberbound: 'assets/ui/target-emberbound.webp', chainseer: 'assets/ui/target-chainseer.webp', slagcrawler: 'assets/ui/target-slagcrawler.webp',
     forgesentinel: 'assets/ui/target-forgesentinel.webp', ashwarden: 'assets/ui/target-ashwarden.webp', furnaceheart: 'assets/ui/target-furnaceheart.webp',
+    bellowsmaster: 'assets/ui/target-bellowsmaster.webp', shackler: 'assets/ui/target-shackler.webp',   /* ajan:EN4 nearest existing portraits */
     damned: 'assets/ui/target-damned.webp', verdictseer: 'assets/ui/target-verdictseer.webp', voidcrawler: 'assets/ui/target-voidcrawler.webp',
-    chainjailer: 'assets/ui/target-chainjailer.webp', verdictwarden: 'assets/ui/target-verdictwarden.webp', lastjudge: 'assets/ui/target-lastjudge.webp'
+    sealwright: 'assets/ui/target-sealwright.webp', voidwitness: 'assets/ui/target-voidwitness.webp', chainjailer: 'assets/ui/target-chainjailer.webp', verdictwarden: 'assets/ui/target-verdictwarden.webp', lastjudge: 'assets/ui/target-lastjudge.webp'
   });
   const chapterPortraits = {
     3: ['prisoner', 'ashbound', 'shardseer', 'cavefang', 'gravemason', 'ruinwarden', 'hollowking'],
     4: ['prisoner', 'emberbound', 'chainseer', 'slagcrawler', 'forgesentinel', 'ashwarden', 'furnaceheart'],
-    5: ['prisoner', 'damned', 'verdictseer', 'voidcrawler', 'chainjailer', 'verdictwarden', 'lastjudge']   // chapter V busts: rendered from the live models (tools: see ASSET-LICENSES)
+    5: ['prisoner', 'damned', 'verdictseer', 'voidcrawler', 'sealwright', 'voidwitness', 'chainjailer', 'verdictwarden', 'lastjudge']   // chapter V busts: rendered from the live models (tools: see ASSET-LICENSES)
   };
   const bossPhases = {
     bell: ['', KabirI18n.t('BOĞULMUŞ ÇANLIK'), KabirI18n.t('DENİZİN YEMİNİ'), KabirI18n.t('MEZAR KÖKLERİ'), KabirI18n.t('SON ÇAN')],

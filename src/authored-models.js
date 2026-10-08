@@ -1293,8 +1293,9 @@
   R.carrier = function (A) {
     var body = A.addFrom(bases.executioner, function () { return true; }, 'skin')[0];
     A.remapBone('neutral_bone', 'pelvis');
-    A.inflate(body, new T.Vector3(0, 1.08, .18), .2, .1, [1.35, 1, 1]);
-    A.inflate(body, new T.Vector3(0, 1.45, -.2), .17, .06, [1.5, 1, 1]);
+    A.slim(body, {spine01:.68,spine02:.72,spine03:.8,pelvis:.86}, 1);   // fat-fix
+    A.inflate(body, new T.Vector3(0, 1.08, .18), .2, .05, [1.35, 1, 1]);
+    A.inflate(body, new T.Vector3(0, 1.45, -.2), .17, .035, [1.5, 1, 1]);
     A.inflate(body, new T.Vector3(.1, 1.26, .2), .1, .03); A.inflate(body, new T.Vector3(-.12, 1.0, .2), .09, .025);
     execEyes(body);
     var cloud = A.cloud(['spine01', 'spine02', 'pelvis', 'upper_armL', 'upper_armR', 'spine03'], ['skin'], .4);

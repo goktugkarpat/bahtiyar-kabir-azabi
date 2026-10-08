@@ -42,17 +42,30 @@
     '  float alpha = clamp(m * .55 + core * .5 + ash * core * .3, 0.0, 1.2) * uFade * .72;',   // skillfx: large seals read near-white across the arena; keep them under the hits
     '  gl_FragColor = vec4(hot * alpha, alpha);',
     '}'].join('\n');
+  // Demir Duruş seal: three nested rings with carved marks; iron = gear teeth + crossed chain notches, heart = flame petals + ember spokes, thorn = outward thorn tips.
+  // uOpen (0..1) draws the seal outward from the feet, uLow drops the middle ring and the fine marks.
   const GUARD_FS = [
-    'varying vec2 vUv; uniform float uTime, uFade, uKind;',
-    'void main(){ vec2 p = vUv; float r = length(p), a = atan(p.x, p.y), seg = fract(a * 1.2732395), pl = 1.0;',   // 8 plates
-    '  float rim = smoothstep(.035, 0.0, abs(r - .93));',
-    '  float plates = smoothstep(.05, 0.0, abs(r - .8)) * smoothstep(0.0, .06, seg) * smoothstep(1.0, .94, seg);',
-    '  float teeth = uKind > 1.5 ? step(.93, r) * step(r, 1.0) * step(fract(a * 3.8197 + .5), (1.0 - r) * 12.0 * .5 + .08) * step(.5, fract(a * 1.9099)) : 0.0;',
-    '  float heart = uKind > .5 && uKind < 1.5 ? (1.0 - smoothstep(0.0, .9, r)) * (.1 + .12 * pow(.5 + .5 * sin(uTime * 5.5), 4.0)) : 0.0;',
-    '  float disc = (1.0 - smoothstep(.3, .95, r)) * .06;',
-    '  vec3 col = uKind < .5 ? vec3(.4, .52, .85) : uKind < 1.5 ? vec3(1.0, .26, .18) : vec3(1.0, .88, .8);',
-    '  float m = (rim * .9 + plates * .8 + teeth * 1.1 + heart + disc) * step(r, 1.0) * (1.0 - smoothstep(.97, 1.0, r));',
-    '  float al = clamp(m, 0.0, 1.0) * uFade; gl_FragColor = vec4(col * al, al); }'].join('\n');
+    'varying vec2 vUv; uniform float uTime, uFade, uKind, uOpen, uLow;',
+    'float ln(float d, float w){ return smoothstep(w, 0.0, abs(d)); }',
+    'void main(){ vec2 p = vUv; float r = length(p), a = atan(p.x, p.y), u = a / 6.2831853 + .5;',
+    '  float tick = ln(fract(u * 12.0 + .5) - .5, .05) * step(.8, r) * step(r, .94);',     // 12 notches between the outer rings
+    '  float outer = ln(r - .96, .028) + ln(r - .8, .016) * (1.0 - .4 * uLow);',
+    '  float inner = ln(r - .5, .014) * (1.0 - uLow);',
+    '  float m = outer + inner + tick * .8 * (1.0 - uLow * .5), fill = (1.0 - smoothstep(.0, .95, r)) * .05;',
+    '  if (uKind < .5) {',
+    '    float tooth = step(fract(u * 8.0), .42) * step(.96, r) * step(r, 1.0), cross = ln(abs(abs(p.x) - abs(p.y)) * .7071, .02) * step(r, .5) * step(.12, r);',
+    '    m += tooth * .9 + cross * .7 * (1.0 - uLow) + ln(r - .66, .01) * .5 * (1.0 - uLow) * step(fract(u * 16.0), .5);',
+    '  } else if (uKind < 1.5) {',
+    '    float pet = .66 + .11 * cos(u * 6.2831853 * 8.0), glow = .5 + .5 * sin(uTime * 5.5);',
+    '    m += ln(r - pet, .02) * .9 + ln(fract(u * 16.0) - .5, .04) * step(r, .5) * step(.1, r) * (.5 + .5 * glow) * (1.0 - uLow); fill += (1.0 - smoothstep(0.0, .5, r)) * (.08 + .1 * glow);',
+    '  } else {',
+    '    float h = 1.0 - abs(fract(u * 10.0) - .5) * 2.0, tip = .82 + .17 * h;',
+    '    m += ln(r - tip, .018) * 1.1 + step(.8, r) * step(r, tip) * .22 * h; m += ln(abs(fract(u * 5.0) - .5) * r, .012) * step(r, .5) * (1.0 - uLow);',
+    '  }',
+    '  float reveal = 1.0 - smoothstep(uOpen * 1.08 - .12, uOpen * 1.08, r);',
+    '  vec3 col = uKind < .5 ? vec3(.2, .38, .95) : uKind < 1.5 ? vec3(1.0, .3, .16) : vec3(.25, .85, .2);',
+    '  if (uKind > 1.5) col = mix(col, vec3(.75, .3, 1.0), smoothstep(.55, .9, r) * .5);',
+    '  float al = clamp(m + fill, 0.0, 1.0) * step(r, 1.0) * reveal * uFade; gl_FragColor = vec4(col * al * (uKind > .5 && uKind < 1.5 ? .75 : .5), al * (uKind > .5 && uKind < 1.5 ? .75 : .5)); }'].join('\n');
   const RING_FS = [
     'varying vec2 vUv; uniform float uK, uFade; uniform vec3 uColor;',
     'void main(){ float r = length(vUv); float w = mix(.08, .03, uK); float band = smoothstep(w, 0.0, abs(r - mix(.25, .98, uK)));',
@@ -95,13 +108,14 @@
     const links = new T.InstancedMesh(new T.TorusGeometry(.11, .03, 5, 9).rotateY(Math.PI / 2), linkMat, LCAP); links.frustumCulled = false; links.count = 0; group.add(links);
     links.setColorAt(0, new T.Color(1, 1, 1));
     const chainList = [];   // { from, to, x, z, t, life, throwT, style, hook, landed }
-    // grapnel head on the chain tip: forged shank, front spike, collar, chain eye and three barbed prongs curling back toward the chain
-    const headMat = new T.MeshStandardMaterial({ color: 0xffffff, metalness: .6, roughness: .4, emissive: new T.Color(.006, .01, .016) });
-    const parts = [new T.CylinderGeometry(.055, .075, .6, 8).rotateX(Math.PI / 2).translate(0, 0, .0),
-      new T.ConeGeometry(.075, .42, 8).rotateX(Math.PI / 2).translate(0, 0, .5),
-      new T.TorusGeometry(.12, .04, 6, 12).translate(0, 0, -.22), new T.TorusGeometry(.1, .03, 6, 12).rotateY(Math.PI / 2).translate(0, 0, -.42)];
-    const prong = new T.CatmullRomCurve3([new T.Vector3(0, 0, .22), new T.Vector3(.16, 0, .3), new T.Vector3(.36, 0, .2), new T.Vector3(.46, 0, .0), new T.Vector3(.42, 0, -.16)]);
-    for (let k = 0; k < 3; k++) { const g = new T.TubeGeometry(prong, 14, .042, 6, false).rotateZ(k * Math.PI * 2 / 3 + Math.PI / 2); parts.push(g, new T.ConeGeometry(.05, .16, 6).rotateX(-Math.PI / 2 - .35).translate(.42, 0, -.22).rotateZ(k * Math.PI * 2 / 3 + Math.PI / 2)); }
+    // harpoon head on the chain tip: slim shank, flat leaf-shaped spear point, four swept-back barbs, socket collar and two chain eyes (+Z is forward)
+    const headMat = new T.MeshStandardMaterial({ color: 0xffffff, metalness: .6, roughness: .4, emissive: new T.Color(.5, .15, .03) });   // heat-reddened steel: the head glows on its own (fire head)
+    const parts = [new T.CylinderGeometry(.045, .06, .56, 8).rotateX(Math.PI / 2).translate(0, 0, -.04),
+      new T.ConeGeometry(.12, .66, 4).rotateY(Math.PI / 4).scale(1, 1, .34).rotateX(Math.PI / 2).translate(0, 0, .56),        // flat four-sided point
+      new T.CylinderGeometry(.075, .05, .1, 8).rotateX(Math.PI / 2).translate(0, 0, .2),                                       // socket under the point
+      new T.TorusGeometry(.11, .035, 6, 12).translate(0, 0, -.24), new T.TorusGeometry(.09, .028, 6, 12).rotateY(Math.PI / 2).translate(0, 0, -.42)];
+    for (let k = 0; k < 4; k++) parts.push(new T.ConeGeometry(.052, .4, 4).translate(0, .2, 0).rotateX(-Math.PI / 2).rotateY(0).translate(0, 0, .0)
+      .applyMatrix4(new T.Matrix4().makeRotationX(-.5)).translate(0, .06, .26).rotateZ(k * Math.PI / 2 + Math.PI / 4));       // barbs: base on the shank, tip raked back and outward
     function mergeParts(list) {
       const g1 = new T.BufferGeometry(), P = [], N = [], I = []; let off = 0;
       for (const g0 of list) { const g = g0.index ? g0 : g0.toNonIndexed(); const pa = g.attributes.position, na = g.attributes.normal;
@@ -113,12 +127,14 @@
     const merged = mergeParts(parts);
     // Dikenli Çengel: a ring of long barbs round the collar (drawn only for that form: one extra instanced mesh, empty otherwise)
     const barbParts = []; for (let k = 0; k < 8; k++) barbParts.push(new T.ConeGeometry(.04, .32, 5).translate(0, .16, 0).rotateX(-.6).translate(0, .1, -.12).rotateZ(k * Math.PI / 4));
-    const spikes = new T.InstancedMesh(merged, headMat, CHAINS), barbs = new T.InstancedMesh(mergeParts(barbParts), headMat, CHAINS);
+    const spikes = new T.InstancedMesh(merged, headMat, CHAINS * 2), barbs = new T.InstancedMesh(mergeParts(barbParts), headMat, CHAINS);
     for (const m of [spikes, barbs]) { m.frustumCulled = false; m.count = 0; group.add(m); m.setColorAt(0, new T.Color(1, 1, 1)); }
     const STY = {   // chain colour, head colour, head scale, strands, link scale
-      hook: { link: [.4, .48, .6], head: [.52, .6, .72], hs: .5, strands: 1, ls: .5, spark: [1.4, 1.3, 1.1] },
-      long: { link: [.55, .7, .95], head: [.8, .92, 1.15], hs: .55, strands: 2, ls: .42, spark: [.8, 1.0, 1.5] },
-      barb: { link: [.2, .17, .18], head: [.26, .2, .2], hs: .6, strands: 1, ls: .6, spark: [1.5, .08, .05] } };
+      hook: { link: [.4, .48, .6], head: [.85, .5, .36], hs: .72, strands: 1, ls: .5, spark: [1.4, 1.3, 1.1], hot: [2.6, .75, .14], glow: [2.3, 1.0, .2], core: [3, 2.3, .9], ember: [[2.4, 1.1, .25], [1.6, .35, .06]] },
+      long: { link: [.55, .7, .95], head: [.95, .6, .45], hs: .58, strands: 2, ls: .42, spark: [.8, 1.0, 1.5], hot: [2.6, .8, .2], glow: [2.4, 1.1, .3], core: [3, 2.4, 1.1], ember: [[2.6, 1.3, .35], [1.7, .45, .08]] },
+      barb: { link: [.2, .17, .18], head: [.5, .14, .1], hs: .8, strands: 1, ls: .6, spark: [1.5, .08, .05], hot: [1.9, .2, .05], glow: [1.5, .16, .04], core: [2.4, .6, .18], ember: [[1.5, .14, .04], [1.0, .06, .03]] } };
+    // fire scale of the quality preset: 0 on 'low' (bright tip only, no particles), else particles/440 capped at 1 (ultra does not add more: the tip stays small)
+    const fq = () => { const c = B.app && B.app.settings; if (!c) return 1; if (c.quality === 'low') return 0; return Math.min(1, (c.particles || 440) / 440); };
     const _m = new T.Matrix4(), _q = new T.Quaternion(), _q2 = new T.Quaternion(), _e = new T.Euler(), _p = new T.Vector3(), _s = new T.Vector3(1, 1, 1), _c = new T.Color(), _ax = new T.Vector3(0, 0, 1), _o = new T.Vector3();
     // ---- particles
     const MAX = 900, pos = new Float32Array(MAX * 3), col = new Float32Array(MAX * 4), size = new Float32Array(MAX);
@@ -203,7 +219,13 @@
       const S = STY[c.style] || STY.hook, barb = c.style === 'barb', n = barb ? 22 : 14;
       ring(x, z, barb ? 1.5 : 1.2, barb ? [1.1, .1, .07] : [.7, .75, .95], .2); ring(x, z, .6, [2, 1.9, 1.7], .1);
       for (let i = 0; i < 3; i++) spark(x, y, z, rnd(-.3, .3), rnd(-.1, .3), rnd(-.3, .3), [3, 2.8, 2.4], .09, rnd(.38, .55), 0);   // the flash of the strike: a few hot, big, very short-lived motes
-      for (let i = 0; i < n; i++) { const a = Math.random() * 6.283, v = rnd(1.2, 4); spark(x, y, z, Math.sin(a) * v, rnd(.3, 2.6), Math.cos(a) * v, barb && i % 3 ? COLORS.blood : i % 2 ? S.spark : [1.8, 1.6, 1.3], rnd(.25, .5), rnd(.06, .12), barb ? -9 : -5); }
+      const F = fq(), nn = Math.round(n * (F > 0 ? .6 : .5));
+      for (let i = 0; i < nn; i++) { const a = Math.random() * 6.283, v = rnd(1.2, 4); spark(x, y, z, Math.sin(a) * v, rnd(.3, 2.6), Math.cos(a) * v, barb && i % 3 ? COLORS.blood : i % 2 ? S.spark : [1.8, 1.6, 1.3], rnd(.25, .5), rnd(.06, .12), barb ? -9 : -5); }
+      spark(x, y, z, 0, 0, 0, S.glow, .22, .6, 0); spark(x, y, z, 0, .3, 0, S.core, .14, .32, 0);   // the flame flash
+      ring(x, z, barb ? 1.0 : .9, S.hot, .22, .0);
+      const ne = Math.round(16 * F);   // fire burst: embers thrown out, a few flame tongues licking up
+      for (let i = 0; i < ne; i++) { const a = Math.random() * 6.283, v = rnd(.8, 3.6); spark(x, y, z, Math.sin(a) * v, rnd(.6, 3), Math.cos(a) * v, S.ember[i % 2], rnd(.3, .7), rnd(.05, .11), -3.5); }
+      for (let i = 0; i < Math.round(5 * F); i++) { const a = Math.random() * 6.283; spark(x + Math.sin(a) * .1, y, z + Math.cos(a) * .1, Math.sin(a) * .5, rnd(1.4, 2.6), Math.cos(a) * .5, S.glow, rnd(.18, .3), rnd(.12, .2), .8); }
     }
     // dust scraped up by a foe dragged along the floor (call every .04 s while he slides) and the thud when he stops
     function dust(x, z, dx, dz, n) {
@@ -214,12 +236,35 @@
       ring(x, z, 1.6, [.5, .5, .46], .3);
       for (let i = 0; i < 16; i++) { const a = Math.random() * 6.283, v = rnd(1.2, 3.2); spark(x + Math.sin(a) * .3, gy(x, z) + .1, z + Math.cos(a) * .3, Math.sin(a) * v, rnd(.4, 1.4), Math.cos(a) * v, i % 4 ? [.28, .25, .2] : [1.5, 1.3, 1.0], rnd(.35, .6), rnd(.08, .15), -2); }
     }
-    // Demir Duruş: boots planted, a dust ring pushed outward and steel sparks; style 'heart' (Demir Yürek) warm, 'thorn' (Dikenli Zırh) sharp
+    // Demir Duruş: the planting blow. Particle counts follow the quality preset (low: few, medium/high: scaled by the particle budget).
+    const pq = () => { const c = B.app && B.app.settings; if (!c) return 1; if (c.quality === 'low') return .3; return Math.min(1, (c.particles || 440) / 440); };
+    const pn = n => Math.max(2, Math.round(n * pq()));
+    // per style: ring colour, dust, hot flecks (steel sparks / red embers / toxic thorn shards) and the aura flash
+    const STANCE = {
+      iron: { ring: [.24, .3, .5], dust: [.26, .25, .24], fleck: [1.4, 1.55, 1.9], fleck2: [.7, .9, 1.5], flash: [.5, .75, 1.3] },
+      heart: { ring: [.6, .16, .1], dust: [.3, .14, .1], fleck: [1.9, .55, .16], fleck2: [1.5, .2, .08], flash: [1.4, .3, .12] },
+      thorn: { ring: [.2, .5, .22], dust: [.16, .2, .15], fleck: [.4, 1.2, .35], fleck2: [.8, .25, 1.1], flash: [.5, 1, .45] }
+    };
+    // the wind-up: motes and dust drawn in toward the planted feet while the body coils
+    function gather(p, style, dur) {
+      const S = STANCE[style] || STANCE.iron, g = gy(p.x, p.z);
+      for (let i = 0, n = pn(10); i < n; i++) { const a = Math.random() * 6.283, r = rnd(1.6, 2.4), k = dur * rnd(.8, 1); spark(p.x + Math.sin(a) * r, g + rnd(.1, .9), p.z + Math.cos(a) * r, -Math.sin(a) * r / k, rnd(.2, 1.2), -Math.cos(a) * r / k, i % 2 ? S.fleck2 : S.dust, k, rnd(.07, .12), 0); }
+    }
     function plant(p, style) {
-      const g = gy(p.x, p.z), col = style === 'heart' ? [.55, .16, .11] : style === 'thorn' ? [.55, .5, .44] : [.24, .3, .5];
-      ring(p.x, p.z, 3.4, col, .5); ring(p.x, p.z, 2.0, [.2, .19, .18], .32);
-      for (let i = 0; i < 26; i++) { const a = Math.random() * 6.283, v = rnd(2, 4.6); spark(p.x + Math.sin(a) * .5, g + .1, p.z + Math.cos(a) * .5, Math.sin(a) * v, rnd(.2, .9), Math.cos(a) * v, i % 5 ? [.26, .23, .19] : [1.3, 1.1, .9], rnd(.45, .8), rnd(.08, .15), -1.2); }
-      for (let i = 0; i < 10; i++) { const a = Math.random() * 6.283; spark(p.x + Math.sin(a) * .5, g + .2, p.z + Math.cos(a) * .5, Math.sin(a) * rnd(.4, 1.4), rnd(2, 4.4), Math.cos(a) * rnd(.4, 1.4), style === 'heart' ? [1.6, .5, .3] : [1.5, 1.5, 1.8], rnd(.3, .6), rnd(.06, .1), -6); }
+      const S = STANCE[style] || STANCE.iron, g = gy(p.x, p.z), thorn = style === 'thorn', heart = style === 'heart';
+      ring(p.x, p.z, 3.6, S.ring, .5); ring(p.x, p.z, 2.0, [.2, .19, .18], .32); if (pq() > .5) ring(p.x, p.z, 1.2, S.flash, .22);
+      // ground cracks: dark broken lines running out from the feet, a faint glow in the seams (heart: hot)
+      const rays = pq() < .5 ? 4 : 7;
+      for (let r = 0; r < rays; r++) {
+        let a = r / rays * 6.283 + rnd(-.3, .3), x = p.x, z = p.z;
+        for (let s = 0; s < 6; s++) { a += rnd(-.35, .35); const st = rnd(.28, .45); x += Math.sin(a) * st; z += Math.cos(a) * st; spark(x, gy(x, z) + .06, z, 0, 0, 0, s % 2 && heart ? S.fleck2 : [.09, .08, .075], rnd(.8, 1.2), rnd(.11, .17), 0); }
+      }
+      for (let i = 0, n = pn(24); i < n; i++) { const a = Math.random() * 6.283, v = rnd(2, 4.6); spark(p.x + Math.sin(a) * .5, g + .1, p.z + Math.cos(a) * .5, Math.sin(a) * v, rnd(.2, .9), Math.cos(a) * v, i % 5 ? S.dust : S.fleck, rnd(.45, .8), rnd(.08, .15), -1.2); }
+      // upward burst of sparks / embers / shards (thorn: long fast streaks)
+      for (let i = 0, n = pn(14); i < n; i++) { const a = Math.random() * 6.283, h = rnd(.4, 1.4); spark(p.x + Math.sin(a) * .5, g + .2, p.z + Math.cos(a) * .5, Math.sin(a) * h, rnd(thorn ? 3.4 : 2, thorn ? 5.6 : 4.4), Math.cos(a) * h, i % 3 ? S.fleck : S.fleck2, rnd(.35, .65), thorn ? rnd(.05, .08) : rnd(.06, .1), -6); }
+      // shield flash round the body (additive, ~.3 s)
+      for (let i = 0, n = pn(6); i < n; i++) { const a = i / 6 * 6.283; spark(p.x + Math.sin(a) * .55, g + 1.0 + rnd(-.3, .5), p.z + Math.cos(a) * .55, Math.sin(a) * .5, rnd(0, .4), Math.cos(a) * .5, S.flash, rnd(.25, .32), rnd(.5, .8), 0); }
+      spark(p.x, g + 1.05, p.z, 0, .2, 0, S.flash, .26, 1.5, 0);
     }
     // the retaliation: a volley of steel splinters from the hero into the foe who struck him
     function thornVolley(p, e, style) {
@@ -254,10 +299,10 @@
       for (let i = 0; i < 14; i++) spark(e.x + rnd(-.3, .3), y + rnd(.6, 1.5), e.z + rnd(-.3, .3), (p.x - e.x) * 1.6, rnd(.5, 1.5), (p.z - e.z) * 1.6, [1.6, .25, .2], .6, .13, 0);
     }
     // ---- Demir Duruş ring: eight iron plates round a rim (kind 0), a beating heart pulse (1, Demir Yürek) or sharp teeth (2, Dikenli Zırh)
-    const guardMesh = new T.Mesh(quad, new T.ShaderMaterial(Object.assign({ vertexShader: ZONE_VS, fragmentShader: GUARD_FS, uniforms: { uTime: { value: 0 }, uFade: { value: 0 }, uKind: { value: 0 } } }, blend)));
+    const guardMesh = new T.Mesh(quad, new T.ShaderMaterial(Object.assign({ vertexShader: ZONE_VS, fragmentShader: GUARD_FS, uniforms: { uTime: { value: 0 }, uFade: { value: 0 }, uKind: { value: 0 }, uOpen: { value: 1 }, uLow: { value: 0 } } }, blend)));
     guardMesh.visible = false; guardMesh.frustumCulled = false; guardMesh.renderOrder = 3; group.add(guardMesh);
     let guardView = null;
-    function setGuard(p, time, style) { guardView = p ? { p, left: time, age: guardView && guardView.p === p ? guardView.age : 0, style: style || '' } : null; }
+    function setGuard(p, time, style, delay) { guardView = p ? { p, left: time, age: guardView && guardView.p === p ? guardView.age : -(delay || 0), style: style || '', acc: guardView && guardView.p === p ? guardView.acc : 0 } : null; }
     // ---- frame
     let time = 0;
     let auraOf = null, auraAcc = 0;
@@ -322,9 +367,20 @@
         const headLen = Math.max(0, len * reach - (hk && ch.t >= ch.throwT * .98 ? .32 : 0)), tipx = ox + dx / len * headLen, tipz = oz + dz / len * headLen, tipy = oy + (ty - oy) * (headLen / len);
         if (hk) {
           if (!ch.landed && ch.t >= ch.throwT) { ch.landed = true; hookLand(ch, tx, ty, tz); }
-          // trailing sparks behind the flying head, blood drips off the barbs while held
-          ch.acc += dt * (ch.t < ch.throwT ? 150 : ch.style === 'barb' ? 16 : 0);
-          while (ch.acc >= 1) { ch.acc--; if (ch.style === 'barb' && ch.t >= ch.throwT) spark(tipx + rnd(-.1, .1), tipy, tipz + rnd(-.1, .1), rnd(-.2, .2), rnd(-.2, .3), rnd(-.2, .2), COLORS.blood, rnd(.4, .7), rnd(.06, .1), -9); else spark(tipx, tipy, tipz, rnd(-.5, .5), rnd(-.2, .7), rnd(-.5, .5), S.spark, rnd(.15, .3), rnd(.04, .08), -2); }
+          // the fire head: a glowing core on the tip (always, also on 'low'), orbiting sparks, flame tongues streaming back, drifting embers (not on 'low')
+          const flying = ch.t < ch.throwT, F = fq(), gl = (flying ? 1 : Math.max(.55, 1 - (ch.t - ch.throwT) * .7)) * (ch.t > ch.life - .2 ? Math.max(.2, reach) : 1);
+          const fl = 1 + .12 * Math.sin(time * 41 + ch.t * 9), hx = dx / len, hz = dz / len;
+          spark(tipx, tipy, tipz, 0, 0, 0, S.glow, .06, (ch.style === 'barb' ? .55 : .5) * gl * fl, 0); spark(tipx, tipy, tipz, 0, 0, 0, S.core, .05, .24 * gl, 0);
+          if (F > 0) {
+            const no = F > .6 ? 3 : 2, sx0 = Math.cos(yaw), sz0 = -Math.sin(yaw);
+            for (let k = 0; k < no; k++) { const a = time * 26 + k * 6.283 / no, r = .15 + .03 * Math.sin(time * 17 + k); spark(tipx + sx0 * Math.cos(a) * r, tipy + Math.sin(a) * r, tipz + sz0 * Math.cos(a) * r, 0, 0, 0, S.glow, .06, .075 * gl, 0); }
+            ch.acc += dt * (flying ? 120 : 50) * F * gl;
+            while (ch.acc >= 1) { ch.acc--; const e0 = Math.random();
+              if (e0 < .5) spark(tipx, tipy, tipz, -hx * rnd(.8, 2.2) + rnd(-.5, .5), rnd(.4, 1.5), -hz * rnd(.8, 2.2) + rnd(-.5, .5), S.ember[e0 < .25 ? 0 : 1], rnd(.2, .4), rnd(.05, .1), 1.4);   // flame tongue streaming back and up
+              else if (e0 < .8) spark(tipx + rnd(-.08, .08), tipy, tipz + rnd(-.08, .08), rnd(-1, 1), rnd(-.2, 1.2), rnd(-1, 1), S.ember[0], rnd(.45, .8), rnd(.05, .09), -3);   // heavy kor falling away
+              else if (ch.style === 'barb' && !flying) spark(tipx + rnd(-.1, .1), tipy, tipz + rnd(-.1, .1), rnd(-.2, .2), rnd(-.2, .3), rnd(-.2, .2), COLORS.blood, rnd(.4, .7), rnd(.06, .1), -9);   // blood drips off the barbs
+              else spark(tipx, tipy, tipz, rnd(-.5, .5), rnd(.2, .9), rnd(-.5, .5), S.spark, rnd(.15, .3), rnd(.04, .08), -2); }
+          }
         }
         const strands = hk ? S.strands : 1, n = Math.min(LINKS, Math.max(2, Math.round(headLen / (hk ? .25 * S.ls : .2))));
         // S-wave of the whip: big while the head flies, a short ripple after the bite (hooks only)
@@ -337,13 +393,18 @@
           _p.set(ox + dx * h + sx * (Math.cos(tw) * off + wv), oy + (ty - oy) * h - sag + Math.sin(tw) * off + wob, oz + dz * h + sz * (Math.cos(tw) * off + wv));
           _e.set(pitch, yaw, 0, 'YXZ'); _q.setFromEuler(_e); if ((i + sd) % 2) { _q2.setFromAxisAngle(_ax, Math.PI / 2); _q.multiply(_q2); }
           const ls = hk ? S.ls : 1; _s.set(ls, ls, hk ? 1.5 : 1.6); _m.compose(_p, _q, _s); links.setMatrixAt(li, _m);
-          if (hk) _c.setRGB(S.link[0], S.link[1], S.link[2]); else _c.setRGB(.5, .54, .62); links.setColorAt(li, _c); li++;
+          if (hk) { const ht = Math.max(0, 1 - (n - 1 - i) / 4) * (ch.t < ch.throwT ? 1 : Math.max(.45, 1 - (ch.t - ch.throwT) * .8)), hh = ht * ht * (ch.t > ch.life - .2 ? .5 : 1); _c.setRGB(S.link[0] + (S.hot[0] - S.link[0]) * hh, S.link[1] + (S.hot[1] - S.link[1]) * hh, S.link[2] + (S.hot[2] - S.link[2]) * hh); } else _c.setRGB(.5, .54, .62); links.setColorAt(li, _c); li++;
         }
-        if (hk && hi < CHAINS && ch.t >= 0) {
-          _p.set(tipx, tipy, tipz); _e.set(pitch, yaw, ch.t * 0, 'YXZ'); _q.setFromEuler(_e); _q2.setFromAxisAngle(_ax, ch.t < ch.throwT ? ch.t * 14 : .5); _q.multiply(_q2);
-          const hs = S.hs * (ch.style === 'long' ? 1 : 1); _s.set(hs, hs, hs * (ch.style === 'long' ? 1.25 : 1)); _m.compose(_p, _q, _s);
-          spikes.setMatrixAt(hi, _m); _c.setRGB(S.head[0], S.head[1], S.head[2]); spikes.setColorAt(hi, _c); hi++;
-          if (ch.style === 'barb') { barbs.setMatrixAt(bi, _m); barbs.setColorAt(bi, _c); bi++; }
+        if (hk && hi < CHAINS * 2 - 1 && ch.t >= 0) {
+          const dual = ch.style === 'long', hs = S.hs, tw0 = headLen * 1.3 - time * 5;   // 'long': both strands end in their own burning head, riding the helix
+          for (let sd = 0; sd < (dual ? 2 : 1); sd++) {
+            let hx0 = tipx, hy0 = tipy, hz0 = tipz;
+            if (dual) { const w = tw0 + sd * Math.PI; hx0 += sx * Math.cos(w) * .095; hy0 += Math.sin(w) * .095; hz0 += sz * Math.cos(w) * .095; if (sd) { const fl2 = fq(), gl2 = ch.t < ch.throwT ? 1 : .8; spark(hx0, hy0, hz0, 0, 0, 0, S.glow, .06, .3 * gl2, 0); if (fl2 > 0 && Math.random() < dt * 40 * fl2) spark(hx0, hy0, hz0, rnd(-.4, .4), rnd(.4, 1.2), rnd(-.4, .4), S.ember[1], rnd(.2, .35), .06, 1.4); } }
+            _p.set(hx0, hy0, hz0); _e.set(pitch, yaw, 0, 'YXZ'); _q.setFromEuler(_e); _q2.setFromAxisAngle(_ax, ch.t < ch.throwT ? ch.t * 14 : .5); _q.multiply(_q2);
+            _s.set(hs, hs, hs * (dual ? 1.25 : 1)); _m.compose(_p, _q, _s);
+            spikes.setMatrixAt(hi, _m); _c.setRGB(S.head[0], S.head[1], S.head[2]); spikes.setColorAt(hi, _c); hi++;
+            if (ch.style === 'barb') { barbs.setMatrixAt(bi, _m); barbs.setColorAt(bi, _c); bi++; }
+          }
         }
       }
       links.count = li; if (li) { links.instanceMatrix.needsUpdate = true; links.instanceColor.needsUpdate = true; }
@@ -351,10 +412,18 @@
       barbs.count = bi; if (bi) { barbs.instanceMatrix.needsUpdate = true; barbs.instanceColor.needsUpdate = true; }
       // Demir Duruş: a steel ring under the hero for the whole stance
       if (guardView && guardView.p && !guardView.p.dead) {
-        const gp = guardView.p, left = guardView.left, k = Math.min(1, guardView.age / .25) * Math.min(1, left / .6);
-        guardMesh.visible = true; guardMesh.position.set(gp.x, gy(gp.x, gp.z) + .045, gp.z); guardMesh.scale.set(1.9, 1, 1.9); guardMesh.rotation.y = time * .22;
-        const u = guardMesh.material.uniforms; u.uTime.value = time; u.uFade.value = k * (.4 + .1 * Math.sin(time * (guardView.style === 'heart' ? 5.5 : 2.4)));
+        const gp = guardView.p, left = guardView.left, k = Math.max(0, Math.min(1, guardView.age / .25)) * Math.min(1, left / .6);
+        const open = Math.max(0, Math.min(1, guardView.age / .3)), ease = 1 - (1 - open) * (1 - open), flick = left < 3 ? (Math.sin(time * 11) > -.2 ? 1 : .25) : 1, wane = .45 + .55 * Math.min(1, left / 8);
+        const spin = guardView.style === 'heart' ? 0 : guardView.style === 'thorn' ? -.3 : .18;
+        guardMesh.visible = guardView.age > -.02; guardMesh.position.set(gp.x, gy(gp.x, gp.z) + .055, gp.z); guardMesh.scale.setScalar(1.25 * (1 + (1 - ease) * .7)); guardMesh.rotation.y = time * spin;
+        const u = guardMesh.material.uniforms; u.uTime.value = time; u.uOpen.value = ease; u.uLow.value = pq() < .5 ? 1 : 0;
+        u.uFade.value = Math.min(1, open * 3) * Math.min(1, left / .6) * flick * wane * (.85 + .15 * Math.sin(time * (guardView.style === 'heart' ? 5.5 : 2.4))) * .85;
         u.uKind.value = guardView.style === 'heart' ? 1 : guardView.style === 'thorn' ? 2 : 0; guardView.age += dt;
+        // a cheap pulsing aura round the body for the whole stance: a few motes rising along a ring
+        if (guardView.age > 0 && (guardView.acc += dt * pq() * 9) >= 1) {
+          guardView.acc = 0; const S = STANCE[guardView.style] || STANCE.iron, a = Math.random() * 6.283, g0 = gy(gp.x, gp.z), pulse = .5 + .5 * Math.sin(time * 3.2);
+          spark(gp.x + Math.sin(a) * .62, g0 + rnd(.15, .5), gp.z + Math.cos(a) * .62, 0, rnd(.5, 1.1), 0, pulse > .5 ? S.fleck2 : S.flash, rnd(.5, .8), .09 + .05 * pulse, 0);
+        }
       } else guardMesh.visible = false;
       // build aura on the hero (talent-runtime passes the dominant path)
       if (auraOf && auraOf.player && !auraOf.player.dead && AURA_COL[auraOf.kind]) {
@@ -416,7 +485,7 @@
       group.traverse(o => { if (o.geometry && o.geometry !== quad) o.geometry.dispose(); if (o.material) o.material.dispose(); });
       quad.dispose();
     }
-    return { zone, unzone, mark, unmark, clear, burst, chains, dust, slam, plant, thornVolley, setGuard, drain, leech, souls, leap, execute, puff, update, reset, dispose, debug: () => ({ live: liveCount, zones: zonePool.filter(o => o.z).length, marks: marks.size }) };
+    return { zone, unzone, mark, unmark, clear, burst, chains, dust, slam, plant, gather, thornVolley, setGuard, drain, leech, souls, leap, execute, puff, update, reset, dispose, debug: () => ({ live: liveCount, zones: zonePool.filter(o => o.z).length, marks: marks.size }) };
   }
   B.TalentFX = Object.freeze({ create });
 }());

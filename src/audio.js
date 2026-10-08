@@ -412,7 +412,7 @@
   }
 
   // ------------------------------------------------------------------ oyun bilgisi
-  const MATERIAL = { prisoner: 'flesh', cultist: 'flesh', stalker: 'bone', carrier: 'wet', guard: 'armor', boss: 'armor', drowned: 'wet', rootborn: 'bone', crawler: 'bone', urchin: 'wet', lantern: 'flesh', bell: 'armor', ashbound:'flesh', shardseer:'bone', cavefang:'bone', gravemason:'stone', ruinwarden:'armor', hollowking:'armor', emberbound:'flesh', chainseer:'flesh', slagcrawler:'stone', forgesentinel:'armor', ashwarden:'armor', furnaceheart:'armor', damned:'flesh', verdictseer:'flesh', voidcrawler:'bone', chainjailer:'armor', verdictwarden:'armor', lastjudge:'armor' };
+  const MATERIAL = { prisoner: 'flesh', cultist: 'flesh', stalker: 'bone', carrier: 'wet', guard: 'armor', boss: 'armor', drowned: 'wet', rootborn: 'bone', crawler: 'bone', urchin: 'wet', netcaster: 'wet', tidecaller: 'wet', lantern: 'flesh', bell: 'armor', ashbound:'flesh', shardseer:'bone', mourner:'bone', snarer:'flesh', cavefang:'bone', gravemason:'stone', ruinwarden:'armor', hollowking:'armor', emberbound:'flesh', chainseer:'flesh', slagcrawler:'stone', forgesentinel:'armor', ashwarden:'armor', furnaceheart:'armor', damned:'flesh', verdictseer:'flesh', voidcrawler:'bone', chainjailer:'armor', verdictwarden:'armor', lastjudge:'armor', sealwright:'armor', voidwitness:'flesh' };
   function player() { const g = game(); return g && g.player; }
   function struckEnemies() {
     const g = game(), p = player(); if (!g || !p || !g.enemies) return [];
@@ -502,8 +502,8 @@
       if (type === 'cultist') L('cloth', .25, { rate: 1.2 });
     }
   }
-  const PAIN = { prisoner: 'prisonerYell', guard: 'guardGrunt', cultist: 'hurt', stalker: 'stalkerShriek', carrier: 'carrierGurgle', boss: 'bossRoar', ashbound:'prisonerYell', shardseer:'hurt', cavefang:'stalkerShriek', gravemason:'guardGrunt', ruinwarden:'guardGrunt', hollowking:'bossRoar', emberbound:'prisonerYell', chainseer:'hurt', slagcrawler:'carrierGurgle', forgesentinel:'guardGrunt', ashwarden:'guardGrunt', furnaceheart:'bossRoar', damned:'prisonerYell', verdictseer:'hurt', voidcrawler:'stalkerShriek', chainjailer:'guardGrunt', verdictwarden:'guardGrunt', lastjudge:'bossRoar' };
-  const PAIN_RATE = {ashbound:.84,shardseer:.92,cavefang:1.08,gravemason:.76,ruinwarden:.8,hollowking:.72,emberbound:.8,chainseer:.8,slagcrawler:.72,forgesentinel:.72,ashwarden:.8,furnaceheart:.65,damned:.86,verdictseer:.82,voidcrawler:1.02,chainjailer:.72,verdictwarden:.76,lastjudge:.6};
+  const PAIN = { prisoner: 'prisonerYell', guard: 'guardGrunt', cultist: 'hurt', stalker: 'stalkerShriek', carrier: 'carrierGurgle', boss: 'bossRoar', ashbound:'prisonerYell', shardseer:'hurt', mourner:'hurt', snarer:'stalkerShriek', cavefang:'stalkerShriek', gravemason:'guardGrunt', ruinwarden:'guardGrunt', hollowking:'bossRoar', emberbound:'prisonerYell', chainseer:'hurt', slagcrawler:'carrierGurgle', forgesentinel:'guardGrunt', ashwarden:'guardGrunt', furnaceheart:'bossRoar', damned:'prisonerYell', verdictseer:'hurt', voidcrawler:'stalkerShriek', chainjailer:'guardGrunt', verdictwarden:'guardGrunt', lastjudge:'bossRoar', sealwright:'guardGrunt', voidwitness:'hurt' };
+  const PAIN_RATE = {mourner:.78,snarer:.95,ashbound:.84,shardseer:.92,cavefang:1.08,gravemason:.76,ruinwarden:.8,hollowking:.72,emberbound:.8,chainseer:.8,slagcrawler:.72,forgesentinel:.72,ashwarden:.8,furnaceheart:.65,damned:.86,verdictseer:.82,voidcrawler:1.02,chainjailer:.72,verdictwarden:.76,lastjudge:.6,sealwright:.7,voidwitness:.88};
   function painVocal(e, heavy) {
     if (!e || e.dead || !throttle('pain_' + e.type, e.boss ? 2.4 : .75) || !chance(heavy ? .8 : .45)) return;
     const n = PAIN[e.type] || 'prisonerYell';
@@ -687,6 +687,8 @@
     switch (type) {
       case 'ashbound': vocal('prisonerYell', .58, {rate:.8,lp:3100}); sample('armorStep',{vol:.18*k,at,rate:.9}); break;
       case 'shardseer': vocal('tortWhisper', .33, {rate:.83,lp:2300,send:.28}); sample('rune',{vol:.2*k,at,rate:1.18,send:.2}); break;
+      case 'mourner': vocal('tortWhisper', .4, {rate:.66,lp:2100,send:.4}); sample('bell',{vol:.2*k,at,rate:1.5,send:.4}); sample('bone',{vol:.12*k,at,rate:1.3}); break;
+      case 'snarer': vocal('stalkerShriek', .4, {rate:.9,lp:3000}); sample('chain',{vol:.22*k,at,rate:1.2}); sample('metal',{vol:.12*k,at,rate:1.4}); break;
       case 'cavefang': vocal('stalkerShriek', .62, {rate:1.12}); sample('bone',{vol:.15*k,at,rate:1.1}); break;
       case 'gravemason': vocal('guardGrunt', .6, {rate:.72,lp:2900}); sample('debris',{vol:.22*k,at,rate:.8}); break;
       case 'ruinwarden': vocal('guardGrunt', .72, {rate:.8}); sample('armorStep',{vol:.3*k,at,rate:.72}); break;
@@ -701,6 +703,8 @@
       case 'rootborn': sample('winch',{vol:.3*k,at,rate:.55}); break;
       case 'crawler': vocal('stalkerShriek', .5, {rate:1.15}); break;
       case 'urchin': vocal('carrierGurgle', .7, {rate:.55}); break;
+      case 'netcaster': vocal('prisonerYell', .5, {rate:.62,lp:2200,send:.3}); break;
+      case 'tidecaller': vocal('tortWhisper', .5, {rate:.6,lp:1500,send:.7}); break;
       case 'lantern': vocal('tortWhisper', .35, {rate:.75,lp:1800,send:.5}); break;
       case 'bell': vocal('bossRoar',.7,{rate:.62}); if(/Çan|YEMİN/.test(o.attack||''))sample('bell',{vol:.4*k,at,rate:.45,send:.6}); break;
       case 'prisoner': vocal('prisonerYell', 1.15, { rate: rand(.95, 1.1) }); sample('chain', { vol: .22 * k, at, rate: rand(1, 1.25) }); break;
@@ -727,6 +731,8 @@
     switch (o.type) {
       case 'ashbound': sample('swish',{vol:.38*k,at,rate:.9});sample('armor',{vol:.16*k,at,rate:.9});break;
       case 'shardseer': sample('rune',{vol:.38*k,at,rate:1.22,send:.18});sample('bone',{vol:.2*k,at,rate:1.24});break;
+      case 'mourner': sample('bell',{vol:.34*k,at,rate:.9,send:.4});sample('bone',{vol:.22*k,at,rate:1.25});break;
+      case 'snarer': sample('swish',{vol:.38*k,at,rate:1.15});sample('metal',{vol:.28*k,at,rate:1.5});sample('chain',{vol:.2*k,at,rate:1.1});break;
       case 'cavefang': sample('swish',{vol:.43*k,at,rate:1.4});sample('bone',{vol:.22*k,at,rate:1.12});break;
       case 'gravemason': sample('stomp',{vol:.52*k,at,rate:.8});sample('debris',{vol:.42*k,at,rate:.9});thud(t,{f0:105,f1:42,dur:.24,vol:.35*k*s.gain,pan});break;
       case 'ruinwarden': sample('swish',{vol:.5*k,at,rate:.73});sample('armor',{vol:.3*k,at,rate:.76});break;
@@ -741,6 +747,8 @@
       case 'rootborn': sample('debris',{vol:.40*k,at,rate:.7});sample('winch',{vol:.2*k,at,rate:.6});break;
       case 'crawler': sample('swish',{vol:.4*k,at,rate:1.25});sample('bone',{vol:.17*k,at,rate:1.1});break;
       case 'urchin': sample('spit',{vol:.55*k,at,rate:.8});break;
+      case 'netcaster': sample('swish',{vol:.5*k,at,rate:.62});sample('chain',{vol:.22*k,at,rate:1.3});break;
+      case 'tidecaller': sample('bell',{vol:.2*k,at,rate:.8,send:.6});sample('carrierGurgle',{vol:.3*k,at,rate:.7,send:.4});break;
       case 'lantern': sample('rune',{vol:.45*k,at,rate:.7,send:.3});break;
       case 'bell': sample(o.style==='root'?'debris':o.style==='tide'?'carrierGurgle':'metal',{vol:.55*k,at,rate:.6});sample('bell',{vol:.24*k,at,rate:.5,send:.5});thud(t,{f0:65,f1:25,dur:.35,vol:.45*k*s.gain,pan});break;
       case 'prisoner': whoosh(t - .05, { dur: .2, peak: .6, f0: 700, f1: 2400, f2: 900, q: 1.6, vol: .3 * k * s.gain, pan0: pan - .2, pan1: pan + .2 }); sample('swish', { vol: .4 * k, at, rate: 1.25 }); break;
@@ -812,12 +820,13 @@
   // Existing voice recordings, shaped by anatomy and the material that lands.
   const DEATH_MATERIAL = {
     drowned:['carrierDeath',.78,'wetStep',.7], rootborn:['guardDeath',.72,'debris',.65],
-    crawler:['stalkerDeath',1.12,'bone',1.1], urchin:['carrierDeath',.86,'bone',.85], lantern:['cultistDeath',.9,'chain',1.15],
-    ashbound:['prisonerDeath',.84,'armorStep',.85], shardseer:['cultistDeath',.86,'bone',1.25],
+    crawler:['stalkerDeath',1.12,'bone',1.1], urchin:['carrierDeath',.86,'bone',.85], netcaster:['prisonerDeath',.8,'wetStep',.8], tidecaller:['cultistDeath',.78,'bell',.9], lantern:['cultistDeath',.9,'chain',1.15],
+    mourner:['cultistDeath',.7,'bell',1.3], snarer:['stalkerDeath',.95,'chain',1.2], ashbound:['prisonerDeath',.84,'armorStep',.85], shardseer:['cultistDeath',.86,'bone',1.25],
     cavefang:['stalkerDeath',1.08,'bone',1.12], gravemason:['guardDeath',.72,'debris',.82], ruinwarden:['guardDeath',.8,'armor',.74],
     emberbound:['prisonerDeath',.8,'metal',.88], chainseer:['cultistDeath',.76,'chain',.82],
     slagcrawler:['carrierDeath',.67,'scuff',.72], forgesentinel:['guardDeath',.66,'metal',.62], ashwarden:['guardDeath',.76,'chain',.72]
   };
+  if (BABA.MobsC1 && BABA.MobsC1.audio) BABA.MobsC1.audio({ MATERIAL, PAIN, PAIN_RATE, DEATH_MATERIAL });   // chapter I extra foes (mobs-c1.js)
   H.kill = (o, k) => {
     const e = justKilled(), type = o.type || (e && e.type) || 'prisoner',
       at = Number.isFinite(o.x) && Number.isFinite(o.z) ? o : e || null,
@@ -1605,7 +1614,8 @@
   function enemyStep(e, n, kind) {
     const at = e;
     switch (e.type) {
-      case 'drowned': case 'urchin': sample('wetStep', { vol: .30, at, rate: rand(.65, .85) }); break;
+      case 'drowned': case 'urchin': case 'netcaster': sample('wetStep', { vol: .30, at, rate: rand(.65, .85) }); break;
+      case 'tidecaller': sample('wetStep', { vol: .16, at, rate: rand(.55, .7) }); sample('chain', { vol: .06, at, rate: 1.6 }); break;
       case 'crawler': sample('bone', { vol: .13, at, rate: 1.15 }); sample('wetStep', { vol: .15, at, rate: 1.1 }); break;
       case 'rootborn': sample('winch', { vol: .15, at, rate: .8 }); break;
       case 'lantern': sample('step', { vol: .17, at, rate: .65 }); break;
@@ -1617,6 +1627,8 @@
       case 'cultist': if (n % 2) sample('step', { vol: .16, at, rate: 1.1, lp: 3000 }); break;
       case 'ashbound': sample('step', {vol:.18,at,rate:.88,lp:4000}); if(n%4===0) sample('gear',{vol:.07,at,rate:.88}); break;
       case 'shardseer': sample('step',{vol:.14,at,rate:.94,lp:3400}); if(n%2===0) sample('bone',{vol:.06,at,rate:1.2}); break;
+      case 'mourner': if (n % 2) sample('bone',{vol:.09,at,rate:1.35}); if (n % 3 === 0) sample('bell',{vol:.05,at,rate:1.9}); break;
+      case 'snarer': sample('scuff',{vol:.12,at,rate:1.05}); if (n % 2) sample('chain',{vol:.07,at,rate:1.3}); break;
       case 'cavefang': sample('scuff',{vol:.13,at,rate:1.12}); sample('bone',{vol:.07,at,rate:1.18}); break;
       case 'gravemason': sample('armorStep',{vol:.26,at,rate:.77}); if(n%2===0) sample('debris',{vol:.08,at,rate:.82}); break;
       case 'ruinwarden': sample('armorStep',{vol:.28,at,rate:.72}); if(n%3===0) sample('chain',{vol:.08,at,rate:.8}); break;
@@ -1637,7 +1649,8 @@
       case 'guard': sample('guardGrunt', Object.assign({ vol: .22, rate: rand(.8, .9) }, o)); break;
       case 'cultist': sample(chance(.5) ? 'chant1' : 'chant2', Object.assign({ vol: .2, lp: 2200, send: .5 }, o)); break;
       case 'stalker': if (chance(.4)) sample('stalkerShriek', Object.assign({ vol: .12, rate: rand(.6, .7), lp: 1800 }, o)); break;
-      case 'drowned': case 'urchin': sample('carrierGurgle', Object.assign({ vol: .2, rate: .8 }, o)); break;
+      case 'drowned': case 'urchin': case 'netcaster': sample('carrierGurgle', Object.assign({ vol: .2, rate: .8 }, o)); break;
+      case 'tidecaller': sample('tortWhisper', Object.assign({ vol: .13, rate: .6, send: .6 }, o)); break;
       case 'crawler': sample('stalkerShriek', Object.assign({ vol: .12, rate: .85 }, o)); break;
       case 'rootborn': sample('winch', Object.assign({ vol: .1, rate: .55 }, o)); break;
       case 'lantern': sample('tortWhisper', Object.assign({ vol: .12, rate: .65 }, o)); break;

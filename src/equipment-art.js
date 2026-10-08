@@ -292,11 +292,13 @@
       // The already-smoothed Cartesian surface is shared by all tailored sets.
       const backDepth=(x,y)=>rearDepth(x,y);
       const back=(u,v,lift=.028)=>{
-        const a=mix(.258,.742,u),top=1.295+.30*Math.pow(Math.sin(u*PI),.55),y=mix(.97,top,v);
+        const a=mix(.258,.742,u),top=1.30+.165*Math.pow(Math.sin(u*PI),.7),y=mix(.97,top,v);   // back panel stops at the neck line (was 1.595 = a hump above the trapezius)
         const p=chest(a,(y-.89)/(1.51-.135*Math.pow(Math.abs(Math.sin(a*TAU)),3)-.89),lift);
         // Fit the back in Cartesian space; a single radial origin turns the
         // curved spine into an inflated, bottle-shaped leather sack.
-        p[2]=mix(p[2],backDepth(p[0],y)-lift,Math.pow(Math.sin(u*PI),.5));return p;
+        p[2]=mix(p[2],backDepth(p[0],y)-lift,Math.pow(Math.sin(u*PI),.5));
+        // flat, body-hugging back: pull the upper back in towards the spine line so it reads as a tailored panel, not a puffed sack
+        const up=clamp((y-1.2)/.3,0,1),fl=up*up*(3-2*up);p[0]*=1-.13*fl;p[2]=mix(p[2],cz-.03-lift*.4,.55*fl);return p;
       };
       const thread=[],seams=[];
       const stitch=(fn,n=40)=>{for(let j=0;j<n;j++){const p=fn((j+.15)/n),q=fn((j+.65)/n);thread.push(G.tube([p,q],.0008,4,2,true));}};

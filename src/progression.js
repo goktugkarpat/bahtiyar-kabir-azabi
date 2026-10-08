@@ -27,7 +27,7 @@
   ]);
   const skills = Object.freeze([
     { id: 'cleave', name: KabirI18n.t('Mezar Yaran'), line: 'cleave', tier: 1, level: 2, requires: null, branch: 0, cost: 22, cooldown: 4,
-      params: { damage: 78, radius: 3.7, arc: 3.65, stun: .55 },
+      params: { damage: 78, radius: 3.7, arc: 3.65, stun: .8 },
       description: KabirI18n.t('Kızıl bir yarım ayla önündeki düşmanları yar. Ağır darbe gardı kırar.'), delta: '' },
     { id: 'brand', name: KabirI18n.t('Kemik Kıran'), line: 'cleave', tier: 2, level: 4, requires: 'cleave', branch: 0, cost: 33, cooldown: 6,
       params: { damage: 106, radius: 4.5, reach: 4.2, duration: .68, strike: .22, stun: 1.1 },
@@ -42,26 +42,26 @@
       params: { near: 6.5, far: 9, time: 16, guard: .7, steal: .11, stun: 1, fear: 1.6, damage: 0, waves: 1 },
       description: KabirI18n.t('Kısa ve sert bir savaş narası: öfken uzun sürer, vurdukça çok can çalar ve hasarın artar. Sarsma alanı küçüktür; bu biçim kavgada dayanmak içindir.'), delta: KabirI18n.t('Uzun öfke, yüksek can çalma, küçük alan.') },
     { id: 'chainstorm', name: KabirI18n.t('Kıyamet Narası'), line: 'roar', tier: 3, level: 4, requires: 'roar', branch: 1, cost: 56, cooldown: 34,
-      params: { near: 11, far: 16, time: 18, guard: .6, steal: .09, stun: 2.5, fear: 3.8, damage: 52, waves: 3, waveDamage: 38 },
-      description: KabirI18n.t('İki aşamalı kıyamet narası: yer yarılır, kemik ışığıyla kızıl köz parçacıkları savrulur ve üç halka art arda yayılır. Her halka düşmanları yeniden sarsıp yaralar; öfken çok uzun ve güçlü sürer.'), delta: KabirI18n.t('İki aşamalı nara, üç halka, en geniş alan, en uzun ve güçlü öfke.') },
+      params: { near: 11, far: 16, time: 18, guard: .6, steal: .09, stun: 2.5, fear: 3.8, damage: 120, waves: 1, waveDamage: 0 },
+      description: KabirI18n.t('Tek, ağır bir kıyamet narası: yer yarılır, kemik ışığıyla kızıl köz parçacıkları savrulur ve geniş bir şok halkası düşmanları sarsıp yaralar; öfken çok uzun ve güçlü sürer.'), delta: KabirI18n.t('Tek ağır nara: en geniş alan, en çok hasar ve sersemletme, en uzun ve güçlü öfke.') },
     { id: 'whirl', name: KabirI18n.t('Zincir Kasırgası'), line: 'whirl', tier: 1, level: 2, requires: null, branch: 2, cost: 36, cooldown: 8,
-      params: { ticks: 4, damage: 33, radius: 3.6, first: .06, gap: .28, duration: 1.3, stun: .6, stunLast: 1.15, pull: .45, fling: .9, grow: 1, turns: 2, move: .6 },
+      params: { ticks: 4, damage: 33, radius: 3.6, first: .06, gap: .28, duration: 1.3, stun: .6, stunLast: 1.15, pull: 0, fling: 0, grow: 1, turns: 2, move: .6 },
       description: KabirI18n.t('Kızıl zincirlerden bir kasırga içinde dönerek çevrendeki düşmanlara dört kez vur.'), delta: '' },
     { id: 'reap', name: KabirI18n.t('Zincir Fırtınası'), line: 'whirl', tier: 2, level: 5, requires: 'whirl', branch: 2, cost: 54, cooldown: 11,
-      params: { ticks: 5, damage: 36, radius: 4.8, first: .06, gap: .27, duration: 1.6, stun: .7, stunLast: 1.5, pull: 1.4, fling: 1.4, grow: 1, turns: 4, move: .95 },
-      description: KabirI18n.t('Zincirler uzun, parlak orak yaylarına dönüşür: dönerken hızla yürüyebilir, düşmanları içeri çekip beş kez vurabilirsin.'), delta: KabirI18n.t('Beş vuruş, dönerken hızlı yürüme, güçlü çekiş.') },
+      params: { ticks: 5, damage: 36, radius: 4.8, first: .06, gap: .27, duration: 1.6, stun: .7, stunLast: 1.5, pull: 0, fling: 0, grow: 1, turns: 4, move: .95 },
+      description: KabirI18n.t('Zincirler uzun, parlak orak yaylarına dönüşür: dönerken hızla yürüyebilir, düşmanları sersemletip beş kez vurabilirsin.'), delta: KabirI18n.t('Beş vuruş, dönerken hızlı yürüme, uzun sersemletme.') },
     { id: 'rend', name: KabirI18n.t('Son Hüküm'), line: 'whirl', tier: 3, level: 5, requires: 'whirl', branch: 2, cost: 74, cooldown: 15,
-      params: { ticks: 7, damage: 35, radius: 6.2, first: .06, gap: .24, duration: 2.05, stun: .85, stunLast: 2, pull: 1.9, fling: 3.4, grow: .68, turns: 6, move: .7 },
-      description: KabirI18n.t('Zincirler mor ateşli bir ölüm fırtınasına dönüşür: başta yer çatlar, çember dönerken genişler, yedi vuruş vurur. Son vuruş yeri sarsar ve düşmanları fırlatır.'), delta: KabirI18n.t('Yedi vuruş, genişleyen en büyük çember, en güçlü çekiş, sarsıcı son vuruş.') },
+      params: { ticks: 7, damage: 35, radius: 6.2, first: .06, gap: .24, duration: 2.05, stun: .85, stunLast: 2, pull: 0, fling: 0, grow: .68, turns: 6, move: .7 },
+      description: KabirI18n.t('Zincirler mor ateşli bir ölüm fırtınasına dönüşür: başta yer çatlar, çember dönerken genişler, yedi vuruş vurur. Son vuruş yeri sarsar ve düşmanları sersemletir.'), delta: KabirI18n.t('Yedi vuruş, genişleyen en büyük çember, en uzun sersemletme, sarsıcı son vuruş.') },
     { id: 'charge', name: KabirI18n.t('Kül Hücumu'), line: 'charge', tier: 1, level: 3, requires: null, branch: 3, cost: 30, cooldown: 7,
-      params: { range: 8, speed: 20, damage: 86, ringMul: .55, radius: 2.6, stun: 1.4, width: 1.5, pathDamage: 0, shove: 0, knock: 2.6, hitStop: .07, pull: 0, impacts: 1 },
-      description: KabirI18n.t('Fare imlecine doğru kül ve kıvılcımlar içinde atıl. Yoldakileri it, varınca yere çarpıp çevrendekileri sersemlet.'), delta: '' },
+      params: { range: 8, speed: 20, damage: 86, ringMul: .55, radius: 2.6, stun: 1.4, width: 1.5, pathDamage: 0, shove: 0, knock: 0, hitStop: .07, pull: 0, impacts: 1 },
+      description: KabirI18n.t('Fare imlecine doğru kül ve kıvılcımlar içinde atıl. Varınca yere çarpıp çevrendekileri sersemlet.'), delta: '' },
     { id: 'grasp', name: KabirI18n.t('Boğa Hücumu'), line: 'charge', tier: 2, level: 6, requires: 'charge', branch: 3, cost: 34, cooldown: 5,
-      params: { range: 9, speed: 29, damage: 100, ringMul: .55, radius: 3.4, stun: 1.6, width: 2.4, pathDamage: 26, shove: 3.6, knock: 3.6, hitStop: .09, pull: 2.4, impacts: 1 },
-      description: KabirI18n.t('Omzunu öne verip boğa gibi kısa ve hızlı atıl: yoldakileri yana devirir, varınca çarparsın. Çabuk dinlenir, sık sık tekrarlanabilir.'), delta: KabirI18n.t('Kısa, hızlı, sık tekrarlanan atılış.') },
+      params: { range: 9, speed: 29, damage: 100, ringMul: .55, radius: 3.4, stun: 1.6, width: 2.4, pathDamage: 26, shove: 0, knock: 0, hitStop: .09, pull: 0, impacts: 1 },
+      description: KabirI18n.t('Omzunu öne verip boğa gibi kısa ve hızlı atıl: yoldakileri sersemletir, varınca çarparsın. Çabuk dinlenir, sık sık tekrarlanabilir.'), delta: KabirI18n.t('Kısa, hızlı, sık tekrarlanan atılış.') },
     { id: 'havoc', name: KabirI18n.t('Mahşer Hücumu'), line: 'charge', tier: 3, level: 6, requires: 'charge', branch: 3, cost: 66, cooldown: 14,
-      params: { range: 14, speed: 32, damage: 160, ringMul: .55, radius: 5, stun: 2.6, width: 3.4, pathDamage: 44, shove: 6.5, knock: 4.8, hitStop: .12, pull: 3.6, impacts: 2, damage2: 110, radius2: 6.6 },
-      description: KabirI18n.t('Kükreyip koç gibi atıl: geniş, karanlık bir iz bırakır, yoldakileri havaya fırlatır. Varışta yer iki kez çatlar; ikinci çarpma daha ağırdır ve sersemletir.'), delta: KabirI18n.t('Çifte çarpma, yoldakileri fırlatır, en geniş alan ve en uzun sersemletme.') },
+      params: { range: 14, speed: 32, damage: 160, ringMul: .55, radius: 5, stun: 2.6, width: 3.4, pathDamage: 44, shove: 0, knock: 0, hitStop: .12, pull: 0, impacts: 2, damage2: 110, radius2: 6.6 },
+      description: KabirI18n.t('Kükreyip koç gibi atıl: geniş, karanlık bir iz bırakır, yoldakileri sersemletir. Varışta yer iki kez çatlar; ikinci çarpma daha ağırdır ve sersemletir.'), delta: KabirI18n.t('Çifte çarpma, yoldakileri sersemletir, en geniş alan ve en uzun sersemletme.') },
     // Forms of the two new actives (A: stronger version of the same idea, B: a different trade; both need only the active)
     { id: 'hook2', name: KabirI18n.t('Zincirli Fırlatış'), line: 'hook', tier: 2, level: 5, requires: 'hook', branch: 4, cost: 30, cooldown: 9,
       params: { damage: 82, range: 15, stun: 2, bleed: 24, keep: 1.9, extra: 0, bleedMul: 1 },
@@ -111,7 +111,7 @@
       out.push([KabirI18n.t('Sarsma alanı'), num(p.near) + ' m'], [KabirI18n.t('Korkutma alanı'), num(p.far) + ' m'], [KabirI18n.t('Temel hasar'), p.damage ? (p.waves > 1 ? p.damage + ' + ' + (p.waves - 1) + '×' + p.waveDamage : String(p.damage)) : '—'],
         [KabirI18n.t('Öfke süresi'), num(p.time) + KabirI18n.t(' sn')], [KabirI18n.t('Hasar azaltma'), '%' + Math.round((1 - p.guard) * 100)], [KabirI18n.t('Can çalma'), '%' + Math.round(p.steal * 100)], [KabirI18n.t('Dalga'), String(p.waves)]);
     } else if (s.line === 'whirl') {
-      out.push([KabirI18n.t('Temel vuruş'), p.ticks + '×' + p.damage + ' = ' + p.ticks * p.damage], [KabirI18n.t('Çember'), p.grow < 1 ? num(p.radius * p.grow) + ' → ' + num(p.radius) + ' m' : num(p.radius) + ' m'], [KabirI18n.t('Çekiş'), num(p.pull) + ' m'], [KabirI18n.t('Son vuruşta savurma'), num(p.fling) + ' m'], [KabirI18n.t('Son vuruş sersemletmesi'), num(p.stunLast) + KabirI18n.t(' sn')]);
+      out.push([KabirI18n.t('Temel vuruş'), p.ticks + '×' + p.damage + ' = ' + p.ticks * p.damage], [KabirI18n.t('Çember'), p.grow < 1 ? num(p.radius * p.grow) + ' → ' + num(p.radius) + ' m' : num(p.radius) + ' m'], [KabirI18n.t('Son vuruş sersemletmesi'), num(p.stunLast) + KabirI18n.t(' sn')]);
     } else if (s.line === 'hook') {
       out.push([KabirI18n.t('Temel hasar'), String(p.damage)], [KabirI18n.t('Menzil'), num(p.range) + ' m'], [KabirI18n.t('Sersemletme'), num(p.stun) + KabirI18n.t(' sn')], [KabirI18n.t('Kanama'), String(Math.round(p.bleed * (p.bleedMul || 1)))]);
       if (p.extra) out.push([KabirI18n.t('Yakalanan düşman'), String(1 + p.extra)]);
@@ -119,8 +119,8 @@
       out.push([KabirI18n.t('Süre'), num(p.time) + KabirI18n.t(' sn')], [KabirI18n.t('Hasar azaltma'), '%' + Math.round((1 - p.taken) * 100)], [KabirI18n.t('Karşılık hasarı'), String(p.thorns)], [KabirI18n.t('Karşılık sersemletmesi'), num(p.stun) + KabirI18n.t(' sn')]);
       if (p.heal) out.push([KabirI18n.t('Karşılıkta can'), '%' + Math.round(p.heal * 100)]);
     } else {
-      out.push([KabirI18n.t('Mesafe'), num(p.range) + ' m'], [KabirI18n.t('Temel çarpma'), p.impacts > 1 ? p.damage + ' + ' + p.damage2 : String(p.damage)], [KabirI18n.t('Temel yol hasarı'), p.pathDamage ? String(p.pathDamage) : '—'], [KabirI18n.t('Yol genişliği'), num(p.width) + ' m'], [KabirI18n.t('Yoldakini savurma'), p.shove ? num(p.shove) + ' m' : '—'],
-        [KabirI18n.t('Çarpma alanı'), p.impacts > 1 ? num(p.radius) + ' / ' + num(p.radius2) + ' m' : num(p.radius) + ' m'], [KabirI18n.t('Sersemletme'), num(p.stun) + KabirI18n.t(' sn')], [KabirI18n.t('Çekiş'), p.pull ? num(p.pull) + ' m' : '—']);
+      out.push([KabirI18n.t('Mesafe'), num(p.range) + ' m'], [KabirI18n.t('Temel çarpma'), p.impacts > 1 ? p.damage + ' + ' + p.damage2 : String(p.damage)], [KabirI18n.t('Temel yol hasarı'), p.pathDamage ? String(p.pathDamage) : '—'], [KabirI18n.t('Yol genişliği'), num(p.width) + ' m'], [KabirI18n.t('Yoldakini sersemletme'), p.pathDamage ? '0,5 sn' : '—'],
+        [KabirI18n.t('Çarpma alanı'), p.impacts > 1 ? num(p.radius) + ' / ' + num(p.radius2) + ' m' : num(p.radius) + ' m'], [KabirI18n.t('Sersemletme'), num(p.stun) + KabirI18n.t(' sn')]);
     }
     out.push([KabirI18n.t('Maliyet'), Math.round(s.cost) + ''], [KabirI18n.t('Bekleme'), num(s.cooldown) + KabirI18n.t(' sn')]);
     return out;
@@ -464,7 +464,7 @@
     }
     function stats() {
       if (statCache && statRevision === state.revision) return statCache;
-      let hp = 95 + (state.level - 1) * 6, damage = .72 + Math.min(6, state.level - 1) * (.53 / 6) + Math.max(0, state.level - 7) * .05, defense = 0, weaponId = null;
+      let hp = 100 + (state.level - 1) * 6, damage = .72 + Math.min(6, state.level - 1) * (.53 / 6) + Math.max(0, state.level - 7) * .05, defense = 0, weaponId = null;
       for (const slot of slots) {
         const entry = state.inventory.find(i => i.uid === state.equipment[slot]);
         if (!entry) continue;
@@ -491,7 +491,7 @@
         const base = .72 + Math.min(6, state.level - 1) * (.53 / 6) + Math.max(0, state.level - 7) * .05;
         return Math.min(1.95, base * (1 + def.damage)) > Math.min(1.95, base * (1 + old.damage)) + .00001;
       }
-      let hp = 95 + (state.level - 1) * 6, defense = 0;
+      let hp = 100 + (state.level - 1) * 6, defense = 0;
       for (const slot of slots) {
         if (slot === def.slot) continue;
         const part = resolveItem(state.inventory.find(i => i.uid === state.equipment[slot]));
@@ -506,7 +506,7 @@
       return Math.min(184, others.hp + def.hp) / (1 - Math.min(.30, others.defense + def.defense));
     }
     function slotContext(slot) {
-      let hp = 95 + (state.level - 1) * 6, defense = 0;
+      let hp = 100 + (state.level - 1) * 6, defense = 0;
       const base = .72 + Math.min(6, state.level - 1) * (.53 / 6) + Math.max(0, state.level - 7) * .05;
       for (const other of slots) {
         if (other === slot) continue;

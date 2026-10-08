@@ -553,7 +553,8 @@
         var b = decalBatches[key];
         b.transforms.push(tmp.matrix.clone()); b.colors.push(color); b.cells.push(cell);
       }
-      function floorDecal(type, cell, x, z, sx, sz, yaw, color, level) { decal(type, cell, x, .004 + rand() * .003, z, sx, sz, yaw == null ? rand() * 6.28 : yaw, color, level); }
+      // Floor decals float 3.4-3.8 cm up: ledger slabs (top .008), plates (.02-.03) and merged room slabs (.012-.026) used to swallow decals sitting at .004-.007 (z-fight, blacked-out marks).
+      function floorDecal(type, cell, x, z, sx, sz, yaw, color, level) { decal(type, cell, x, .034 + rand() * .004, z, sx, sz, yaw == null ? rand() * 6.28 : yaw, color, level); }
       // Vertical decal on a wall face; angle is the direction the face looks (0 = +z).
       function wallDecal(type, cell, x, y, z, sx, sy, angle, color, level) { decal(type, cell, x, y, z, sx, sy, 0, color, level, angle); }
       // ---- light sources (served by a small pool of real lights near the player) ----------------------
@@ -932,7 +933,7 @@
         var group = new T.Group(); group.position.set(x, y, z); root.add(group);
         // Every hanger continues up into the darkness of the vault instead of ending in mid-air.
         if (!byMaterial.iron) byMaterial.iron = [];
-        byMaterial.iron.push(part('pole', 0, (11 - y) / 2, 0, .028, 11 - y, .028));
+        byMaterial.iron.push(part('pole', 0, (11 - y) / 2, 0, .06, 11 - y, .06));
         Object.keys(byMaterial).forEach(function (mat) {
           if (!byMaterial[mat].length) return;
           var mesh = new T.Mesh(mergeParts(byMaterial[mat]), materials[mat]);
@@ -1715,7 +1716,7 @@
           flame(px, h + .07, pz, .07, .14, 'fire', false, false, { phase: rand2() * 10 });
         }
         lightSource(x, .8, z, '#ff9a50', 2.6 + count * .5, 4.5, .6, { kind: 'candle', group: group, phase: rand2() * 10 });
-        decal('matte', CELL.wax, x, .005, z, .8, .75, rand2() * 6, COL.wax, 1);
+        decal('matte', CELL.wax, x, .036, z, .8, .75, rand2() * 6, COL.wax, 1);
       }
       for (var rc = 0; rc < 7; rc++) { var ra = rc / 7 * Math.PI * 2 + .22; candleRing(Math.sin(ra) * 6.75, -74 + Math.cos(ra) * 6.75, 3, 'ritualCandles'); }
       // The oath stone's own light: a faint call before it is sworn, a golden flood afterwards.
@@ -2360,6 +2361,7 @@
       // A static broad-phase grid keeps collision work independent of the
       // decorative instance count. Circle/rectangle checks have no corner cut.
       var expansion = window.BABA.ChapterExpansion.build(root,materials,rooms,encounters,colliders,1,lightSources);
+      if (window.BABA.MobsC1) window.BABA.MobsC1.place(encounters);   // extra chapter I foes (mobs-c1.js)
       floors.push.apply(floors,expansion.floors);
       var allRooms=rooms.concat(expansion.rooms);
       var grid = Object.create(null), cellSize = 8;

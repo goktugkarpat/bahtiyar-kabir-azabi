@@ -396,7 +396,7 @@ void main(){
   function eligible(i, e) { return alive(e) && (!i.ctx.canHit || i.ctx.canHit(e)); }
   function hurt(i, e, amount, opts) { const c = i.ctx; if (c.damage && amount > 0) { opts.kind = 'charge'; opts.face = i.face; c.damage(e, Math.round(amount), opts); } }
   function stunE(i, e, sec) { const c = i.ctx; if (c.stun && sec > 0) c.stun(e, e.boss ? sec * .35 : sec); }
-  function pushE(i, e, ux, uz, f) { const c = i.ctx; if (c.push && f > 0 && !e.boss) c.push(e, ux, uz, f); }
+  function pushE() { /* sersemletme: no foe is shoved any more, the stun does the work */ }
   const SHAKE = [0, .55, .85, 1.15];
 
   function slam(i, x, z, second) {
@@ -470,7 +470,7 @@ void main(){
       i.hitSet.add(e);
       const side = (e.x - cx) * i.dz - (e.z - cz) * i.dx, s = side >= 0 ? 1 : -1, ux = i.dz * s, uz = -i.dx * s;   // perpendicular to the path, away from the line
       hurt(i, e, st.pathDamage, { path: true });
-      pushE(i, e, ux * .85 + i.dx * .35, uz * .85 + i.dz * .35, st.pathShove);
+      stunE(i, e, st.pathDamage ? .6 : 0);
       if (W) W.shove(e.x, e.z, Math.atan2(ux, uz), 1);
     }
     return false;

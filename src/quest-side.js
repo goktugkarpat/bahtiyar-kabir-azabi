@@ -280,8 +280,8 @@
         if (B.Models && B.Models.create) {
           // Only the active chapter's character bases are decoded: pick the most human figure this chapter owns.
           var types = B.Models.types || {}, active = B.ActiveChapter || chapter;
-          var wish = [def.female ? 'selvi' : null, 'prisoner', 'gravemason', 'drowned', 'emberbound', 'cultist', 'ashbound', 'lantern', 'chainseer'].filter(Boolean);
-          var pick = wish.find(function (t) { return types[t] && (types[t].chapter || 1) === active; }) || 'prisoner';
+          var wish = [def.female ? 'selvi' : null, 'prisoner', 'gravemason', 'drowned', 'emberbound', 'cultist', 'ashbound', 'lantern', 'chainseer', 'damned', 'verdictseer'].filter(Boolean);
+          var pick = wish.find(function (t) { return types[t] && (types[t].chapter || 1) === active; }) || Object.keys(types).find(function (t) { return t !== 'hero' && (types[t].chapter || 1) === active; }) || 'prisoner';   // chapter V owns none of the older figures: use one of its own (only the active chapter's bases are decoded)
           actor.model = B.Models.create(pick); actor.root = actor.model.root;
           actor.root.traverse(function (n) { if (n.name === 'weapon') n.visible = false; });
           actor.root.scale.setScalar(def.female ? .9 : .97);

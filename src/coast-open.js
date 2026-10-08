@@ -36,7 +36,7 @@
       rects.push({ x0: r.x - r.w / 2 - 6, x1: r.x - r.w / 2 + 4, z0: r.z - 4.5, z1: r.z + 4.5 });
     });
     // Main road: the rooms flow into each other (not 6 m gaps); the boss approach stays narrow for the gate.
-    for (var i = 0; i < 5; i++) { var a = baseRooms[i], b = baseRooms[i + 1]; rects.push({ x0: -9.5, x1: 5.5, z0: b.z + b.d / 2 - 1, z1: a.z - a.d / 2 + 1 }); }
+    for (var i = 0; i < 5; i++) { var a = baseRooms[i], b = baseRooms[i + 1]; rects.push({ x0: -12, x1: 7.6, z0: b.z + b.d / 2 - 1, z1: a.z - a.d / 2 + 1 }); }   // full width of the paved/planked road between rooms (was -9.5..5.5: 2 m dead strips of visible floor on both sides)
     // Gallows hill path (two bends) and the broken mole into the sea with its beacon platform.
     rects.push({ x0: -58, x1: -46, z0: -97.6, z1: -93.6 }); rects.push({ x0: -60.5, x1: -55, z0: -99, z1: -92 });
     // the strand along the whole shoreline (north of the pier and south of it); the pier itself is the bridge between them
@@ -81,13 +81,13 @@
       }
       if (r.hill) {
         list.push({ id: 'coast-gallows', room: r.id, name: r.name, stage: 1.2, clearText: tr('Darağacı boşaldı. Tepeden kıyı görünüyor.'),
-          spawns: [{ type: 'lantern', x: r.x - 3, z: r.z + 3 }, { type: 'rootborn', x: r.x + 3, z: r.z + 2 }, { type: 'urchin', x: r.x + 1, z: r.z - 2.5 },
+          spawns: [{ type: 'lantern', x: r.x - 3, z: r.z + 3 }, { type: 'rootborn', x: r.x + 3, z: r.z + 2 }, { type: 'urchin', x: r.x + 1, z: r.z - 2.5 }, { type: 'tidecaller', x: r.x - 2, z: r.z + 6 },
             { type: 'drowned', x: r.x + 1, z: r.z + 5, elite: true, name: tr('Asılmışların Bekçisi') }] });
         return;
       }
       if (r.mole) {
         list.push({ id: 'coast-mole', room: r.id, name: r.name, stage: 1.14, clearText: tr('Mendirek temizlendi. Fenerin közü hâlâ yanıyor.'),
-          spawns: [{ type: 'drowned', x: 14, z: -86.4 }, { type: 'urchin', x: 26, z: -84 }, { type: 'drowned', x: 28, z: -88.5 }] });
+          spawns: [{ type: 'drowned', x: 14, z: -86.4 }, { type: 'urchin', x: 26, z: -84 }, { type: 'drowned', x: 28, z: -88.5 }, { type: 'netcaster', x: 20, z: -87 }] });
         return;
       }
       var k = i, types = k % 2 ? ['rootborn', 'crawler', 'urchin', 'lantern'] : ['drowned', 'urchin', 'crawler', 'lantern'];

@@ -80,6 +80,7 @@
   function make(type,cfg){cfg.chapter=3;B.Models.register(type,cfg,function(A,C){
     var exec=cfg.base==='executioner',head=exec?'head':'Head',spine=exec?'spine03':'spine_03',handL=exec?'handL':'hand_l',handR=exec?'handR':'hand_r',armL=exec?'upper_armL':'upperarm_l',armR=exec?'upper_armR':'upperarm_r',thighL=exec?'thighL':'thigh_l',thighR=exec?'thighR':'thigh_r';
     var skin=A.addFrom(C.bases[cfg.base],function(){return true;},'skin')[0];if(exec)A.remapBone('neutral_bone','pelvis');
+    if(type==='gravemason'&&exec)A.slim(skin,{spine01:.68,spine02:.72,spine03:.8,pelvis:.86},1);   // fat-fix
     if(type==='cavefang'){A.lengthen({lowerarm_l:1.35,lowerarm_r:1.35,hand_l:1.25,hand_r:1.25});var slim={};slim[spine]=.78;A.slim(skin,slim,1);}
     var p=A.P(head),chest=A.P(spine),hip=A.P('pelvis'),stone=type==='gravemason'||type==='ruinwarden'||type==='hollowking';
     var fitted=torsoFit(A,exec,chest),fb=fitted.box,bw=Math.max(.34,fb.max.x-fb.min.x);

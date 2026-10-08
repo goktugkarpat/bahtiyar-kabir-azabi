@@ -166,6 +166,7 @@
    sink: knee-bend of the wind-up (rad of hip flexion), lunge: pelvis drive through the blow (source m), death: death-clip rate (lower = slower, heavier fall),
    buckle: seconds the legs give way before the fall, thud: ground-impact dust (1 / 2 = boss), hurt: flinch scale (< 1 = shrugs blows off). */
   var LATE = {
+    mourner: { sink: .08, lunge: .03, death: 1.6, buckle: 0, thud: 0, hurt: 1.1 }, snarer: { hunch: .3, sink: .40, lunge: .12, death: 1.8, buckle: 0, thud: 0, hurt: 1.2 },
     ashbound: { hunch: 0.2, sink: .30, lunge: .10, death: 1.45, buckle: .12, thud: 0, hurt: 1 }, shardseer: { sink: .10, lunge: .03, death: 1.7, buckle: 0, thud: 0, hurt: 1.15 },
     cavefang: { sink: .46, lunge: .15, death: 2.0, buckle: 0, thud: 0, hurt: 1.2 }, gravemason: { hunch: 0.06, sink: .36, lunge: .08, death: 1.0, buckle: .32, thud: 1, hurt: .6 },
     ruinwarden: { hunch: 0.08, sink: .32, lunge: .09, death: .95, buckle: .36, thud: 1, hurt: .5 }, hollowking: { hunch: 0.05, sink: .28, lunge: .08, death: .8, buckle: .55, thud: 2, hurt: .4 },
@@ -499,6 +500,19 @@
     }
     // War cry / roar: breath drawn in low and tight, then released at Tr with the chest thrown out, head back,
     // the right arm and weapon hauled overhead and the free arm flung wide; it settles over the last .22 s (less for a short roar).
+    // Demir Duruş: a short wind-up (weapon hauled up, knees bending, shoulders forward) and at STANCE_HIT the weapon is driven down in front, the whole body sinks and the feet are planted; it holds low, then rises.
+    var STANCE_HIT = .38;
+    function stancePose(p, t, Td) {
+      var g = smooth(t / STANCE_HIT), slam = t >= STANCE_HIT ? easeOut((t - STANCE_HIT) / .09, 2) : 0, up = t > Td - .2 ? smooth((Td - t) / .2) : 1;
+      var kick = t >= STANCE_HIT && t < STANCE_HIT + .12 ? Math.sin((t - STANCE_HIT) / .12 * PI) : 0;
+      spineLayer(p, -.12 * g * up, (.5 * g + .3 * slam) * up, 0);
+      p.p.y -= ((.2 * g + .12 * slam) * up + .04 * kick) / Math.max(.4, characterScale);
+      sample('swordAttack', .30 + .22 * slam, roarBuf, false);
+      var w = Math.max(.8 * g * (1 - slam), slam * .9) * up;
+      blendPose(p, roarBuf, w, 10, 14); blendPose(p, roarBuf, w, 37, 52);
+      euler.set(.5 * slam * up, 0, (.55 * g - .15 * slam) * up, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(p, 7, qa);
+      euler.set(-.15 * g * up - .25 * slam * up, 0, 0, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(p, 4, qa);
+    }
     function roarPose(p, t, Tr, Td, tier) {
       tier = tier || 1;
       var span = Math.max(.05, Td - Tr), rw = Math.min(.14, span * .5), fw = Math.min(.22, span * .6);   // release ramp and settle scale with a short roar
@@ -976,7 +990,7 @@
       if (roaring) {
         // The father's war cry (Öfke).
         nextMode = 'roar' + finite(state.roarSerial, 0); fade = .07;
-        roarPose(wanted, state.roarTime, finite(state.roarRelease, .3), finite(state.roarDuration, .92), finite(state.roarTier, 1)); strikePhase = state.roarTime < finite(state.roarRelease, .3) ? 'hold' : 'follow';
+        if (state.roarStance) stancePose(wanted, state.roarTime, finite(state.roarDuration, .75)); else roarPose(wanted, state.roarTime, finite(state.roarRelease, .3), finite(state.roarDuration, .92), finite(state.roarTier, 1)); strikePhase = state.roarTime < finite(state.roarRelease, .3) ? 'hold' : 'follow';
       }
       if (whirling) { nextMode = 'whirl' + finite(state.attackSerial, 0); fade = .05; whirlPose(wanted, state.whirl, finite(state.whirlTime, 0), dt, rootYaw); strikePhase = 'follow'; } else if (wLive) { wLive = false; wFlare = 0; root.userData.whirlFlare = 0; }
       if (charging) { nextMode = 'charge' + finite(state.chargeSerial, 0); fade = .04; chargePose(wanted, state, dt); strikePhase = 'follow'; } else if (cLive) cLive = false;
@@ -1013,7 +1027,21 @@
         }
         // Combat feel round: three reactions so a crowd does not reel in unison (state.staggerVariant from combat.js):
         // 0 the reel above, 1 twisted aside away from the blow, 2 buckled at the knees, doubled over. Peaks mid-stagger, gone at recovery.
-        var sv = finite(state.staggerVariant, 0) | 0, sw = Math.sin(clamp(stagger, 0, 1) * PI) * (boss ? .4 : prof ? Math.min(1, prof.hurt + .25) : 1), sc = Math.max(.4, characterScale);
+        // Dazed (sersemleme): a real stun (>= .75 s, not a guard break) is a reel for its first beat, then the foe stands swaying on soft knees,
+        // head low, arms hanging, and straightens up in the last .25 s. Never for bosses / the hero (death and the stagger reel above take priority).
+        var dzT = staggerTime * stagger, dzLeft = staggerTime * (1 - stagger), dzW = 0;
+        if (!hero && !boss && staggerTime >= .75 && state.staggerKind !== 'guardBreak') dzW = smooth((dzT - .12) / .26) * smooth(dzLeft / .25);
+        if (dzW > .01) {
+          var dzSw = Math.sin(finite(state.time, 0) * 8.2 + (finite(state.staggerVariant, 0) | 0) * 1.7), dzSw2 = Math.sin(finite(state.time, 0) * 5.1 + 1.3);   // ~1.3 Hz sway
+          sample(idleName, clock, extra, true); blendPose(wanted, extra, .85 * dzW);
+          spineLayer(wanted, .07 * dzSw2 * dzW, .24 * dzW, .15 * dzSw * dzW);
+          crouchLayer(wanted, .08 * dzW);
+          euler.set(.2 * dzW, 0, .1 * dzSw * dzW, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(wanted, 4, qa);
+          euler.set(.08 * dzW, 0, (.2 + .08 * dzSw) * dzW, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(wanted, 7, qa);
+          euler.set(.08 * dzW, 0, -(.2 - .08 * dzSw) * dzW, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(wanted, 11, qa);
+          wanted.p.x += .05 * dzSw * dzW / Math.max(.4, characterScale);
+        }
+        var sv = finite(state.staggerVariant, 0) | 0, sw = Math.sin(clamp(stagger, 0, 1) * PI) * (boss ? .4 : prof ? Math.min(1, prof.hurt + .25) : 1) * (1 - dzW), sc = Math.max(.4, characterScale);
         if (sv === 1) {
           euler.set(0, (Math.sin(lastHitAngle) >= 0 ? -1 : 1) * .6 * sw, .14 * sw, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(wanted, 4, qa);
           wanted.p.x += Math.sin(lastHitAngle) * .12 * sw / sc;
