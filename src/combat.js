@@ -158,6 +158,8 @@
       start, update, restart, newCampaign: restart, respawn, interact, dispose, setQuality, setDifficulty, difficulty: 'normal', toTitle, beginRenderTraversal, endRenderTraversal, prepareGraphics, propTargets: () => mech && mech.pickTargets ? mech.pickTargets() : noPropTargets
     };
     game.hero = hero;   // (ajan:secondary) QA / tooling handle
+    let cheerAge = -1, reachAge = -1;   // (ajan:hero3) level-up fist-raise / interaction reach gestures (seconds since start, -1 = idle)
+    game.cheer = () => { cheerAge = 0; }; game.reach = () => { reachAge = 0; };
     const skillKeys = ['heavy', 'special', 'rage', 'fourth'];   // right mouse, key 1, key 2, key 3 (slot index = loadout index)
     const SKILLS = Object.freeze(Object.fromEntries(BABA.Progression.skills.map(skill => [skill.id, skill])));
     const skillReach = Object.freeze({ cleave: 3, brand: 6.5, temper: 6.7, roar: 6, quake: 6, chainstorm: 6.5, whirl: 3.3, reap: 3.8, rend: 4.4, charge: 8, grasp: 10, havoc: 12, hook: 8, guard: 1 });
@@ -908,9 +910,9 @@
     }
     function interact() {
       if (game.state !== 'playing') return;
-      if (quests && quests.interact()) return;
-      if (groundLoot && groundLoot.takeNearest(player.x, player.z, 2)) return;   // E also takes the nearest ground item within 2 m
-      if (activateCheckpoint()) return;
+      if (quests && quests.interact()) { reachAge = 0; return; }
+      if (groundLoot && groundLoot.takeNearest(player.x, player.z, 2)) { reachAge = 0; return; }   // E also takes the nearest ground item within 2 m
+      if (activateCheckpoint()) { reachAge = 0; return; }
       if (distance(player, checkpoint) < 6.1) emit('toast', { text: game.checkpointIndex ? (chapter === 5 ? KabirI18n.t('Yemin mühürlü. Kara Kadı ileride bekliyor.') : chapter === 4 ? KabirI18n.t('Yemin mühürlü. Ocağın Kalbi ileride bekliyor.') : chapter === 3 ? KabirI18n.t('Yemin mühürlü. Oyukların Kralı ileride bekliyor.') : world.chapter === 2 ? KabirI18n.t('Yemin mühürlü. Çancı ileride bekliyor.') : KabirI18n.t('Mühür açık. Cellat salonda bekliyor.')) : KabirI18n.t('Yakındaki tehlikeden uzaklaş; sonra yemin taşına dön.') });
     }
 
@@ -2657,6 +2659,8 @@
       hs.drinkTime = drinkLeft > 0 ? DRINK - drinkLeft : -1; hs.drinkDuration = DRINK;
       hs.hurt = player.hurt; hs.dead = player.dead; hs.phase = player.healing ? 'heal' : 'idle'; hs.face = player.face; hs.rage = player.rageTime > 0;
       hs.skillMove = atk && atk.skillMove || ''; hs.roarTier = player.roar ? ROAR.tier : 1; hs.skillTier = atk && atk.skill && atk.line === 'cleave' ? atk.tier : 0; hs.leapAir = LEAP_AIR;
+      if (cheerAge >= 0) { cheerAge += dt; if (cheerAge > 1.5) cheerAge = -1; } if (reachAge >= 0) { reachAge += dt; if (reachAge > .55) reachAge = -1; }
+      hs.cheerTime = cheerAge; hs.reachTime = reachAge;
       hs.roarTime = player.roar ? player.roar.age : -1; hs.roarRelease = ROAR.release; hs.roarDuration = ROAR.duration; hs.roarSerial = player.roar ? player.roar.serial : 0;
       // Poses are only needed for a callback that is drawn (a 200 Hz screen under a 120 FPS cap, or a 120 Hz screen under 60, runs the
       // simulation more often than it draws): the time of the skipped callbacks is handed to the next pose, so nothing is lost.

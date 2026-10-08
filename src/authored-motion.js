@@ -850,7 +850,12 @@
       if (Number.isFinite(state.attackTime) && state.attackTime >= 0) {
         // Hero: exact gameplay clock (seconds), so the blade crosses the target on the damage frame.
         var m = state.skillMove && MOVES[state.skillMove] ? MOVES[state.skillMove] : state.skillTier > 1 ? (state.skillTier > 2 ? MOVES.strikePound : MOVES.strikeBrand) : heroMove(combo, heavy, state.weaponType); nextMode = 'attack' + finite(state.attackSerial, 0); fade = .06;
-        strikePhase = applyMove(m, state.attackTime, finite(state.attackStrike, .2), finite(state.attackDuration, .51), wanted, state).phase;
+        var heroCurve = applyMove(m, state.attackTime, finite(state.attackStrike, .2), finite(state.attackDuration, .51), wanted, state); strikePhase = heroCurve.phase;
+        if (hero && state.weaponType === 'axe' && !state.skillMove && !state.skillTier && !state.heavy) {
+          // Axe weight: the body sinks into the wind-up and the whole mass is thrown behind the head of the axe on the cut (pelvis and torso only; clip, contact frame and timing unchanged).
+          var axeLoad = clamp(Math.max(0, heroCurve.coil) * .6 + heroCurve.strike, 0, 1.2), axeSc = Math.max(.4, characterScale);
+          wanted.p.y -= .045 * axeLoad / axeSc; wanted.p.z += .05 * heroCurve.strike / axeSc; spineLayer(wanted, 0, .1 * heroCurve.strike, 0);
+        }
       } else if (Number.isFinite(state.beatTime) && state.beatTime >= 0) {
         var em = enemyMove(type, action, finite(state.beat, 0), state.pose); nextMode = 'act' + finite(state.attackSerial, 0) + ':' + finite(state.beat, 0); fade = .09;
         strikePhase = applyMove(em, state.beatTime, finite(state.beatContact, .9), finite(state.beatEnd, 1.5), wanted, state).phase;
@@ -938,6 +943,26 @@
         else sample('death', deathTime * (boss ? 1.05 : 1.75), wanted, false);
         var slide = (blown ? 1.2 : boss ? .25 : .42) * easeOut(deathTime / (blown ? .45 : .5)) / characterScale;
         wanted.p.z -= slide; yawPose(wanted, deathYaw);
+      }
+      // Gestures laid over the idle / walk pose (hero only, never while striking, rolling, staggering or dying).
+      if (hero && !acting && !dodge && !stagger && !state.dead && !strikePhase) {
+        var cheerT = finite(state.cheerTime, -1), reachT = finite(state.reachTime, -1);
+        if (cheerT >= 0) {
+          // Level-up: chest lifts, head tips up, the weapon fist is thrust overhead for a beat and lowered; the other arm opens out.
+          var cu = cheerT / 1.5, cw = smooth(cu / .16) * (1 - smooth((cu - .62) / .38)), cs = Math.sin(clamp(cu, 0, 1) * PI);
+          spineLayer(wanted, .12 * cw, -.26 * cw, 0);
+          euler.set(-.3 * cw, 0, 0, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(wanted, 4, qa);
+          euler.set(-2.55 * cw, 0, -.18 * cw, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(wanted, 11, qa);
+          euler.set(-.35 * cw, 0, .62 * cw, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(wanted, 7, qa);
+          wanted.p.y += .03 * cs / Math.max(.4, characterScale); nextMode = 'cheer'; fade = .12;
+        } else if (reachT >= 0) {
+          // Interaction (door, lever, pickup, seal): lean in and reach the weapon-free arm toward the thing, then draw back.
+          var ru = reachT / .55, rw = Math.pow(Math.sin(clamp(ru, 0, 1) * PI), .8);
+          spineLayer(wanted, -.16 * rw, .2 * rw, 0);
+          euler.set(.12 * rw, 0, 0, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(wanted, 4, qa);
+          euler.set(-1.25 * rw, 0, .1 * rw, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(wanted, 7, qa);
+          wanted.p.z += .04 * rw / Math.max(.4, characterScale); nextMode = 'reach'; fade = .08;
+        }
       }
       // Secondary life: slow breathing, a shifting stance, the head drifting and turning toward the foe (never while striking or falling).
       if (!state.dead && !dodge && !strikePhase && !roaring && !whirling && !charging && dt > 0) {

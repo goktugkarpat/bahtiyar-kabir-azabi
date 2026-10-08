@@ -479,6 +479,7 @@
     if (levelLaneBusy() && pendingLevelWait < 8) return;
     const d = pendingLevel; pendingLevel = null;
     if (B.LevelUp) B.LevelUp.trigger(d, game.player);
+    if (game.cheer) game.cheer();   // (ajan:hero3) the hero's fist-raise on level-up
     levelUpTimer = 2.7;
   }
   function event(name, d = {}) {
