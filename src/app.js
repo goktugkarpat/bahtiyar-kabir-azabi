@@ -1964,6 +1964,15 @@
     drawFps(fpsFrames * 1000 / span);
     fpsStart = ts; fpsFrames = 0;
   }
+  // Action poses follow every presented gameplay frame, including casts made
+  // while standing still. Input and recovery must never look like a calm idle.
+  function heroAnimating() {
+    const p = game && game.player;
+    return !!(p && (p.attack || p.roar || p.dodge || p.healing || p.stagger > 0 || p.chargeHandle)
+      || heldLight || keys.size || actions.light || actions.heavy || actions.clickLight || actions.clickHeavy
+      || actions.special || actions.rage || actions.fourth || actions.dodge || actions.heal
+      || input.holdLight || input.holdHeavy || B.LevelUp?.active);
+  }
   function loop(ts) { requestAnimationFrame(loop); frameStep(ts); }
   function frameStep(ts) {
     if (!ready) return;
@@ -1979,7 +1988,7 @@
     // under a 60/120 FPS cap, and menus keep doing that work under a 30 FPS cap.
     // Do not advance `last` on skipped callbacks: their time and queued input
     // belong to the next tick. Unlimited remains explicitly unlimited.
-    const calmIdle = calmSince !== 0 && ts - calmSince > 2500 && (cfg.fps === 0 || cfg.fps > 60);
+    const calmIdle = cfg.fps > 60 && !heroAnimating() && calmSince !== 0 && ts - calmSince > 2500;
     const frameDue = renderClock.due(ts, paused ? (view === 'title' ? (cfg.fps ? Math.min(cfg.fps, 60) : 60) : Math.min(cfg.fps || 30, 30)) : calmIdle ? 60 : cfg.fps);
     if (!frameDue) return;
     const cpuStart = measured ? performance.now() : 0;
@@ -1987,7 +1996,7 @@
     const dt = clamp((ts - (last || ts)) / 1000, 0, .10); last = ts; elapsed += dt; frame++;
     visualDt = Math.min(.1, visualDt + dt);
     // Draw rate by situation (CPU/fan): menus 30 (as before), the title screen 60, and a hero who has stood still for 2.5 s with no foe awake
-    // nearby 60 (nothing moves, the screen is static); everything else keeps the configured rate (120 locked). Input or a foe restores it at once.
+    // nearby 60 under a selected cap; uncapped gameplay always follows browser callbacks. Actions and input restore the selected rate at once.
     const drawing = !warming;
     game.drawing = drawing;
     // Controllers keep polling on every menu too, so reconnect, remapping and navigation never depend on combat.
@@ -2012,7 +2021,7 @@
     const fighting = game.enemies.some(e => !e.dead && e.active && Math.hypot(e.x - game.player.x, e.z - game.player.z) < 10);
     {
       const pl = game.player, still = view === 'playing' && game.state === 'playing' && !fighting && !input.x && !input.z && !input.target
-        && Math.hypot(pl.x - calmX, pl.z - calmZ) < .02;
+        && !heroAnimating() && Math.hypot(pl.x - calmX, pl.z - calmZ) < .02;
       calmX = pl.x; calmZ = pl.z;
       if (!still) calmSince = 0; else if (!calmSince) calmSince = ts;
     }

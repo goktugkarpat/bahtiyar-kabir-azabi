@@ -140,6 +140,12 @@ Zincirlerin dövüldüğü yeraltı ocağı. Odalar arasında Kör Körükler, K
 - **Boss:** Ocağın Kalbi.
 - **Görevler:** Son Mahkûmun Yemini (yemin halkasını al, vinçte kullan) ve Kalbi Besleyen Ateş (döküm, cüruf ve ana besleme vanalarını kapat).
 
+### V. Son Mahkeme
+Boşluğun üzerinde asılı taş platformlar, dev zincirler ve Kara Defter’in arşivi. Odalar arasında Kırık Gök Eşiği, Tanıkların Köprüsü, efendilerin gölgeleri, Hüküm Defteri, Kanlı Terazi, Son Tanıklık ve Son Mahkeme bulunur.
+- **Düşmanlar:** Hükümlü, Hüküm Kâtibi, Boşluk Sürüngeni, Zincir Gardiyanı; güçlü bekçi olarak Hüküm Bekçisi. Bu bölümde Mühür Kazıcı ve Boşluk Tanığı da vardır.
+- **Boss:** Kara Kadı.
+- **Görevler:** Efendilerin Mühürleri (üç mührü arşivdeki kürsülere yerleştir) ve Selvi (kız kardeşinin yazı masasını bul, zincirini çöz). Boss savaşının ardından verilen son karar yolculuğu tamamlar.
+
 Her bölümde onlarca düşman vardır.
 
 ## Mola ve ayarlar
@@ -189,6 +195,6 @@ Otomatik görüntü boyutu PC’de pencerenin doğal piksel çözünürlüğün�
 
 ## Türkçe ve İngilizce
 
-Başlangıç menüsündeki **Türkçe / English** düğmelerinden veya **Ayarlar → Oynanış → Dil** bölümünden dil seçilir. Seçim bu cihazda hatırlanır. Dil değişikliği oyunu yeniden açar; aynı yolculuk kaydı, eşya kimlikleri ve yetenek ağacı korunur. İngilizce sürümün adı **Grave Torment**; dört bölümün görevleri, kararları, eşya ve yetenek adları, menüler, harita ve savaş uyarıları yerelleştirilmiştir. İngilizce konuşmalar oyuna gömülüdür ve çevrimdışı da çalar; karanlık İngiliz anlatıcı, kahraman ve cellat için ayrı doğal erkek sesleri kullanılır. Türkçe kayıtlar aynen korunur.
+Başlangıç menüsündeki **Türkçe / English** düğmelerinden veya **Ayarlar → Oynanış → Dil** bölümünden dil seçilir. Seçim bu cihazda hatırlanır. Dil değişikliği oyunu yeniden açar; aynı yolculuk kaydı, eşya kimlikleri ve yetenek ağacı korunur. İngilizce sürümün adı **Grave Torment**; beş bölümün görevleri, kararları, eşya ve yetenek adları, menüler, harita ve savaş uyarıları yerelleştirilmiştir. İngilizce konuşmalar oyuna gömülüdür ve çevrimdışı da çalar; karanlık İngiliz anlatıcı, kahraman ve cellat için ayrı doğal erkek sesleri kullanılır. Türkçe kayıtlar aynen korunur.
 
 Metin sözlüğü `src/i18n.js`, İngilizce sesler `src/narration-en.js` içinde bulunur. Sunum metinleri açık çağrı noktalarında çevrilir; kare başına DOM taraması yapılmaz. Sessiz deneme için `?sessiz&lang=en` veya `?sessiz&lang=tr` kullanılabilir. Geliştirici konsolunda `KabirI18n.missing()` eksik çeviri denetimini verir.

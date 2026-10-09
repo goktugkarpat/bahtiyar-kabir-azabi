@@ -889,12 +889,12 @@
       }
     }
     const smooth = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
-    const wh = { on: false, end: 0, power: 0, age: 0, prev: 0, rate: 0, have: false, dust: 0, vort: 0, k: 1, tier: 1, grow: 1, R: 3.6, matTier: 0, fire: 0 };
+    const wh = { on: false, end: 0, power: 0, age: 0, prev: 0, rate: 0, have: false, dust: 0, vort: 0, k: 1, tier: 1, grow: 1, R: 3.6, matTier: 0, fire: 0, emberCarry: [0, 0], headCarry: [0, 0] };
     const chPX = new Float32Array(CH_PTS), chPY = new Float32Array(CH_PTS), chPZ = new Float32Array(CH_PTS), chCum = new Float32Array(CH_PTS);
     const chM = new T.Matrix4(), chT = new T.Vector3(), chN1 = new T.Vector3(), chN2 = new T.Vector3(), chUp = new T.Vector3(0, 1, 0), chP = new T.Vector3();
     function whirlStep(dt) {
       const g = getGame(), p = g && g.player, a = p && p.attack && p.attack.whirl && !p.dead ? p.attack : null, calm = reduced.matches;
-      if (a) { if (!wh.on) { wh.on = true; wh.have = false; } wh.age = a.age; }
+      if (a) { if (!wh.on) { wh.on = true; wh.have = false; wh.emberCarry.fill(0); wh.headCarry.fill(0); } wh.age = a.age; }
       else wh.on = false;
       wh.power = clamp(wh.power + (wh.on ? dt / .12 : -dt / .14), 0, 1);
       // Parent: two chains stayed out at the sides at the end. They now draw back into the hands before the last blow lands (wh.end 0..1 over the braking part of the spin).
@@ -933,13 +933,24 @@
         const gl = chGlow[arm]; gl.visible = pe > .08; gl.position.set(chPX[0], chPY[0] + .05, chPZ[0]); gl.scale.setScalar((.13+.13*wh.rate+.035*P)*(1+.12*(wh.tier-1))); gl.material.color.setRGB(WTI.glow[0]*P*.25,WTI.glow[1]*P*.25,WTI.glow[2]*P*.25);
         // embers by distance: every 10 cm the head travelled since the last frame sheds one (interpolated between the two angles)
         if (wh.have && !calm && Math.abs(dth) > 1e-4) {
-          const bud = clamp(budget() / 1100, .3, 1), arc = Math.abs(dth) * reach, cnt = Math.min(18 + 6 * (wh.tier - 1), Math.ceil(arc / (.1 / bud / (1 + .5 * (wh.tier - 1)))));
+          // Carry fractional distance instead of rounding every rendered frame up.
+          // The small time term preserves the former 60 Hz sparkle density.
+          const bud = clamp(budget() / 1100, .3, 1), arc = Math.abs(dth) * reach;
+          wh.emberCarry[arm] += Math.min(arc / (.1 / bud / (1 + .5 * (wh.tier - 1))) + dt * 30, (18 + 6 * (wh.tier - 1)) * dt * 60);
+          const cnt = Math.min(18 + 6 * (wh.tier - 1), Math.floor(wh.emberCarry[arm]));
+          wh.emberCarry[arm] = Math.min(1, wh.emberCarry[arm] - cnt);
           for (let k = 0; k < cnt; k++) { const aa2 = ang - dth * (1 - (k + Math.random()) / cnt), rr = reach * (.9 + Math.random() * .1);
             emit(px + Math.sin(aa2) * rr, hy - .1 + Math.random() * .3 + t3 * (chPY[0] - hy), pz + Math.cos(aa2) * rr, 4, Math.random() < .5 ? WTI.ember[0] : WTI.ember[1], Math.cos(aa2) * Math.sign(dth) * 1.2 + rnd(-.3, .3), rnd(.1, .7) + t3 * rnd(.3, 1.1), -Math.sin(aa2) * Math.sign(dth) * 1.2 + rnd(-.3, .3), .45 + Math.random() * .5 + .2 * t3, .05 + .02 * t3); }
           if (wh.tier > 1) {   // heads shed fire: molten sparks (II) / violet-black flames (III) straight off the blade
-            const hot = Math.random() < .5 ? WTI.ember[0] : WTI.hot;
-            if (wh.tier === 2) streak(chPX[0], chPY[0], chPZ[0], Math.cos(ang) * Math.sign(dth) * 6 + rnd(-2, 2), rnd(.5, 3), -Math.sin(ang) * Math.sign(dth) * 6 + rnd(-2, 2), .25 + Math.random() * .2, .05, WTI.hot);
-            else { emit(chPX[0], chPY[0], chPZ[0], 4, hot, rnd(-.5, .5), rnd(.6, 1.6), rnd(-.5, .5), .5 + Math.random() * .4, .09); emit(chPX[0], chPY[0] - .1, chPZ[0], 2, [.05, .035, .06], rnd(-.4, .4), rnd(.3, .9), rnd(-.4, .4), .7, .34); if (Math.random() < .5) skMesh.visible = true; }
+            // Upgraded blade fire uses a 60/s clock, not one emission per frame.
+            wh.headCarry[arm] += dt * 60;
+            const headCount = Math.min(4, Math.floor(wh.headCarry[arm] + 1e-9));
+            wh.headCarry[arm] = Math.min(1, wh.headCarry[arm] - headCount);
+            for (let hi = 0; hi < headCount; hi++) {
+              const hot = Math.random() < .5 ? WTI.ember[0] : WTI.hot;
+              if (wh.tier === 2) streak(chPX[0], chPY[0], chPZ[0], Math.cos(ang) * Math.sign(dth) * 6 + rnd(-2, 2), rnd(.5, 3), -Math.sin(ang) * Math.sign(dth) * 6 + rnd(-2, 2), .25 + Math.random() * .2, .05, WTI.hot);
+              else { emit(chPX[0], chPY[0], chPZ[0], 4, hot, rnd(-.5, .5), rnd(.6, 1.6), rnd(-.5, .5), .5 + Math.random() * .4, .09); emit(chPX[0], chPY[0] - .1, chPZ[0], 2, [.05, .035, .06], rnd(-.4, .4), rnd(.3, .9), rnd(-.4, .4), .7, .34); if (Math.random() < .5) skMesh.visible = true; }
+            }
           }
           if (wh.tier === 2) skMesh.visible = true;
         }
