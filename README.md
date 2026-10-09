@@ -1,6 +1,6 @@
 # Kabir Azabı 🗡️🔥
 
-Bahtiyar'ın karanlık yolculuğunu anlatan, üç boyutlu, Türkçe anlatıcı sesli bir aksiyon rol oyunu. Beş bölüm boyunca zincirli mahkûmlarla, boğulmuş ölülerle, harabelerin bekçileriyle ve ocağın canavarlarıyla savaşırsın. Her bölümün sonunda bir boss vardır. Düşmanları keser, eşya toplar, seviye atlar, yetenek ağacından yeni güçler öğrenirsin. Atmosfer ağır ve karanlıktır; oyun fare ile oynanır, kol ve dokunmatik ekranı da destekler.
+Canlı gömüldüğü mezardan çıkan barbar Bahtiyar’ın Kara Kadı’yı takip ettiği, üç boyutlu, Türkçe anlatıcı sesli bir aksiyon rol oyunu. Beş bölüm boyunca zincirli mahkûmlarla, boğulmuş ölülerle, harabelerin bekçileriyle ve ocağın canavarlarıyla savaşırsın. Her bölümün sonunda bir boss vardır. Düşmanları keser, eşya toplar, seviye atlar, yetenek ağacından yeni güçler öğrenirsin. Atmosfer ağır ve karanlıktır; oyun fare ile oynanır, kol ve dokunmatik ekranı da destekler.
 
 **Yetişkinler içindir (18+). Kan, yoğun şiddet ve korku içerir.**
 
@@ -60,7 +60,7 @@ Yan görevler (isteğe bağlı, kapıyı açmaz ama ödül verir):
 - **Ad avı:** Bölümde adı olan, güçlendirilmiş bir düşman dolaşır. Onu öldürünce eşsiz bir eşya ve bir sandık anahtarı düşer.
 - **Zincirli sandık:** Avdan düşen anahtarla açılır; içinde eşsiz bir eşya ve hikâyeden bir ipucu vardır.
 - **Kurtarma:** Zincirli, yaşayan bir mahkûmun zincirini çöz (yakında düşman varsa önce onları yen). Seni takip eder; onu yemin taşına götür. Ödül: kalıcı iksir hakkı, kalıcı can veya kalıcı hasar.
-- **Kâtibin Yırtık Sayfaları:** Her bölümde üç sayfa. Hepsi toplanınca +1 yetenek puanı. Sayfalar günlükte okunabilir ve Bahtiyar'ın geçmişini anlatır.
+- **Kadı’nın Kayıtları:** Her bölümde üç belge. Hepsi toplanınca +1 yetenek puanı. Belgeler günlükte okunabilir ve kurban düzenini ortaya çıkarır.
 - **Kan Bedeli (gizli):** Haritada saklı bir sunak; yaklaşınca günlükte belirir. Bedeli ödersen (bu bölümde bir iksir eksik ya da kalıcı can kaybı) eşsiz bir silah alırsın; reddedebilirsin.
 
 - **Hayatta Kal:** Bir mangala, çana ya da taşa dokununca üç dalga düşman gelir; hepsini yenersen kalıcı ödül alırsın. Ölürsen ayin baştan başlar.
@@ -68,9 +68,9 @@ Yan görevler (isteğe bağlı, kapıyı açmaz ama ödül verir):
 - **Kaçış:** Bir emaneti alınca süre başlar; ekranın üstündeki sayaç bitmeden işaretli yere koş. Geç kalırsan can kaybedersin ve yeniden deneyebilirsin.
 - **Gizli oda:** Üç mühür taşını doğru sırayla uyandır (taşlardaki çentikleri say, ipucu günlükte). Yanlış taş biraz can alır.
 
-Görev hedeflerinin üstünde ışık sütunu ve yerde dönen bir rün çemberi görünür. Kurtardığın mahkûmların elinde fener vardır. Bölüm başında ve efendi öldüğünde kısa sinema bantları çıkar; okuduğun sayfalar parşömen ekranında açılır. Ana görevlerdeki merhamet/yargı kararların, kurtardıklarının tepkisini, sandık ödüllerini, anlatıcının sözlerini ve son bölümün kapanışını değiştirir.
+Kurtarılan mahkûmlar güvenli yemin taşına kadar seni takip eder. Bölüm açılışları kısa sahneler ve sesle senkron altyazıyla anlatılır. Belgeleri istediğin zaman açıp okursun; okumadan kaybolmazlar.
 
-Kalıcı ödüller (yetenek puanı, iksir hakkı, can, hasar) sonraki bölümlere taşınır. Hikâye beş bölüme yayılır; son bölümün sonunda verilecek son karar, yol boyunca okunan sayfalara göre değişir.
+Kalıcı ödüller sonraki bölümlere taşınır. Hikâye **Mezara Sığmayan**: canlı gömülen barbar Bahtiyar mezardan çıkar, Kara Kadı’nın kurban düzenini kırarak onun peşine düşer. Finalde esirlerle birlikte gün ışığına çıkar.
 
 **Boss kapısı:** Boss odasının önündeki kapı, o bölümün **iki görevi de bitince** açılır. Kapıya yaklaşınca kaç görevin tamamlandığı ekranda yazar. Düşman öldürmek kapıyı açmaz; ama seviye ve eşya için yine de savaşman gerekir.
 
@@ -120,31 +120,31 @@ Her bölümde iki yeni düşman türü vardır: **I** Pranga Bekçisi (tuzak kur
 Zincirli mahkûmların, muhafızların ve ayin yapanların mahzeni. Odalar: Kül Eşiği, Zincir Avlusu, Çürüyen Revir, Adak Salonu, Kemik Geçidi, Sessiz Şapel (yemin taşı), Zincir Mahkemesi; ayrıca yan odalar (Unutulanların Mahzeni, Sönmüş Kandiller ve diğerleri).
 - **Düşmanlar:** Zincirli Mahkûm, Mezar Muhafızı, Kül Rahibi, Karanlık Pusucusu, Veba Taşıyıcısı.
 - **Boss:** Zincir Celladı.
-- **Görevler:** İsimsizlerin Yemini (isim levhasını bul, anı taşına yerleştir) ve Kanla Yazılan Hüküm (Adak Salonu'nda Kül, Kan, Yemin sırasıyla).
+- **Görevler:** Mezarın Kilidi ve Duvarın Ardındakiler.
 
 ### II. Kara Kıyı
 Yanmış mezarlık, boğulmuş sokaklar, çürük iskele ve çanlık. Odalar: Yanmış Mezarlık, Köklerin Yolu, Boğulmuş Sokak, Çürük İskele, Kara Kök Meydanı, Son Fener (yemin taşı), Boğulmuş Çanlık; yan odalar da vardır.
 - **Düşmanlar:** Boğulmuş, Kök Yutmuş, İskele Sürüngeni, Dikenli Leş, Sırıtan Fenerci.
 - **Boss:** Derinliklerin Çancısı.
-- **Görevler:** Boğulanların Son Sesi (kırık çan dilini bul, Son Fener'deki yas çanına tak) ve Kara Kökün Hafızası (mezarlıkta iki mühürlü mezar kabını aç).
+- **Görevler:** Kurban Gemisi ve Kara Sevkiyat.
 
 ### III. Sessiz Taht
 Kral harabeleri, mezarlar ve kristalli mağaralar. Odalar arasında Yitik Sütunlar, Kralların Mezarları, Çöken Anıt, Mağaranın Ağzı, Kör Kristaller, Fısıltı Geçidi, Taşın İçindeki Ölüler, Son Yemin (yemin taşı), Tahtın Nöbeti ve Sessiz Taht bulunur.
 - **Düşmanlar:** Kül Yeminlisi, Kırık Kehanetçi, Mağara Çenesi, Mezar Örücüsü; güçlü bekçi olarak Harabe Muhafızı.
-- **Boss:** Oyukların Kralı.
-- **Görevler:** Kralın Çalınmış Adı (ad levhasını al, anıta yerleştir) ve Mağaranın Nefesi (zincirli yankıyı serbest bırak, son ses bağını sustur).
+- **Boss:** Kurban Bekçisi.
+- **Görevler:** Toprağa Bağlananlar ve Ocağın Yolu.
 
 ### IV. Kızıl Ocak
 Zincirlerin dövüldüğü yeraltı ocağı. Odalar arasında Kör Körükler, Kömür Mahkûmları, Kül Vezirinin Avlusu, Sönen Dökümhane, Zincir Kuyuları, Cüruf Meydanı, Kızıl Fırınlar, Köz Yemini (yemin taşı), Son Döküm ve Kızıl Ocak bulunur.
 - **Düşmanlar:** Kor Yeminlisi, Zincir Kâhini, Cüruf Sürüngeni, Döküm Nöbetçisi; güçlü bekçi olarak Külün Baş Muhafızı.
 - **Boss:** Ocağın Kalbi.
-- **Görevler:** Son Mahkûmun Yemini (yemin halkasını al, vinçte kullan) ve Kalbi Besleyen Ateş (döküm, cüruf ve ana besleme vanalarını kapat).
+- **Görevler:** Esirlerin Ocağı ve Son Döküm.
 
 ### V. Son Mahkeme
 Boşluğun üzerinde asılı taş platformlar, dev zincirler ve Kara Defter’in arşivi. Odalar arasında Kırık Gök Eşiği, Tanıkların Köprüsü, efendilerin gölgeleri, Hüküm Defteri, Kanlı Terazi, Son Tanıklık ve Son Mahkeme bulunur.
 - **Düşmanlar:** Hükümlü, Hüküm Kâtibi, Boşluk Sürüngeni, Zincir Gardiyanı; güçlü bekçi olarak Hüküm Bekçisi. Bu bölümde Mühür Kazıcı ve Boşluk Tanığı da vardır.
 - **Boss:** Kara Kadı.
-- **Görevler:** Efendilerin Mühürleri (üç mührü arşivdeki kürsülere yerleştir) ve Selvi (kız kardeşinin yazı masasını bul, zincirini çöz). Boss savaşının ardından verilen son karar yolculuğu tamamlar.
+- **Görevler:** Tahtın Zincirleri ve Son Kurbanlar.
 
 Her bölümde onlarca düşman vardır.
 
@@ -195,6 +195,6 @@ Otomatik görüntü boyutu PC’de pencerenin doğal piksel çözünürlüğün�
 
 ## Türkçe ve İngilizce
 
-Başlangıç menüsündeki **Türkçe / English** düğmelerinden veya **Ayarlar → Oynanış → Dil** bölümünden dil seçilir. Seçim bu cihazda hatırlanır. Dil değişikliği oyunu yeniden açar; aynı yolculuk kaydı, eşya kimlikleri ve yetenek ağacı korunur. İngilizce sürümün adı **Grave Torment**; beş bölümün görevleri, kararları, eşya ve yetenek adları, menüler, harita ve savaş uyarıları yerelleştirilmiştir. İngilizce konuşmalar oyuna gömülüdür ve çevrimdışı da çalar; karanlık İngiliz anlatıcı, kahraman ve cellat için ayrı doğal erkek sesleri kullanılır. Türkçe kayıtlar aynen korunur.
+Başlangıç menüsündeki **Türkçe / English** düğmelerinden veya **Ayarlar → Oynanış → Dil** bölümünden dil seçilir. Seçim bu cihazda hatırlanır. Dil değişikliği oyunu yeniden açar; aynı yolculuk kaydı, eşya kimlikleri ve yetenek ağacı korunur. İngilizce sürümün adı **Grave Torment**; beş bölümün görevleri, kararları, eşya ve yetenek adları, menüler, harita ve savaş uyarıları yerelleştirilmiştir. İngilizce konuşmalar oyuna gömülüdür ve çevrimdışı da çalar; karanlık İngiliz anlatıcı, kahraman ve cellat için ayrı doğal erkek sesleri kullanılır. Türkçe ve İngilizce anlatım aynı Mezara Sığmayan hikâyesini izler.
 
 Metin sözlüğü `src/i18n.js`, İngilizce sesler `src/narration-en.js` içinde bulunur. Sunum metinleri açık çağrı noktalarında çevrilir; kare başına DOM taraması yapılmaz. Sessiz deneme için `?sessiz&lang=en` veya `?sessiz&lang=tr` kullanılabilir. Geliştirici konsolunda `KabirI18n.missing()` eksik çeviri denetimini verir.

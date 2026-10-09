@@ -197,7 +197,7 @@
     var restP = new Float64Array(total * 3), restN = new Float64Array(total * 3), posA = new Float64Array(total * 3), pcon = new Float64Array(total * 3);   // previous / current frame anchors, state one sub-step back, pre-constraint positions
     var prox = info.proxies.map(function (p, ix) { return { bone: native[p.bone], a: new V3().fromArray(p.a), b: new V3().fromArray(p.b), r: p.r, rb: p.rb, ix: ix }; }).filter(function (p) { return p.bone; });
     var pw = new Float64Array(prox.length * 6), pr = new Float64Array(prox.length), pr2 = new Float64Array(prox.length), pb = new Float64Array(prox.length * 4), NP = info.proxies.length, pwP = new Float64Array(prox.length * 6), pwN = new Float64Array(prox.length * 6), pwInit = false;
-    var links = info.links, accS = 0, revision = -1, wasOff = false, sleepFar = 0, simTime = Math.random() * 20, order = 0, acc = 0;
+    var links = info.links, accS = 0, revision = -1, wasOff = false, sleepFar = 0, simTime = Math.random() * 20, order = 0;
     // FIXED physics step (frame-rate independent): the display rate (30..120+, jittering 45-60) only decides HOW MANY steps run per frame. Hero 120 Hz,
     // foes 60 Hz; damping / spring / gravity are all per-second quantities scaled by the fixed step; anchors and capsules are interpolated between frames.
     var H = hero ? 1 / 120 : 1 / 60, MAXSUB = hero ? 6 : 3, BETA = .5, MAXW = 26;   // MAXW: max angular speed of a cloth bone relative to its parent (rad/s)
@@ -210,15 +210,14 @@
       if (reduceNow()) { if (!wasOff) { resetRest(); wasOff = true; } return; }
       if (wasOff) { wasOff = false; }
       if (!root.visible) { for (var q = 0; q < chains.length; q++) chains[q].live = false; accS = 0; return; }
-      // far / crowded foes: nearest few only, 30 Hz beyond ~12 m
+      // Offscreen-distance culling only; visible cloth is interpolated every drawn frame.
       var ultra = !!(B.app && B.app.settings && B.app.settings.quality === 'ultra');   // Azami: every active foe, out to 40 m, never below the display rate
       if (!hero) {
         if (!cam && B.app) cam = B.app.camera; if (!cam) return;
         var e = root.matrixWorld.elements, dx = e[12] - cam.position.x, dz = e[14] - cam.position.z, dd = Math.sqrt(dx * dx + dz * dz);
         if (dd > (ultra ? 40 : 26)) { for (q = 0; q < chains.length; q++) chains[q].live = false; accS = 0; return; }
         if (S.usedFrame !== S.frame) { S.usedFrame = S.frame; S.used = 0; }
-        if (S.used >= (ultra ? 24 : B.app && B.app.settings && B.app.settings.quality === 'medium' ? 4 : 8)) return; S.used++;
-        acc += dt; if (dd > 12 && acc < 1 / 30 && !ultra) return; dt = Math.min(acc, 1 / 20); acc = 0;
+        S.used++;
       }
       var rev = root.userData.equipmentRevision || 0; var resetAll = !!(state && state.reset) || rev !== revision; revision = rev;
       scene.matrixWorld.decompose(sP, sQs, sS); var sc = sS.x; sQsi.copy(sQs).invert();

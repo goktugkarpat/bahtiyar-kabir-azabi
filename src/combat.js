@@ -584,13 +584,8 @@
     game.globes = globes;
     // Slow motion: every combat clock slows together, exactly like hit-stop, so it never favours a side (no caller since the war cry became quick).
     function slowMotion(seconds) { if (!reducedMotion.matches && seconds > 0 && impactScale > 0) slowmo = Math.max(slowmo, seconds); }
-    // Brief shared-clock contact emphasis, capped below three 60 Hz frames. Inputs stay buffered through the hold.
-    function hitStop(seconds, shudder) {
-      if (reducedMotion.matches || !(seconds > 0)) return 0;
-      const s = Math.min(FEEL.hitstop.cap || .048, seconds * impactScale); freeze = Math.max(freeze, s);
-      if (shudder) shudder.forEach(v => { if (!victims.some(o => o.body === v.body)) victims.push(v); });
-      return s;
-    }
+    // Contact sound, particles and recoil carry impact without stopping animation clocks.
+    function hitStop() { return 0; }
     function push(body, angle, distance) {
       if (!(distance > 0)) return;
       const p = body.push || (body.push = { x: 0, z: 0 });
@@ -861,7 +856,7 @@
         return;
       }
       game.state = 'playing'; wakeAge = 0;
-      emit('toast', { text: chapter === 5 ? (checkpointSnapshot.index ? KabirI18n.t('Son yemin taşından devam ediyorsun. Kara Kadı ileride.') : KabirI18n.t('Son Mahkeme. Boşluğun üstündeki yolu geç; hükmü veren eli kır.')) : chapter === 4 ? (checkpointSnapshot.index ? KabirI18n.t('Son ocak yemininden devam ediyorsun. Ocağın Kalbi ileride.') : KabirI18n.t('Kızıl Ocak. Zincir tezgâhlarını geç; ocağın kalbini söndür.')) : chapter === 3 ? (checkpointSnapshot.index ? KabirI18n.t('Son yemin taşından devam ediyorsun. Oyukların Kralı ileride.') : KabirI18n.t('Sessiz Taht. Harabelerden mağaraya in; oyukların kaynağını sustur.')) : world.chapter === 2 ? (checkpointSnapshot.index ? KabirI18n.t('Son Fener’den devam ediyorsun. Çancı ileride.') : KabirI18n.t('Kara Kıyı. Kökleri yar. Boğulmuş çanı sustur.')) : checkpointSnapshot.index ? KabirI18n.t('Son mühürden devam ediyorsun. Cellat ileride.') : KabirI18n.t('Kurban Tapınağı. Mührü bul. Celladı sustur.') });
+      emit('toast', { text: chapter === 5 ? (checkpointSnapshot.index ? KabirI18n.t('Son yemin taşından devam ediyorsun. Kara Kadı ileride.') : KabirI18n.t('Son Mahkeme. Boşluğun üstündeki yolu geç; hükmü veren eli kır.')) : chapter === 4 ? (checkpointSnapshot.index ? KabirI18n.t('Son ocak yemininden devam ediyorsun. Ocağın Kalbi ileride.') : KabirI18n.t('Kızıl Ocak. Zincir tezgâhlarını geç; ocağın kalbini söndür.')) : chapter === 3 ? (checkpointSnapshot.index ? KabirI18n.t('Son yemin taşından devam ediyorsun. Kurban Bekçisi ileride.') : KabirI18n.t('Sessiz Taht. Harabelerden mağaraya in; oyukların kaynağını sustur.')) : world.chapter === 2 ? (checkpointSnapshot.index ? KabirI18n.t('Son Fener’den devam ediyorsun. Çancı ileride.') : KabirI18n.t('Kara Kıyı. Kökleri yar. Boğulmuş çanı sustur.')) : checkpointSnapshot.index ? KabirI18n.t('Son mühürden devam ediyorsun. Cellat ileride.') : KabirI18n.t('Kurban Tapınağı. Mührü bul. Celladı sustur.') });
     }
     function restart() {
       if (disposed) return;
@@ -905,7 +900,7 @@
       if (quests && quests.interact()) { reachAge = 0; return; }
       if (groundLoot && groundLoot.takeNearest(player.x, player.z, 2)) { reachAge = 0; return; }   // E also takes the nearest ground item within 2 m
       if (activateCheckpoint()) { reachAge = 0; return; }
-      if (distance(player, checkpoint) < 6.1) emit('toast', { text: game.checkpointIndex ? (chapter === 5 ? KabirI18n.t('Yemin mühürlü. Kara Kadı ileride bekliyor.') : chapter === 4 ? KabirI18n.t('Yemin mühürlü. Ocağın Kalbi ileride bekliyor.') : chapter === 3 ? KabirI18n.t('Yemin mühürlü. Oyukların Kralı ileride bekliyor.') : world.chapter === 2 ? KabirI18n.t('Yemin mühürlü. Çancı ileride bekliyor.') : KabirI18n.t('Mühür açık. Cellat salonda bekliyor.')) : KabirI18n.t('Yakındaki tehlikeden uzaklaş; sonra yemin taşına dön.') });
+      if (distance(player, checkpoint) < 6.1) emit('toast', { text: game.checkpointIndex ? (chapter === 5 ? KabirI18n.t('Yemin mühürlü. Kara Kadı ileride bekliyor.') : chapter === 4 ? KabirI18n.t('Yemin mühürlü. Ocağın Kalbi ileride bekliyor.') : chapter === 3 ? KabirI18n.t('Yemin mühürlü. Kurban Bekçisi ileride bekliyor.') : world.chapter === 2 ? KabirI18n.t('Yemin mühürlü. Çancı ileride bekliyor.') : KabirI18n.t('Mühür açık. Cellat salonda bekliyor.')) : KabirI18n.t('Yakındaki tehlikeden uzaklaş; sonra yemin taşına dön.') });
     }
 
     function moveBody(body, dx, dz, radius) {
@@ -2716,19 +2711,7 @@
           enemy._lodPosed = false;
           continue;
         }
-        // Animation level of detail: a foe that stands asleep (not awake, not walking home, not hurt, nothing changed since its last pose)
-        // only breathes. Its pose is refreshed every 2nd / 3rd callback with the time that passed (the bones keep the last pose, the
-        // render pass still carries them with the root). Anything awake, hurt, dead, a boss, or newly in view is posed every callback.
-        let lodSkip = false;
-        if (posing && visible && enemy._lodPosed && !enemy.active && !enemy.returning && !enemy.boss && !enemy.dead && !enemy.action && !(enemy.hurt > 0) && !(enemy.stagger > 0) &&
-            enemy.x === enemy._lodX && enemy.z === enemy._lodZ && enemy.face === enemy._lodFace && enemy.yaw === enemy.face && d >= 5) {
-          enemy._lodTick = (enemy._lodTick | 0) + 1;
-          if ((enemy._lodTick + enemy.index) % (d < 14 ? 2 : 3) !== 0) { enemy._lodAcc = (enemy._lodAcc || 0) + dt; lodSkip = true; }
-        }
-        if (lodSkip) {
-          enemy.bar.root.visible = false;
-          continue;
-        }
+        // Every visible actor is posed on every drawn frame, including idle breathing.
         const em = movementState(enemy, enemy.model, dt, STATS[enemy.type].speed, enemy._anim || (enemy._anim = {}));
         enemy.model.root.visible = visible; if (enemy.holder.visible !== visible) enemy.holder.visible = visible;
         // Shadow level of detail (60 Hz-class targets): a character far from the hero no longer casts into the key light's map.

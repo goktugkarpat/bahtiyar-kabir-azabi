@@ -15,7 +15,7 @@
   var BOSSES = {
     1: { tr: 'Zincir Celladı', trFrom: 'Zincir Celladı’ndan', en: 'Chain Executioner', crest: 'chain', ids: ['executioner-axe', 'rusted-mail-chest', 'headsman-hood', 'hook-chain-gauntlets'] },
     2: { tr: 'Derinliklerin Çancısı', trFrom: 'Derinliklerin Çancısı’ndan', en: 'Bellringer of the Depths', crest: 'bell', ids: ['bell-spear', 'drowned-clapper-axe', 'bellringer-bronze-chest', 'drowned-ringer-helm', 'tide-chain-boots'] },
-    3: { tr: 'Oyukların Kralı', trFrom: 'Oyukların Kralı’ndan', en: 'King of the Hollows', crest: 'crown', ids: ['hollow-crown-blade', 'hollow-scepter-spear', 'king-ossuary-chest', 'hollow-king-spurs'] },
+    3: { tr: 'Kurban Bekçisi', trFrom: 'Kurban Bekçisi’ndan', en: 'King of the Hollows', crest: 'crown', ids: ['hollow-crown-blade', 'hollow-scepter-spear', 'king-ossuary-chest', 'hollow-king-spurs'] },
     ruinwarden: { tr: 'Harabe Muhafızı', trFrom: 'Harabe Muhafızı’ndan', en: 'Ruin Warden', crest: 'visor', ids: ['warden-chainmail', 'warden-verdict-helm', 'warden-iron-claws'] },
     4: { tr: 'Ocağın Kalbi', trFrom: 'Ocağın Kalbi’nden', en: 'Heart of the Furnace', crest: 'flame', ids: ['furnace-oath-axe', 'heart-forged-sword', 'anvil-heart-chest', 'furnace-heart-helm', 'cinder-breath-boots'] },
     ashwarden: { tr: 'Külün Baş Muhafızı', trFrom: 'Külün Baş Muhafızı’ndan', en: 'High Warden of Ash', crest: 'visor', ids: ['ash-warden-chest', 'ash-warden-grasp', 'ash-warden-greaves'] },
@@ -51,12 +51,12 @@
       L('Siperinin ardında yutulmuş bir çığlık kalmış. Tuz hâlâ kemirir.', 'A swallowed scream remains behind the visor. The salt still gnaws at it.'), 'bell-helm', 'brine'],
     ['tide-chain-boots', L('Gelgit Zincirinin Adımları', 'Steps of the Tide Chain'), 'boots', 5, 'boss', 0, .075, 2, null,
       L('Bileklerinde kopmuş bir çapa zinciri sallanır. Dibe çekilen her adımı geri alır.', 'A snapped anchor chain swings at the ankles. It takes back every step the deep pulled down.'), 'shackle-boots', 'brine'],
-    // ---- Chapter III — Oyukların Kralı
-    ['hollow-scepter-spear', L('Oyuk Kralının Kemik Asası', 'The Hollow King’s Bone Scepter'), 'weapon', 7, 'boss', .235, 0, 2, 'spear',
-      L('Tahtın önünde taşınan uzun kemik asa. Tacı boş kalmış, ama hâlâ bir ordu yönetecek kadar ağır.', 'The long bone scepter once borne before the throne. Its crown is empty, yet it is still heavy enough to command an army.'), 'hollow-scepter-spear', 'bone'],
-    ['king-ossuary-chest', L('Kralın Kemik Zırhı', 'The King’s Ossuary Plate'), 'chest', 7, 'boss', 0, .13, 3, null,
-      L('Oyukta ölen kralların kaburgalarından örülmüş göğüslük. Her kemik bir hükümdarın son nefesini tutar.', 'A cuirass woven from the ribs of kings who died in the hollow. Each bone holds a ruler’s last breath.'), 'rib-chest', 'bone'],
-    ['hollow-king-spurs', L('Oyuk Kralının Mahmuzları', 'The Hollow King’s Spurs'), 'boots', 7, 'boss', 0, .09, 3, null,
+    // ---- Chapter III — Kurban Bekçisi
+    ['hollow-scepter-spear', L('Kurban Bekçisinin Kemik Mızrağı', 'The Sacrificial Warden’s Bone Spear'), 'weapon', 7, 'boss', .235, 0, 2, 'spear',
+      L('Kadı’nın bekçisinin taşıdığı kemik mızrak. Taşın altında bağlanan kurbanların kemikleriyle güçlendirilmiş.', 'A bone spear carried by the Judge’s warden, reinforced with the bones of victims bound beneath the stone.'), 'hollow-scepter-spear', 'bone'],
+    ['king-ossuary-chest', L('Kurban Bekçisinin Kemik Zırhı', 'The Warden’s Ossuary Plate'), 'chest', 7, 'boss', 0, .13, 3, null,
+      L('Kurban bekçisinin kemik göğüslüğü. Kaburgalar arasındaki demir bağlar Kadı’nın ocağında dövülmüş.', 'The sacrificial warden’s bone cuirass. The iron bindings between its ribs were forged in the Judge’s furnace.'), 'rib-chest', 'bone'],
+    ['hollow-king-spurs', L('Kurban Bekçisinin Mahmuzları', 'The Warden’s Spurs'), 'boots', 7, 'boss', 0, .09, 3, null,
       L('Taht odasının taşını çizmiş altın mahmuzlar. Artık hiçbir ata binmez; yalnız yürür.', 'Gold spurs that scored the throne room’s stone. They ride no horse now; they only walk.'), 'crown-boots', 'bone'],
     ['warden-iron-claws', L('Muhafızın Demir Pençeleri', 'The Warden’s Iron Claws'), 'hands', 5, 'boss', 0, .09, 2, null,
       L('Harabe kapısını kırmak için dökülmüş kalın pençeler. Kapı yıkıldı, pençeler durdu.', 'Thick claws cast to break the ruin’s gate. The gate fell; the claws stayed.'), 'claw-gauntlets', 'bone'],

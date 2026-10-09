@@ -7,80 +7,80 @@
   null,
   {
     "title": [
-      "Kurban Tapınağı",
-      "Temple of Sacrifice"
+      "Mezara Sığmayan",
+      "The Unburied"
     ],
     "opening": [
-      "Seni ölü sanıp Kurban Tapınağı'nın kuyusuna attılar. Yirmi yıl Kara Defter'e ad yazan elin şimdi toprağı kazıyor; hükmettiğin insanlar Cellat'ın kapısına bağlanmış.",
-      "They thought you dead and threw you into the well of the Temple of Sacrifice. The hand that wrote names in the Black Ledger for twenty years now claws at the earth; the people you condemned are bound to the Executioner's gate."
+      "Seni yaralı ele geçirdiler. Kara Kadı’nın emriyle canlı gömdüler. Taş kapak kırıldı; şimdi çıkış yolunu bul.",
+      "They captured you wounded and buried you alive on the Black Judge’s orders. The stone lid has broken. Find your way out."
     ],
     "goal": [
-      "Mahkûmlara adlarını geri ver ve tapınağın kan hükmünü boz. Cellat'ın kapısını aş; seni mezara gönderen hükmün izini bul.",
-      "Return the prisoners' names and break the temple's blood sentence. Get past the Executioner's gate and follow the order that sent you to the grave."
+      "Gardiyanların sakladığı kilit levhasını bul ve hücre düzeneğini aç. Esirlerin tutulduğu ayinin iki bağını kır.",
+      "Find the lock plate hidden by the wardens and release the cells. Break the two ritual bonds holding the captives."
     ],
     "closing": [
-      "Cellat'ın bıçağı sustu; yazdığın isimlerin acısı silinmedi. Son sözünde ortaklığınızı kabul etti: adları sen yazdın, bedenleri o kesti. Ölüleri birbirine bağlayan sicilin yolu Kara Kıyı'ya açılıyor.",
-      "The Executioner's blade is silent; the pain of the names you wrote is not erased. In his last words he confessed your partnership: you wrote the names, he cut the bodies. The register that binds the dead leads to the Black Shore."
+      "Gardiyan düştü. Kara Kadı’nın emri cebinde; tutsakların gösterdiği yol kıyıya çıkıyor.",
+      "The warden falls. You carry the Black Judge’s order; the captives’ passage leads to the shore."
     ],
     "voiceStart": "intro",
     "voiceEnd": "truth1"
   },
   {
     "title": [
-      "Kara Kıyı",
-      "Black Shore"
+      "Esir Limanı",
+      "Port of Captives"
     ],
     "opening": [
-      "Defter'e 'borç ödendi' diye kaydettiğin kıyıdasın. Çan, boğulanları her defasında son nefeslerine döndürüyor; kız kardeşin Selvi'nin sevk kaydı bu insanların arasından geçiyor.",
-      "You stand on the shore you recorded as 'debt paid.' Each toll returns the drowned to their final breath; your sister Selvi's delivery record passes through the same account."
+      "Kara Kadı’nın kurbanları bu limandan taşınıyor. Esirleri çıkar, sevkiyatı durdur ve harabelere giden yolu bul.",
+      "The Black Judge’s sacrifices pass through this port. Free the captives, stop the shipment and find the road to the ruins."
     ],
     "goal": [
-      "Yas çanının ve mezar köklerinin bağlarını çöz. Çancı'nın hesabından Selvi'nin nereye götürüldüğünü öğren.",
-      "Break the bonds of the mourning bell and the burial roots. Learn from the Bellringer's account where Selvi was taken."
+      "Sevkiyat çanının dilini bul; geminin esir kilitlerini aç. Mezarlıkta gizlenen iki sevkiyat bağını kır.",
+      "Find the shipment bell’s clapper and unlock the captive hold. Break the two shipment bonds hidden in the cemetery."
     ],
     "closing": [
-      "Selvi boğulmadı. Çancı onu krala verdiğini itiraf etti; kardeşin kıyının borcuna karşılık sayılmış. Kendi imzanın izini, harabelerdeki tahta kadar sürmelisin.",
-      "Selvi did not drown. The Bellringer confessed that he gave her to the King; your sister was counted against the shore's debt. You must follow your own signature as far as the throne in the ruins."
+      "Esir gemisi boş. Sevkiyat durdu. Kadı’nın izini harabelerin altında süreceksin.",
+      "The captive ship is empty. The shipment has stopped. Follow the Judge’s trail beneath the ruins."
     ],
     "voiceStart": "coastIntro",
     "voiceEnd": "truth2"
   },
   {
     "title": [
-      "Sessiz Taht",
-      "Silent Throne"
+      "Toprağın Tutsakları",
+      "Prisoners of the Earth"
     ],
     "opening": [
-      "Kralın emirleri taşın içine kapatılmış insanların nefesinden çıkıyor. Sana kalemi veren kral kendi adını sakladı; Selvi'ye ulaşan yol onun unvanının ardında.",
-      "The King's commands issue from the breaths of people sealed within the stone. The King who gave you the pen hid his own name; the path to Selvi lies behind his title."
+      "Kadı’nın eski kurbanları taşın içinde tutuluyor. Bağlarını kır; ocağa inen geçidi aç.",
+      "The Judge’s old victims are held within the stone. Break their bonds and open the passage to the forge."
     ],
     "goal": [
-      "Kralın sakladığı adı ortaya çıkar ve mağaranın ses bağlarını çöz. Tahtı aşarak Kara Defter'in gerçek sahibini bul.",
-      "Uncover the King's hidden name and break the cave's bonds of sound. Get beyond the throne and find the true owner of the Black Ledger."
+      "Kurbanların bağ levhasını bul ve taş kilidine yerleştir. Mağaradaki iki geçit bağını çöz.",
+      "Find the victims’ bond plate and fit it into the stone lock. Release the cavern’s two passage bonds."
     ],
     "closing": [
-      "Kral tahtını korumak için kendi adını sattı. Onu devirmek sicili kapatmadı: Defter Kara Kadı'nın. Tahtın arkasındaki yol, yazdığın adların halkalara dövüldüğü Kızıl Ocak'a iniyor.",
-      "The King sold his name to preserve his throne. His fall did not close the register: the Ledger belongs to the Black Judge. The path behind the throne descends into the Crimson Furnace, where the names you wrote are forged into links."
+      "Kurban Bekçisi düştü. Taş hücreler açıldı; sıcak merdiven ocağa iniyor.",
+      "The Sacrifice Warden falls. The stone cells open; the warm stairs descend to the forge."
     ],
     "voiceStart": "ruinsIntro",
     "voiceEnd": "truth3"
   },
   {
     "title": [
-      "Kızıl Ocak",
-      "Crimson Furnace"
+      "Zincirlerin Kaynağı",
+      "Source of the Chains"
     ],
     "opening": [
-      "Tapınağın hükmünü, kıyının boğulmasını ve kralın emrini besleyen düzenin kalbindesin. Yazdığın her ad burada bitmeyen bir ateş gününe çevrildi; Selvi'nin halkasını arıyorsun.",
-      "You stand at the heart of the order that fed the temple's sentence, the shore's drowning and the King's command. Every name you wrote became an endless day of fire here; you seek Selvi's link."
+      "Kadı’nın gardiyanları burada silahlanıyor. Esir işçileri çıkar; zincir üretimini durdur.",
+      "The Judge’s wardens are armed here. Free the captive workers and stop the forging of chains."
     ],
     "goal": [
-      "Mahkûmların kuyu zincirlerini ve kalbin insan beslemesini kes. Ocağı aş; Selvi'nin halkasına ne olduğunu öğren.",
-      "Sever the prisoners' well chains and the human feed into the heart. Get past the furnace and learn what became of Selvi's link."
+      "Vinç anahtarını bul ve işçilerin zincirlerini bırak. Dökümü durdur ve mahkeme kapısının beslemesini kes.",
+      "Find the winch key and release the workers’ chains. Stop the casting and cut the court gate’s feed."
     ],
     "closing": [
-      "Selvi'nin halkası boş: o yanmadı. Kara Kadı onu yeni yazı masasına bağlamış. Ateşi söndürdün, fakat sicil hâlâ yazılıyor; kardeşini bulmak için mürekkebin kaynağına gitmelisin.",
-      "Selvi's link is empty: she did not burn. The Black Judge chained her to a new writing desk. You silenced the fire, but the register is still being written; to find your sister, you must reach the source of the ink."
+      "Ocak sustu. Esir işçiler çıktı. Son Mahkeme’nin kapısı açık.",
+      "The forge falls silent. The captive workers are out. The Last Court’s gate stands open."
     ],
     "voiceStart": "forgeIntro",
     "voiceEnd": "truth4"
@@ -88,19 +88,19 @@
   {
     "title": [
       "Son Mahkeme",
-      "Last Court"
+      "The Last Court"
     ],
     "opening": [
-      "Selvi senin el yazını taklit ederek Kara Defter'i doldurmaya zorlanıyor. Kadı, bir kâtibin yerine başkasını bağladı; kardeşini kurtarırken onun yerine geçmeni bekliyor.",
-      "Selvi is forced to fill the Black Ledger by copying your handwriting. The Judge chained one scribe in another's place; he expects you to take her seat when you rescue her."
+      "Kadı seni yeniden zincirlemek istiyor. Son esirleri çıkar, kurban bağlarını kır ve hesabı kapat.",
+      "The Judge means to chain you again. Free the last captives, break the tribute bonds and settle the score."
     ],
     "goal": [
-      "Üç efendi mührüyle Defter'in kilidini aç, Selvi'nin zincirini çöz ve Kara Kadı'yı yen. Son satırda kimin bedel ödeyeceğine karar ver.",
-      "Open the Ledger's lock with the three masters' seals, break Selvi's chain and defeat the Black Judge. Decide who pays the price on the last line."
+      "Kadının kürsüsünü besleyen üç kurban bağını kır. Arşivin derinliklerindeki son esirlerin kilidini aç.",
+      "Break the three tribute bonds feeding the Judge’s dais. Open the lock holding the last captives deep in the archive."
     ],
     "closing": [
-      "Kara Kadı düştü. Öldürmen yazdıklarını silmedi. Sicili kendi adınla kapatabilir, adların hafızasını ateşe verebilir ya da Selvi'yi silip kalemi devralabilirsin. Son hükmün bedelini saklayacak bir mühür kalmadı.",
-      "The Black Judge has fallen. Killing him did not erase what you wrote. Close the register with your own name, burn the names' memories, or erase Selvi and take the pen. No seal remains to hide the cost of your last sentence."
+      "Kara Kadı öldü. Kurban zincirleri kırıldı. Bahtiyar ve esirler gün ışığına çıktı.",
+      "The Black Judge is dead. The tribute chains are broken. Bahtiyar and the captives walk into daylight."
     ],
     "voiceStart": "ch5Intro",
     "voiceEnd": null
@@ -126,7 +126,8 @@
       const d = chapter(ch), def = B.Quests && B.Quests.chapters[ch], local = q && q.chapter === ch ? q : null;
       const lines = window.KabirI18n && KabirI18n.lang === 'en' ? B.NarrationEN : B.Narration;
       const narration = [], seenNarration = new Set();
-      for (const [key, title] of [[d.voiceStart, pick('Bölüm başlangıcı', 'Chapter opening')], ['story' + ch, pick('Hatıra', 'Recollection')]]) {
+      for (const [key, title] of [[d.voiceStart, pick('Bölüm başlangıcı', 'Chapter opening')], ['story' + ch, pick('Keşif', 'Discovery')]]) {
+        if (key === 'story' + ch && !completed.has(ch) && !(local && local.discoverySeen)) continue;
         const text = lines && lines[key] && lines[key].text;
         if (typeof text === 'string' && text.trim() && !seenNarration.has(text.trim())) { seenNarration.add(text.trim()); narration.push({ key, title, text }); }
       }

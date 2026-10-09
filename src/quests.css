@@ -78,25 +78,23 @@
 #quest-notice[data-kind="rescue"] { border-left-color: #8fb39c }
 
 
-/* ajan:quests — cinema bars, page reader, epilogue */
+/* Chapter title, one spoken subtitle lane, and manually paged documents. */
 .qc-root { position: fixed; inset: 0; pointer-events: none; z-index: 34 }
-.qc-bars .qc-bar { display: none }   /* no black cinema bars (parent's choice); the caption below stays */
-.qc-bars .qc-bar.top { top: 0; transform: translateY(-100%) }
-.qc-bars .qc-bar.bottom { bottom: 0; transform: translateY(100%) }
-.qc-bars.show .qc-bar { transform: none }
-.qc-caption { position: absolute; left: 50%; top: clamp(44px, 7vh, 84px); width: min(760px, calc(100vw - 600px)); box-sizing: border-box; padding: 18px 28px 14px; transform: translateX(-50%); text-align: center; opacity: 0; transition: opacity .55s ease; text-shadow: 0 2px 4px #000; color: #f2eadb; background: linear-gradient(180deg, #100e0cf0, #100e0ce8); border: 1px solid #aa875649; box-shadow: 0 10px 35px #0008, inset 0 1px #dbc18b18; border-radius: 3px }
+.qc-bars .qc-bar { display: none }
+.qc-caption { position: absolute; left: 50%; top: clamp(46px, 10vh, 98px); width: min(760px, calc(100vw - 48px)); box-sizing: border-box; padding: 8px 24px; transform: translateX(-50%); text-align: center; opacity: 0; transition: opacity .45s ease; text-shadow: 0 2px 5px #000, 0 0 20px #000; color: #f2eadb; background: none; border: 0; box-shadow: none }
 .qc-bars.show .qc-caption { opacity: 1 }
-.qc-caption .qc-eyebrow { display: block; color: #c9a46a; font: 500 12px/1.3 var(--text); letter-spacing: .3em; text-transform: uppercase; margin-bottom: 6px }
-.qc-caption .qc-title { display: block; color: #f2dfb6; font: 600 clamp(22px, 2.2vw, 30px)/1.2 var(--display); letter-spacing: .025em; margin-bottom: 10px }
-.qc-caption .qc-text { margin: 0; color: #f2eadb; font: 400 clamp(17px, 1.4vw, 20px)/1.55 Georgia, 'Times New Roman', serif; text-wrap: pretty }
-body.qc-cinema #quest-notice { opacity: 0; transition: opacity .3s }
-body.qc-cinema:not(.in-combat):not(.bf-intro):not(.chapter-fading) #narration[data-story-duplicate="true"] { visibility: hidden }
+.qc-caption .qc-eyebrow { display: block; color: #c9a46a; font: 500 12px/1.3 var(--text); letter-spacing: .3em; text-transform: uppercase; margin-bottom: 8px }
+.qc-caption .qc-title { display: block; color: #f2dfb6; font: 600 clamp(24px, 2.2vw, 34px)/1.2 var(--display); letter-spacing: .025em }
 body.chapter-fading .qc-bars { opacity: 0; transition: opacity .6s }
-.qc-journal-hint { display: block; margin-top: 12px; color: #cab58b; font: 500 12px/1.45 var(--text); letter-spacing: .015em }
-.qc-dismiss { position: absolute; top: 8px; right: 9px; pointer-events: auto; padding: 5px 8px; border: 1px solid #b2946155; border-radius: 2px; background: #080807b8; color: #dbcba9; font: 500 11px/1.2 var(--text); cursor: pointer }
-.qc-dismiss:hover, .qc-dismiss:focus-visible { color: #fff5dc; background: #33261e; outline: 2px solid #d6ba77; outline-offset: 2px }
-.qc-bars:not(.show) .qc-dismiss { visibility: hidden; pointer-events: none }
 body:not([data-view="playing"]) .qc-bars { visibility: hidden }
+/* Fixed center placement overrides the previous left-aligned duplicate box. */
+body #hud #narration { left: 50% !important; transform: translateX(-50%) !important; width: min(760px, calc(100vw - 48px)) !important; max-width: 760px; box-sizing: border-box; display: block; padding: 8px 20px; text-align: center; border: 0; box-shadow: none; background: radial-gradient(ellipse at center, #060504c9, #06050465 60%, transparent 100%); pointer-events: none }
+body #hud #narration::before, body #hud #narration::after, body #hud #narration .narrator-sigil { display: none }
+body #hud #narration .narration-text { min-width: 0 }
+body #hud #narration .narration-text span { display: block; color: #d7bb8a; font: 600 12px/1.35 var(--text); letter-spacing: .06em }
+body #hud #narration .narration-text p { margin: 4px 0 0; color: #f4eddf; font: 500 clamp(17px, 1.4vw, 20px)/1.45 var(--text); text-shadow: 0 2px 4px #000, 0 0 8px #000; overflow-wrap: break-word; text-wrap: pretty }
+body #hud #narration.tap { animation: none }
+body:not([data-view="playing"]) #hud #narration { visibility: hidden }
 .qc-reader { position: absolute; inset: 0; display: grid; place-items: center; padding: 24px; box-sizing: border-box; pointer-events: auto; background: #050504c9; opacity: 0; transition: opacity .45s ease }
 .qc-reader.show { opacity: 1 }
 .qc-reader[hidden] { display: none }
@@ -123,8 +121,17 @@ body:not([data-view="playing"]) .qc-bars { visibility: hidden }
 @media (prefers-reduced-motion: reduce) { .qc-bars .qc-bar, .qc-caption, .qc-reader, .qc-sheet, .qc-epilogue { transition: none } .qc-para { animation: none; opacity: 1 } }
 .qc-lastwords { display: block; margin-top: 16px; color: #e6c48e; font: italic 400 clamp(15px, 1.4vw, 19px)/1.6 Georgia, 'Times New Roman', serif }
 .qc-root.reading { z-index: 400 }
-@media (max-width: 1100px) { .qc-caption { top: 105px; width: min(640px, calc(100vw - 48px)); padding: 16px 20px 12px } .qc-sheet { width: min(640px, 92vw); padding: 28px 28px 24px } }
-@media (max-height: 600px) { .qc-caption { top: 28px; width: min(650px, calc(100vw - 270px)); padding: 10px 18px } .qc-caption .qc-title { font-size: 21px; margin-bottom: 6px } .qc-caption .qc-text { font-size: 16px; line-height: 1.45 } .qc-journal-hint { margin-top: 8px; font-size: 11px } .qc-reader { padding: 12px } .qc-sheet { max-height: calc(100dvh - 24px); padding: 22px 28px } }
+@media (max-width: 1100px) { .qc-sheet { width: min(640px, 92vw); padding: 28px 28px 24px } }
+@media (max-height: 600px) { .qc-caption { top: 22px } .qc-reader { padding: 12px } .qc-sheet { max-height: calc(100dvh - 24px); padding: 22px 28px } }
+.qc-reader-nav { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin-top: 24px; padding-right: 40px; position: relative; z-index: 1 }
+.qc-reader-nav button { margin-top: 0; padding: 9px 14px; border: 1px solid #5b3d1e; background: #2a1a0ccc; color: #ead8b2; font: 600 13px/1.3 var(--text); cursor: pointer }
+.qc-reader-nav button:disabled { opacity: .4; cursor: default }
+.qc-reader-nav button[hidden] { display: none }
+.qc-reader-nav button:focus-visible { outline: 2px solid #51340e; outline-offset: 3px }
+.qc-reader-nav .qc-close { margin-left: auto }
+.qc-page-counter { color: #4a2f17; font: 600 13px/1.3 var(--text); font-variant-numeric: tabular-nums }
+.qc-sheet .qc-text { white-space: pre-line }
+
 
 /* Quest HUD compass: a small arrow and the distance (shown only while the goal is far) */
 .quest-compass { display: flex; align-items: center; gap: 6px; color: #b9a67f; font: 500 calc(12px * var(--k))/1.2 var(--text) }

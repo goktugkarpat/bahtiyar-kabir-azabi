@@ -1,182 +1,254 @@
 {
   "story1": {
     "chapter": 1,
-    "tr": "İlk adın ardından bütün gece ellerini yıkadın. Yirminci yılında yalnız kalemin ucunu temizliyordun. Cellat bedeni kesti; hükmü sen yazdın. Kuyunun karanlığı cezanın bittiği yer değil. Yazdıklarının seni tanıdığı yer.",
-    "en": "After the first name, you washed your hands all night. By your twentieth year, you cleaned only the nib. The Executioner cut the body; you wrote the sentence. The well's darkness is not where punishment ends. It is where those you condemned recognize you."
+    "kind": "discovery",
+    "speaker": "narr",
+    "tr": "Nakil emrinde Kara Kadı’nın mührü var. Seni canlı istiyor. Gardiyanlar onun için çalışıyor.",
+    "en": "The transport order bears the Black Qadi’s seal. He wants you alive. The guards serve him."
   },
   "truth1": {
     "chapter": 1,
-    "tr": "Cellat son nefesinde fısıldıyor: Sen yazdın, ben kestim. Beni öldürdün, kâtip. Yazdığın adlar hâlâ yaşıyor.",
-    "en": "With his last breath, the Executioner whispers: You wrote, I cut. You killed me, scribe. The names you wrote are still alive."
+    "kind": "boss_truth",
+    "speaker": "narr",
+    "tr": "Gardiyanın son sözü bir uyarı: Liman efendisi seni bekliyor. Kara Kadı kaçışını öğrendi.",
+    "en": "The warden’s last words are a warning: the port master awaits you. The Black Qadi knows you escaped."
   },
   "rescue1": {
     "chapter": 1,
-    "tr": "Derviş yemin taşına ulaştı. Adını sen yazmıştın; o yine de sana matarasını bıraktı.",
-    "en": "The dervish has reached the oath stone. You wrote his name, and still he left you his flask."
+    "kind": "event",
+    "speaker": "narr",
+    "tr": "Derviş güvenli yere ulaştı. Matarasını sana bıraktı.",
+    "en": "Dervish has reached safety. He left his flask for you."
   },
   "hunt1": {
     "chapter": 1,
-    "tr": "Kefen Dokuyucu düştü. Dokuduğu kefenlerin hiçbiri ölüler için değildi.",
-    "en": "The Shroud Weaver has fallen. None of the shrouds she wove were meant for the dead."
+    "kind": "event",
+    "speaker": "narr",
+    "tr": "Kefen Dokuyucu düştü. Bir daha yaşayan birini saramayacak.",
+    "en": "The Shroud Weaver has fallen. He will wrap no more living bodies."
   },
   "pages1": {
     "chapter": 1,
-    "tr": "Üç sayfa, aynı el. İlkinde bir görev, ikincisinde paylaşılan bir suç, sonuncusunda Selvi'nin adı. Hiçbir satırda kalemi bırakmadın.",
-    "en": "Three pages, one hand. A duty on the first, a shared crime on the second, Selvi's name on the last. In none of those lines did you put down the pen."
+    "kind": "pages",
+    "speaker": "narr",
+    "tr": "Üç kayıt aynı yolu gösteriyor: mezar, liman, harabeler. Hepsinde Kara Kadı’nın mührü var.",
+    "en": "Three records reveal the same route: grave, port, ruins. All bear the Black Qadi’s seal."
   },
   "story2": {
     "chapter": 2,
-    "tr": "Yüz yirmi adı tek bir satıra sığdırdın: borç ödendi. Tekneler boş döndüğünde kıyıda kalan ayakkabıları saymadın. Şimdi her çan sesi o son nefesi geri getiriyor. Selvi de bu yoldan geçti. Onun adını sayılardan ayırmak, ötekileri unutmana izin vermez.",
-    "en": "You reduced a hundred and twenty names to one line: debt paid. When the boats returned empty, you did not count the shoes left on shore. Now every toll returns that final breath. Selvi passed this way too. Finding her name among the numbers does not permit you to forget the others."
+    "kind": "discovery",
+    "speaker": "narr",
+    "tr": "Gemilerin güvertesi boş. Esirler aşağıda zincirli. Liman efendisi onları harabelere gönderiyor.",
+    "en": "The decks are empty. The prisoners are chained below. The port master sends them to the ruins."
   },
   "truth2": {
     "chapter": 2,
-    "tr": "Çancı susmadan önce bir ad söylüyor: Selvi. Boğulmadı. Krala verdim. Bu kıyının borcunu onunla ödedim.",
-    "en": "Before the Bellringer falls silent, he speaks a name: Selvi. She did not drown. I gave her to the King. I paid this shore's debt with her."
+    "kind": "boss_truth",
+    "speaker": "narr",
+    "tr": "Liman efendisi son nefesinde harabeleri işaret ediyor. Kadı’nın kurbanları orada bekliyor.",
+    "en": "With his final breath, the port master points toward the ruins. The Qadi’s victims wait there."
   },
   "rescue2": {
     "chapter": 2,
-    "tr": "Kerem fenere ulaştı. Babası çanı ağlayarak çalmıştı. Kıyıda ilk kez biri, dönenler için dua ediyor.",
-    "en": "Kerem has reached the lantern. His father wept as he rang the bell. For the first time, someone on this shore prays for those who returned."
+    "kind": "event",
+    "speaker": "narr",
+    "tr": "Kerem fenere ulaştı. Artık geminin zincirlerinden uzakta.",
+    "en": "Kerem has reached the lantern. He is beyond the ship’s chains now."
   },
   "hunt2": {
     "chapter": 2,
-    "tr": "Tuz İçindeki Yeminli düştü. Tuz çatlarken içinden bir anahtar ve bir tekne kaydı döküldü.",
-    "en": "The Salt-Sworn has fallen. As the salt cracked, a key and a boat log spilled out."
+    "kind": "event",
+    "speaker": "narr",
+    "tr": "Tuz İçindeki Yeminli düştü. Üzerinde bir anahtar ve sevkiyat kaydı var.",
+    "en": "The Saltbound Oathkeeper has fallen. He carried a key and a transport record."
   },
   "pages2": {
     "chapter": 2,
-    "tr": "Selvi senden yalnız bir şey istedi: Abi, adımı sen yazma. Altında senin imzan var. Kıyının tuzu onu silemedi.",
-    "en": "Selvi asked only one thing of you: Brother, don't you write my name. Your signature lies beneath it. The shore's salt could not erase it."
+    "kind": "pages",
+    "speaker": "narr",
+    "tr": "Gemi kayıtları aynı emri taşıyor: Esirler canlı teslim edilecek. Alıcı, Kara Kadı.",
+    "en": "The ship records carry the same order: deliver the prisoners alive. The buyer is the Black Qadi."
   },
   "story3": {
     "chapter": 3,
-    "tr": "Kral sana temiz bir kalem verdi; temiz kalacağını hiç söylemedi. Tahtını korumak için kendi adını sattı, sen hayatını korumak için başkalarının adını yazdın. Taşın içindeki nefesler bunu biliyor. İkinizin de üstünde aynı mühür var: Kara Kadı'nın mührü.",
-    "en": "The King gave you a clean pen; he never promised it would stay clean. He sold his name to keep his throne. You wrote other names to keep your life. The breaths trapped in stone know it. The same seal lies over you both: the Black Judge's seal."
+    "kind": "discovery",
+    "speaker": "narr",
+    "tr": "Taşın içindeki sesler yardım istiyor. Kadı onları bu mağaraya bağlamış. Zincirlerin dövüldüğü ocak daha derinde.",
+    "en": "Voices inside the stone cry for help. The Qadi bound them to this cavern. The forge that made their chains lies deeper."
   },
   "truth3": {
     "chapter": 3,
-    "tr": "Tahtın altından kralın sesi geliyor: Adımı sattım, hükmümü değil. Defter Kara Kadı'nın. Beni düşürmen onun satırını silmez.",
-    "en": "The King's voice rises from beneath the throne: I sold my name, not my sentence. The Ledger belongs to the Black Judge. My fall does not erase his line."
+    "kind": "boss_truth",
+    "speaker": "narr",
+    "tr": "Bekçinin zırhında ocağın damgası var. Bu zincirleri yapan usta aşağıda.",
+    "en": "The warden’s armor bears the forge mark. The master who made these chains is below."
   },
   "rescue3": {
     "chapter": 3,
-    "tr": "Kör taşçı, yazdığın her adı mezar taşına oymuştu. Şimdi senin adının üstünü çizdi.",
-    "en": "The blind mason carved every name you wrote onto a gravestone. Now he has struck yours through."
+    "kind": "event",
+    "speaker": "narr",
+    "tr": "Kör taşçı güvenli yere ulaştı. Bildiği geçidi sana gösterdi.",
+    "en": "The blind mason has reached safety. He showed you a passage he knew."
   },
   "hunt3": {
     "chapter": 3,
-    "tr": "Kehanetçi Ulvi düştü. Son kehaneti: Kâtip, kendi adını kendi eliyle yazacak.",
-    "en": "Ulvi the seer has fallen. His last prophecy: the scribe will write his own name with his own hand."
+    "kind": "event",
+    "speaker": "narr",
+    "tr": "Kehanetçi Ulvi düştü. Kadı’nın avcıları bir rehber daha kaybetti.",
+    "en": "Ulvi the Seer has fallen. The Qadi’s hunters have lost another guide."
   },
   "pages3": {
     "chapter": 3,
-    "tr": "Kralın emrinin altında Kadı'nın mührü var. Yazmayı reddedersen kendi adın yazılacak, diri gömüleceksin. Tehdit gerçekti. Yazdığın insanlar da gerçekti.",
-    "en": "The Judge's seal lies beneath the King's order. Refuse to write, and your own name will be written. You will be buried alive. The threat was real. So were the people you condemned."
+    "kind": "pages",
+    "speaker": "narr",
+    "tr": "Kayıtlarda kurtuluş yazıyor. Duvarların içinde yaşayan insanlar var. Kadı’nın vaadi bu.",
+    "en": "The records promise salvation. Living people are sealed inside the walls. This is the Qadi’s promise."
   },
   "story4": {
     "chapter": 4,
-    "tr": "Her ad bir halka oldu. Her halka, ateşin içinde bitmeyen bir gün. Sen satırları çoğalttıkça ocak mahkûmların soluğunu çekti. Şimdi Selvi'nin halkasını arıyorsun. Bulacağın şeyin seni aklamasını bekleme. Onun adının başında da senin imzan var.",
-    "en": "Each name became a link. Each link became a day in the fire that never ends. As your lines multiplied, the furnace drew the prisoners' breath. Now you seek Selvi's link. Do not expect what you find to absolve you. Her name bears your signature too."
+    "kind": "discovery",
+    "speaker": "narr",
+    "tr": "Esirler ateşin başında çalıştırılıyor. Ocak durursa Kadı yeni zincir yaptıramaz. Önce onları çıkar.",
+    "en": "Prisoners are forced to work beside the fire. Stop the forge, and the Qadi gets no new chains. Get them out first."
   },
   "truth4": {
     "chapter": 4,
-    "tr": "Küllerde Selvi'nin halkası var. İçi boş. O yanmadı; Kadı onu yazı masasına bağladı. Ateş sustu. Mürekkep akıyor.",
-    "en": "Selvi's link lies in the ash. It is empty. She did not burn; the Judge chained her to a writing desk. The fire is silent. The ink still flows."
+    "kind": "boss_truth",
+    "speaker": "narr",
+    "tr": "Ustanın anahtarı son kapıyı açıyor. Ardında Kara Kadı’nın mahkemesi var.",
+    "en": "The master’s key opens the final gate. Beyond it lies the Black Qadi’s court."
   },
   "rescue4": {
     "chapter": 4,
-    "tr": "Yusuf bin halka dövdü. Şimdi senin kılıcını dövüyor, bin halkanın bedeli olsun diye.",
-    "en": "Yusuf forged a thousand links. Now he forges your blade, to pay for every one of them."
+    "kind": "event",
+    "speaker": "narr",
+    "tr": "Yusuf zincir örsünden uzaklaştı. Son işini senin silahın için yapıyor.",
+    "en": "Yusuf has left the chain anvil. His last work is for your weapon."
   },
   "hunt4": {
     "chapter": 4,
-    "tr": "Kül Veziri düştü. Kadı'ya giden yol cübbesine dikilmiş: mürekkepten bir nehir ve sonsuz raflar.",
-    "en": "The Ash Vizier has fallen. The road to the Judge is stitched into his robe: a river of ink, and endless shelves."
+    "kind": "event",
+    "speaker": "narr",
+    "tr": "Kül Veziri düştü. Üzerindeki mühür, Kadı’nın mahkemesine ait.",
+    "en": "The Ash Vizier has fallen. His seal belongs to the Qadi’s court."
   },
   "pages4": {
     "chapter": 4,
-    "tr": "Halka hesabında bir satır eksik. Kadı, senin elin durduğunda başka bir el aramış. Yanık itirafında korkunu yazmışsın; boş bıraktığın satırda şimdi kendi adın bekliyor.",
-    "en": "A line is missing from the link account. When your hand stopped, the Judge sought another. You wrote your fear in a burned confession; now your own name waits in the line left empty."
+    "kind": "pages",
+    "speaker": "narr",
+    "tr": "Demir hesabı, esir hesabıyla aynı defterde. Kadı için insan da zincir de bir yük.",
+    "en": "Iron and prisoners are counted in the same ledger. To the Qadi, people and chains are only cargo."
   },
   "story5": {
     "chapter": 5,
-    "tr": "Selvi'nin adını yazdığında elin titremedi. Korkuyu çoktan alışkanlığa çevirmiştin. Sonra Defter'i yakmaya çalıştın; bir ad silinmeden bir el değişti. Şimdi kardeşin senin harflerini yazıyor. Onu buradan çıkarırken yerine kimi bırakacağını düşün. Kadı'nın son tuzağı bu.",
-    "en": "Your hand did not tremble when you wrote Selvi's name. You had long made fear a habit. Then you tried to burn the Ledger; before one name was erased, one hand replaced another. Now your sister writes your letters. Think who you will leave behind when you bring her out. That is the Judge's last trap."
+    "kind": "discovery",
+    "speaker": "narr",
+    "tr": "Kadı kurbanların soluğuyla ömrünü uzatıyor. Son esirler hâlâ bağlı. Onları çıkar, sonra hesabını gör.",
+    "en": "The Qadi extends his life with his victims’ breath. The last prisoners are still bound. Free them, then settle your score."
   },
   "ch5Intro": {
     "chapter": 5,
-    "tr": "Selvi senin el yazını öğrenmiş. Kadı'nın aradığı yeni bir kâtip değil; aynı suçu yeniden işleyecek bir el.",
-    "en": "Selvi has learned your handwriting. The Judge does not need a new scribe; he needs a hand that will commit the same crime again."
+    "kind": "opening",
+    "speaker": "narr",
+    "tr": "Seni gömdüren adam burada. Bu kez mahkemesine zincirsiz geldin.",
+    "en": "The man who had you buried is here. This time you enter his court unchained."
   },
   "ch5Checkpoint": {
     "chapter": 5,
-    "tr": "Yemin taşı son kez adını hatırlıyor. Ötesi, mührün salonu.",
-    "en": "The oath stone remembers your name one last time. Beyond lies the hall of the seal."
+    "kind": "event",
+    "speaker": "narr",
+    "tr": "Son kapıya geldin. Arkanda açtığın yol, önünde Kara Kadı var.",
+    "en": "You have reached the final gate. Behind you lies the road you opened. Ahead stands the Black Qadi."
   },
   "ch5Boss": {
     "chapter": 5,
-    "tr": "Kara Kadı. Bütün hükümleri o mühürledi. Onun mührünü kır.",
-    "en": "The Black Judge. He sealed every sentence. Break his seal."
+    "kind": "event",
+    "speaker": "narr",
+    "tr": "Kara Kadı. Seni canlı gömen adam. Onun düzenini bitir.",
+    "en": "The Black Qadi. The man who buried you alive. End his reign."
   },
   "ch5Win": {
     "chapter": 5,
-    "tr": "Kadı'nın mührü kırıldı. Kalem senin elinde. Son satıra ne yazacaksın?",
-    "en": "The Judge's seal is broken. The pen is in your hand. What will you write on the last line?"
+    "kind": "event",
+    "speaker": "narr",
+    "tr": "Kadı düştü. Son zincirleri kır ve esirleri gün ışığına çıkar.",
+    "en": "The Qadi has fallen. Break the last chains and lead the prisoners into daylight."
   },
   "ch5Death": {
     "chapter": 5,
-    "tr": "Defter adını yazmaya hazırlanıyor. Daha değil. Kalk.",
-    "en": "The Ledger is ready to write your name. Not yet. Rise."
+    "kind": "event",
+    "speaker": "narr",
+    "tr": "Seni bir kez gömdüler. İkinci kez izin verme. Kalk.",
+    "en": "They buried you once. Do not let them do it again. Rise."
   },
   "questSeals": {
     "chapter": 5,
-    "tr": "Efendilerin mühürleri yerinde. Defter'in kilidi çözüldü.",
-    "en": "The masters' seals are in place. The Ledger's lock is broken."
+    "kind": "event",
+    "speaker": "narr",
+    "tr": "Kurban düzeninin bağları koptu. Kadı’nın kapısı açılıyor.",
+    "en": "The bonds of the sacrificial rite are broken. The Qadi’s gate is opening."
   },
   "questSelvi": {
     "chapter": 5,
-    "tr": "Selvi'nin kararını verdin. Kalem artık onun elinde değil.",
-    "en": "You have decided Selvi's fate. The pen is no longer in her hand."
+    "kind": "event",
+    "speaker": "narr",
+    "tr": "Son esirlerin zincirleri çözüldü. Çıkış yolu onların da yolu.",
+    "en": "The last prisoners’ chains are broken. Your way out is theirs as well."
   },
   "selviFreed": {
     "chapter": 5,
-    "tr": "Selvi kalemi bırakıyor. Abi, diyor. Adımı sen yazdın, biliyorum. Yine de geldin.",
-    "en": "Selvi lets go of the pen. Brother, she says. You wrote my name, I know. Still, you came."
+    "kind": "event",
+    "speaker": "narr",
+    "tr": "Esirler ayağa kalkıyor. Bahtiyar yolu gösteriyor: Yürüyebilen, benimle gelsin.",
+    "en": "The prisoners rise. Bahtiyar points the way: If you can walk, come with me."
   },
   "hunt5": {
     "chapter": 5,
-    "tr": "Mürekkep Cellatı düştü. Kanı siyah değil; yalnızca mürekkep.",
-    "en": "The Ink Headsman has fallen. His blood is not black. It is only ink."
+    "kind": "event",
+    "speaker": "narr",
+    "tr": "Mürekkep Celladı düştü. Kadı’nın son avcısı sustu.",
+    "en": "The Ink Executioner has fallen. The Qadi’s last hunter is silent."
   },
   "pages5": {
     "chapter": 5,
-    "tr": "Son sayfada elin sakin. Selvi'nin adı açık, imzan sağlam. Kadı seni geri getirmek için satırı boş bıraktı. Seni burada tutan şey yalnız Kadı'nın hükmü değil. Altındaki imzan.",
-    "en": "On the last page, your hand is steady. Selvi's name is clear. Your signature is firm. The Judge left one line empty to bring you back. It is not only his sentence that binds you here. It is your signature beneath it."
+    "kind": "pages",
+    "speaker": "narr",
+    "tr": "Emirde senin adın var: Bahtiyar. Canlı gömülecek. Altındaki mühür Kara Kadı’nın.",
+    "en": "Your name is on the order: Bahtiyar. To be buried alive. Beneath it lies the Black Qadi’s seal."
   },
   "endingName": {
     "chapter": 5,
-    "tr": "Bu kez kendi adını yazıyorsun. Zincirler birer birer düşerken kabirler ilk kez sessiz. Toprak ağzını dolduruyor; yeniden nefes almaya çalışmıyorsun. Selvi gün ışığına çıkıyor. Seni bağışladığını söylemiyor. Adını unutmuyor.",
-    "en": "This time, you write your own name. One by one the chains fall, and for the first time the graves are silent. Earth fills your mouth; you no longer struggle for breath. Selvi steps into daylight. She does not say she forgives you. She does not forget your name."
+    "kind": "ending",
+    "speaker": "narr",
+    "tr": "Kara Kadı öldü. Zincirler düştü. Bahtiyar esirlerle birlikte gün ışığına çıkıyor. Arkalarında mezar ilk kez sessiz. Önlerinde açık bir yol var.",
+    "en": "The Black Qadi is dead. The chains have fallen. Bahtiyar leads the prisoners into daylight. Behind them, the grave is silent at last. An open road lies ahead."
   },
   "endingBurn": {
     "chapter": 5,
-    "tr": "Defter'i ateşe veriyorsun. Adları taşıyanlar özgür kalıyor; fakat annelerini, evlerini, kendi yüzlerini hatırlamıyorlar. Selvi sana bir yabancı gibi bakıyor. Sen her harfi hatırlıyorsun. Mahkûmları kendi pişmanlığından çıkardın. O pişmanlığın içinde yalnız kaldın.",
-    "en": "You set the Ledger alight. Those bound to its names go free, but they remember neither their mothers, their homes, nor their own faces. Selvi looks at you as a stranger. You remember every letter. You freed the prisoners from your remorse. You are left alone inside it."
+    "kind": "ending",
+    "speaker": "narr",
+    "tr": "Kara Kadı öldü. Zincirler düştü. Bahtiyar esirlerle birlikte gün ışığına çıkıyor. Arkalarında mezar ilk kez sessiz. Önlerinde açık bir yol var.",
+    "en": "The Black Qadi is dead. The chains have fallen. Bahtiyar leads the prisoners into daylight. Behind them, the grave is silent at last. An open road lies ahead."
   },
   "endingQuill": {
     "chapter": 5,
-    "tr": "Selvi'nin adını siliyorsun. Kapı onun için açılıyor. Kalem avucuna gömülürken ilk boş satır yeniden beliriyor. Birini kurtarmak için bir başkasını yazacağını söylüyorsun. Yirmi yıl önce de böyle başlamıştın. Kara Kadı öldü. Elin hâlâ yazıyor.",
-    "en": "You erase Selvi's name. The door opens for her. As the pen sinks into your palm, the first empty line appears again. You tell yourself you will write another name to save one person. That was how it began twenty years ago. The Black Judge is dead. Your hand is still writing."
+    "kind": "ending",
+    "speaker": "narr",
+    "tr": "Kara Kadı öldü. Zincirler düştü. Bahtiyar esirlerle birlikte gün ışığına çıkıyor. Arkalarında mezar ilk kez sessiz. Önlerinde açık bir yol var.",
+    "en": "The Black Qadi is dead. The chains have fallen. Bahtiyar leads the prisoners into daylight. Behind them, the grave is silent at last. An open road lies ahead."
   },
   "leanMercy": {
-    "chapter": 0,
-    "tr": "Bıraktığın ölüler arkandan fısıldıyor: bu kâtip başka. Merhamet, Defter'in tanımadığı bir mürekkep.",
-    "en": "The dead you spared whisper behind you: this scribe is different. Mercy is an ink the Ledger does not know."
+    "chapter": 5,
+    "kind": "event",
+    "speaker": "narr",
+    "tr": "Açtığın hücrelerin ardından ayak sesleri geliyor. Kurtulanlar yolunu takip ediyor.",
+    "en": "Footsteps follow you from the cells you opened. The freed prisoners follow your road."
   },
   "leanWrath": {
-    "chapter": 0,
-    "tr": "Hükmün keskinleşiyor, Bahtiyar. Yargıladıkça, mühür basan o ele benziyorsun.",
-    "en": "Your judgment grows sharper, Bahtiyar. The more you judge, the more you resemble the hand that stamps the seal."
+    "chapter": 5,
+    "kind": "event",
+    "speaker": "narr",
+    "tr": "Kırdığın her zincir, Kadı’nın elinden bir güç daha alıyor.",
+    "en": "Every chain you break takes more power from the Qadi."
   }
 }

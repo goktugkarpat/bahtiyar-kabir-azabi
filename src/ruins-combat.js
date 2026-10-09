@@ -9,7 +9,7 @@
       cavefang: { name: KabirI18n.t('Mağara Çenesi'), hp: 174, speed: 3.3, radius: .54, reach: 9, cooldown: 1.7, color: 0xc9bca2, ruins: true },
       gravemason: { name: KabirI18n.t('Mezar Örücüsü'), hp: 266, speed: 1.8, radius: .69, reach: 10, cooldown: 2.2, color: 0xa6907c, ruins: true },
       ruinwarden: { name: KabirI18n.t('Harabe Muhafızı'), hp: 940, speed: 2.25, radius: .78, reach: 13, cooldown: 1.8, color: 0xc5a372, ruins: true, elite: true },
-      hollowking: { name: KabirI18n.t('Oyukların Kralı'), hp: 3200, speed: 2.05, radius: 1.05, reach: 17, cooldown: 1.2, color: 0xc2a0a3, ruins: true, boss: true }
+      hollowking: { name: KabirI18n.t('Kurban Bekçisi'), hp: 3200, speed: 2.05, radius: 1.05, reach: 17, cooldown: 1.2, color: 0xc2a0a3, ruins: true, boss: true }
     },
     create: function (api) {
       function hit(at, warn, shape, radius, damage, pose, extra) { return Object.assign({at:at,warn:warn,shape:shape,radius:radius,dmg:damage,pose:pose,style:'blade',fill:'radial'},extra||{}); }

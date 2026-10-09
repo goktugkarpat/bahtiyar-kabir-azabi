@@ -401,10 +401,10 @@ body.in-combat #hud #interact.unavailable {display:none;}
 
 /* Mola shares the character/settings chamber; all controls stay inside its safe area. */
 #pause {background:#080708;padding:0;align-items:center;justify-content:center;}
-#pause .sepulchral-pause {width:min(96vw,calc(94dvh * 1586 / 992 * 1.05));height:94dvh;max-height:1040px;max-width:1745px;aspect-ratio:auto;position:relative;display:block;padding:0;border:0;border-radius:0;margin:0;background:url(../assets/ui/hybrid-b-chamber.png) center/100% 100% no-repeat;overflow:hidden;zoom:1;box-shadow:0 12px 65px #000b;}
-#pause .mourning-head {display:block;position:absolute;top:2.3%;left:8%;right:8%;padding:0;margin:0;text-align:center;}
-#pause .mourning-title {font:400 clamp(22px,2.65vw,44px)/1.05 Georgia,serif;letter-spacing:.075em;color:#f0e3c9;}
-#pause .mourning-head h2 {font:400 clamp(13px,1.25vw,18px)/1.15 Georgia,serif;margin:4px 0 0;color:#e6d7b9;}
+#pause .sepulchral-pause {width:min(96vw,calc(94dvh * 1586 / 992 * 1.05));height:94dvh;max-height:1040px;max-width:1745px;aspect-ratio:auto;position:relative;display:block;padding:0;border:0;border-radius:0;margin:0;background:url(../assets/ui/hybrid-b-chamber.png) center/100% 100% no-repeat;overflow:hidden;container-type:size;zoom:1;box-shadow:0 12px 65px #000b;}
+#pause .mourning-head {display:flex;flex-direction:column;justify-content:center;position:absolute;top:1.6%;height:8%;left:8%;right:8%;padding:0;margin:0;text-align:center;}
+#pause .mourning-title {font:400 clamp(18px,4cqh,44px)/1.05 Georgia,serif;letter-spacing:.075em;color:#f0e3c9;}
+#pause .mourning-head h2 {font:400 clamp(10px,1.65cqh,18px)/1.15 Georgia,serif;margin:2px 0 0;color:#e6d7b9;}
 #pause .pause-stats {display:flex;position:absolute;top:17%;left:8%;right:8%;height:8%;gap:28px;align-items:center;justify-content:flex-end;border:0;background:none;padding:0;box-shadow:none;text-align:left;}
 #pause .pause-stats>div:first-child {margin-right:auto;min-width:0;}
 #pause .pause-stats small {display:block;font:12px/1.4 Arial,sans-serif;color:#b6a88d;}

@@ -6,7 +6,7 @@
   'use strict';
   var B = window.BABA, T = window.THREE, PI = Math.PI;
   var NAMES = [KabirI18n.t('Kırık Gök Eşiği'), KabirI18n.t('Asılı Zincirler'), KabirI18n.t('Tanıkların Köprüsü'), KabirI18n.t('Mahkûmlar Kuyusu'), KabirI18n.t('Celladın Gölgesi'),
-    KabirI18n.t('Çancının Gölgesi'), KabirI18n.t('Kralın Gölgesi'), KabirI18n.t('Ocağın Gölgesi'), KabirI18n.t('Yüzen Taşlar'), KabirI18n.t('Hüküm Defteri'), KabirI18n.t('Kanlı Terazi'),
+    KabirI18n.t('Çancının Gölgesi'), KabirI18n.t('Kurban Bekçisinin Gölgesi'), KabirI18n.t('Ocağın Gölgesi'), KabirI18n.t('Yüzen Taşlar'), KabirI18n.t('Hüküm Defteri'), KabirI18n.t('Kanlı Terazi'),
     KabirI18n.t('Son Tanıklık'), KabirI18n.t('Kürsü Merdiveni'), KabirI18n.t('Son Mahkeme')];
   // Platform layout: centre x, width, depth and the walkable shape (local rectangles; outside them is the void).
   var LAYOUT = [

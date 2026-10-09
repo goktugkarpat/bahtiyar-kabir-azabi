@@ -1693,8 +1693,8 @@
   // değiştirir. Ölüm ve zafer sırada önceliklidir, mevcut cümle bittikten sonra başlar. Saldırı uyarısı sırasında
   // anlatıcı kısa süre hafif kısılır, kayıt ve altyazı sürer. Zamanlama ses bağlamından bağımsızdır:
   // ?sessiz ve ses kapalıyken altyazılar aynı anlarda görünür.
-  const ROOM_LINES = new Set(['chains', 'ritual', 'crypt', 'rot', 'checkpoint', 'coastRoots', 'coastStreet', 'coastPier', 'coastSquare', 'coastCheckpoint', 'ruinsCheckpoint', 'forgeCheckpoint']), URGENT = new Set(['intro', 'boss', 'cellat', 'coastIntro', 'coastBoss', 'ruinsBoss', 'forgeBoss', 'ch5Boss', 'ch5Kadi', 'ch5Echo', 'ch5LastVerdict']);
-  const QUEST_CHAPTER = Object.freeze({ questNames: 1, questVerdict: 1, questBell: 2, questMemory: 2, questKing: 3, questEcho: 3, questPrisoner: 4, questHeart: 4 });
+  const ROOM_LINES = new Set(['chains', 'ritual', 'crypt', 'rot', 'checkpoint', 'coastRoots', 'coastStreet', 'coastPier', 'coastSquare', 'coastCheckpoint', 'ruinsCheckpoint', 'forgeCheckpoint']), URGENT = new Set(['intro', 'ruinsIntro', 'forgeIntro', 'ch5Intro', 'boss', 'cellat', 'coastIntro', 'coastBoss', 'ruinsBoss', 'forgeBoss', 'ch5Boss', 'ch5Kadi', 'ch5Echo', 'ch5LastVerdict', 'endingName']);
+  const QUEST_CHAPTER = Object.freeze({ questNames: 1, questVerdict: 1, questBell: 2, questMemory: 2, questKing: 3, questEcho: 3, questPrisoner: 4, questHeart: 4, questSeals: 5, questSelvi: 5 });
   const CLOSING_TRUTH = Object.freeze({ win: 'truth1', coastWin: 'truth2', ruinsWin: 'truth3', forgeWin: 'truth4' });
   const TELLS = new Set(['enemyWindup', 'enemyAttack', 'slam', 'explosion', 'poison', 'warning', 'hurt', 'guardBreak', 'tellCommit']);
   let caption = null, voiceNode = null, voiceGain = null, current = null, queue = [], nclock = 0, lastTellN = -9;
@@ -1715,26 +1715,63 @@
     const warning = ctx.currentTime < warningUntil;
     targetParam(voiceGain.gain, warning ? .65 : 1, ctx.currentTime, warning ? .035 : .18);
   }
-  // A spoken line may finish behind a menu; its unread subtitle must not vanish there.
+  // One subtitle timeline, driven by the recording clock. No second lifetime,
+  // interrupted replay or timer can resurrect text after its sentence finishes.
   let captionState = null;
   function clearCaption() { captionState = null; if (caption) caption(''); }
   function captionReadable() {
     const a = B.app;
-    return !(typeof document !== 'undefined' && document.hidden) && !(B.QuestCinema && B.QuestCinema.isReading) &&
+    return !suspended && !(typeof document !== 'undefined' && document.hidden) && !(B.QuestCinema && B.QuestCinema.isReading) &&
       (!a || !['title', 'pause', 'settings', 'controls', 'keybinds', 'confirm', 'character', 'journal', 'atlas'].includes(a.view));
   }
-  function captionStep(dt) {
-    if (!captionState) return;
-    if (B.app && B.app.settings && B.app.settings.subtitles === false) { clearCaption(); return; }
-    if (!captionReadable()) { captionState.interrupted = true; return; }
-    captionState.left = Math.max(0, captionState.left - Math.max(0, dt));
-    if (!current && captionState.left <= 0) clearCaption();
+  function subtitleSegments(text) {
+    // Fit approximately two readable lines, including on narrow touch displays.
+    // Wrap on complete words; punctuation gets a natural phrase boundary.
+    const width = Math.min(760, Math.max(240, (window.innerWidth || 1024) - 48));
+    const limit = Math.max(46, Math.min(108, Math.floor(width / 10) * 2 - 8));
+    const words = String(text || '').trim().split(/\s+/).filter(Boolean), parts = [];
+    let part = '';
+    for (const word of words) {
+      if (part && part.length + word.length + 1 > limit) { parts.push(part); part = ''; }
+      part += (part ? ' ' : '') + word;
+      if (part.length >= limit * .48 && /[.!?…;:]$/.test(word)) { parts.push(part); part = ''; }
+    }
+    if (part) parts.push(part);
+    // Keep the final phrase readable instead of flashing a lone trailing word.
+    if (parts.length > 1) {
+      const tail = parts[parts.length - 1].split(/\s+/), previous = parts[parts.length - 2].split(/\s+/);
+      while (tail.length < 3 && previous.length > 3) {
+        const word = previous[previous.length - 1];
+        if (word.length + 1 + tail.join(' ').length > limit) break;
+        tail.unshift(previous.pop());
+      }
+      parts[parts.length - 2] = previous.join(' '); parts[parts.length - 1] = tail.join(' ');
+    }
+    return parts;
+  }
+  function makeCaption(entry, total) {
+    const parts = subtitleSegments(entry.line.text);
+    const weights = parts.map(text => text.split(/\s+/).length + (/[.!?…]$/.test(text) ? 1.2 : .4));
+    const sum = weights.reduce((a, b) => a + b, 0) || 1;
+    let end = 0;
+    return { parts: parts.map((text, i) => ({ text, end: end += total * weights[i] / sum })), index: -1, width: window.innerWidth || 1024 };
+  }
+  function captionStep() {
+    if (!current) return;
+    if (B.app && B.app.settings && B.app.settings.subtitles === false) { if (captionState) clearCaption(); return; }
+    if (!captionReadable()) return;
+    if (!captionState || captionState.width !== (window.innerWidth || 1024)) captionState = makeCaption({ line: { text: current.text } }, current.total);
+    const elapsed = current.elapsed;
+    let index = 0;
+    while (index < captionState.parts.length - 1 && elapsed >= captionState.parts[index].end) index++;
+    if (index === captionState.index || !captionState.parts.length) return;
+    captionState.index = index;
+    if (caption) caption(captionState.parts[index].text, current.speaker, { key: current.key, segment: index, count: captionState.parts.length });
   }
   function finishVoice() {
     voiceNode = null; voiceGain = null;
     current = null; lastNarrationEnd = nclock;
-    if (captionState && !captionReadable()) { captionState.interrupted = true; captionState.left = Math.max(3, captionState.left); }
-    if (!captionState || !captionState.interrupted || captionState.left <= 0) clearCaption();
+    clearCaption();
     updateNarrationDuck();
   }
   function say(key, force = false) {
@@ -1780,10 +1817,13 @@
   function startVoice(entry) {
     heard.add(entry.key); recent[entry.key] = Date.now();
     if (!entry.buffer && ctx && voiceBuffers[entry.cacheKey]) entry.buffer = voiceBuffers[entry.cacheKey];
-    const total = (entry.buffer ? entry.buffer.duration : entry.line.duration || 4) + .15;
-    current = { key: entry.key, force: entry.force, left: total, text: entry.line.text, speaker: entry.line.speaker || 'Anlatıcı' };
-    captionState = { left: total, interrupted: !captionReadable() };
-    if (caption) caption(entry.line.text, entry.line.speaker || 'Anlatıcı');
+    const audible = !!(ctx && entry.buffer && (!silent || offline));
+    const words = String(entry.line.text || '').trim().split(/\s+/).filter(Boolean).length;
+    const total = audible ? entry.buffer.duration : Math.max(entry.line.duration || 0, 2.5, .8 + words / 2.6);
+    current = { key: entry.key, force: entry.force, left: total, total, elapsed: 0,
+      clockStart: audible ? ctx.currentTime : null, text: entry.line.text, speaker: entry.line.speaker || (voiceLanguage() === 'en' ? 'Narrator' : 'Anlatıcı') };
+    captionState = null;
+    captionStep();
     if (!ctx || !entry.buffer || (silent && !offline)) return;
     const src = ctx.createBufferSource(), g = gainNode(1, N.voice); src.buffer = entry.buffer; src.connect(g);
     voiceNode = src; voiceGain = g;
@@ -1799,15 +1839,16 @@
   function narrationStep(dt, st) {
     nclock += dt;
     const tellRecent = nclock - lastTellN < 1.5;
-    captionStep(dt);
     if (current) {
-      current.left -= dt;
-      // Kayıtlı seste bitişi yalnızca onended belirler; düşük FPS veya sekme
-      // duraklaması oyun sayacıyla ses saatini ayırsa da kaydı erken kesme.
+      // Context suspension freezes both recording and its subtitle position.
+      // Silent/text-only playback advances only while gameplay can present it.
+      if (current.clockStart !== null && ctx) current.elapsed = Math.max(0, ctx.currentTime - current.clockStart);
+      else if (captionReadable()) current.elapsed += Math.max(0, dt);
+      current.left = Math.max(0, current.total - current.elapsed);
+      captionStep();
       if (!voiceNode && current.left <= 0) finishVoice();
     }
-    // Finish the current sentence, but keep queued narration for after the player folds the page.
-    if (B.QuestCinema && B.QuestCinema.isReading || captionState && !current) return;
+    if (!captionReadable()) return;
     const settings = !!(B.app && B.app.view === 'settings');
     // Volume preview keeps audio running, but a waiting story beat belongs to the journey.
     for (const q of queue) if (!settings || q.force || URGENT.has(q.key)) q.age += dt;
@@ -1961,11 +2002,7 @@
       if (narrationMode === 'off') { clearCaption(); if (voiceNode) { try { voiceNode.stop(); } catch (_) {} } finishVoice(); }
     }
     if (v && v.subtitles === false) clearCaption();
-    else if (v && v.subtitles === true && current && !captionState) {
-      // Re-enable the still-speaking sentence's subtitle, never restart its audio or a completed line.
-      captionState = { left: Math.max(3, current.left), interrupted: !captionReadable() };
-      if (caption) caption(current.text, current.speaker);
-    }
+    else if (v && v.subtitles === true && current && !captionState) captionStep();
     const voiceWasAudible = volume.voice > 0;
     for (const key of Object.keys(volume)) if (Number.isFinite(v && v[key])) volume[key] = clamp(v[key], 0, 1);
     if (!ctx) return;
@@ -2028,7 +2065,7 @@
   /* /ajan:audio */
   B.Audio = {
     say, saySequence, sayQuest, prepare: prepareAudio, onCaption(fn) { caption = fn; },
-    resetNarration() { queue = []; heard.clear(); clearCaption(); },   // yeni yolculukta bekleyenleri at; mevcut cümle bitsin
+    resetNarration(o = {}) { queue = []; const src = voiceNode; voiceNode = null; if (src) { try { src.stop(); } catch (_) {} } current = null; if (!o.preserveHeard) heard.clear(); clearCaption(); updateNarrationDuck(); },
     unlock, set, play, update,
     sample(name, o) { if (ctx && unlocked && !suspended && (!silent || offline)) return sample(name, o || {}); return 0; },   // tek bir kayıtlı parça (test ve ileride oyun kodu için)
     suspend() { suspended = true; if (extMusic) B.Music.suspend(); return syncContextState(); },

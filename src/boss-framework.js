@@ -14,7 +14,7 @@
                taken, gold aura), the hero regains stamina. Early / spammed rolls get nothing.
      signature one extra signature mechanic per boss (profile.signature), scheduled on its own clock, only while the boss is free of
                orbs / rites / shelters / novas: a chain tether (Zincir Celladı), converging toll rings (Çancı), a crystal checkerboard
-               (Oyukların Kralı), a sweeping furnace beam (Ocağın Kalbi).
+               (Kurban Bekçisi), a sweeping furnace beam (Ocağın Kalbi).
 
      arena     the room itself fights (profile.arena): Çöken Zemin pits (Cellat), Yükselen Gelgit flood (Çancı), Billur Damar vents in a
                fixed turning order (Kral), Döküm Olukları molten channels (Ocak). Owner-less hazards, never on top of the boss's set pieces.
@@ -604,7 +604,7 @@
         BF.env(e, { x: o.x, z: o.z, shape: 'circle', radius: 2.6, warn: 1.4 + q * .2, duration: .2, damage: 16, unblockable: true, style: 'rune', fill: 'inward', scar: true, attack: tr('Billur Damar') }); });
       return true;
     } },
-    title: tr('Oyukların Kralı'), epithet: tr('Sessiz Tahtın Sahibi'), sub: tr('SESSİZ TAHT'), color: 0x8a9ccf, style: 'rune', pool: 'lava', sound: 'crystal',
+    title: tr('Kurban Bekçisi'), epithet: tr('Toprağın Tutsaklarını Bekleyen'), sub: tr('SESSİZ TAHT'), color: 0x8a9ccf, style: 'rune', pool: 'lava', sound: 'crystal',
     phases: { 2: tr('TAŞ TAHT ÇÖKÜYOR'), 3: tr('OYUKLAR AÇILDI') },
     pursuit: { name: tr('Kralın Takibi'), pose: 'charge', dmg: 17, after: 13 },
     signature: { id: 'crystalGrid', first: 14, cd: [24, 19, 15], phase: 1, range: 16, hint: tr('Billur ızgara: bir renk patlarken diğerine geç. Yuvarlanma değil, yer seçmek kurtarır.'),

@@ -9,139 +9,578 @@
   'use strict';
   var B = window.BABA, T = window.THREE, PI = Math.PI, RANGE = 2.35;
   var L5 = (window.BABA && window.BABA.QuestText) || function (tr) { return KabirI18n.t(tr); };
+  // Save IDs retain their legacy names; visible story follows Mezara Sığmayan.
+  // Save IDs retain their legacy names; visible story follows Mezara Sığmayan.
+  // Save IDs retain their legacy names; visible story follows Mezara Sığmayan.
+  // Save IDs retain their legacy names; visible story follows Mezara Sığmayan.
   var CHAPTERS = {
-    1: { title: KabirI18n.t('İsimleri Çalınanlar'), introduction: KabirI18n.t('Cellat yalnız bedenleri zincirlememiş. Ölülerin isimlerini ve yeminlerini de kapıya bağlamış.'), quests: [
-      { id: 'lost-names', name: KabirI18n.t('İsimsizlerin Yemini'), description: KabirI18n.t('Unutulanların adlarını bul ve sahiplerine geri ver.'), steps: [
-        { id: 'names', room: 7, dx: -2.6, dz: 2.6, shape: 'tablet', name: KabirI18n.t('İsim Levhası'), verb: KabirI18n.t('İsim levhasını al'), objective: KabirI18n.t('Unutulanların Mahzeni’nde isim levhasını bul.'), story: KabirI18n.t('Taşa kazınmış her isim bir mahkûma ait. Son satır henüz boş: Bahtiyar. Levhayı Çürüyen Revir’deki anı taşına götür.') },
-        { id: 'memorial', room: 2, dx: 4.2, dz: 3, shape: 'memorial', name: KabirI18n.t('Mahkûmların Anı Taşı'), verb: KabirI18n.t('İsimleri anı taşına yerleştir'), objective: KabirI18n.t('Çürüyen Revir’de isimleri anı taşına yerleştir.'), story: L5("İsimler anı taşına geçiyor. Zincirler gevşerken tek bir uğultunun içinden ayrı ayrı insan sesleri duyuluyor. Celladın ilk bağı çözüldü.", "The names pass into the memorial stone. As the chains loosen, individual human voices emerge from the single murmur. The Executioner’s first bond is broken.") }
-      ] },
-      { id: 'blood-verdict', name: KabirI18n.t('Kanla Yazılan Hüküm'), description: KabirI18n.t('Adak Salonu’ndaki hükmü tersine çevir: önce Kül, sonra Kan, son olarak Yemin.'), steps: [
-        { id: 'ash', room: 3, dx: -5.4, dz: 3.4, shape: 'censer', name: KabirI18n.t('Kül Çanağı'), verb: KabirI18n.t('Kül çanağını söndür'), objective: KabirI18n.t('Adak Salonu’nda ayini boz: Kül → Kan → Yemin.'), story: L5("Kül çanağı sönüyor. Kazınmış söz ortaya çıktı: “Beden unutulur; kan tanıklık eder.” Sırada Hüküm Mührü var.", "The Ash Bowl goes out. An inscription appears: “The body is forgotten; blood bears witness.” The Verdict Seal is next.") },
-        { id: 'oath', room: 3, dx: 5.4, dz: 3.4, shape: 'seal', name: KabirI18n.t('Hüküm Mührü'), verb: KabirI18n.t('Yemin mührünü tersine çevir'), objective: KabirI18n.t('Adak Salonu’nda Yemin Mührü’nü tersine çevir.'), story: L5("Yemin mührü yerinden ayrılıyor. Mahkeme kapısının kanla beslenen bağı çözülüyor. Yeraltından kıyıya çıkan yolu Cellat koruyor.", "The oath seal comes free. The blood-fed bond on the court’s gate loosens. The Executioner guards the passage from the depths to the shore.") }
-      ] }
-    ] },
-    2: { title: KabirI18n.t('Denizin Sakladığı'), introduction: KabirI18n.t('Kıyıdaki ölüler çanın sesiyle uyanıyor. Fener sönmeden önce burada neler olduğunu hatırlayanlar hâlâ köklerin altında.'), quests: [
-      { id: 'last-voice', name: KabirI18n.t('Boğulanların Son Sesi'), description: KabirI18n.t('Batık Gümrük’te kaybolan çan dilini bul; Son Fener’deki yas çanına geri tak.'), steps: [
-        { id: 'clapper', room: 7, dx: -2.8, dz: 3, shape: 'relic', name: KabirI18n.t('Kırık Çan Dili'), verb: KabirI18n.t('Kırık çan dilini al'), objective: KabirI18n.t('Batık Gümrük Avlusu’nda kırık çan dilini bul.'), story: KabirI18n.t('Çan diline bir fenercinin yemini kazınmış: “Dönenleri değil, dönmeyenleri çağır.” Son Fener’deki küçük yas çanı bunu bekliyor.') },
-        { id: 'mourning-bell', room: 5, dx: -4.5, dz: 4, shape: 'bell', name: KabirI18n.t('Yas Çanı'), verb: KabirI18n.t('Çan dilini yerine tak ve çanı çal'), objective: KabirI18n.t('Son Fener’de çan dilini yas çanına tak.'), story: KabirI18n.t('Yas çanı ilk kez ölüler için çalıyor. Denizdeki çığlıklar bir an durdu; büyük çanın ilk bağı koptu.') }
-      ] },
-      { id: 'root-memory', name: KabirI18n.t('Kara Kökün Hafızası'), completeStory: L5("İki kabın köklerle bağı çözüldü. Taşta aynı arma beliriyor: boş bir tahtın altında yanan ocak. Çancının ikinci bağı çözüldü.", "Both vessels are freed from the roots. The same device appears on the stone: a furnace burning beneath an empty throne. The Bellringer’s second bond is broken."), description: KabirI18n.t('Kara Ağacın Mezarlığı’ndaki iki mezar kabını aç; köklerin tutsak ettiği hatıraları serbest bırak.'), anyOrder: true, steps: [
-        { id: 'grave-west', room: 8, dx: -3.7, dz: 2.8, shape: 'urn', name: KabirI18n.t('Tuzla Mühürlü Mezar Kabı'), verb: KabirI18n.t('Tuz mührünü çöz'), objective: KabirI18n.t('Kara Ağacın Mezarlığı’nda tuzla mühürlü mezar kabını aç.'), story: L5("Mezar kabından kül ve bir sevk izi çıkıyor: krala canlı götürülenler kıyıya adsız dönmüş. Selvi’nin kaydı bu hesabın içinde; dönüşünün izi yok.", "Ash and a delivery trace fall from the burial vessel: those taken alive to the King returned to the shore without names. Selvi’s entry lies in the same account, but there is no record of her return.") },
-        { id: 'grave-east', room: 8, dx: 3.7, dz: -2.8, shape: 'urn', name: KabirI18n.t('Kökle Mühürlü Mezar Kabı'), verb: KabirI18n.t('Kök mührünü çöz'), objective: KabirI18n.t('Kara Ağacın Mezarlığı’nda kökle mühürlü mezar kabını aç.'), story: L5("Mezar kabı köklerden ayrılıyor. Taşta boş bir tahtın altında yanan ocak beliriyor. Kıyının acısı o ateşe bağlı.", "The burial vessel comes free of the roots. A furnace burning beneath an empty throne appears on the stone. The shore’s torment is tied to that fire.") }
-      ] }
-    ] },
-    3: { title: KabirI18n.t('Boş Tahtın Altında'), introduction: KabirI18n.t('Kıyının çanı sustu; fakat ölüleri çağıran ses mağaranın içinden geliyor. Kral kendi adını taşın içine saklamış.'), quests: [
-      { id: 'kings-name', name: KabirI18n.t('Kralın Çalınmış Adı'), description: KabirI18n.t('Kralların Mezarları’ndaki ad levhasını al ve Çöken Anıt’ın eksik yerine yerleştir.'), steps: [
-        { id: 'epitaph', room: 3, dx: 3.8, dz: 3.4, shape: 'tablet', name: KabirI18n.t('Kazınmış Ad Levhası'), verb: KabirI18n.t('Kazınmış ad levhasını al'), objective: KabirI18n.t('Kralların Mezarları’nda kazınmış ad levhasını bul.'), story: KabirI18n.t('Levhanın arkasında başka bir unvan var: “Ocağın ilk mahkûmu.” Kralın adı anıttan sökülmüş; yerine koymalısın.') },
-        { id: 'name-monument', room: 5, dx: -3.5, dz: -1.8, shape: 'memorial', name: KabirI18n.t('Kırık Kral Anıtı'), verb: KabirI18n.t('Ad levhasını anıta yerleştir'), objective: KabirI18n.t('Çöken Anıt’ta levhayı eksik yuvaya yerleştir.'), story: L5("Anıtın oyukları birleşiyor. Tahtını korumak için sattığı ad, kralın kendi hükmünün altında ortaya çıkıyor. Tahtın ilk mührü çatladı.", "The hollows of the monument join. The name the King sold to preserve his throne appears beneath his own sentence. The throne’s first seal cracks.") }
-      ] },
-      { id: 'cave-breath', name: KabirI18n.t('Mağaranın Nefesi'), description: KabirI18n.t('Kör Kristaller’de yankıyı serbest bırak; Taşın İçindeki Ölüler’de son ses bağını sustur.'), steps: [
-        { id: 'echo', room: 7, dx: 3.6, dz: 2.7, shape: 'crystal', name: KabirI18n.t('Zincirli Yankı'), verb: KabirI18n.t('Yankının demir bağını aç'), objective: KabirI18n.t('Kör Kristaller’de zincirli yankıyı serbest bırak.'), story: KabirI18n.t('Kristalden bir emir değil, bir insan nefesi yükseliyor. Yankı kuzeydeki son ses bağına cevap veriyor.') },
-        { id: 'silence', room: 9, dx: -3.4, dz: 2.2, shape: 'seal', name: KabirI18n.t('Son Ses Bağı'), verb: KabirI18n.t('Son ses bağını sustur'), objective: KabirI18n.t('Taşın İçindeki Ölüler’de son ses bağını sustur.'), story: L5("Ses mührü yerinden ayrıldı. Mağaranın emri kesiliyor; tahtın ardındaki merdiven Kızıl Ocak’a iniyor.", "The voice seal comes free. The cavern’s command falls silent; the stair behind the throne descends to the Crimson Furnace.") }
-      ] }
-    ] },
-    4: { title: KabirI18n.t('Zincirlerin Kaynağı'), introduction: KabirI18n.t('Tapınağın hükmü, kıyının ağıdı, kralın sesi: hepsi bu ocakta dövülmüş. Kapıyı açmak yetmez; kalbi besleyen düzeni de bozmalısın.'), quests: [
-      { id: 'last-prisoner', name: KabirI18n.t('Son Mahkûmun Yemini'), description: KabirI18n.t('Kömür Mahkûmları’ndaki yemin halkasını al; Zincir Kuyuları’nın vincinde kullan.'), steps: [
-        { id: 'last-shackle', room: 2, dx: -3.8, dz: 2.6, shape: 'relic', name: KabirI18n.t('Son Yemin Halkası'), verb: KabirI18n.t('Yemin halkasını al'), objective: KabirI18n.t('Kömür Mahkûmları’nda son yemin halkasını bul.'), story: KabirI18n.t('Halka elini yakmıyor. Üzerinde mahkûmların ortak yemini var: “Son çıkan, zinciri de kıracak.” Kuyu vincinin kilidine uyuyor.') },
-        { id: 'prison-winch', room: 7, dx: 3.8, dz: 2.5, shape: 'winch', name: KabirI18n.t('Mahkûm Vinci'), verb: KabirI18n.t('Halkayı tak ve kuyu zincirlerini bırak'), objective: KabirI18n.t('Zincir Kuyuları’nda yemin halkasıyla vinci aç.'), story: L5("Kuyu vincinin kilidi açıldı. Halkalar artık mahkûmların bedenlerine yük bindirmiyor; ocağın ilk bağı çözüldü.", "The pit winch unlocks. The links no longer bear down on the prisoners’ bodies; the furnace’s first bond is broken.") }
-      ] },
-      { id: 'heart-feeds', name: KabirI18n.t('Kalbi Besleyen Ateş'), description: KabirI18n.t('Önce döküm akışını, sonra kalbin ana beslemesini kapat.'), steps: [
-        { id: 'casting-feed', room: 5, dx: -3.5, dz: 3.3, shape: 'valve', name: KabirI18n.t('Döküm Vanası'), verb: KabirI18n.t('Döküm akışını kapat'), objective: KabirI18n.t('Sönen Dökümhane’de döküm vanasını kapat.'), story: KabirI18n.t('Sıvı demirin sesi azalıyor. Basıncı geri döndüren cüruf hattı hâlâ açık; sıradaki vana Cüruf Meydanı’nda.') },
-        { id: 'heart-feed', room: 12, dx: -3.6, dz: 2.5, shape: 'valve', name: KabirI18n.t('Kalp Besleme Vanası'), verb: KabirI18n.t('Kalbin ana beslemesini kes'), objective: KabirI18n.t('Son Döküm’de kalbin ana beslemesini kes.'), story: L5("Ana besleme kesildi. Kalp artık tutsaklardan beslenemiyor; ama kendi ateşi hâlâ canlı. Ocağı ayakta tutan o ateş içeride.", "The main feed is cut. The Heart can no longer feed on the captives, but its own fire still lives. The fire that sustains the furnace waits within.") }
-      ] }
-    ] }
+    "1": {
+      "title": L5("Mezara Sığmayan", "The Unburied"),
+      "introduction": L5("Seni yaralı ele geçirdiler. Kara Kadı’nın emriyle canlı gömdüler. Taş kapak kırıldı; şimdi çıkış yolunu bul.", "They captured you wounded and buried you alive on the Black Judge’s orders. The stone lid has broken. Find your way out."),
+      "quests": [
+        {
+          "id": "lost-names",
+          "name": L5("Mezarın Kilidi", "The Grave Lock"),
+          "description": L5("Gardiyanların sakladığı kilit levhasını bul ve hücre düzeneğini aç.", "Find the lock plate hidden by the wardens and release the cells."),
+          "steps": [
+            {
+              "id": "names",
+              "room": 7,
+              "dx": -2.6,
+              "dz": 2.6,
+              "shape": "tablet",
+              "name": L5("Gardiyanın Kilit Levhası", "Warden’s Lock Plate"),
+              "verb": L5("Kilit levhasını al", "Take the lock plate"),
+              "objective": L5("Unutulanların Mahzeni’nde kilit levhasını bul.", "Find the lock plate in the Forgotten Vault."),
+              "story": L5("Levhada Kara Kadı’nın mührü var: “Barbar canlı gömülsün.” Hücre kilidine uyuyor.", "The plate bears the Black Judge’s seal: “Bury the barbarian alive.” It fits the cell mechanism.")
+            },
+            {
+              "id": "memorial",
+              "room": 2,
+              "dx": 4.2,
+              "dz": 3,
+              "shape": "memorial",
+              "name": L5("Hücre Kilidi", "Cell Lock"),
+              "verb": L5("Kilit levhasını yerleştir", "Fit the lock plate"),
+              "objective": L5("Çürüyen Revir’de hücre düzeneğini aç.", "Open the cell mechanism in the Rotting Infirmary."),
+              "story": L5("Demir sürgüler geri çekiliyor. Hücrelerdeki insanlar hâlâ yaşıyor.", "The iron bolts withdraw. People inside the cells are still alive.")
+            }
+          ],
+          "verdict": {
+            "title": L5("Yola devam etmeden", "Before moving on"),
+            "question": L5("Bağlar kırıldı. Geride kalan malzemeyi nasıl kullanacaksın?", "The bonds are broken. How will you use the remaining supplies?"),
+            "options": [
+              {
+                "id": "rest",
+                "name": L5("Savunmanı hazırla", "Prepare your defenses"),
+                "story": L5("Kırık bağlardan kalan malzemeyi yanına alıyorsun. Yoluna devam etmek için hazırlanıyorsun.", "You take the supplies left by the broken bonds and prepare to press onward."),
+                "benefit": "damageReduction",
+                "amount": 0.06,
+                "effect": KabirI18n.t("Bu bölümde alınan tüm hasar %6 azalır.")
+              },
+              {
+                "id": "expose",
+                "name": L5("Saldırını hazırla", "Prepare your attack"),
+                "story": L5("Kırık bağlardan kalan malzemeyi yanına alıyorsun. Yoluna devam etmek için hazırlanıyorsun.", "You take the supplies left by the broken bonds and prepare to press onward."),
+                "benefit": "bossDamage",
+                "amount": 0.1,
+                "effect": KabirI18n.t("Bu bölümün efendisine verilen hasar %10 artar.")
+              }
+            ]
+          },
+          "voice": "questNames",
+          "completeStory": L5("Bağ çözüldü. Esirlerin kaçış yolu artık güvenli.", "The bond is broken. The captives now have a safe escape route.")
+        },
+        {
+          "id": "blood-verdict",
+          "name": L5("Duvarın Ardındakiler", "Those Behind the Walls"),
+          "description": L5("Esirlerin tutulduğu ayinin iki bağını kır.", "Break the two ritual bonds holding the captives."),
+          "steps": [
+            {
+              "id": "ash",
+              "room": 3,
+              "dx": -5.4,
+              "dz": 3.4,
+              "shape": "censer",
+              "name": L5("Kurban Mangalı", "Sacrificial Brazier"),
+              "verb": L5("Mangalı söndür", "Extinguish the brazier"),
+              "objective": L5("Adak Salonu’nda kurban mangalını söndür.", "Extinguish the sacrificial brazier in the Hall of Offerings."),
+              "story": L5("Duman kesiliyor. Duvarın arkasından bir adam sesleniyor: “Bizi limana götürecekler.”", "The smoke clears. A man calls from behind the wall: “They are taking us to the port.”")
+            },
+            {
+              "id": "oath",
+              "room": 3,
+              "dx": 5.4,
+              "dz": 3.4,
+              "shape": "seal",
+              "name": L5("Esirlerin Bağı", "Captives’ Bond"),
+              "verb": L5("Esirlerin mührünü kır", "Break the captives’ seal"),
+              "objective": L5("Adak Salonu’nda esirlerin bağını kır.", "Break the captives’ bond in the Hall of Offerings."),
+              "story": L5("Zincirler düşüyor. Kıyıya çıkan yolu mezarın gardiyanı tutuyor.", "The chains fall. The grave warden guards the passage to the shore.")
+            }
+          ],
+          "verdict": {
+            "title": L5("Yola devam etmeden", "Before moving on"),
+            "question": L5("Bağlar kırıldı. Geride kalan malzemeyi nasıl kullanacaksın?", "The bonds are broken. How will you use the remaining supplies?"),
+            "options": [
+              {
+                "id": "break",
+                "name": L5("Savunmanı hazırla", "Prepare your defenses"),
+                "story": L5("Kırık bağlardan kalan malzemeyi yanına alıyorsun. Yoluna devam etmek için hazırlanıyorsun.", "You take the supplies left by the broken bonds and prepare to press onward."),
+                "benefit": "staminaRecovery",
+                "amount": 0.1,
+                "effect": KabirI18n.t("Bu bölümde dayanıklılık yenilenmesi %10 hızlanır.")
+              },
+              {
+                "id": "bear",
+                "name": L5("Saldırını hazırla", "Prepare your attack"),
+                "story": L5("Kırık bağlardan kalan malzemeyi yanına alıyorsun. Yoluna devam etmek için hazırlanıyorsun.", "You take the supplies left by the broken bonds and prepare to press onward."),
+                "benefit": "healingBonus",
+                "amount": 0.1,
+                "effect": KabirI18n.t("Bu bölümde iksir ve can çalmayla iyileşme %10 artar.")
+              }
+            ]
+          },
+          "voice": "questVerdict",
+          "completeStory": L5("Bağ çözüldü. Kadı’ya giden yol açılıyor.", "The bond is broken. The road to the Judge opens.")
+        }
+      ]
+    },
+    "2": {
+      "title": L5("Esir Limanı", "Port of Captives"),
+      "introduction": L5("Kara Kadı’nın kurbanları bu limandan taşınıyor. Esirleri çıkar, sevkiyatı durdur ve harabelere giden yolu bul.", "The Black Judge’s sacrifices pass through this port. Free the captives, stop the shipment and find the road to the ruins."),
+      "quests": [
+        {
+          "id": "last-voice",
+          "name": L5("Kurban Gemisi", "The Sacrifice Ship"),
+          "description": L5("Sevkiyat çanının dilini bul; geminin esir kilitlerini aç.", "Find the shipment bell’s clapper and unlock the captive hold."),
+          "steps": [
+            {
+              "id": "clapper",
+              "room": 7,
+              "dx": -2.8,
+              "dz": 3,
+              "shape": "relic",
+              "name": L5("Sevkiyat Çanının Dili", "Shipment Bell Clapper"),
+              "verb": L5("Çan dilini al", "Take the clapper"),
+              "objective": L5("Batık Gümrük Avlusu’nda sevkiyat çanının dilini bul.", "Find the shipment bell’s clapper in the Sunken Customs Yard."),
+              "story": L5("Bu çan geminin kilitlerini açıyor. Esirler hâlâ ambarın içinde.", "This bell releases the ship’s locks. The captives are still in the hold.")
+            },
+            {
+              "id": "mourning-bell",
+              "room": 5,
+              "dx": -4.5,
+              "dz": 4,
+              "shape": "bell",
+              "name": L5("Ambar Kilidi Çanı", "Hold Release Bell"),
+              "verb": L5("Çanı çal, ambarı aç", "Ring the bell and open the hold"),
+              "objective": L5("Son Fener’de ambar kilidi çanını çal.", "Ring the hold release bell at the Last Lantern."),
+              "story": L5("Geminin ambarı açılıyor. Esirler fenerin ışığına doğru koşuyor.", "The ship’s hold opens. The captives run toward the lantern light.")
+            }
+          ],
+          "verdict": {
+            "title": L5("Yola devam etmeden", "Before moving on"),
+            "question": L5("Bağlar kırıldı. Geride kalan malzemeyi nasıl kullanacaksın?", "The bonds are broken. How will you use the remaining supplies?"),
+            "options": [
+              {
+                "id": "silence",
+                "name": L5("Savunmanı hazırla", "Prepare your defenses"),
+                "story": L5("Kırık bağlardan kalan malzemeyi yanına alıyorsun. Yoluna devam etmek için hazırlanıyorsun.", "You take the supplies left by the broken bonds and prepare to press onward."),
+                "benefit": "damageReduction",
+                "amount": 0.06,
+                "effect": KabirI18n.t("Bu bölümde alınan tüm hasar %6 azalır.")
+              },
+              {
+                "id": "accuse",
+                "name": L5("Saldırını hazırla", "Prepare your attack"),
+                "story": L5("Kırık bağlardan kalan malzemeyi yanına alıyorsun. Yoluna devam etmek için hazırlanıyorsun.", "You take the supplies left by the broken bonds and prepare to press onward."),
+                "benefit": "bossDamage",
+                "amount": 0.1,
+                "effect": KabirI18n.t("Bu bölümün efendisine verilen hasar %10 artar.")
+              }
+            ]
+          },
+          "voice": "questBell",
+          "completeStory": L5("Bağ çözüldü. Esirlerin kaçış yolu artık güvenli.", "The bond is broken. The captives now have a safe escape route.")
+        },
+        {
+          "id": "root-memory",
+          "name": L5("Kara Sevkiyat", "Black Shipment"),
+          "completeStory": L5("Bağ çözüldü. Kadı’ya giden yol açılıyor.", "The bond is broken. The road to the Judge opens."),
+          "description": L5("Mezarlıkta gizlenen iki sevkiyat bağını kır.", "Break the two shipment bonds hidden in the cemetery."),
+          "anyOrder": true,
+          "steps": [
+            {
+              "id": "grave-west",
+              "room": 8,
+              "dx": -3.7,
+              "dz": 2.8,
+              "shape": "urn",
+              "name": L5("Batı Sevkiyat Mührü", "West Shipment Seal"),
+              "verb": L5("Batı mührünü kır", "Break the west seal"),
+              "objective": L5("Kara Ağacın Mezarlığı’nda batı sevkiyat bağını kır.", "Break the west shipment bond in the Black Tree Cemetery."),
+              "story": L5("Kilit kabının içindeki kayıt, esirlerin harabelere gönderildiğini gösteriyor. Emir Kara Kadı’dan.", "The record inside the lock vessel sends the captives to the ruins. The order comes from the Black Judge."),
+              "guard": 9
+            },
+            {
+              "id": "grave-east",
+              "room": 8,
+              "dx": 3.7,
+              "dz": -2.8,
+              "shape": "urn",
+              "name": L5("Doğu Sevkiyat Mührü", "East Shipment Seal"),
+              "verb": L5("Doğu mührünü kır", "Break the east seal"),
+              "objective": L5("Kara Ağacın Mezarlığı’nda doğu sevkiyat bağını kır.", "Break the east shipment bond in the Black Tree Cemetery."),
+              "story": L5("Nakil zinciri gevşiyor. Limanın efendisi kaçış yolunu tutuyor.", "The transport chain slackens. The master of the port bars the escape route."),
+              "guard": 9
+            }
+          ],
+          "verdict": {
+            "title": L5("Yola devam etmeden", "Before moving on"),
+            "question": L5("Bağlar kırıldı. Geride kalan malzemeyi nasıl kullanacaksın?", "The bonds are broken. How will you use the remaining supplies?"),
+            "options": [
+              {
+                "id": "release",
+                "name": L5("Savunmanı hazırla", "Prepare your defenses"),
+                "story": L5("Kırık bağlardan kalan malzemeyi yanına alıyorsun. Yoluna devam etmek için hazırlanıyorsun.", "You take the supplies left by the broken bonds and prepare to press onward."),
+                "benefit": "staminaRecovery",
+                "amount": 0.1,
+                "effect": KabirI18n.t("Bu bölümde dayanıklılık yenilenmesi %10 hızlanır.")
+              },
+              {
+                "id": "carry",
+                "name": L5("Saldırını hazırla", "Prepare your attack"),
+                "story": L5("Kırık bağlardan kalan malzemeyi yanına alıyorsun. Yoluna devam etmek için hazırlanıyorsun.", "You take the supplies left by the broken bonds and prepare to press onward."),
+                "benefit": "healingBonus",
+                "amount": 0.1,
+                "effect": KabirI18n.t("Bu bölümde iksir ve can çalmayla iyileşme %10 artar.")
+              }
+            ]
+          },
+          "voice": "questMemory"
+        }
+      ]
+    },
+    "3": {
+      "title": L5("Toprağın Tutsakları", "Prisoners of the Earth"),
+      "introduction": L5("Kadı’nın eski kurbanları taşın içinde tutuluyor. Bağlarını kır; ocağa inen geçidi aç.", "The Judge’s old victims are held within the stone. Break their bonds and open the passage to the forge."),
+      "quests": [
+        {
+          "id": "kings-name",
+          "name": L5("Toprağa Bağlananlar", "Bound Beneath the Earth"),
+          "description": L5("Kurbanların bağ levhasını bul ve taş kilidine yerleştir.", "Find the victims’ bond plate and fit it into the stone lock."),
+          "steps": [
+            {
+              "id": "epitaph",
+              "room": 3,
+              "dx": 3.8,
+              "dz": 3.4,
+              "shape": "tablet",
+              "name": L5("Kurbanların Bağ Levhası", "Victims’ Bond Plate"),
+              "verb": L5("Bağ levhasını al", "Take the bond plate"),
+              "objective": L5("Kralların Mezarları’nda kurbanların bağ levhasını bul.", "Find the victims’ bond plate among the Kings’ Tombs."),
+              "story": L5("Kadı’nın eski kurbanları taşın altında nefes alıyor. Levha onların kilidini açabilir.", "The Judge’s old victims breathe beneath the stone. This plate can open their lock.")
+            },
+            {
+              "id": "name-monument",
+              "room": 5,
+              "dx": -3.5,
+              "dz": -1.8,
+              "shape": "memorial",
+              "name": L5("Taş Hücre Kilidi", "Stone Cell Lock"),
+              "verb": L5("Levhayla bağı aç", "Release the bond with the plate"),
+              "objective": L5("Çöken Anıt’ta taş hücre kilidini aç.", "Open the stone cell lock at the Collapsed Monument."),
+              "story": L5("Taş yarılıyor. İçeride tutulan insanların sesleri artık emirleri tekrar etmiyor.", "The stone splits. The voices held within no longer repeat commands.")
+            }
+          ],
+          "verdict": {
+            "title": L5("Yola devam etmeden", "Before moving on"),
+            "question": L5("Bağlar kırıldı. Geride kalan malzemeyi nasıl kullanacaksın?", "The bonds are broken. How will you use the remaining supplies?"),
+            "options": [
+              {
+                "id": "name",
+                "name": L5("Savunmanı hazırla", "Prepare your defenses"),
+                "story": L5("Kırık bağlardan kalan malzemeyi yanına alıyorsun. Yoluna devam etmek için hazırlanıyorsun.", "You take the supplies left by the broken bonds and prepare to press onward."),
+                "benefit": "bossDamage",
+                "amount": 0.1,
+                "effect": KabirI18n.t("Bu bölümün efendisine verilen hasar %10 artar.")
+              },
+              {
+                "id": "erase",
+                "name": L5("Saldırını hazırla", "Prepare your attack"),
+                "story": L5("Kırık bağlardan kalan malzemeyi yanına alıyorsun. Yoluna devam etmek için hazırlanıyorsun.", "You take the supplies left by the broken bonds and prepare to press onward."),
+                "benefit": "damageReduction",
+                "amount": 0.06,
+                "effect": KabirI18n.t("Bu bölümde alınan tüm hasar %6 azalır.")
+              }
+            ]
+          },
+          "voice": "questKing",
+          "completeStory": L5("Bağ çözüldü. Esirlerin kaçış yolu artık güvenli.", "The bond is broken. The captives now have a safe escape route.")
+        },
+        {
+          "id": "cave-breath",
+          "name": L5("Ocağın Yolu", "Road to the Forge"),
+          "description": L5("Mağaradaki iki geçit bağını çöz.", "Release the cavern’s two passage bonds."),
+          "steps": [
+            {
+              "id": "echo",
+              "room": 7,
+              "dx": 3.6,
+              "dz": 2.7,
+              "shape": "crystal",
+              "name": L5("Mağara Zinciri", "Cavern Chain"),
+              "verb": L5("Mağara zincirini çöz", "Release the cavern chain"),
+              "objective": L5("Kör Kristaller’de geçidin zincirini çöz.", "Release the passage chain at the Blind Crystals."),
+              "story": L5("Demir halka açılıyor. Taşın ardından sıcak hava yükseliyor.", "The iron ring opens. Hot air rises from behind the stone."),
+              "guard": 9
+            },
+            {
+              "id": "silence",
+              "room": 9,
+              "dx": -3.4,
+              "dz": 2.2,
+              "shape": "seal",
+              "name": L5("Son Geçit Mührü", "Last Passage Seal"),
+              "verb": L5("Geçit mührünü kır", "Break the passage seal"),
+              "objective": L5("Taşın İçindeki Ölüler’de son geçit mührünü kır.", "Break the last passage seal among the Dead Within Stone."),
+              "story": L5("Ocağa inen merdiven açıldı. Kurban Bekçisi yolun üzerinde.", "The stairs to the forge open. The Sacrifice Warden stands in the way.")
+            }
+          ],
+          "verdict": {
+            "title": L5("Yola devam etmeden", "Before moving on"),
+            "question": L5("Bağlar kırıldı. Geride kalan malzemeyi nasıl kullanacaksın?", "The bonds are broken. How will you use the remaining supplies?"),
+            "options": [
+              {
+                "id": "open",
+                "name": L5("Savunmanı hazırla", "Prepare your defenses"),
+                "story": L5("Kırık bağlardan kalan malzemeyi yanına alıyorsun. Yoluna devam etmek için hazırlanıyorsun.", "You take the supplies left by the broken bonds and prepare to press onward."),
+                "benefit": "staminaRecovery",
+                "amount": 0.1,
+                "effect": KabirI18n.t("Bu bölümde dayanıklılık yenilenmesi %10 hızlanır.")
+              },
+              {
+                "id": "keep",
+                "name": L5("Saldırını hazırla", "Prepare your attack"),
+                "story": L5("Kırık bağlardan kalan malzemeyi yanına alıyorsun. Yoluna devam etmek için hazırlanıyorsun.", "You take the supplies left by the broken bonds and prepare to press onward."),
+                "benefit": "healingBonus",
+                "amount": 0.1,
+                "effect": KabirI18n.t("Bu bölümde iksir ve can çalmayla iyileşme %10 artar.")
+              }
+            ]
+          },
+          "voice": "questEcho",
+          "completeStory": L5("Bağ çözüldü. Kadı’ya giden yol açılıyor.", "The bond is broken. The road to the Judge opens.")
+        }
+      ]
+    },
+    "4": {
+      "title": L5("Zincirlerin Kaynağı", "Source of the Chains"),
+      "introduction": L5("Kadı’nın gardiyanları burada silahlanıyor. Esir işçileri çıkar; zincir üretimini durdur.", "The Judge’s wardens are armed here. Free the captive workers and stop the forging of chains."),
+      "quests": [
+        {
+          "id": "last-prisoner",
+          "name": L5("Esirlerin Ocağı", "Forge of Captives"),
+          "description": L5("Vinç anahtarını bul ve işçilerin zincirlerini bırak.", "Find the winch key and release the workers’ chains."),
+          "steps": [
+            {
+              "id": "last-shackle",
+              "room": 2,
+              "dx": -3.8,
+              "dz": 2.6,
+              "shape": "relic",
+              "name": L5("Vinç Anahtarı Halkası", "Winch Key Ring"),
+              "verb": L5("Anahtar halkasını al", "Take the key ring"),
+              "objective": L5("Kömür Mahkûmları’nda vinç anahtarını bul.", "Find the winch key among the Coal Prisoners."),
+              "story": L5("Bir işçi halkayı uzatıyor: “Vinci bırak. Hepimizin zinciri ona bağlı.”", "A worker hands you the ring: “Release the winch. Every chain runs through it.”")
+            },
+            {
+              "id": "prison-winch",
+              "room": 7,
+              "dx": 3.8,
+              "dz": 2.5,
+              "shape": "winch",
+              "name": L5("Esir İşçilerin Vinci", "Captive Workers’ Winch"),
+              "verb": L5("Vinci aç, zincirleri bırak", "Open the winch and release the chains"),
+              "objective": L5("Zincir Kuyuları’nda işçilerin vincini aç.", "Open the workers’ winch at the Chain Pits."),
+              "story": L5("Vinç duruyor. İşçiler ellerini örsten çekip kaçış yoluna ilerliyor.", "The winch stops. The workers pull their hands from the anvils and head for the escape route."),
+              "guard": 9
+            }
+          ],
+          "verdict": {
+            "title": L5("Yola devam etmeden", "Before moving on"),
+            "question": L5("Bağlar kırıldı. Geride kalan malzemeyi nasıl kullanacaksın?", "The bonds are broken. How will you use the remaining supplies?"),
+            "options": [
+              {
+                "id": "free",
+                "name": L5("Savunmanı hazırla", "Prepare your defenses"),
+                "story": L5("Kırık bağlardan kalan malzemeyi yanına alıyorsun. Yoluna devam etmek için hazırlanıyorsun.", "You take the supplies left by the broken bonds and prepare to press onward."),
+                "benefit": "damageReduction",
+                "amount": 0.06,
+                "effect": KabirI18n.t("Bu bölümde alınan tüm hasar %6 azalır.")
+              },
+              {
+                "id": "turn",
+                "name": L5("Saldırını hazırla", "Prepare your attack"),
+                "story": L5("Kırık bağlardan kalan malzemeyi yanına alıyorsun. Yoluna devam etmek için hazırlanıyorsun.", "You take the supplies left by the broken bonds and prepare to press onward."),
+                "benefit": "bossDamage",
+                "amount": 0.1,
+                "effect": KabirI18n.t("Bu bölümün efendisine verilen hasar %10 artar.")
+              }
+            ]
+          },
+          "voice": "questPrisoner",
+          "completeStory": L5("Bağ çözüldü. Esirlerin kaçış yolu artık güvenli.", "The bond is broken. The captives now have a safe escape route.")
+        },
+        {
+          "id": "heart-feeds",
+          "name": L5("Son Döküm", "The Last Casting"),
+          "description": L5("Dökümü durdur ve mahkeme kapısının beslemesini kes.", "Stop the casting and cut the court gate’s feed."),
+          "steps": [
+            {
+              "id": "casting-feed",
+              "room": 5,
+              "dx": -3.5,
+              "dz": 3.3,
+              "shape": "valve",
+              "name": L5("Döküm Vanası", "Casting Valve"),
+              "verb": L5("Döküm vanasını kapat", "Close the casting valve"),
+              "objective": L5("Sönen Dökümhane’de döküm vanasını kapat.", "Close the casting valve in the Dying Foundry."),
+              "story": L5("Yeni zincirler artık dökülmüyor. Ana basınç hattı hâlâ açık.", "No new chains are being cast. The main pressure line is still open.")
+            },
+            {
+              "id": "heart-feed",
+              "room": 12,
+              "dx": -3.6,
+              "dz": 2.5,
+              "shape": "valve",
+              "name": L5("Mahkeme Besleme Vanası", "Court Gate Feed Valve"),
+              "verb": L5("Ana beslemeyi kes", "Cut the main feed"),
+              "objective": L5("Son Döküm’de mahkeme kapısının beslemesini kes.", "Cut the court gate’s feed at the Last Casting."),
+              "story": L5("Mahkemenin demir sürgüsü geri çekiliyor. Ocağın ustası son geçidi tutuyor.", "The court’s iron bolt withdraws. The master of the forge holds the final passage.")
+            }
+          ],
+          "verdict": {
+            "title": L5("Yola devam etmeden", "Before moving on"),
+            "question": L5("Bağlar kırıldı. Geride kalan malzemeyi nasıl kullanacaksın?", "The bonds are broken. How will you use the remaining supplies?"),
+            "options": [
+              {
+                "id": "shelter",
+                "name": L5("Savunmanı hazırla", "Prepare your defenses"),
+                "story": L5("Kırık bağlardan kalan malzemeyi yanına alıyorsun. Yoluna devam etmek için hazırlanıyorsun.", "You take the supplies left by the broken bonds and prepare to press onward."),
+                "benefit": "healingBonus",
+                "amount": 0.1,
+                "effect": KabirI18n.t("Bu bölümde iksir ve can çalmayla iyileşme %10 artar.")
+              },
+              {
+                "id": "starve",
+                "name": L5("Saldırını hazırla", "Prepare your attack"),
+                "story": L5("Kırık bağlardan kalan malzemeyi yanına alıyorsun. Yoluna devam etmek için hazırlanıyorsun.", "You take the supplies left by the broken bonds and prepare to press onward."),
+                "benefit": "bossDamage",
+                "amount": 0.1,
+                "effect": KabirI18n.t("Bu bölümün efendisine verilen hasar %10 artar.")
+              }
+            ]
+          },
+          "voice": "questHeart",
+          "completeStory": L5("Bağ çözüldü. Kadı’ya giden yol açılıyor.", "The bond is broken. The road to the Judge opens.")
+        }
+      ]
+    },
+    "5": {
+      "title": L5("Son Mahkeme", "The Last Court"),
+      "introduction": L5("Kadı seni yeniden zincirlemek istiyor. Son esirleri çıkar, kurban bağlarını kır ve hesabı kapat.", "The Judge means to chain you again. Free the last captives, break the tribute bonds and settle the score."),
+      "quests": [
+        {
+          "id": "four-seals",
+          "name": L5("Tahtın Zincirleri", "Chains of the Throne"),
+          "anyOrder": true,
+          "voice": "questSeals",
+          "completeStory": L5("Bağ çözüldü. Esirlerin kaçış yolu artık güvenli.", "The bond is broken. The captives now have a safe escape route."),
+          "description": L5("Kadı’nın kürsüsünü besleyen üç kurban bağını kır.", "Break the three tribute bonds feeding the Judge’s dais."),
+          "steps": [
+            {
+              "id": "ledger-seal-1",
+              "fallback": {
+                "index": 0.3
+              },
+              "shape": "seal",
+              "name": L5("Mezarın Kurban Bağı", "Grave Tribute Bond"),
+              "verb": L5("Mezar bağını kır", "Break the grave bond"),
+              "objective": L5("Arşivde mezarın kurban bağını kır.", "Break the grave tribute bond in the archive."),
+              "story": L5("Mezardan alınan nefesleri taşıyan zincir kopuyor. Kadı’nın kürsüsü sarsılıyor.", "The chain carrying breaths from the grave snaps. The Judge’s dais shakes.")
+            },
+            {
+              "id": "ledger-seal-2",
+              "fallback": {
+                "index": 0.45
+              },
+              "shape": "memorial",
+              "name": L5("Limanın Kurban Bağı", "Port Tribute Bond"),
+              "verb": L5("Liman bağını kır", "Break the port bond"),
+              "objective": L5("Arşivde limanın kurban bağını kır.", "Break the port tribute bond in the archive."),
+              "story": L5("Denizden getirilen esirlerin bağı düşüyor. Kadı artık o zincirden güç alamıyor.", "The bond of the captives brought by sea falls. The Judge can no longer draw strength through it.")
+            },
+            {
+              "id": "ledger-seal-3",
+              "fallback": {
+                "index": 0.62
+              },
+              "shape": "tablet",
+              "name": L5("Ocağın Kurban Bağı", "Forge Tribute Bond"),
+              "verb": L5("Ocak bağını kır", "Break the forge bond"),
+              "objective": L5("Arşivde ocağın kurban bağını kır.", "Break the forge tribute bond in the archive."),
+              "story": L5("Son zincir kırılıyor. Kürsünün altındaki kurban düzeneği sustu.", "The last chain breaks. The tribute mechanism beneath the dais falls silent.")
+            }
+          ],
+          "verdict": {
+            "title": L5("Yola devam etmeden", "Before moving on"),
+            "question": L5("Bağlar kırıldı. Geride kalan malzemeyi nasıl kullanacaksın?", "The bonds are broken. How will you use the remaining supplies?"),
+            "options": [
+              {
+                "id": "break",
+                "name": L5("Savunmanı hazırla", "Prepare your defenses"),
+                "story": L5("Kırık bağlardan kalan malzemeyi yanına alıyorsun. Yoluna devam etmek için hazırlanıyorsun.", "You take the supplies left by the broken bonds and prepare to press onward."),
+                "benefit": "damageReduction",
+                "amount": 0.06,
+                "effect": KabirI18n.t("Bu bölümde alınan tüm hasar %6 azalır.")
+              },
+              {
+                "id": "wield",
+                "name": L5("Saldırını hazırla", "Prepare your attack"),
+                "story": L5("Kırık bağlardan kalan malzemeyi yanına alıyorsun. Yoluna devam etmek için hazırlanıyorsun.", "You take the supplies left by the broken bonds and prepare to press onward."),
+                "benefit": "bossDamage",
+                "amount": 0.1,
+                "effect": KabirI18n.t("Bu bölümün efendisine verilen hasar %10 artar.")
+              }
+            ]
+          }
+        },
+        {
+          "id": "selvi",
+          "name": L5("Son Kurbanlar", "The Last Sacrifices"),
+          "voice": "questSelvi",
+          "description": L5("Arşivin derinliklerindeki son esirlerin kilidini aç.", "Open the lock holding the last captives deep in the archive."),
+          "steps": [
+            {
+              "id": "selvi-cell",
+              "fallback": {
+                "index": 0.8
+              },
+              "shape": "seal",
+              "name": L5("Son Esirlerin Kilidi", "Last Captives’ Lock"),
+              "verb": L5("Son esirlerin zincirini kır", "Break the last captives’ chain"),
+              "objective": L5("Arşivin derinliklerinde son esirlerin kilidini aç.", "Open the last captives’ lock deep in the archive."),
+              "story": L5("Zincirler yere düşüyor. “Yol açık,” diyorsun. “Bir daha arkanıza bakmayın.”", "The chains fall. “The way is clear,” you say. “Do not look back.”")
+            }
+          ],
+          "verdict": {
+            "title": L5("Yola devam etmeden", "Before moving on"),
+            "question": L5("Bağlar kırıldı. Geride kalan malzemeyi nasıl kullanacaksın?", "The bonds are broken. How will you use the remaining supplies?"),
+            "options": [
+              {
+                "id": "free",
+                "name": L5("Savunmanı hazırla", "Prepare your defenses"),
+                "story": L5("Kırık bağlardan kalan malzemeyi yanına alıyorsun. Yoluna devam etmek için hazırlanıyorsun.", "You take the supplies left by the broken bonds and prepare to press onward."),
+                "benefit": "healingBonus",
+                "amount": 0.1,
+                "effect": KabirI18n.t("Bu bölümde iksir ve can çalmayla iyileşme %10 artar.")
+              },
+              {
+                "id": "ask",
+                "name": L5("Saldırını hazırla", "Prepare your attack"),
+                "story": L5("Kırık bağlardan kalan malzemeyi yanına alıyorsun. Yoluna devam etmek için hazırlanıyorsun.", "You take the supplies left by the broken bonds and prepare to press onward."),
+                "benefit": "bossDamage",
+                "amount": 0.1,
+                "effect": KabirI18n.t("Bu bölümün efendisine verilen hasar %10 artar.")
+              }
+            ]
+          },
+          "completeStory": L5("Bağ çözüldü. Kadı’ya giden yol açılıyor.", "The bond is broken. The road to the Judge opens.")
+        }
+      ]
+    }
   };
-
-  // ajan:quests — chapter 5 (Kara Defter). Sites come from world.questSites (see STORY.md); fallbacks spread along the rooms.
-  CHAPTERS[5] = { title: L5('Kara Defter', 'The Black Ledger'), introduction: L5("Selvi senin el yazını taklit ederek Kara Defter'i doldurmaya zorlanıyor. Kadı, bir kâtibin yerine başkasını bağladı; kardeşini kurtarırken onun yerine geçmeni bekliyor.", "Selvi is forced to fill the Black Ledger by copying your handwriting. The Judge chained one scribe in another's place; he expects you to take her seat when you rescue her."), quests: [
-    { id: 'four-seals', name: L5('Efendilerin Mühürleri', 'The Masters’ Seals'), anyOrder: true, voice: 'questSeals',
-      completeStory: L5('Üç mühür yerinde. Defter’in kilidi çözülüyor; sayfalar kendiliğinden çevriliyor ve senin el yazına geliyor.', 'All three seals are in place. The Ledger’s lock gives way; its pages turn by themselves until they reach your handwriting.'),
-      description: L5('Düşürdüğün efendilerin mühürlerini arşivin üç kürsüsüne koy. Defter’in kilidi ancak böyle açılır.', 'Lay the seals of the masters you felled on the archive’s three lecterns. Only then will the Ledger’s lock open.'), steps: [
-      { id: 'ledger-seal-1', fallback: { index: .3 }, shape: 'seal', name: L5('Cellat’ın Mührü', 'The Executioner’s Seal'), verb: L5('Cellat’ın mührünü kürsüye koy', 'Lay the Executioner’s seal on the lectern'), objective: L5('Arşivde Cellat’ın mührünün kürsüsünü bul.', 'Find the lectern for the Executioner’s seal in the archive.'), story: L5('Cellat’ın mührü kürsüye oturuyor. Taştan bir fısıltı yükseliyor: “Sen yazdın, ben kestim.”', 'The Executioner’s seal settles on the lectern. A whisper rises from the stone: “You wrote, I cut.”') },
-      { id: 'ledger-seal-2', fallback: { index: .45 }, shape: 'memorial', name: L5('Çancı’nın Mührü', 'The Bellringer’s Seal'), verb: L5('Çancı’nın mührünü kürsüye koy', 'Lay the Bellringer’s seal on the lectern'), objective: L5('Arşivde Çancı’nın mührünün kürsüsünü bul.', 'Find the lectern for the Bellringer’s seal in the archive.'), story: L5('Çan mührü yerine oturuyor. Raflar arasında deniz tuzu kokusu yayılıyor; yüz yirmi ad bir an soluk alıyor.', 'The bell seal settles into place. The smell of sea salt drifts between the shelves; a hundred and twenty names breathe for a moment.') },
-      { id: 'ledger-seal-3', fallback: { index: .62 }, shape: 'tablet', name: L5('Kralın Mührü', 'The King’s Seal'), verb: L5('Kralın mührünü kürsüye koy', 'Lay the King’s seal on the lectern'), objective: L5('Arşivde Kralın mührünün kürsüsünü bul.', 'Find the lectern for the King’s seal in the archive.'), story: L5('Kralın mührü kürsüye yerleşiyor. Defter’in ilk satırındaki ad soluyor: tahta satılmış bir ad.', 'The King’s seal settles on the lectern. The name on the Ledger’s first line fades: a name sold for a throne.') }
-    ] },
-    { id: 'selvi', name: L5('Selvi', 'Selvi'), voice: 'questSelvi', description: L5('Kadı’nın yeni kâtibi, senin kız kardeşin. Yazı masasına zincirli; kalemi bırakamıyor.', 'The Judge’s new scribe, your sister. Chained to the writing desk; she cannot put the pen down.'), steps: [
-      { id: 'selvi-cell', fallback: { index: .8 }, shape: 'seal', name: L5('Selvi’nin Yazı Masası', 'Selvi’s Writing Desk'), verb: L5('Selvi’nin zincirini çöz', 'Break Selvi’s chain'), objective: L5('Arşivin derinlerinde Selvi’nin yazı masasını bul.', 'Find Selvi’s writing desk deep in the archive.'), story: L5('Selvi başını kaldırıyor: “Abi. Adımı sen yazdın, biliyorum. Yine de geldin.”', 'Selvi raises her head: “Brother. You wrote my name, I know. Still, you came.”') }
-    ] }
-  ] };
-
-  // The ledger introductions carry the campaign arc (who Bahtiyar was, what each master owes him).
-  CHAPTERS[1].introduction = L5("Seni ölü sanıp Kurban Tapınağı'nın kuyusuna attılar. Yirmi yıl Kara Defter'e ad yazan elin şimdi toprağı kazıyor; hükmettiğin insanlar Cellat'ın kapısına bağlanmış.", "They thought you dead and threw you into the well of the Temple of Sacrifice. The hand that wrote names in the Black Ledger for twenty years now claws at the earth; the people you condemned are bound to the Executioner's gate.");
-  CHAPTERS[2].introduction = L5("Defter'e 'borç ödendi' diye kaydettiğin kıyıdasın. Çan, boğulanları her defasında son nefeslerine döndürüyor; kız kardeşin Selvi'nin sevk kaydı bu insanların arasından geçiyor.", "You stand on the shore you recorded as 'debt paid.' Each toll returns the drowned to their final breath; your sister Selvi's delivery record passes through the same account.");
-  CHAPTERS[3].introduction = L5("Kralın emirleri taşın içine kapatılmış insanların nefesinden çıkıyor. Sana kalemi veren kral kendi adını sakladı; Selvi'ye ulaşan yol onun unvanının ardında.", "The King's commands issue from the breaths of people sealed within the stone. The King who gave you the pen hid his own name; the path to Selvi lies behind his title.");
-  CHAPTERS[4].introduction = L5("Tapınağın hükmünü, kıyının boğulmasını ve kralın emrini besleyen düzenin kalbindesin. Yazdığın her ad burada bitmeyen bir ateş gününe çevrildi; Selvi'nin halkasını arıyorsun.", "You stand at the heart of the order that fed the temple's sentence, the shore's drowning and the King's command. Every name you wrote became an endless day of fire here; you seek Selvi's link.");
-
-  // The blood rite becomes a riddle: all three bowls answer, the incisions on their fronts (I, II, III) and the inscription give the order,
-  // and a wrong bowl spills the hero's blood and resets the rite.
-  (function (rite) {
-    rite.description = L5('Adak Salonu’ndaki hükmü tersine çevir: önce Kül Çanağı’nı söndür, sonra Hüküm Mührü’nü çevir.', 'Reverse the sentence in the Hall of Offerings: put out the Ash Bowl first, then turn the Verdict Seal.');
-    rite.steps[0].objective = L5('Adak Salonu’nda Kül Çanağı’nı söndür.', 'Put out the Ash Bowl in the Hall of Offerings.');
-    rite.steps[1].objective = L5('Adak Salonu’nda Hüküm Mührü’nü tersine çevir.', 'Turn the Verdict Seal in the Hall of Offerings.');
-  })(CHAPTERS[1].quests[1]);
-  // Guarded relics: the urns, the chained echo and the prisoners' winch cannot be touched while their dead still stand nearby.
-  CHAPTERS[2].quests[1].steps.forEach(function (step) { step.guard = 9; });
-  CHAPTERS[3].quests[1].steps[0].guard = 9;
-  CHAPTERS[4].quests[0].steps[1].guard = 9;
-
-  function verdict(title, question, options) { return { title: title, question: question, options: options }; }
-  function option(id, name, story, benefit, amount, effect) { return { id: id, name: name, story: story, benefit: benefit, amount: amount, effect: effect }; }
-  CHAPTERS[1].quests[0].verdict = verdict(KabirI18n.t('İsimler kimin için?'),L5("Mahkûmlar levhadaki adlarını tanıyor. Cellat'ın gerçek adı da aralarında. Onlara kendi yaslarını bırakacak mısın, yoksa tanıklıklarını Cellat'a karşı kullanacak mısın?", "The prisoners recognize their names on the tablet. The Executioner's true name lies among them. Will you leave them their own mourning, or use their testimony against him?"), [
-    option('rest', KabirI18n.t('Mahkûmlara huzur ver'),L5("Adları anı taşına geri veriyorsun. Fısıltılar dinmiyor; ilk kez sana hüküm değil insan sesiyle cevap veriyor. Bedenlerinde açtığın yaralar kapanmadı. Onları yeniden bir silah yapmadın.", "You return the names to the memorial stone. The whispers do not vanish; for the first time they answer with human voices instead of a sentence. The wounds you caused have not healed. You have not made them weapons again."), 'damageReduction', .06, KabirI18n.t('Bu bölümde alınan tüm hasar %6 azalır.')),
-    option('expose', KabirI18n.t('Celladın gerçek adını açığa çıkar'),L5("Cellat'ın adını ölülerin tanıklığına bağlıyorsun. Kapısını açan elini onlar izliyor. Bir kez daha başkalarının acısıyla kendi yolunu açtın; bu kez bıçağın sahibine doğru.", "You bind the Executioner's name to the testimony of the dead. They watch the hand that opens his gate. Once again, you have made a path with someone else's pain; this time toward the hand that held the blade."), 'bossDamage', .1, KabirI18n.t('Bu bölümün efendisine verilen hasar %10 artar.'))
-  ]);
-  CHAPTERS[1].quests[1].verdict = verdict(KabirI18n.t('Hükmün son tanığı'),L5("Mühürde mahkûmların kanı kurumuş. Hükmü parçalayarak tekrarını önleyebilir ya da son tanıklığı kendine bağlayabilirsin. Taşıyacağın güç kadar, taşıyacağın acıyı da seçiyorsun.", "The prisoners' blood has dried on the seal. Break the sentence to prevent its repetition, or bind the last testimony to yourself. You choose the pain you will carry as well as the strength."), [
-    option('break', KabirI18n.t('Hükmü bütünüyle parçala'),L5("Taşı ikiye ayırıyorsun. Kesik izleri yok olmuyor; yalnız hükmün onları yeniden açacak sesi kesiliyor. İlk kez bir mahkemenin önünden emri yerine getirmeden geçiyorsun.", "You split the stone. The cuts remain; only the sentence that would open them again falls silent. For the first time, you pass a court without carrying out its order."), 'staminaRecovery', .1, KabirI18n.t('Bu bölümde dayanıklılık yenilenmesi %10 hızlanır.')),
-    option('bear', KabirI18n.t('Son tanıklığı üstlen'),L5("Cellat'ın adını kazıyıp mühürü avucuna kapatıyorsun. Kurumuş kan yaranla birleşiyor. Tanıklık seni ayakta tutacak; fakat her iyileşmede kimin kanını taşıdığını hatırlayacaksın.", "You scrape away the Executioner's name and close your hand around the seal. Dried blood meets your wound. The testimony will keep you standing; every recovery will remind you whose blood you carry."), 'healingBonus', .1, KabirI18n.t('Bu bölümde iksir ve can çalmayla iyileşme %10 artar.'))
-  ]);
-  CHAPTERS[2].quests[0].verdict = verdict(KabirI18n.t('Çanın çağrısı'),L5("Çan ölüleri son nefeslerine geri çağırıyor. Sesi onların yasına bırakabilir ya da o nefesi Çancı'nın adına bağlayabilirsin. Hangi sesi bir kez daha kullanacaksın?", "The bell calls the dead back into their final breath. Leave its voice to their mourning, or bind that breath to the Bellringer's name. Which voice will you use once more?"), [
-    option('silence', KabirI18n.t('Boğulanları sessizliğe bırak'),L5("Yas çanını susturuyorsun. Kıyıda kalan ayakkabılar dalgaya cevap vermiyor. Ölüler seni aklamadı; yalnız son nefeslerini bir emir olmaktan çıkardın.", "You silence the mourning bell. The shoes left on shore no longer answer the tide. The dead have not absolved you; you have only stopped making an order of their final breath."), 'damageReduction', .06, KabirI18n.t('Bu bölümde alınan tüm hasar %6 azalır.')),
-    option('accuse', KabirI18n.t('Çancıyı kendi sesiyle çağır'),L5("Ölülerin son sesini Çancı'ya çeviriyorsun. Her vuruş kendi adıyla dönüyor. Kıyının yasını bitirmedin; hesabı, onu tutan ele götürdün.", "You turn the last voice of the dead against the Bellringer. Every toll returns with his own name. You have not ended the shore's mourning; you have brought the account to the hand that kept it."), 'bossDamage', .1, KabirI18n.t('Bu bölümün efendisine verilen hasar %10 artar.'))
-  ]);
-  CHAPTERS[2].quests[1].verdict = verdict(KabirI18n.t('Köklerin tuttuğu hatıra'),L5("Köklerin sakladığı hatıralar isim değil yüz taşıyor. Onları mezarlarına bırakacak mısın, yoksa külünü alıp son anlarını yanında mı taşıyacaksın?", "The memories held by the roots carry faces, not merely names. Will you leave them to their graves, or take the ash and carry their last moments with you?"), [
-    option('release', KabirI18n.t('Hatıraları köklerden kurtar'),L5("Mezar kaplarını açıp kökleri ayırıyorsun. Kül yerinde kalıyor. Defter'e sayı olarak geçirdiğin insanlar, senden bir pay istemeden kendi hatıralarına kavuşuyor.", "You open the burial vessels and part the roots. The ash remains where it belongs. The people you reduced to numbers recover their memories without being asked to pay you a share."), 'staminaRecovery', .1, KabirI18n.t('Bu bölümde dayanıklılık yenilenmesi %10 hızlanır.')),
-    option('carry', KabirI18n.t('Yaslarını yanında taşı'),L5("Külü bir beze sarıyorsun. Birinin son hatırası tuz değil, evinin kapısı. Yaraların kapanırken o kapıyı göreceksin. Onun gidemediği yola sen devam ediyorsun.", "You wrap the ash in cloth. One person's final memory is not salt but the door of their home. When your wounds close, you will see that door. You continue along the road they could not take."), 'healingBonus', .1, KabirI18n.t('Bu bölümde iksir ve can çalmayla iyileşme %10 artar.'))
-  ]);
-  CHAPTERS[3].quests[0].verdict = verdict(KabirI18n.t('Tahtın altındaki isim'),L5("Kral kendi adını sattı, insanların adlarıyla hükmetti. Suçunu kendi adıyla görünür kılabilir ya da tacının hâlâ güç verdiği unvanı silebilirsin. Hangisini taşta bırakacaksın?", "The King sold his own name and ruled through other people's names. Expose his crime under his own name, or erase the title that still empowers his crown. Which will you leave in the stone?"), [
-    option('name', KabirI18n.t('Gerçek adını tahta kazı'),L5("Kralın gerçek adını tahta kazıyorsun. Taşın içindeki ağızlar ilk kez emrini değil adını söylüyor. Tacın altından bir insanın korkusu çıkıyor; korkması, işlediği suçu küçültmüyor.", "You carve the King's true name into the throne. For the first time, the mouths inside the stone speak his name instead of his command. A man's fear emerges beneath the crown; his fear does not lessen his crime."), 'bossDamage', .1, KabirI18n.t('Bu bölümün efendisine verilen hasar %10 artar.')),
-    option('erase', KabirI18n.t('Krallığını tarihten sil'),L5("Unvanını taşın üzerinden kaldırıyorsun. Mahkûmun adını silmiyorsun. Artık tacı tanıklığı susturamayacak; taşta kral değil, hüküm giymiş bir insan kalıyor.", "You strip his title from the stone. You do not erase the prisoner's name. His crown can no longer silence testimony; a condemned man remains in the stone, not a king."), 'damageReduction', .06, KabirI18n.t('Bu bölümde alınan tüm hasar %6 azalır.'))
-  ]);
-  CHAPTERS[3].quests[1].verdict = verdict(KabirI18n.t('Mağaranın son nefesi'),L5("Son ses bağında tek bir nefes kalmış. Onu taşın dışına bırakabilir ya da ölüm sana yaklaşınca kullanmak üzere mühürde tutabilirsin. Özgürlük mü, kendine sakladığın bir nefes mi?", "One breath remains in the last sound bond. Release it beyond the stone, or keep it in the seal for when death approaches. Freedom, or a breath kept for yourself?"), [
-    option('open', KabirI18n.t('Yankıya çıkış yolu aç'),L5("Mührü açıyorsun. İçerideki nefes sana cevap vermeden çıkıyor. Kimin nefesi olduğunu öğrenemeyeceksin. Bu kez bir insanın gitmesi için adını istemedin.", "You open the seal. The breath escapes without answering you. You will never know whose it was. This time, you did not demand a person's name before allowing them to leave."), 'staminaRecovery', .1, KabirI18n.t('Bu bölümde dayanıklılık yenilenmesi %10 hızlanır.')),
-    option('keep', KabirI18n.t('Son nefesi mühürde sakla'),L5("Son nefesi mühürde saklıyorsun. Kendi soluğun kesildiğinde onunki geri gelecek. Parmaklarını kapatırken bir an elini kalemin üstünde görüyorsun.", "You keep the final breath in the seal. When your own breath fails, theirs will return. As your fingers close, for a moment you see your hand closing around the pen."), 'healingBonus', .1, KabirI18n.t('Bu bölümde iksir ve can çalmayla iyileşme %10 artar.'))
-  ]);
-  CHAPTERS[4].quests[0].verdict = verdict(KabirI18n.t('Son çıkanın yemini'),L5("Vinç bırakılırsa mahkûmların zincirleri çözülecek. Onları hemen serbest bırakabilir ya da zincirleri kalbin beslemesine geri bağlayıp azabın ağırlığını sahibine çevirebilirsin.", "Releasing the winch will loosen the prisoners' chains. Set them free now, or turn the chains back into the heart's feed and make the source bear the weight of its own torment."), [
-    option('free', KabirI18n.t('Bütün mahkûm zincirlerini bırak'),L5("Vinci bırakıyorsun. Zincirler düşerken kuyudan bir övgü gelmiyor; yalnız zorla alınmamış bir nefes yükseliyor. Bunu duymak için kendi adının anılmasına ihtiyacın yok.", "You release the winch. No praise rises as the chains fall; only a breath that has not been forced from a body. You do not need to hear your own name to recognize it."), 'damageReduction', .06, KabirI18n.t('Bu bölümde alınan tüm hasar %6 azalır.')),
-    option('turn', KabirI18n.t('Zincirleri kalbe geri bağla'),L5("Mahkûmların halkalarını kalbin beslemesine geçiriyorsun. Bedenleri artık tutmuyorlar. Zincir gerildiğinde ocak, yıllardır başkalarının taşıdığı ağırlığı kendi üstünde duyuyor.", "You turn the prisoners' links into the heart's feed. They no longer hold the bodies. When the chain tightens, the furnace feels the weight it made others bear for years."), 'bossDamage', .1, KabirI18n.t('Bu bölümün efendisine verilen hasar %10 artar.'))
-  ]);
-  CHAPTERS[4].quests[1].verdict = verdict(KabirI18n.t('Ocak sönerken'),L5("Besleme kesildi. Son koru yaranı kapatmak için saklayabilir ya da kalbin kendi ateşini ona geri çevirebilirsin. İnsan acısı bu ateşin yakıtı olmaktan çıktı; şimdi son kullanımı senin elinde.", "The feed is cut. Keep the last ember to close your wounds, or turn the heart's own fire back against it. Human pain no longer fuels this fire; its last use lies in your hands."), [
-    option('shelter', KabirI18n.t('Son koru bir sığınağa çevir'),L5("Koru bir bezin içinde saklıyorsun. İlk kez bu ocaktan alınan sıcaklık bir bedeni açmak için değil, yarasını kapatmak için kullanılacak. Kül yine kül; yaptığını değiştirmiyor.", "You keep the ember within a cloth. For the first time, heat taken from this furnace will close a wound instead of opening a body. Ash is still ash. It does not change what you did."), 'healingBonus', .1, KabirI18n.t('Bu bölümde iksir ve can çalmayla iyileşme %10 artar.')),
-    option('starve', KabirI18n.t('Kalbi kendi ateşiyle tüket'),L5("Geri dönüş vanasını açıyorsun. Kalp kendi ateşini içine çekiyor. Mahkûmların soluğu bu hattan çekildi; son yükü artık onlara taşıtmıyorsun.", "You open the return valve. The heart draws its own fire inward. The prisoners' breath has been removed from the feed; you do not make them bear its final weight."), 'bossDamage', .1, KabirI18n.t('Bu bölümün efendisine verilen hasar %10 artar.'))
-  ]);
-
-  CHAPTERS[5].quests[0].verdict = verdict(L5('Mühürlerin akıbeti', 'The fate of the seals'),L5("Üç mühür, susturduğun efendilerin hükmünü taşıyor. Onları kırabilir ya da Kadı'ya karşı göğsüne bağlayabilirsin. Güçlerini kullanırsan ağırlıklarını da üstlenirsin.", "Three seals carry the sentences of the masters you silenced. Break them, or bind them to your chest against the Judge. If you use their strength, you take on their weight."), [
-    option('break', L5('Mühürleri kır', 'Break the seals'),L5("Mühürler elinde çatlıyor. Cellat'ın bıçağı, çanın çağrısı ve kralın emri artık yeni bir hükme imza olamaz. Kadı'nın önüne onların makamını almadan çıkıyorsun.", "The seals crack in your hand. The blade, the bell's summons and the royal command can no longer sign a new sentence. You face the Judge without taking the masters' offices for yourself."), 'damageReduction', .06, KabirI18n.t('Bu bölümde alınan tüm hasar %6 azalır.')),
-    option('wield', L5('Mühürleri kuşan', 'Wear the seals'),L5("Üç mührü göğsüne bağlıyorsun. Taşın ağırlığı kaburgalarına oturuyor. Kadı kendi hükmünün izlerini üzerinde görecek. Bunları yalnız onu yıkmak için taşıdığını söylüyorsun.", "You bind the three seals to your chest. Their weight settles against your ribs. The Judge will see the marks of his own sentences on you. You tell yourself you carry them only to destroy him."), 'bossDamage', .1, KabirI18n.t('Bu bölümün efendisine verilen hasar %10 artar.'))
-  ]);
-  CHAPTERS[5].quests[1].verdict = verdict(L5('Selvi’nin kalemi', 'Selvi’s pen'),L5("Selvi'nin bileğindeki zincir çözülmüş, eli hâlâ kaleme kilitli. Kalemi kırabilir ya da bir satır daha isteyebilirsin: Kadı'nın gerçek adı. Bu satırın bedelini sen ödemeyeceksin.", "The chain at Selvi's wrist is loose, but her hand is still locked to the pen. Break it, or ask for one more line: the Judge's true name. You will not be the one who pays for that line."), [
-    option('free', L5('Kalemi kır, onu serbest bırak', 'Break the pen and free her'),L5("Kalemi kırıyorsun. Selvi kan bulaşmış parmağıyla masadaki toza kendi adını çiziyor. Bu bir hüküm değil. Elini geri çekiyor; ilk kez bırakmasına izin verilen şey yalnız kalem değil.", "You break the pen. With a bloodstained finger, Selvi traces her own name in the dust on the desk. It is not a sentence. She draws back her hand; for the first time, the pen is not the only thing she is allowed to let go."), 'healingBonus', .1, KabirI18n.t('Bu bölümde iksir ve can çalmayla iyileşme %10 artar.')),
-    option('ask', L5('Kadı’nın zaafını yazdır', 'Make her write the Judge’s weakness'),L5("Selvi Kadı'nın gerçek adını yazıyor. Son harfte bileği yeniden kasılıyor; saçındaki tek bir tutam beyaza dönüyor. Kalem sonunda avucundan düşüyor. Sana bakmıyor. Bir satır daha istedin. Onu kurtarmaya geldiğini söyledin.", "Selvi writes the Judge's true name. At the last letter her wrist locks again; one strand of her hair turns white. The pen finally falls from her palm. She does not look at you. You asked for one more line. You said you had come to save her."), 'bossDamage', .1, KabirI18n.t('Bu bölümün efendisine verilen hasar %10 artar.'))
-  ]);
-
-  // The forceful verdict opens a later, forward-facing route through an existing defended chamber.
-  // The quieter verdict finishes here; the risky route only earns its boss advantage when its guardians are defeated.
-  [
-    { chapter: 1, choice: 'expose', room: 8, dx: -3.8, dz: 2.8, id: 'witness-proof', name: KabirI18n.t('Celladın Saklı Tanıklığı'), objective: KabirI18n.t('Sönmüş Kandiller’deki bekçileri yen ve saklı tanıklığı ortaya çıkar.'), story: KabirI18n.t('Kandillerin son bekçisi düştü. Celladın adını saklayan tanıklık serbest; artık hükmü ona geri çevirebilirsin.'), effect: KabirI18n.t('Sönmüş Kandiller’deki bekçileri yen. Ardından efendiye hasar %10 artar.') },
-    { chapter: 2, choice: 'accuse', room: 12, dx: 3.4, dz: 2.6, id: 'bell-testimony', name: KabirI18n.t('Fenercinin Son Tanıklığı'), objective: KabirI18n.t('Fenersiz Sığınak’taki nöbeti kır ve fenercinin tanıklığını çana bağla.'), story: KabirI18n.t('Sığınaktaki nöbet sustu. Fenercinin tanıklığı yas çanına ulaşıyor; Çancı kendi sesinin içinde açıkta kalıyor.'), effect: KabirI18n.t('Fenersiz Sığınak’ın nöbetini yen. Ardından efendiye hasar %10 artar.') },
-    { chapter: 3, choice: 'name', room: 10, dx: -3.4, dz: 2.6, id: 'royal-testimony', name: KabirI18n.t('Kralın Son Tanığı'), objective: KabirI18n.t('Yutulan Saray’daki muhafızları yen ve kralın tanıklık mührünü kır.'), story: KabirI18n.t('Sarayın son muhafızı düştü. Taç, mahkûmun adını artık saklayamıyor. Kral kendi geçmişiyle yüzleşmek zorunda.'), effect: KabirI18n.t('Yutulan Saray’ın muhafızlarını yen. Ardından efendiye hasar %10 artar.') },
-    { chapter: 4, choice: 'turn', room: 10, dx: 3.2, dz: 2.4, id: 'turned-oath', name: KabirI18n.t('Kalbe Dönen Yemin'), objective: KabirI18n.t('Kızıl Fırınlar’daki bekçileri yen ve halkaları kalbin beslemesine döndür.'), story: KabirI18n.t('Korun bekçileri düştü. Mahkûmların zinciri artık kalbin kendi ateşini bağlıyor; son vuruşun yolu açıldı.'), effect: KabirI18n.t('Kızıl Fırınlar’ın bekçilerini yen. Ardından efendiye hasar %10 artar.') }
-  ].slice(0, 0).forEach(function (trial) {
-    var q = CHAPTERS[trial.chapter].quests[0], chosen = q.verdict.options.find(function (choice) { return choice.id === trial.choice; });
-    trial.shape = ({ expose: 'tablet', accuse: 'bell', name: 'memorial', turn: 'winch' })[trial.choice];
-    trial.verb = ({ expose: KabirI18n.t('Saklı tanıklığı al'), accuse: KabirI18n.t('Tanıklığı yas çanına bağla'), name: KabirI18n.t('Kraliyet mührünü kır'), turn: KabirI18n.t('Halkaları kalbin beslemesine geçir') })[trial.choice]; trial.trial = true;
-    q.trial = trial; chosen.trial = trial; chosen.effect = trial.effect;
-    chosen.story = ({ expose: KabirI18n.t('Celladın adını gizlememeyi seçtin. Saklı tanıklık doğrulanana kadar hükmün ona ulaşamaz.'), accuse: KabirI18n.t('Ölülerin yasını Çancıya çevirmeyi seçtin. Fenercinin tanıklığı olmadan çanın sesi onu ele vermez.'), name: KabirI18n.t('Kralı kendi adıyla yüzleştirmeyi seçtin. Son tanığın mührü kırılmadan taç geçmişini saklayabilir.'), turn: KabirI18n.t('Mahkûmların yeminini kalbe çevirmeyi seçtin. Besleme hattı bağlanana kadar zincir henüz onun ateşini tutmuyor.') })[trial.choice];
-  });
 
   function create(api) {
     var world = api.world, chapter = Math.max(1, Math.min(B.FINAL_CHAPTER || 5, api.chapter || 1));
@@ -187,7 +626,7 @@
         mesh.castShadow = false; mesh.receiveShadow = entry.material !== glow; mesh.matrixAutoUpdate = false; mesh.updateMatrix(); group.add(mesh);
       }
     }
-    function makeSelviDesk(node) {
+    function makeCaptiveStation(node) {
       var group = new T.Group(), body = [], bound = [], signal = [];
       var paper = materials.shroud || materials.cloth || materials.bone || stone;
       var ink = materials.rock || materials.earth || metal;
@@ -210,7 +649,7 @@
       box(body, trim, 1.055, .018, .025, 0, 1.077, .307);
       box(body, metal, .018, .032, .67, -.522, 1.068, -.035);
       box(body, metal, .018, .032, .67, .522, 1.068, -.035);
-      // The empty chair remains after her release: a place, not another actor.
+      // The captive station remains after release; no extra actor or light.
       box(body, wood, .34, .055, .29, 0, .66, -.46);
       for (var leg = -1; leg <= 1; leg += 2) {
         box(body, wood, .055, .55, .055, leg * .13, .45, -.54);
@@ -260,7 +699,7 @@
     }
 
     function makeProp(node, index) {
-      if (node.id === 'selvi-cell') { makeSelviDesk(node); return; }
+      if (node.id === 'selvi-cell') { makeCaptiveStation(node); return; }
       var group = new T.Group(), body = [], detail = [], bindings = [], s = node.shape, relief = materials.bone || stone;
       group.name = node.name; group.position.set(node.x, node.y, node.z); group.matrixAutoUpdate = false; group.updateMatrix(); root.add(group); node.group = group;
       // A bevelled octagonal reliquary foot: physical stone and brass, no added light.

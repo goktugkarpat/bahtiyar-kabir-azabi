@@ -19,14 +19,9 @@ KADI = {
     'tr': ('tr-TR-AhmetNeural', '-22%', '-26Hz', TRIM + ',highpass=f=50,lowpass=f=6000,equalizer=f=100:t=q:w=0.9:g=6,aecho=0.8:0.9:110|260:0.3|0.18,alimiter=limit=0.92'),
     'en': ('en-US-SteffanNeural', '-26%', '-30Hz', TRIM + ',highpass=f=50,lowpass=f=5600,equalizer=f=100:t=q:w=0.9:g=7,aecho=0.8:0.9:120|280:0.32|0.2,alimiter=limit=0.92'),
 }
-LINES = {
-    'ch5Kadi': {'who': 'kadi', 'tr': 'Kâtip. Kalemini bırakıp kaçtın; ama defter seni unutmadı. Son satır senin.',
-                'en': 'Scribe. You dropped your quill and ran; but the ledger did not forget you. The last line is yours.'},
-    'ch5Echo': {'who': 'narr', 'tr': 'Dört efendinin sesi onun ağzından konuşuyor. Hepsini bir kez daha yeneceksin.',
-                'en': 'The four lords speak through his mouth. You will defeat them all once more.'},
-    'ch5LastVerdict': {'who': 'kadi', 'tr': 'Hüküm okunuyor. Işığın kaldığı yerde dur; gerisi benim.',
-                       'en': 'The verdict is being read. Stand where the light remains; the rest is mine.'},
-}
+CANONICAL = json.loads((ROOT / 'src/narration-story-text.json').read_text(encoding='utf8'))
+LINES = {k: dict(CANONICAL[k], who=CANONICAL[k].get('speaker', 'narr')) for k in ('ch5Kadi', 'ch5Echo', 'ch5LastVerdict')}
+
 SPEAKER = {'narr': ('Anlatıcı', 'Narrator'), 'kadi': ('Kara Kadı', 'The Black Qadi')}
 
 def conf(who, lang): return (KADI if who == 'kadi' else NARR)[lang]

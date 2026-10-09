@@ -9,11 +9,19 @@ ROOT=Path(__file__).resolve().parent.parent
 LINES=json.loads((ROOT/'src/narration-story-text.json').read_text(encoding='utf-8'))
 CACHE=Path(tempfile.gettempdir())/'kabir-story-voice-cache'; CACHE.mkdir(exist_ok=True)
 CONF={'tr':('tr-TR-AhmetNeural','-10%','-6Hz'),'en':('en-US-SteffanNeural','-14%','-12Hz')}
+SPEAKERS={'narr':('Anlatıcı','Narrator'),'hero':('Bahtiyar','Bahtiyar'),'warden':('Mezar Gardiyanı','Grave Warden'),'kadi':('Kara Kadı','The Black Qadi')}
+def configuration(lang,line):
+ who=line.get('speaker','narr')
+ voice,rate,pitch=CONF[lang]
+ if who=='hero':return ('tr-TR-AhmetNeural' if lang=='tr' else 'en-US-EricNeural','-8%','-10Hz')
+ if who=='warden':return ('tr-TR-AhmetNeural' if lang=='tr' else 'en-US-ChristopherNeural','-14%','-22Hz')
+ if who=='kadi':return (voice,'-16%','-24Hz')
+ return voice,rate,pitch
 FILTER='silenceremove=start_periods=1:start_threshold=-48dB:start_silence=0.035:detection=peak,areverse,silenceremove=start_periods=1:start_threshold=-48dB:start_silence=0.10:detection=peak,areverse,afade=t=in:d=0.006,highpass=f=60,lowpass=f=7600,equalizer=f=120:t=q:w=0.9:g=2,aecho=0.8:0.85:70:0.08,alimiter=limit=0.92'
 async def record(lang,key,line,sem):
  import edge_tts
- text=line[lang]; voice,rate,pitch=CONF[lang]
- digest=hashlib.sha256(json.dumps([text,CONF[lang],FILTER]).encode()).hexdigest()[:12]
+ text=line[lang]; voice,rate,pitch=configuration(lang,line)
+ digest=hashlib.sha256(json.dumps([text,(voice,rate,pitch),FILTER]).encode()).hexdigest()[:12]
  p=CACHE/f'{lang}-{key}-{digest}.mp3'
  async with sem:
   if not p.exists():
@@ -30,30 +38,30 @@ async def record(lang,key,line,sem):
   d=float(subprocess.check_output(['ffprobe','-v','error','-show_entries','format=duration','-of','default=noprint_wrappers=1:nokey=1',str(p)]))
   assert d>1 and p.stat().st_size>1000
   print(lang,key,round(d,2),flush=True)
-  return lang,key,{'text':text,'speaker':'Anlatıcı' if lang=='tr' else 'Narrator','voice':voice,'style':'D','duration':round(d,3),'chapter':line['chapter'],'audio':base64.b64encode(p.read_bytes()).decode()}
+  return lang,key,{'text':text,'speaker':SPEAKERS[line.get('speaker','narr')][0 if lang=='tr' else 1],'voice':voice,'style':'D','duration':round(d,3),'chapter':line['chapter'],'audio':base64.b64encode(p.read_bytes()).decode()}
 async def main():
  sem=asyncio.Semaphore(3)
  records=await asyncio.gather(*(record(l,k,v,sem) for k,v in LINES.items() for l in CONF))
  out={'tr':{},'en':{}}
  for l,k,v in records:out[l][k]=v
 
- owners=[('narration.js','window.BABA.Narration = ','tr'),('narration-en.js','window.BABA.NarrationEN = ','en'),('narration-quests.js','  var TR = ','tr'),('narration-quests.js','  var EN = ','en')]
+ owners=[('narration.js','window.BABA.Narration = ','tr'),('narration-en.js','window.BABA.NarrationEN = ','en'),('narration-quests.js','  var TR = ','tr'),('narration-quests.js','  var EN = ','en'),('narration-finale.js','  var TR = ','tr'),('narration-finale.js','  var EN = ','en')]
  edits={};count=0
  for filename,prefix,lang in owners:
   p=ROOT/'src'/filename
   source=edits.get(p,p.read_text(encoding='utf-8'))
   begin=source.index(prefix)+len(prefix)
   old,length=json.JSONDecoder().raw_decode(source[begin:])
-  for key,record in out[lang].items():
+  for key,generated in out[lang].items():
    if key in old:
-    old[key].update(record); count+=1
+    old[key].update(generated); count+=1
   edits[p]=source[:begin]+json.dumps(old,ensure_ascii=False,separators=(',',':'))+source[begin+length:]
  assert count==len(LINES)*2,(count,len(LINES))
  if args.apply:
   for p,source in edits.items(): p.write_bytes(source.encode('utf-8'))
  print(f'{count} verified matching records; '+('embedded in original owners' if args.apply else 'cached only; use --apply to embed'),flush=True)
 def verify_existing():
- owners=[('narration.js','window.BABA.Narration = ','tr'),('narration-en.js','window.BABA.NarrationEN = ','en'),('narration-quests.js','  var TR = ','tr'),('narration-quests.js','  var EN = ','en')]
+ owners=[('narration.js','window.BABA.Narration = ','tr'),('narration-en.js','window.BABA.NarrationEN = ','en'),('narration-quests.js','  var TR = ','tr'),('narration-quests.js','  var EN = ','en'),('narration-finale.js','  var TR = ','tr'),('narration-finale.js','  var EN = ','en')]
  found=set()
  with tempfile.TemporaryDirectory(prefix='kabir-story-verify-') as directory:
   for filename,prefix,lang in owners:
