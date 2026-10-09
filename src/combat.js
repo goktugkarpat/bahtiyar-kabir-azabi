@@ -165,6 +165,7 @@
     game.qaHurt = (e, dmg, heavy, face, combo) => hurtEnemy(e, dmg, !!heavy, face, { combo: combo | 0, face, heavy: !!heavy, gained: 99, physicalContact: true });   // (ajan:chars2b) QA handle: a real player blow (light / heavy / finisher via combo 2)
     let cheerAge = -1, reachAge = -1, wakeAge = -1;   // (ajan:hero3) level-up fist-raise / interaction reach gestures (seconds since start, -1 = idle)
     game.cheer = () => { cheerAge = 0; }; game.reach = () => { reachAge = 0; }; game.wake = () => { wakeAge = 0; };
+    game.finishOpening = () => { wakeAge = -1; };
     const skillKeys = ['heavy', 'special', 'rage', 'fourth'];   // right mouse, key 1, key 2, key 3 (slot index = loadout index)
     const SKILLS = Object.freeze(Object.fromEntries(BABA.Progression.skills.map(skill => [skill.id, skill])));
     const skillReach = Object.freeze({ cleave: 3, brand: 6.5, temper: 6.7, roar: 6, quake: 6, chainstorm: 6.5, whirl: 3.3, reap: 3.8, rend: 4.4, charge: 8, grasp: 10, havoc: 12, hook: 8, guard: 1 });

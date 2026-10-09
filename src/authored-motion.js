@@ -1164,6 +1164,24 @@
         wanted.p.z += (-.04 * wkn) * wk; wanted.p.y -= .02 * wkn * wk;
         nextMode = 'wake'; fade = wakeT < .1 ? .001 : .06; wakeLive = true;
       }
+      // Grave opening: authored on the native rig at presentation time, never sampled on a separate FPS clock.
+      // Hands press the lid, recoil with its release, brace on the rim and let the legs take the weight.
+      var openingT = hero ? finite(state.openingTime, -1) : -1;
+      if (openingT >= 0) {
+        var opRise = smooth((openingT - 1.25) / 1.15), opWeight = 1 - smooth((openingT - 2.35) / .65),
+          opPress = smooth(openingT / .55) * (1 - smooth((openingT - .72) / .24)),
+          opBrace = smooth((openingT - .90) / .35) * (1 - smooth((openingT - 1.95) / .45)),
+          opRecoil = Math.sin(clamp((openingT - .72) / .38, 0, 1) * PI);
+        // Blend a crouched grounded stance into the existing continuous walking cycle.
+        crouchLayer(wanted, .94 * (1 - opRise) * opWeight);
+        spineLayer(wanted, -.10 * opBrace, (.30 * (1 - opRise) - .16 * opPress + .12 * opRecoil) * opWeight, .06 * opBrace);
+        euler.set(-.18 * (1 - opRise) * opWeight, 0, 0, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(wanted, 4, qa);
+        euler.set(-1.48 * opPress - .84 * opBrace, 0, -.16 * opPress + .13 * opBrace, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(wanted, 7, qa);
+        euler.set(-.32 * opPress - .30 * opBrace, 0, 0, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(wanted, 8, qa);
+        // Weapon stays low: the free hand does the lifting, with the shoulder visibly absorbing recoil.
+        euler.set(.22 * opWeight + .22 * opRecoil, -.10 * opBrace, -.12 * opWeight, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(wanted, 11, qa);
+        nextMode = 'grave-opening'; fade = openingT < .08 ? .001 : .08;
+      }
       // Gestures laid over the idle / walk pose (hero only, never while striking, rolling, staggering or dying).
       if (hero && !acting && !dodge && !stagger && !state.dead && !strikePhase) {
         var cheerT = finite(state.cheerTime, -1), reachT = finite(state.reachTime, -1);
