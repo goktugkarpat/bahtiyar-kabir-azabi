@@ -350,6 +350,8 @@
         if (ch === '*') return;
         var s = { type: ch === 'S' ? 'shacklewarden' : 'dirgeweeper' }, pos = tab ? tab[ch] : [cx + (ch === 'S' ? 1.5 : -1.5), cz + (ch === 'S' ? -6.4 : 6.4)];
         if (!pos) return;
+        // The broken-oath dais occupies the old elite spawn; keep the gaoler on the clear floor in front.
+        if (enc.id === 'temple-side-12' && ch === 'S') pos = [cx + 1.5, cz - 3.4];
         s.x = pos[0]; s.z = pos[1];
         if (plan.indexOf('*') >= 0 && ch === 'S') { s.elite = true; s.name = tr(TUNE.eliteName); }
         enc.spawns.push(s);
