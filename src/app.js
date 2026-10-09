@@ -310,7 +310,6 @@
     post.setOverlay(flash * .8, ovRage, lv);
   }
   let ready = false, paused = true, frame = 0, last = 0, qaClock = 0, visualDt = 0;
-  let calmSince = 0, calmX = 0, calmZ = 0;   // see the draw-rate rule in frameStep
   let resumeAudioOnVisible = null;
   let graphicsLost = false, graphicsRecovering = false, graphicsEpoch = 0;
   const renderClock = B.Pacing.create();
@@ -1939,7 +1938,7 @@
   }
   // Gaps between presented frames (last ~600), so the counter can also show the longest frame: a few slow frames are
   // what the eye reads as stutter even when the FPS average looks fine.
-  const BUILD_TAG = 380, fpsGaps = new Float32Array(600);
+  const BUILD_TAG = 383, fpsGaps = new Float32Array(600);
   let fpsGapAt = 0, fpsGapLast = 0;
   function frameStats() {
     let longest = 0, slow = 0;
@@ -1964,15 +1963,6 @@
     drawFps(fpsFrames * 1000 / span);
     fpsStart = ts; fpsFrames = 0;
   }
-  // Action poses follow every presented gameplay frame, including casts made
-  // while standing still. Input and recovery must never look like a calm idle.
-  function heroAnimating() {
-    const p = game && game.player;
-    return !!(p && (p.attack || p.roar || p.dodge || p.healing || p.stagger > 0 || p.chargeHandle)
-      || heldLight || keys.size || actions.light || actions.heavy || actions.clickLight || actions.clickHeavy
-      || actions.special || actions.rage || actions.fourth || actions.dodge || actions.heal
-      || input.holdLight || input.holdHeavy || B.LevelUp?.active);
-  }
   function loop(ts) { requestAnimationFrame(loop); frameStep(ts); }
   function frameStep(ts) {
     if (!ready) return;
@@ -1983,20 +1973,14 @@
     const measured = cfg.showFps || Q.has('gpums');
     scaler.callback(ts);
     if (measured) performanceMeter.callback(ts);
-    // Limit the WHOLE expensive tick, not only WebGL submission. Otherwise a
-    // 240/360 Hz display still runs AI, collisions, audio and HUD at 240/360 Hz
-    // under a 60/120 FPS cap, and menus keep doing that work under a 30 FPS cap.
-    // Do not advance `last` on skipped callbacks: their time and queued input
-    // belong to the next tick. Unlimited remains explicitly unlimited.
-    const calmIdle = cfg.fps > 60 && !heroAnimating() && calmSince !== 0 && ts - calmSince > 2500;
-    const frameDue = renderClock.due(ts, paused ? (view === 'title' ? (cfg.fps ? Math.min(cfg.fps, 60) : 60) : Math.min(cfg.fps || 30, 30)) : calmIdle ? 60 : cfg.fps);
+    // One selected render rate for gameplay, the title and every menu. A pause
+    // stops combat, never presentation; zero follows every browser callback.
+    const frameDue = renderClock.due(ts, cfg.fps);
     if (!frameDue) return;
     const cpuStart = measured ? performance.now() : 0;
     // Game.update subdivides this bounded interval into collision-safe 1/60 s steps.
     const dt = clamp((ts - (last || ts)) / 1000, 0, .10); last = ts; elapsed += dt; frame++;
     visualDt = Math.min(.1, visualDt + dt);
-    // Draw rate by situation (CPU/fan): menus 30 (as before), the title screen 60, and a hero who has stood still for 2.5 s with no foe awake
-    // nearby 60 under a selected cap; uncapped gameplay always follows browser callbacks. Actions and input restore the selected rate at once.
     const drawing = !warming;
     game.drawing = drawing;
     // Controllers keep polling on every menu too, so reconnect, remapping and navigation never depend on combat.
@@ -2019,12 +2003,6 @@
     flash = Math.max(0, flash - dt * 1.7);
     syncWarnings(dt);
     const fighting = game.enemies.some(e => !e.dead && e.active && Math.hypot(e.x - game.player.x, e.z - game.player.z) < 10);
-    {
-      const pl = game.player, still = view === 'playing' && game.state === 'playing' && !fighting && !input.x && !input.z && !input.target
-        && !heroAnimating() && Math.hypot(pl.x - calmX, pl.z - calmZ) < .02;
-      calmX = pl.x; calmZ = pl.z;
-      if (!still) calmSince = 0; else if (!calmSince) calmSince = ts;
-    }
     if (fighting) announceTimer = Math.min(announceTimer, .35);
     if (fighting && firstHint > 0) { $('tutorial').classList.add('hidden'); firstHint = 0; }
     B.Audio.update(dt, { playing: view === 'playing' && game.state === 'playing', combat: fighting, boss: game.enemies.some(e => e.boss && !e.dead && Math.hypot(e.x - game.player.x, e.z - game.player.z) < 25) });

@@ -45,7 +45,7 @@
       ctx.putImageData(portraitImage, 0, 0);
     }
     let lastTime = null, animationTime = 0, revision = -1, sourceModel = null, disposed = false, lastCanvas = null;
-    let nextDrawTime = null, cadenceHz = 30;
+    const portraitClock = B.Pacing.create();
     function syncEquipment() {
       const source = game.player && game.player.model;
       if (!source) return false;
@@ -61,20 +61,14 @@
       if (readPending) return false;
       syncEnvironment();
       const changed = syncEquipment(), time = Number.isFinite(now) ? now : performance.now();
-      // This inventory-only RAF renders its isolated target; the paused world keeps
-      // its existing cadence. Healthy asynchronous reads may present at 60 Hz,
-      // while synchronous/unsupported paths retain 30 Hz and a lower user cap.
+      // The isolated portrait follows the game's selected rate, with no separate
+      // 30/60 Hz ceiling. Keep one pending readback instead of queuing GPU work.
       const requested = B.app && B.app.settings && B.app.settings.frameRate;
-      const userHz = Number.isFinite(requested) && requested > 0 ? requested : 60;
-      const healthyAsync = !preparing && portraitImage && !asyncFailed && typeof renderer.readRenderTargetPixelsAsync === 'function';
-      const hz = Math.min(healthyAsync ? 60 : 30, userHz), interval = 1000 / hz;
-      if (cadenceHz !== hz) { cadenceHz = hz; nextDrawTime = lastTime !== null ? lastTime + interval : null; }
       const immediate = changed || canvas !== lastCanvas || lastTime === null;
-      if (!immediate && nextDrawTime !== null && time + .01 < nextDrawTime) return false;
-      // Keep phase under fast browser callbacks, never submit a catch-up burst.
-      if (immediate || nextDrawTime === null || time - nextDrawTime > interval * 2) nextDrawTime = time + interval;
-      else nextDrawTime += Math.max(1, Math.floor((time - nextDrawTime) / interval) + 1) * interval;
-      const dt = lastTime !== null ? Math.min(.08, Math.max(0, (time - lastTime) / 1000)) : 1 / 30;
+      if (immediate) portraitClock.reset();
+      const due = portraitClock.due(time, requested);
+      if (!preparing && !due) return false;
+      const dt = lastTime !== null ? Math.min(.08, Math.max(0, (time - lastTime) / 1000)) : 0;
       const sameCanvas = canvas === lastCanvas;
       lastTime = time; lastCanvas = canvas; animationTime += dt; state.time = animationTime;
       model.animate(dt, state); scene.updateMatrixWorld(true);
