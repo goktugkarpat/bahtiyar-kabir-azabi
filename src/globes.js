@@ -142,7 +142,9 @@
       emit('heal', { hp: p.hp, flasks: p.flasks, source: 'globe', amount: got });
       sound('globe', { x: p.x, z: p.z }); fx('glowBurst', { x: p.x, y: .05, z: p.z, radius: 2.8, color: 0xff2418, duration: .6 });
       fx('glowBurst', { x: p.x, y: .05, z: p.z, radius: 1.4, color: 0xff8070, duration: .3 });
-      label('+' + Math.max(1, Math.round(got)), p.x, p.z); g.dying = .001; g.taken = true;
+      // Print effective HP like the HUD; the heal and its event remain normalized.
+      const units = Number.isFinite(p.effectiveMaxHp) && p.effectiveMaxHp > 0 && Number.isFinite(p.maxHp) && p.maxHp > 0 ? p.effectiveMaxHp / p.maxHp : 1;
+      label('+' + Math.max(1, Math.round(got * units)), p.x, p.z); g.dying = .001; g.taken = true;
     }
 
     function step(g, dt) {

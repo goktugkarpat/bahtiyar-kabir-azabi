@@ -832,18 +832,35 @@
       at = Number.isFinite(o.x) && Number.isFinite(o.z) ? o : e || null,
       t = now(), s = at ? spatial(at.x, at.z) : { pan: 0, gain: 1 }, signature = DEATH_MATERIAL[type];
     sample(signature ? signature[0] : DEATH[type] || 'prisonerDeath', { vol: .85 * k, at, delay: .04, send: .2, prio: 1, rate: signature ? signature[1] : 1 });
-    if (signature) sample(signature[2], {vol:.38*k,at,delay:.46,rate:signature[3],send:.12});
-    sample('thump', { vol: .6 * k, at, delay: .42, rate: .7 }); thud(t + .44, { f0: 90, f1: 35, dur: .25, vol: .5 * k * s.gain, pan: s.pan });
-    if (type === 'guard') { sample('armor', { vol: .55 * k, at, delay: .47, rate: .72 }); sample('armorStep', { vol: .4 * k, at, delay: .6, rate: .7 }); }
-    if (type === 'prisoner') sample('chain', { vol: .35 * k, at, delay: .45, rate: .9 });
-    if (type === 'carrier') sample('flesh', { vol: .5 * k, at, delay: .4, rate: .65 });
+    if (!o.deferLanding) {
+      if (signature) sample(signature[2], {vol:.38*k,at,delay:.46,rate:signature[3],send:.12});
+      sample('thump', { vol: .6 * k, at, delay: .42, rate: .7 }); thud(t + .44, { f0: 90, f1: 35, dur: .25, vol: .5 * k * s.gain, pan: s.pan });
+      if (type === 'guard') { sample('armor', { vol: .55 * k, at, delay: .47, rate: .72 }); sample('armorStep', { vol: .4 * k, at, delay: .6, rate: .7 }); }
+      if (type === 'prisoner') sample('chain', { vol: .35 * k, at, delay: .45, rate: .9 });
+      if (type === 'carrier') sample('flesh', { vol: .5 * k, at, delay: .4, rate: .65 });
+    }
+  };
+  // Only the real owned corpse contact (or its generic offscreen fallback)
+  // dispatches this cue. Preserve warning voice headroom during crowded fights.
+  H.corpseLand = (o, k) => {
+    if (!o.corpseContact || !Number.isFinite(o.x) || !Number.isFinite(o.z)) return;
+    const s = spatial(o.x, o.z);
+    if (s.d > 24 || voices >= MAX_VOICES - 6 || !throttle('corpse-land', .08)) return;
+    const t = now(), boss = !!o.corpseBoss, gain = clamp(k, 0, 1), at = {x:o.x,z:o.z};
+    thud(t, {f0:boss?60:90,f1:boss?22:35,dur:boss?.6:.25,vol:(boss?.48:.30)*gain*s.gain,pan:s.pan,send:.12});
+    sample(boss?'stomp':'thump', {vol:(boss?.32:.22)*gain,at,rate:.7,send:.12});
+    const signature = DEATH_MATERIAL[o.type];
+    if (signature) sample(signature[2], {vol:.15*gain,at,rate:signature[3],send:.1});
+    else if (boss) sample('armor', {vol:.16*gain,at,rate:.6,send:.12});
   };
   H.bossDeath = (o, k) => {
     const t = now();
     sample('bossDeath', { vol: 1 * k, send: .35, prio: 1 }); sample('bossRoar', { vol: .5 * k, rate: .7, delay: .5, send: .4 });
     for (let i = 0; i < 4; i++) sample('chain', { vol: (.7 - i * .12) * k, delay: .7 + i * .21, rate: .8 + i * .05 });
-    sample('stomp', { vol: 1 * k, delay: 1.35, rate: .7 }); thud(t + 1.35, { f0: 60, f1: 22, dur: .9, vol: 1 * k, send: .4 });
-    sample('debris', { vol: .8 * k, delay: 1.4 }); sample('armor', { vol: .6 * k, delay: 1.45, rate: .6 });
+    if (!o.deferLanding) {
+      sample('stomp', { vol: 1 * k, delay: 1.35, rate: .7 }); thud(t + 1.35, { f0: 60, f1: 22, dur: .9, vol: 1 * k, send: .4 });
+      sample('debris', { vol: .8 * k, delay: 1.4 }); sample('armor', { vol: .6 * k, delay: 1.45, rate: .6 });
+    }
     stinger('victory', 1.6);
   };
   H.boss = (o, k) => {
@@ -1667,8 +1684,9 @@
   // değiştirir. Ölüm ve zafer sırada önceliklidir, mevcut cümle bittikten sonra başlar. Saldırı uyarısı sırasında
   // anlatıcı kısa süre hafif kısılır, kayıt ve altyazı sürer. Zamanlama ses bağlamından bağımsızdır:
   // ?sessiz ve ses kapalıyken altyazılar aynı anlarda görünür.
-  const ROOM_LINES = new Set(['chains', 'ritual', 'crypt', 'rot', 'checkpoint', 'coastRoots', 'coastStreet', 'coastPier', 'coastSquare', 'coastCheckpoint', 'ruinsCheckpoint', 'forgeCheckpoint']), URGENT = new Set(['intro', 'boss', 'cellat', 'coastIntro', 'coastBoss', 'ruinsBoss', 'forgeBoss']);
+  const ROOM_LINES = new Set(['chains', 'ritual', 'crypt', 'rot', 'checkpoint', 'coastRoots', 'coastStreet', 'coastPier', 'coastSquare', 'coastCheckpoint', 'ruinsCheckpoint', 'forgeCheckpoint']), URGENT = new Set(['intro', 'boss', 'cellat', 'coastIntro', 'coastBoss', 'ruinsBoss', 'forgeBoss', 'ch5Boss', 'ch5Kadi', 'ch5Echo', 'ch5LastVerdict']);
   const QUEST_CHAPTER = Object.freeze({ questNames: 1, questVerdict: 1, questBell: 2, questMemory: 2, questKing: 3, questEcho: 3, questPrisoner: 4, questHeart: 4 });
+  const CLOSING_TRUTH = Object.freeze({ win: 'truth1', coastWin: 'truth2', ruinsWin: 'truth3', forgeWin: 'truth4' });
   const TELLS = new Set(['enemyWindup', 'enemyAttack', 'slam', 'explosion', 'poison', 'warning', 'hurt', 'guardBreak', 'tellCommit']);
   let caption = null, voiceNode = null, voiceGain = null, current = null, queue = [], nclock = 0, lastTellN = -9;
   const heard = new Set(), recent = {}, voiceBuffers = {};
@@ -1688,9 +1706,26 @@
     const warning = ctx.currentTime < warningUntil;
     targetParam(voiceGain.gain, warning ? .65 : 1, ctx.currentTime, warning ? .035 : .18);
   }
+  // A spoken line may finish behind a menu; its unread subtitle must not vanish there.
+  let captionState = null;
+  function clearCaption() { captionState = null; if (caption) caption(''); }
+  function captionReadable() {
+    const a = B.app;
+    return !(typeof document !== 'undefined' && document.hidden) && !(B.QuestCinema && B.QuestCinema.isReading) &&
+      (!a || !['title', 'pause', 'settings', 'controls', 'keybinds', 'confirm', 'character', 'journal', 'atlas'].includes(a.view));
+  }
+  function captionStep(dt) {
+    if (!captionState) return;
+    if (B.app && B.app.settings && B.app.settings.subtitles === false) { clearCaption(); return; }
+    if (!captionReadable()) { captionState.interrupted = true; return; }
+    captionState.left = Math.max(0, captionState.left - Math.max(0, dt));
+    if (!current && captionState.left <= 0) clearCaption();
+  }
   function finishVoice() {
     voiceNode = null; voiceGain = null;
-    current = null; lastNarrationEnd = nclock; if (caption) caption('');
+    current = null; lastNarrationEnd = nclock;
+    if (captionState && !captionReadable()) { captionState.interrupted = true; captionState.left = Math.max(3, captionState.left); }
+    if (!captionState || !captionState.interrupted || captionState.left <= 0) clearCaption();
     updateNarrationDuck();
   }
   function say(key, force = false) {
@@ -1700,7 +1735,12 @@
     const line = lines[key]; if (!line) return;
     if (!force && (heard.has(key) || queue.some(q => q.key === key) || current && current.key === key)) return;
     if (!force && key !== 'intro' && recent[key] && Date.now() - recent[key] < 150000) return;   // yeniden doğunca aynı oda cümlesi tekrar etmesin
-    if (force) queue = [];   // öncelik sıradadır; başlamış cümleye dokunma
+    if (force) {
+      // Fast boss-reward pickup must not erase that master's unheard revelation.
+      // Keep only this chapter's existing truth, finish the current sentence, then the win line.
+      const closing = CLOSING_TRUTH[key];
+      queue = closing ? queue.filter(q => q.key === closing).map(q => ({ ...q, force: true })) : [];
+    }
     if ((key === 'seal' || key === 'coastSeal') && queue.some(q => ROOM_LINES.has(q.key))) return;                       // bir oda cümlesi zaten bekliyor
     if (key !== 'seal') queue = queue.filter(q => q.key !== 'seal');
     if (ROOM_LINES.has(key) || key === 'boss' || key === 'coastBoss' || key === 'ruinsBoss' || key === 'forgeBoss') queue = queue.filter(q => !ROOM_LINES.has(q.key)); // yalnızca son odanın cümlesi bekler
@@ -1732,7 +1772,8 @@
     heard.add(entry.key); recent[entry.key] = Date.now();
     if (!entry.buffer && ctx && voiceBuffers[entry.cacheKey]) entry.buffer = voiceBuffers[entry.cacheKey];
     const total = (entry.buffer ? entry.buffer.duration : entry.line.duration || 4) + .15;
-    current = { key: entry.key, force: entry.force, left: total };
+    current = { key: entry.key, force: entry.force, left: total, text: entry.line.text, speaker: entry.line.speaker || 'Anlatıcı' };
+    captionState = { left: total, interrupted: !captionReadable() };
     if (caption) caption(entry.line.text, entry.line.speaker || 'Anlatıcı');
     if (!ctx || !entry.buffer || (silent && !offline)) return;
     const src = ctx.createBufferSource(), g = gainNode(1, N.voice); src.buffer = entry.buffer; src.connect(g);
@@ -1749,6 +1790,7 @@
   function narrationStep(dt, st) {
     nclock += dt;
     const tellRecent = nclock - lastTellN < 1.5;
+    captionStep(dt);
     if (current) {
       current.left -= dt;
       // Kayıtlı seste bitişi yalnızca onended belirler; düşük FPS veya sekme
@@ -1756,7 +1798,7 @@
       if (!voiceNode && current.left <= 0) finishVoice();
     }
     // Finish the current sentence, but keep queued narration for after the player folds the page.
-    if (B.QuestCinema && B.QuestCinema.isReading) return;
+    if (B.QuestCinema && B.QuestCinema.isReading || captionState && !current) return;
     const settings = !!(B.app && B.app.view === 'settings');
     // Volume preview keeps audio running, but a waiting story beat belongs to the journey.
     for (const q of queue) if (!settings || q.force || URGENT.has(q.key)) q.age += dt;
@@ -1907,7 +1949,13 @@
     if (v && ['essential','story','off'].includes(v.narrationMode) && v.narrationMode !== narrationMode) {
       narrationMode = v.narrationMode;
       queue = queue.filter(q => narrationMode !== 'off' && (narrationMode !== 'essential' || !INCIDENTAL_LINES.has(q.key)));
-      if (narrationMode === 'off') { if (voiceNode) { try { voiceNode.stop(); } catch (_) {} } finishVoice(); }
+      if (narrationMode === 'off') { clearCaption(); if (voiceNode) { try { voiceNode.stop(); } catch (_) {} } finishVoice(); }
+    }
+    if (v && v.subtitles === false) clearCaption();
+    else if (v && v.subtitles === true && current && !captionState) {
+      // Re-enable the still-speaking sentence's subtitle, never restart its audio or a completed line.
+      captionState = { left: Math.max(3, current.left), interrupted: !captionReadable() };
+      if (caption) caption(current.text, current.speaker);
     }
     const voiceWasAudible = volume.voice > 0;
     for (const key of Object.keys(volume)) if (Number.isFinite(v && v[key])) volume[key] = clamp(v[key], 0, 1);
@@ -1951,7 +1999,7 @@
     ctx = null; offline = false; unlocked = saved.unlocked; N = {}; testGame = null; qaMusic = false; extMusic = false;
     kitTask = tortTask = bankTask = preparedContext = audioInitTask = contextStateTask = null; Object.assign(volume, saved.volume);
     for (const k of Object.keys(bank)) delete bank[k]; bankState = 'none';
-    queue = []; current = null; voiceNode = null; heard.clear();
+    queue = []; current = null; voiceNode = null; captionState = null; heard.clear();
     for (const k of Object.keys(voiceBuffers)) delete voiceBuffers[k];
     return out;
   }
@@ -1971,7 +2019,7 @@
   /* /ajan:audio */
   B.Audio = {
     say, saySequence, sayQuest, prepare: prepareAudio, onCaption(fn) { caption = fn; },
-    resetNarration() { queue = []; heard.clear(); },   // yeni yolculukta bekleyenleri at; mevcut cümle bitsin
+    resetNarration() { queue = []; heard.clear(); clearCaption(); },   // yeni yolculukta bekleyenleri at; mevcut cümle bitsin
     unlock, set, play, update,
     sample(name, o) { if (ctx && unlocked && !suspended && (!silent || offline)) return sample(name, o || {}); return 0; },   // tek bir kayıtlı parça (test ve ileride oyun kodu için)
     suspend() { suspended = true; if (extMusic) B.Music.suspend(); return syncContextState(); },

@@ -34,7 +34,18 @@
     portraitTarget.texture.colorSpace = T.SRGBColorSpace;
     const maxPortraitSize = Math.min(renderer.capabilities.maxTextureSize, renderer.capabilities.maxRenderbufferSize || renderer.capabilities.maxTextureSize);
     let portraitPixels = null, portraitImage = null;
+    let readPending = false, asyncFailed = false, presentationEpoch = 0;
+    function present(canvas, w, h, pixels) {
+      if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
+      const ctx = canvas.getContext('2d', { alpha: false });
+      if (!ctx) return;
+      if (!portraitImage || portraitImage.width !== w || portraitImage.height !== h) portraitImage = ctx.createImageData(w, h);
+      const rowBytes = w * 4;
+      for (let row = 0; row < h; row++) portraitImage.data.set(pixels.subarray((h - row - 1) * rowBytes, (h - row) * rowBytes), row * rowBytes);
+      ctx.putImageData(portraitImage, 0, 0);
+    }
     let lastTime = null, animationTime = 0, revision = -1, sourceModel = null, disposed = false, lastCanvas = null;
+    let nextDrawTime = null, cadenceHz = 30;
     function syncEquipment() {
       const source = game.player && game.player.model;
       if (!source) return false;
@@ -46,11 +57,25 @@
     }
     function draw(canvas, now, preparing = false) {
       if ((!preparing && document.body.dataset.view !== 'character') || disposed || !canvas || !canvas.isConnected || !game.player.model || !canvas.width || !canvas.height) return false;
+      // Only one GPU readback may own the target/buffer; never queue unbounded work.
+      if (readPending) return false;
       syncEnvironment();
       const changed = syncEquipment(), time = Number.isFinite(now) ? now : performance.now();
-      // The isolated render target preserves the world framebuffer and needs no world redraw.
-      if (!changed && canvas === lastCanvas && lastTime !== null && time - lastTime < 33) return false;
+      // This inventory-only RAF renders its isolated target; the paused world keeps
+      // its existing cadence. Healthy asynchronous reads may present at 60 Hz,
+      // while synchronous/unsupported paths retain 30 Hz and a lower user cap.
+      const requested = B.app && B.app.settings && B.app.settings.frameRate;
+      const userHz = Number.isFinite(requested) && requested > 0 ? requested : 60;
+      const healthyAsync = !preparing && portraitImage && !asyncFailed && typeof renderer.readRenderTargetPixelsAsync === 'function';
+      const hz = Math.min(healthyAsync ? 60 : 30, userHz), interval = 1000 / hz;
+      if (cadenceHz !== hz) { cadenceHz = hz; nextDrawTime = lastTime !== null ? lastTime + interval : null; }
+      const immediate = changed || canvas !== lastCanvas || lastTime === null;
+      if (!immediate && nextDrawTime !== null && time + .01 < nextDrawTime) return false;
+      // Keep phase under fast browser callbacks, never submit a catch-up burst.
+      if (immediate || nextDrawTime === null || time - nextDrawTime > interval * 2) nextDrawTime = time + interval;
+      else nextDrawTime += Math.max(1, Math.floor((time - nextDrawTime) / interval) + 1) * interval;
       const dt = lastTime !== null ? Math.min(.08, Math.max(0, (time - lastTime) / 1000)) : 1 / 30;
+      const sameCanvas = canvas === lastCanvas;
       lastTime = time; lastCanvas = canvas; animationTime += dt; state.time = animationTime;
       model.animate(dt, state); scene.updateMatrixWorld(true);
       const canvasRect = canvas.getBoundingClientRect();
@@ -79,14 +104,42 @@
         renderer.render(scene, camera);
         // Switching targets resolves MSAA before the bounded portrait readback.
         renderer.setRenderTarget(target);
-        renderer.readRenderTargetPixels(portraitTarget, 0, 0, w, h, portraitPixels);
-        if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
-        const ctx = canvas.getContext('2d', { alpha: false });
-        if (ctx) {
-          if (!portraitImage || portraitImage.width !== w || portraitImage.height !== h) portraitImage = ctx.createImageData(w, h);
-          const rowBytes = w * 4;
-          for (let row = 0; row < h; row++) portraitImage.data.set(portraitPixels.subarray((h - row - 1) * rowBytes, (h - row) * rowBytes), row * rowBytes);
-          ctx.putImageData(portraitImage, 0, 0);
+        // First/preparing frames stay immediate; subsequent portraits read through
+        // Three's fenced WebGL2 PBO without synchronously waiting for the GPU.
+        if (!preparing && sameCanvas && portraitImage && !asyncFailed && typeof renderer.readRenderTargetPixelsAsync === 'function') {
+          const pixels = portraitPixels, epoch = presentationEpoch, source = sourceModel, equipRevision = revision;
+          const rectWidth = canvasRect.width, rectHeight = canvasRect.height;
+          readPending = true;
+          let pending;
+          try {
+            pending = renderer.readRenderTargetPixelsAsync(portraitTarget, 0, 0, w, h, pixels);
+          } catch (_) {
+            readPending = false; asyncFailed = true;
+            const gl = renderer.getContext();
+            if (gl && gl.PIXEL_PACK_BUFFER !== undefined) gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null);
+            renderer.readRenderTargetPixels(portraitTarget, 0, 0, w, h, pixels);
+            present(canvas, w, h, pixels);
+          } finally {
+            // Bundled Three leaves its PBO bound while awaiting the fence. Restore
+            // the neutral binding so other synchronous readbacks remain valid.
+            const gl = renderer.getContext();
+            if (gl && gl.PIXEL_PACK_BUFFER !== undefined) gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null);
+          }
+          if (pending) Promise.resolve(pending).then(() => {
+            if (disposed || epoch !== presentationEpoch || document.body.dataset.view !== 'character' || document.visibilityState === 'hidden' || !canvas.isConnected || canvas !== lastCanvas) return;
+            const current = game.player && game.player.model;
+            if (current !== source || (current.root.userData.equipmentRevision || 0) !== equipRevision) return;
+            const rect = canvas.getBoundingClientRect();
+            if (rect.width !== rectWidth || rect.height !== rectHeight) return;
+            present(canvas, w, h, pixels);
+          }).catch(() => {
+            // A lost/unsupported async read never strands the portrait pipeline.
+            // The next normal draw uses the original synchronous implementation.
+            asyncFailed = true;
+          }).finally(() => { readPending = false; });
+        } else {
+          renderer.readRenderTargetPixels(portraitTarget, 0, 0, w, h, portraitPixels);
+          present(canvas, w, h, portraitPixels);
         }
       } finally {
         renderer.outputColorSpace = outputColorSpace; renderer.toneMapping = toneMapping; renderer.toneMappingExposure = exposure;
@@ -120,7 +173,7 @@
       }
     }
     syncEquipment(); model.animate(0, state);
-    return { draw, warm, turn(direction) { model.root.rotation.y += direction * Math.PI / 6; lastTime = null; }, warmScene: scene, warmCamera: camera, model, dispose() { if (disposed) return; disposed = true; portraitTarget.dispose(); portraitPixels = portraitImage = null; model.dispose(); stageGeometry.forEach(g => g.dispose()); stageMaterials.forEach(m => m.dispose()); owned.forEach(t => t.dispose()); scene.clear(); } };
+    return { draw, warm, turn(direction) { presentationEpoch++; model.root.rotation.y += direction * Math.PI / 6; lastTime = null; }, warmScene: scene, warmCamera: camera, model, dispose() { if (disposed) return; disposed = true; presentationEpoch++; portraitTarget.dispose(); portraitPixels = portraitImage = null; model.dispose(); stageGeometry.forEach(g => g.dispose()); stageMaterials.forEach(m => m.dispose()); owned.forEach(t => t.dispose()); scene.clear(); } };
   }
   B.CharacterPreview = { create };
 })();

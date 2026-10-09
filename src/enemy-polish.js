@@ -49,6 +49,7 @@
     var age = 0, ready = 0, prevHurt = 0, prevBlock = 0, prevLook = false, prevAttack = 0, prevDead = false, prevPhase = 'idle', prevEnraged = false;
     var startleWait = -1, startleT = -1, deathT = -1, deathBlown = false, landed = false, phaseT = -1, twitchSeed = Math.random() * 20, coil = COIL[type] != null ? COIL[type] : 0, wind = 0;
     var dirty = false, busy = false, daze = 0, swell = false;
+    var ownedLandAt = 0;
     function kick(s, v) { s.v += v; }
     // Rotations are composed down the chain in plain quaternions (parents come first in ORDER); the matrices of the whole subtree are
     // refreshed once at the end instead of after every bone.
@@ -57,7 +58,7 @@
       // a bone the animation did not touch this frame still holds our last write: step back to the unmodified value first
       if (sl.has && b.quaternion.equals(sl.written)) { b.quaternion.copy(sl.base); if (up !== undefined) b.position.copy(sl.bp); }
       sl.base.copy(b.quaternion); sl.bp.copy(b.position);
-      if (sl.pi >= 0) { qp.copy(slots[sl.pi].wq); vs.set(1, 1, 1); if (up) par.matrixWorld.decompose(vb, qe, vs); } else par.matrixWorld.decompose(vs, qp, vb);
+      if (sl.pi >= 0) { qp.copy(slots[sl.pi].wq); vs.set(1, 1, 1); if (up) par.matrixWorld.decompose(vb, qe, vs); } else par.matrixWorld.decompose(vb, qp, vs);
       if (pitch === 0 && yaw === 0 && roll === 0 && !up) { sl.has = false; sl.wq.copy(qp).multiply(b.quaternion); return; }
       qpi.copy(qp).invert();
       eu.set(pitch, yaw, roll, 'YXZ'); qe.setFromEuler(eu);
@@ -79,6 +80,13 @@
       if (state.reset) { for (var r = 0; r < all.length; r++) all[r].reset(); startleT = deathT = phaseT = -1; landed = false; prevDead = false; ready = 0; }
       var dead = !!state.dead, hurt = +state.hurt || 0, block = +state.blockImpact || 0, look = state.lookYaw !== undefined && state.lookYaw !== null && Number.isFinite(state.lookYaw);
       var phase = state.phase === 'rage' ? 'rage' : 'x', atk = +state.attack || 0, contact = +state.contactPhase || .41, heavyHit = !!state.hurtHeavy, ha = +state.hitAngle || 0;
+      // Projectile arm release and this body spring share the same read-only
+      // beat clock. Ordinary melee retains its original progress unchanged.
+      if ((state.beatVisualRelease || state.beatVisualIntent) && Number.isFinite(state.beatTime) && Number.isFinite(state.beatContact) && state.beatContact > 0) {
+        var bt = state.beatTime, bc = state.beatContact, be = Number.isFinite(state.beatEnd) ? state.beatEnd : bc + .3;
+        atk = bt < 0 ? 0 : bt < bc ? .01 + (contact - .01) * Math.max(0, Math.min(1, bt / bc))
+          : contact + (1 - contact) * Math.max(0, Math.min(1, (bt - bc) / Math.max(.001, be - bc)));
+      }
       if (ready < 3) { ready++; prevHurt = hurt; prevBlock = block; prevLook = look; prevAttack = atk; prevDead = dead; prevPhase = phase; if (!dead) return; }
       if (dt > 0) age += dt;
       // ------------------------------------------------------------------ events
@@ -133,7 +141,9 @@
       if (dead && deathT >= 0) {
         deathT += dt;
         var lt = landTime(deathBlown, boss);
-        if (!landed && deathT >= lt) { landed = true; kick(cy, (Math.random() - .5) * 5); kick(ar, 8 * (boss ? .6 : 1)); kick(hp, -7); kick(lift, boss ? 1.2 : 1.6); }
+        var authoredFall = root.userData.authoredMotion, ownFall = authoredFall && authoredFall.deathThudOwned;
+        if (ownFall) lt = landed ? ownedLandAt : deathT + 1;
+        if (!landed && (ownFall ? authoredFall.deathLanded : deathT >= lt)) { landed = true; if (ownFall) { ownedLandAt = deathT; lt = ownedLandAt; } kick(cy, (Math.random() - .5) * 5); kick(ar, 8 * (boss ? .6 : 1)); kick(hp, -7); kick(lift, boss ? 1.2 : 1.6); }
         // the corpse lies in the floor plane: keep pitch / roll quiet after the fall, only yaw (about the vertical) and the lift bounce stay
         if (deathT > lt + .15) { cp.t = 0; cp.x *= .8; cp.v *= .5; hp.x *= .8; hp.v *= .5; cr.x *= .8; cr.v *= .5; hr.x *= .8; hr.v *= .5; pp.x *= .8; pp.v *= .5; }
         var since = deathT - lt;

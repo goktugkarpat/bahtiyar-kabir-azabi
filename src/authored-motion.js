@@ -177,11 +177,14 @@
     voidcrawler: { sink: .46, lunge: .15, death: 2.0, buckle: 0, thud: 0, hurt: 1.2 }, chainjailer: { hunch: 0.06, sink: .36, lunge: .08, death: 1.0, buckle: .32, thud: 1, hurt: .6 },
     verdictwarden: { hunch: 0.08, sink: .32, lunge: .09, death: .95, buckle: .36, thud: 1, hurt: .5 }, lastjudge: { hunch: 0.04, sink: .26, lunge: .08, death: .75, buckle: .6, thud: 2, hurt: .4 }
   };
+  var bladeProfileCache=new Map();
   function create(options) {
     var root = options.root, model = options.modelScene || root, type = options.type || 'hero', style = options.style || type, supplied = options.bones || {};
     var weapon = options.weapon, bladeTip = options.weaponTip, all = Object.create(null), mapping = [], nativeRest = [], targetRef = [], targetPos = [], originalLocal = [];
     var bladeFloorV = new T.Vector3(), bladeFloorTarget = new T.Vector3(), bladeFloorQ = new T.Quaternion();
     var armed = type === 'hero' || type === 'boss' || type === 'guard', boss = type === 'boss', hero = type === 'hero';
+    var idleOverride = typeof options.idleClip === 'string' && D.clips[options.idleClip] && D.clips[options.idleClip].data ? options.idleClip : '';
+
     var qRoot = new T.Quaternion(), invRoot = new T.Quaternion(), qParent = new T.Quaternion(), qa = new T.Quaternion(), qb = new T.Quaternion();
     var qDesired = new T.Quaternion(), qTurn = new T.Quaternion(), qBlade = new T.Quaternion().setFromAxisAngle(new T.Vector3(1, 0, 0), PI / 2);
     var up = new T.Vector3(0, 1, 0), va = new T.Vector3(), vb = new T.Vector3(), desired = new T.Vector3(), euler = new T.Euler(0, 0, 0, 'YXZ');
@@ -206,9 +209,13 @@
     else if (style === 'gravemason' || style === 'forgesentinel') { lifeRate=1.45;lifeLean=.045;lifeSway=.038; }
     /* ajan:chars2b */ var prof = LATE[style] || null;   // chapter 3-5 weight profile (see LATE above create)
     var slump = 0, lastStrikePhase = '', groundCap = false, roarStomp = false, wasAwake = false, noticeT = 9, noticeHeavy = false, noticeStomp = false, thudDone = false, fallDir = 1, sideSign = 1, lieU = 0, LIE = [0, .13, 3, .15, 5, .11, 14, .09, 18, .09, 15, .07, 19, .07];
+    var groundedFloorReference = 0;
     var initialized = false, disposed = false, wasDead = false, settled = false, lastHitAngle = 0, lookCur = 0, lookPitch = 0, lifeSeed = Math.random() * 40, shiftCur = 0, legYawCur = 0, backwardMotion = false, fearCur = 0;
     var footfall = root.userData.footfall = { serial: 0, side: 0, x: 0, z: 0, strength: 0, kind: 'step' };
     var motionInfo = root.userData.authoredMotion = { clip: '', source: 'Quaternius CC0', phase: 0, strike: '' };
+    // The actual procedural heavy fall owns its contact cue, irrespective of its delegated motion type.
+    motionInfo.deathThudOwned = !!(!hero && prof && prof.buckle >= .3);
+    motionInfo.deathLanded = false; motionInfo.deathGenericLanded = false;
     root.updateWorldMatrix(true, true); root.getWorldQuaternion(qRoot); invRoot.copy(qRoot).invert();
     Object.keys(supplied).forEach(function (key) { if (supplied[key] && supplied[key].isObject3D) all[key] = supplied[key]; });
     model.traverse(function (n) { if (n.isBone) all[n.name] = n; });
@@ -345,9 +352,9 @@
       footfall.x = va.x; footfall.z = va.z; footfall.strength = clamp(strength, .15, 1); footfall.kind = kind || 'step';
     }
     /* ajan:chars2b — ground-impact dust of a heavy corpse (effects.js 'bodyThud'); the footfall serial also drives the thud sound of enemy steps. */
-    function landThud(size) {
+    function landThud(size, visual, ownedDeath) {
       wpos(pelvis, va);
-      if (B.app && B.app.fx) B.app.fx('bodyThud', { x: va.x, z: va.z, y: .05, heavy: size > 1, shake: size >= 2 ? .3 : size > 1 ? .18 : size >= 1 ? .1 : 0 });
+      if (visual !== false && B.app && B.app.fx) B.app.fx('bodyThud', { x: va.x, z: va.z, y: .05, heavy: size > 1, shake: size >= 2 ? .3 : size > 1 ? .18 : size >= 1 ? .1 : 0, corpseContact: !!ownedDeath, corpseBoss: !!(ownedDeath && boss), type: style });
       footfall.serial++; footfall.x = va.x; footfall.z = va.z; footfall.strength = 1; footfall.kind = 'thud';
     }
     function moveHipY(amount) {
@@ -470,7 +477,7 @@
       else { var lt = heavyFoe ? tilt : tilt * .8; euler.set(fallDir * lt, 0, .06 * Math.sin(lifeSeed * 3) * u, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(p, 0, qa); if (tilt > lt) { euler.set(fallDir * (tilt - lt), 0, 0, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(p, 1, qa); } p.p.z += fallDir * hip * (1 - .3 * sag) * Math.sin(tilt) * .95; }
       p.p.y = hip * (1 - .3 * sag) * c + .08 * u;                 // pivot about the feet: the pelvis swings out and down with the body
       lieU = u;
-      if (!thudDone && u >= .97) { thudDone = true; landThud(prof.thud === 1 ? 1.5 : prof.thud || .5); }
+      if (!thudDone && u >= .97) { thudDone = true; if (motionInfo.deathThudOwned) motionInfo.deathLanded = true; landThud(prof.thud === 1 ? 1.5 : prof.thud || .5, !motionInfo.deathGenericLanded, motionInfo.deathThudOwned); }
     }
     /* ajan:chars2b -- a chapter 3-5 foe's roar / phase vow: the body coils low and tight (head down, arms drawn in), then the chest is thrown back,
        the head up and both arms flung wide, with one stamp on release; it shudders while it bellows and settles over the last .35 s. */
@@ -513,7 +520,7 @@
       euler.set(.5 * slam * up, 0, (.55 * g - .15 * slam) * up, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(p, 7, qa);
       euler.set(-.15 * g * up - .25 * slam * up, 0, 0, 'YXZ'); qa.setFromEuler(euler); rotateSubtree(p, 4, qa);
     }
-    function roarPose(p, t, Tr, Td, tier) {
+    function roarPose(p, t, Tr, Td, tier, waves) {
       tier = tier || 1;
       var span = Math.max(.05, Td - Tr), rw = Math.min(.14, span * .5), fw = Math.min(.22, span * .6);   // release ramp and settle scale with a short roar
       var g = smooth(t / Math.max(.05, Tr)), rel = t >= Tr ? easeOut((t - Tr) / rw, 2) : 0, fade = t > Td - fw ? smooth((Td - t) / fw) : 1;
@@ -536,7 +543,7 @@
       if (tier >= 3) {
         // Kıyamet Narası: deep crouch with the fists drawn in, stage one explodes upward (cleaver and free arm overhead, chest thrown back, head up),
         // stage two (.34 s later, the second ring) drives the whole body down into a slam and back up.
-        var pulse = t > Tr + .3 ? Math.sin(clamp((t - Tr - .3) / .5, 0, 1) * PI) : 0;
+        var pulse = finite(waves,1) > 1 && t > Tr + .3 ? Math.sin(clamp((t - Tr - .3) / .5, 0, 1) * PI) : 0;
         spineLayer(p, 0, .75 * gather - .75 * rel * fade + .55 * pulse * fade + shake * 1.5, 0);
         p.p.y -= (.16 * gather + .03 * rel * fade + .1 * pulse * fade) / Math.max(.4, characterScale);
         sample('swordAttack', .30, roarBuf, false);
@@ -598,7 +605,7 @@
     // leaning in, cleaver out level at shoulder height and trailing the turn by an angle that grows with the turning speed, free arm thrown wide and leading it,
     // head counter-turned so it never whirls with the body), then the heavy finish: cleaver overhead, slam on the last tick (tt = WHIRL_HIT), planted wide stance,
     // and a recovery that hands the pose back to the idle / walk pose before the mode ends. Everything is a weight on the normal pose, so the blend in and out has no pops.
-    var wBase = pose(), wArm = pose(), wLegs = pose(), WHIRL_D = 1.3, WHIRL_TICK = .15, WHIRL_GAP = .28, WHIRL_HIT = WHIRL_TICK + 3 * WHIRL_GAP;   // = SPECIAL.first / gap / last tick in combat.js
+    var wBase = pose(), wArm = pose(), wLegs = pose(), WHIRL_D = 1.3, WHIRL_TICK = .15, WHIRL_GAP = .28;   // legacy fallbacks only; live cast clocks arrive from combat.js
     var wYawPrev = 0, wOmega = 0, wLag = 0, wLock = 0, wGait = 0, wLive = false, wFlare = 0;
     function yawSub(p, index, angle) { qTurn.setFromAxisAngle(up, angle); rotateSubtree(p, index, qTurn); }
     var wq = new T.Quaternion(), wv = new T.Vector3(), wd = new T.Vector3(), wt = new T.Vector3(), wb = new T.Vector3(), wu = new T.Vector3(), wu2 = new T.Vector3(), oppositeTangent = new T.Vector3();
@@ -725,17 +732,23 @@
       // A small head counter-turn keeps the gaze on the target during the cross thrust.
       euler.set(.05*drive,-cross*.45,0,'YXZ');qa.setFromEuler(euler);rotateSubtree(p,4,qa);
     }
-    function whirlPose(p, u, t, dt, yaw) {
-      var D = u > .001 ? t / u : WHIRL_D, tt = t * WHIRL_D / clamp(D, .4, 3), inv = 1 / Math.max(.4, characterScale), wt3 = D > 1.8 ? 2 : D > 1.45 ? 1 : 0;   // wt3: tier from the spin length (1.3 / 1.6 / 2.05 s): bigger lean, deeper crouch, faster feet
+    function whirlPose(p, u, t, dt, yaw, state) {
+      // Use the cast's authoritative clock. Balance changes must not leave the
+      // finishing slam and intermediate body punches trailing their real hits.
+      var D = clamp(finite(state.whirlDuration,u > .001 ? t / u : WHIRL_D),.4,3), timeScale=WHIRL_D/D,
+          tt=t*timeScale, first=clamp(finite(state.whirlFirst,WHIRL_TICK),0,D)*timeScale,
+          gap=Math.max(.01,finite(state.whirlGap,WHIRL_GAP))*timeScale,
+          ticks=clamp(Math.round(finite(state.whirlTicks,4)),1,16), hit=first+(ticks-1)*gap,
+          inv=1 / Math.max(.4,characterScale), wt3=D>1.8?2:D>1.45?1:0;   // wt3: tier from the spin length (1.3 / 1.6 / 2.05 s): bigger lean, deeper crouch, faster feet
       if (!wLive) { wLive = true; wYawPrev = yaw; wOmega = 0; wLag = 0; wLock = yaw; wGait = 0; }
       var om = dt > 0 ? signedAngle(yaw - wYawPrev) / dt : 0; wYawPrev = yaw;
       wOmega += (om - wOmega) * (dt > 0 ? damp(28, dt) : 1);
       wLag += (clamp(wOmega * .024, -.6, .6) - wLag) * (dt > 0 ? damp(16, dt) : 1);
-      var coil = smooth(tt / .12) * (1 - smooth((tt - .12) / .14)), spin = smooth((tt - .05) / .2) * (1 - smooth((tt - (WHIRL_HIT - .18)) / .14));
-      var raise = smooth((tt - (WHIRL_HIT - .2)) / .16), slam = smooth((tt - (WHIRL_HIT - .06)) / .07), rec = smooth((tt - (WHIRL_HIT + .08)) / .18), fin = raise * (1 - rec);
+      var coil = smooth(tt / .12) * (1 - smooth((tt - .12) / .14)), spin = smooth((tt - .05) / .2) * (1 - smooth((tt - (hit - .18)) / .14));
+      var raise = smooth((tt - (hit - .2)) / .16), slam = smooth((tt - (hit - .07)) / .07), rec = smooth((tt - (hit + .08)) / .18), fin = raise * (1 - rec);
       var hold = slam * (1 - rec), keep = 1 - rec;
-      // the first three hit ticks (WHIRL_TICK + n * WHIRL_GAP) land as a short body punch: a dip of the hips and a snap of the torso into the blow
-      var punch = 0; for (var pn = 0; pn < 3; pn++) { var pd = tt - (WHIRL_TICK + WHIRL_GAP * pn); if (pd > 0 && pd < .16) punch = Math.max(punch, (1 - pd / .16) * (1 - pd / .16) * smooth(pd / .025)); }
+      // Each intermediate authoritative hit tick lands as a short body punch: a dip of the hips and a snap of the torso into the blow
+      var punch = 0; for (var pn = 0; pn < ticks-1; pn++) { var pd = tt - (first + gap * pn); if (pd > 0 && pd < .16) punch = Math.max(punch, (1 - pd / .16) * (1 - pd / .16) * smooth(pd / .025)); }
       // legs: crouch, a quick pitter-patter cycle on top, planted and wide for the slam
       var legW = clamp((.5 + .1 * wt3) * Math.max(spin, coil) + .35 * hold, 0, .88);
       sample('crouch', 0, wLegs, false); blendPose(p, wLegs, legW, 14, 22); blendPose(p, wLegs, legW * .8, 0, 0);
@@ -806,7 +819,7 @@
       var c = moveCurve(m, t, Tc, Tend);
       groundCap = !m.leap && !m.rush;
       if (m.pound) { poundPose(m, c, destination, t, Tc, Tend, state); if (t < Tc) return curve; return c; }
-      if (m.roar) { if (prof && !hero) bossRoar(destination, t, Tc, Tend); else roarPose(destination, t, Tc, Tend, finite(state.roarTier, 1)); curve.phase = t < Tc ? 'hold' : 'follow'; return curve; }
+      if (m.roar) { if (prof && !hero) bossRoar(destination, t, Tc, Tend); else roarPose(destination, t, Tc, Tend, finite(state.roarTier, 1), finite(state.roarWaves,1)); curve.phase = t < Tc ? 'hold' : 'follow'; return curve; }
       if (m.rush && t >= Tc) {
         // A charge: the body is thrown forward in a sprint while the capsule rushes along the telegraphed line.
         var run = clamp((t - Tc) / Math.max(.05, finite(state.rushTime, .3)), 0, 1);
@@ -867,9 +880,10 @@
       return { t: progress <= contact ? progress / contact * Tc : Tc + (progress - contact) / (1 - contact) * (dur - Tc), Tc: Tc, Tend: dur };
     }
     function animate(dt, state) {
-      if (disposed) return; state = state || {}; dt = clamp(finite(dt, 0), 0, .1); clock += dt;
+      if (disposed) return; state = state || {}; dt = clamp(finite(dt, 0), 0, .1); clock += dt; rollCarryDt=dt; if(state.reset){rollCarryReady=false;rollCarryActive=false;}
       motionInfo.refreshed = false;
       if (state.reset) {
+        motionInfo.deathLanded = false; motionInfo.deathGenericLanded = false;
         initialized = false; leanCur = bankCur = lastLeanSpeed = 0; clock = finite(state.time, 0); gait = 0; speed = 0; moveWeight = 0; mode = ''; modeAge = 0; deathTime = 0; deathYaw = 0; deathKind = '';
         wasAwake = false; noticeT = 9; slump = 0; hurtTime = 2; previousHurt = 0; previousAttack = 0; comboMemory = -1; previousDodge = 0; wasDead = false; turnRate = 0; footfall.serial = 0; rollRecover = 9; lookCur = 0; lookPitch = 0; shiftCur = 0; legYawCur = 0; backwardMotion = false; fearCur = 0;
         originalLocal.forEach(function (r) { r.node.position.copy(r.p); r.node.quaternion.copy(r.q); }); feet.forEach(function (f) { f.locked = false; f.weight = 0; });
@@ -903,7 +917,7 @@
       var combo = Math.floor(clamp(finite(state.combo, Math.max(0, comboMemory)), 0, 2)); previousAttack = attack;
       if (hurt > previousHurt + .05) hurtTime = 0; previousHurt = hurt; hurtTime += dt;
       if (state.dead && !wasDead) { deathTime = 0; deathYaw = clamp(signedAngle(lastHitAngle), -PI, PI); deathKind = String(state.deathKind || ''); if (prof && prof.buckle >= .3) deathKind = ''; if (prof) { var rr = Math.random(); fallDir = prof.buckle >= .3 ? 1 : rr < .4 ? 1 : rr < .85 ? -1 : 0; sideSign = Math.random() < .5 ? 1 : -1; } }
-      if (!state.dead && wasDead) { deathTime = 0; initialized = false; } if (!state.dead) { thudDone = false; lieU = 0; }
+      if (!state.dead && wasDead) { deathTime = 0; initialized = false; } if (!state.dead) { thudDone = false; lieU = 0; motionInfo.deathLanded = false; motionInfo.deathGenericLanded = false; }
       wasDead = !!state.dead; if (state.dead) deathTime += dt;
       speed += ((dodge || leap || state.dead ? 0 : realSpeed) - speed) * (dt > 0 ? damp(14, dt) : 1);
       moveWeight += ((move > .015 ? clamp(speed / (.85 * characterScale), 0, 1) : 0) - moveWeight) * (dt > 0 ? damp(15, dt) : 1);
@@ -925,7 +939,7 @@
       var roaring = hero && finite(state.roarTime, -1) >= 0, whirling = hero && finite(state.whirl, -1) >= 0, charging = hero && finite(state.chargeTime, -1) >= 0;
       var swinging = attack > 0 || finite(state.attackTime, -1) >= 0 || finite(state.beatTime, -1) >= 0, acting = swinging || roaring || whirling || charging;
       if (moveWeight > .02 && !swinging && !dodge && !state.dead) gait += dt * speed / Math.max(.3, stride) * (backward ? -1 : 1);
-      var idleName = armed ? type === 'guard' ? 'shieldIdle' : 'combatIdle' : type === 'cultist' ? 'spellIdle' : 'zombieIdle';
+      var idleName = idleOverride || (armed ? type === 'guard' ? 'shieldIdle' : 'combatIdle' : type === 'cultist' ? 'spellIdle' : 'zombieIdle');
       sample(idleName, clock, wanted, true);
       if (hero) {
         sample('idle', clock, wanted, true); sample('attackA', 0, extra, false); blendPose(wanted, extra, .78);
@@ -990,9 +1004,9 @@
       if (roaring) {
         // The father's war cry (Öfke).
         nextMode = 'roar' + finite(state.roarSerial, 0); fade = .07;
-        if (state.roarStance) stancePose(wanted, state.roarTime, finite(state.roarDuration, .75)); else roarPose(wanted, state.roarTime, finite(state.roarRelease, .3), finite(state.roarDuration, .92), finite(state.roarTier, 1)); strikePhase = state.roarTime < finite(state.roarRelease, .3) ? 'hold' : 'follow';
+        if (state.roarStance) stancePose(wanted, state.roarTime, finite(state.roarDuration, .75)); else roarPose(wanted, state.roarTime, finite(state.roarRelease, .3), finite(state.roarDuration, .92), finite(state.roarTier, 1), finite(state.roarWaves,1)); strikePhase = state.roarTime < finite(state.roarRelease, .3) ? 'hold' : 'follow';
       }
-      if (whirling) { nextMode = 'whirl' + finite(state.attackSerial, 0); fade = .05; whirlPose(wanted, state.whirl, finite(state.whirlTime, 0), dt, rootYaw); strikePhase = 'follow'; } else if (wLive) { wLive = false; wFlare = 0; root.userData.whirlFlare = 0; }
+      if (whirling) { nextMode = 'whirl' + finite(state.attackSerial, 0); fade = .05; whirlPose(wanted, state.whirl, finite(state.whirlTime, 0), dt, rootYaw, state); strikePhase = 'follow'; } else if (wLive) { wLive = false; wFlare = 0; root.userData.whirlFlare = 0; }
       if (charging) { nextMode = 'charge' + finite(state.chargeSerial, 0); fade = .04; chargePose(wanted, state, dt); strikePhase = 'follow'; } else if (cLive) cLive = false;
       var drinkT = hero ? finite(state.drinkTime, -1) : -1;
       if (drinkT >= 0 && !dodge && !stagger && !state.dead) {
@@ -1295,7 +1309,7 @@
       if (model === root || poseNodes.has(model)) refreshRest(model); else model.updateWorldMatrix(false, true);
       var motionWorld=B.app&&B.app.world,groundOffset=motionWorld&&motionWorld.effectHeightAt?motionWorld.effectHeightAt(rootNow.x,rootNow.z,0)-.035:0;
       groundOffset=Number.isFinite(groundOffset)?Math.max(0,groundOffset):0;
-      var floorReference=rootNow.y+groundOffset,lowest = Infinity;
+      var floorReference=rootNow.y+groundOffset,lowest = Infinity; groundedFloorReference=floorReference;
       for (var fi2 = 0; fi2 < feet.length; fi2++) {
         var foot = feet[fi2]; if (!foot.ankle || !foot.toe) continue;
         wpos(foot.ankle, va); wpos(foot.toe, vb);
@@ -1404,8 +1418,170 @@
       // Every node below the root now carries its final world matrix for this pose (see combat.js guardRenderMatrices).
       motionInfo.refreshed = true; motionInfo.px = root.position.x; motionInfo.py = root.position.y; motionInfo.pz = root.position.z; motionInfo.ry = root.rotation.y;
     }
+    // The hero's weighted stance is added by enemy-dread after the authored
+    // pose. Finish only grounded whirl wrists after that stance, before trails
+    // sample the metal head. The actual hand and its weapon/fingers turn as one;
+    // no pelvis, footplant, weapon scale or strike clock is changed.
+    var rollCarryAxis=new T.Vector3(),rollCarryTarget=new T.Vector3(),rollCarryReference=hero?pose():null,
+      rollCarryOriginal=hero?[new T.Quaternion(),new T.Quaternion(),new T.Quaternion()]:null,
+      rollCarrySolved=hero?[new T.Quaternion(),new T.Quaternion()]:null,
+      rollCarryPrevious=hero?[new T.Quaternion(),new T.Quaternion(),new T.Quaternion()]:null,
+      rollCarryFinal=hero?[new T.Quaternion(),new T.Quaternion(),new T.Quaternion()]:null,
+      rollCarryGoal=new T.Quaternion(),rollCarryLastAxis=new T.Vector3(),rollCarryActive=false,
+      rollCarryReady=false,rollCarryDt=0;
+    if(rollCarryReference)sample('combatIdle',0,rollCarryReference,false);
+    function rememberRollCarry() {
+      for(var lastArm=11;lastArm<14;lastArm++)wquat(mapping[lastArm],rollCarryPrevious[lastArm-11]);
+      if(!rollCarryActive){wpos(bladeTip,va);wpos(mapping[13],vb);rollCarryLastAxis.copy(va).sub(vb).normalize();}
+      rollCarryReady=true;
+    }
+    function limitRollCarry() {
+      for(var finalArm=11;finalArm<14;finalArm++)wquat(mapping[finalArm],rollCarryFinal[finalArm-11]);
+      if(rollCarryReady&&rollCarryDt>0&&B.heroPopLimit!==false){
+        var limit=62*rollCarryDt*60*PI/180;
+        for(var cappedArm=11;cappedArm<14;cappedArm++){
+          var target=rollCarryFinal[cappedArm-11],last=rollCarryPrevious[cappedArm-11],angle=last.angleTo(target);
+          qDesired.copy(last).slerp(target,angle>limit?limit/angle:1);
+          wquat(mapping[cappedArm].parent,qParent).invert();mapping[cappedArm].quaternion.copy(qParent.multiply(qDesired)).normalize();
+          refreshSpearBranch(mapping[cappedArm]);
+        }
+      }
+      mapping[13].updateWorldMatrix(false,true);rememberRollCarry();
+    }
+    function resolveRollCarry(state) {
+      var u=state.dodge,weight=smooth(u/.10)*(1-smooth((u-.84)/.16));
+      if (!(weight>.001) || !mapping[11] || !mapping[12]) return;
+      if(!rollCarryActive){
+        rollCarryAxis.copy(rollCarryLastAxis);rollCarryAxis.y=0;
+        if(rollCarryAxis.lengthSq()<.000001)rollCarryAxis.set(0,0,1).applyQuaternion(qRoot);
+        rollCarryAxis.y=0;rollCarryAxis.normalize();
+        bladeFloorQ.setFromUnitVectors(rollCarryLastAxis,rollCarryAxis);
+        rollCarryGoal.copy(rollCarryPrevious[2]).premultiply(bladeFloorQ);rollCarryActive=true;
+      }
+      // Tuck the real weapon hand beside the chest while the body tumbles.
+      // The same two-bone arm solver preserves elbow length and the grip;
+      // only this armed hero's rolling arm changes, never hips or protection.
+      wquat(root,qRoot);
+      for(var carryJoint=11;carryJoint<14;carryJoint++)wquat(mapping[carryJoint],rollCarryOriginal[carryJoint-11]);
+      // An idle arm frame removes the tumble clip's upper-arm axial twist.
+      // Blend only the armed branch, so the carry remains continuous while
+      // the head, torso, free arm and legs retain the authored tumble.
+      for(var armIndex=11;armIndex<13;armIndex++){
+        qTurn.copy(qRoot).multiply(rollCarryReference.q[armIndex]).multiply(corrections[armIndex]);
+        qDesired.copy(qTurn);
+        wquat(mapping[armIndex].parent,qParent).invert();mapping[armIndex].quaternion.copy(qParent.multiply(qDesired)).normalize();
+        refreshSpearBranch(mapping[armIndex]);
+      }
+      wpos(mapping[11],rollCarryTarget);
+      rollCarryAxis.set(-.30,-.12,.22).applyQuaternion(qRoot);
+      desired.copy(rollCarryTarget).addScaledVector(rollCarryAxis,characterScale);
+      desired.y=Math.max(desired.y,groundedFloorReference+(state.weaponType==='axe'?.50:.32)*characterScale);
+      nativeSpearArm(11,1,-1);
+      for(var solvedArm=11;solvedArm<13;solvedArm++)wquat(mapping[solvedArm],rollCarrySolved[solvedArm-11]);
+      // Blend solved bone frames, not the IK endpoint. An endpoint near a
+      // straight elbow can switch its pole even at almost zero carry weight.
+      for(var blendArm=11;blendArm<13;blendArm++){
+        qDesired.copy(rollCarryOriginal[blendArm-11]).slerp(rollCarrySolved[blendArm-11],weight);
+        wquat(mapping[blendArm].parent,qParent).invert();mapping[blendArm].quaternion.copy(qParent.multiply(qDesired)).normalize();
+        refreshSpearBranch(mapping[blendArm]);
+      }
+      // Carry the shaft along the roll, parallel to the ground. Fingers and
+      // the actual attached weapon follow the hand bone as a single grip.
+      qDesired.copy(rollCarryOriginal[2]).slerp(rollCarryGoal,u<.84?1:weight);
+      wquat(mapping[13].parent,qParent).invert();mapping[13].quaternion.copy(qParent.multiply(qDesired)).normalize();
+      refreshSpearBranch(mapping[13]);
+    }
+    var bladeProfiles=hero?new Map():null,bladeHullPoint=new T.Vector3(),bladeHullMin=new T.Vector3(),
+      bladeHullInv=new T.Matrix4(),bladeHullMatrix=new T.Matrix4();
+    function prepareBladeProfiles() {
+      if(!hero||!weapon)return;
+      weapon.children.forEach(function(art){
+        var key='';
+        art.traverse(function(node){if(node.isMesh&&!node.userData.shadowProxy&&node.geometry){
+          var chain='',part=node;while(part&&part!==art){part.updateMatrix();chain+=part.matrix.elements.join(',')+';';part=part.parent;}
+          key+=node.geometry.uuid+':'+chain+'|';
+        }});
+        var cached=bladeProfileCache.get(key);if(cached){bladeProfiles.set(art,cached);return;}
+        var points=[],minZ=Infinity,maxZ=-Infinity;
+        art.updateWorldMatrix(true,false);bladeHullInv.copy(art.matrixWorld).invert();
+        art.traverse(function(node){
+          if(!node.isMesh||node.userData.shadowProxy||!node.geometry||!node.geometry.attributes.position)return;
+          node.updateWorldMatrix(true,false);bladeHullMatrix.multiplyMatrices(bladeHullInv,node.matrixWorld);
+          var positions=node.geometry.attributes.position;
+          for(var i=0;i<positions.count;i++){
+            bladeHullPoint.fromBufferAttribute(positions,i).applyMatrix4(bladeHullMatrix);
+            points.push({x:bladeHullPoint.x,y:bladeHullPoint.y});minZ=Math.min(minZ,bladeHullPoint.z);maxZ=Math.max(maxZ,bladeHullPoint.z);
+          }
+        });
+        if(points.length<3)return;
+        points.sort(function(a,b){return a.x-b.x||a.y-b.y;});
+        function cross(a,b,c){return (b.x-a.x)*(c.y-a.y)-(b.y-a.y)*(c.x-a.x);}
+        var hull=[];
+        for(var i=0;i<points.length;i++){while(hull.length>1&&cross(hull[hull.length-2],hull[hull.length-1],points[i])<=0)hull.pop();hull.push(points[i]);}
+        var lower=hull.length;
+        for(var i=points.length-2;i>=0;i--){while(hull.length>lower&&cross(hull[hull.length-2],hull[hull.length-1],points[i])<=0)hull.pop();hull.push(points[i]);}hull.pop();
+        var data=new Float32Array(hull.length*6);
+        for(var i=0;i<hull.length;i++){data[i*6]=data[i*6+3]=hull[i].x;data[i*6+1]=data[i*6+4]=hull[i].y;data[i*6+2]=minZ;data[i*6+5]=maxZ;}
+        bladeProfiles.set(art,data);bladeProfileCache.set(key,data);
+      });
+    }
+    function resolveAxeFloor(state) {
+      if(disposed||!hero||!weapon||!mapping[13]||!state||state.weaponType!=='axe'||state.combo<0||state.combo>2||state.skillMove||state.skillTier>0||
+          !(state.attackTime>=0)||state.heavy||state.dead||state.dodge>0||state.stagger>0)return;
+      var art=null,data=null;
+      for(var i=0;i<weapon.children.length;i++)if(weapon.children[i].visible&&bladeProfiles.has(weapon.children[i])){art=weapon.children[i];data=bladeProfiles.get(art);break;}
+      if(!art)return;
+      // A cached convex prism protects the full broad head, not only its tip.
+      // Keep its actual edge grounded; hand, grip and fingers rotate together.
+      for(var pass=0;pass<12;pass++){
+        if(rollCarryReady&&rollCarryDt>0&&B.heroPopLimit!==false){
+          wquat(mapping[13],qDesired);var angle=rollCarryPrevious[2].angleTo(qDesired),limit=62*rollCarryDt*60*PI/180;
+          if(angle>limit){qb2.copy(qDesired);qDesired.copy(rollCarryPrevious[2]).slerp(qb2,limit/angle);wquat(mapping[13].parent,qParent).invert();mapping[13].quaternion.copy(qParent.multiply(qDesired)).normalize();mapping[13].updateWorldMatrix(false,true);}
+        }
+        var minimum=Infinity;
+        for(var i=0;i<data.length;i+=3){bladeHullPoint.fromArray(data,i).applyMatrix4(art.matrixWorld);if(bladeHullPoint.y<minimum){minimum=bladeHullPoint.y;bladeHullMin.copy(bladeHullPoint);}}
+        var gap=groundedFloorReference+.025-minimum;if(!(gap>.00001))break;
+        wpos(mapping[13],vb);bladeFloorV.copy(bladeHullMin).sub(vb);
+        var length=bladeFloorV.length(),horizontal=Math.hypot(bladeFloorV.x,bladeFloorV.z),targetY=bladeFloorV.y+gap;
+        if(!(length>.1)||Math.abs(targetY)>=length)break;
+        var width=Math.sqrt(Math.max(0,length*length-targetY*targetY));
+        if(horizontal>.000001)bladeFloorTarget.set(bladeFloorV.x*width/horizontal,targetY,bladeFloorV.z*width/horizontal);
+        else{bladeFloorTarget.set(root.matrixWorld.elements[8],0,root.matrixWorld.elements[10]).normalize().multiplyScalar(width);bladeFloorTarget.y=targetY;}
+        bladeFloorQ.setFromUnitVectors(bladeFloorV.normalize(),bladeFloorTarget.normalize());
+        wquat(mapping[13],qDesired).premultiply(bladeFloorQ);wquat(mapping[13].parent,qParent).invert();mapping[13].quaternion.copy(qParent.multiply(qDesired)).normalize();mapping[13].updateWorldMatrix(false,true);
+      }
+    }
+    function resolveGroundedWeapon(state) {
+      resolveAxeFloor(state);
+      if (!disposed && hero && weapon && bladeTip && mapping[11] && mapping[12] && mapping[13] && state) {
+        if(state.dodge>0&&!state.dead){resolveRollCarry(state);limitRollCarry();return;}
+        rollCarryActive=false;rememberRollCarry();
+      }
+      if (disposed || !hero || !bladeTip || !weapon || !mapping[13] || !state ||
+          !(Number.isFinite(state.whirl) && state.whirl >= 0) || state.dead ||
+          state.dodge > 0 || state.leap > 0 || state.stagger > 0) return;
+      wpos(bladeTip, va); wpos(mapping[13], vb);
+      var floorGap = groundedFloorReference + .04 - va.y;
+      if (!(floorGap > 0)) return;
+      bladeFloorV.copy(va).sub(vb);
+      var bladeLen = bladeFloorV.length(), horizontal = Math.hypot(bladeFloorV.x, bladeFloorV.z),
+        tipRise = floorGap * floorGap / (floorGap + .02), tipY = bladeFloorV.y + tipRise;
+      if (!(bladeLen > .1) || Math.abs(tipY) >= bladeLen) return;
+      var width = Math.sqrt(Math.max(0, bladeLen * bladeLen - tipY * tipY));
+      if (horizontal > .000001) bladeFloorTarget.set(bladeFloorV.x * width / horizontal, tipY, bladeFloorV.z * width / horizontal);
+      else {
+        // An exactly downward shaft has no azimuth. Use the actor's heading,
+        // rather than skipping floor protection at this finite singular pose.
+        bladeFloorTarget.set(root.matrixWorld.elements[8], 0, root.matrixWorld.elements[10]).normalize().multiplyScalar(width); bladeFloorTarget.y = tipY;
+      }
+      bladeFloorQ.setFromUnitVectors(bladeFloorV.normalize(), bladeFloorTarget.normalize());
+      wquat(mapping[13], qDesired).premultiply(bladeFloorQ);
+      wquat(mapping[13].parent, qParent).invert(); mapping[13].quaternion.copy(qParent.multiply(qDesired)).normalize();
+      mapping[13].updateWorldMatrix(false, true);
+    }
+    prepareBladeProfiles();
     animate(0, {});
-    return { animate: animate, bones: armAliases, dispose: function () { disposed = true; } };
+    return { animate: animate, resolveGroundedWeapon: resolveGroundedWeapon, bones: armAliases, dispose: function () { disposed = true; } };
   }
   // Whirlwind body yaw (radians to add to the root; u = 0..1 over the spin). Speed eases in over the first 12 %, cruises, brakes over u .50-.78 so the body is planted
   // for the last tick and its overhead slam (WHIRL_HIT / 1.3 = .76), and the angle ends on exactly `turns` full turns: the root lands on its resting heading with no jump.

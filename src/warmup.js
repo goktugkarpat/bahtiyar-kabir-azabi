@@ -14,7 +14,18 @@
   const B = window.BABA = window.BABA || {};
   const Q = new URLSearchParams(location.search);
   const safe = fn => { try { return fn(); } catch (e) { if (Q.has('warmlog')) console.warn('[warmup]', e); return undefined; } };
-  const frame = () => new Promise(res => { let done = false; const go = () => { if (!done) { done = true; res(); } }; requestAnimationFrame(go); setTimeout(go, 120); });
+  const frame = () => new Promise(res => {
+    let done = false, raf = null, timer = null;
+    const go = () => {
+      if (done) return;
+      done = true;
+      if (raf !== null) cancelAnimationFrame(raf);
+      if (timer !== null) clearTimeout(timer);
+      res();
+    };
+    raf = requestAnimationFrame(go);
+    timer = setTimeout(go, 120);
+  });
   const wait = ms => new Promise(res => setTimeout(res, ms));
   const stats = { dom: 0, fx: 0, programs: 0, objects: 0, frames: 0 };
   let fxStarted = false;
@@ -402,5 +413,5 @@
     return stats.tour = Math.round(performance.now() - t0);
   }
 
-  B.Warmup = { paintDom, drawAll, roomTour, rehearse, stats };
+  B.Warmup = { frame, paintDom, drawAll, roomTour, rehearse, stats };
 })();

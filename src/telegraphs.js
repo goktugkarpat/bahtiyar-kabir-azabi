@@ -67,31 +67,32 @@ void main(){
     vec3 c = mix(uPA, uPB, wob) + uEdge*men*.6;
     float al = clamp(inside*(.62+.22*wob) + men*.35, 0., .9);
     gl_FragColor = vec4(c, al*uFade*uGain); return; }
-  if (uStyle == 14) {   // poison / plague bile: bruised violet and olive liquid, wavy meniscus, rising bubble rings. No gold, red or blue.
-    float tm = uCalm > .5 ? 0. : uTime, heavy = uF;
-    float wob = .05*sin(dot(vW,vec2(2.3,1.9))+tm*.6+uSeed)+.04*sin(dot(vW,vec2(-2.1,2.7))-tm*.45+uSeed*1.7)+.03*sin(dot(vW,vec2(4.1,-1.3))+tm*.8);
-    float sdw = sd + wob - .04, aaw = max(fwidth(sdw),.004), ins = 1.-smoothstep(-aaw, aaw, sdw);
-    float prog = uActive > .5 ? 1. : uU;
+  if (uStyle == 14) {   // plague reagent: restrained wet stain, fine suspended grains, exact continuous danger boundary
+    float tm = uCalm > .5 ? 0. : uTime, heavy = uF, prog = uActive > .5 ? 1. : uU;
     float mw = .5+.25*sin(dot(vW,vec2(.9,1.1))+tm*.08+uSeed)+.15*sin(dot(vW,vec2(-1.7,.8))-tm*.06);
     vec3 body = mix(uPA, uPB, mw);
     float mist = (.5+.5*sin(dot(vW,vec2(1.3,.9))+tm*.2+uSeed))*(.5+.5*sin(dot(vW,vec2(-.8,1.6))-tm*.15+uSeed));
-    float ring = 0., spec = 0., fillb = 0.;
-    for (int L = 0; L < 2; L++) { if (L == 1 && uDetail < 1.5) break;
-      float cs = L == 0 ? .95 : .55; vec2 g = vW/cs + float(L)*vec2(3.7,1.3), ci = floor(g), f = fract(g);
-      float h1 = fract(sin(dot(ci,vec2(127.1,311.7))+uSeed)*43758.5453), h2 = fract(sin(dot(ci,vec2(269.5,183.3))+uSeed)*43758.5453);
-      vec2 ctr = vec2(.4+.2*h1, .4+.2*h2); float d = length(f-ctr);
-      float life = fract(tm*.12*(.6+.8*h2)+h1), rad, amp;
-      if (uActive > .5) { rad = .05+.28*life; amp = 1.-smoothstep(.72,1.,life); amp *= smoothstep(0.,.12,life); if (uCalm > .5) { rad = .1+.2*h2; amp = .8; } }
-      else { rad = (.10+.20*h2)*clamp(prog*1.5,0.,1.); amp = 1.-smoothstep(prog*.9+.06+heavy*.12+.3*smoothstep(-.9,-.1,sdw), prog*.9+.12+heavy*.12+.3*smoothstep(-.9,-.1,sdw), h1); }
-      float rr = exp(-pow((d-rad)/.03,2.))*amp, hl = exp(-pow((length(f-ctr-vec2(-.3,.3)*rad)-.06)/.025,2.))*amp*step(.05,rad);
-      ring += rr*(L == 0 ? 1. : .7); spec += hl*.6*step(.5,h2); fillb += (1.-smoothstep(rad*.8,rad,d))*amp*.22; }
-    float edgeAmp = mix(.30+.2*heavy, .85, prog);
-    float men = exp(-pow((sdw+.05)/.045,2.)), men2 = exp(-pow((sdw-.10)/.07,2.))*(.4+.6*prog);
-    float conv = heavy > .5 && uActive < .5 ? exp(-pow((t-(1.-prog))/.05,2.))*ins : 0.;
-    vec3 olive = vec3(.52,.60,.20), mauve = vec3(.58,.38,.80);
-    vec3 c = body*(1.+.5*mist) + olive*(ring*.55 + fillb*.25) + mauve*(men*edgeAmp*.55 + men2*.18 + spec*.5 + conv*.5 + mist*.05*ins + uHit*.4*ins);
-    float al = ins*mix(.30,.78,prog)*(.82+.18*mw) + (1.-ins)*men2*.18 + men*edgeAmp*.4 + ring*.5*ins + fillb*.3*ins + conv*.4 + heavy*ins*.08*prog;
-    gl_FragColor = vec4(c, clamp(al,0.,.92)*uFade*uGain); return; }
+    // The sparse grains are 1–3 cm highlights rather than expanding bubble rings.
+    // Integer cell hashing is static; reduced motion holds every grain in place.
+    vec2 grainGrid=vW*2.7, grainCell=floor(grainGrid), grainUV=fract(grainGrid);
+    float gh=fract(sin(dot(grainCell,vec2(127.1,311.7))+uSeed)*43758.5453);
+    float gj=fract(sin(dot(grainCell,vec2(269.5,183.3))+uSeed)*43758.5453);
+    float phase=fract(tm*.19+gh), alive=smoothstep(.02,.22,phase)*(1.-smoothstep(.55,.92,phase));
+    vec2 center=vec2(.23+.54*gj,.24+.5*fract(gh*11.));
+    vec2 delta=grainUV-center-vec2(.035*sin(tm*.5+gh*9.),.075*(phase-.5));
+    float speck=exp(-dot(delta*vec2(1.1,.7),delta*vec2(1.1,.7))/.0014)*alive*step(.77,gh)*inside;
+    float veinPhase=dot(vW,vec2(4.1,-1.3))+.6*sin(dot(vW,vec2(2.3,1.9))+uSeed);
+    float vein=smoothstep(.88-fwidth(veinPhase),.99+fwidth(veinPhase),.5+.5*sin(veinPhase));
+    float edgeAmp=mix(.38+.12*heavy,.85,prog);
+    float men=exp(-pow(sd/max(.029,fwidth(sd)),2.)), halo=exp(-pow(sd/.085,2.));
+    float etch=exp(-pow((sd+.13)/max(.018,fwidth(sd)*1.5),2.))*inside;
+    float conv=heavy>.5 && uActive<.5 ? exp(-pow((t-(1.-prog))/.05,2.))*inside : 0.;
+    vec3 olive=vec3(.38,.49,.14), mauve=vec3(.58,.38,.80);
+    vec3 color=body*(1.+.25*mist)+olive*(speck*.75+vein*.055*inside*prog)
+      +mauve*(men*edgeAmp*.64+halo*.10+etch*.12*edgeAmp+conv*.45+uHit*.22*inside);
+    float alpha=inside*mix(.28,.57,prog)*(.86+.14*mw)+men*edgeAmp*.43+halo*.05
+      +speck*.35+etch*.08+conv*.30+heavy*inside*.035*prog;
+    gl_FragColor=vec4(color,clamp(alpha,0.,.86)*uFade*uGain); return; }
   float sw = clamp((ang*uSweepDir + span*.5)/span, 0., 1.), tc = clamp(t, 0., 1.);
   float ft = uFill == 2 ? sw : uFill == 3 ? 1.-tc : uFill == 4 ? 1.-abs(2.*tc-1.) : tc;
   float e = 1.-(1.-uU)*(1.-uU), front = mix(.10, 1.06, e);
@@ -116,8 +117,8 @@ void main(){
   float flick = uCalm > .5 ? 1. : .94+.06*sin(uTime*3.);
   float ember = 1.;
   // The restrained burrow mark keeps the same SDF boundary, with a tighter light halo.
-  float innerWidth=uE.w<.06?.036:.055,haloWidth=uE.w<.06?.10:.18;
-  float inner = exp(-pow(sd/max(innerWidth,px*1.5),2.)), outer = exp(-pow(sd/haloWidth,2.));
+  float innerWidth=uUnblock<.5?.018:.024,haloWidth=uUnblock<.5?.065:.085;
+  float inner = exp(-pow(sd/max(innerWidth,px*(uUnblock<.5?.75:.9)),2.)), outer = exp(-pow(sd/haloWidth,2.));
   float coordT = (uShape==0||uShape==3) ? (uFill==3 ? -r : r) : (uShape==2 ? fwd : r);
   float chev = (uShape==1||uShape==2) ? abs(side)*.55 : 0.;
   float mv = uCalm > .5 ? 0. : uTime*.5*(uFill==3 ? -1. : 1.);
@@ -132,17 +133,29 @@ void main(){
   col += uFront*band*inJ*uK.w*(.6+.4*n)*(.75+.25*flick);
   col += uFront*inJ*uFlare*uF*(.5+.5*n);
   float rimK = edgeK*flick;
-  col += uEdge*inner*rimK*ember*dash*.85 + uEdge*outer*rimK*ember*.25;
-  col += uEdge*exp(-max(sdj, 0.)/.5)*(1.-inJ)*(uUnblock > .5 ? .13 : .06)*(.4+.6*lamp+uFlare)*(1.-smoothstep(.3, .69, sd));
+  col += uEdge*inner*rimK*ember*dash*(uUnblock<.5?.38:.42) + uEdge*outer*rimK*ember*(uUnblock<.5?.035:.045);
+  // Engraved gold tooling sits strictly inside the same uninterrupted boundary.
+  // Two thin rails and a sparse diamond braid replace unstructured extra bloom.
+  if (uDetail > .5) {
+    float cells=max(8.,floor(R*3.5+.5));
+    float route=uShape==2 ? fwd*2.0+side*.35 : ang*cells/6.2831853;
+    float cell=abs(fract(route+.5)-.5), toolAA=max(px*1.2,.009);
+    float rail=exp(-pow((depth-.16)/max(.016,toolAA),2.));
+    float braid=exp(-pow((abs(cell*.24)+abs(depth-.28)-.065)/max(.012,toolAA),2.));
+    float knot=exp(-pow(cell/max(.05,toolAA*3.),2.))*exp(-pow((depth-.28)/.024,2.));
+    float engraved=(rail*.25+braid*.24+knot*.16)*inJ*(.65+.25*lamp+.12*uFlare);
+    col+=uEdge*engraved*(uUnblock>.5?.65:1.);
+  }
+  col += uEdge*exp(-max(sdj, 0.)/.5)*(1.-inJ)*(uUnblock > .5 ? .018 : .012)*(.4+.6*lamp+uFlare)*(1.-smoothstep(.3, .69, sd));
   if (uUnblock > .5) { float crawl = 1.;
-    col += vec3(1.25,1.05,.9)*exp(-abs(sd+.19)/.045)*crawl*(uHl.x+uHl.y*uU*uU+uHl.z*uFlare)*inJ*.8; }
+    col += vec3(.65,.59,.51)*exp(-pow((sd+.19)/max(.024,px),2.))*crawl*(uHl.x+uHl.y*uU*uU+uHl.z*uFlare)*inJ*.34; }
   if (uUnblock > .5) {   // severe blow: serrated fang line, ritual cross-hatching, wider layered halo (all inside the same boundary)
     float perimU = uShape==2 ? fwd+side*2.7 : ang*R, tri = abs(fract(perimU*1.7)-.5)*2., toothTop = .07+.20*tri;
     float tooth = exp(-pow((depth-toothTop)/.03,2.))*inJ, fang = step(depth,toothTop)*smoothstep(0.,.025,depth)*inJ;
     float hatch = smoothstep(.82,.98,sin((vW.x-vW.y)*7.5)) *.30 + smoothstep(.9,.99,sin((vW.x+vW.y)*7.5)) *.20;
-    col += uEdge*tooth*(.14+.55*lamp+.9*uFlare)*.7 + uEdge*fang*(.05+.10*lamp+.4*uFlare);
+    col += uEdge*tooth*(.10+.35*lamp+.35*uFlare)*.50 + uEdge*fang*(.035+.06*lamp+.12*uFlare);
     col += uFillCol*inJ*hatch*uK.z*2.4*lit*(.3+.7*lamp)*(.5+.5*exp(-depth/1.2));
-    col += uEdge*exp(-pow(sd/.42,2.))*rimK*.10;
+    col += uEdge*exp(-pow(sd/.13,2.))*rimK*.022;
     dark += inJ*(1.-exp(-depth/.9))*.06; }
   if (uStyle == 4) { vec2 cuv = uShape==2 ? vec2(side/uDim.x*.25+.5, fwd/uDim.y) : vec2(side,fwd)/(2.*R)+.5;
     float texEdge=min(min(cuv.x,1.-cuv.x),min(cuv.y,1.-cuv.y));
@@ -150,12 +163,15 @@ void main(){
     col += uEdge*crack*inside*(.1 + uCk*lit*uU + 2.*uHit); }
   if (uStyle == 2 && uShape == 0) { float glyph = texture2D(uRune, vec2(side,fwd)/(2.*R)+.5).r;
     float slot = (floor(fract(ang/6.2832+.5)*16.)+.5)/16.;
-    col += uEdge*glyph*(.18 + 1.1*step(slot, uU*1.02) + uFlare); }
+    col += uEdge*glyph*(.045+.16*step(slot,uU*1.02)+.16*uFlare); }
   // Contact: the whole area snaps white-hot for an instant, the rim flares.
-  col += uFront*inJ*uHit*uHitK*(.9+.4*n) + uEdge*inner*uHit*1.6;   // uHitK: a boss-sized area flashes softer, so the contact moment stays crisp without a screen-wide glare
+  col += uFront*inJ*uHit*uHitK*(.9+.4*n) + uEdge*inner*uHit*(uUnblock<.5?.65:.75);   // uHitK: a boss-sized area flashes softer, so the contact moment stays crisp without a screen-wide glare
   dark *= 1.-uHit;
   float support=1.-smoothstep(.55,.69,max(sd,0.));
   col *= uFade*uGain*support; dark *= uFade*support;
+  // Gold is a warm engraved line, not a white HDR tube. Preserve hue when
+  // phase/hazard gains increase; the true edge remains continuously visible.
+  {float peak=max(col.r,max(col.g,col.b));col*=peak>.95?(.95+.18*(1.-exp(-(peak-.95))))/peak:1.;}
   if (max(col.r,max(col.g,col.b)) < .002 && dark < .004) discard;
   gl_FragColor = vec4(col, clamp(dark, 0., .85));
 }`;
@@ -298,7 +314,7 @@ void main(){ vec2 p = (vUv-.5)*2.*uMax; float r = length(p), a = r > 1e-6 ? atan
   const FILL = { radial: 0, forward: 1, sweep: 2, inward: 3, converge: 4 };
   const STYLE = { blade: 0, blunt: 1, rune: 2, bile: 3, quake: 4, shadow: 5, chain: 6, ember: 7, fall: 8, thrust: 9, grab: 10, roar: 11, root: 4, tide: 6 };
   const DETAIL = { low: 1, high: 3 }, PFACTOR = { low: .3, high: .675 };
-  const GOLD = { edge: [1.6, 1.05, .5], fill: [.7, .28, .07], front: [1.5, .95, .5] }, CRIMSON = { edge: [1.9, .16, .1], fill: [.85, .05, .04], front: [1.5, .3, .2] };
+  const GOLD = { edge: [1.05, .64, .24], fill: [.56, .22, .045], front: [1.12, .66, .26] }, CRIMSON = { edge: [1.18, .105, .075], fill: [.58, .035, .028], front: [1.15, .14, .085] };
   const AMBER_RIM = [1.6, .7, .25], CRIMSON_RIM = [1.7, .12, .08], BILE_RIM = [.62, .34, .85], RAGE_RIM = [1.05, .20, .055], COOL_RIM = [.55, .065, .025];
 
   B.Telegraphs = { create(root, getGame, getSettings, out) {

@@ -68,12 +68,12 @@
       { id: 'c1-pages', kind: 'lore', voice: 'pages1', name: L('Kâtibin Yırtık Sayfaları · I', 'The Scribe’s Torn Pages · I'),
         description: L('Kara Defter’den koparılmış sayfalar tapınağa dağılmış. Hepsi senin el yazın.', 'Pages torn from the Black Ledger lie scattered through the temple. Every one is in your hand.'),
         objective: L('Tapınağın yan salonlarında Kara Defter’in yırtık sayfalarını topla.', 'Gather the Black Ledger’s torn pages in the temple’s side halls.'),
-        story: L('Üç sayfa da senin el yazın. Son satırda mürekkebi hâlâ ıslak bir ad var: Selvi. Kız kardeşinin adı.', 'All three pages are in your hand. On the last line, its ink still wet, a name: Selvi. Your sister’s name.'),
+        story: L("Üç sayfa, aynı el. İlkinde bir görev, ikincisinde paylaşılan bir suç, sonuncusunda Selvi'nin adı. Hiçbir satırda kalemi bırakmadın.", "Three pages, one hand. A duty on the first, a shared crime on the second, Selvi's name on the last. In none of those lines did you put down the pen."),
         reward: { points: 1 }, rewardText: L('+1 yetenek puanı ve geçmişin ilk parçası', '+1 skill point and the first piece of your past'),
         pages: [
-          page('c1.page1', L('Sayfa: Hüküm Kâtibi', 'Page: The Scribe of Sentences'), L('“Yirminci yılımda kalemim titremeyi bıraktı. Her sabah Kadı’nın mührü gelir, ben adları yazarım. Ad yazıldığında zincir kendiliğinden dövülür. Ben yalnızca yazarım.” — B.', '“In my twentieth year my pen stopped trembling. Each morning the Judge’s seal arrives, and I write the names. Once written, the chain forges itself. I only write.” — B.')),
-          page('c1.page2', L('Sayfa: Cellat’ın Payı', 'Page: The Executioner’s Share'), L('“Cellat bugün yine meyhanede bekledi. ‘Sen yazmasan ben kesmem,’ dedi. Güldük. O gece ellerimi üç kez yıkadım.” — B.', '“The executioner waited at the tavern again today. ‘If you didn’t write, I wouldn’t cut,’ he said. We laughed. That night I washed my hands three times.” — B.')),
-          page('c1.page3', L('Sayfa: Yeni Ad', 'Page: A New Name'), L('“Mühür geldi. Altında tek bir ad var. Kalemi tuttum ve bekledim. Mürekkep kâğıda damladı. Ad: Selvi.” Sayfanın kenarı yırtılmış.', '“The seal came. Beneath it, a single name. I held the pen and waited. Ink dripped onto the paper. The name: Selvi.” The edge of the page is torn away.'))
+          page('c1.page1', L('Sayfa: Hüküm Kâtibi', 'Page: The Scribe of Sentences'),L("Yirminci yılım. İlk hükümde adamın yüzüne bakmıştım. Bugün yüzlere bakmıyorum. Kadı'nın mührünü, adın harflerini, satırın sonunda bıraktığım boşluğu görüyorum. Cellat kılıcını benden sonra kaldırır. Ben masadan kalkmadan bir beden eksilir. Akşam çocuklar sokakta oynuyor. Hiçbiri kalemimin sesini duymuyor. — B.", "My twentieth year. At the first sentence I looked at the man's face. Today I do not look at faces. I see the Judge's seal, the letters of a name, the space I leave at the end of a line. The Executioner raises his sword after I write. A body is gone before I leave my desk. Children play in the street that evening. None of them hears my pen. — B.")),
+          page('c1.page2', L('Sayfa: Cellat’ın Payı', 'Page: The Executioner’s Share'),L("Cellat bileğini masaya koydu. Koluna kadar yıkamış; tırnağının altında bir başkasının kanı vardı. 'Sen yazmasan ben kesmem,' dedi. Ben de 'Sen kesmesen ben yalnız yazmış olurum,' dedim. İkimiz de güldük. Eve döndüğümde Selvi ellerime baktı. Ona mürekkep dedim. O gece suyun rengi açılana kadar yıkandım. — B.", "The Executioner laid his wrist on the table. He had washed up to the elbow; someone else's blood remained beneath a nail. 'If you did not write, I would not cut,' he said. 'If you did not cut, I would only have written,' I answered. We both laughed. At home, Selvi looked at my hands. I told her it was ink. That night I washed until the water ran clear. — B.")),
+          page('c1.page3', L('Sayfa: Yeni Ad', 'Page: A New Name'),L("Mühür öğleden önce geldi. Bu kez bir liste değildi. Tek ad: Selvi. Kâğıdı çevirdim; arkasında iptal emri yoktu. Pencereden evimizin damını gördüm. Kalemi tuttum. Bir damla mürekkep, adın ilk harfini örttü. Üstünden geçtim. Sayfanın kenarı yırtılmış; imzanın yalnız ilk çizgisi kalmış.", "The seal arrived before noon. This time there was no list. One name: Selvi. I turned the paper over; no withdrawal order lay on the back. Through the window I could see our roof. I took the pen. A drop of ink covered the first letter. I traced it again. The page's edge is torn away; only the first stroke of the signature remains."))
         ], fallbacks: [{ room: 9, dx: 4, dz: 3 }, { room: 12, dx: -4, dz: 2 }, { room: 1, dx: -6, dz: -5 }] }
     ],
     2: [
@@ -94,12 +94,12 @@
       { id: 'c2-pages', kind: 'lore', voice: 'pages2', name: L('Kâtibin Yırtık Sayfaları · II', 'The Scribe’s Torn Pages · II'),
         description: L('Boğulanların cebinden, sokakların çamurundan Kara Defter’in sayfaları çıkıyor.', 'From the pockets of the drowned and the mud of the streets, pages of the Black Ledger surface.'),
         objective: L('Kıyıya dağılmış defter sayfalarını topla.', 'Gather the Ledger pages scattered along the shore.'),
-        story: L('Son sayfada Selvi’nin el yazısı var: “Abi, adımı sen yazma.” Altında senin imzan duruyor.', 'The last page bears Selvi’s handwriting: “Brother, don’t you write my name.” Beneath it stands your signature.'),
+        story: L("Selvi senden yalnız bir şey istedi: Abi, adımı sen yazma. Altında senin imzan var. Kıyının tuzu onu silemedi.", "Selvi asked only one thing of you: Brother, don't you write my name. Your signature lies beneath it. The shore's salt could not erase it."),
         reward: { points: 1 }, rewardText: L('+1 yetenek puanı ve geçmişin ikinci parçası', '+1 skill point and the second piece of your past'),
         pages: [
-          page('c2.page1', L('Sayfa: Borç Ödendi', 'Page: Debt Paid'), L('“Kıyıdan yüz yirmi ad. Fenerci çanı çaldı, tekneler döndü ama içleri boştu. Deftere yazdım: borç ödendi.” — B.', '“One hundred and twenty names from the shore. The keeper rang the bell; the boats came back empty. I wrote in the Ledger: debt paid.” — B.')),
-          page('c2.page2', L('Sayfa: Çancı’nın Mektubu', 'Page: The Bellringer’s Letter'), L('“Kâtip, Kral daha fazlasını istiyor. Kıyı boşaldı. Bana ad gönder; ben de sana ölü göndereyim.” Mühür: bir çan.', '“Scribe, the King wants more. The shore is empty. Send me names, and I will send you the dead.” Seal: a bell.')),
-          page('c2.page3', L('Sayfa: Selvi', 'Page: Selvi'), L('“Abi, adımı sen yazma. Başkası yazsın, ama sen yazma. Ellerini tanırım.” Kâğıdın altında kurumuş bir gözyaşı izi ve senin imzan.', '“Brother, don’t you write my name. Let someone else write it, but not you. I know your hands.” Below, a dried tear stain, and your signature.'))
+          page('c2.page1', L('Sayfa: Borç Ödendi', 'Page: Debt Paid'),L("Kıyı hesabı: yüz yirmi ad. Kralın vergisi için canlı alınanlar, boş teknelerle geri gönderildi. Fenerci son tekneyi bağlayamadı; halat bir bileğe düğümlenmişti. Benden kayba bir ad vermemi istediler. Defter'e 'borç ödendi' yazdım. Satır kısaydı. Altındaki boşluk yüz yirmi kişiye yetti. — B.", "The shore account: one hundred and twenty names. Those taken alive for the King's levy were returned in empty boats. The keeper could not tie up the last one; its rope was knotted around a wrist. They asked me to give the loss a name. I wrote 'debt paid' in the Ledger. The line was short. The space beneath it held a hundred and twenty people. — B.")),
+          page('c2.page2', L('Sayfa: Çancı’nın Mektubu', 'Page: The Bellringer’s Letter'),L("Kâtip, çan sustuğunda ölüler yine suyun dibine çöker. Kral onları sessiz istemiyor. Bana yeni adlar gönder. Ben onları son nefesleriyle uyandırırım. Selvi adlı kız dönüş teknesine bindirilmedi. Kral için ayrıldı. Bunu kıyı hesabına geçirme. Mühür: iç yüzünde tırnak izleri bulunan bir çan.", "Scribe, when the bell falls silent the dead sink again. The King does not want them quiet. Send me new names. I will wake them with their final breaths. The girl called Selvi was not put aboard the returning boat. She was set aside for the King. Do not enter this in the shore account. Seal: a bell scarred by fingernails on its inner face.")),
+          page('c2.page3', L('Sayfa: Selvi', 'Page: Selvi'),L("Abi, beni almaya geldiklerinde senden söz etmedim. Elini tanırım. S harfini acele edince alta indirirsin. Adımı sen yazma. Başkası yazsın; onun elini bir gün unutabilirim. Seninkini unutamam. Mektubun altında kıyı teslim kaydı var. İmza Bahtiyar'ın. S harfi satırın altına inmiş.", "Brother, when they came for me I did not speak of you. I know your hand. When you hurry, you let the S fall below the line. Do not write my name. Let someone else write it; one day I might forget their hand. I cannot forget yours. A shore delivery entry lies beneath the letter. Bahtiyar signed it. The S falls below the line."))
         ], fallbacks: [{ room: 10, dx: 5, dz: 3 }, { room: 3, dx: -6, dz: 5 }, { room: 12, dx: 5, dz: -4 }] }
     ],
     3: [
@@ -120,12 +120,12 @@
       { id: 'c3-pages', kind: 'lore', voice: 'pages3', name: L('Kâtibin Yırtık Sayfaları · III', 'The Scribe’s Torn Pages · III'),
         description: L('Kralın arşivinden kaçırılmış sayfalar harabelerin arasına gömülmüş.', 'Pages smuggled from the king’s archive lie buried among the ruins.'),
         objective: L('Harabelerdeki defter sayfalarını topla.', 'Gather the Ledger pages in the ruins.'),
-        story: L('Bütün sayfaların altında aynı mühür var: ne kralın, ne çancının. Kara Kadı’nın mührü. Defter’i tutan el başka.', 'Every page bears the same seal: neither the king’s nor the bellringer’s. The Black Judge’s seal. Another hand holds the Ledger.'),
+        story: L("Kralın emrinin altında Kadı'nın mührü var. Yazmayı reddedersen kendi adın yazılacak, diri gömüleceksin. Tehdit gerçekti. Yazdığın insanlar da gerçekti.", "The Judge's seal lies beneath the King's order. Refuse to write, and your own name will be written. You will be buried alive. The threat was real. So were the people you condemned."),
         reward: { points: 1 }, rewardText: L('+1 yetenek puanı ve geçmişin üçüncü parçası', '+1 skill point and the third piece of your past'),
         pages: [
-          page('c3.page1', L('Sayfa: Kralın Pazarlığı', 'Page: The King’s Bargain'), L('“Kral tahtı için adını sattı. Kadı adı aldı, Defter’in ilk satırına yazdı. O günden beri her kral bir mahkûm, her mahkûm bir halka.”', '“The king sold his name for the throne. The Judge took it and wrote it on the Ledger’s first line. Since that day every king is a prisoner, every prisoner a link.”')),
-          page('c3.page2', L('Sayfa: Kâtibin Atanması', 'Page: The Scribe Appointed'), L('“Bahtiyar, oğlum. Kalemin temiz, aklın sessiz. Bundan sonra Defter senin elinde.” Altında kralın silik imzası.', '“Bahtiyar, my son. Your pen is clean, your mind quiet. From now on the Ledger is in your hand.” Beneath, the king’s faded signature.')),
-          page('c3.page3', L('Sayfa: Kadı’nın Emri', 'Page: The Judge’s Order'), L('“Kâtip ad yazmayı reddederse, son satıra kendi adı yazılsın. Cellat onu diri gömsün; Defter beklemeyi bilir.” Mühür: kara bir göz.', '“Should the scribe refuse to write, let his own name fill the last line. Let the executioner bury him alive; the Ledger knows how to wait.” Seal: a black eye.'))
+          page('c3.page1', L('Sayfa: Kralın Pazarlığı', 'Page: The King’s Bargain'),L("Kral kendi adını tahttan sildirdi. Kadı onu Defter'in ilk satırına aldı. Karşılığında kralın hükmü, taşın içine kapatılan insanların ağzından çıkacaktı. Saray artık itiraz duymuyordu. İtiraz edenler duvarın içindeydi. Kenara küçük bir not düşülmüş: Satılan ad suçunu unutmaz. Yalnız sahibine itiraf ettirmez.", "The King had his name removed from the throne. The Judge took it into the Ledger's first line. In return, royal commands would issue from the mouths of people sealed inside the stone. The palace heard no objections now. Those who objected were inside its walls. A small note in the margin reads: A sold name does not forget its crime. It merely stops its owner confessing.")),
+          page('c3.page2', L('Sayfa: Kâtibin Atanması', 'Page: The Scribe Appointed'),L("Bahtiyar, oğlum. Temiz yazın, sakin elin, itaatkâr sessizliğin var. Bundan sonra Kara Defter'i sen tutacaksın. Adlar sana ağır gelirse yüzlerini düşünme. Hükmün sorumluluğu mühürde, işinin doğruluğu harflerdedir. Kralın imzasının altında kâtibin ilk deneme satırı var. Kâğıt silinmiş; ucunda bir adamın adı kalmış.", "Bahtiyar, my son. You have a clean script, a steady hand, an obedient silence. From now on you will keep the Black Ledger. If the names weigh on you, do not think of faces. The seal bears responsibility for the sentence; the letters bear witness to the accuracy of your work. Beneath the King's signature lies the scribe's first practice line. The paper has been erased. A man's name remains at its edge.")),
+          page('c3.page3', L('Sayfa: Kadı’nın Emri', 'Page: The Judge’s Order'),L("Kâtip ad yazmayı reddederse son satıra kendi adı geçirilsin. Cellat onu diri gömsün. Ağzına, susturduğu kişinin mezarından toprak koyulsun. Defter beklemeyi bilir. Yazı bitmediği sürece hüküm de bitmez. Emrin mührü kralın değil: kara bir göz. Kâğıdın altında bir itiraz yok. Yalnız teslim alındı işareti var.", "Should the scribe refuse to write, let his own name be entered on the last line. Let the Executioner bury him alive. Fill his mouth with earth from the grave of the person he silenced. The Ledger knows how to wait. While the writing continues, the sentence does not end. The seal is not the King's: a black eye. No objection appears beneath the order. Only an acknowledgment of receipt."))
         ], fallbacks: [{ room: 1, dx: -7, dz: 4 }, { room: 6, dx: 7, dz: -3 }, { room: 10, dx: 6, dz: 4 }] }
     ],
     4: [
@@ -146,21 +146,21 @@
       { id: 'c4-pages', kind: 'lore', voice: 'pages4', name: L('Kâtibin Yırtık Sayfaları · IV', 'The Scribe’s Torn Pages · IV'),
         description: L('Ocağın hesap defterlerinden kurtulmuş, kenarları yanmış sayfalar.', 'Pages saved from the furnace’s ledgers, their edges burned.'),
         objective: L('Ocağın yanık defter sayfalarını topla.', 'Gather the furnace’s burned Ledger pages.'),
-        story: L('Yanık sayfaların sonunda yalnız senin adın kalıyor: “Bahtiyar. Kâtip. Boş satır.” Mürekkep taze; biri hâlâ yazıyor.', 'At the end of the burned pages only your name remains: “Bahtiyar. Scribe. Empty line.” The ink is fresh; someone is still writing.'),
+        story: L("Halka hesabında bir satır eksik. Kadı, senin elin durduğunda başka bir el aramış. Yanık itirafında korkunu yazmışsın; boş bıraktığın satırda şimdi kendi adın bekliyor.", "A line is missing from the link account. When your hand stopped, the Judge sought another. You wrote your fear in a burned confession; now your own name waits in the line left empty."),
         reward: { points: 1 }, rewardText: L('+1 yetenek puanı ve geçmişin dördüncü parçası', '+1 skill point and the fourth piece of your past'),
         pages: [
-          page('c4.page1', L('Sayfa: Halka Hesabı', 'Page: The Link Account'), L('“Her ad bir halka, her halka bir gün ateş. Bu ay on bin halka. Kâtip yazmaya devam ettikçe ocak sönmez.”', '“Each name a link, each link a day of fire. Ten thousand links this month. As long as the scribe keeps writing, the furnace never dies.”')),
-          page('c4.page2', L('Sayfa: Selvi’nin Halkası', 'Page: Selvi’s Link'), L('“Selvi adlı halka ocağa gelmedi. Kadı onu istedi: ‘Bu kız kâtibin el yazısını tanır. Yeni kâtibim o olacak.’”', '“The link named Selvi never reached the furnace. The Judge asked for her: ‘This girl knows the scribe’s handwriting. She will be my new scribe.’”')),
-          page('c4.page3', L('Sayfa: Yanmış İtiraf', 'Page: A Burned Confession'), L('“Korktum. Mühür geldi, adını yazdım. Sonra Defter’i yakmaya kalktım; ama ad bir kere yazılmıştı.” Gerisi kül.', '“I was afraid. The seal came and I wrote her name. Then I tried to burn the Ledger, but the name was already written.” The rest is ash.'))
+          page('c4.page1', L('Sayfa: Halka Hesabı', 'Page: The Link Account'),L("Halka hesabı. Bir ad, bir halka. Bir halka, ateşte bir gün. Beden dayanmazsa kemiği tutulur; kemik dağılırsa adı tutulur. Ateşe sayı yetmez, tanıklık gerekir. Kâtip yazmaya devam ettikçe ocak sönmez. Bu ay on bin halka. Aynı sayının altına ikinci bir el tek kelime yazmış: İnsan.", "The link account. One name, one link. One link, one day in the fire. If the body fails, keep the bone; if the bone crumbles, keep the name. The fire needs testimony, not merely a number. As long as the scribe writes, the furnace does not die. Ten thousand links this month. Beneath that number another hand has written one word: Human.")),
+          page('c4.page2', L('Sayfa: Selvi’nin Halkası', 'Page: Selvi’s Link'),L("Sevk emri: Selvi adıyla açılan hesap, Kara Kadı'nın kendi mührüyle ayrılmıştır. Gerekçe: Kız, kâtibin harflerini çocukluğundan bilir. Elleri bozulmadan arşive teslim edilsin. Emrin altında teslim alındı işareti yok. Yanık kenarda beş parmağın izi var; kimin eli olduğu belli değil.", "Transfer order: The account opened under Selvi's name has been reserved under the Black Judge's own seal. Reason: The girl has known the scribe's letters since childhood. Deliver her to the archive with her hands intact. No acknowledgment of receipt appears beneath the order. Five fingers mark the burned edge; whose hand it was is unclear.")),
+          page('c4.page3', L('Sayfa: Yanmış İtiraf', 'Page: A Burned Confession'),L("Korktum. Kendi adımı düşündüm. Toprağın ağzıma dolmasını düşündüm. Onunkini yazdım. Sonra Defter'i ateşe tuttum. Yapraklar karardı; Selvi'nin adı kararmadı. Kalemimi kırdım. Yeni bir kalem getirdiler. Elim durursa başka bir el bulacaklarını söylediler. Bu yüzden yazmış olmam, yazmadığım anlamına gelmiyor. — B. Son cümle yarıya kadar yanmış.", "I was afraid. I thought of my own name. I thought of earth filling my mouth. I wrote hers. Then I held the Ledger to the fire. The leaves blackened; Selvi's name did not. I broke my pen. They brought another. They said that if my hand stopped, they would find a different hand. Writing for that reason does not mean I did not write. — B. The last sentence is half burned away."))
         ], fallbacks: [{ room: 1, dx: 7, dz: 4 }, { room: 6, dx: -7, dz: -3 }, { room: 8, dx: 6, dz: 4 }] }
     ],
     5: [
       { id: 'c5-rescue', kind: 'rescue', site: 'selvi-cell', goal: 'selvi-goal', requiresMain: 1, fallback: { index: .7 }, voice: null,
         name: L('Selvi’yi Eve Götür', 'Take Selvi Home'), npc: L('Selvi', 'Selvi'),
-        description: L('Selvi serbest. Onu Kara Defter’in gölgesinden çıkar ve yemin taşına götür.', 'Selvi is free. Lead her out of the Black Ledger’s shadow to the oath stone.'),
+        description: L('Yazı masasındaki bağını çözdükten sonra Selvi’yi Kara Defter’in gölgesinden çıkar ve yemin taşına götür.', 'Once her bond to the writing desk is broken, lead Selvi out of the Black Ledger’s shadow to the oath stone.'),
         objective: L('Selvi’yi yemin taşına götür.', 'Lead Selvi to the oath stone.'), follow: L('Selvi’yi yemin taşına götür.', 'Lead Selvi to the oath stone.'),
-        freeStory: L('Selvi senin arkandan yürüyor. Elinde hâlâ kalem var; bırakamıyor.', 'Selvi walks behind you. The pen is still in her hand; she cannot let it go.'),
-        story: L('Selvi yemin taşına dokunuyor ve kalemi sonunda bırakıyor: “Abi, son satırı ben yazmayacağım. Sen de yazma.”', 'Selvi touches the oath stone and finally lets the pen fall: “Brother, I will not write the last line. Don’t you write it either.”'),
+        freeStory: L('Selvi senin arkandan yürüyor; mürekkebin yaktığı bileğini tutuyor. Kalem gitmiş, eli hâlâ yazacakmış gibi kasılıyor.', 'Selvi walks behind you, holding the wrist burned by ink. The pen is gone; her hand still contracts as if she must write.'),
+        story: L('Selvi yemin taşına avucunu koyuyor. Parmakları hâlâ kasılıyor; bu kez elini geri çekebiliyor: “Abi, son satırı ben yazmayacağım. Sen de yazma.”', 'Selvi lays her palm on the oath stone. Her fingers still contract; this time she can draw her hand away: “Brother, I will not write the last line. Don’t you write it either.”'),
         reward: { flasks: 1, xp: 200 }, rewardText: L('Kalıcı +1 şifa matarası', 'Permanent +1 healing flask'), female: true },
       { id: 'c5-hunt', kind: 'hunt', site: 'c5.hunt', fallback: { index: .45 }, voice: 'hunt5',
         name: L('Mürekkep Cellatı', 'The Ink Headsman'), target: { name: L('Mürekkep Cellatı', 'The Ink Headsman'), types: [], scale: 2.6 },
@@ -171,12 +171,12 @@
       { id: 'c5-pages', kind: 'lore', voice: 'pages5', name: L('Kâtibin Yırtık Sayfaları · V', 'The Scribe’s Torn Pages · V'),
         description: L('Arşivin raflarında Defter’in kayıp son sayfaları saklı.', 'The Ledger’s lost final pages are hidden on the archive’s shelves.'),
         objective: L('Arşivdeki son defter sayfalarını topla.', 'Gather the last Ledger pages in the archive.'),
-        story: L('Son sayfa: Selvi’nin adını yazan el titremiyor. O el senin. Korkudan yazdın, sonra yakmaya kalktın. Artık biliyorsun.', 'The last page: the hand that wrote Selvi’s name does not tremble. That hand is yours. You wrote it in fear, then tried to burn it. Now you know.'),
+        story: L("Son sayfada elin sakin. Selvi'nin adı açık, imzan sağlam. Kadı seni geri getirmek için satırı boş bıraktı. Seni burada tutan şey yalnız Kadı'nın hükmü değil. Altındaki imzan.", "On the last page, your hand is steady. Selvi's name is clear. Your signature is firm. The Judge left one line empty to bring you back. It is not only his sentence that binds you here. It is your signature beneath it."),
         reward: { points: 1 }, rewardText: L('+1 yetenek puanı ve gerçeğin son parçası', '+1 skill point and the last piece of the truth'),
         pages: [
-          page('c5.page1', L('Sayfa: Kadı’nın Sabrı', 'Page: The Judge’s Patience'), L('“Kâtip öldü sanıyorlar. Ölmedi. Defter’in boş satırı onu çağırır. Geldiğinde kalemi kardeşi tutacak.”', '“They think the scribe is dead. He is not. The Ledger’s empty line calls him. When he comes, his sister will hold the pen.”')),
-          page('c5.page2', L('Sayfa: Selvi’nin Günlüğü', 'Page: Selvi’s Diary'), L('“Her gece onun el yazısını taklit ediyorum. Kadı memnun. Abi, gelirsen beni tanıma. Ellerim artık seninkiler.”', '“Every night I copy his handwriting. The Judge is pleased. Brother, if you come, do not know me. My hands are yours now.”')),
-          page('c5.page3', L('Sayfa: Son Satır', 'Page: The Last Line'), L('“Selvi.” Mürekkep düzgün, harfler sakin. Altında senin imzan. Bir satır aşağıda, boşluk: senin adın için.', '“Selvi.” The ink is even, the letters calm. Beneath, your signature. One line lower, an empty space: for your name.'))
+          page('c5.page1', L('Sayfa: Kadı’nın Sabrı', 'Page: The Judge’s Patience'),L("Kâtibin öldüğünü sanıyorlar. Ölmedi. Son satırı boş bıraktım. Aç kaldığında değil, kendi yazdıklarını gördüğünde geri gelecek. Geldiğinde kalemi kardeşi tutsun. Defter'i benden almak isteyecek. Ona tek bir adı silme hakkı verirsem bütün ötekileri yeniden yazmayı kabul eder. Kara gözün mührü kâğıdı delmiş.", "They think the scribe is dead. He is not. I left the final line empty. Hunger will not bring him back; the sight of what he wrote will. Let his sister hold the pen when he comes. He will want to take the Ledger from me. Give him the right to erase one name and he will agree to write all the others again. The black eye's seal has pierced the paper.")),
+          page('c5.page2', L('Sayfa: Selvi’nin Günlüğü', 'Page: Selvi’s Diary'),L("Her gece onun el yazısını taklit ediyorum. Kadı bazı harfleri düzeltiyor; adımı yazdığı çizgiyi beğeniyor. Bileğimdeki zincir deriye gömüldü. Kalemi yere koyduğumda masadaki isimler ağlıyor. Abi, gelirsen beni eve götür. Ama bu masaya sen oturma. Benim için başka birini yazma. — Selvi.", "Every night I copy his handwriting. The Judge corrects some letters; he likes the stroke that wrote my name. The chain at my wrist has sunk into the skin. When I put down the pen, the names on the desk weep. Brother, if you come, take me home. But do not sit at this desk. Do not write someone else for me. — Selvi.")),
+          page('c5.page3', L('Sayfa: Son Satır', 'Page: The Last Line'),L("Selvi. Harfler düzgün. Altında Bahtiyar'ın imzası var. Bir satır aşağıda boşluk duruyor. Kenardaki not: Kadı yaşarken hiçbir satır silinmez. Son tanık kendi adını yazarsa sicil kapanır. Kâğıdı yakarsa adlar kurtulur; taşıdıkları hatıra kurtulmaz. Kâtip, yazdığını hatırlamaya devam eder. Kalemi alırsa sicil devam eder.", "Selvi. The letters are even. Bahtiyar's signature lies beneath. One line lower, a space remains. The note in the margin reads: While the Judge lives, no line can be erased. If the last witness writes his own name, the register closes. If he burns the paper, the names escape; their memories do not. The scribe continues to remember what he wrote. If he takes the pen, the register continues."))
         ], fallbacks: [{ index: .25 }, { index: .55 }, { index: .8 }] }
     ]
   };
@@ -187,15 +187,15 @@
   // The campaign finale (chapter 5, after its master falls). Choice text varies with the pages read across the campaign.
   var FINALE = {
     title: L('Son satır', 'The last line'),
-    question: L('Kadı düştü. Kara Defter açık, kalem elinde. Son satır hâlâ boş.', 'The Judge has fallen. The Black Ledger lies open, the pen in your hand. The last line is still empty.'),
-    truth: L('Bütün sayfaları okudun: Selvi’nin adını sen yazdın. Kefaretin bedeli sensin.', 'You have read every page: you wrote Selvi’s name. The price of atonement is you.'),
+    question: L("Kadı düştü. Defter'e bağlı insanlar hâlâ adlarını taşıyor. Son satır ve kalem önünde: birini kurtarmanın bedelini yine başkasına mı yazacaksın?", "The Judge has fallen. Those bound to the Ledger still bear their names. The final line and the pen lie before you: will you write the price of saving one person against somebody else again?"),
+    truth: L("Bütün sayfaları okudun: Selvi'nin adını yazan el seninki. Kendi adın sicili kapatır; bu, geçmişi silmez.", "You have read every page: the hand that wrote Selvi's name was yours. Your own name will close the register. It will not erase the past."),
     options: [
-      { id: 'name', name: L('Adını son satıra yaz', 'Write your name on the last line'), effect: L('Bütün adlar özgür. Sen kabre dönersin.', 'Every name goes free. You return to the grave.'), voice: 'endingName',
-        story: L('Adını son satıra yazıyorsun. Defter’deki bütün adlar soluk alıp kayboluyor. Zincirler düşerken toprak seni geri çağırıyor; bu kez korkmadan yatıyorsun. Selvi güneşe çıkıyor.', 'You write your name on the last line. Every name in the Ledger draws breath and fades. As the chains fall the earth calls you back, and this time you lie down without fear. Selvi walks into the sun.') },
-      { id: 'burn', name: L('Defter’i yak', 'Burn the Ledger'), effect: L('Adlar yanar. Kimse kim olduğunu hatırlamaz.', 'The names burn. No one remembers who they were.'), voice: 'endingBurn',
-        story: L('Defter’i yakıyorsun. Bütün adlar alevle birlikte göğe yükseliyor. Mahkûmlar özgür ama hiçbiri kim olduğunu hatırlamıyor. Selvi yüzüne bakıyor ve seni tanımıyor.', 'You burn the Ledger. Every name rises into the sky with the flames. The prisoners are free, but none of them remembers who they were. Selvi looks at your face and does not know you.') },
-      { id: 'quill', name: L('Kalemi al', 'Take up the pen'), effect: L('Yeni Kadı sen olursun.', 'You become the new Judge.'), voice: 'endingQuill',
-        story: L('Kalemi alıyorsun. Mürekkep elinin sıcaklığını tanıyor. Selvi’nin adını siliyorsun, sonra yeni bir sayfa açıyorsun. Kara Defter’in yeni Kadısı kabrinden hiç çıkmayacak.', 'You take up the pen. The ink knows the warmth of your hand. You erase Selvi’s name, then turn to a new page. The Black Ledger’s new Judge will never leave his grave.') }
+      { id: 'name', name: L('Adını son satıra yaz', 'Write your name on the last line'), effect: L("Defter'e bağlı bütün adlar özgür kalır. Sen son hükmü üstlenir ve kabre dönersin.", "Every name bound to the Ledger goes free. You bear its final sentence and return to the grave."), voice: 'endingName',
+        story: L("Bu kez kendi adını yazıyorsun. Zincirler birer birer düşerken kabirler ilk kez sessiz. Toprak ağzını dolduruyor; yeniden nefes almaya çalışmıyorsun. Selvi gün ışığına çıkıyor. Seni bağışladığını söylemiyor. Adını unutmuyor.", "This time, you write your own name. One by one the chains fall, and for the first time the graves are silent. Earth fills your mouth; you no longer struggle for breath. Selvi steps into daylight. She does not say she forgives you. She does not forget your name.") },
+      { id: 'burn', name: L('Defter’i yak', 'Burn the Ledger'), effect: L("Mahkûmlar özgür kalır, kim olduklarını unutur. Selvi seni tanımaz; sen hatırlarsın.", "The prisoners go free and forget who they were. Selvi does not know you. You remember."), voice: 'endingBurn',
+        story: L("Defter'i ateşe veriyorsun. Adları taşıyanlar özgür kalıyor; fakat annelerini, evlerini, kendi yüzlerini hatırlamıyorlar. Selvi sana bir yabancı gibi bakıyor. Sen her harfi hatırlıyorsun. Mahkûmları kendi pişmanlığından çıkardın. O pişmanlığın içinde yalnız kaldın.", "You set the Ledger alight. Those bound to its names go free, but they remember neither their mothers, their homes, nor their own faces. Selvi looks at you as a stranger. You remember every letter. You freed the prisoners from your remorse. You are left alone inside it.") },
+      { id: 'quill', name: L('Kalemi al', 'Take up the pen'), effect: L("Selvi özgür kalır. Yeni Kadı sen olursun; başkalarının hükümleri sürer.", "Selvi goes free. You become the new Judge. Other people's sentences continue."), voice: 'endingQuill',
+        story: L("Selvi'nin adını siliyorsun. Kapı onun için açılıyor. Kalem avucuna gömülürken ilk boş satır yeniden beliriyor. Birini kurtarmak için bir başkasını yazacağını söylüyorsun. Yirmi yıl önce de böyle başlamıştın. Kara Kadı öldü. Elin hâlâ yazıyor.", "You erase Selvi's name. The door opens for her. As the pen sinks into your palm, the first empty line appears again. You tell yourself you will write another name to save one person. That was how it began twenty years ago. The Black Judge is dead. Your hand is still writing.") }
     ]
   };
 
@@ -204,14 +204,31 @@
     rescueMercy: L('Gözlerinde korku yok. Merhametinin adı ondan önce bu salonlara ulaşmış.', 'There is no fear in their eyes. Word of your mercy reached these halls before you did.'),
     rescueWrath: L('Seni görünce titriyor. Verdiğin hükümlerin sesi senden önce gelmiş; yine de elini tutuyor.', 'They tremble at the sight of you. The sound of your verdicts arrived first; still, they take your hand.'),
     epi: {
-      name: [L('Mezarının başında Selvi her bahar bir ad okur: seninkini. Defter’de başka hiçbir ad kalmadı.', 'Each spring Selvi reads one name at your grave: yours. No other name remains in the Ledger.'),
-             L('Kimse mezarına gelmez. Ama özgür kalan binlerce ad, toprağın altında bile seni tanır.', 'No one visits your grave. But the thousands of names set free know you, even beneath the earth.')],
-      burn: [L('Kül rüzgârla dağılırken bir çocuk sana gülümsüyor. Kim olduğunu bilmiyor; yine de gülümsüyor.', 'As the ash drifts away a child smiles at you. She does not know who you are; she smiles all the same.'),
-             L('Kül soğuyor. Hatırlanmayan bir dünyada tek hatırlayan sensin; ve bu, kabrin en ağır azabı.', 'The ash grows cold. In a world without memory you alone remember, and that is the grave’s heaviest torment.')],
-      quill: [L('İlk sayfaya kendi kararlarını yazıyorsun: merhamet. Ama kalem bu kelimeyi tanımıyor; mürekkep kâğıtta tutmuyor.', 'On the first page you write your own verdict: mercy. But the pen does not know the word; the ink will not hold.'),
-              L('İlk sayfaya bir ad yazıyorsun. Kalem titremiyor. Yirmi yıl önce de titremiyordu.', 'On the first page you write a name. The pen does not tremble. Twenty years ago it did not tremble either.')]
+      name: [L("Selvi her bahar mezarına gelir. Bağışlandığını söylemez; seni, yalnız yazdıklarınla aynı şey yapmamak için, kendi adınla anar.", "Selvi comes to your grave each spring. She does not call you forgiven. She speaks your own name, so that remembering you will not repeat what you did to others."),
+             L("Mezarının başında bir taş var, unvan yok. Kurtulanlar kâtibi hatırlar. Adını söylerken ne borç ne minnet taşırlar.", "A stone stands at your grave, without a title. Those who escaped remember the scribe. They speak your name without debt or gratitude.")],
+      burn: [L("Selvi adını sormadan sana su uzatır. Seni hatırlamadan gösterdiği bu küçük merhameti hak ettiğini söyleyemezsin.", "Selvi offers you water without asking your name. You cannot claim to deserve this small kindness she shows without remembering you."),
+             L("Kül soğur. Onlar ilk kez hafiftir. Her adı, her yüzü, her satırı taşıyan tek kişi sensin; mezara sığmayan azap budur.", "The ash cools. For the first time, their burden is light. You alone carry every name, every face, every line. This torment will not fit inside a grave.")],
+      quill: [L("İlk sayfaya merhamet yazarsın. Kalem boşluğu açar; altına bir ad ister. Bir insanı kurtarmak için bir başka insan seçmen yeterlidir.", "You write mercy on the first page. The pen opens a space and demands a name beneath it. You need only choose one person to save another."),
+              L("İlk satırda bir başkasının adı var. Elin titremez. Selvi kapının dışındadır. İçerideki insanların kardeşleri de vardır.", "Someone else's name fills the first line. Your hand does not tremble. Selvi is beyond the door. The people inside have siblings too.")]
     }
   };
+
+  function resolveEnding(claimed, savedId) {
+    var valid = function (id) { return FINALE.options.some(function (opt) { return opt.id === id; }); };
+    var earned = (Array.isArray(claimed) ? claimed : []).filter(function (key) { return typeof key === 'string' && key.indexOf('c5:finale:') === 0 && valid(key.slice('c5:finale:'.length)); });
+    if (earned.length === 1) return earned[0].slice('c5:finale:'.length);
+    if (earned.length > 1) return valid(savedId) && earned.includes('c5:finale:' + savedId) ? savedId : earned[earned.length - 1].slice('c5:finale:'.length);
+    return valid(savedId) ? savedId : null;
+  }
+
+  // Rebuild only the already-earned ending reflection from the verdict ledger.
+  function endingReflection(id, claimed) {
+    if (!LEAN.epi[id]) return null;
+    var verdicts = (Array.isArray(claimed) ? claimed : []).filter(function (key) { return typeof key === 'string' && key.indexOf(':verdict:') > 0; });
+    var mercy = verdicts.filter(function (key) { return /:(rest|break|silence|release|erase|open|free|starve|shelter)$/.test(key); }).length;
+    var wrath = verdicts.length - mercy;
+    return { text: LEAN.epi[id][mercy >= wrath ? 0 : 1], mercy: mercy, wrath: wrath };
+  }
 
   // ---------------------------------------------------------------- engine
   function create(o) {
@@ -241,19 +258,59 @@
     var cinema = function () { return B.QuestCinema; };
 
     // ---- props (merged per material, like quests.js; no lights, no per-frame allocation)
+    var pageSurface = null, pageTexture = null;
+    function parchmentSurface() {
+      if (pageSurface) return pageSurface;
+      var canvas = document.createElement('canvas'); canvas.width = canvas.height = 256;
+      var context = canvas.getContext('2d'), seed = 7139;
+      function random() { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 4294967296; }
+      var pixels = context.createImageData(256, 256);
+      for (var y = 0; y < 256; y++) for (var x = 0; x < 256; x++) {
+        var edge = Math.min(x, y, 255 - x, 255 - y), mottling = Math.sin(x * .031 + Math.sin(y * .041)) * 5 + random() * 13;
+        var shade = Math.max(0, 18 - edge) * .9, i = (y * 256 + x) * 4;
+        pixels.data[i] = 205 + mottling - shade; pixels.data[i + 1] = 187 + mottling - shade;
+        pixels.data[i + 2] = 147 + mottling - shade; pixels.data[i + 3] = 255;
+      }
+      context.putImageData(pixels, 0, 0);
+      context.strokeStyle = 'rgba(60,39,23,.68)'; context.lineWidth = 1.3;
+      for (var line = 0; line < 11; line++) {
+        var penX = 25, penY = 33 + line * 16, end = 175 + random() * 50;
+        while (penX < end) {
+          var width = 3 + random() * 6;
+          context.beginPath(); context.moveTo(penX, penY);
+          context.bezierCurveTo(penX + 1, penY - 2 - random() * 6, penX + width, penY + 4, penX + width, penY);
+          context.stroke(); penX += width + 1 + (random() > .8 ? 5 : 0);
+        }
+      }
+      // Decorative handwriting is a texture; the readable story remains in the journal.
+      pageTexture = new T.CanvasTexture(canvas); pageTexture.colorSpace = T.SRGBColorSpace; pageTexture.anisotropy = 4;
+      pageSurface = new T.MeshStandardMaterial({ name: 'aged-quest-parchment', map: pageTexture, color: 0xffffff, roughness: .92, metalness: 0 });
+      return pageSurface;
+    }
     function prop(kind, x, y, z) {
       var g = new T.Group(), body = [], glowParts = [], lid = [], chains = [];
       g.position.set(x, y, z); g.matrixAutoUpdate = false; g.updateMatrix(); kit.root.add(g);
       var S = kit.stone, M = kit.metal, R = kit.trim, G = kit.glow, Wd = kit.wood, mt = kit.materials || {};
       var BLOOD = mt.blood || mt['coast-corpse-flesh'] || mt.lava || mt.hot || G, EMBER = mt.ember || mt.fire || mt.lava || mt.hot || mt.lamp || G;
-      var PAPER = mt.shroud || mt.cloth || mt.pale || S, BONE = mt.bone || mt['coast-corpse-bone'] || S;
+      var PAPER = kind === 'page' ? parchmentSurface() : mt.shroud || mt.cloth || mt.pale || S, BONE = mt.bone || mt['coast-corpse-bone'] || S;
       g.scale.setScalar(1.3); g.updateMatrix();
       if (kind === 'page') {
-        kit.box(body, Wd, .08, .9, .08, 0, .45, 0); kit.box(body, Wd, .5, .05, .5, 0, .02, 0, 0, PI / 4);
+        kit.put(body, S, new T.CylinderGeometry(.5, .6, .1, 8), 0, .05, 0, 0, PI / 8);
+        kit.put(body, mt.bone || S, new T.CylinderGeometry(.42, .49, .055, 8), 0, .126, 0, 0, PI / 8);
+        kit.ring(body, R, .47, .014, 0, .157, 0, PI / 2);
+        kit.box(body, Wd, .1, .86, .1, 0, .52, 0);
+        kit.box(body, R, .18, .035, .18, 0, .14, 0); kit.box(body, R, .15, .035, .15, 0, .78, 0);
+        kit.box(body, Wd, .055, .36, .055, -.11, .77, 0, 0, 0, -.63);
+        kit.box(body, Wd, .055, .36, .055, .11, .77, 0, 0, 0, .63);
+        for (var foot = 0; foot < 2; foot++) {
+          var footAngle = foot * PI / 2;
+          kit.box(body, Wd, .055, .04, .7, 0, .14, 0, 0, footAngle);
+        }
         kit.box(body, Wd, .62, .05, .46, 0, .93, 0, -.5); kit.box(body, R, .66, .025, .03, 0, .87, .2, -.5);
         kit.box(body, PAPER, .44, .012, .32, 0, .965, .01, -.5); kit.box(body, PAPER, .2, .01, .28, .12, .975, .02, -.5, .12);
         kit.cyl(body, mt.wax || PAPER, .035, .04, .16, .26, .99, -.14); kit.put(glowParts, EMBER, new T.ConeGeometry(.022, .07, 6), .26, 1.1, -.14);
-        kit.box(glowParts, G, .3, .006, .2, -.02, .975, .03, -.5);
+        // Parchment and a wax seal replace the flat luminous page marker.
+        kit.cyl(body, mt.wax || R, .028, .028, .009, .155, 1.02, .10, -.5);
       } else if (kind === 'post') {
         kit.box(body, Wd, .2, 1.8, .2, 0, .9, 0); kit.box(body, M, .3, .08, .3, 0, 1.2, 0); kit.box(body, S, .7, .12, .7, 0, .06, 0);
         for (var l = 0; l < 6; l++) kit.ring(chains, M, .08, .02, .12 + l * .1, 1.1 - l * .16, .1, l % 2 ? PI / 2 : 0, 0, .7);
@@ -285,8 +342,9 @@
           var wish = [def.female ? 'selvi' : null, 'prisoner', 'gravemason', 'drowned', 'emberbound', 'cultist', 'ashbound', 'lantern', 'chainseer', 'damned', 'verdictseer'].filter(Boolean);
           var pick = wish.find(function (t) { return types[t] && (types[t].chapter || 1) === active; }) || Object.keys(types).find(function (t) { return t !== 'hero' && (types[t].chapter || 1) === active; }) || 'prisoner';   // chapter V owns none of the older figures: use one of its own (only the active chapter's bases are decoded)
           actor.model = B.Models.create(pick); actor.root = actor.model.root;
+          actor.authoredSelvi = pick === 'selvi' && !!types[pick].narrativeActor;
           actor.root.traverse(function (n) { if (n.name === 'weapon') n.visible = false; });
-          actor.root.scale.setScalar(def.female ? .9 : .97);
+          actor.root.scale.setScalar(actor.authoredSelvi ? 1 : def.female ? .9 : .97);
         }
       } catch (e) { console.warn('[quests] captive model', e && e.message); actor.model = null; actor.root = null; }
       if (!actor.root) {
@@ -295,6 +353,7 @@
       }
       actor.root.name = def.npc; kit.root.add(actor.root);
       // A pale oath ring under the living captive keeps them apart from the hostile dead that share their silhouette.
+      if (!actor.authoredSelvi) {
       var halo = [], hg = new T.Group(); kit.ring(halo, kit.glow, .55, .018, 0, .04, 0, PI / 2); kit.ring(halo, kit.glow, .7, .01, 0, .04, 0, PI / 2); kit.merge(halo, hg); actor.halo = hg; kit.root.add(hg);
       try {
         var mt2 = kit.materials || {}, lamp = [], shroud = [], lg2 = new T.Group(), sg = new T.Group(), EMB = mt2.ember || mt2.fire || mt2.lamp || mt2.hot || kit.glow;
@@ -305,6 +364,11 @@
         kit.put(shroud, PALE, new T.ConeGeometry(.34, 1.1, 10, 1, true), 0, 1.25, -.08, -.12, 0, 0); kit.put(shroud, PALE, new T.SphereGeometry(.2, 10, 8, 0, PI * 2, 0, PI * .55), 0, 1.78, -.04);
         kit.merge(shroud, sg); sg.scale.set(1, 1, .8); actor.root.add(sg);
       } catch (err) { /* decorative only */ }
+      }
+      if (actor.authoredSelvi && actor.model.animate) {
+        actor.cower = .58; actor.model.animate(0, { reset: true, time: 0, move: 0, attackTime: -1, beatTime: -1, fear: actor.cower, dead: false });
+        for (var settle = 0; settle < 12; settle++) actor.model.animate(1 / 60, { time: settle / 60, move: 0, attackTime: -1, beatTime: -1, fear: actor.cower, dead: false });
+      }
       return actor;
     }
     var pose = { time: 0, move: 0, attack: 0, dead: false, face: 0, phase: 'idle', action: '', actionProgress: 0, hurt: 0, block: false, dodge: 0, stagger: 0, beat: 0, beatTime: -1, leap: 0, lookYaw: undefined, fear: 0, deathKind: '', hitAngle: 0 };
@@ -316,6 +380,25 @@
         pose.time = actor.time; pose.move = actor.speed; pose.face = actor.face; pose.fear = actor.cower; pose.phase = 'idle';
         try { actor.model.animate(dt, pose); } catch (e) { console.warn('[quests] captive pose', e && e.message); actor.model = null; }
       }
+    }
+
+    function boundSelvi(q, bound) {
+      if (!q.actor || !q.actor.authoredSelvi || q.def.id !== 'c5-rescue') return;
+      var a = q.actor;
+      if (bound) {
+        var desk = (info.markers || []).find(function (m) { return m.id === 'selvi-cell'; });
+        if (desk) {
+          var candidates = [[.98, .32], [-.98, .32], [.98, -.32], [-.98, -.32]];
+          for (var k = 0; k < candidates.length; k++) {
+            var x = desk.x + candidates[k][0], z = desk.z + candidates[k][1];
+            if (!world.isWalkable || world.isWalkable(x, z, .42)) { a.x = x; a.z = z; break; }
+          }
+          a.face = Math.atan2(desk.x - a.x, desk.z - a.z); a.boundDesk = true;
+        }
+        a.cower = .58;
+      }
+      a.root.traverse(function (mesh) { if (mesh.name === 'phase-selvi-cuffs') mesh.visible = bound; });
+      animateActor(a, 0);
     }
 
     // Promote the named prey (also retried later if the foes were not yet spawned when the quest was built).
@@ -440,7 +523,11 @@
         });
         if (q.marker) { q.marker.complete = s.done; q.marker.active = !s.done && !!q.enemy && !q.enemy.dead; if (q.marker.active) e.target = q.marker; }
         if (d.kind === 'rescue' && s.stage >= 1 && !s.done) e.target = { id: d.goal, name: d.npc, x: q.goal.x, z: q.goal.z, active: true };
-        if (d.kind === 'rescue' && q.actor) q.actor.root.visible = !(d.requiresMain != null && !mainDone(d.requiresMain) && !s.stage);
+        if (d.kind === 'rescue' && q.actor) {
+          var held = d.requiresMain != null && !mainDone(d.requiresMain) && !s.stage;
+          q.actor.root.visible = q.actor.authoredSelvi || !held;
+          boundSelvi(q, held);
+        }
       });
       bump();
     }
@@ -532,7 +619,7 @@
       grant('finale:' + optionId, { xp: 1 }); bump(); if (api.onChange) api.onChange();
       api.emit('quest', { id: 'finale', name: FINALE.title, text: opt.story, side: true, kind: 'main', complete: true, completed: info.completed, total: 2, step: 1, steps: 1, choice: optionId });
       say(opt.voice);
-      var t = tally(), extra = LEAN.epi[optionId] ? LEAN.epi[optionId][t.mercy >= t.wrath ? 0 : 1] : '';
+      var t = endingReflection(optionId, boons().claimed), extra = t ? t.text : '';
       var parts = opt.story.replace(/([.!?”])\s+/g, '$1\n').split('\n'), paras = [];
       for (var pi = 0; pi < parts.length; pi += 2) paras.push(parts.slice(pi, pi + 2).join(' '));
       if (extra) paras.push(extra);
@@ -541,6 +628,56 @@
     }
 
     // ---- per-frame
+    // A freed Selvi walks around her physical writing desk. This changes only
+    // her local route: the authored escort goal, stage, speed and rewards stay.
+    function selviDeskRoute(a, route) {
+      if (!a.authoredSelvi || !a.boundDesk || !route || !route.length) return route;
+      var desk = (info.markers || []).find(function (m) { return m.id === 'selvi-cell'; });
+      if (!desk) return route;
+      var sx = .5275 + .38 + .04, sz = .33 + .38 + .04;
+      function inside(p) { return Math.abs(p.x - desk.x) < sx && Math.abs(p.z - desk.z) < sz; }
+      function crosses(from, to) {
+        var enter = 0, exit = 1, axes = [['x', desk.x - sx, desk.x + sx], ['z', desk.z - sz, desk.z + sz]];
+        for (var j = 0; j < 2; j++) {
+          var axis = axes[j], delta = to[axis[0]] - from[axis[0]];
+          if (Math.abs(delta) < 1e-8) { if (from[axis[0]] <= axis[1] || from[axis[0]] >= axis[2]) return false; continue; }
+          var lo = (axis[1] - from[axis[0]]) / delta, hi = (axis[2] - from[axis[0]]) / delta;
+          enter = Math.max(enter, Math.min(lo, hi)); exit = Math.min(exit, Math.max(lo, hi));
+          if (enter >= exit) return false;
+        }
+        return exit > 0 && enter < 1 && enter < exit;
+      }
+      var corners = [[-1, -1], [-1, 1], [1, -1], [1, 1]].map(function (sign) {
+        return { x: desk.x + sign[0] * (sx + .03), z: desk.z + sign[1] * (sz + .03), selviDesk: true };
+      }).filter(function (p) { return !world.isWalkable || world.isWalkable(p.x, p.z, .4); });
+      function detour(from, to) {
+        if (!crosses(from, to)) return [to];
+        var nodes = [from, to].concat(corners), distance = nodes.map(function () { return Infinity; }), prior = nodes.map(function () { return -1; }), done = [];
+        distance[0] = 0;
+        for (var count = 0; count < nodes.length; count++) {
+          var best = -1;
+          for (var i = 0; i < nodes.length; i++) if (!done[i] && (best < 0 || distance[i] < distance[best])) best = i;
+          if (best < 0 || !Number.isFinite(distance[best])) break;
+          if (best === 1) { var indices = [], at = 1; while (at > 0) { indices.unshift(at); at = prior[at]; } return indices.map(function (i) { return nodes[i]; }); }
+          done[best] = true;
+          for (var next = 1; next < nodes.length; next++) {
+            if (done[next] || crosses(nodes[best], nodes[next])) continue;
+            if (world.hasClearPath && !world.hasClearPath(nodes[best].x, nodes[best].z, nodes[next].x, nodes[next].z, .4)) continue;
+            var d = distance[best] + Math.hypot(nodes[next].x - nodes[best].x, nodes[next].z - nodes[best].z);
+            if (d < distance[next]) { distance[next] = d; prior[next] = best; }
+          }
+        }
+        return []; // Wait outside the furniture if a real nav obstacle blocks both sides.
+      }
+      var result = [], from = { x: a.x, z: a.z };
+      for (var i = 0; i < route.length; i++) {
+        if (inside(route[i])) continue;
+        var segment = detour(from, route[i]); if (!segment.length) break;
+        Array.prototype.push.apply(result, segment); from = route[i];
+      }
+      return result;
+    }
+
     function updateFollower(q, dt) {
       var a = q.actor, s = state[q.def.id]; if (!a) return;
       var active = s.stage >= 1 && !s.done;
@@ -551,12 +688,12 @@
         a.cower = threat ? Math.min(1, a.cower + dt * 3) : Math.max(0, a.cower - dt * 2);
         // Walk the navigation graph like the foes do; a captive left far behind (or wedged) catches up out of sight.
         a.repath = (a.repath || 0) - dt;
-        if (a.repath <= 0 && gap > 1.1) { a.repath = .4; a.route = world.pathTo ? world.pathTo({ x: a.x, z: a.z }, { x: tx, z: tz }, .4) : [{ x: tx, z: tz }]; a.leg = 0; }
+        if (a.repath <= 0 && gap > 1.1) { a.repath = .4; a.route = world.pathTo ? world.pathTo({ x: a.x, z: a.z }, { x: tx, z: tz }, .4) : [{ x: tx, z: tz }]; a.route = selviDeskRoute(a, a.route); a.leg = 0; }
         // Progress watchdog: if the gap has not shrunk for 2.5 s (door, ledge, odd nav cell), step in behind the hero.
         if (gap <= 3 || a.best === undefined || gap < a.best - .3) { a.best = gap; a.stuck = 0; } else a.stuck = (a.stuck || 0) + dt;
         if (gap > 22 || a.stuck > 2.5 || gap > 6 && !(a.route && a.route.length)) { a.x = tx; a.z = tz; gap = 0; a.route = null; a.stuck = 0; a.best = undefined; }
         var wp = a.route && a.route[a.leg || 0];
-        while (wp && Math.hypot(wp.x - a.x, wp.z - a.z) < .25 && a.leg < a.route.length - 1) wp = a.route[++a.leg];
+        while (wp && Math.hypot(wp.x - a.x, wp.z - a.z) < (wp.selviDesk ? .04 : .25) && a.leg < a.route.length - 1) wp = a.route[++a.leg];
         var dx = wp ? wp.x - a.x : 0, dz = wp ? wp.z - a.z : 0, dist = Math.hypot(dx, dz);
         var want = threat || gap < 1.1 ? 0 : Math.min(6.4, 1.8 + gap * 1.4);
         a.speed += (want - a.speed) * Math.min(1, dt * 6);
@@ -589,7 +726,7 @@
           if (!s.done && q.enemy.dead) complete(q, q.def.story);
         }
         if (q.def.kind === 'rescue') updateFollower(q, dt);
-        if (q.def.kind === 'rescue' && q.def.requiresMain != null && !s.stage && mainDone(q.def.requiresMain)) { s.stage = 1; q.actor.x = q.captive.x + .9; q.actor.z = q.captive.z + .6; dirty = true; }
+        if (q.def.kind === 'rescue' && q.def.requiresMain != null && !s.stage && mainDone(q.def.requiresMain)) { s.stage = 1; if (!q.actor.boundDesk) { q.actor.x = q.captive.x + .9; q.actor.z = q.captive.z + .6; } dirty = true; }
       }
       // Captions and narration belong to visible play, not time spent in menus or reading a page.
       var gm = B.app && B.app.game, storyUi = cinema();
@@ -652,11 +789,13 @@
           if (q.actor && s.done) { q.actor.x = q.goal.x + 1.4; q.actor.z = q.goal.z + 1.1; }
         });
       }
+      info.finale = null;
+      local.finale = chapter === 5 ? resolveEnding(boons().claimed, local.finale) : null;
       if (local.finale) { var f = FINALE.options.find(function (x) { return x.id === local.finale; }); if (f) info.finale = { id: f.id, name: f.name, story: f.story }; }
       quests.forEach(function (q) { if (q.actor) { q.actor.root.position.set(q.actor.x, 0, q.actor.z); } });
       refresh();
     }
-    function dispose() { disposed = true; if (beaconTex) beaconTex.dispose(); beacons.forEach(function (b) { b.mat.dispose(); b.mesh.geometry.dispose(); }); quests.forEach(function (q) { if (q.actor && q.actor.root) q.actor.root.removeFromParent(); }); }
+    function dispose() { disposed = true; if (pageSurface) pageSurface.dispose(); if (pageTexture) pageTexture.dispose(); if (beaconTex) beaconTex.dispose(); beacons.forEach(function (b) { b.mat.dispose(); b.mesh.geometry.dispose(); }); quests.forEach(function (q) { if (q.actor && q.actor.root) q.actor.root.removeFromParent(); }); }
     quests.forEach(function (q) { if (q.actor) animateActor(q.actor, 0); });
     refresh();
     // QA hook: BABA.QuestSide.debug() lists live quest actors and states (no gameplay effect).
@@ -665,5 +804,5 @@
       get count() { return quests.length; } };
   }
 
-  B.QuestSide = { VERSION: 1, chapters: SIDE, finale: FINALE, create: create, L: L };
+  B.QuestSide = { VERSION: 1, chapters: SIDE, finale: FINALE, resolveEnding: resolveEnding, endingReflection: endingReflection, create: create, L: L };
 })();

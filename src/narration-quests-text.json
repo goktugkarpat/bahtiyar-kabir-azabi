@@ -1,13 +1,13 @@
 {
   "story1": {
     "chapter": 1,
-    "tr": "Yirmi yıl boyunca Kara Defter'e adlar yazdın, Bahtiyar. Bu zincirlerin her halkası senin mürekkebinle başladı.",
-    "en": "For twenty years you wrote names in the Black Ledger, Bahtiyar. Every link of these chains began with your ink."
+    "tr": "İlk adın ardından bütün gece ellerini yıkadın. Yirminci yılında yalnız kalemin ucunu temizliyordun. Cellat bedeni kesti; hükmü sen yazdın. Kuyunun karanlığı cezanın bittiği yer değil. Yazdıklarının seni tanıdığı yer.",
+    "en": "After the first name, you washed your hands all night. By your twentieth year, you cleaned only the nib. The Executioner cut the body; you wrote the sentence. The well's darkness is not where punishment ends. It is where those you condemned recognize you."
   },
   "truth1": {
     "chapter": 1,
-    "tr": "Cellat son nefesinde fısıldıyor: Sen yazdın, ben kestim. Seni gömen kürek, senin kalemindi.",
-    "en": "With his last breath the executioner whispers: You wrote, I cut. The spade that buried you was your own pen."
+    "tr": "Cellat son nefesinde fısıldıyor: Sen yazdın, ben kestim. Beni öldürdün, kâtip. Yazdığın adlar hâlâ yaşıyor.",
+    "en": "With his last breath, the Executioner whispers: You wrote, I cut. You killed me, scribe. The names you wrote are still alive."
   },
   "rescue1": {
     "chapter": 1,
@@ -21,18 +21,18 @@
   },
   "pages1": {
     "chapter": 1,
-    "tr": "Sayfalar senin el yazın. Son satırda bir ad var, mürekkebi henüz kurumamış: Selvi.",
-    "en": "The pages are in your hand. On the last line there is a name, its ink still wet: Selvi."
+    "tr": "Üç sayfa, aynı el. İlkinde bir görev, ikincisinde paylaşılan bir suç, sonuncusunda Selvi'nin adı. Hiçbir satırda kalemi bırakmadın.",
+    "en": "Three pages, one hand. A duty on the first, a shared crime on the second, Selvi's name on the last. In none of those lines did you put down the pen."
   },
   "story2": {
     "chapter": 2,
-    "tr": "Selvi bu kıyıdan geçti. Çancı onu tekneye bindirdi. Sen de Defter'e borç ödendi diye yazdın.",
-    "en": "Selvi passed along this shore. The bellringer put her on a boat. And you wrote in the Ledger: debt paid."
+    "tr": "Yüz yirmi adı tek bir satıra sığdırdın: borç ödendi. Tekneler boş döndüğünde kıyıda kalan ayakkabıları saymadın. Şimdi her çan sesi o son nefesi geri getiriyor. Selvi de bu yoldan geçti. Onun adını sayılardan ayırmak, ötekileri unutmana izin vermez.",
+    "en": "You reduced a hundred and twenty names to one line: debt paid. When the boats returned empty, you did not count the shoes left on shore. Now every toll returns that final breath. Selvi passed this way too. Finding her name among the numbers does not permit you to forget the others."
   },
   "truth2": {
     "chapter": 2,
-    "tr": "Çan sustu. Çancının son sözü: Kardeşin boğulmadı, kâtip. Onu Krala sattım.",
-    "en": "The bell is silent. The bellringer's last words: Your sister did not drown, scribe. I sold her to the King."
+    "tr": "Çancı susmadan önce bir ad söylüyor: Selvi. Boğulmadı. Krala verdim. Bu kıyının borcunu onunla ödedim.",
+    "en": "Before the Bellringer falls silent, he speaks a name: Selvi. She did not drown. I gave her to the King. I paid this shore's debt with her."
   },
   "rescue2": {
     "chapter": 2,
@@ -46,18 +46,18 @@
   },
   "pages2": {
     "chapter": 2,
-    "tr": "Bir sayfada Selvi'nin el yazısı var: Abi, adımı sen yazma. Altında senin imzan.",
-    "en": "One page bears Selvi's handwriting: Brother, don't you write my name. Beneath it, your signature."
+    "tr": "Selvi senden yalnız bir şey istedi: Abi, adımı sen yazma. Altında senin imzan var. Kıyının tuzu onu silemedi.",
+    "en": "Selvi asked only one thing of you: Brother, don't you write my name. Your signature lies beneath it. The shore's salt could not erase it."
   },
   "story3": {
     "chapter": 3,
-    "tr": "Bu taht seni kâtip yaptı. Kral sana kalemi verdiğinde, kendi adını çoktan satmıştı.",
-    "en": "This throne made you a scribe. When the king handed you the pen, he had already sold his own name."
+    "tr": "Kral sana temiz bir kalem verdi; temiz kalacağını hiç söylemedi. Tahtını korumak için kendi adını sattı, sen hayatını korumak için başkalarının adını yazdın. Taşın içindeki nefesler bunu biliyor. İkinizin de üstünde aynı mühür var: Kara Kadı'nın mührü.",
+    "en": "The King gave you a clean pen; he never promised it would stay clean. He sold his name to keep his throne. You wrote other names to keep your life. The breaths trapped in stone know it. The same seal lies over you both: the Black Judge's seal."
   },
   "truth3": {
     "chapter": 3,
-    "tr": "Kral düşerken gülüyor: Defter benden önce de vardı, benden sonra da olacak. Onu tutan el Kadı'nındır.",
-    "en": "The king laughs as he falls: The Ledger was here before me, and it will remain after me. The hand that holds it is the Judge's."
+    "tr": "Tahtın altından kralın sesi geliyor: Adımı sattım, hükmümü değil. Defter Kara Kadı'nın. Beni düşürmen onun satırını silmez.",
+    "en": "The King's voice rises from beneath the throne: I sold my name, not my sentence. The Ledger belongs to the Black Judge. My fall does not erase his line."
   },
   "rescue3": {
     "chapter": 3,
@@ -71,18 +71,18 @@
   },
   "pages3": {
     "chapter": 3,
-    "tr": "Bütün sayfaların altında aynı mühür var. Ne kralın, ne çancının. Kara Kadı'nın.",
-    "en": "Every page carries the same seal. Not the king's, not the bellringer's. The Black Judge's."
+    "tr": "Kralın emrinin altında Kadı'nın mührü var. Yazmayı reddedersen kendi adın yazılacak, diri gömüleceksin. Tehdit gerçekti. Yazdığın insanlar da gerçekti.",
+    "en": "The Judge's seal lies beneath the King's order. Refuse to write, and your own name will be written. You will be buried alive. The threat was real. So were the people you condemned."
   },
   "story4": {
     "chapter": 4,
-    "tr": "Defter'e yazılan her ad burada zincire döküldü. Bir yerlerde Selvi'nin halkası da yanıyor.",
-    "en": "Every name written in the Ledger was cast into a chain here. Somewhere, Selvi's link is burning too."
+    "tr": "Her ad bir halka oldu. Her halka, ateşin içinde bitmeyen bir gün. Sen satırları çoğalttıkça ocak mahkûmların soluğunu çekti. Şimdi Selvi'nin halkasını arıyorsun. Bulacağın şeyin seni aklamasını bekleme. Onun adının başında da senin imzan var.",
+    "en": "Each name became a link. Each link became a day in the fire that never ends. As your lines multiplied, the furnace drew the prisoners' breath. Now you seek Selvi's link. Do not expect what you find to absolve you. Her name bears your signature too."
   },
   "truth4": {
     "chapter": 4,
-    "tr": "Ocak söndü. Küllerin arasında küçük bir halka var. Üzerinde tek bir ad: Selvi. Halka boş. O yanmadı.",
-    "en": "The furnace is dead. Among the ashes lies a small link. One name upon it: Selvi. The link is empty. She did not burn."
+    "tr": "Küllerde Selvi'nin halkası var. İçi boş. O yanmadı; Kadı onu yazı masasına bağladı. Ateş sustu. Mürekkep akıyor.",
+    "en": "Selvi's link lies in the ash. It is empty. She did not burn; the Judge chained her to a writing desk. The fire is silent. The ink still flows."
   },
   "rescue4": {
     "chapter": 4,
@@ -96,18 +96,18 @@
   },
   "pages4": {
     "chapter": 4,
-    "tr": "Yanık sayfalarda yalnız senin adın kalmış. Bahtiyar. Kâtip. Boş satır. Mürekkep taze; biri hâlâ yazıyor.",
-    "en": "Only your name survives on the burned pages. Bahtiyar. Scribe. Empty line. The ink is fresh. Someone is still writing."
+    "tr": "Halka hesabında bir satır eksik. Kadı, senin elin durduğunda başka bir el aramış. Yanık itirafında korkunu yazmışsın; boş bıraktığın satırda şimdi kendi adın bekliyor.",
+    "en": "A line is missing from the link account. When your hand stopped, the Judge sought another. You wrote your fear in a burned confession; now your own name waits in the line left empty."
   },
   "story5": {
     "chapter": 5,
-    "tr": "Selvi burada. Kadı onu kâtip yapmış. Bir zamanlar senin oturduğun masada, senin kalemini tutuyor.",
-    "en": "Selvi is here. The Judge has made her his scribe. At the desk where you once sat, she holds your pen."
+    "tr": "Selvi'nin adını yazdığında elin titremedi. Korkuyu çoktan alışkanlığa çevirmiştin. Sonra Defter'i yakmaya çalıştın; bir ad silinmeden bir el değişti. Şimdi kardeşin senin harflerini yazıyor. Onu buradan çıkarırken yerine kimi bırakacağını düşün. Kadı'nın son tuzağı bu.",
+    "en": "Your hand did not tremble when you wrote Selvi's name. You had long made fear a habit. Then you tried to burn the Ledger; before one name was erased, one hand replaced another. Now your sister writes your letters. Think who you will leave behind when you bring her out. That is the Judge's last trap."
   },
   "ch5Intro": {
     "chapter": 5,
-    "tr": "Mürekkep hiç kurumadı. Defter seni bekliyor, kâtip. Son satır hâlâ boş.",
-    "en": "The ink never dried. The Ledger is waiting for you, scribe. The last line is still empty."
+    "tr": "Selvi senin el yazını öğrenmiş. Kadı'nın aradığı yeni bir kâtip değil; aynı suçu yeniden işleyecek bir el.",
+    "en": "Selvi has learned your handwriting. The Judge does not need a new scribe; he needs a hand that will commit the same crime again."
   },
   "ch5Checkpoint": {
     "chapter": 5,
@@ -151,23 +151,23 @@
   },
   "pages5": {
     "chapter": 5,
-    "tr": "Son sayfa. Selvi'nin adını yazan el titremiyor. O el senin. Korkudan yazdın. Artık biliyorsun.",
-    "en": "The last page. The hand that wrote Selvi's name does not tremble. That hand is yours. You wrote it in fear. Now you know."
+    "tr": "Son sayfada elin sakin. Selvi'nin adı açık, imzan sağlam. Kadı seni geri getirmek için satırı boş bıraktı. Seni burada tutan şey yalnız Kadı'nın hükmü değil. Altındaki imzan.",
+    "en": "On the last page, your hand is steady. Selvi's name is clear. Your signature is firm. The Judge left one line empty to bring you back. It is not only his sentence that binds you here. It is your signature beneath it."
   },
   "endingName": {
     "chapter": 5,
-    "tr": "Adını son satıra yazıyorsun. Defter'deki bütün adlar soluk alıp kayboluyor. Zincirler düşerken toprak seni geri çağırıyor. Bu kez korkmadan yatıyorsun. Selvi güneşe çıkıyor.",
-    "en": "You write your name on the last line. Every name in the Ledger draws breath, and fades. As the chains fall, the earth calls you back. This time you lie down without fear. Selvi walks into the sun."
+    "tr": "Bu kez kendi adını yazıyorsun. Zincirler birer birer düşerken kabirler ilk kez sessiz. Toprak ağzını dolduruyor; yeniden nefes almaya çalışmıyorsun. Selvi gün ışığına çıkıyor. Seni bağışladığını söylemiyor. Adını unutmuyor.",
+    "en": "This time, you write your own name. One by one the chains fall, and for the first time the graves are silent. Earth fills your mouth; you no longer struggle for breath. Selvi steps into daylight. She does not say she forgives you. She does not forget your name."
   },
   "endingBurn": {
     "chapter": 5,
-    "tr": "Defter'i yakıyorsun. Bütün adlar alevle birlikte göğe yükseliyor. Mahkûmlar özgür, ama hiçbiri kim olduğunu hatırlamıyor. Selvi yüzüne bakıyor ve seni tanımıyor.",
-    "en": "You burn the Ledger. Every name rises into the sky with the flames. The prisoners are free, but none of them remembers who they were. Selvi looks at your face, and does not know you."
+    "tr": "Defter'i ateşe veriyorsun. Adları taşıyanlar özgür kalıyor; fakat annelerini, evlerini, kendi yüzlerini hatırlamıyorlar. Selvi sana bir yabancı gibi bakıyor. Sen her harfi hatırlıyorsun. Mahkûmları kendi pişmanlığından çıkardın. O pişmanlığın içinde yalnız kaldın.",
+    "en": "You set the Ledger alight. Those bound to its names go free, but they remember neither their mothers, their homes, nor their own faces. Selvi looks at you as a stranger. You remember every letter. You freed the prisoners from your remorse. You are left alone inside it."
   },
   "endingQuill": {
     "chapter": 5,
-    "tr": "Kalemi alıyorsun. Mürekkep elinin sıcaklığını tanıyor. Selvi'nin adını siliyorsun, sonra yeni bir sayfa açıyorsun. Kara Defter'in yeni Kadısı, kabrinden hiç çıkmayacak.",
-    "en": "You take up the pen. The ink knows the warmth of your hand. You erase Selvi's name, then turn to a new page. The Black Ledger's new Judge will never leave his grave."
+    "tr": "Selvi'nin adını siliyorsun. Kapı onun için açılıyor. Kalem avucuna gömülürken ilk boş satır yeniden beliriyor. Birini kurtarmak için bir başkasını yazacağını söylüyorsun. Yirmi yıl önce de böyle başlamıştın. Kara Kadı öldü. Elin hâlâ yazıyor.",
+    "en": "You erase Selvi's name. The door opens for her. As the pen sinks into your palm, the first empty line appears again. You tell yourself you will write another name to save one person. That was how it began twenty years ago. The Black Judge is dead. Your hand is still writing."
   },
   "leanMercy": {
     "chapter": 0,

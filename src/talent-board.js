@@ -236,7 +236,7 @@
     }).join('') + '</div>' : '';
     const side = '<aside class="skt-inspect tb-side" style="--c:' + col.color + '"><small class="tb-kicker">' + esc(KIND[sel.kind]) + ' · ' + esc(col.name) + ' · ' + esc(en() ? 'lvl ' + sel.level : 'sv. ' + sel.level) + '</small>' +
       '<header><span class="tb-sideicon tb-' + sel.kind + (known ? ' learned' : '') + '"><span class="tb-frame">' + art(sel, col.color) + '</span></span><h3>' + esc(sel.name) + '</h3></header>' + status +
-      '<div class="tb-sidebody"><p class="tb-desc">' + esc(sel.desc) + '</p>' + extra + facts + '</div>' +
+      '<div class="tb-sidebody" tabindex="-1" role="region" aria-label="' + esc(en() ? 'Skill details' : 'Yetenek ayrıntıları') + '"><p class="tb-desc">' + esc(sel.desc) + '</p>' + extra + facts + '</div>' +
       '<div class="tb-actions">' + learnBtn + refund + '</div>' + assign + '</aside>';
     // ---- bottom bar: identity, slot bar, help -------------------------------------------------------------------
     const weight = T.cols.map(c => ({ c, n: nodes.filter(n => n.line === c.line && learned.includes(n.id)).length })).filter(o => o.n).sort((x, y) => y.n - x.n);
@@ -263,6 +263,8 @@
     if (tipFor && !tipFor.isConnected) hideCard();
     const box = document.querySelector('#character .tb-fit'); if (!box) return;
     if (ro && box !== watched) { if (watched) ro.unobserve(watched); ro.observe(box); watched = box; }
+    const body = document.querySelector('#character .tb-sidebody');
+    if (body) body.tabIndex = body.scrollHeight > body.clientHeight + 1 ? 0 : -1;
     const w = box.clientWidth, hh = box.clientHeight; if (!w || !hh) return;
     const s = Math.max(.3, Math.min(1.6, w / W, hh / H));
     box.style.setProperty('--s', s.toFixed(4));

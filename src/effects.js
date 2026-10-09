@@ -60,6 +60,13 @@
       particleColorDirty = true;
       return slots[i];
     }
+    // Shared plague tints and pooled drift grains: no particle meshes or materials are created on impact.
+    const PLAGUE_GRAIN=[.33,.43,.13], PLAGUE_PALE=[.49,.42,.65], PLAGUE_MIST=[.065,.052,.075];
+    function plagueGrain(x,y,z,angle,speed) {
+      const v=speed==null?.25:speed;
+      return emit(x,y,z,5,Math.random()<.72?PLAGUE_GRAIN:PLAGUE_PALE,
+        Math.sin(angle)*v,rnd(.08,.25),Math.cos(angle)*v,rnd(.45,.8),rnd(.025,.05));
+    }
     // Solid impact fragments share two fixed GPU pools. Their faceted surfaces catch
     // the room lights; gravity, bounce and friction settle them on the actual floor.
     // Casting never allocates a mesh or shader, and the low preset bounds their count.
@@ -621,11 +628,17 @@
         return;
       }
       if (d.poison || style === 'bile') {
-        if (d.burst) { if (tells) tells.wave(x, z, { radius: R + .4, life: .5, width: .6, color: [.5, .3, .7], soft: .6 }); flash(x, .6, z, 2.6, new T.Color('#b89ae0'), .1); }
-        const cx = d.shape === 'cone' ? d.ix : x, cz = d.shape === 'cone' ? d.iz : z;
-        for (let i = 0; i < n(d.burst ? 60 : 24); i++) particle(cx, .25, cz, 2, [.07, .045, .09], d.burst ? 1.6 : .9, Math.random() * Math.PI * 2);
-        for (let i = 0; i < n(14); i++) particle(cx, .3, cz, 3, [.4, .3, .55], .6, Math.random() * Math.PI * 2, .6);
-        if (d.shape === 'cone') for (let i = 0; i < n(18); i++) { const p = polar((Math.random() - .5) * arc, R * Math.random()); particle(p.x, .1, p.z, 0, [.06, .04, .08], .5, Math.random() * 6, .4); }
+        const cx=d.shape==='cone' && Number.isFinite(d.ix)?d.ix:x, cz=d.shape==='cone' && Number.isFinite(d.iz)?d.iz:z;
+        if(d.burst)flash(cx,.35,cz,1.25,new T.Color('#9f94b3'),.08);
+        const grains=n(d.burst?42:24),mist=n(d.burst?12:7);
+        for(let i=0;i<grains;i++){
+          const angle=d.shape==='cone'?f+(Math.random()-.5)*arc:Math.random()*Math.PI*2;
+          const spread=R*Math.sqrt(Math.random())*.78;
+          const px=d.shape==='cone'?x+Math.sin(angle)*spread:cx+Math.sin(angle)*spread*.45;
+          const pz=d.shape==='cone'?z+Math.cos(angle)*spread:cz+Math.cos(angle)*spread*.45;
+          plagueGrain(px,floorAt(px,pz,0)+rnd(.06,.18),pz,angle,d.burst?.45:.25);
+        }
+        for(let i=0;i<mist;i++)particle(cx,.15,cz,2,PLAGUE_MIST,d.burst?.55:.35,Math.random()*Math.PI*2,.35,.6);
         return;
       }
       if (style === 'blade' || style === 'grab') {
@@ -1326,7 +1339,13 @@
             impactFx.hitFlash(f, { col: tint || (d.critical ? [1.25, .95, .6] : [.95, .8, .66]), a: d.kill ? .95 : multi ? .34 : tint ? .8 : heavy || d.critical ? .7 : .48, life: d.kill ? .26 : multi ? .1 : tint || heavy ? .2 : .14 });
           }
         }
-        if (d.damage > 0) number(Math.round(d.damage), x, 2.5, z, d.player, d.heavy || d.critical, d.kill, d.boss, d.labelTarget || null, null, d.player ? '' : d.critical ? 'crit' : d.rage ? 'rage' : '');
+        if (d.damage > 0) {
+          // Hero health is stored on a normalized bar; the HUD shows effective HP.
+          // Convert only the printed number, leaving hit/gore strength untouched.
+          const actor = d.labelTarget || game.player;
+          const units = d.player && actor && Number.isFinite(actor.effectiveMaxHp) && actor.effectiveMaxHp > 0 && Number.isFinite(actor.maxHp) && actor.maxHp > 0 ? actor.effectiveMaxHp / actor.maxHp : 1;
+          number(Math.round(d.damage * units), x, 2.5, z, d.player, d.heavy || d.critical, d.kill, d.boss, d.labelTarget || null, null, d.player ? '' : d.critical ? 'crit' : d.rage ? 'rage' : '');
+        }
         // Blows struck in fury leave burning embers in the wound.
         if (d.rage && !d.player) for (let i = 0; i < scaleCount(heavy ? 18 : 10); i++) emit(x, y, z, 4, i % 2 ? [2.6, .6, .12] : [2.2, .25, .08], Math.sin(spray) * rnd(.6, 2.2) + rnd(-.5, .5), rnd(.4, 1.6), Math.cos(spray) * rnd(.6, 2.2) + rnd(-.5, .5), rnd(.4, .8), .045);
         if (name === 'death' && impactFx) { const pl = game.player, sk = pl && (pl.attack && pl.attack.skill || (pl.roar ? 'roar' : '')); impactFx.deathAsh(x, z, !!large, sk ? impactFx.skillTint(sk) : null); }
@@ -1366,9 +1385,13 @@
         for (let i = 0; i < scaleCount(14); i++) particle(x + rnd(-.3, .3), .1, z + rnd(-.3, .3), 2, DUST, .7, f + rnd(-.8, .8), .3);
         return;
       }
-      const n = large ? 65 : 22, color = poison ? [.07, .045, .09] : DUST;
-      for (let i = 0; i < scaleCount(n); i++) particle(x, y, z, 2, color, large ? 1.4 : 1, Math.random() * Math.PI * 2);
-      if (poison) for (let i = 0; i < scaleCount(12); i++) particle(x, y, z, 3, [.4, .3, .55], .5, Math.random() * Math.PI * 2, .5);
+      if(poison){
+        for(let i=0;i<scaleCount(16);i++){const angle=Math.random()*Math.PI*2,r=rnd(.04,.3);plagueGrain(x+Math.sin(angle)*r,y,z+Math.cos(angle)*r,angle,.3);}
+        for(let i=0;i<scaleCount(7);i++)particle(x,y,z,2,PLAGUE_MIST,.35,Math.random()*Math.PI*2,.35,.65);
+        return;
+      }
+      const n=large?65:22;
+      for(let i=0;i<scaleCount(n);i++)particle(x,y,z,2,DUST,large?1.4:1,Math.random()*Math.PI*2);
     }
     // ------------------------------------------------------------ per frame
     let ghostClock = 0, wasIframe = false;
@@ -1445,13 +1468,15 @@
       for (const [actor, tr] of trails) dropTrail(actor, tr);
       // Compilation copies share most surfaces, but own their instance buffers and the empty trail geometry.
       const shared = new Set([ckMat]), sharedGeometry = new Set([plane]); for (const child of root.children) if (child !== warmGroup) child.traverse(o => { if (o.material) shared.add(o.material); if (o.geometry) sharedGeometry.add(o.geometry); });
-      const materials = new Set(), geometries = new Set(); warmGroup.traverse(o => { if (o.material && !shared.has(o.material)) materials.add(o.material); if (o.geometry && !sharedGeometry.has(o.geometry)) geometries.add(o.geometry); if (o.isInstancedMesh) o.dispose(); });
+      const materials = new Set(), geometries = new Set(); warmGroup.traverse(o => { if (o.material && !shared.has(o.material) && !impactOwnedMaterial.has(o.material)) materials.add(o.material); if (o.geometry && !sharedGeometry.has(o.geometry) && !borrowedActorGeometry.has(o.geometry)) geometries.add(o.geometry); if (o.isInstancedMesh) o.dispose(); });
       for (const mat of materials) mat.dispose();
       for (const geo of geometries) geo.dispose();
     }
     // Hidden copies of every material the effects create on demand (blood decals, flashes, labels, scars, blade smears,
     // roll afterimages). app.js compiles them with the rest during loading; they are never disposed, so the programs stay
     // cached while real decals come and go and the first blood of the chapter does not stall a frame.
+    // Warm skin copies borrow actor surfaces; their owner survives effect teardown.
+    const borrowedActorGeometry = new WeakSet(), impactOwnedMaterial = new WeakSet();
     const warmGroup = new T.Group(); warmGroup.name = 'fx_warm'; warmGroup.visible = false; root.add(warmGroup);
     function warm() {
       // Allocate common GPU resources while the loading screen is up. Later hits only replace their data.
@@ -1459,6 +1484,7 @@
       while (flashPool.size < 16) makeFlash();
       const game = getGame();
       if (game && game.player && game.player.model) {
+        for (const actor of [game.player, ...game.enemies]) if (actor.model && actor.model.root) actor.model.root.traverse(o => { if (o.geometry) borrowedActorGeometry.add(o.geometry); });
         prepareGhosts(game.player.model);
         if (impactFx) impactFx.prepare(game.enemies.slice().sort((a, b) => Math.hypot(a.x - game.player.x, a.z - game.player.z) - Math.hypot(b.x - game.player.x, b.z - game.player.z)));   // body-flash copies of the nearest foes, drawn once while loading
         const R = B.app && B.app.renderer;
@@ -1478,11 +1504,11 @@
       add(new T.Sprite(new T.SpriteMaterial({ map: softMap, transparent: true, depthWrite: false, depthTest: false, blending: T.AdditiveBlending, fog: false })));
       for (const o of skillCrescents) add(new T.Mesh(plane, o.mat)); if (levelFx) for (const part of levelFx.parts) add(part.points ? new T.Points(part.geo, part.mat) : new T.Mesh(part.geo, part.mat)); if (chargeFx) for (const part of chargeFx.parts) add(new T.Mesh(part.geo, part.mat));
       if (skillFx) for (const obj of skillFx.warmObjects()) add(obj);
-      if (impactFx) for (const obj of impactFx.warmObjects()) add(obj);
+      if (impactFx) for (const obj of impactFx.warmObjects()) { obj.traverse(o => { if (o.material) impactOwnedMaterial.add(o.material); }); add(obj); }
       for (const pool of chipPools) { const mesh = new T.InstancedMesh(chipGeo, pool.mat, 1); mesh.setColorAt(0, chipTint.setRGB(.3, .27, .23)); mesh.receiveShadow = true; add(mesh); }
       add(new T.InstancedMesh(gdGeo, gdMat, 1)); add(new T.Mesh(bsGeo, bsMat)); add(new T.InstancedMesh(chGeoG, gcMat, 1));
     }
-    const api = { burst, update, clear, tells, warm, gore, debug: () => ({ pri: gdPri.length, walls: gdPri.concat(gdMic).filter(d => d.rx === 0).length, prints: gdMic.filter(d => d.cell === 3).length, p0: gdMic.filter(d => d.cell === 3).map(d => [+d.x.toFixed(2), +d.z.toFixed(2), +d.a0.toFixed(2)]), mic: gdMic.length, count: gdMesh.count, streaks: bsLive, gibs: gibs.length }), dispose() { if (B.Effects.current === api) B.Effects.current = null; clear(); for (const o of skillCrescents) o.mat.dispose(); if (levelFx) levelFx.dispose(); if (chargeFx) chargeFx.dispose(); if (skillFx) skillFx.dispose(); bsGeo.dispose(); bsMat.dispose(); gdGeo.dispose(); gdMat.dispose(); goreAtlas.dispose(); chGeoG.dispose(); gcMat.dispose(); gcMesh.dispose(); gdMesh.dispose(); for (const s of scarFree) { s.dark.dispose(); s.hot.dispose(); } scarFree.length = 0; if (tells) tells.dispose(); disposeGhosts(); disposePools(); for (const pool of chipPools) pool.mesh.dispose(); chipGeo.dispose(); chipStoneMat.dispose(); chipMetalMat.dispose(); root.removeFromParent(); geometry.dispose(); material.dispose(); trailMaterial.dispose(); chLinks.geometry.dispose(); chLinks.material.dispose(); chLinks.dispose(); for (const s of chGlow) s.material.dispose(); chHeadGeo.dispose(); chDisc.geometry.dispose(); chDiscMat.dispose(); chFloor.geometry.dispose(); chFloorMat.dispose(); skGeo.dispose(); skMesh.material.dispose(); for (const c of chCracks) { c.m.geometry.dispose(); c.m.material.dispose(); } ckMat.dispose(); for (const r of chRings) { r.m.geometry.dispose(); r.mat.dispose(); } softMap.dispose(); bloodMap.dispose(); sprayMap.dispose(); flashMap.dispose(); plane.dispose(); } };
+    const api = { burst, update, clear, tells, warm, gore, debug: () => ({ pri: gdPri.length, walls: gdPri.concat(gdMic).filter(d => d.rx === 0).length, prints: gdMic.filter(d => d.cell === 3).length, p0: gdMic.filter(d => d.cell === 3).map(d => [+d.x.toFixed(2), +d.z.toFixed(2), +d.a0.toFixed(2)]), mic: gdMic.length, count: gdMesh.count, streaks: bsLive, gibs: gibs.length }), dispose() { if (B.Effects.current === api) B.Effects.current = null; clear(); for (const o of skillCrescents) o.mat.dispose(); bsGeo.dispose(); bsMat.dispose(); gdGeo.dispose(); gdMat.dispose(); goreAtlas.dispose(); chGeoG.dispose(); gcMat.dispose(); gcMesh.dispose(); gdMesh.dispose(); for (const s of scarFree) { s.dark.dispose(); s.hot.dispose(); } scarFree.length = 0; if (tells) tells.dispose(); disposeGhosts(); disposePools(); if (levelFx) levelFx.dispose(); if (chargeFx) chargeFx.dispose(); if (skillFx) skillFx.dispose(); if (impactFx) impactFx.dispose(); for (const pool of chipPools) pool.mesh.dispose(); chipGeo.dispose(); chipStoneMat.dispose(); chipMetalMat.dispose(); root.removeFromParent(); geometry.dispose(); material.dispose(); trailMaterial.dispose(); chLinks.geometry.dispose(); chLinks.material.dispose(); chLinks.dispose(); for (const s of chGlow) s.material.dispose(); chHeadGeo.dispose(); chDisc.geometry.dispose(); chDiscMat.dispose(); chFloor.geometry.dispose(); chFloorMat.dispose(); skGeo.dispose(); skMesh.material.dispose(); for (const c of chCracks) { c.m.geometry.dispose(); c.m.material.dispose(); } ckMat.dispose(); for (const r of chRings) { r.m.geometry.dispose(); r.mat.dispose(); } softMap.dispose(); bloodMap.dispose(); sprayMap.dispose(); flashMap.dispose(); plane.dispose(); } };
     B.Effects.current = api; return api;
   },
   // Same call for code that does not hold the instance (dismemberment): B.Effects.gore('stump', x, y, z, dirX, dirZ, strength).

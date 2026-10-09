@@ -670,7 +670,7 @@
       if (!opened || overlay.inert) return;
       if (event.code === 'Escape') { event.preventDefault(); event.stopImmediatePropagation(); close(); }
       if (event.code !== 'Tab') return;
-      const controls = Array.from(overlay.querySelectorAll('button:not(:disabled),select:not(:disabled)')).filter(el => el.getClientRects().length);
+      const controls = Array.from(overlay.querySelectorAll('button:not(:disabled),select:not(:disabled),.tb-sidebody[tabindex="0"]')).filter(el => el.getClientRects().length);
       const first = controls[0], last = controls[controls.length - 1];
       if (!first) return;
       if (!controls.includes(document.activeElement)) { event.preventDefault(); (event.shiftKey ? last : first).focus({ preventScroll: true }); return; }
@@ -700,7 +700,7 @@
       const art = ['hybrid-b-chamber.png', 'sepulchral-backdrop.png', 'menu-character.png', 'menu-talents.png', 'menu-journal.png', 'menu-settings.png', 'frame-tl.png', 'frame-tr.png', 'frame-bl.png', 'frame-br.png', 'effigy-left.png', 'effigy-right.png', 'funeral-cloth.png', 'funeral-cloth-dark.png', 'banner-demon-left.png', 'banner-demon-right.png'];
       for (let i = 0; i < 16; i++) art.push('gear/' + i + '.png');
       await Promise.all(art.map(name => { const image = new Image(); image.src = 'assets/ui/' + name; return image.decode().catch(() => {}); }));
-      const frame = () => new Promise(res => { let done = false; const go = () => { if (!done) { done = true; res(); } }; requestAnimationFrame(go); setTimeout(go, 120); });
+      const frame = () => B.Warmup.frame();
       const style = overlay.getAttribute('style');
       overlay.inert = true; overlay.setAttribute('aria-hidden', 'true');
       overlay.style.cssText = 'opacity:.012;z-index:2147483000;pointer-events:none';

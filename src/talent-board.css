@@ -413,3 +413,19 @@
 /* v331: slot group centred top/bottom: the key captions hang 10px below the boxes, so the bottom padding is 10px larger */
 #character .tb-slots { padding:12px 13px 21px; }
 @media (max-height:700px) { #character .tb-slots { padding:9px 11px 17px; } }
+
+/* Fact names remain readable in compact inspectors; values keep their own column. */
+#character .tb-facts div { align-items:baseline; }
+#character .tb-facts dt { min-width:0;white-space:normal;overflow:visible;overflow-wrap:anywhere;text-overflow:clip; }
+#character .tb-facts dd { flex-shrink:0; }
+
+/* Inspector actions stay visible; only an overflowing description scrolls. */
+#character .tb-wrap aside.tb-side { display:grid;grid-template-rows:auto auto auto minmax(0,1fr) auto auto;overflow:hidden;container-type:inline-size;container-name:skill-inspector; }
+#character .tb-sidebody { min-height:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#6b5638 transparent; }
+#character .tb-sidebody>* { flex-shrink:0; }
+#character .tb-sidebody:focus-visible { outline:1px solid #c3a571;outline-offset:-1px; }
+#character .tb-actions { margin-top:0; }
+#character .tb-facts dt { overflow-wrap:normal;word-break:normal; }
+@container skill-inspector (max-width:230px) {
+  #character .tb-facts { grid-template-columns:minmax(0,1fr); }
+}

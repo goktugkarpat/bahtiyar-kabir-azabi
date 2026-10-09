@@ -502,8 +502,9 @@
     const fromTitle = view === 'title';
     const showBasics = chapter === 1 && (fresh || !game.hasSave);
     clearNotices();
+    if (!fresh && game.campaignCompleted) wonShown = false;
     if (fresh) { game.restart(); deaths = 0; } else game.start();
-    if (game.campaignCompleted && game.state === 'won') { wonShown = false; victory(); show('victory'); return; }
+    if (game.campaignCompleted && game.state === 'won') { if (!game.quests || !game.quests.pendingChoice) show('victory'); return; }
     deathShown = wonShown = false; roomId = -1; firstHint = showBasics ? 25 : 0; lastHp = lastFlasks = null;
     $('tutorial').classList.toggle('hidden', !showBasics);
     show('playing'); hud(0);
@@ -671,13 +672,21 @@
     if (wonShown) return; wonShown = true;
     hud(0); hudTimer = 0;
     const winKey = finaleChapter ? 'ch5Win' : forgeChapter ? 'forgeWin' : ruinsChapter ? 'ruinsWin' : coastChapter ? 'coastWin' : 'win';
-    if (B.Audio.say) B.Audio.say(winKey, true);
+    if (!d.completed && B.Audio.say) B.Audio.say(winKey, true);
     if (!lastChapter) { advanceChapter(winKey); return; }
     const t = d.time ?? game.elapsed ?? elapsed, k = d.kills ?? game.kills ?? 0;
     const stat = (icon, value, label) => `<div><svg class="icon" aria-hidden="true"><use href="#${icon}"/></svg><b>${value}</b><small>${label}</small></div>`;
     $('victory-stats').innerHTML = stat('i-hourglass', timeText(t), KabirI18n.t('SÜRE')) + stat('i-cross', Math.round(k), KabirI18n.t('ALT EDİLEN')) + stat('i-skull', deaths, KabirI18n.t('ÖLÜM'));
     // Chapter V: when the quest module offers the last decision (game.quests.finale), the ending waits until it is made and shows its outcome.
     const finale = () => game.quests && game.quests.finale && typeof game.quests.finale === 'object' ? game.quests.finale : null;
+    const restoredEnding = d.completed && finale();
+    if (restoredEnding) {
+      const text = restoredEnding.outcome || restoredEnding.story || restoredEnding.text;
+      if (text) document.querySelector('#victory .end-quote').textContent = text;
+      show('victory'); return;
+    }
+    if (d.completed && game.quests && game.quests.openFinale) game.quests.openFinale();
+    if (d.completed && game.quests && game.quests.pendingChoice && game.quests.pendingChoice.finale) show('journal');
     let epiSeen = false;
     const pending = () => {
       const q = game.quests;
@@ -706,6 +715,24 @@
     const readSeconds = Math.max(18, Math.min(40, 4 + closing.trim().split(/\s+/).length / 2.5));
     const voiceSeconds = Q.has('sessiz') ? 0 : (narr?.duration || 0) + (truth?.duration || 0) + 2;
     const hold = Math.max(readSeconds, voiceSeconds) * 1000;
+    const closingKeys = [winKey, B.StoryJournal?.chapter(chapter)?.voiceEnd].filter(Boolean);
+    const currentKey = B.Audio.debug?.().current;
+    const priorSeconds = currentKey && !closingKeys.includes(currentKey) ? Math.min(40, (lines?.[currentKey]?.duration || 0) + 2) : 0;
+    const baseDelay = 1500 + 1700 + hold, deadline = performance.now() + baseDelay + priorSeconds * 1000;
+    let departed = false, nextCheck = 0;
+    const finishChapter = () => { if (departed) return; departed = true; clearTimeout(nextCheck); chapterLink(true); };
+    const completeWhenReady = () => {
+      if (departed) return;
+      const narration = B.Audio.debug?.();
+      const waiting = narration && (closingKeys.includes(narration.current) || currentKey && narration.current === currentKey || (narration.queue || []).some(key => closingKeys.includes(key)));
+      if (waiting && performance.now() < deadline) nextCheck = setTimeout(completeWhenReady, 250);
+      else finishChapter();
+    };
+    // The existing chapter button becomes a deliberate early exit; all earned text stays in the journal.
+    const nextButton = $('next-chapter');
+    nextButton.textContent = KabirI18n.t('Devam'); nextButton.onclick = finishChapter;
+    nextButton.classList.add('hidden'); nextButton.style.marginTop = '18px';
+    fade.querySelector('.cf-copy').appendChild(nextButton);
     fade.querySelector('.eyebrow').textContent = KabirI18n.t('Bölüm ') + chapterNumbers[chapter - 1] + KabirI18n.t(' tamamlandı');
     fade.querySelector('h2').textContent = $('victory-title-text').textContent;
     // Clone the nodes, not the flat text: the boss's last words are a styled block span (quest-side.js .qc-lastwords).
@@ -716,13 +743,14 @@
     setTimeout(() => {
       let n = 0; const timer = setInterval(() => { n++; B.Audio.set({ music: cfg.music * Math.max(0, 1 - n / 10), ambient: cfg.ambient * Math.max(0, 1 - n / 10) }); if (n >= 10) clearInterval(timer); }, 100);
     }, 1500 + 1700 + hold - 1100);
-    setTimeout(() => chapterLink(true), 1500 + 1700 + hold);
+    setTimeout(() => { if (!departed) nextButton.classList.remove('hidden'); }, 1500 + 2500);
+    nextCheck = setTimeout(completeWhenReady, baseDelay);
   }
 
   /* ───────────── Effects bridge ───────────── */
   let feedback;
   function makeFX() { feedback = B.Effects.create(scene, () => game, () => cfg); }
-  function fx(name, data) { if (feedback) feedback.burst(name, data); if (name === 'bodyThud' && data && game && game.player) shake = Math.max(shake, (data.shake || 0) * Math.max(0, 1 - Math.hypot(data.x - game.player.x, data.z - game.player.z) / 12)); }   // (ajan:chars2b) a heavy corpse hitting the floor shakes the camera, fading with distance
+  function fx(name, data) { if ((name === 'bodyThud' || name === 'land') && data && data.corpseContact) B.Audio.play('corpseLand', data); if (feedback) feedback.burst(name, data); if (name === 'bodyThud' && data && game && game.player) shake = Math.max(shake, (data.shake || 0) * Math.max(0, 1 - Math.hypot(data.x - game.player.x, data.z - game.player.z) / 12)); }   // (ajan:chars2b) a heavy corpse hitting the floor shakes the camera, fading with distance
   function fxStep(dt) { if (feedback) feedback.update(dt); }
   function clearFX() { if (feedback) feedback.clear(); }
 
@@ -780,7 +808,7 @@
     { const note = document.getElementById('difficulty-note'); if (note && B.CombatTuning) note.textContent = B.CombatTuning.describe(cfg.difficulty) + ' ' + KabirI18n.t('Seçimin hemen uygulanır; yeniden açılışta Normal başlar.'); }
     rig.setQuality(cfg); post.setQuality(cfg);
     if (world.setQuality) world.setQuality(cfg);
-    B.Audio.set({ master: cfg.master, music: cfg.music, sfx: cfg.sfx, ambient: cfg.ambient, voice: cfg.voice, narrationMode: cfg.narrationMode });
+    B.Audio.set({ master: cfg.master, music: cfg.music, sfx: cfg.sfx, ambient: cfg.ambient, voice: cfg.voice, narrationMode: cfg.narrationMode, subtitles: cfg.subtitles });
     $('fps').classList.toggle('hidden', !cfg.showFps);
     $('narration').classList.toggle('hidden', !cfg.subtitles || !$('narration').querySelector('p').textContent);
     if (game && game.setQuality) game.setQuality(cfg);
@@ -1000,7 +1028,11 @@
         }
         return;
       }
-      if (['KeyI', 'KeyC', 'KeyT'].includes(e.code) && !browserChord && !e.repeat && ['playing', 'pause', 'character'].includes(view)) { e.preventDefault(); if (view === 'character') back(); else openCharacter(e.code === 'KeyT' ? 'skills' : 'inventory'); return; }
+      if (['KeyI', 'KeyC', 'KeyT'].includes(e.code) && !browserChord && !e.repeat && ['playing', 'pause', 'character'].includes(view)) {
+        e.preventDefault(); const requestedTab = e.code === 'KeyT' ? 'skills' : 'inventory';
+        if (view === 'character' && characterUI.activeTab === requestedTab) back(); else openCharacter(requestedTab);
+        return;
+      }
       if (e.code === 'KeyM' && !browserChord && !e.altKey && !e.repeat && ['playing','pause','character','journal','atlas'].includes(view)) { e.preventDefault(); openAtlas(); return; }
       if (['KeyL','KeyO'].includes(e.code) && !browserChord && !e.altKey && !e.repeat && ['playing','pause','character','journal','settings','atlas'].includes(view)) {
         e.preventDefault(); const target = e.code === 'KeyL' ? 'journal' : 'settings';
@@ -1821,7 +1853,7 @@
   }
   // Gaps between presented frames (last ~600), so the counter can also show the longest frame: a few slow frames are
   // what the eye reads as stutter even when the FPS average looks fine.
-  const BUILD_TAG = 376, fpsGaps = new Float32Array(600);
+  const BUILD_TAG = 377, fpsGaps = new Float32Array(600);
   let fpsGapAt = 0, fpsGapLast = 0;
   function frameStats() {
     let longest = 0, slow = 0;
@@ -2100,7 +2132,7 @@
       if (batch.list.length) renderer.compile(batch, camera, shadowScene);
     };
     let next = 0, postDone = false, tex = 0, geo = 0, pending = [];
-    const frame = () => new Promise(res => { let done = false; const go = () => { if (!done) { done = true; res(); } }; requestAnimationFrame(go); setTimeout(go, 120); });
+    const frame = () => B.Warmup.frame();
     let lastProgress = 0;
     const progress = (k, text) => { k = Math.max(lastProgress,k); lastProgress = k; if (onProgress) onProgress(k,text); if (fill) fill.style.transform = `scaleX(${Math.max(.04, k)})`; };
     // Separate real preparation phases; uploads can take longer than shader compilation.

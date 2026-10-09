@@ -1,0 +1,1870 @@
+{
+  "method": "Native actual equipped geometry; compact rigid pair arrangement for hands/boots, original vertex form/materials; full bounds for ground. UI silhouette rim and existing circular boss crest retained. No surrogate item rendering.",
+  "evidenceSha256": "e404f699b988463e08bdb8cbd14f3a7d89bbc314b900159ba8e3ce288d601a08",
+  "previousExtensionSha256": "e8c5ea8257b377f3c7aacd143e7dac7e818f7c82cbf05499847c8f7679e5c514",
+  "extensionSha256": "cc5e162d0e757165bb03c5e946773369edd31d3aad5c30e65c0680bc97ca0b08",
+  "sourceProvenance": [
+    {
+      "path": "equipment/material-scans.js",
+      "sha256": "7790d9a5e57fd96383654bf01bef2efbd8aecad145088e923664d7e3048ea88c"
+    },
+    {
+      "path": "equipment-art.js",
+      "sha256": "2d9fa61f8bd26d049a92e7f1ecd02095de23d984dad1934db722cd90a71c59cb"
+    },
+    {
+      "path": "gear-weapons.js",
+      "sha256": "9f21e124dff49a29b0619b4869c236446318afb814639f4f2b82c3e30fdb5523"
+    },
+    {
+      "path": "gear-armor.js",
+      "sha256": "e1455713ba0188976c7b0b23f824ccc1dcc4b6267cbc5c5c33a940eb89906212"
+    },
+    {
+      "path": "gear-metal.js",
+      "sha256": "7086db33a8a7557c8db05b00803c9891a76ba8c7d37b8028439f5f97b71781d6"
+    },
+    {
+      "path": "authored-models.js",
+      "sha256": "eff996d1b787e55cd73c3c6d20d7526dc8cf6ec7c9918734a0a77c27cfc27a0a"
+    }
+  ],
+  "changed": [
+    "anvil-heart-chest",
+    "ash-warden-greaves",
+    "bellringer-bronze-chest",
+    "black-gavel-axe",
+    "cinder-breath-boots",
+    "drowned-clapper-axe",
+    "drowned-ringer-helm",
+    "furnace-heart-helm",
+    "headsman-hood",
+    "heart-forged-sword",
+    "hollow-scepter-spear",
+    "hook-chain-gauntlets",
+    "king-ossuary-chest",
+    "qadi-black-robe",
+    "rusted-mail-chest",
+    "tide-chain-boots",
+    "verdict-warden-boots",
+    "warden-iron-claws"
+  ],
+  "untouched": [
+    "ash-warden-chest",
+    "ash-warden-grasp",
+    "bell-spear",
+    "executioner-axe",
+    "furnace-oath-axe",
+    "hollow-crown-blade",
+    "hollow-king-spurs",
+    "last-verdict-blade",
+    "qadi-iron-turban",
+    "verdict-warden-chest",
+    "verdict-warden-helm",
+    "warden-chainmail",
+    "warden-verdict-helm"
+  ],
+  "geometryComparison": [
+    {
+      "id": "rusted-mail-chest",
+      "surrogate": "warden-chainmail",
+      "differentGeometry": true,
+      "candidateShape": "1a9dffe4:124|25881dcb:599|29dacf69:708|3352def2:360|39f11c9e:15644|3e3728e8:1370|3e3afc33:1374|60816706:120|6aa952b3:809|8f77c6fd:2608|953be9ba:784|993b1983:3120|a33d6af7:522|a58ad275:4895|adc119ae:2468|c807528:6049|ca207460:766|cada8a77:361",
+      "surrogateShape": "1a9dffe4:124|39f11c9e:15644|3e3728e8:1370|57d843d1:708|6374bd45:564|6aa952b3:809|82ac6087:512|8665589e:2468|8f77c6fd:2608|993b1983:3120|bc385aeb:882|c807528:6049|ca207460:766|cada8a77:361|f310860b:1374|f779a013:3751"
+    },
+    {
+      "id": "headsman-hood",
+      "surrogate": "buried-prayer-hood",
+      "differentGeometry": true,
+      "candidateShape": "12c3a363:2742|34ff5220:708|39d5f5f2:4200|6ce2126e:177|d139a4b2:90|dcf11773:354",
+      "surrogateShape": "39d5f5f2:4200|8dc76c93:708|b2dd4c7a:2742|d139a4b2:90|dcf11773:354|e1d141a3:177"
+    },
+    {
+      "id": "hook-chain-gauntlets",
+      "surrogate": "chain-gloves",
+      "differentGeometry": true,
+      "candidateShape": "192c838a:1200|1eaa054f:1908|2b01cbfe:3580|45be805f:1092|73224efd:264|8cf96a38:722|b5bcbd49:878|c13fa1bf:4624",
+      "surrogateShape": "192c838a:1200|2b01cbfe:3580|c13fa1bf:4624"
+    },
+    {
+      "id": "drowned-clapper-axe",
+      "surrogate": "mourning-axe",
+      "differentGeometry": true,
+      "candidateShape": "424fde60:175|687acbc1:1356|7533c852:1091|96fa58f:4210|a7bc19cf:492|bb660aa5:519|d56b370f:120|db803880:816|e0c8c46e:423|f5f5f4ec:48",
+      "surrogateShape": "13adb1e:3180|6093878f:574|7533c852:1091|8ec79dc5:1828|9b6654bc:48|a4313915:1356|cbaffce7:909"
+    },
+    {
+      "id": "bellringer-bronze-chest",
+      "surrogate": "coast-chest",
+      "differentGeometry": true,
+      "candidateShape": "1a9dffe4:124|25881dcb:599|29dacf69:708|3352def2:360|3e3afc33:1374|3eace345:2152|60816706:120|733d742f:6650|953be9ba:784|9a5a6e4d:177|a33d6af7:522|a5856b76:270|a58ad275:4895|adc119ae:2468|c696eb9a:1518|cada8a77:361|caf11852:11388|d02ba4eb:14552|dbb5a216:13082",
+      "surrogateShape": "33d6fe46:1264|3eace345:2152|60816706:120|733d742f:6650|9a5a6e4d:177|a5856b76:270|c696eb9a:1518|c971d613:272|caf11852:11388|d02ba4eb:14552|dbb5a216:13082|dc3071ef:1170"
+    },
+    {
+      "id": "drowned-ringer-helm",
+      "surrogate": "drowned-helm",
+      "differentGeometry": true,
+      "candidateShape": "12e39d94:336|2c220d01:526|571ab41a:1031|647d81aa:1137|a2c1ea11:132|c28d2ecd:405|e2fe61d:3140",
+      "surrogateShape": "12e39d94:336|19d53c27:222|1e1676e8:612|1ea07eb6:1440|571ab41a:1031|75ef2e8:3140|9caa8dfb:147|c28d2ecd:405"
+    },
+    {
+      "id": "tide-chain-boots",
+      "surrogate": "tide-boots",
+      "differentGeometry": true,
+      "candidateShape": "289667fb:722|5cfecbb3:2700|86755954:70|c7af9cd6:3838|d727d84b:392|e3eacdc3:5360|e9f6ee07:336|eacfb76d:164",
+      "surrogateShape": "2edb4e62:1032|44cb541c:1710|5ed50d2c:54|9d50dc22:2700|aa1c9144:664|c13193d3:5360"
+    },
+    {
+      "id": "hollow-scepter-spear",
+      "surrogate": "bell-spear",
+      "differentGeometry": true,
+      "candidateShape": "225c7c9d:524|23ec19d0:1150|2a52ec8:876|41e32408:80|73533cae:519|89b96269:82|cbb275bd:36|d754711d:492|ecb0d8e1:4374",
+      "surrogateShape": "200e4d35:36|385b24eb:1201|546132d1:574|55162c8b:519|7ab5fcbb:2816|d64ad6b8:876|e01ed3a2:1523|e419f78:592"
+    },
+    {
+      "id": "king-ossuary-chest",
+      "surrogate": "hollow-heart-chest",
+      "differentGeometry": true,
+      "candidateShape": "1a9dffe4:124|29dacf69:708|3e3afc33:1374|6374bd45:564|7f1f5295:2563|82ac6087:512|9cf60216:21416|a8ec2af8:8547|adc119ae:2468|bc385aeb:882|cada8a77:361|d8d9ddd8:5418|da5cbf62:608|f6dc080d:1483|f779a013:3751",
+      "surrogateShape": "29dacf69:708|3e3afc33:1374|442a2f87:4957|7f1f5295:2563|88a13f4a:301|9cf60216:21416|a8ec2af8:8547|adc119ae:2468|cabe89eb:602|cada8a77:361|d8d9ddd8:5418|da5cbf62:608|f6dc080d:1483"
+    },
+    {
+      "id": "hollow-king-spurs",
+      "surrogate": "throneless-steps",
+      "differentGeometry": false,
+      "candidateShape": "2074f4fe:4294|289667fb:722|662aaee1:5360|7f08eafd:2184|86755954:70|9042329d:1668|94adb8ee:3380|d727d84b:392|f00899c7:500",
+      "surrogateShape": "2074f4fe:4294|289667fb:722|662aaee1:5360|7f08eafd:2184|86755954:70|9042329d:1668|94adb8ee:3380|d727d84b:392|f00899c7:500"
+    },
+    {
+      "id": "warden-iron-claws",
+      "surrogate": "black-stone-gauntlets",
+      "differentGeometry": true,
+      "candidateShape": "1eaa054f:1908|1ec07b25:3116|3e3c3589:2220|45be805f:1092|56f9544b:114|6afff732:224|6f5a13bf:1656|73224efd:264|8cf96a38:722|b5bcbd49:878|e5e088d5:680",
+      "surrogateShape": "1ec07b25:3116|3e3c3589:2220|45be805f:1092|56f9544b:114|5a2d183c:832|6afff732:224|6f5a13bf:1656|73224efd:264|8cf96a38:722|c42c4987:1778|e5e088d5:680"
+    },
+    {
+      "id": "heart-forged-sword",
+      "surrogate": "slag-edge-sword",
+      "differentGeometry": true,
+      "candidateShape": "2a837796:183|41ca3190:1812|77665d8e:4896|83f3f554:1307|b84dbbdd:1624|ba9cac16:82|bcf1b76e:410|df845416:468|ee6b8914:1880",
+      "surrogateShape": "1f40a97e:4896|3861bf00:1358|3d71cc3a:567|3e1756e5:1936|af3dc000:1812|c97dc05e:175|dd867027:1307"
+    },
+    {
+      "id": "anvil-heart-chest",
+      "surrogate": "ash-warden-chest",
+      "differentGeometry": true,
+      "candidateShape": "10b4cb39:7297|1a9dffe4:124|29dacf69:708|3217d7e:8078|3e3afc33:1374|6374bd45:564|64e837dd:3631|82ac6087:512|a18592e9:12838|a33d6af7:522|a6585690:6623|adc119ae:2468|cada8a77:361|ec78b2e3:17766",
+      "surrogateShape": "10b4cb39:7297|1a9dffe4:124|3217d7e:8078|57d843d1:708|6374bd45:564|82ac6087:512|8665589e:2468|a18592e9:12838|a6585690:6623|bc385aeb:882|cada8a77:361|ec78b2e3:17766|f310860b:1374|f779a013:3751"
+    },
+    {
+      "id": "furnace-heart-helm",
+      "surrogate": "sealed-furnace-helm",
+      "differentGeometry": true,
+      "candidateShape": "2c220d01:526|440adfe2:12750|647d81aa:1137|bfe4c2e9:180|c28d2ecd:405|dab1b614:177|e7180b9a:336",
+      "surrogateShape": "440adfe2:12750|90055cb3:36|bfe4c2e9:180|c5192bf5:847|dab1b614:177|e7180b9a:336|e7ffef38:918"
+    },
+    {
+      "id": "cinder-breath-boots",
+      "surrogate": "dead-forge-steps",
+      "differentGeometry": true,
+      "candidateShape": "2074f4fe:4294|289667fb:722|52799a54:268|662aaee1:5360|7f08eafd:2184|86755954:70|9042329d:1668|94adb8ee:3380|eacfb76d:164",
+      "surrogateShape": "2074f4fe:4294|289667fb:722|662aaee1:5360|7f08eafd:2184|86755954:70|86b1aeef:892|9042329d:1668|94adb8ee:3380"
+    },
+    {
+      "id": "ash-warden-greaves",
+      "surrogate": "ash-road-boots",
+      "differentGeometry": true,
+      "candidateShape": "289667fb:722|5cfecbb3:2700|86755954:70|c7af9cd6:3838|d727d84b:392|e3eacdc3:5360|f00899c7:500",
+      "surrogateShape": "1e5ed96:3380|289667fb:722|52799a54:268|7cf239e6:134|8441ec34:4160|86755954:70|89b4c23f:2184|e48b8bc6:1564|e4ce1237:5360|eacfb76d:164|ff802475:1668"
+    },
+    {
+      "id": "black-gavel-axe",
+      "surrogate": "void-oath-axe",
+      "differentGeometry": true,
+      "candidateShape": "6ab50675:2916|708c9f83:120|7533c852:1091|8d20beed:1356|bbfab1c7:860|bdd76c0f:574|c82cd526:2185|ceea9aa9:519|d265cbfb:82|deb35fb4:48",
+      "surrogateShape": "1ba302b6:464|4d9eec41:519|6f7e06:1028|7533c852:1091|77df16c:410|7cff9a5e:1113|8e12cc0c:48|a600c25d:1356|b69c8623:2811|dea4650f:120"
+    },
+    {
+      "id": "qadi-black-robe",
+      "surrogate": "mourner-chest",
+      "differentGeometry": true,
+      "candidateShape": "1a9dffe4:124|25881dcb:599|29dacf69:708|3352def2:360|3e3afc33:1374|443e167e:11211|48104b06:13082|60816706:120|6ab306f6:5132|953be9ba:784|a33d6af7:522|a5856b76:270|a58ad275:4895|adc119ae:2468|b8d9a9c0:1252|cada8a77:361|d02ba4eb:14552",
+      "surrogateShape": "34489c2:810|443e167e:11211|48104b06:13082|6ab306f6:5132|a5856b76:270|b8d9a9c0:1252|cada8a77:361|d02ba4eb:14552"
+    },
+    {
+      "id": "qadi-iron-turban",
+      "surrogate": "verdict-warden-helm",
+      "differentGeometry": false,
+      "candidateShape": "2c220d01:526|647d81aa:1137|68c0695d:504|a2c1ea11:132|c28d2ecd:405|dcdf76bb:518",
+      "surrogateShape": "2c220d01:526|647d81aa:1137|68c0695d:504|a2c1ea11:132|c28d2ecd:405|dcdf76bb:518"
+    },
+    {
+      "id": "verdict-warden-boots",
+      "surrogate": "last-road-boots",
+      "differentGeometry": true,
+      "candidateShape": "289667fb:722|5cfecbb3:2700|86755954:70|c7af9cd6:3838|d727d84b:392|e3eacdc3:5360|f00899c7:500",
+      "surrogateShape": "2074f4fe:4294|289667fb:722|662aaee1:5360|7f08eafd:2184|86755954:70|9042329d:1668|94adb8ee:3380|a97addec:728|eacfb76d:164"
+    }
+  ],
+  "framing": [
+    {
+      "id": "rusted-mail-chest",
+      "name": "Celladın Paslı Zırhı",
+      "slot": "chest",
+      "activeWeapon": null,
+      "span": 2.5532661013847737,
+      "height": 2.065638146145199,
+      "visibleEquipment": [
+        {
+          "name": "equipment:chest:chainmail-chest:mail",
+          "equipmentId": "chainmail-chest",
+          "slot": "chest"
+        },
+        {
+          "name": "equipment:chest:chainmail-chest:strap",
+          "equipmentId": "chainmail-chest",
+          "slot": "chest"
+        },
+        {
+          "name": "equipment:chest:chainmail-chest:edge",
+          "equipmentId": "chainmail-chest",
+          "slot": "chest"
+        },
+        {
+          "name": "equipment:chest:chainmail-chest:mail#dyn:pelvis:light",
+          "equipmentId": "chainmail-chest",
+          "slot": "chest"
+        },
+        {
+          "name": "equipment:chest:chainmail-chest:edge#dyn:pelvis:light",
+          "equipmentId": "chainmail-chest",
+          "slot": "chest"
+        },
+        {
+          "name": "equipment:chest:chainmail-chest:brass",
+          "equipmentId": "chainmail-chest",
+          "slot": "chest"
+        },
+        {
+          "name": "equipment:chest:chainmail-chest:steel",
+          "equipmentId": "chainmail-chest",
+          "slot": "chest"
+        },
+        {
+          "name": "equipment:chest:variant@rusted-mail-chest:cloth",
+          "equipmentId": "variant@rusted-mail-chest",
+          "slot": "chest"
+        },
+        {
+          "name": "equipment:chest:variant@rusted-mail-chest:strap",
+          "equipmentId": "variant@rusted-mail-chest",
+          "slot": "chest"
+        },
+        {
+          "name": "equipment:chest:variant@rusted-mail-chest:rag",
+          "equipmentId": "variant@rusted-mail-chest",
+          "slot": "chest"
+        },
+        {
+          "name": "equipment:chest:variant@rusted-mail-chest:brass",
+          "equipmentId": "variant@rusted-mail-chest",
+          "slot": "chest"
+        },
+        {
+          "name": "equipment:chest:look@55:gold",
+          "equipmentId": "look@55",
+          "slot": "chest"
+        },
+        {
+          "name": "equipment:chest:look@55:crimson",
+          "equipmentId": "look@55",
+          "slot": "chest"
+        },
+        {
+          "name": "equipment:chest:look@55:void",
+          "equipmentId": "look@55",
+          "slot": "chest"
+        },
+        {
+          "name": "equipment:chest:look@55:dark",
+          "equipmentId": "look@55",
+          "slot": "chest"
+        },
+        {
+          "name": "equipment:chest:look@55:steel",
+          "equipmentId": "look@55",
+          "slot": "chest"
+        },
+        {
+          "name": "equipment:chest:look@55:black",
+          "equipmentId": "look@55",
+          "slot": "chest"
+        },
+        {
+          "name": "equipment:chest:look@55:strap",
+          "equipmentId": "look@55",
+          "slot": "chest"
+        }
+      ]
+    },
+    {
+      "id": "headsman-hood",
+      "name": "Celladın Kara Başlığı",
+      "slot": "head",
+      "activeWeapon": null,
+      "span": 0.8363865552016492,
+      "height": 0.6133406707517115,
+      "visibleEquipment": [
+        {
+          "name": "equipment:head:buried-hood:cloth",
+          "equipmentId": "buried-hood",
+          "slot": "head"
+        },
+        {
+          "name": "equipment:head:buried-hood:strap",
+          "equipmentId": "buried-hood",
+          "slot": "head"
+        },
+        {
+          "name": "equipment:head:variant@headsman-hood:cloth",
+          "equipmentId": "variant@headsman-hood",
+          "slot": "head"
+        },
+        {
+          "name": "equipment:head:variant@headsman-hood:strap",
+          "equipmentId": "variant@headsman-hood",
+          "slot": "head"
+        },
+        {
+          "name": "equipment:head:variant@headsman-hood:rag",
+          "equipmentId": "variant@headsman-hood",
+          "slot": "head"
+        },
+        {
+          "name": "equipment:head:variant@headsman-hood:dark",
+          "equipmentId": "variant@headsman-hood",
+          "slot": "head"
+        }
+      ]
+    },
+    {
+      "id": "hook-chain-gauntlets",
+      "name": "Kanca Zincirli Eldivenler",
+      "slot": "hands",
+      "activeWeapon": null,
+      "span": 0.9131243618998106,
+      "height": 0.3874683380126953,
+      "visibleEquipment": [
+        {
+          "name": "equipment:hands:chain-gloves:leather",
+          "equipmentId": "chain-gloves",
+          "slot": "hands"
+        },
+        {
+          "name": "equipment:hands:chain-gloves:mail",
+          "equipmentId": "chain-gloves",
+          "slot": "hands"
+        },
+        {
+          "name": "equipment:hands:chain-gloves:strap",
+          "equipmentId": "chain-gloves",
+          "slot": "hands"
+        },
+        {
+          "name": "equipment:hands:variant@hook-chain-gauntlets:brass",
+          "equipmentId": "variant@hook-chain-gauntlets",
+          "slot": "hands"
+        },
+        {
+          "name": "equipment:hands:look@43:black",
+          "equipmentId": "look@43",
+          "slot": "hands"
+        },
+        {
+          "name": "equipment:hands:look@43:gold",
+          "equipmentId": "look@43",
+          "slot": "hands"
+        },
+        {
+          "name": "equipment:hands:look@43:void",
+          "equipmentId": "look@43",
+          "slot": "hands"
+        },
+        {
+          "name": "equipment:hands:look@43:dark",
+          "equipmentId": "look@43",
+          "slot": "hands"
+        },
+        {
+          "name": "equipment:hands:chain-gloves:leather",
+          "equipmentId": "chain-gloves",
+          "slot": "hands"
+        },
+        {
+          "name": "equipment:hands:chain-gloves:mail",
+          "equipmentId": "chain-gloves",
+          "slot": "hands"
+        },
+        {
+          "name": "equipment:hands:chain-gloves:strap",
+          "equipmentId": "chain-gloves",
+          "slot": "hands"
+        },
+        {
+          "name": "equipment:hands:variant@hook-chain-gauntlets:brass",
+          "equipmentId": "variant@hook-chain-gauntlets",
+          "slot": "hands"
+        },
+        {
+          "name": "equipment:hands:look@43:black",
+          "equipmentId": "look@43",
+          "slot": "hands"
+        },
+        {
+          "name": "equipment:hands:look@43:gold",
+          "equipmentId": "look@43",
+          "slot": "hands"
+        },
+        {
+          "name": "equipment:hands:look@43:void",
+          "equipmentId": "look@43",
+          "slot": "hands"
+        },
+        {
+          "name": "equipment:hands:look@43:dark",
+          "equipmentId": "look@43",
+          "slot": "hands"
+        }
+      ]
+    },
+    {
+      "id": "drowned-clapper-axe",
+      "name": "Boğulmuş Çan Dili",
+      "slot": "weapon",
+      "activeWeapon": "equipment-weapon-drowned-clapper-axe",
+      "span": 1.8005455666787633,
+      "height": 1.497304683199279,
+      "visibleEquipment": [
+        {
+          "name": "steel",
+          "equipmentId": "drowned-clapper-axe",
+          "slot": "weapon"
+        },
+        {
+          "name": "edge",
+          "equipmentId": "drowned-clapper-axe",
+          "slot": "weapon"
+        },
+        {
+          "name": "dark",
+          "equipmentId": "drowned-clapper-axe",
+          "slot": "weapon"
+        },
+        {
+          "name": "brass",
+          "equipmentId": "drowned-clapper-axe",
+          "slot": "weapon"
+        },
+        {
+          "name": "wood",
+          "equipmentId": "drowned-clapper-axe",
+          "slot": "weapon"
+        },
+        {
+          "name": "sable",
+          "equipmentId": "drowned-clapper-axe",
+          "slot": "weapon"
+        },
+        {
+          "name": "frost",
+          "equipmentId": "drowned-clapper-axe",
+          "slot": "weapon"
+        },
+        {
+          "name": "rag",
+          "equipmentId": "drowned-clapper-axe",
+          "slot": "weapon"
+        },
+        {
+          "name": "bronze",
+          "equipmentId": "drowned-clapper-axe",
+          "slot": "weapon"
+        },
+        {
+          "name": "salt",
+          "equipmentId": "drowned-clapper-axe",
+          "slot": "weapon"
+        }
+      ]
+    },
+    {
+      "id": "bellringer-bronze-chest",
+      "name": "Çancının Bronz Zırhı",
+      "slot": "chest",
+      "activeWeapon": null,
+      "span": 2.5532661013847737,
+      "height": 2.065638146145199,
+      "visibleEquipment": [
+        {
+          "name": "equipment:chest:coast-chest:leather",
+          "equipmentId": "coast-chest",
+          "slot": "chest"
+        },
+        {
+          "name": "equipment:chest:coast-chest:strap",
+          "equipmentId": "coast-chest",
+          "slot": "chest"
+        },
+        {
+          "name": "equipment:chest:coast-chest:rag",
+          "equipmentId": "coast-chest",
+          "slot": "chest"
+        },
+        {
+          "name": "equipment:chest:coast-chest:cloth",
+          "equipmentId": "coast-chest",
+          "slot": "chest"
+        },
+        {
+          "name": "equipment:chest:coast-chest:brass",
+          "equipmentId": "coast-chest",
+          "slot": "chest"
+        },
+        {
+          "name": "equipment:chest:coast-chest:dark",
+          "equipmentId": "coast-chest",
+          "slot": "chest"
+        },
+        {
+          "name": "equipment:chest:coast-chest:salt",
+          "equipmentId": "coast-chest",
+          "slot": "chest"
+        },
+        {
+          "name": "equipment:chest:coast-chest:edge",
+          "equipmentId": "coast-chest",
+          "slot": "chest"
+        },
+        {
+          "name": "equipment:chest:variant@bellringer-bronze-chest:cloth",
+          "equipmentId": "variant@bellringer-bronze-chest",
+          "slot": "chest"
+        },
+        {
+          "name": "equipment:chest:variant@bellringer-bronze-chest:strap",
+          "equipmentId": "variant@bellringer-bronze-chest",
+          "slot": "chest"
+        },
+        {
+          "name": "equipment:chest:variant@bellringer-bronze-chest:rag",
+          "equipmentId": "variant@bellringer-bronze-chest",
+          "slot": "chest"
+        },
+        {
+          "name": "equipment:chest:variant@bellringer-bronze-chest:salt",
+          "equipmentId": "variant@bellringer-bronze-chest",
+          "slot": "chest"
+        },
+        {
+          "name": "equipment:chest:look@56:gold",
+          "equipmentId": "look@56",
+          "slot": "chest"
+        },
+        {
+          "name": "equipment:chest:look@56:crimson",
+          "equipmentId": "look@56",
+          "slot": "chest"
+        },
+        {
+          "name": "equipment:chest:look@56:frost",
+          "equipmentId": "look@56",
+          "slot": "chest"
+        },
+        {
+          "name": "equipment:chest:look@56:dark",
+          "equipmentId": "look@56",
+          "slot": "chest"
+        },
+        {
+          "name": "equipment:chest:look@56:steel",
+          "equipmentId": "look@56",
+          "slot": "chest"
+        },
+        {
+          "name": "equipment:chest:look@56:black",
+          "equipmentId": "look@56",
+          "slot": "chest"
+        },
+        {
+          "name": "equipment:chest:look@56:strap",
+          "equipmentId": "look@56",
+          "slot": "chest"
+        }
+      ]
+    },
+    {
+      "id": "drowned-ringer-helm",
+      "name": "Boğulmuş Çancının Yüzü",
+      "slot": "head",
+      "activeWeapon": null,
+      "span": 0.8090336361380054,
+      "height": 0.49702769358627075,
+      "visibleEquipment": [
+        {
+          "name": "equipment:head:bell-helm:steel",
+          "equipmentId": "bell-helm",
+          "slot": "head"
+        },
+        {
+          "name": "equipment:head:bell-helm:edge",
+          "equipmentId": "bell-helm",
+          "slot": "head"
+        },
+        {
+          "name": "equipment:head:bell-helm:brass",
+          "equipmentId": "bell-helm",
+          "slot": "head"
+        },
+        {
+          "name": "equipment:head:look@48:gold",
+          "equipmentId": "look@48",
+          "slot": "head"
+        },
+        {
+          "name": "equipment:head:look@48:black",
+          "equipmentId": "look@48",
+          "slot": "head"
+        },
+        {
+          "name": "equipment:head:look@48:frost",
+          "equipmentId": "look@48",
+          "slot": "head"
+        },
+        {
+          "name": "equipment:head:look@48:horn",
+          "equipmentId": "look@48",
+          "slot": "head"
+        }
+      ]
+    },
+    {
+      "id": "tide-chain-boots",
+      "name": "Gelgit Zincirinin Adımları",
+      "slot": "boots",
+      "activeWeapon": null,
+      "span": 1.400151896261283,
+      "height": 0.7849696492776275,
+      "visibleEquipment": [
+        {
+          "name": "equipment:boots:shackle-boots:leather",
+          "equipmentId": "shackle-boots",
+          "slot": "boots"
+        },
+        {
+          "name": "equipment:boots:shackle-boots:strap",
+          "equipmentId": "shackle-boots",
+          "slot": "boots"
+        },
+        {
+          "name": "equipment:boots:shackle-boots:dark",
+          "equipmentId": "shackle-boots",
+          "slot": "boots"
+        },
+        {
+          "name": "equipment:boots:variant@tide-chain-boots:salt",
+          "equipmentId": "variant@tide-chain-boots",
+          "slot": "boots"
+        },
+        {
+          "name": "equipment:boots:look@41:bronze",
+          "equipmentId": "look@41",
+          "slot": "boots"
+        },
+        {
+          "name": "equipment:boots:look@41:gold",
+          "equipmentId": "look@41",
+          "slot": "boots"
+        },
+        {
+          "name": "equipment:boots:look@41:black",
+          "equipmentId": "look@41",
+          "slot": "boots"
+        },
+        {
+          "name": "equipment:boots:look@41:frost",
+          "equipmentId": "look@41",
+          "slot": "boots"
+        },
+        {
+          "name": "equipment:boots:shackle-boots:leather",
+          "equipmentId": "shackle-boots",
+          "slot": "boots"
+        },
+        {
+          "name": "equipment:boots:shackle-boots:strap",
+          "equipmentId": "shackle-boots",
+          "slot": "boots"
+        },
+        {
+          "name": "equipment:boots:shackle-boots:dark",
+          "equipmentId": "shackle-boots",
+          "slot": "boots"
+        },
+        {
+          "name": "equipment:boots:variant@tide-chain-boots:salt",
+          "equipmentId": "variant@tide-chain-boots",
+          "slot": "boots"
+        },
+        {
+          "name": "equipment:boots:look@41:bronze",
+          "equipmentId": "look@41",
+          "slot": "boots"
+        },
+        {
+          "name": "equipment:boots:look@41:gold",
+          "equipmentId": "look@41",
+          "slot": "boots"
+        },
+        {
+          "name": "equipment:boots:look@41:black",
+          "equipmentId": "look@41",
+          "slot": "boots"
+        },
+        {
+          "name": "equipment:boots:look@41:frost",
+          "equipmentId": "look@41",
+          "slot": "boots"
+        }
+      ]
+    },
+    {
+      "id": "hollow-scepter-spear",
+      "name": "Oyuk Kralının Kemik Asası",
+      "slot": "weapon",
+      "activeWeapon": "equipment-weapon-hollow-scepter-spear",
+      "span": 2.872300460801321,
+      "height": 2.3884791136974073,
+      "visibleEquipment": [
+        {
+          "name": "steel",
+          "equipmentId": "hollow-scepter-spear",
+          "slot": "weapon"
+        },
+        {
+          "name": "edge",
+          "equipmentId": "hollow-scepter-spear",
+          "slot": "weapon"
+        },
+        {
+          "name": "dark",
+          "equipmentId": "hollow-scepter-spear",
+          "slot": "weapon"
+        },
+        {
+          "name": "brass",
+          "equipmentId": "hollow-scepter-spear",
+          "slot": "weapon"
+        },
+        {
+          "name": "wood",
+          "equipmentId": "hollow-scepter-spear",
+          "slot": "weapon"
+        },
+        {
+          "name": "bone",
+          "equipmentId": "hollow-scepter-spear",
+          "slot": "weapon"
+        },
+        {
+          "name": "gold",
+          "equipmentId": "hollow-scepter-spear",
+          "slot": "weapon"
+        },
+        {
+          "name": "crimson",
+          "equipmentId": "hollow-scepter-spear",
+          "slot": "weapon"
+        },
+        {
+          "name": "holy",
+          "equipmentId": "hollow-scepter-spear",
+          "slot": "weapon"
+        }
+      ]
+    },
+    {
+      "id": "king-ossuary-chest",
+      "name": "Kralın Kemik Zırhı",
+      "slot": "chest",
+      "activeWeapon": null,
+      "span": 2.5532661013847737,
+      "height": 2.065638146145199,
+      "visibleEquipment": [
+        {
+          "name": "equipment:chest:rib-chest:leather",
+          "equipmentId": "rib-chest",
+          "slot": "chest"
+        },
+        {
+          "name": "equipment:chest:rib-chest:strap",
+          "equipmentId": "rib-chest",
+          "slot": "chest"
+        },
+        {
+          "name": "equipment:chest:rib-chest:dark",
+          "equipmentId": "rib-chest",
+          "slot": "chest"
+        },
+        {
+          "name": "equipment:chest:rib-chest:edge",
+          "equipmentId": "rib-chest",
+          "slot": "chest"
+        },
+        {
+          "name": "equipment:chest:rib-chest:brass",
+          "equipmentId": "rib-chest",
+          "slot": "chest"
+        },
+        {
+          "name": "equipment:chest:rib-chest:bone",
+          "equipmentId": "rib-chest",
+          "slot": "chest"
+        },
+        {
+          "name": "equipment:chest:variant@king-ossuary-chest:cloth",
+          "equipmentId": "variant@king-ossuary-chest",
+          "slot": "chest"
+        },
+        {
+          "name": "equipment:chest:variant@king-ossuary-chest:strap",
+          "equipmentId": "variant@king-ossuary-chest",
+          "slot": "chest"
+        },
+        {
+          "name": "equipment:chest:variant@king-ossuary-chest:rag",
+          "equipmentId": "variant@king-ossuary-chest",
+          "slot": "chest"
+        },
+        {
+          "name": "equipment:chest:variant@king-ossuary-chest:bone",
+          "equipmentId": "variant@king-ossuary-chest",
+          "slot": "chest"
+        },
+        {
+          "name": "equipment:chest:look@57:gold",
+          "equipmentId": "look@57",
+          "slot": "chest"
+        },
+        {
+          "name": "equipment:chest:look@57:black",
+          "equipmentId": "look@57",
+          "slot": "chest"
+        },
+        {
+          "name": "equipment:chest:look@57:strap",
+          "equipmentId": "look@57",
+          "slot": "chest"
+        },
+        {
+          "name": "equipment:chest:look@57:void",
+          "equipmentId": "look@57",
+          "slot": "chest"
+        },
+        {
+          "name": "equipment:chest:look@57:crimson",
+          "equipmentId": "look@57",
+          "slot": "chest"
+        }
+      ]
+    },
+    {
+      "id": "warden-iron-claws",
+      "name": "Muhafızın Demir Pençeleri",
+      "slot": "hands",
+      "activeWeapon": null,
+      "span": 0.9682200753184499,
+      "height": 0.44104039669036865,
+      "visibleEquipment": [
+        {
+          "name": "equipment:hands:claw-gauntlets:leather",
+          "equipmentId": "claw-gauntlets",
+          "slot": "hands"
+        },
+        {
+          "name": "equipment:hands:claw-gauntlets:steel",
+          "equipmentId": "claw-gauntlets",
+          "slot": "hands"
+        },
+        {
+          "name": "equipment:hands:claw-gauntlets:edge",
+          "equipmentId": "claw-gauntlets",
+          "slot": "hands"
+        },
+        {
+          "name": "equipment:hands:claw-gauntlets:brass",
+          "equipmentId": "claw-gauntlets",
+          "slot": "hands"
+        },
+        {
+          "name": "equipment:hands:claw-gauntlets:strap",
+          "equipmentId": "claw-gauntlets",
+          "slot": "hands"
+        },
+        {
+          "name": "equipment:hands:claw-gauntlets:dark",
+          "equipmentId": "claw-gauntlets",
+          "slot": "hands"
+        },
+        {
+          "name": "equipment:hands:variant@warden-iron-claws:bone",
+          "equipmentId": "variant@warden-iron-claws",
+          "slot": "hands"
+        },
+        {
+          "name": "equipment:hands:look@50:black",
+          "equipmentId": "look@50",
+          "slot": "hands"
+        },
+        {
+          "name": "equipment:hands:look@50:gold",
+          "equipmentId": "look@50",
+          "slot": "hands"
+        },
+        {
+          "name": "equipment:hands:look@50:holy",
+          "equipmentId": "look@50",
+          "slot": "hands"
+        },
+        {
+          "name": "equipment:hands:look@50:dark",
+          "equipmentId": "look@50",
+          "slot": "hands"
+        },
+        {
+          "name": "equipment:hands:claw-gauntlets:leather",
+          "equipmentId": "claw-gauntlets",
+          "slot": "hands"
+        },
+        {
+          "name": "equipment:hands:claw-gauntlets:steel",
+          "equipmentId": "claw-gauntlets",
+          "slot": "hands"
+        },
+        {
+          "name": "equipment:hands:claw-gauntlets:edge",
+          "equipmentId": "claw-gauntlets",
+          "slot": "hands"
+        },
+        {
+          "name": "equipment:hands:claw-gauntlets:brass",
+          "equipmentId": "claw-gauntlets",
+          "slot": "hands"
+        },
+        {
+          "name": "equipment:hands:claw-gauntlets:strap",
+          "equipmentId": "claw-gauntlets",
+          "slot": "hands"
+        },
+        {
+          "name": "equipment:hands:claw-gauntlets:dark",
+          "equipmentId": "claw-gauntlets",
+          "slot": "hands"
+        },
+        {
+          "name": "equipment:hands:variant@warden-iron-claws:bone",
+          "equipmentId": "variant@warden-iron-claws",
+          "slot": "hands"
+        },
+        {
+          "name": "equipment:hands:look@50:black",
+          "equipmentId": "look@50",
+          "slot": "hands"
+        },
+        {
+          "name": "equipment:hands:look@50:gold",
+          "equipmentId": "look@50",
+          "slot": "hands"
+        },
+        {
+          "name": "equipment:hands:look@50:holy",
+          "equipmentId": "look@50",
+          "slot": "hands"
+        },
+        {
+          "name": "equipment:hands:look@50:dark",
+          "equipmentId": "look@50",
+          "slot": "hands"
+        }
+      ]
+    },
+    {
+      "id": "heart-forged-sword",
+      "name": "Kalbin Döküm Kılıcı",
+      "slot": "weapon",
+      "activeWeapon": "equipment-weapon-heart-forged-sword",
+      "span": 2.1874340227388562,
+      "height": 1.8167426724590878,
+      "visibleEquipment": [
+        {
+          "name": "steel",
+          "equipmentId": "heart-forged-sword",
+          "slot": "weapon"
+        },
+        {
+          "name": "edge",
+          "equipmentId": "heart-forged-sword",
+          "slot": "weapon"
+        },
+        {
+          "name": "dark",
+          "equipmentId": "heart-forged-sword",
+          "slot": "weapon"
+        },
+        {
+          "name": "brass",
+          "equipmentId": "heart-forged-sword",
+          "slot": "weapon"
+        },
+        {
+          "name": "gold",
+          "equipmentId": "heart-forged-sword",
+          "slot": "weapon"
+        },
+        {
+          "name": "black",
+          "equipmentId": "heart-forged-sword",
+          "slot": "weapon"
+        },
+        {
+          "name": "sable",
+          "equipmentId": "heart-forged-sword",
+          "slot": "weapon"
+        },
+        {
+          "name": "hide",
+          "equipmentId": "heart-forged-sword",
+          "slot": "weapon"
+        },
+        {
+          "name": "ember",
+          "equipmentId": "heart-forged-sword",
+          "slot": "weapon"
+        }
+      ]
+    },
+    {
+      "id": "anvil-heart-chest",
+      "name": "Örs Kalbinin Zırhı",
+      "slot": "chest",
+      "activeWeapon": null,
+      "span": 2.568843273630818,
+      "height": 2.065638146145199,
+      "visibleEquipment": [
+        {
+          "name": "equipment:chest:warden-chest:mail",
+          "equipmentId": "warden-chest",
+          "slot": "chest"
+        },
+        {
+          "name": "equipment:chest:warden-chest:strap",
+          "equipmentId": "warden-chest",
+          "slot": "chest"
+        },
+        {
+          "name": "equipment:chest:warden-chest:dark",
+          "equipmentId": "warden-chest",
+          "slot": "chest"
+        },
+        {
+          "name": "equipment:chest:warden-chest:steel",
+          "equipmentId": "warden-chest",
+          "slot": "chest"
+        },
+        {
+          "name": "equipment:chest:warden-chest:brass",
+          "equipmentId": "warden-chest",
+          "slot": "chest"
+        },
+        {
+          "name": "equipment:chest:variant@anvil-heart-chest:cloth",
+          "equipmentId": "variant@anvil-heart-chest",
+          "slot": "chest"
+        },
+        {
+          "name": "equipment:chest:variant@anvil-heart-chest:strap",
+          "equipmentId": "variant@anvil-heart-chest",
+          "slot": "chest"
+        },
+        {
+          "name": "equipment:chest:variant@anvil-heart-chest:rag",
+          "equipmentId": "variant@anvil-heart-chest",
+          "slot": "chest"
+        },
+        {
+          "name": "equipment:chest:variant@anvil-heart-chest:brass",
+          "equipmentId": "variant@anvil-heart-chest",
+          "slot": "chest"
+        },
+        {
+          "name": "equipment:chest:look@59:gold",
+          "equipmentId": "look@59",
+          "slot": "chest"
+        },
+        {
+          "name": "equipment:chest:look@59:black",
+          "equipmentId": "look@59",
+          "slot": "chest"
+        },
+        {
+          "name": "equipment:chest:look@59:strap",
+          "equipmentId": "look@59",
+          "slot": "chest"
+        },
+        {
+          "name": "equipment:chest:look@59:ember",
+          "equipmentId": "look@59",
+          "slot": "chest"
+        },
+        {
+          "name": "equipment:chest:look@59:crimson",
+          "equipmentId": "look@59",
+          "slot": "chest"
+        }
+      ]
+    },
+    {
+      "id": "furnace-heart-helm",
+      "name": "Ocak Kalbinin Siperi",
+      "slot": "head",
+      "activeWeapon": null,
+      "span": 0.7788971732823934,
+      "height": 0.5318833990935274,
+      "visibleEquipment": [
+        {
+          "name": "equipment:head:furnace-mask:dark",
+          "equipmentId": "furnace-mask",
+          "slot": "head"
+        },
+        {
+          "name": "equipment:head:furnace-mask:edge",
+          "equipmentId": "furnace-mask",
+          "slot": "head"
+        },
+        {
+          "name": "equipment:head:furnace-mask:brass",
+          "equipmentId": "furnace-mask",
+          "slot": "head"
+        },
+        {
+          "name": "equipment:head:look@60:gold",
+          "equipmentId": "look@60",
+          "slot": "head"
+        },
+        {
+          "name": "equipment:head:look@60:black",
+          "equipmentId": "look@60",
+          "slot": "head"
+        },
+        {
+          "name": "equipment:head:look@60:ember",
+          "equipmentId": "look@60",
+          "slot": "head"
+        },
+        {
+          "name": "equipment:head:look@60:horn",
+          "equipmentId": "look@60",
+          "slot": "head"
+        }
+      ]
+    },
+    {
+      "id": "cinder-breath-boots",
+      "name": "Köz Soluğunun Adımları",
+      "slot": "boots",
+      "activeWeapon": null,
+      "span": 1.402667110326545,
+      "height": 0.6517407074570656,
+      "visibleEquipment": [
+        {
+          "name": "equipment:boots:crown-boots:leather",
+          "equipmentId": "crown-boots",
+          "slot": "boots"
+        },
+        {
+          "name": "equipment:boots:crown-boots:strap",
+          "equipmentId": "crown-boots",
+          "slot": "boots"
+        },
+        {
+          "name": "equipment:boots:crown-boots:dark",
+          "equipmentId": "crown-boots",
+          "slot": "boots"
+        },
+        {
+          "name": "equipment:boots:crown-boots:edge",
+          "equipmentId": "crown-boots",
+          "slot": "boots"
+        },
+        {
+          "name": "equipment:boots:crown-boots:brass",
+          "equipmentId": "crown-boots",
+          "slot": "boots"
+        },
+        {
+          "name": "equipment:boots:variant@cinder-breath-boots:brass",
+          "equipmentId": "variant@cinder-breath-boots",
+          "slot": "boots"
+        },
+        {
+          "name": "equipment:boots:look@61:black",
+          "equipmentId": "look@61",
+          "slot": "boots"
+        },
+        {
+          "name": "equipment:boots:look@61:gold",
+          "equipmentId": "look@61",
+          "slot": "boots"
+        },
+        {
+          "name": "equipment:boots:look@61:void",
+          "equipmentId": "look@61",
+          "slot": "boots"
+        },
+        {
+          "name": "equipment:boots:crown-boots:leather",
+          "equipmentId": "crown-boots",
+          "slot": "boots"
+        },
+        {
+          "name": "equipment:boots:crown-boots:strap",
+          "equipmentId": "crown-boots",
+          "slot": "boots"
+        },
+        {
+          "name": "equipment:boots:crown-boots:dark",
+          "equipmentId": "crown-boots",
+          "slot": "boots"
+        },
+        {
+          "name": "equipment:boots:crown-boots:edge",
+          "equipmentId": "crown-boots",
+          "slot": "boots"
+        },
+        {
+          "name": "equipment:boots:crown-boots:brass",
+          "equipmentId": "crown-boots",
+          "slot": "boots"
+        },
+        {
+          "name": "equipment:boots:variant@cinder-breath-boots:brass",
+          "equipmentId": "variant@cinder-breath-boots",
+          "slot": "boots"
+        },
+        {
+          "name": "equipment:boots:look@61:black",
+          "equipmentId": "look@61",
+          "slot": "boots"
+        },
+        {
+          "name": "equipment:boots:look@61:gold",
+          "equipmentId": "look@61",
+          "slot": "boots"
+        },
+        {
+          "name": "equipment:boots:look@61:void",
+          "equipmentId": "look@61",
+          "slot": "boots"
+        }
+      ]
+    },
+    {
+      "id": "ash-warden-greaves",
+      "name": "Kül Muhafızının Kaval Zırhı",
+      "slot": "boots",
+      "activeWeapon": null,
+      "span": 1.400151896261283,
+      "height": 0.7849696492776275,
+      "visibleEquipment": [
+        {
+          "name": "equipment:boots:shackle-boots:leather",
+          "equipmentId": "shackle-boots",
+          "slot": "boots"
+        },
+        {
+          "name": "equipment:boots:shackle-boots:strap",
+          "equipmentId": "shackle-boots",
+          "slot": "boots"
+        },
+        {
+          "name": "equipment:boots:shackle-boots:dark",
+          "equipmentId": "shackle-boots",
+          "slot": "boots"
+        },
+        {
+          "name": "equipment:boots:variant@ash-warden-greaves:brass",
+          "equipmentId": "variant@ash-warden-greaves",
+          "slot": "boots"
+        },
+        {
+          "name": "equipment:boots:look@27:black",
+          "equipmentId": "look@27",
+          "slot": "boots"
+        },
+        {
+          "name": "equipment:boots:look@27:gold",
+          "equipmentId": "look@27",
+          "slot": "boots"
+        },
+        {
+          "name": "equipment:boots:look@27:holy",
+          "equipmentId": "look@27",
+          "slot": "boots"
+        },
+        {
+          "name": "equipment:boots:shackle-boots:leather",
+          "equipmentId": "shackle-boots",
+          "slot": "boots"
+        },
+        {
+          "name": "equipment:boots:shackle-boots:strap",
+          "equipmentId": "shackle-boots",
+          "slot": "boots"
+        },
+        {
+          "name": "equipment:boots:shackle-boots:dark",
+          "equipmentId": "shackle-boots",
+          "slot": "boots"
+        },
+        {
+          "name": "equipment:boots:variant@ash-warden-greaves:brass",
+          "equipmentId": "variant@ash-warden-greaves",
+          "slot": "boots"
+        },
+        {
+          "name": "equipment:boots:look@27:black",
+          "equipmentId": "look@27",
+          "slot": "boots"
+        },
+        {
+          "name": "equipment:boots:look@27:gold",
+          "equipmentId": "look@27",
+          "slot": "boots"
+        },
+        {
+          "name": "equipment:boots:look@27:holy",
+          "equipmentId": "look@27",
+          "slot": "boots"
+        }
+      ]
+    },
+    {
+      "id": "black-gavel-axe",
+      "name": "Kara Tokmak",
+      "slot": "weapon",
+      "activeWeapon": "equipment-weapon-black-gavel-axe",
+      "span": 2.0537264777683317,
+      "height": 1.713260907344565,
+      "visibleEquipment": [
+        {
+          "name": "steel",
+          "equipmentId": "black-gavel-axe",
+          "slot": "weapon"
+        },
+        {
+          "name": "edge",
+          "equipmentId": "black-gavel-axe",
+          "slot": "weapon"
+        },
+        {
+          "name": "dark",
+          "equipmentId": "black-gavel-axe",
+          "slot": "weapon"
+        },
+        {
+          "name": "brass",
+          "equipmentId": "black-gavel-axe",
+          "slot": "weapon"
+        },
+        {
+          "name": "wood",
+          "equipmentId": "black-gavel-axe",
+          "slot": "weapon"
+        },
+        {
+          "name": "gold",
+          "equipmentId": "black-gavel-axe",
+          "slot": "weapon"
+        },
+        {
+          "name": "black",
+          "equipmentId": "black-gavel-axe",
+          "slot": "weapon"
+        },
+        {
+          "name": "crimson",
+          "equipmentId": "black-gavel-axe",
+          "slot": "weapon"
+        },
+        {
+          "name": "hide",
+          "equipmentId": "black-gavel-axe",
+          "slot": "weapon"
+        },
+        {
+          "name": "gore",
+          "equipmentId": "black-gavel-axe",
+          "slot": "weapon"
+        }
+      ]
+    },
+    {
+      "id": "qadi-black-robe",
+      "name": "Kadı’nın Kara Cübbesi",
+      "slot": "chest",
+      "activeWeapon": null,
+      "span": 2.5532661013847737,
+      "height": 2.065638146145199,
+      "visibleEquipment": [
+        {
+          "name": "equipment:chest:brigandine-chest:leather",
+          "equipmentId": "brigandine-chest",
+          "slot": "chest"
+        },
+        {
+          "name": "equipment:chest:brigandine-chest:strap",
+          "equipmentId": "brigandine-chest",
+          "slot": "chest"
+        },
+        {
+          "name": "equipment:chest:brigandine-chest:rag",
+          "equipmentId": "brigandine-chest",
+          "slot": "chest"
+        },
+        {
+          "name": "equipment:chest:brigandine-chest:cloth",
+          "equipmentId": "brigandine-chest",
+          "slot": "chest"
+        },
+        {
+          "name": "equipment:chest:brigandine-chest:brass",
+          "equipmentId": "brigandine-chest",
+          "slot": "chest"
+        },
+        {
+          "name": "equipment:chest:brigandine-chest:dark",
+          "equipmentId": "brigandine-chest",
+          "slot": "chest"
+        },
+        {
+          "name": "equipment:chest:variant@qadi-black-robe:cloth",
+          "equipmentId": "variant@qadi-black-robe",
+          "slot": "chest"
+        },
+        {
+          "name": "equipment:chest:variant@qadi-black-robe:strap",
+          "equipmentId": "variant@qadi-black-robe",
+          "slot": "chest"
+        },
+        {
+          "name": "equipment:chest:variant@qadi-black-robe:rag",
+          "equipmentId": "variant@qadi-black-robe",
+          "slot": "chest"
+        },
+        {
+          "name": "equipment:chest:variant@qadi-black-robe:dark",
+          "equipmentId": "variant@qadi-black-robe",
+          "slot": "chest"
+        },
+        {
+          "name": "equipment:chest:look@62:gold",
+          "equipmentId": "look@62",
+          "slot": "chest"
+        },
+        {
+          "name": "equipment:chest:look@62:crimson",
+          "equipmentId": "look@62",
+          "slot": "chest"
+        },
+        {
+          "name": "equipment:chest:look@62:gore",
+          "equipmentId": "look@62",
+          "slot": "chest"
+        },
+        {
+          "name": "equipment:chest:look@62:dark",
+          "equipmentId": "look@62",
+          "slot": "chest"
+        },
+        {
+          "name": "equipment:chest:look@62:steel",
+          "equipmentId": "look@62",
+          "slot": "chest"
+        },
+        {
+          "name": "equipment:chest:look@62:black",
+          "equipmentId": "look@62",
+          "slot": "chest"
+        },
+        {
+          "name": "equipment:chest:look@62:strap",
+          "equipmentId": "look@62",
+          "slot": "chest"
+        }
+      ]
+    },
+    {
+      "id": "verdict-warden-boots",
+      "name": "Hüküm Bekçisinin Zincirli Adımları",
+      "slot": "boots",
+      "activeWeapon": null,
+      "span": 1.400151896261283,
+      "height": 0.7849696492776275,
+      "visibleEquipment": [
+        {
+          "name": "equipment:boots:shackle-boots:leather",
+          "equipmentId": "shackle-boots",
+          "slot": "boots"
+        },
+        {
+          "name": "equipment:boots:shackle-boots:strap",
+          "equipmentId": "shackle-boots",
+          "slot": "boots"
+        },
+        {
+          "name": "equipment:boots:shackle-boots:dark",
+          "equipmentId": "shackle-boots",
+          "slot": "boots"
+        },
+        {
+          "name": "equipment:boots:variant@verdict-warden-boots:dark",
+          "equipmentId": "variant@verdict-warden-boots",
+          "slot": "boots"
+        },
+        {
+          "name": "equipment:boots:look@27:black",
+          "equipmentId": "look@27",
+          "slot": "boots"
+        },
+        {
+          "name": "equipment:boots:look@27:gold",
+          "equipmentId": "look@27",
+          "slot": "boots"
+        },
+        {
+          "name": "equipment:boots:look@27:holy",
+          "equipmentId": "look@27",
+          "slot": "boots"
+        },
+        {
+          "name": "equipment:boots:shackle-boots:leather",
+          "equipmentId": "shackle-boots",
+          "slot": "boots"
+        },
+        {
+          "name": "equipment:boots:shackle-boots:strap",
+          "equipmentId": "shackle-boots",
+          "slot": "boots"
+        },
+        {
+          "name": "equipment:boots:shackle-boots:dark",
+          "equipmentId": "shackle-boots",
+          "slot": "boots"
+        },
+        {
+          "name": "equipment:boots:variant@verdict-warden-boots:dark",
+          "equipmentId": "variant@verdict-warden-boots",
+          "slot": "boots"
+        },
+        {
+          "name": "equipment:boots:look@27:black",
+          "equipmentId": "look@27",
+          "slot": "boots"
+        },
+        {
+          "name": "equipment:boots:look@27:gold",
+          "equipmentId": "look@27",
+          "slot": "boots"
+        },
+        {
+          "name": "equipment:boots:look@27:holy",
+          "equipmentId": "look@27",
+          "slot": "boots"
+        }
+      ]
+    }
+  ],
+  "pixelMetrics": [
+    {
+      "id": "rusted-mail-chest",
+      "occupied": 12046,
+      "opaque": 11414,
+      "transparent": 53490,
+      "edge": 0,
+      "meanLuma": 88.39324990362853,
+      "whiteFraction": 0.007534606623444892,
+      "croppedByDesign": false,
+      "pairedArrangement": false
+    },
+    {
+      "id": "headsman-hood",
+      "occupied": 19696,
+      "opaque": 19260,
+      "transparent": 45840,
+      "edge": 0,
+      "meanLuma": 63.867929916925206,
+      "whiteFraction": 0,
+      "croppedByDesign": false,
+      "pairedArrangement": false
+    },
+    {
+      "id": "hook-chain-gauntlets",
+      "occupied": 7362,
+      "opaque": 6656,
+      "transparent": 58174,
+      "edge": 0,
+      "meanLuma": 64.54916382211564,
+      "whiteFraction": 0.00030048076923076925,
+      "croppedByDesign": false,
+      "pairedArrangement": true
+    },
+    {
+      "id": "drowned-clapper-axe",
+      "occupied": 4320,
+      "opaque": 3846,
+      "transparent": 61216,
+      "edge": 0,
+      "meanLuma": 83.46917061882549,
+      "whiteFraction": 0.0013000520020800832,
+      "croppedByDesign": false,
+      "pairedArrangement": false
+    },
+    {
+      "id": "bellringer-bronze-chest",
+      "occupied": 12238,
+      "opaque": 11581,
+      "transparent": 53298,
+      "edge": 0,
+      "meanLuma": 71.31620595803508,
+      "whiteFraction": 0.00043174164579915376,
+      "croppedByDesign": false,
+      "pairedArrangement": false
+    },
+    {
+      "id": "drowned-ringer-helm",
+      "occupied": 11369,
+      "opaque": 10758,
+      "transparent": 54167,
+      "edge": 0,
+      "meanLuma": 107.22239979549973,
+      "whiteFraction": 0.0018590816136828407,
+      "croppedByDesign": false,
+      "pairedArrangement": false
+    },
+    {
+      "id": "tide-chain-boots",
+      "occupied": 6911,
+      "opaque": 6374,
+      "transparent": 58625,
+      "edge": 0,
+      "meanLuma": 62.66278208346396,
+      "whiteFraction": 0.0007844367743959837,
+      "croppedByDesign": false,
+      "pairedArrangement": true
+    },
+    {
+      "id": "hollow-scepter-spear",
+      "occupied": 1254,
+      "opaque": 859,
+      "transparent": 64282,
+      "edge": 0,
+      "meanLuma": 145.01074924330587,
+      "whiteFraction": 0,
+      "croppedByDesign": false,
+      "pairedArrangement": false
+    },
+    {
+      "id": "king-ossuary-chest",
+      "occupied": 11704,
+      "opaque": 11110,
+      "transparent": 53832,
+      "edge": 0,
+      "meanLuma": 80.88938696669638,
+      "whiteFraction": 9.000900090009e-05,
+      "croppedByDesign": false,
+      "pairedArrangement": false
+    },
+    {
+      "id": "warden-iron-claws",
+      "occupied": 10487,
+      "opaque": 9578,
+      "transparent": 55049,
+      "edge": 0,
+      "meanLuma": 91.97891315514653,
+      "whiteFraction": 0.008665692211317603,
+      "croppedByDesign": false,
+      "pairedArrangement": true
+    },
+    {
+      "id": "heart-forged-sword",
+      "occupied": 2188,
+      "opaque": 1724,
+      "transparent": 63348,
+      "edge": 0,
+      "meanLuma": 86.97861020881675,
+      "whiteFraction": 0,
+      "croppedByDesign": false,
+      "pairedArrangement": false
+    },
+    {
+      "id": "anvil-heart-chest",
+      "occupied": 12308,
+      "opaque": 11732,
+      "transparent": 53228,
+      "edge": 0,
+      "meanLuma": 92.17697366177941,
+      "whiteFraction": 0.010484145925673372,
+      "croppedByDesign": false,
+      "pairedArrangement": false
+    },
+    {
+      "id": "furnace-heart-helm",
+      "occupied": 12483,
+      "opaque": 11876,
+      "transparent": 53053,
+      "edge": 0,
+      "meanLuma": 82.4803262883112,
+      "whiteFraction": 0.0030313236780060626,
+      "croppedByDesign": false,
+      "pairedArrangement": false
+    },
+    {
+      "id": "cinder-breath-boots",
+      "occupied": 11421,
+      "opaque": 10728,
+      "transparent": 54115,
+      "edge": 0,
+      "meanLuma": 73.90740091349755,
+      "whiteFraction": 0.0044742729306487695,
+      "croppedByDesign": false,
+      "pairedArrangement": true
+    },
+    {
+      "id": "ash-warden-greaves",
+      "occupied": 6911,
+      "opaque": 6374,
+      "transparent": 58625,
+      "edge": 0,
+      "meanLuma": 58.390695199247304,
+      "whiteFraction": 0.0007844367743959837,
+      "croppedByDesign": false,
+      "pairedArrangement": true
+    },
+    {
+      "id": "black-gavel-axe",
+      "occupied": 3779,
+      "opaque": 3309,
+      "transparent": 61757,
+      "edge": 0,
+      "meanLuma": 64.60707518887828,
+      "whiteFraction": 0,
+      "croppedByDesign": false,
+      "pairedArrangement": false
+    },
+    {
+      "id": "qadi-black-robe",
+      "occupied": 12344,
+      "opaque": 11649,
+      "transparent": 53192,
+      "edge": 0,
+      "meanLuma": 63.570463936818896,
+      "whiteFraction": 8.584427847883938e-05,
+      "croppedByDesign": false,
+      "pairedArrangement": false
+    },
+    {
+      "id": "verdict-warden-boots",
+      "occupied": 6911,
+      "opaque": 6374,
+      "transparent": 58625,
+      "edge": 0,
+      "meanLuma": 59.168644524631475,
+      "whiteFraction": 0.0007844367743959837,
+      "croppedByDesign": false,
+      "pairedArrangement": true
+    }
+  ],
+  "imageSha256": {
+    "anvil-heart-chest": {
+      "ui": "6de9706d0c6a4f233d1c73bdcbe6659347cfb703c73ac445bce5b44c1ba37bf4",
+      "ground": "b1f6c177b52d692f293f89d7d892ad7fc9a983d30ea62a4b7b0a7163ef3f16dd"
+    },
+    "ash-warden-greaves": {
+      "ui": "32e7d7d26c3091d9725ab3c48b65723aeb86055d4372e3dbf971d8389b83268d",
+      "ground": "7ac98256c2f687ddcd8387557ed5c7d8cebdada5ea6966179930b53e4919647e"
+    },
+    "bellringer-bronze-chest": {
+      "ui": "b5b0d62edf3908d91bcc36bed52576f0c3639959fbfd7242e18fe64ab05768c0",
+      "ground": "7172214e3947a2360d765c5021043d3d1dc1201ac6753c5169f968153e6d3f6d"
+    },
+    "black-gavel-axe": {
+      "ui": "6eba44a3715ba4443c74104ca3a335122264665d5b8771b3b3ce0682a47f63ef",
+      "ground": "4a381288ee0d7d18661ebbfa0c24e2e427666d8d27bdee078e4b12758bf1848a"
+    },
+    "cinder-breath-boots": {
+      "ui": "bd737e56d5a7d724e377cbfde73de66f21ee35ea0beea259c25f581171af1341",
+      "ground": "d5cc67e22d1206482263d358af258e20ceb2d7ae424d6b6a6353ca156706c730"
+    },
+    "drowned-clapper-axe": {
+      "ui": "1a16ca40c49a5ee39ab4ff411b7566981b09e573781bc1bd135175d514f69d53",
+      "ground": "8240ed166d003508827983d0dfd5207f1ade461fec4710806eb06d2702161d49"
+    },
+    "drowned-ringer-helm": {
+      "ui": "08b223d5108d633e43b6243f95ebd4b08d07a4ec5d3c7cdecede2443db4ad9b2",
+      "ground": "7abf82bc3eb835452515854c9add832d010df3416872704858f1218d022c8aa5"
+    },
+    "furnace-heart-helm": {
+      "ui": "c3d44bed3170f774c0db03d9e0250bd80561bef8d577b9c3baf1998828dbb475",
+      "ground": "5d072d93aefd34c08252369b9944c1f9b95b042fce8ebf1b6a29dc4aefeaf084"
+    },
+    "headsman-hood": {
+      "ui": "37bf09d46b8c200fec88f0143f3ae5cae0be7ee44ba81c38140a794dc292679e",
+      "ground": "9b70acac5adf3c8a1f33ddf1872dce59a7ba48155c2db14fdceca7867414617c"
+    },
+    "heart-forged-sword": {
+      "ui": "a8bf9ae39a212f85622b4679c4dde9cb17a387a05043b8f0d0c1048cb7bf6cd5",
+      "ground": "85e679d84da06dbb579f6123f5c3c6cf28f0bb215126cdf7e566ef60d2a75cc5"
+    },
+    "hollow-scepter-spear": {
+      "ui": "dc3fbeaf7e84a58442de6d584060f318abfd0808446bf73e8fefc38a58f8b715",
+      "ground": "ac44ca03435c87eb1fbe6fc2d23bd0d88518780dc91cabfb4a4a7fd596d66938"
+    },
+    "hook-chain-gauntlets": {
+      "ui": "fa662d410206035f57251fb6ab8c542f90c5c1f930fbf9ca39a2700f965e0eb6",
+      "ground": "8a45355f0177b09d34178115cc2651219ecf77a95139c53f117f938de659d444"
+    },
+    "king-ossuary-chest": {
+      "ui": "6cec4fa0bf2444c237863bdc795bc8f122dbe8a1c68172233271dc0bd2214f73",
+      "ground": "24c22f7ca7adb696fdf8a4da9c19a967517ed2743cfbd79c39232d8d5d99f4b8"
+    },
+    "qadi-black-robe": {
+      "ui": "7817dbe6ab1386a8e98cc05239c550ec04d7c023b2af3e6db040577ab68dfda8",
+      "ground": "eb96de4e9486e2fc17eaa4c76b60ab8bfa550bb282dc415a60fec979a3cd2bae"
+    },
+    "rusted-mail-chest": {
+      "ui": "6b937e871f2b90e45f014e74f6cb05f705b1ff40a506d18e4c87e8da9a1f5e5d",
+      "ground": "07ec06d1c5517f775c5c651fc240b687f214cdde665787327cf87dceb6057fb8"
+    },
+    "tide-chain-boots": {
+      "ui": "05b35f13dc121c11235bb5df4df716314a8bacbe35d44f80a9ddd710329cff98",
+      "ground": "76bdebea38ae584a749e47478cd6a1e1a88d375e7f2647bd8614c901937476ce"
+    },
+    "verdict-warden-boots": {
+      "ui": "80ee277e678a7ad65e5afeedd117e116f7031b7d10a805dec1798b77cf774e1e",
+      "ground": "c17cf75f00a668b1bc5f0dd186f6c7803c9af33af3a7ffc993919c906f2fff7a"
+    },
+    "warden-iron-claws": {
+      "ui": "8ab961be6227d1ec058aef99f352b94cb3d2c8966597560fc0f9be3f9df068ad",
+      "ground": "03667a380eb4b326bfc3632633d031a03ebe9f6306fc61cfb40b1d92048e7246"
+    }
+  }
+}

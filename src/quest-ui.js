@@ -156,7 +156,7 @@
       entry.pages.forEach(pg => {
         const detail = document.createElement('details'), summary = document.createElement('summary'); summary.textContent = pg.title; detail.append(summary, paragraph(pg.text)); pages.append(detail);
       });
-      if (entry.ending) storySection(entry.ending.title, [entry.ending.text], 'story-ending');
+      if (entry.ending) storySection(entry.ending.title, [entry.ending.text, entry.ending.reflection && entry.ending.reflection.text], 'story-ending');
     }
     function setJournalTab(tab, focus = false) {
       if (tab === 'story' && (!B.StoryJournal || q.pendingChoice)) tab = 'quests';
@@ -259,13 +259,23 @@
       $('journal-gate-text').textContent = q.pendingChoice ? KabirI18n.t('Bir karar ver; iki yolu birden seçemezsin.') : q.ready ? KabirI18n.t('İki bağ da çözüldü. Efendinin kapısı açık.') : KabirI18n.t('Bağları çözerek efendinin kapısını aç.');
     }
     function event(data) {
+      const readingPage = data.side && data.kind === 'lore' && B.QuestCinema && B.QuestCinema.isReading;
+      const decisionInJournal = data.choice && opened && !screen.classList.contains('hidden');
+      // The reader and focused journal outcome already present these words.
+      // Clear a prior notice too, so consumed prose cannot return after closing.
+      if (decisionInJournal || readingPage && !data.complete) {
+        noticeLeft = 0; showing = false; notice.classList.remove('show'); update(); return;
+      }
+      const earnedPageSet = readingPage && data.complete;
+      const sideEntry = earnedPageSet && q.side && q.side.find(entry => entry.id === data.id);
+      const text = earnedPageSet && sideEntry && sideEntry.rewardText ? sideEntry.rewardText : data.text;
       $('quest-notice-state').textContent = data.complete ? KabirI18n.t('GÖREV TAMAMLANDI') : data.choice ? KabirI18n.t('KARARIN KAYDEDİLDİ') : KabirI18n.t('GÖREV İLERLEDİ');
       if (data.side && data.kind && B.QuestWords) $('quest-notice-state').textContent = B.QuestWords[data.kind] ? B.QuestWords[data.kind].toLocaleUpperCase(KabirI18n.lang === 'en' ? 'en' : 'tr') + ' · ' + $('quest-notice-state').textContent : $('quest-notice-state').textContent;
       $('quest-notice-title').textContent = data.name;
-      $('quest-notice-text').textContent = data.text;
+      $('quest-notice-text').textContent = text;
       notice.dataset.kind = data.side ? data.kind || 'main' : 'main';
       notice.classList.toggle('complete', !!data.complete); notice.classList.add('show');
-      noticeLeft = Math.max(7, Math.min(16, data.text.length / 18)); showing = true; update();
+      noticeLeft = earnedPageSet ? 5 : Math.max(7, Math.min(16, text.length / 18)); showing = true; update();
     }
     function clear() { close(false); noticeLeft = 0; showing = false; notice.classList.remove('show'); revision = -1; compassKey = ''; }
     function focusable() {

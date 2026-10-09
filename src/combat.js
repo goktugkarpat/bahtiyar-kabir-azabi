@@ -225,7 +225,9 @@
         const saved = JSON.parse(window.localStorage.getItem(SAVE_KEY));
         if (!saved || saved.version !== 3 || !(saved.chapter >= 2 && saved.chapter <= FINAL) || (!saved.transition && !saved.completed)) return false;
         saved.progression = progression.snapshot();
+        if (saved.completed && saved.chapter === chapter && quests) saved.quests = quests.snapshot();
         window.localStorage.setItem(SAVE_KEY, JSON.stringify(saved));
+        if (saved.completed && saved.chapter === chapter) checkpointSnapshot = Object.assign({}, checkpointSnapshot, { progression: saved.progression, quests: saved.quests });
         return true;
       } catch (_) { return false; }
     }
@@ -950,11 +952,22 @@
         face: enemy.face, damage: enemy.buff > 0 ? 20 : 16
       }, options, { damage: Math.round((options.damage == null ? 16 : options.damage) * (enemy.buff > 0 ? 1.25 : 1)) }));
       const a = enemy.action;
+      // These channel signatures have one persistent ignition and independent
+      // floor echoes. Keep their cosmetic intent out of the gameplay beat list.
+      if (a && h.persistent && h.beat !== false && !a.visualIntent &&
+          (a.moveId === 'chainCage' || a.moveId === 'drownWell' || a.moveId === 'crystalPrison' || a.moveId === 'crucible' || a.moveId === 'ledgerPrison' || a.moveId === 'brine' || a.moveId === 'lanterns')) {
+        const start = a.age + h.delay;
+        a.visualIntent = { start: options.beatStart != null ? Math.min(start, options.beatStart) : start,
+          contact: start + h.warn, pose: h.pose || a.pose || '' };
+      }
       if (a && !h.persistent && h.beat !== false) {
         // Beats run on the action clock. The first beat of a move starts at the move's start, so the held
         // body tell (intent) plays before the floor tell appears; later beats start when their tell appears.
         const base = a.age, start = base + h.delay;
-        a.beats.push({ start: options.beatStart != null ? Math.min(start, options.beatStart) : start, strike: start + h.warn, duration: h.duration, pose: h.pose || '' });
+        // The projectile leaves the hand before it lands. Damage/tell/action clocks
+        // stay at strike; release is consumed by the body animation only.
+        const flight = h.projectile && Number.isFinite(h.projectile.flight) ? Math.max(0,h.projectile.flight) : 0;
+        a.beats.push({ start: options.beatStart != null ? Math.min(start, options.beatStart) : start, strike: start + h.warn, release: start + Math.max(0,h.warn-flight), duration: h.duration, pose: h.pose || '' });
         a.beats.sort((p, q) => p.strike - q.strike);
       }
       return h;
@@ -1522,9 +1535,12 @@
         const a = action.pairWith;
         if (!a || a.dead || !a.action || a.action.moveId !== 'pair') { enemy.action = null; enemy.faceLocked = false; enemy.cooldown = .6; return; }
       }
-      // A short whoosh as armed swings release (not for spells, spit or claws, which have their own cues).
+      // Armed release uses its visual hand contact; spells keep their own cues.
       if (enemy.boss || enemy.type === 'guard' || enemy.type === 'stalker') for (const b of action.beats) {
-        if (!b.whooshed && action.age >= b.strike - (enemy.boss ? .2 : .13)) { b.whooshed = true; if (distance(enemy, player) < 16) sound('enemySwing', { x: enemy.x, z: enemy.z, type: enemy.type, heavy: enemy.boss || enemy.type === 'guard', strikeIn: Math.max(0, b.strike - action.age), volume: enemy.boss ? .9 : .55 }); }
+        const pose = b.pose || action.pose || '';
+        if (pose === 'cast' || pose === 'castHigh' || pose === 'roar') continue;
+        const contact = Number.isFinite(b.release) && b.release < b.strike ? b.release : b.strike;
+        if (!b.whooshed && action.age >= contact - (enemy.boss ? .2 : .13)) { b.whooshed = true; if (distance(enemy, player) < 16) sound('enemySwing', { x: enemy.x, z: enemy.z, type: enemy.type, heavy: enemy.boss || enemy.type === 'guard', strikeIn: Math.max(0, contact - action.age), volume: enemy.boss ? .9 : .55 }); }
       }
       if (action.movement) advanceMovement(enemy, action, dt);
       if (action.age >= action.duration) {
@@ -1545,10 +1561,19 @@
       enemy.hurt = Math.max(0, enemy.hurt - dt * 3); enemy.blockImpact = Math.max(0, (enemy.blockImpact || 0) - dt * 5);
       if (enemy.dead) {
         enemy.deadAge += dt; enemy.move = 0;
-        // the body hits the floor: a kick of dust (the matching bounce is in enemy-polish.js, same landTime)
-        if (!enemy._landed && BABA.EnemyPolish && enemy.deadAge >= BABA.EnemyPolish.landTime(enemy.deathKind === 'blown', enemy.boss) && enemy.deadAge < 3) {
-          enemy._landed = true; fx('land', { x: enemy.x, y: .05, z: enemy.z, big: enemy.boss || enemy.radius > .6, blown: enemy.deathKind === 'blown', face: enemy.face });
-          if (enemy.boss || enemy.radius > .6) emit('impact', { x: enemy.x, z: enemy.z, strength: enemy.boss ? .8 : .3 });   // a heavy body hitting the floor: camera jolt that fades with distance
+        // A visible procedural heavy fall already emits its own correctly placed
+        // thud. Retain the original generic cue when no authored pose can run.
+        const fall = enemy.model.root.userData.authoredMotion;
+        const ownsFall = fall && fall.deathThudOwned;
+        const posedFall = ownsFall && enemy.inView !== false && enemy.model.root.visible && distance(enemy, player) < 45;
+        const landingDue = posedFall ? fall.deathLanded : BABA.EnemyPolish && enemy.deadAge >= BABA.EnemyPolish.landTime(enemy.deathKind === 'blown', enemy.boss);
+        if (!enemy._landed && landingDue && enemy.deadAge < 3) {
+          enemy._landed = true;
+          if (!posedFall) {
+            if (ownsFall) fall.deathGenericLanded = true;
+            fx('land', { x: enemy.x, y: .05, z: enemy.z, big: enemy.boss || enemy.radius > .6, blown: enemy.deathKind === 'blown', face: enemy.face, corpseContact: !!ownsFall, corpseBoss: !!enemy.boss, type: enemy.type });
+            if (enemy.boss || enemy.radius > .6) emit('impact', { x: enemy.x, z: enemy.z, strength: enemy.boss ? .8 : .3 });
+          }
         }
         return;
       }
@@ -1674,7 +1699,7 @@
         emit('encounterCleared', { name: seal.encounter.name, roomName: seal.encounter.roomName, nextName: seal.encounter.nextName, room: seal.encounter.room, x: seal.x, z: seal.z, text: seal.encounter.clearText });
         emit('toast', { text: enemy.boss ? KabirI18n.t('Arena açıldı. Boss yenildi.') : seal.encounter.clearText });
       }
-      emit('kill', { name: enemy.name, boss: enemy.boss, x: enemy.x, z: enemy.z }); sound(enemy.boss ? 'bossDeath' : 'kill', { type: enemy.type, x: enemy.x, z: enemy.z });
+      emit('kill', { name: enemy.name, boss: enemy.boss, x: enemy.x, z: enemy.z }); sound(enemy.boss ? 'bossDeath' : 'kill', { type: enemy.type, x: enemy.x, z: enemy.z, deferLanding: !!enemy.model.root.userData.authoredMotion?.deathThudOwned });
       // The weight of the last death: the boss, or the final foe of a hall, falls in a beat of slow motion (every clock together).
       if (TUNE && !enemy.reserve) {
         if (enemy.boss) slowMotion(TUNE.FEEL.bossKillSlowmo);
@@ -2398,7 +2423,7 @@
     // The loader compiles/uploads these invisible meshes before the first hover or click; lazy calls remain valid.
     function prepareGraphics() {
       if (disposed) return false;
-      ensureMoveMark(); ensureTargetRing();
+      ensureMoveMark(); ensureTargetRing(); dazeFX.prepare();
       return true;
     }
     // A faint small ring on the floor where a click-to-move order is heading; it fades out once the hero arrives or the order ends.
@@ -2582,7 +2607,13 @@
     // The move an enemy is performing: its current beat, time into it, contact and end (s). A beat hands over
     // to the next one part-way through its follow-through so chained blows flow instead of snapping.
     function enemyBeat(enemy) {
-      const action = enemy.action; if (!action || !action.beats.length) return null;
+      const action = enemy.action; if (!action) return null;
+      if (!action.beats.length) {
+        const v = action.visualIntent;
+        return v ? { index: 0, t: action.age - v.start, contact: v.contact - v.start,
+          end: action.duration - v.start, pose: v.pose,
+          visualRelease: false, visualIntent: true } : null;
+      }
       const beats = action.beats; let i = 0;
       while (i < beats.length - 1) {
         const b = beats[i], n = beats[i + 1], handOver = b.strike + clamp((n.strike - b.strike) * .3, .08, .3);
@@ -2590,7 +2621,7 @@
       }
       const b = beats[i], n = beats[i + 1];
       const end = n ? b.strike + clamp((n.strike - b.strike) * .3, .08, .3) : action.duration;
-      return { index: i, t: action.age - b.start, contact: b.strike - b.start, end: end - b.start, pose: b.pose || action.pose || '' };
+      return { index: i, t: action.age - b.start, contact: (Number.isFinite(b.release) ? b.release : b.strike) - b.start, end: end - b.start, pose: b.pose || action.pose || '', visualRelease: Number.isFinite(b.release) && b.release < b.strike };
     }
     // Both actor types reach the authored contact pose on the frame that deals
     // damage. The visual wind-up is never allowed to lag a live hazard.
@@ -2641,6 +2672,7 @@
       // Same fields as before, written into the reused heroAnim object (pm === heroAnim) instead of a fresh spread every callback.
       const hs = pm;
       hs.time = simTime; hs.attack = wh ? 0 : playerAttackPose(atk); hs.whirl = wh ? clamp(wh.age / wh.duration, 0, 1) : -1; hs.whirlTime = wh ? wh.age : -1;
+      hs.whirlFirst = SPECIAL.first; hs.whirlGap = SPECIAL.gap; hs.whirlTicks = SPECIAL.ticks; hs.whirlDuration = wh ? wh.duration : SPECIAL.duration;
       hs.attackTime = atk && !wh ? atk.age : -1; hs.attackStrike = atk ? (atk.line === 'charge' ? .2 : atk.strike) : 0; hs.attackDuration = atk ? atk.duration : 0; hs.attackSerial = atk ? atk.serial : 0;
       if (BABA.Charge && BABA.Charge.poseState) BABA.Charge.poseState(hs);   // chargeTime / impactTime ... for the Hücum pose (charge.js)
       hs.hitAngle = player.hitAngle || 0; hs.hurtHeavy = !!player.hurtHeavy; hs.iframeEnd = (tuning() ? tuning().iframe : DODGE.iframe) / .48;
@@ -2659,7 +2691,7 @@
       hs.skillMove = atk && atk.skillMove || ''; hs.roarTier = player.roar ? ROAR.tier : 1; hs.skillTier = atk && atk.skill && atk.line === 'cleave' ? atk.tier : 0; hs.leapAir = LEAP_AIR;
       if (cheerAge >= 0) { cheerAge += dt; if (cheerAge > 1.5) cheerAge = -1; } if (reachAge >= 0) { reachAge += dt; if (reachAge > .55) reachAge = -1; } if (wakeAge >= 0) { wakeAge += dt; if (wakeAge > 1.4) wakeAge = -1; }
       hs.cheerTime = cheerAge; hs.reachTime = reachAge; hs.wakeTime = wakeAge;
-      hs.roarTime = player.roar ? player.roar.age : -1; hs.roarRelease = ROAR.release; hs.roarDuration = ROAR.duration; hs.roarSerial = player.roar ? player.roar.serial : 0; hs.roarStance = !!(player.roar && player.roar.stance);
+      hs.roarTime = player.roar ? player.roar.age : -1; hs.roarRelease = ROAR.release; hs.roarDuration = ROAR.duration; hs.roarSerial = player.roar ? player.roar.serial : 0; hs.roarWaves = ROAR.waves; hs.roarStance = !!(player.roar && player.roar.stance);
       // Poses are only needed for a callback that is drawn (a 200 Hz screen under a 120 FPS cap, or a 120 Hz screen under 60, runs the
       // simulation more often than it draws): the time of the skipped callbacks is handed to the next pose, so nothing is lost.
       const posing = game.drawing !== false;
@@ -2726,7 +2758,7 @@
           const beat = enemyBeat(enemy);
           const es = em;   // the enemy's reused animation state; same fields as the old per-callback spread
           es.time = simTime + enemy.index * .31;
-          es.beat = beat ? beat.index : 0; es.beatTime = beat ? beat.t : -1; es.beatContact = beat ? beat.contact : 0; es.beatEnd = beat ? beat.end : 0;
+          es.beat = beat ? beat.index : 0; es.beatTime = beat ? beat.t : -1; es.beatContact = beat ? beat.contact : 0; es.beatEnd = beat ? beat.end : 0; es.beatVisualRelease = !!(beat && beat.visualRelease); es.beatVisualIntent = !!(beat && beat.visualIntent);
           es.attackSerial = action ? action.serial : 0; es.rushTime = action && action.movement ? action.movement.duration : 0;
           es.lookYaw = enemy.active && !enemy.dead && !player.dead ? angleDifference(angleTo(enemy, player), enemy.yaw) : undefined;
           es.hitAngle = enemy.hitAngle || 0; es.hurtHeavy = !!enemy.hurtHeavy; es.deathKind = enemy.deathKind || ''; es.blockImpact = enemy.blockImpact || 0;
@@ -2742,7 +2774,7 @@
           enemy._leapPrev = leap;
           if (enemy.boss || enemy.radius > .6) {   // heavy bodies kick up dust at every footfall (and the boss's tread is felt in the camera)
             const ff = enemy.model.root.userData.footfall;
-            if (ff && ff.serial !== enemy._ff) { if (enemy._ff !== undefined && ff.serial > enemy._ff && d < 22) { fx('footstep', { x: ff.x, z: ff.z, y: .045, heavy: true }); if (enemy.boss && d < 12) emit('impact', { x: ff.x, z: ff.z, strength: .1 }); } enemy._ff = ff.serial; }
+            if (ff && ff.serial !== enemy._ff) { if (enemy._ff !== undefined && ff.serial > enemy._ff && d < 22 && !(enemy.dead && ff.kind === 'thud' && enemy.model.root.userData.authoredMotion?.deathThudOwned)) { fx('footstep', { x: ff.x, z: ff.z, y: .045, heavy: true }); if (enemy.boss && d < 12) emit('impact', { x: ff.x, z: ff.z, strength: .1 }); } enemy._ff = ff.serial; }
           }
           if (enemy._limb) enemy.model.root.userData.authoredMotion.refreshed = false;   // the limb hook shakes the spine after the pose
           enemy._lodPosed = true; enemy._lodX = enemy.x; enemy._lodZ = enemy.z; enemy._lodFace = enemy.face;
@@ -2886,6 +2918,9 @@
         const ring = new THREE.Mesh(ringGeo, new THREE.MeshBasicMaterial({ color: 0xffe3a0, transparent: true, depthWrite: false, toneMapped: false, fog: false, side: THREE.DoubleSide })); ring.rotation.x = -Math.PI / 2; ring.renderOrder = 7; g.add(ring);
         g.visible = false; group.add(g); return { g, stars, ring, e: null, age: 0 };
       }
+      // Prepare the same bounded mark pool under the loading cover.
+      // Stagger eligibility, actor assignment and visible animation stay lazy.
+      function prepare() { while (marks.length < POOL) marks.push(make()); return marks.length; }
       function update(dt) {
         let used = 0;
         for (const m of marks) if (m.e && !ok(m.e)) { m.e = null; m.g.visible = false; }
@@ -2909,7 +2944,7 @@
         }
       }
       function dispose() { if (!group) return; root.remove(group); group.traverse(o => { if (o.material) o.material.dispose(); }); if (ringGeo) ringGeo.dispose(); if (tex) tex.dispose(); group = null; marks.length = 0; tex = null; }
-      return { update, dispose, setLow(v) { low = !!v; }, marks };
+      return { update, prepare, dispose, setLow(v) { low = !!v; }, marks };
     })();
     function setQuality(settings) {
       dazeFX.setLow(settings && settings.quality === 'low');
