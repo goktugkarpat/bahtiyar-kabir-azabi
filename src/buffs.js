@@ -29,7 +29,7 @@
   document.addEventListener('mouseover', e => { const n = tipOf(e); if (n) { if (n !== tipNode) showTip(n); } else if (tipNode) hideTip(); });
   document.addEventListener('focusin', e => { const n = tipOf(e); if (n) showTip(n); });
   document.addEventListener('focusout', hideTip); document.addEventListener('scroll', hideTip, true);
-  const ALWAYS_SHORT = new Set(['stance', 'rage', 'flask', 'momentum']);   // these always show above the skill bar, like the war cry, however long they last
+  const ALWAYS_SHORT = new Set(['stance', 'rage', 'flask', 'momentum', 'perfect-opening', 'boss-opening']);   // these always show above the skill bar, like the war cry, however long they last
   const SHORT = 6;   // effects lasting at most this many seconds sit above the skill bar (bottom centre); longer ones in the top strip
 
   // effects: [{ id, name, icon, remaining, duration, tone, tip }]. The last entry for an id wins.
@@ -43,7 +43,7 @@
       node.className = 'timed-buff'; node.setAttribute('data-buff-id', id); node.setAttribute('role', 'listitem'); node.tabIndex = 0;
       icon.setAttribute('aria-hidden', 'true'); seconds.className = 'buff-seconds'; seconds.setAttribute('aria-hidden', 'true');
       node.appendChild(icon); node.appendChild(seconds); home.appendChild(node);
-      const slot = { node, icon, seconds, name: '', shown: -1, duration: -1, iconName: null, expiring: null, tone: null, pct: -1, home };
+      const slot = { node, icon, seconds, name: '', shown: -1, duration: -1, iconName: null, expiring: null, tone: null, pct: -1, tip: '', lang: '', home };
       slots.set(id, slot); return slot;
     }
     function update(effects) {
@@ -69,7 +69,7 @@
         let slot = slots.get(id);
         if (slot && slot.home !== home) { slot.home = home; home.appendChild(slot.node); }
         if (!slot) slot = add(id, home);
-        const shown = Math.ceil(effect.remaining), expiring = effect.remaining <= 3, pct = Math.max(0, Math.min(100, Math.round(effect.remaining / effect.rawDuration * 100)));
+        const shown = Math.ceil(effect.remaining), expiring = effect.remaining <= (id === 'perfect-opening' || id === 'boss-opening' ? 1 : 3), pct = Math.max(0, Math.min(100, Math.round(effect.remaining / effect.rawDuration * 100)));
         if (slot.iconName !== effect.icon) {
           slot.iconName = effect.icon; const art = effect.icon && !ICONS.has(effect.icon) && B.SkillArt;
           slot.icon.className = 'skill' + (effect.icon && !art ? ' ' + effect.icon : '');
@@ -79,10 +79,10 @@
         if (slot.tone !== effect.tone) { slot.tone = effect.tone; slot.node.dataset.tone = effect.tone; }
         if (slot.pct !== pct) { slot.pct = pct; slot.node.style.setProperty('--p', String(pct)); }
         slot.node.dataset.tipSide = home === shortContainer ? 'up' : 'down';
-        if (slot.name !== effect.name || slot.shown !== shown || slot.duration !== effect.duration) {
+        if (slot.name !== effect.name || slot.shown !== shown || slot.duration !== effect.duration || slot.tip !== effect.tip || slot.lang !== KabirI18n.lang) {
           const label = KabirI18n.t(effect.name) + (effect.tip ? ': ' + KabirI18n.t(effect.tip) : '') + ' ' + shown + KabirI18n.t(' sn kaldı') + '.';
           slot.node.dataset.tip = label; slot.node.setAttribute('aria-label', label);
-          slot.name = effect.name; slot.shown = shown; slot.duration = effect.duration;
+          slot.name = effect.name; slot.shown = shown; slot.duration = effect.duration; slot.tip = effect.tip; slot.lang = KabirI18n.lang;
         }
         if (slot.expiring !== expiring) { slot.expiring = expiring; slot.node.classList.toggle('expiring', expiring); }
       }
@@ -118,6 +118,9 @@
     const D = window.KabirI18n && window.KabirI18n.dictionary; if (!D) return;
     Object.assign(D, { 'Aldığın hasar azalır; yakındaki düşmana karşılık verirsin.': 'You take less damage and strike back at foes close to you.', 'Saldırdıkça can kazanır, vuruşların daha ağır iner, aldığın hasar azalır.': 'You heal as you strike, hit harder and take less damage.',
       'Vuruşların daha ağır iner ve gücün daha hızlı yenilenir.': 'Your blows land harder and stamina returns faster.', 'Kaçınma ya da hücumdan sonra vuruşların daha ağır iner.': 'After a dodge or a charge your blows land harder.', 'Şifa matarasıyla can yenilendi.': 'The flask has mended your wounds.',
-      'İksir': 'Elixir', 'Hız Kazanımı': 'Momentum', 'Süreli etki': 'Timed effect' });
+      'İksir': 'Elixir', 'Hız Kazanımı': 'Momentum', 'Süreli etki': 'Timed effect',
+      'Kusursuz Kaçınma': 'Perfect Dodge', 'Boss Fırsatı': 'Boss Opening',
+      'Kusursuz kaçınma sonrası 3 saniye boyunca vuruşların %25 daha fazla hasar verir.': 'After a perfect dodge, your blows deal 25% more damage for 3 seconds.',
+      'Kusursuz kaçınma bossu 2,6 saniye açık bırakır; ona %30 daha fazla hasar verirsin.': 'A perfect dodge exposes the boss for 2.6 seconds; you deal 30% more damage to it.' });
   })();
 })();

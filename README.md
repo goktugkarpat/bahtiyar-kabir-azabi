@@ -1,6 +1,6 @@
 # Kabir Azabı 🗡️🔥
 
-Bahtiyar'ın karanlık yolculuğunu anlatan, üç boyutlu, Türkçe anlatıcı sesli bir aksiyon rol oyunu. Dört bölüm boyunca zincirli mahkûmlarla, boğulmuş ölülerle, harabelerin bekçileriyle ve ocağın canavarlarıyla savaşırsın. Her bölümün sonunda bir boss vardır. Düşmanları keser, eşya toplar, seviye atlar, yetenek ağacından yeni güçler öğrenirsin. Atmosfer ağır ve karanlıktır; oyun fare ile oynanır, kol ve dokunmatik ekranı da destekler.
+Bahtiyar'ın karanlık yolculuğunu anlatan, üç boyutlu, Türkçe anlatıcı sesli bir aksiyon rol oyunu. Beş bölüm boyunca zincirli mahkûmlarla, boğulmuş ölülerle, harabelerin bekçileriyle ve ocağın canavarlarıyla savaşırsın. Her bölümün sonunda bir boss vardır. Düşmanları keser, eşya toplar, seviye atlar, yetenek ağacından yeni güçler öğrenirsin. Atmosfer ağır ve karanlıktır; oyun fare ile oynanır, kol ve dokunmatik ekranı da destekler.
 
 **Yetişkinler içindir (18+). Kan, yoğun şiddet ve korku içerir.**
 
@@ -44,6 +44,9 @@ Ana ekranda **Yolculuğa başla** (kayıt varsa **Yolculuğa devam**) düğmesin
 
 - Düşmanlar vurmadan önce yerde bir **uyarı işareti** gösterir. **Altın kenar** sıradan darbe, **kızıl kenar** ağır darbedir; ağır darbeden mutlaka kaçmalısın.
 - **Kaçınma** yuvarlanmanın başında seni korur ve dayanıklılık harcar. Yetenekler de dayanıklılık harcar ve bekleme süreleri vardır.
+- Kalkanlı **Mezar Muhafızı** arkadan yapılan doğrudan yakın temas vuruşlarından **%15 fazla hasar** alır; önden kalkan savunması sürer.
+- **Kusursuz kaçınma** harcadığın dayanıklılığın %75’ini geri verir, kaçınma zincirini sıfırlar ve **3 saniye %25 fazla vuruş hasarı** sağlar. Boss’a karşı uygun zamanlamada ek 14 dayanıklılık kazanırsın; boss **2,6 saniye %30 fazla hasar** alır. İki etki, sağlık çubuğunun üstündeki mevcut ikon sırasında kalan süreyle görünür; fareyle üzerlerine gelince açıklamaları açılır.
+- Hücumda gerçek temas noktasında kısa bir darbe parlaması ve tok çarpma sesi oluşur; yerdeki son darbenin sesiyle aynı anda üst üste binmez.
 - Öldürdüğün bazı düşmanlar yere **kızıl sağlık küresi** bırakır; içinden geçince biraz can kazanırsın. Küreler kaydedilmez.
 - Geri iten saldırı yoktur: bağırmalar, kasırga ve hücum düşmanı yerinden oynatmaz, **sersemletir**. Sersemleyen düşman sendeleyerek durur ve başının üstünde altın bir halka döner. Çengel ise düşmanı kendine çeker.
 - Dört **şifa matarası** taşırsın (Q). Yemin taşında dolar.
@@ -73,7 +76,7 @@ Kalıcı ödüller (yetenek puanı, iksir hakkı, can, hasar) sonraki bölümler
 
 İkinci bölümün ikinci yarısından itibaren düşmanların sağlığı, hasarı ve saldırı temposu kademeli artar; üçüncü ve dördüncü bölüm bu baskıyı sürdürür. Son üç boss özel saldırılarını daha sık kullanır; saldırı uyarıları ve kaçınma fırsatları korunur. İki özel saldırıyı art arda kullanabilir, ardından normal saldırıya dönerek karşılık verme fırsatı bırakırlar. İkinci, üçüncü ve dördüncü boss aralıklı olarak yakın ve uzak saldıran yardımcılar çağırır; aynı anda Normal/Zor’da en çok iki, Kolay’da bir yardımcı bulunur. Çağrılar büyük alan mekanikleriyle üst üste yığılmaz. Çancı’nın çapa kombosu ve medcezirin sonunda çöken merkez, tek kaçınmadan sonra yerinde kalmayı cezalandırır.
 
-Boss'u yenince bölüm biter. İlk üç bölümün sonunda oyun kendiliğinden sonraki bölümü yükler; karakterin, çantan ve yeteneklerin sonraki bölüme taşınır. Dördüncü bölümden sonra yolculuk sona erer ve **Yeni yolculuk** başlatabilirsin.
+Boss'u yenince bölüm biter. İlk dört bölümün sonunda oyun kendiliğinden sonraki bölümü yükler; karakterin, çantan ve yeteneklerin sonraki bölüme taşınır. Beşinci bölümden sonra yolculuk sona erer ve **Yeni yolculuk** başlatabilirsin.
 
 ### Yemin taşı, ölüm ve kayıt
 
@@ -83,20 +86,19 @@ Boss'u yenince bölüm biter. İlk üç bölümün sonunda oyun kendiliğinden s
 
 ## Karakter gelişimi
 
-- Düşman öldürerek tecrübe kazanırsın; en yüksek seviye **13**tür. Beklemekle tecrübe kazanılmaz.
+- Düşman öldürerek tecrübe kazanırsın; en yüksek seviye **9**dur. Her seviye atlayışında **1 yetenek puanı** kazanırsın; seviyelerden toplam 8 puan gelir. Tecrübe ödülleri ve yetenek puanı kazanılan eşikler korunur. Beklemekle tecrübe kazanılmaz.
 - **I** ile **Karakter ve çanta**, **T** ile **Yetenek ağacı** ekranı açılır (aynı pencerede iki sekme).
 
 ### Yetenek ağacı
 
-Ağaç **6 yol × 5 sıra, toplam 26 düğümden** oluşur; tek ekranda görünür, yakınlaştırmaya gerek yoktur. Her düğüm 1 yetenek puanıdır: 12 puan seviyelerden (en çok 13. seviye), en çok 5 puan da yan görevlerden gelir. Yani bir yolculukta düğümlerin yaklaşık üçte ikisini alabilirsin. Bir düğüme çift tıklayarak (ya da iki kez dokunarak) öğrenirsin; üstündeki "Puanı geri al" ya da "Yolu sıfırla" ile puanlar ücretsiz geri verilir (savaş dışında).
+Ağaç **6 yol, 4 sıra, toplam 29 düğümden** oluşur; tek ekranda görünür, yakınlaştırmaya gerek yoktur. Her düğüm 1 yetenek puanıdır: 8 puan seviyelerden (en çok 9. seviye), en çok 5 puan da yan görevlerden gelir. Toplam 13 puan, aynı anda alınabilen bütün seçeneklerin 17 puanlık bütçesinden küçüktür; uzmanlaşırken seçim yapman gerekir. Görevden gelen puan ayrı bir **+1 Yetenek Puanı** kartıyla gösterilir. Karakter portresinin yanındaki puan düğmesi kullanılmamış puanları hatırlatır ve yetenek ekranını açar. Bir düğüme çift tıklayarak (ya da iki kez dokunarak) öğrenirsin; üstündeki "Puanı geri al" ya da "Yolu sıfırla" ile puanlar ücretsiz geri verilir (savaş dışında).
 
 | Sıra | İçerik |
 |---|---|
-| I · Uyanış | Altı aktif yetenek: Mezar Yaran, Kan Nidası, Zincir Kasırgası, Kül Hücumu, Kor Mührü, Ölüm Çanı |
-| II · Mühür | Her yeteneğe bir mühür (değiştirici) |
-| III · Beden | Her yolun kendine has bir pasifi |
-| IV · Dönüşüm | Dört eski yolun son hâli (Kabir Balyozu, Kıyamet Narası, Son Hüküm, Mahşer Hücumu; yuvadaki yeteneğin yerine geçer) ve Kor ile Çürüme yollarının pasifleri |
-| V · Kilit taşı | Bedeli olan iki güçlü seçenek (Cellat, Kan Yemini); yolculukta yalnız biri alınır |
+| I · Uyanış | Altı aktif yetenek: Mezar Yaran, Kan Nidası, Zincir Kasırgası, Kül Hücumu, Çengelli Çekiş, Demir Duruş |
+| II · Dönüşüm | Her aktif yetenek için iki alternatif geliştirme; aynı yolun yalnız bir geliştirmesi alınabilir |
+| III · Beden | Dört karşılıklı çift içinde sekiz pasif; her çiftten yalnız biri alınabilir |
+| IV · Kilit taşı | Bedeli olan üç güçlü seçenek: Cellat, Kan Yemini, Demir Yemin; yalnız biri alınabilir |
 
 Önerilen yollar ağacın üstünde durur; birine tıklayıp önizleyebilir, "Bu yolu uygula" ile otomatik öğrenebilirsin. Eski kayıtlardaki kaldırılmış düğümlerin puanı kendiliğinden geri verilir. Her yeteneğin hasar, alan, sersemletme, dayanıklılık bedeli ve bekleme süresi ağaç ekranında yazar.
 
@@ -108,6 +110,7 @@ Ağaç **6 yol × 5 sıra, toplam 26 düğümden** oluşur; tek ekranda görün�
 - Çanta **nadirlik, ardından aynı kalitedeki güç** sırasıyla gösterilir; yeniden açıldığında ilk sayfaya dönersin. Eşya seçimi ve kayıtların korunur.
 - Zırhların gövde, omuz, kol, başlık ve çizme biçimleri farklı görsel aileler taşır: barbar derisi, demir muhafız, deniz nöbetçisi, zincir örgü, yasçı, ocak, kemik ritüel ve lamellar zırhlar. Parçaları serbestçe karıştırabilirsin; görsel aileler ek bir set bonusu vermez.
 - Düşen eşyalar mümkün olduğunca elindekilerden daha iyi olanlara yönelir.
+- Daha az ve daha değerli ganimet: sıradan düşmanların temel eşya şansı **%5**, seçkinlerin **%18**. İlk bölümde kuşanılabilir beş donanım yuvası henüz dolmadıysa başlangıçtaki %9 / %28 şansları korunur. Yirmi kuru öldürmeden sonra uygun bir eşya varsa koruma devreye girer; bu yüzden toplam eşya azalışı temel oranlardan daha küçük olur. İkinci bölümde yeterli tecrübeyle açılmış yeşil eşya havuzu varsa beyazlar seçilmez; üçüncü bölümden itibaren yeterli tecrübede nadir ve epik eşyalar öne çıkar. Kuşanma şartları, gerçek yükseltme denetimi ve garantili boss / görev ödülleri korunur.
 
 ## Bölümler
 

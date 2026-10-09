@@ -596,7 +596,7 @@
     sample('gear', { vol: .2 * b, rate: rand(.85, 1), delay: .012 });
     if (dmg >= 18) { sample('hitSub', { vol: .35 * b, send: .1 }); sample('hitCrack', { vol: .28 * b, rate: .8, delay: .006 }); muffle(dmg >= 28 ? 700 : 1300, .08, .35, .05); }
   };
-  // Hücum wind-up: a quiet, short rising breath and cloth rustle (src/charge.js); the dash itself uses 'dodge', the impact 'specialHit' / 'slam'.
+  // Hücum wind-up: quiet breath and cloth; src/charge.js schedules each path contact / landing from collision, never from the press.
   H.chargeWind = (o, k) => {
     const t = now(), tier = o.tier || 1; swell(t, .13 + .05 * tier, (.1 + .04 * tier) * k, { f0: 160 - 30 * tier, f1: 900 - 120 * tier, send: .08 }); sample('cloth', { vol: .3 * k, rate: .8 });
     if (tier === 2) { burst(t, .16, .07 * k, 3200, { q: 1.5, attack: .1, send: .1 }); tone(t, 90, .2, .06 * k, { type: 'sawtooth', bend: 1.6, lp: 420, attack: .15, send: .1 }); }
@@ -619,9 +619,15 @@
       thud(t + .04, { f0: 70, f1: 26, dur: .5, vol: .5 * k, send: .25 });
     }
   };
+  // A dry, short body-contact boom. Several targets in one sweep share one beat (charge.js); no long slam tail on the way through.
+  H.chargeContact = (o, k) => {
+    const t = now(), tier = o.tier || 1, at = { x: o.x, z: o.z }, s = spatial(o.x, o.z);
+    thud(t, { f0: 92 - 8 * tier, f1: 30, dur: .16, vol: .65 * k * s.gain, pan: s.pan, send: .10 });
+    sample('thump', { vol: .5 * k, at, rate: .85, prio: 1 }); sample('hitCrack', { vol: .22 * k, at, rate: .8, lp: 2200 });
+  };
   // Impact layers: I the old iron crack and floor thud; II + stone fissures cracking and a molten ring; III a deep, long boom with tumbling rubble.
   H.chargeImpact = (o, k) => {
-    const tier = o.tier || 1, t = now(), at = { x: o.x, z: o.z }; H.specialHit(o, k * (tier === 3 ? 1.1 : .95));
+    const tier = o.tier || 1, t = now(), at = { x: o.x, z: o.z }; H.specialHit(o, k * (tier === 3 ? 1.1 : .95), true);
     // identity tails (offline render showed I and II nearly identical): I Kül = a dry ash crumble settling; II Kor = molten hiss with ember crackle
     if (tier === 1) { sample('debris', { vol: .5 * k, at, rate: 1.15, delay: .06 }); burst(t + .04, .7, .09 * k, 900, { q: .5, f1: 260, attack: .08, send: .25 }); }
     if (tier === 2) {
@@ -900,11 +906,14 @@
     sample('chain', { vol: .9 * k, at, rate: .85, prio: 1 }); sample('chain', { vol: .6 * k, at, rate: 1.05, delay: w * .4 });
     swell(t, w - .03, .12 * k, { f0: 220, f1: 1400, send: .15 }); sample('effort', { vol: .3 * k, rate: .8, delay: .05, send: .1 });
   };
-  H.specialHit = (o, k) => {
+  H.specialHit = (o, k, charge) => {
     const t = now(), at = { x: o.x, z: o.z };
     whoosh(t - .06, { dur: .22, peak: .6, f0: 400, f1: 2600, f2: 500, q: 1.4, vol: .6 * k, low: 200 });
     sample('metal', { vol: .9 * k, at, rate: .7, prio: 1 }); sample('chain', { vol: .8 * k, at, rate: .8, delay: .02 }); sample('stomp', { vol: .8 * k, at, rate: .8, delay: .03 });
-    thud(t + .02, { f0: 72, f1: 26, dur: .6, vol: 1 * k, send: .3 }); burst(t + .02, .35, .22 * k, 420, { q: .5, f1: 120, send: .3 });
+    const landing = charge === true, atT = t + (landing ? 0 : .02);
+    // Mahşer has its own deeper boom in chargeImpact; other landings get the bass at the exact contact instant.
+    if (!landing || o.tier !== 3) thud(atT, { f0: landing ? 64 : 72, f1: landing ? 22 : 26, dur: landing ? .45 : .6, vol: 1 * k, send: .3 });
+    burst(atT, .35, .22 * k, 420, { q: .5, f1: 120, send: .3 });
     if (o.hits) { sample('debris', { vol: .5 * k, at, delay: .08 }); sample('flesh', { vol: .6 * k, at, rate: .8, delay: .04 }); }
     ring(t + .03, { f: 174, partials: [1, 2.4, 3.9], decay: 1.0, vol: .04 * k, send: .5 });
   };

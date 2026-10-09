@@ -9,6 +9,8 @@
   // Frame-rate independent turn toward b along the shortest way round (k = how fast, per second).
   const dampAngle = (a, b, k, dt) => a + angleDifference(b, a) * (1 - Math.exp(-k * dt));
   const finitePoint = p => p && Number.isFinite(p.x) && Number.isFinite(p.z);
+  // The guard's carried shield leaves a 120-degree rear sector exposed to direct physical contact.
+  const SHIELD_REAR = Object.freeze({ angle: Math.PI * 2 / 3, damage: 1.15 });
   // One shared resource contract for combat, HUD and control hints. Weapons leave room for rolls and skills.
   const RESOURCE_SCALE = 100 / 110;
   const RESOURCES = Object.freeze({
@@ -160,7 +162,7 @@
       start, update, restart, newCampaign: restart, respawn, interact, dispose, setQuality, setDifficulty, difficulty: 'normal', toTitle, beginRenderTraversal, endRenderTraversal, prepareGraphics, propTargets: () => mech && mech.pickTargets ? mech.pickTargets() : noPropTargets
     };
     game.hero = hero;   // (ajan:secondary) QA / tooling handle
-    game.qaHurt = (e, dmg, heavy, face, combo) => hurtEnemy(e, dmg, !!heavy, face, { combo: combo | 0, face, heavy: !!heavy, gained: 99 });   // (ajan:chars2b) QA handle: a real player blow (light / heavy / finisher via combo 2)
+    game.qaHurt = (e, dmg, heavy, face, combo) => hurtEnemy(e, dmg, !!heavy, face, { combo: combo | 0, face, heavy: !!heavy, gained: 99, physicalContact: true });   // (ajan:chars2b) QA handle: a real player blow (light / heavy / finisher via combo 2)
     let cheerAge = -1, reachAge = -1, wakeAge = -1;   // (ajan:hero3) level-up fist-raise / interaction reach gestures (seconds since start, -1 = idle)
     game.cheer = () => { cheerAge = 0; }; game.reach = () => { reachAge = 0; }; game.wake = () => { wakeAge = 0; };
     const skillKeys = ['heavy', 'special', 'rage', 'fourth'];   // right mouse, key 1, key 2, key 3 (slot index = loadout index)
@@ -169,7 +171,7 @@
     const skillCooldowns = Object.create(null);
     let roarWaves = null;   // pending follow-up rings of the tier-3 war cry
     const progression = BABA.Progression.create({ chapter, emit, groundLoot:true });
-    let appliedLevel = progression.level;
+    let appliedPowerLevel = progression.powerLevel;
     game.progression = progression;
     // Talent tree 4 (src/talent-runtime.js): bleed, Çengelli Çekiş + Demir Duruş (barbarian actives), passives and keystones.
     const talents = BABA.TalentRuntime ? BABA.TalentRuntime.create({ game, player, enemies, progression, root, fx, sound, emit, groundY: (x, z) => world.effectHeightAt ? world.effectHeightAt(x, z, .6) : .06,
@@ -205,7 +207,7 @@
     game.syncProgression = syncProgression;
     game.criticalChance = .08; game.criticalMultiplier = 1.5;
     game.useSkill = useSkill;
-    game.debugHurt = (e, dmg, heavy, face) => hurtEnemy(e, dmg, !!heavy, face == null ? angleTo(player, e) : face, { combo: heavy ? 0 : 1, face: face == null ? angleTo(player, e) : face });   // test hook: a real hit through the whole pipeline (QA frame sequences)
+    game.debugHurt = (e, dmg, heavy, face) => hurtEnemy(e, dmg, !!heavy, face == null ? angleTo(player, e) : face, { combo: heavy ? 0 : 1, face: face == null ? angleTo(player, e) : face, physicalContact: true });   // test hook: a real hit through the whole pipeline (QA frame sequences)
     game.saveProfileChoices = saveProfileChoices;
     game.skills = () => skillKeys.map((key, slot) => {
       const skill = selectedSkill(slot);
@@ -252,8 +254,8 @@
       if (talents && !BABA.QuestSide) { player.maxFlasks = talents.maxFlasks(4); player.flasks = Math.min(player.flasks, player.maxFlasks); }   // with quest-side.js the flask capacity is set there (it adds the talent delta)
       player.damageMultiplier = stats.damageMultiplier; player.defense = stats.defense;
       // Preserve the original effective wounds and growth: 100 is the health unit, not a loss of gear strength.
-      const levelHeal = progression.level > appliedLevel ? Math.max(0, stats.maxHp - wasMax) : 0;
-      player.hp = fill ? 100 : Math.min(100, (woundHp + levelHeal) * 100 / stats.maxHp); appliedLevel = progression.level;
+      const levelHeal = progression.powerLevel > appliedPowerLevel ? Math.max(0, stats.maxHp - wasMax) : 0;
+      player.hp = fill ? 100 : Math.min(100, (woundHp + levelHeal) * 100 / stats.maxHp); appliedPowerLevel = progression.powerLevel;
       if (hero.setEquipment) hero.setEquipment({ weaponType: stats.weaponType, weaponId: stats.weaponId, headId: progression.itemForSlot('head')?.id || null, chestId: progression.itemForSlot('chest')?.id || null, handsId: progression.itemForSlot('hands')?.id || null, bootsId: progression.itemForSlot('boots')?.id || null });
       emit('progression', { state: progression, stats });
     }
@@ -300,6 +302,8 @@
         damage(enemy, amount, opts) {
           if (!enemy || enemy.dead) return null;
           if (!enemy.active) { enemy.active = true; enemy.activated = true; if (enemy.encounter) enemy.encounter.activated = true; }
+          // Only the body collision is physical contact; the path wake and expanding slam rings are area damage.
+          attack.physicalContact = !!(opts && opts.primary && !opts.ring && !opts.second);
           return hurtEnemy(enemy, Math.round(amount * (player.rageTime > 0 ? 1.48 : 1)), true, opts && Number.isFinite(opts.face) ? opts.face : attack.face, attack);
         },
         stun(enemy, seconds) { stunEnemy(enemy, seconds, 'heavy'); },
@@ -1739,15 +1743,19 @@
       damage = Math.max(1, Math.round(damage * (player.damageMultiplier || 1) * (critical ? game.criticalMultiplier : 1) * (enemy.boss ? 1 + questBenefit('bossDamage', .20) : 1)));
       { const P = tuning(); if (P) damage = Math.round(damage * P.playerDmg); else if (game.difficulty !== 'hard') damage = Math.round(damage * 1.18); }
       // Opening after a last-moment roll: harder blows that stagger like heavy ones (bosses only take the damage).
+      const toPlayer = angleTo(enemy, player), hitAngle = angleDifference(toPlayer, enemy.face), fromFront = Math.abs(hitAngle) < 1.4;
+      // Reuse the shield's facing test once per target. Bursts, projectiles and DoT never carry this contact flag.
+      const rearContact = enemy.type === 'guard' && !!(attack && attack.physicalContact) && Math.abs(hitAngle) >= SHIELD_REAR.angle && (player.x !== enemy.x || player.z !== enemy.z);
+      if (rearContact) damage = Math.round(damage * SHIELD_REAR.damage);
+      // Opening after a last-moment roll: harder blows that stagger like heavy ones (bosses only take the damage).
       const opening = player.opening > 0 && !!ECON && !!attack;
       // Blows that land refill the stamina orb a little (combat-tuning.js ECONOMY.HIT); shield-blocked blows do not.
-      if (ECON && attack && !(enemy.shield && Math.abs(angleDifference(angleTo(enemy, player), enemy.face)) < 1.4 && !heavy)) {
+      if (ECON && attack && !(enemy.shield && fromFront && !heavy)) {
         const H = ECON.HIT, gain = attack.whirl ? H.whirl : attack.skill || attack.line ? H.skill : heavy ? H.heavy : H.light, room = H.cap - (attack.gained || 0);
         if (room > 0) { const g = Math.min(room, gain + (enemy.hp <= damage ? H.kill : 0)); attack.gained = (attack.gained || 0) + g; player.stamina = Math.min(player.maxStamina, player.stamina + g); staminaMark = player.stamina; }
       }
       if (opening) damage = Math.round(damage * ECON.PERFECT.damage);
       if (attack) trackAttackTarget(enemy);
-      const toPlayer = angleTo(enemy, player), fromFront = Math.abs(angleDifference(toPlayer, enemy.face)) < 1.4;
       const finisher = !!(attack && !heavy && attack.combo === 2), away = angleTo(player, enemy);
       const blocked = enemy.shield && fromFront && !heavy;
       // The executioner braces through his own wind-ups: blows glance off his plate (sparks) until his swing is spent.
@@ -1756,7 +1764,7 @@
       if (braced) damage = Math.round(damage * .55);
       const height = (enemy.model.height || 2.2) * (enemy.boss ? .42 : .5), contact = {
         x: enemy.x - Math.sin(away) * enemy.radius * .65, y: Math.min(1.75, height), z: enemy.z - Math.cos(away) * enemy.radius * .65 };
-      enemy.hitAngle = angleDifference(toPlayer, enemy.face); enemy.hurtHeavy = heavy || finisher;
+      enemy.hitAngle = hitAngle; enemy.hurtHeavy = heavy || finisher;
       if (blocked) {
         damage = Math.max(2, Math.round(damage * .18)); sound('block', { enemy: true });
         push(enemy, away, FEEL.knock.shield); enemy.blockImpact = 1;
@@ -1845,7 +1853,6 @@
           perfectCd = ECON.PERFECT.cooldown; player.opening = ECON.PERFECT.opening; dodgeChain = 0; lastRollAt = -99;
           player.stamina = Math.min(player.maxStamina, player.stamina + lastRollCost * ECON.PERFECT.refund); staminaWait = 0; staminaMark = player.stamina;
           slowMotion(ECON.PERFECT.slowmo); sound('parry', { x: player.x, z: player.z, volume: .55 });
-          flashRing(player.x, player.z, 1.6, 0xe8c27a, .45);
           game.perfectDodges = (game.perfectDodges || 0) + 1;
         }
         if (!hazard.harmless && !hazard.periodic && (evadeCooldown <= 0 || perfect)) { evadeCooldown = .35; fx('evade', { x: player.x, y: 1, z: player.z, face: player.face, perfect }); emit('evade', { x: player.x, z: player.z, attack: hazard.attack, perfect }); }
@@ -2049,7 +2056,7 @@
       if (player.stamina < SPECIAL.cost) return rejectAction('special', 'stamina',
         KabirI18n.t('Girdap için ') + Math.round(SPECIAL.cost) + KabirI18n.t(' dayanıklılık gerekiyor (şu an ') + Math.floor(player.stamina) + ').', { cost: SPECIAL.cost, have: player.stamina });
       player.attack = {
-        heavy: true, special: true, whirl: true, combo: 0, age: 0, duration: SPECIAL.duration, strike: 99, hit: false, face: player.face, damage: SPECIAL.damage,
+        heavy: true, special: true, whirl: true, physicalContact: true, combo: 0, age: 0, duration: SPECIAL.duration, strike: 99, hit: false, face: player.face, damage: SPECIAL.damage,
         radius: SPECIAL.radius, arc: Math.PI * 2, moveUntil: 0, serial: ++attackSerial, queued: null, lunge: 0, lungeLead: .1, lunged: 1,
         whooshAt: 9, whooshed: true, chainAt: SPECIAL.duration, ticks: 0
       };
@@ -2158,7 +2165,7 @@
       const target = foe || frontTarget(player.face, 4.4, .75), want = heavy ? FEEL.heavyLunge : FEEL.lunge[combo];
       const room = target ? Math.max(0, distance(player, target) - target.radius - (hero.radius || .46) - .45) : want;
       player.attack = {
-        heavy, combo, weaponType, contactScale: heavy ? 1 : handling.contact, age: 0, duration, strike,
+        heavy, combo, weaponType, physicalContact: true, contactScale: heavy ? 1 : handling.contact, age: 0, duration, strike,
         hit: false, face: player.face, damage: heavy ? 60 : damages[combo], radius: heavy ? 3.65 : handling.radius + combo * .12,
         arc: heavy ? 3.65 : handling.arcs[combo], moveUntil: heavy ? .24 : .13, serial: ++attackSerial, queued: null,
         lunge: stand ? 0 : Math.min(want, room), foe, stand, lungeLead: heavy ? FEEL.heavyLungeLead : FEEL.lungeLead[combo], lunged: 0,

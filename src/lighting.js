@@ -10,7 +10,7 @@
   // ---- GRAFİK AYARLARI (polish round: "biraz daha az karanlık"). Old (v304) behaviour = 1 for every multiplier. Change here only. ----
   var LOOK_TUNE = {
     exposureLift: 1.18,  // multiplies every room's / the Parlaklık slider's exposure (~+0.25 stop); slider 100 % stays the default
-    ambientLift: 1.08,   // hemisphere (ambient) light floor: floors and walls away from torches keep a bit more body
+    ambientLift: 1.22,   // existing diffuse fill: reveal paths and objects in every chapter without raising fire/exposure
     mistGain: .85,       // low mist layer thickness (the haze that greys the floor)
     fogGain: .9          // distance fog density
   };
@@ -827,7 +827,7 @@
       // Diffuse fill reveals the stone and silhouettes without lifting emissive fire.
       // Outdoor rooms receive more sky bounce; enclosed foundry halls keep their contrast.
       var ch = B.ActiveChapter || 1, wing = ch === 4 && Math.abs(p.x) > 20;
-      var diffuse = ch === 2 ? 1.16 : ch === 5 ? 1.12 : ch === 4 ? (wing ? 1.20 : 1.14) : 1.14;
+      var diffuse = ch === 2 ? 1.26 : ch === 5 ? 1.12 : ch === 4 ? (wing ? 1.20 : 1.14) : 1.14;   // Coast paths need a little more sky fill
       var bounce = ch === 2 ? 1.16 : ch === 5 ? 1.12 : ch === 4 ? (wing ? 1.22 : 1.15) : 1.15;
       var edge = ch === 2 || ch === 5 ? .91 : wing ? .92 : ch === 4 ? 1 : .95;
       // Fog, ambient and key/rim.

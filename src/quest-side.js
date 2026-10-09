@@ -241,7 +241,7 @@
     function grant(key, reward) {
       var p = prog(); if (!p || !p.grantQuest || !reward) return null;
       var r = p.grantQuest('c' + chapter + ':' + key, reward);
-      var g = B.app && B.app.game; if (r && (reward.hp || reward.damage) && g && g.syncProgression) g.syncProgression(false);
+      var g = B.app && B.app.game; if (r && (r.xp || r.hp || r.damage) && g && g.syncProgression) g.syncProgression(false);
       return r;
     }
     function boons() { var p = prog(); return p && p.boons ? p.boons() : { points: 0, flasks: 0, hp: 0, damage: 0, claimed: [] }; }

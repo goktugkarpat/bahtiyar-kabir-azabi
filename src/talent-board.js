@@ -226,7 +226,7 @@
         (rival ? '<p class="tb-rule excl">✕ ' + esc((en() ? 'Or: ' : 'Ya da: ') + rival.name) + '</p>' : '');
     }
     extra += archNote(sel);
-    const canRefund = known && T.canRefund(learned, sel.id, state.level, bonus);
+    const canRefund = known && T.canRefund(learned, sel.id, state.level, bonus, state.powerLevel);
     const status = known ? '<p class="tb-status ok">' + esc(t('Öğrenildi')) + '</p>' : a.canLearn ? '<p class="tb-status go">' + esc(t('Öğrenilebilir · 1 puan')) + '</p>' : '<p class="tb-status no">' + LOCK + esc(a.reason) + '</p>';
     const learnBtn = known ? '' : '<button type="button" class="tb-learn" data-char="unlock" data-skill="' + sel.id + '" ' + (a.canLearn ? '' : 'disabled') + '>' + esc(t('Öğren')) + '</button>';
     const refund = known ? '<button type="button" class="tb-refund" data-char="refund" data-skill="' + sel.id + '" ' + (!canRefund || inCombat ? 'disabled' : '') + ' title="' + esc(inCombat ? t('Savaşın ortasında yol değiştirilemez.') : !canRefund ? t('Bu düğüme ya da harcanan puan sayısına bağlı başka düğümler var; önce onları geri al.') : t('Puanı ücretsiz geri al')) + '">' + esc(t('Geri al')) + '</button>' : '';
@@ -279,7 +279,7 @@
       const pre = T.presets.find(x => x.id === button.dataset.preset); if (!pre || !state) return { ok: false, reason: t('Böyle bir yol yok.') };
       if (game && game.talents && game.talents.inCombat()) return { ok: false, reason: t('Savaşın ortasında yol değiştirilemez.') };
       if (state.learned.length) state.respec();
-      const order = T.validate(pre.nodes, state.level, state.boons ? state.boons().points || 0 : 0);
+      const order = T.validate(pre.nodes, state.level, state.boons ? state.boons().points || 0 : 0, undefined, state.powerLevel);
       for (const id of order) state.unlock(id);
       const actives = order.filter(isActive), top = [];
       for (const id of actives) { const sk = B.Progression.skills.find(k => k.id === id); const i = top.findIndex(o => B.Progression.skills.find(k => k.id === o).line === sk.line); if (i >= 0) top[i] = id; else top.push(id); }

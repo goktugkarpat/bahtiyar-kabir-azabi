@@ -8,10 +8,10 @@
      enemies  array of { x, z, radius, dead, boss?, active?, push? }
      target   { x, z }   cursor floor point, already clamped by the caller to <= BABA.Charge.range(tier)  (clamped again here, defensively)
      fx(name, data)      effect dispatcher (optional; this module draws its own visuals through the world layer built in effects.js)
-     sound(name, pos)    used names (pos = { x, z, tier, ... }): 'chargeWind' (wind-up swell), 'chargeRoar' (tier 3 roar), 'chargeDash' (dash layers per tier), 'chargeImpact' (slam, per tier), 'chargeSlam2' (tier 3 second slam)
-     emit(name, data)    optional; called as emit('charge', { phase: 'wind'|'dash'|'impact'|'slam2'|'end', tier, x, z }) for HUD / QA
+     sound(name, pos)    used names (pos = { x, z, tier, ... }): 'chargeWind' (wind-up swell), 'chargeRoar' (tier 3 roar), 'chargeDash' (dash layers per tier), 'chargeContact' (short path-contact thud), 'chargeImpact' (slam, per tier), 'chargeSlam2' (tier 3 second slam)
+     emit(name, data)    optional; called as emit('charge', { phase: 'wind'|'dash'|'contact'|'impact'|'slam2'|'end', tier, serial, x, z }) for HUD / QA
      canHit(enemy)       optional combat eligibility predicate: walls, seals and underground bodies; checked before targeting, stopping, damage and control
-     damage(enemy, amount, opts)   opts = { kind: 'charge', primary: bool, path: bool, ring: bool, second: bool, heavy: true, face }
+     damage(enemy, amount, opts)   returns null for a rejected hit, otherwise { contact?: {x,y,z}, ... }; opts = { kind: 'charge', primary: bool, path: bool, ring: bool, second: bool, heavy: true, face }
      stun(enemy, seconds)
      push(enemy, dx, dz, force)    dx, dz = unit direction, force = metres of shove (the caller maps it to its own push model)
      now                 seconds (optional)
@@ -322,7 +322,8 @@ void main(){
     }
     function struck(x, y, z, face, strong) {   // ember burst on a struck enemy (blood comes from the damage path itself)
       for (let i = 0, m = sc((strong ? 12 : 6) + 2 * tier); i < m; i++) particle(x, y, z, i % 2 ? 1 : 4, i % 3 ? pal.emberHot : pal.spark, strong ? 1.2 : .8, face + rr(-1.4, 1.4), .8);
-      flashFx(x, y, z, strong ? 1.2 : .8, color.setRGB(pal.flash[0], pal.flash[1], pal.flash[2]), .07, 0);
+      flashFx(x, y, z, strong ? 1.45 : .9, color.setRGB(pal.flash[0], pal.flash[1], pal.flash[2]), .09, 0);
+      if (strong && ringFx) ringFx(x, z, 1.05, .22, pal.hot);   // short contact pulse, using the existing four-ring pool
     }
     // a foe bowled aside by the dash: tier II sparks and dust, tier III a harder hurl with debris, violet fire and a flash
     function shove(x, z, face, y) {
@@ -385,16 +386,27 @@ void main(){
   const POOL = [];
   function newInst() {
     return { done: true, ctx: null, st: null, t: 0, phase: 0, face: 0, dx: 0, dz: 0, sx: 0, sz: 0, dist: 0, traveled: 0, speed: 0, dashPlanned: 0, dashT: 0, duration: 0,
-      primary: null, impacted: false, impactT: 0, impactX: 0, impactZ: 0, second: false, slam2T: 0, invulnerable: false, noKnockback: true, serial: 0, hitSet: new Set(), ringSet: new Set(),
+      primary: null, impacted: false, impactT: 0, impactX: 0, impactZ: 0, second: false, slam2T: 0, invulnerable: false, noKnockback: true, serial: 0, contactSoundT: -1e9, contactPending: false, contactX: 0, contactZ: 0, hitSet: new Set(), ringSet: new Set(),
       pose: POSE, update: null, cancel: null };
   }
-  function evt(i, name, x, z) { const c = i.ctx; if (c && c.emit) try { c.emit('charge', { phase: name, tier: i.st.tier, x, z }); } catch (e) {} }
+  function evt(i, name, x, z) { const c = i.ctx; if (c && c.emit) try { c.emit('charge', { phase: name, tier: i.st.tier, serial: i.serial, x, z }); } catch (e) {} }
   function snd(i, name, x, z, extra) { const c = i.ctx; if (c && c.sound) try { const p = { x, z, tier: i.st.tier }; if (extra) Object.assign(p, extra); c.sound(name, p); } catch (e) {} }
   function alive(e) { return e && !e.dead && Number.isFinite(e.x) && Number.isFinite(e.z); }
   // Combat owns walls, closed seals and underground bodies. Apply its
   // predicate before choosing, stopping on or affecting a target.
   function eligible(i, e) { return alive(e) && (!i.ctx.canHit || i.ctx.canHit(e)); }
-  function hurt(i, e, amount, opts) { const c = i.ctx; if (c.damage && amount > 0) { opts.kind = 'charge'; opts.face = i.face; c.damage(e, Math.round(amount), opts); } }
+  function hurt(i, e, amount, opts) { const c = i.ctx; if (c.damage && amount > 0) { opts.kind = 'charge'; opts.face = i.face; return c.damage(e, Math.round(amount), opts); } return null; }
+  const CONTACT_GAP = .09;
+  function contact(i, e, result, strong, path) {
+    if (!result) return false;
+    const p = result.contact, x = p && Number.isFinite(p.x) ? p.x : e.x, y = p && Number.isFinite(p.y) ? p.y : 1.1, z = p && Number.isFinite(p.z) ? p.z : e.z;
+    const W = B.Charge._world; if (W) W.struck(x, y, z, i.face, strong);
+    evt(i, 'contact', x, z);
+    // Several bodies may share one sweep. Keep each visual contact, but one dry thud per beat.
+    // Flush after movement decides whether this very frame already has the final slam sound.
+    if (path && !i.contactPending && i.t - i.contactSoundT >= CONTACT_GAP) { i.contactPending = true; i.contactX = x; i.contactZ = z; }
+    return true;
+  }
   function stunE(i, e, sec) { const c = i.ctx; if (c.stun && sec > 0) c.stun(e, e.boss ? sec * .35 : sec); }
   function pushE() { /* sersemletme: no foe is shoved any more, the stun does the work */ }
   const SHAKE = [0, .55, .85, 1.15];
@@ -410,12 +422,12 @@ void main(){
       const dx = e.x - x, dz = e.z - z, d = Math.hypot(dx, dz);
       if (d - (e.radius || .5) * .5 > radius || !eligible(i, e)) continue;
       const ux = d > .05 ? dx / d : Math.sin(i.face), uz = d > .05 ? dz / d : Math.cos(i.face), isP = e === primary && !second;
-      if (second) { hurt(i, e, st.secondDamage * (1 - .35 * d / radius), { second: true, ring: true, heavy: true }); stunE(i, e, st.stunSeconds * .6); pushE(i, e, ux, uz, st.knock * .8 * (1 - .4 * d / radius)); }
-      else {
-        hurt(i, e, isP ? st.damage : st.damage * st.ringDamageMul * (1 - .3 * d / radius), { primary: isP, ring: !isP, heavy: true });
-        stunE(i, e, isP ? st.stunSeconds : st.stunSeconds * .6); pushE(i, e, ux, uz, st.knock * (isP ? .6 : 1) * (1 - .45 * d / radius));
-      }
-      hits++; if (W) W.struck(e.x, 1.1, e.z, Math.atan2(ux, uz), isP);
+      const r = second ? hurt(i, e, st.secondDamage * (1 - .35 * d / radius), { second: true, ring: true, heavy: true })
+        : hurt(i, e, isP ? st.damage : st.damage * st.ringDamageMul * (1 - .3 * d / radius), { primary: isP, ring: !isP, heavy: true });
+      if (!contact(i, e, r, isP || second, false)) continue;
+      if (second) { stunE(i, e, st.stunSeconds * .6); pushE(i, e, ux, uz, st.knock * .8 * (1 - .4 * d / radius)); }
+      else { stunE(i, e, isP ? st.stunSeconds : st.stunSeconds * .6); pushE(i, e, ux, uz, st.knock * (isP ? .6 : 1) * (1 - .45 * d / radius)); }
+      hits++;
     }
     if (W) W.impact(x, z, i.face, st.tier, radius, second, st.second ? st.secondRadius : 0);
     snd(i, second ? 'chargeSlam2' : 'chargeImpact', x, z, { hits: hits > 0, attack: 'Mezar' });
@@ -442,7 +454,7 @@ void main(){
     const dashT = d / st.range * st.dashTime;
     i.done = false; i.ctx = ctx; i.st = st; i.t = 0; i.phase = 0; i.face = Math.atan2(ux, uz); i.dx = ux; i.dz = uz; i.sx = p.x; i.sz = p.z; i.dist = d; i.traveled = 0; i.speed = st.range / st.dashTime;
     i.dashPlanned = dashT; i.dashT = 0; i.duration = st.wind + dashT + st.recover + (st.second ? st.secondDelay : 0); i.impacted = false; i.impactT = 0; i.second = false; i.slam2T = 0; i.primary = null; i.invulnerable = true; i.noKnockback = true;
-    i.hitSet.clear(); i.ringSet.clear(); i.serial = ++S.serial; i.update = update.bind(null, i); i.cancel = cancelInst.bind(null, i); i.pose = POSE;
+    i.hitSet.clear(); i.ringSet.clear(); i.contactSoundT = -1e9; i.contactPending = false; i.serial = ++S.serial; i.update = update.bind(null, i); i.cancel = cancelInst.bind(null, i); i.pose = POSE;
     p.face = i.face; if (Number.isFinite(p.yaw)) p.yaw = i.face;
     S.inst = i; S.tier = tier; S.dashAmt = 0; S.hx = p.x; S.hz = p.z; S.hitStopUntil = 0;
     const W = B.Charge._world; if (W) W.windup(p.x, p.z, i.face, tier);
@@ -458,7 +470,7 @@ void main(){
   function cancelInst(i) { if (i.done) return; const W = B.Charge._world; finish(i); if (W) W.gather(0); }
 
   function pathHits(i, ox, oz, nx, nz) {
-    const st = i.st, c = i.ctx, vx = nx - ox, vz = nz - oz, l2 = vx * vx + vz * vz, W = B.Charge._world, half = st.pathWidth * .5, rad = (c.player.radius || .5);
+    const st = i.st, c = i.ctx, vx = nx - ox, vz = nz - oz, l2 = vx * vx + vz * vz, half = st.pathWidth * .5, rad = (c.player.radius || .5);
     for (const e of c.enemies || []) {
       if (!alive(e) || i.hitSet.has(e)) continue;
       const t = l2 > 1e-8 ? clamp(((e.x - ox) * vx + (e.z - oz) * vz) / l2, 0, 1) : 0, cx = ox + vx * t, cz = oz + vz * t, dd = Math.hypot(e.x - cx, e.z - cz);
@@ -468,10 +480,8 @@ void main(){
       }
       if (dd > (e.radius || .5) + half || !eligible(i, e)) continue;
       i.hitSet.add(e);
-      const side = (e.x - cx) * i.dz - (e.z - cz) * i.dx, s = side >= 0 ? 1 : -1, ux = i.dz * s, uz = -i.dx * s;   // perpendicular to the path, away from the line
-      hurt(i, e, st.pathDamage, { path: true });
-      stunE(i, e, st.pathDamage ? .6 : 0);
-      if (W) W.shove(e.x, e.z, Math.atan2(ux, uz), 1);
+      const r = hurt(i, e, st.pathDamage, { path: true });
+      if (contact(i, e, r, true, true)) stunE(i, e, st.pathDamage ? .6 : 0);
     }
     return false;
   }
@@ -501,7 +511,8 @@ void main(){
       }
       S.dashAmt = clamp(S.dashAmt + (stopped ? -1 : 1) * dt * 9, 0, 1); S.hx = p.x; S.hz = p.z;
       if (W) W.dash(p.x, p.z, i.face, i.speed, left);
-      if (stopped || i.traveled >= i.dist - .02) { i.phase = 2; i.invulnerable = false; slam(i, p.x, p.z, false); S.dashAmt = 0; if (W) W.endDash(); }
+      if (stopped || i.traveled >= i.dist - .02) { i.phase = 2; i.invulnerable = false; i.contactPending = false; slam(i, p.x, p.z, false); i.contactSoundT = i.t; S.dashAmt = 0; if (W) W.endDash(); }
+      else if (i.contactPending) { snd(i, 'chargeContact', i.contactX, i.contactZ); i.contactSoundT = i.t; i.contactPending = false; }
       return false;
     }
     // follow-through (and the tier-3 second slam)

@@ -7,6 +7,7 @@
   const Q = new URLSearchParams(location.search);
   const CAMPAIGN_KEY = 'baba.kabir.campaign.v1';
   const CHAPTER_SETTINGS_KEY = 'karaGecit.chapterSettings.v1';
+  const REWARD_HANDOFF_KEY = 'baba.kabir.rewardHandoff.v1';
   const FINAL_CHAPTER = B.FINAL_CHAPTER || 5;   // chapter V (Son Mahkeme) is the ending of the journey
   let campaign = null;
   try {
@@ -27,9 +28,10 @@
     const u = new URL(location.href); u.searchParams.delete('bolum');
     if (continueJourney) {
       u.searchParams.set('yolculuk', 'devam');
+      carryLevelReward();
       // Carry current choices through this internal chapter load, never a later launch.
       safe(() => sessionStorage.setItem(CHAPTER_SETTINGS_KEY, JSON.stringify({ chapter: chapter + 1, at: Date.now(), difficulty: cfg.difficulty, uiScale: cfg.uiScale })));
-    } else { u.searchParams.delete('yolculuk'); safe(() => sessionStorage.removeItem(CHAPTER_SETTINGS_KEY)); }
+    } else { u.searchParams.delete('yolculuk'); clearRewardHandoff(); safe(() => sessionStorage.removeItem(CHAPTER_SETTINGS_KEY)); }
     location.href = u.href;
   }
   $('next-chapter').onclick = () => chapterLink(true);
@@ -331,7 +333,12 @@
   const chapterBuffUI = B.Buffs.createChapter($('chapter-buffs'));
   const targetUI = B.TargetHUD.create($('target-hud'));
   const cryEffect = { id: 'rage', name: KabirI18n.t('Kan Öfkesi'), icon: 'rage', tone: 'blood', tip: 'Saldırdıkça can kazanır, vuruşların daha ağır iner, aldığın hasar azalır.', remaining: 0, duration: B.Game.resources.durations.rage };
-  const timedEffects = [cryEffect];
+  const perfectReward = B.CombatTuning.ECONOMY.PERFECT, bossPerfectReward = B.BossFramework.perfectReward;
+  const openingEffect = { id: 'perfect-opening', name: 'Kusursuz Kaçınma', icon: 'dodge', tone: 'gold', remaining: 0, duration: perfectReward.opening,
+    tip: 'Kusursuz kaçınma sonrası ' + perfectReward.opening + ' saniye boyunca vuruşların %' + Math.round((perfectReward.damage - 1) * 100) + ' daha fazla hasar verir.' };
+  const bossOpeningEffect = { id: 'boss-opening', name: 'Boss Fırsatı', icon: 'heavy', tone: 'gold', remaining: 0, duration: bossPerfectReward.duration,
+    tip: 'Kusursuz kaçınma bossu ' + String(bossPerfectReward.duration).replace('.', ',') + ' saniye açık bırakır; ona %' + Math.round((bossPerfectReward.damage - 1) * 100) + ' daha fazla hasar verirsin.' };
+  const timedEffects = [cryEffect, openingEffect, bossOpeningEffect];
   let lastBuffRows = -1;
   const keys = new Set(), actions = {}, cameraPos = new THREE.Vector3(), look = new THREE.Vector3(), target = new THREE.Vector3(), projected = new THREE.Vector3();
   // D4 controls: light / heavy = the attack KEY (J, K, pad, on-screen button: only swings at a foe in the front cone); clickLight / clickHeavy = a mouse press or tap this frame,
@@ -430,7 +437,7 @@
   }
   function clearNotices() {
     B.QuestCinema?.clear?.();
-    levelUpTimer = 0; pendingLevel = null; $('level-up').classList.remove('show'); if (B.LevelUp) B.LevelUp.cancel(); if (B.Charge && B.Charge.cancel) B.Charge.cancel();
+    levelUpTimer = 0; pendingLevel = activeLevelReward = finalLevelReward = null; $('victory-reward')?.remove(); queuedQuestRewardKeys.clear(); $('level-up').classList.remove('show'); if (B.LevelUp) B.LevelUp.cancel(); if (B.Charge && B.Charge.cancel) B.Charge.cancel();
     buffUI.clear(); chapterBuffUI.clear(); if (questUI) questUI.clear();
     targetUI.clear();
     $('toasts').replaceChildren(); if (B.LootFeed) B.LootFeed.clear();
@@ -497,13 +504,14 @@
 
   /* ───────────── Game events ───────────── */
   function begin(fresh = false) {
+    if (fresh) clearRewardHandoff();
     if (fresh && chapter > 1) { safe(() => localStorage.removeItem(CAMPAIGN_KEY)); chapterLink(); return; }
     B.Audio.unlock(); if (B.Audio.resetNarration) B.Audio.resetNarration();
     const fromTitle = view === 'title';
     const showBasics = chapter === 1 && (fresh || !game.hasSave);
     clearNotices();
     if (!fresh && game.campaignCompleted) wonShown = false;
-    if (fresh) { game.restart(); deaths = 0; } else game.start();
+    if (fresh) { game.restart(); deaths = 0; } else { game.start(); resumeLevelReward(); }
     if (game.campaignCompleted && game.state === 'won') { if (!game.quests || !game.quests.pendingChoice) show('victory'); return; }
     deathShown = wonShown = false; roomId = -1; firstHint = showBasics ? 25 : 0; lastHp = lastFlasks = null;
     $('tutorial').classList.toggle('hidden', !showBasics);
@@ -521,28 +529,101 @@
   }
   const questVoices = { 'lost-names': 'questNames', 'blood-verdict': 'questVerdict', 'last-voice': 'questBell', 'root-memory': 'questMemory', 'kings-name': 'questKing', 'cave-breath': 'questEcho', 'last-prisoner': 'questPrisoner', 'heart-feeds': 'questHeart' };
   // Keep the earned reward queued while a story caption or a reader owns the text lane.
-  let pendingLevel = null, pendingLevelWait = 0;
+  let pendingLevel = null, activeLevelReward = null, finalLevelReward = null;
+  const queuedQuestRewardKeys = new Set();
+  // Only presentation crosses the page load; XP and points remain in the campaign save.
+  function unseenLevelReward() {
+    const active = B.LevelUp?.active ? activeLevelReward : null;
+    if (!pendingLevel && !active) return null;
+    const sum = key => (pendingLevel?.[key] || 0) + (active?.[key] || 0);
+    const reward = { level: game.progression.level, levels: sum('levels'), earnedPoints: sum('earnedPoints'), questPoints: sum('questPoints') };
+    return reward.earnedPoints + reward.questPoints > 0 ? reward : null;
+  }
+  function clearRewardHandoff() { safe(() => sessionStorage.removeItem(REWARD_HANDOFF_KEY)); }
+  function carryLevelReward() {
+    clearRewardHandoff();
+    const reward = unseenLevelReward(); if (!reward) return;
+    safe(() => sessionStorage.setItem(REWARD_HANDOFF_KEY, JSON.stringify({ v: 1, fromChapter: chapter, toChapter: chapter + 1, at: Date.now(), xp: game.progression.xp, level: game.progression.level, reward })));
+  }
+  function resumeLevelReward() {
+    let raw;
+    try { raw = sessionStorage.getItem(REWARD_HANDOFF_KEY); sessionStorage.removeItem(REWARD_HANDOFF_KEY); } catch (_) { return; }
+    if (!raw) return;
+    try {
+      const saved = JSON.parse(raw), reward = saved?.reward, age = Date.now() - saved?.at, state = game.progression;
+      // A long shader warm-up or a paused entrance must not eat the card. Old or unrelated journeys never replay it.
+      if (saved?.v !== 1 || Q.get('yolculuk') !== 'devam' || !campaign?.transition || campaign.index !== 0 || saved.fromChapter !== chapter - 1 || saved.toChapter !== chapter || !Number.isSafeInteger(saved.at) || !Number.isFinite(age) || age < 0 || age > 86400000) return;
+      if (!Number.isSafeInteger(saved.xp) || saved.xp !== state.xp || saved.xp !== campaign.progression.xp || saved.level !== state.level || !state.completed.includes(chapter - 1)) return;
+      if (!reward || reward.level !== state.level || !['levels', 'earnedPoints', 'questPoints'].every(key => Number.isSafeInteger(reward[key]) && reward[key] >= 0)) return;
+      if (reward.levels > state.level - 1 || reward.earnedPoints !== reward.levels || reward.earnedPoints > B.Progression.MAX_LEVEL - 1 || reward.questPoints > B.Progression.QUEST_POINTS || reward.questPoints > state.boons().points || reward.earnedPoints + reward.questPoints === 0) return;
+      queueLevelUp(Object.assign({}, reward, { points: state.points }));
+    } catch (_) {}
+  }
+  function updateVictoryReward() {
+    const reward = unseenLevelReward();
+    if (reward) {
+      if (finalLevelReward) for (const key of ['levels', 'earnedPoints', 'questPoints']) finalLevelReward[key] += reward[key];
+      else finalLevelReward = reward;
+      pendingLevel = activeLevelReward = null; levelUpTimer = 0; B.LevelUp?.cancel();
+    }
+    if (!finalLevelReward) return;
+    let note = $('victory-reward');
+    if (!note) { note = document.createElement('p'); note.id = 'victory-reward'; note.className = 'end-quote'; note.setAttribute('role', 'status'); $('victory-stats').after(note); }
+    const en = KabirI18n.lang === 'en', gained = finalLevelReward.earnedPoints + finalLevelReward.questPoints;
+    note.textContent = '+' + gained + (en ? ' Skill Points · Available: ' : ' Yetenek Puanı · Kullanılabilir: ') + Math.max(0, game.progression.points | 0);
+  }
+  const talentReminder = document.createElement('button');
+  talentReminder.id = 'talent-point-reminder'; talentReminder.type = 'button'; talentReminder.hidden = true;
+  talentReminder.onclick = () => openCharacter('skills'); document.querySelector('.hero-info').appendChild(talentReminder);
+  const talentPauseNote = $('pause-talents').querySelector('small'), talentPauseDefault = talentPauseNote.textContent;
+  let rememberedTalentPoints = -1;
+  function syncTalentPoints() {
+    if (!game || !game.progression) return;
+    const points = Math.max(0, game.progression.points | 0); if (points === rememberedTalentPoints) return;
+    rememberedTalentPoints = points;
+    B.LevelUp?.setAvailablePoints?.(points);
+    const en = KabirI18n.lang === 'en';
+    const label = en ? points + ' Skill Points · T' : points + ' Yetenek Puanı · T';
+    talentReminder.hidden = points === 0; talentReminder.textContent = label;
+    talentReminder.setAttribute('aria-label', en ? points + ' available skill points. Open Skills.' : points + ' kullanılabilir yetenek puanı. Yetenekleri aç.');
+    talentReminder.title = en ? 'T · Open Skills and spend your points' : 'T · Yetenekleri aç ve puanlarını kullan';
+    talentPauseNote.textContent = points ? label : talentPauseDefault;
+    if (finalLevelReward) updateVictoryReward();
+  }
   function levelLaneBusy() {
     const b = document.body, vis = e => !!e && +getComputedStyle(e).opacity > .04 && getComputedStyle(e).visibility !== 'hidden';
-    return vis($('announcement')) || b.classList.contains('bf-intro') || vis(document.querySelector('.qc-bars.show .qc-caption')) || !!document.querySelector('.qc-bars.show');
+    return vis($('announcement')) || vis($('quest-notice')) || b.classList.contains('bf-intro') || vis(document.querySelector('.qc-bars.show .qc-caption')) || !!document.querySelector('.qc-bars.show');
   }
   function queueLevelUp(d) {
-    if (pendingLevel) { pendingLevel.levels = (pendingLevel.levels | 0) + (d.levels | 0); pendingLevel.level = d.level; pendingLevel.points = d.points; pendingLevel.earnedPoints = (pendingLevel.earnedPoints | 0) + (d.earnedPoints | 0); }
-    else { pendingLevel = Object.assign({}, d); pendingLevelWait = 0; }
+    const levels = Math.max(0, d.levels | 0), earnedPoints = Math.max(0, d.earnedPoints | 0), questPoints = Math.max(0, d.questPoints | 0);
+    if (!levels && !questPoints) return;
+    const questKey = d.quest && d.key ? String(d.key) : '';
+    if (questKey && queuedQuestRewardKeys.has(questKey)) return;
+    if (questKey) queuedQuestRewardKeys.add(questKey);
+    if (pendingLevel) {
+      pendingLevel.levels += levels; pendingLevel.level = d.level; pendingLevel.points = d.points;
+      pendingLevel.earnedPoints += earnedPoints; pendingLevel.questPoints += questPoints;
+    } else pendingLevel = { level: d.level, levels, points: d.points, earnedPoints, questPoints };
+    if (lastChapter && wonShown && game.state === 'won') updateVictoryReward();
   }
   function flushLevelUp(dt) {
-    if (!pendingLevel || view !== 'playing' || B.QuestCinema?.isReading) return;
-    pendingLevelWait += dt;
-    if (levelLaneBusy()) return;
+    if (!pendingLevel || advancing || view !== 'playing' || B.QuestCinema?.isReading || B.LevelUp?.active || levelLaneBusy()) return;
     const d = pendingLevel; pendingLevel = null;
+    // A menu may have spent points while the earned reward waited. Its source
+    // amounts stay intact, while the available total always reflects this moment.
+    d.points = game.progression.points;
+    activeLevelReward = Object.assign({}, d);
     if (B.LevelUp) B.LevelUp.trigger(d, game.player);
-    if (game.cheer) game.cheer();   // (ajan:hero3) the hero's fist-raise on level-up
-    levelUpTimer = 2.7;
+    if (d.levels > 0) {
+      B.Audio.play('levelUp'); fx('heroSkill', { skill: 'level', phase: 'release', x: game.player.x, z: game.player.z });
+      if (game.cheer) game.cheer();
+    }
+    levelUpTimer = B.LevelUp ? B.LevelUp.TOTAL : 3.8;
   }
   function event(name, d = {}) {
     if (name === 'questChoice') { if (game && ['playing','pause'].includes(view)) open('journal'); if (questUI) questUI.open(); return; }
     if (name === 'quest') { if (questUI) questUI.event(d); if (d.complete && questVoices[d.id] && B.Audio.sayQuest) B.Audio.sayQuest(questVoices[d.id]); return; }
-    if (name === 'progression') { if (d.levels > 0) { B.Audio.play('levelUp'); fx('heroSkill', { skill: 'level', phase: 'release', x: game.player.x, z: game.player.z }); queueLevelUp(d); } if (characterUI) characterUI.refresh(); return; }
+    if (name === 'progression') { queueLevelUp(d); syncTalentPoints(); if (characterUI) characterUI.refresh(); return; }
     if (name === 'loot') { for (const item of d.items || []) { const def = B.Progression.catalog[item.id]; if (!def) continue; if (B.LootFeed) B.LootFeed.show(def); if (!B.LootFeed || def.rarity === 'boss' || d.boss) notify(B.Progression.qualities[def.rarity].name + KabirI18n.t(' ganimet · ') + def.name + KabirI18n.t(' · Çantaya eklendi [I]'), 'rarity-' + def.rarity); } return; }
     if (name === 'hit') {
       // combat.js sizes the hit-stop itself (d.hitstop is set) and reports how hard the contact was (d.impact 0..1),
@@ -677,6 +758,7 @@
     const t = d.time ?? game.elapsed ?? elapsed, k = d.kills ?? game.kills ?? 0;
     const stat = (icon, value, label) => `<div><svg class="icon" aria-hidden="true"><use href="#${icon}"/></svg><b>${value}</b><small>${label}</small></div>`;
     $('victory-stats').innerHTML = stat('i-hourglass', timeText(t), KabirI18n.t('SÜRE')) + stat('i-cross', Math.round(k), KabirI18n.t('ALT EDİLEN')) + stat('i-skull', deaths, KabirI18n.t('ÖLÜM'));
+    updateVictoryReward();
     // Chapter V: when the quest module offers the last decision (game.quests.finale), the ending waits until it is made and shows its outcome.
     const finale = () => game.quests && game.quests.finale && typeof game.quests.finale === 'object' ? game.quests.finale : null;
     const restoredEnding = d.completed && finale();
@@ -1678,6 +1760,7 @@
   }
   function hud(dt) {
     const p = game.player;
+    syncTalentPoints();
     const progression = game.progression, thresholds = B.Progression.thresholds, baseXp = thresholds[progression.level - 1], nextXp = progression.nextLevelXp();
     hudText('hero-subtitle', KabirI18n.t('Seviye ') + progression.level);
     const seal = hq('.portrait-seal'), levelText = String(progression.level);
@@ -1689,7 +1772,10 @@
     if (xpBar.getAttribute('aria-valuenow') !== xpValue) xpBar.setAttribute('aria-valuenow', xpValue);
     const xpTitle = progression.level === B.Progression.MAX_LEVEL ? KabirI18n.t('En yüksek seviye') : (progression.xp - baseXp) + ' / ' + (nextXp - baseXp) + KabirI18n.t(' tecrübe');
     if (xpBar.title !== xpTitle) xpBar.title = xpTitle;
-    cryEffect.remaining = !p.dead && game.state === 'playing' ? p.rageTime || 0 : 0; if (p.rageMax > 0) cryEffect.duration = p.rageMax;
+    const liveBuffs = !p.dead && game.state === 'playing', bossBuffState = B.BossFramework.current && B.BossFramework.current.state;
+    cryEffect.remaining = liveBuffs ? p.rageTime || 0 : 0; if (p.rageMax > 0) cryEffect.duration = p.rageMax;
+    openingEffect.remaining = liveBuffs ? p.opening || 0 : 0;
+    bossOpeningEffect.remaining = liveBuffs && bossBuffState && bossBuffState.boss === game.boss && game.boss && !game.boss.dead ? bossBuffState.exposed || 0 : 0;
     if ((placeTick = (placeTick + 1) % 20) === 0 || placeW !== innerWidth || placeH !== innerHeight) placeShortStrip();   // keep the short-effect strip lined up with the Q (flask) slot
     const heroBuffs = game.talents && game.talents.buffs ? game.talents.buffs() : [];
     if (lastFlaskCount !== null && p.flasks < lastFlaskCount) flaskLeft = 2.5; lastFlaskCount = p.flasks; flaskLeft = p.dead ? 0 : Math.max(0, flaskLeft - dt);   // the flask heals at once: a short 'Elixir' chip confirms it
@@ -1853,7 +1939,7 @@
   }
   // Gaps between presented frames (last ~600), so the counter can also show the longest frame: a few slow frames are
   // what the eye reads as stutter even when the FPS average looks fine.
-  const BUILD_TAG = 378, fpsGaps = new Float32Array(600);
+  const BUILD_TAG = 380, fpsGaps = new Float32Array(600);
   let fpsGapAt = 0, fpsGapLast = 0;
   function frameStats() {
     let longest = 0, slow = 0;
@@ -1906,7 +1992,7 @@
     game.drawing = drawing;
     // Controllers keep polling on every menu too, so reconnect, remapping and navigation never depend on combat.
     controllerState = controller ? controller.poll(dt) : null;
-    if (B.LevelUp) B.LevelUp.step(dt);   // level-up screen layer: banner timeline, edge flash / colour fringe via Post.setAbilityFx (real time)
+    if (B.LevelUp) B.LevelUp.step(dt, !B.LevelUp.active || (!advancing && view === 'playing' && !B.QuestCinema?.isReading && !levelLaneBusy()));   // rewards wait through menus and story captions
     const playing = view === 'playing' && game.state === 'playing' && !B.QuestCinema?.isReading;
     if (playing) {
       if (heldLight || (!kbMode() && keyDown('light')) || controllerState?.lightHeld) { lightRepeat += dt; if (lightRepeat >= .12) { actions.light = true; if (heldLight) actions.near = true; lightRepeat = 0; } }
@@ -1920,7 +2006,7 @@
 
     if (announceTimer > 0 && view === 'playing' && !B.QuestCinema?.isReading) { announceTimer -= dt; if (announceTimer <= 0) $('announcement').classList.remove('show'); }
     flushLevelUp(dt);
-    if (levelUpTimer > 0 && view === 'playing') { levelUpTimer -= dt; if (levelUpTimer <= 0) $('level-up').classList.remove('show'); }
+    if (levelUpTimer > 0 && view === 'playing') { levelUpTimer = B.LevelUp?.active ? Math.max(0, B.LevelUp.TOTAL - B.LevelUp.t) : Math.max(0, levelUpTimer - dt); if (levelUpTimer <= 0) $('level-up').classList.remove('show'); }
     flash = Math.max(0, flash - dt * 1.7);
     syncWarnings(dt);
     const fighting = game.enemies.some(e => !e.dead && e.active && Math.hypot(e.x - game.player.x, e.z - game.player.z) < 10);

@@ -203,6 +203,8 @@
         y+=ground.y(x,z);
       }
       // nothing solid-looking stands on the walkable strand: shore rocks are pushed seaward
+      // Pier rubble must leave the boardwalk and the mole mouth visibly open, including its full rotated footprint.
+      if(room===3&&g===rock&&mat==='rock'&&x>8&&sy>.2&&open.floorTest(x,z,-Math.max(sx,sy,sz)*1.15))return;
       if(room<6&&room!==3&&g===rock&&mat==='rock'&&x>8&&sy>.2)x=Math.max(x,11.7+Math.max(sx,sz)*.8);
       var key = room + ':' + g.id + ':' + mat;
       if (!batches[key]) batches[key] = { room: room, geo: g, mat: materials[mat], matrices: [] };
@@ -435,16 +437,16 @@
     corpse(2,-7.2,-48,2);corpse(2,6.5,-58,1);cargo(2,-8,-57,.2);cargo(2,6.4,-45,-.3);
     // 3: broad main pier, snapped piles, cargo and a wreck in the black water.
     for (var row = 0; row < 24; row++) for (var col = 0; col < 5; col++) add(3, plank, 'wood', (col - 2) * 4 - 2, .025, -69 - row * 1.04, 3.93, .065, .95, 0, 0, (rnd() - .5) * .013);
-    for (var side = -1; side <= 1; side += 2) for (var n = 0; n < 7; n++) { var pierZ=-70-n*3.7; if(side<0&&n===3)pierZ=-85.4; add(3, cylinder, 'wood', side > 0 ? 10.95 : -11.7, .3, pierZ, .18, 2.2, .18, .05, 0, side * .05); if (n % 3 !== 1 && !(side<0&&(n===2||n===3))) beam(3, 'wood', [side > 0 ? 10.95 : -11.7, 1.1, pierZ], [side > 0 ? 10.95 : -11.7, 1.05, -73.5 - n * 3.7], .055); }
+    for (var side = -1; side <= 1; side += 2) for (var n = 0; n < 7; n++) { var pierZ=-70-n*3.7; if(side<0&&n===3)pierZ=-85.4; if(side>0&&n===4)pierZ=-84.1; add(3, cylinder, 'wood', side > 0 ? 10.95 : -11.7, .3, pierZ, .18, 2.2, .18, .05, 0, side * .05); if (n % 3 !== 1 && !(side<0&&(n===2||n===3)) && !(side>0&&n===4)) beam(3, 'wood', [side > 0 ? 10.95 : -11.7, 1.1, pierZ], [side > 0 ? 10.95 : -11.7, 1.05, -73.5 - n * 3.7], .055); }
     for (var i = 0; i < 8; i++) { var x = (i % 2 ? -1 : 1) * (10 + rnd()), z = -72 - Math.floor(i / 2) * 5; if(x<0&&Math.abs(z+81)<6)z=-69-i*.35;if(x>0&&Math.abs(z+86.4)<3)z=-91.6;if(x>0)x=12.9; add(3, box, 'wood', x, .45, z, 1.2, .9, 1.1, 0, rnd(), 0); add(3, box, 'rust', x, .47, z, 1.25, .055, 1.15, 0, rnd(), .4); collision(x, z, 1.25, 1.15); }
     for(var row=0;row<24;row++)for(var col=0;col<5;col++)for(var side=-1;side<=1;side+=2)add(3,cylinder,'rust',(col-2)*4-2+side*1.74,.061,-69-row*1.04,.022,.009,.022);
     for(var side=-1;side<=1;side+=2)for(var n=0;n<7;n++){
-      var px=side>0?10.95:-11.7,zz=-70-n*3.7;if(side<0&&n===3)zz=-85.4;add(3,ring,'rust',px,.88,zz,.19,.19,.19,PI/2);
+      var px=side>0?10.95:-11.7,zz=-70-n*3.7;if(side<0&&n===3)zz=-85.4;if(side>0&&n===4)zz=-84.1;add(3,ring,'rust',px,.88,zz,.19,.19,.19,PI/2);
       beam(3,'wood',[px,-.38,zz],[px-side*.8,.34,zz+1.15],.075);
       if(n%2===0)add(3,ring,'rust',px,1.32,zz,.12,.12,.12,0,0,.3);
     }
     for(var n=0;n<5;n++){var zz=-72-n*4.4;beam(3,'wood',[8.3,-.18,zz],[11+rnd()*2,-.3,zz+1],.055);add(3,plank,'wood',11+rnd()*2,-.29,zz,1.7,.07,.20,0,rnd()*3,0);}
-    for(var j=0;j<7;j++){var zz=-70-j*3.7;add(3,box,'wood',-2,-.16,zz,20.1,.27,.30);for(var side=-1;side<=1;side+=2){var xx=side>0?11.3:-12.7;add(3,masonry,'stone',xx,-.40,zz,.65,.48,1.3,0,.09*side);add(3,cylinder,'wood',xx,-.2,zz,.25,2.1,.25,0,0,.06*side);add(3,ring,'rust',xx,.60,zz,.27,.27,.27,PI/2);}}
+    for(var j=0;j<7;j++){var zz=-70-j*3.7;add(3,box,'wood',-2,-.16,zz,20.1,.27,.30);for(var side=-1;side<=1;side+=2){var xx=side>0?11.3:-12.7,sz=side>0&&j===4?-84.1:zz;add(3,masonry,'stone',xx,-.40,sz,.65,.48,1.3,0,.09*side);add(3,cylinder,'wood',xx,-.2,sz,.25,2.1,.25,0,0,.06*side);add(3,ring,'rust',xx,.60,sz,.27,.27,.27,PI/2);}}
     for(var j=0;j<9;j++){var zz=-70-j*2.9;add(3,masonry,'stone',13.5+Math.sin(j)*.7,-.5,zz,1.5,.75,2.2,.12,rnd()*.3,.1);}
     boat(3, 23, -78, 9, -.35, true); boat(2, 24, -49, 6, .6, true);
     corpse(3,-8.4,-80,.8);corpse(3,6.1,-91,-.3);skull(3,6.3,.13,-76,.5);

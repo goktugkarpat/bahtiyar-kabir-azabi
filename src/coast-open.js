@@ -315,7 +315,9 @@
     for (q = 0; q < 26; q++) { x = R(-11, 7.5); z = R(-6, 14.5); if (rnd() < .4) add(0, G.rock, 'puddle', x, .008, z, R(.5, 1.6), .03, R(.4, 1.1), 0, R(0, 6), 0); var pb = R(.05, .14); add(0, G.pebble, 'rock', x + R(-1, 1), .02, z + R(-1, 1), pb, pb * .5, pb * .8, 0, R(0, 6), 0); if (rnd() < .3) add(0, G.cylinder, 'bone', x, .03, z, .03, R(.25, .5), .03, PI / 2, R(0, 6), 0); }
     // boardwalk planks and piles beside the pier; paving and a lantern on the graveyard-hill path
     for (z = -65.8; z > -96.5; z -= .62) { add(3, G.plank, 'wood', 9.05, .02, z, 3.0, .07, .56, 0, R(-.02, .02), R(-.015, .015)); if (Math.round(z * 10) % 31 === 0) { add(3, G.cylinder, 'wood', 10.75, -.2, z, .16, 2.4, .16); add(3, G.cylinder, 'wood', 10.75, .55, z, .05, .7, .05); } }
-    beam(3, 'rope', [10.75, .85, -66], [10.75, .85, -96], .02);
+    // Open the sea-side railing where the boardwalk meets the mole.
+    beam(3, 'rope', [10.75, .85, -66], [10.75, .85, -84.25], .02);
+    beam(3, 'rope', [10.75, .85, -88.55], [10.75, .85, -96], .02);
     for (q = 0; q < 26; q++) { var hx2 = R(-57, -43), hz2 = hx2 > -50 ? R(-106, -103) : R(-104, -100); add(8, K.G.paving[q % 3], 'funeralPaving', hx2, .01, hz2, R(.5, .9), .34, R(.5, .9), 0, R(0, 6), 0); }
     K.lantern(8, -50.2, 2.3, -106.8, 'coast');
     // footprints: bare feet along the cliff trail and down the strand, a dragged keel groove to a beached skiff
@@ -382,7 +384,8 @@
     for (q = 0; q < 6; q++) { var a3 = q / 6 * PI * 2 + .4; var pts = [[-40.5, .2, -104.5]]; for (var s3 = 1; s3 <= 5; s3++) pts.push([-40.5 + Math.cos(a3) * s3 * 1.9, .1 + Math.sin(s3 * 1.3 + q) * .08, -104.5 + Math.sin(a3) * s3 * 1.6]); add(8, geo(K.rootTube(pts, function (t) { return .02 + .3 * Math.pow(1 - t, 1.2); }, q * 1.9)), 'root', 0, 0, 0, 1, 1, 1); }
     for (var gr = 0; gr < 3; gr++) for (var gc = 0; gc < 5; gc++) { var gx8 = -40 + gc * 3.4, gz8 = -117.5 + gr * 3; if (Math.abs(gx8 - -32) < 4.5 && Math.abs(gz8 - -112) < 4.5) continue; K.grave(8, gx8, gz8, R(-.15, .15), (gr + gc) % 3 === 0); }
     mausoleum(8, -23.4, -119);
-    ironFence(8, -44, -121.5, -26.5, -121.5); ironFence(8, -44, -103, -44, -120.5);
+    // Broken fence stays beyond the graveyard floor; the west trail and hill entrances remain visibly open.
+    ironFence(8, -45.5, -125, -26.5, -125); ironFence(8, -45.5, -118, -45.5, -124.4);
 
     /* ---- 12: the lightless refuge ---- */
     for (q = 0; q < 26; q++) { var a4 = PI * .5 + q / 25 * PI, px = -32 + Math.cos(a4) * 13.4, pz = -140 + Math.sin(a4) * 11.2; if (Math.abs(pz - -139) < 6.5 && px > -25) continue; if (Math.abs(pz + 140) < 4.4 && px < -40) continue; stake(12, px, pz, a4); }
@@ -399,7 +402,7 @@
 
     /* ---- 14: broken mole and the ember beacon (landmark from the pier) ---- */
     for (x = 6.5; x < 31; x += 1.05) { var zl = x > 23 ? -91 : -87.9, zh = x > 23 ? -82 : -84.9; for (var zz = zl + .5; zz < zh; zz += 1.02) add(14, G.plank, 'wood', x, .02, zz, 1.0, .07, .98, 0, R(-.03, .03), R(-.02, .02)); }
-    for (x = 7; x < 31; x += 3.1) for (var sd = -1; sd <= 1; sd += 2) { var pzz = x > 23 ? (sd < 0 ? -91.3 : -81.7) : (sd < 0 ? -88.2 : -84.6); add(14, G.cylinder, 'wood', x, -.3, pzz, .17, 2.4, .17, R(-.05, .05), 0, R(-.06, .06)); if (rnd() < .7) beam(14, 'rope', [x, .7, pzz], [x + 3.1, .6, pzz], .02); }
+    for (x = 7; x < 31; x += 3.1) for (var sd = -1; sd <= 1; sd += 2) { var pzz = x > 23 ? (sd < 0 ? -91.3 : -81.7) : (sd < 0 ? -88.2 : -84.6), junction = x < 11.4; add(14, G.cylinder, 'wood', x, junction ? -1.35 : -.3, pzz, .17, 2.4, .17, R(-.05, .05), 0, R(-.06, .06)); var rope = rnd() < .7; if (rope && !junction) beam(14, 'rope', [x, .7, pzz], [x + 3.1, .6, pzz], .02); }
     beacon(14, 29.2, -86.4);
     K.boat(14, 33, -78.5, 6.5, -.9, true); K.boat(14, 16, -96, 5, .4, true);
 

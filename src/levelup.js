@@ -118,7 +118,7 @@
   // =================================================================== 2. EKRAN KATMANI
   // prefers-reduced-motion (or ?lvcalm for QA): simple fade, no time dilation, camera push, fringe, ring refraction or moving sparks
   const mq = typeof matchMedia === 'function' ? matchMedia('(prefers-reduced-motion: reduce)') : { matches: false }, qaCalm = typeof location !== 'undefined' && /[?&]lvcalm(&|$)/.test(location.search), reduced = { get matches() { return qaCalm || mq.matches; } };
-  const TITLE = KabirI18n.t('SEVİYE ATLADIN'), TOTAL = 2.7;
+  const TITLE = KabirI18n.t('SEVİYE ATLADIN'), TOTAL = 3.8;
   const CSS = `
 body:has(#lu-banner.lu-on) #announcement{opacity:0!important}   /* the arena / room announcement waits while the level-up banner owns the middle of the screen */
 #lu-banner{position:absolute;left:50%;top:14%;width:min(980px,94vw);transform:translateX(-50%);text-align:center;pointer-events:none;opacity:0;z-index:6;contain:layout style}
@@ -139,6 +139,14 @@ body:has(#lu-banner.lu-on) #announcement{opacity:0!important}   /* the arena / r
 #lu-banner .lu-note b{color:#ffcf86;font-weight:800}
 #lu-banner .lu-skill{margin:calc(var(--k,1)*3px) 0 0;font:700 calc(var(--k,1)*clamp(14px,1.5vw,24px))/1.35 var(--text,system-ui,sans-serif);letter-spacing:.2em;text-indent:.2em;text-transform:uppercase;color:#ff9a62;text-shadow:0 2px 3px #000,0 0 16px #6a1408;opacity:0}
 #lu-banner .lu-skill:empty,#lu-banner .lu-note:empty{display:none}
+#lu-banner .lu-source{display:block;margin-bottom:calc(var(--k,1)*6px);font:700 calc(var(--k,1)*clamp(14px,1.5vw,22px))/1.2 var(--text,system-ui,sans-serif);color:#e4d1ab;letter-spacing:.12em;text-shadow:0 2px 3px #000}
+#lu-banner .lu-reward{margin:calc(var(--k,1)*8px) 0 0;font:800 calc(var(--k,1)*clamp(24px,3vw,44px))/1.15 var(--text,system-ui,sans-serif);color:#ffdc9c;text-shadow:0 2px 3px #000}
+#lu-banner .lu-hint{margin:calc(var(--k,1)*7px) 0 0;font:700 calc(var(--k,1)*clamp(14px,1.6vw,23px))/1.35 var(--text,system-ui,sans-serif);color:#f0dfc0;text-shadow:0 2px 3px #000}
+#lu-banner.lu-quest .lu-title{white-space:normal;font-size:calc(var(--k,1)*clamp(24px,4vw,60px));letter-spacing:.035em;text-indent:.035em}
+#lu-banner .lu-lv[hidden],#lu-banner .lu-source[hidden],#lu-banner .lu-reward[hidden]{display:none}
+#lu-banner.lu-paused{opacity:0!important}#lu-banner.lu-paused,#lu-banner.lu-paused *{animation-play-state:paused!important}
+#talent-point-reminder{align-self:flex-start;max-width:min(220px,45vw);padding:5px 8px;border:1px solid #ae894e;border-radius:3px;background:#201a11;color:#ffe0a0;font:700 max(12px,calc(14px * var(--k,1)))/1.25 var(--text,system-ui,sans-serif);text-align:left;cursor:pointer;pointer-events:auto}
+#talent-point-reminder[hidden]{display:none}#talent-point-reminder:focus-visible{outline:2px solid #ffe0a0;outline-offset:3px}
 #lu-banner.lu-on{animation:lu-life ${TOTAL}s linear both}
 #lu-banner.lu-on .lu-title{animation:lu-drift ${TOTAL}s cubic-bezier(.2,.7,.3,1) both}
 #lu-banner.lu-on .lu-title i{animation:lu-letter .62s cubic-bezier(.12,.8,.22,1) both;animation-delay:calc(.1s + var(--n,0)*.034s)}
@@ -163,55 +171,73 @@ body:has(#lu-banner.lu-on) #announcement{opacity:0!important}   /* the arena / r
 @keyframes lu-calmlife{0%{opacity:0}14%{opacity:1}78%{opacity:1}100%{opacity:0}}
 #lu-banner.lu-paint{opacity:1;animation:none!important}#lu-banner.lu-paint *{animation:none!important;opacity:1!important;transform:none!important}#lu-banner.lu-paint .lu-rule{transform:none!important}#lu-banner.lu-paint .lu-num s{opacity:0!important}
 `;
-  let el = null, elTitle = null, elOld = null, elNew = null, elNote = null, elSkill = null;
+  let el = null, elTitle = null, elOld = null, elNew = null, elNote = null, elSkill = null, elSource = null, elReward = null, elHint = null, elLevel = null;
   function ensureDom() {
     if (el || typeof document === 'undefined' || !document.body) return el;
     const st = document.createElement('style'); st.id = 'lu-style'; st.textContent = CSS; document.head.appendChild(st);
     el = document.createElement('div'); el.id = 'lu-banner'; el.setAttribute('role', 'status'); el.setAttribute('aria-live', 'off'); el.setAttribute('aria-hidden', 'true'); el.setAttribute('aria-atomic', 'true');
     el.innerHTML = KabirI18n.t('<i class="lu-flare" aria-hidden="true"></i><h2 class="lu-title" aria-label="Seviye atladın"></h2><i class="lu-rule" aria-hidden="true"></i>') +
       KabirI18n.t('<div class="lu-lv"><em>SEVİYE</em><b class="lu-num"><s aria-hidden="true"></s><u></u></b></div><p class="lu-note"></p><p class="lu-skill"></p>');
-    elTitle = el.querySelector('.lu-title'); elOld = el.querySelector('.lu-num s'); elNew = el.querySelector('.lu-num u'); elNote = el.querySelector('.lu-note'); elSkill = el.querySelector('.lu-skill');
+    elTitle = el.querySelector('.lu-title'); elOld = el.querySelector('.lu-num s'); elNew = el.querySelector('.lu-num u'); elNote = el.querySelector('.lu-note'); elSkill = el.querySelector('.lu-skill'); elLevel = el.querySelector('.lu-lv');
+    elSource = document.createElement('small'); elSource.className = 'lu-source'; elSource.hidden = true; elTitle.before(elSource);
+    elReward = document.createElement('p'); elReward.className = 'lu-reward'; elReward.hidden = true; elLevel.after(elReward);
+    elHint = document.createElement('p'); elHint.className = 'lu-hint'; el.appendChild(elHint);
     fillTitle(elTitle);
     const host = document.getElementById('hud') || document.body; host.appendChild(el);
     return el;
   }
   // The headline: one <i> per letter (staggered reveal). Solid warm gold with small text shadows: no CSS filter, no background-clip, no large blurs (first-use raster cost).
-  function fillTitle(title) {
-    title.textContent = '';
-    for (let i = 0; i < TITLE.length; i++) { const c = document.createElement('i'); c.setAttribute('aria-hidden', 'true'); c.style.setProperty('--n', String(i)); if (TITLE[i] === ' ') c.className = 'sp'; c.textContent = TITLE[i] === ' ' ? ' ' : TITLE[i]; title.appendChild(c); }
+  function fillTitle(title, text = TITLE) {
+    title.textContent = ''; title.setAttribute('aria-label', text);
+    for (let i = 0; i < text.length; i++) { const c = document.createElement('i'); c.setAttribute('aria-hidden', 'true'); c.style.setProperty('--n', String(i)); if (text[i] === ' ') c.className = 'sp'; c.textContent = text[i] === ' ' ? ' ' : text[i]; title.appendChild(c); }
   }
-  const S = { on: false, t: 99, calm: false, level: 1, old: 1, hx: 0, hz: 0 };
+  const S = { on: false, t: 99, calm: false, questOnly: false, level: 1, old: 1, hx: 0, hz: 0 };
   const FX = { spin: 0, spinAt: { x: 0, z: 0 }, chroma: 0, flash: 0, sat: 0, vig: 0, ring: { x: 0, z: 0, r: 1, w: .6, t: 0 } };
   const ease = k => 1 - Math.pow(1 - clamp(k, 0, 1), 3);
   function skillsGained(from, to) {
     const P = B.Progression, list = P && P.skills ? P.skills : [], out = [];
-    for (const s of list) if (s.level > from && s.level <= to) out.push(s.name);
+    const xp = B.app && B.app.game && B.app.game.progression ? B.app.game.progression.xp : Infinity;
+    for (const s of list) if (s.level > from && s.level <= to && (!Number.isFinite(s.requiredXp) || xp >= s.requiredXp)) out.push(s.name);
     return out;
   }
-  /* d: progression olayı {level, levels, points}, hero: game.player */
+  /* d: progression event {level, levels, points, earnedPoints, questPoints}; a quest reward never invents a level. */
   function trigger(d, hero) {
     if (!ensureDom()) return;
-    d = d || {}; const level = d.level | 0 || 2, levels = Math.max(1, d.levels | 0 || 1), old = Math.max(1, level - levels);
-    S.on = true; S.t = 0; S.calm = !!reduced.matches; S.level = level; S.old = old; S.hx = hero ? hero.x : 0; S.hz = hero ? hero.z : 0;
-    elOld.textContent = String(old); elNew.textContent = String(level); 
-    const pts = d.points | 0, earned = Math.max(0, d.earnedPoints | 0);
-    // Some levels improve the character without granting a tree point.
-    elNote.innerHTML = earned > 0
-      ? '+' + earned + KabirI18n.t(' YETENEK PUANI') + (pts > earned ? ' (<b>' + pts + '</b>)' : '') + ' · <b>T</b>'
-      : (KabirI18n.lang === 'en' ? 'LEVEL GAINED' : 'SEVİYE YÜKSELDİ');
-    const sk = skillsGained(old, level);
+    d = d || {};
+    const level = d.level | 0 || 1, levels = Math.max(0, d.levels | 0), old = Math.max(1, level - levels);
+    const pts = Math.max(0, d.points | 0), earned = Math.max(0, d.earnedPoints | 0), quest = Math.max(0, d.questPoints | 0), gained = earned + quest, en = KabirI18n.lang === 'en';
+    S.on = true; S.t = 0; S.questOnly = levels === 0; S.calm = S.questOnly || !!reduced.matches; S.level = level; S.old = old; S.hx = hero ? hero.x : 0; S.hz = hero ? hero.z : 0;
+    const reward = '+' + gained + (en ? ' Skill Points' : ' Yetenek Puanı');
+    fillTitle(elTitle, S.questOnly ? reward : TITLE);
+    elLevel.hidden = S.questOnly; elOld.textContent = String(old); elNew.textContent = String(level);
+    elSource.hidden = quest === 0;
+    elSource.textContent = levels > 0 ? (en ? 'Level + quest reward' : 'Seviye + görev ödülü') : (en ? 'Quest reward' : 'Görev ödülü');
+    elReward.hidden = S.questOnly || gained === 0; elReward.textContent = reward;
+    elNote.textContent = quest > 0 && levels > 0
+      ? (en ? 'Level: +' : 'Seviye: +') + earned + (en ? ' · Quest reward: +' : ' · Görev ödülü: +') + quest
+      : gained === 0 ? (en ? 'LEVEL GAINED' : 'SEVİYE YÜKSELDİ') : '';
+    setAvailablePoints(pts);
+    const sk = levels > 0 ? skillsGained(old, level) : [];
     elSkill.textContent = sk.length ? (sk.length > 1 ? KabirI18n.t('YENİ YETENEKLER: ') : KabirI18n.t('YENİ YETENEK: ')) + sk.join(' · ') : '';
     el.setAttribute('aria-live', 'polite'); el.setAttribute('aria-hidden', 'false');
-    el.classList.toggle('lu-calm', S.calm);
-    el.classList.remove('lu-on', 'lu-paint'); void el.offsetWidth; el.classList.add('lu-on');
+    el.classList.toggle('lu-calm', S.calm); el.classList.toggle('lu-quest', S.questOnly);
+    el.classList.remove('lu-on', 'lu-paint', 'lu-paused'); void el.offsetWidth; el.classList.add('lu-on');
   }
-  function cancel() { S.on = false; S.t = 99; if (el) { el.setAttribute('aria-hidden', 'true'); el.setAttribute('aria-live', 'off'); el.classList.remove('lu-on', 'lu-paint'); } }
+  function setAvailablePoints(points) {
+    if (!elHint) return;
+    const en = KabirI18n.lang === 'en';
+    elHint.textContent = (en ? 'Available: ' : 'Kullanılabilir: ') + Math.max(0, points | 0) + (en ? ' · T — Skills' : ' · T — Yetenekler');
+  }
+  function cancel() { S.on = false; S.t = 99; if (el) { el.setAttribute('aria-hidden', 'true'); el.setAttribute('aria-live', 'off'); el.classList.remove('lu-on', 'lu-paint', 'lu-paused'); } }
   /* Her kare, gerçek dt ile (app.js frameStep). Kapalıyken maliyeti sıfıra yakındır. */
-  function step(dt) {
+  function step(dt, visible = true) {
     if (!S.on) return;
+    if (el) el.classList.toggle('lu-paused', !visible);
+    if (!visible) return;
     const t = S.t += dt, app = B.app, post = app && app.post, p = app && app.game && app.game.player;
     if (p) { S.hx = p.x; S.hz = p.z; }
     if (t > TOTAL) { S.on = false; if (el) { el.setAttribute('aria-hidden', 'true'); el.setAttribute('aria-live', 'off'); el.classList.remove('lu-on'); } return; }
+    if (S.questOnly) return;   // a quest point is a reward card, without level-up camera/time/world effects
     if (post && post.setAbilityFx && t < 1.4) {
       const calm = S.calm;
       FX.flash = .15 * Math.exp(-t * 8.5) * clamp(t / .012, 0, 1);
@@ -235,7 +261,11 @@ body:has(#lu-banner.lu-on) #announcement{opacity:0!important}   /* the arena / r
     const q = s => root.querySelector(s);
     const title = q('.lu-title'); if (title && !title.children.length) fillTitle(title);
     const o = q('.lu-num s'), n = q('.lu-num u'), no = q('.lu-note'), sk = q('.lu-skill');
-    if (o) o.textContent = '11'; if (n) n.textContent = '12'; if (no) no.innerHTML = KabirI18n.t('+1 YETENEK PUANI · <b>T</b>'); if (sk) sk.textContent = KabirI18n.t('YENİ YETENEK: Kıyamet Narası');
+    const cap = B.Progression && B.Progression.MAX_LEVEL || 9;
+    if (o) o.textContent = String(cap - 1); if (n) n.textContent = String(cap); if (no) no.textContent = ''; if (sk) sk.textContent = KabirI18n.t('YENİ YETENEK: Kıyamet Narası');
+    const reward = q('.lu-reward'), hint = q('.lu-hint');
+    if (reward) { reward.hidden = false; reward.textContent = KabirI18n.lang === 'en' ? '+1 Skill Point' : '+1 Yetenek Puanı'; }
+    if (hint) hint.textContent = KabirI18n.lang === 'en' ? 'Available: 5 · T — Skills' : 'Kullanılabilir: 5 · T — Yetenekler';
     root.classList.add('lu-paint');
   }
 
@@ -319,7 +349,7 @@ void main(){vec2 q=gl_PointCoord*2.-1.;float d=length(q);
     return {start,step,clear,dispose,get active(){return active;},parts:[{geo:plane,mat:ringsMat},{geo:pg,mat:ptsMat,points:true}]};
   }
 
-  B.LevelUp = Object.assign(B.LevelUp || {}, { sound, trigger, cancel, step, push, timeScale, paintState, createWorld, TOTAL });
+  B.LevelUp = Object.assign(B.LevelUp || {}, { sound, trigger, cancel, step, push, timeScale, setAvailablePoints, paintState, createWorld, TOTAL });
   Object.defineProperties(B.LevelUp, { active: { get() { return S.on; } }, t: { get() { return S.t; } } });
   if (typeof document !== 'undefined') { if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', ensureDom); else ensureDom(); }
 })();

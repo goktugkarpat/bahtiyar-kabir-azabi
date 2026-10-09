@@ -49,9 +49,10 @@
   var clamp = function (v, a, b) { return Math.max(a, Math.min(b, v)); };
   var hyp = function (x, z) { return Math.sqrt(x * x + z * z); };
   var PERFECT = .24, DODGE_LEN = .48;
+  var PERFECT_REWARD = Object.freeze({ duration: 2.6, damage: 1.3 });   // shared with the existing timed-buff strip
 
   var BF = B.BossFramework = {
-    profiles: {}, hints: {}, current: null,
+    profiles: {}, hints: {}, current: null, perfectReward: PERFECT_REWARD,
     register: function (type, profile) {
       BF.profiles[type] = profile;
       if (profile.signature && profile.signature.hint) BF.hints[profile.signature.id] = profile.signature.hint;
@@ -490,7 +491,7 @@
       }
       return false;
     }
-    function hurt(e, damage) { return st.exposed > 0 && e === st.boss ? Math.round(damage * 1.3) : damage; }
+    function hurt(e, damage) { return st.exposed > 0 && e === st.boss ? Math.round(damage * PERFECT_REWARD.damage) : damage; }
     function evaded(h) {
       var o = h.owner; if (!o || !o.boss || h.harmless || h.periodic || h.persistent || !(player.dodge > 0) || st.perfectCd > 0 || o !== st.boss) return;
       var age = DODGE_LEN - player.dodge;
@@ -498,11 +499,9 @@
       // only a deliberate roll counts: a roll chained straight out of another one (spam) earns nothing
       for (var i = 0, n = 0; i < st.rolls.length; i++) if (time - st.rolls[i] < 1.15) n++;
       if (n > 1) return;
-      st.perfectCd = 3; st.exposed = 2.6;
+      st.perfectCd = 3; st.exposed = PERFECT_REWARD.duration;
       player.stamina = Math.min(player.maxStamina || 100, (player.stamina || 0) + 14);
-      flash(tr('KUSURSUZ KAÇIŞ'));
-      api.fx('glowBurst', { x: player.x, y: .05, z: player.z, radius: 2.2, color: 0xf0c060, duration: .55 });
-      api.fx('glowBurst', { x: o.x, y: .05, z: o.z, radius: 3.2, color: 0xf0c060, duration: .8 });
+      // Perfect-dodge rewards are explained by the timed icons above the health bar.
       if (api.slowMotion) api.slowMotion(.12);
       api.sound('parry', {});
     }

@@ -1,10 +1,10 @@
-/* KABİR AZABI — talent tree 4: a build tree of CHOICES, 24 nodes, only ~12-17 points to spend. Data + rules only (no DOM, no THREE).
+/* KABİR AZABI — talent tree 4: a build tree of CHOICES, 29 nodes, 13 points to spend. Data + rules only (no DOM, no THREE).
    Six columns (one per active skill line), four rows of decisions (no linear unlock order: any active can be the first point):
      row 1  actives (Mezar Yaran, Kan Nidası, Zincir Kasırgası, Kül Hücumu, Çengelli Çekiş, Demir Duruş), levels 2-4
      row 2  TWO exclusive forms under every active (A or B), each replaces the active in its slot; needs only that active + a modest level
      row 3  four archetype passives in two exclusive pairs (Öfke | Kanama, Savunma | Hücum)
      row 4  three exclusive keystones (Cellat | Kan Yemini | Demir Yemin), one under each board panel
-   Every node costs one point; points = level - 1 (12 at level 13) + up to 5 quest points, the tree costs 24: nobody takes everything.
+   Every node costs one point: 8 from levels 2-9 and up to 5 from quests. The 17 compatible choices cannot all be learned.
    Exclusive groups: one node per `group`. No gates on points spent. Removed tree-3 nodes are unknown ids: validate() drops them (and later exclusive siblings), the points come back.
    Form ids reuse the older tiers (temper/brand, chainstorm/quake, rend/reap, havoc/grasp) so slots, art, motion and skill-fx keep working.
    Effects are DATA here; src/talent-runtime.js applies them in the fight, effective() turns them into skill params. */
@@ -60,9 +60,9 @@
     for (const s of P.skills) {
       const at = PLACE[s.id]; if (!at) continue;
       list.push(Object.freeze({ id: s.id, kind: s.tier > 1 ? 'form' : 'active', col: at[0], row: at[1], slot: at[2] == null ? null : at[2], line: s.line, requires: s.requires, group: s.tier > 1 ? 'form-' + s.line : null,
-        gate: 0, level: s.level, name: s.name, desc: s.description, skill: s, fx: {}, arch: ARCH_OF_LINE[s.line] }));
+        gate: 0, level: s.level, requiredPowerLevel: s.requiredPowerLevel, requiredXp: s.requiredXp, name: s.name, desc: s.description, skill: s, fx: {}, arch: ARCH_OF_LINE[s.line] }));
     }
-    for (const n of N) list.push(n);
+    for (const n of N) list.push(Object.freeze(Object.assign({}, n, { level: P.levelForPower(n.level), requiredPowerLevel: n.level, requiredXp: P.powerThresholds[n.level - 1] })));
     list.sort((a, b) => a.row - b.row || a.col - b.col || (a.slot || 0) - (b.slot || 0));
     index = Object.create(null); for (const n of list) index[n.id] = n;
   }
@@ -79,13 +79,15 @@
   function access(state, id) {
     build(); const n = index[id], learned = state.learned || [];
     if (!n) return { known: false, blocked: true, canLearn: false, reason: t('Böyle bir yetenek yok.') };
-    const known = learned.includes(id), low = state.level < n.level, spent = spentOf(learned);
+    const rank = Number.isFinite(state.powerLevel) ? state.powerLevel : B.Progression.powerLevels[Math.max(0, Math.min(B.Progression.MAX_LEVEL - 1, state.level - 1))];
+    const known = learned.includes(id), low = rank < n.requiredPowerLevel, spent = spentOf(learned);
     const missingParent = n.requires && !learned.includes(n.requires) ? index[n.requires] : null;
     const gateNeed = 0;
     const exclusive = !known ? blockerOf(learned, n) : null;
     const blocked = !known && (low || !!missingParent || gateNeed > 0 || !!exclusive);
     const en = KabirI18n.lang === 'en';
-    const reason = known ? t('Öğrenildi') : low ? (en ? 'Requires level ' + n.level + '.' : n.level + '. seviye gerekli.')
+    const sameLevel = low && state.level >= n.level && Number.isFinite(state.xp), remaining = sameLevel ? Math.max(0, n.requiredXp - state.xp) : 0;
+    const reason = known ? t('Öğrenildi') : low ? (sameLevel ? (en ? 'Earn ' + remaining + ' more experience.' : remaining + ' tecrübe daha kazan.') : en ? 'Requires level ' + n.level + '.' : n.level + '. seviye gerekli.')
       : exclusive ? (en ? 'Excludes ' + exclusive.name + '.' : exclusive.name + ' ile birlikte alınamaz.')
       : missingParent ? (en ? 'Learn ' + missingParent.name + ' first.' : 'Önce ' + missingParent.name + ' öğrenilmeli.')
       : gateNeed ? (en ? 'Spend ' + gateNeed + ' more point' + (gateNeed > 1 ? 's' : '') + ' in the tree.' : 'Ağaca ' + gateNeed + ' puan daha harca.')
@@ -94,7 +96,7 @@
   }
   // Rebuilds a legal learned list from any (possibly hand-edited / older) list for this level. Order of the result = learning order.
   // extra: skill points earned outside levels (quest boons, progression.js boons.points).
-  function validate(ids, level, extra, previousBudget) {
+  function validate(ids, level, extra, previousBudget, powerLevel) {
     build();
     const want = (Array.isArray(ids) ? ids : []).filter((id, n, all) => typeof id === 'string' && index[id] && all.indexOf(id) === n);
     const base = B.Progression ? B.Progression.earnedPoints[Math.max(0, Math.min(B.Progression.MAX_LEVEL - 1, level - 1))] : 0;
@@ -104,17 +106,17 @@
       grew = false;
       for (const id of want) {
         if (out.includes(id) || out.length >= budget) continue;
-        const a = access({ learned: out, level, points: budget - out.length }, id);
+        const a = access({ learned: out, level, powerLevel, points: budget - out.length }, id);
         if (a.canLearn) { out.push(id); grew = true; }
       }
     }
     return out;
   }
   // A single node may be refunded when the rest of the tree stays legal without it.
-  function canRefund(learned, id, level, extra) {
+  function canRefund(learned, id, level, extra, powerLevel) {
     if (!learned.includes(id)) return false;
     const rest = learned.filter(x => x !== id);
-    return validate(rest, level, extra).length === rest.length;
+    return validate(rest, level, extra, undefined, powerLevel).length === rest.length;
   }
   // Flat effect bag of everything learned (passives, keystones). Cached per learned list.
   const fxCache = new Map();

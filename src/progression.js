@@ -2,23 +2,28 @@
 (function () {
   'use strict';
   const B = window.BABA = window.BABA || {};
-  const MAX_LEVEL = 13, VERSION = 2, ECONOMY_VERSION = 1, XP_CURVE_VERSION = 2, SKILL_TREE = 4;   // SKILL_TREE 4: slim build tree (src/talent-tree.js, 29 nodes); saves of trees 1-2 get every point refunded in restore(), tree 3 maps Kor Mührü / Ölüm Çanı to the new actives and refunds removed nodes
-  const POINTS = Object.freeze([0, 1, 2, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8]);
+  const MAX_LEVEL = 9, MAX_POWER_LEVEL = 13, VERSION = 2, ECONOMY_VERSION = 1, XP_CURVE_VERSION = 3, SKILL_TREE = 4;   // SKILL_TREE 4: slim build tree (src/talent-tree.js, 29 nodes); saves of trees 1-2 get every point refunded in restore(), tree 3 maps Kor Mührü / Ölüm Çanı to the new actives and refunds removed nodes
+  const POINTS = Object.freeze([0, 1, 2, 3, 4, 5, 6, 7, 8]);
+  const POWER_LEVELS = Object.freeze([1, 2, 3, 4, 5, 7, 9, 11, 13]);
+  const POWER_THRESHOLDS = Object.freeze([0, 60, 140, 1600, 3500, 6000, 9000, 12000, 15500, 18500, 22000, 26000, 30000]);
+  // Display levels award one point each; the original XP-based power and unlock timings stay intact.
+  function levelForPower(rank) { let level = 1; for (let i = 1; i < MAX_LEVEL; i++) if (rank >= POWER_LEVELS[i]) level = i + 1; return level; }
+  function powerLevelForXp(xp) { let rank = 1; for (let i = 1; i < MAX_POWER_LEVEL; i++) if (xp >= POWER_THRESHOLDS[i]) rank = i + 1; return rank; }
   const PREVIOUS_THRESHOLDS = Object.freeze([0, 60, 160, 550, 1200, 2100, 3200, 4600, 6000, 7600, 11000, 13000, 15000]);
   const PREVIOUS_CURVE_THRESHOLDS = Object.freeze([0, 60, 350, 1600, 3500, 6000, 9000, 12000, 15500, 18500, 22000, 26000, 30000]);
   const QUEST_POINTS = 5;
   const LEGACY_THRESHOLDS = Object.freeze([0, 40, 100, 350, 850, 1450, 2000]);
   // Complete authored routes earn about 1.9k / 6.6k / 12.4k / 20.3k / 30.8k cumulative XP.
-  // Full clears reach levels 4 / 6 / 8 / 10 / 13; rushed routes keep only modest chapter safety floors.
+  // Full clears reach displayed levels 4 / 5 / 6 / 7 / 9; chapter safety floors retain their original XP.
   // Three opening prisoners award 60 XP: level 2 and the first skill point.
   // Four more courtyard foes reach 140 XP regardless of kill order: level 3 and a second skill point.
   // Level 4 onward retains the measured late-game curve; early gains do not add points to the final budget.
   // Final chapter skills arrive before the forge boss on a mostly-cleared route.
   // Active skill slots: right mouse, key 1, key 2, key 3 (round 7; saves with a 3-entry loadout load with the 4th slot empty / auto-filled).
   const SLOT_COUNT = 4;
-  const THRESHOLDS = Object.freeze([0, 60, 140, 1600, 3500, 6000, 9000, 12000, 15500, 18500, 22000, 26000, 30000]);
+  const THRESHOLDS = Object.freeze([0, 60, 140, 1600, 3500, 9000, 15500, 22000, 30000]);
   const FINAL_CHAPTER = B.FINAL_CHAPTER = 5;   // chapter V (Son Mahkeme) ends the journey
-  const MILESTONES = Object.freeze([3, 5, 7, 9, 11]);
+  const MILESTONES = Object.freeze([3, 5, 6, 7, 8]);
   const chapterId = n => Number.isInteger(n) && n >= 1 && n <= FINAL_CHAPTER ? n : 1;
   // Skill tree: 4 lines (columns), 3 tiers each (rows). A lower tier REPLACES its predecessor in the slot it is learned into.
   // line: 'cleave' heavy strike | 'roar' war cry | 'whirl' chain whirlwind | 'charge' dash. params feed combat.js, so numbers in
@@ -88,7 +93,7 @@
     { id: 'guard', name: KabirI18n.t('Demir Duruş'), line: 'guard', tier: 1, level: 2, requires: null, branch: 5, cost: 26, cooldown: 18,
       params: { time: 6, taken: .5, thorns: 30, stun: .55, bleed: 14, reach: 4.4, heal: 0 },
       description: KabirI18n.t('Ayaklarını yere bas ve kaslarını sert tut: birkaç saniye boyunca aldığın hasar yarıya iner. Sana vuran yakın düşman geri savrulur, sersemler ve kanar.'), delta: '' }
-  ].map(s => Object.freeze(Object.assign({}, s, { params: Object.freeze(s.params), cost: s.cost }))));
+  ].map(s => Object.freeze(Object.assign({}, s, { level: levelForPower(s.level), requiredPowerLevel: s.level, requiredXp: POWER_THRESHOLDS[s.level - 1], params: Object.freeze(s.params), cost: s.cost }))));
   const skillIndex = Object.fromEntries(skills.map(s => [s.id, s]));
   const skillsByLine = line => skills.filter(s => s.line === line).sort((a, b) => a.tier - b.tier);
   // A new tier opens as a whole after all four lines of the previous tier.
@@ -98,7 +103,7 @@
     if (B.TalentTree) return B.TalentTree.access(state, id);
     const skill = skillIndex[id], learned = new Set(state.learned || []);
     if (!skill) return { known:false, blocked:true, canLearn:false, reason:KabirI18n.t('Böyle bir yetenek yok.') };
-    const known = learned.has(id), low = state.level < skill.level;
+    const known = learned.has(id), low = (state.powerLevel || POWER_LEVELS[state.level - 1]) < skill.requiredPowerLevel;
     const missingParent = skill.requires && !learned.has(skill.requires);
     const previous = skill.tier > 1 ? skills.filter(s => s.tier === skill.tier - 1) : [];
     const missingTier = previous.filter(s => !learned.has(s.id)).length;
@@ -169,7 +174,7 @@
   }
   function item(id, name, slot, level, rarity, damage, defense, hp, type, description, modelId, finish) {
     const visualScale = slot === 'weapon' && modelId ? type === 'axe' ? [1.16, .97, 1.04] : type === 'spear' ? [.91, 1.11, .93] : finish === 'brine' ? [1.08, 1.14, .98] : [.88, 1.08, .96] : [1, 1, 1];
-    return Object.freeze({ id, name, slot, level, rarity, damage: damage || 0, defense: defense || 0, hp: hp || 0,
+    return Object.freeze({ id, name, slot, level: levelForPower(level), requiredPowerLevel: level, requiredXp: POWER_THRESHOLDS[level - 1], rarity, damage: damage || 0, defense: defense || 0, hp: hp || 0,
       type: type || slot, description, icon: slot === 'weapon' ? type : slot, modelId: modelId || id, finish: finish || 'worn', visualScale: Object.freeze(visualScale) });
   }
   const items = Object.freeze([
@@ -289,12 +294,12 @@
     const def = entry && catalog[entry.id]; if (!def) return null;
     const roll = def.rarity === 'boss' ? 0 : Math.max(-2, Math.min(2, Number.isInteger(entry.roll) ? entry.roll : 0));
     const factor = 1 + roll * .025;
-    return Object.assign({}, def, { roll, power: def.level * 10 + qualities[def.rarity].rank * 4 + roll,
+    return Object.assign({}, def, { roll, power: def.requiredPowerLevel * 10 + qualities[def.rarity].rank * 4 + roll,
       damage: def.damage * factor, defense: def.defense * factor, hp: Math.round(def.hp * factor) });
   }
   const slots = Object.freeze(['weapon', 'head', 'chest', 'hands', 'boots']);
-  // Ordinary foes 9%, elites 28%, useful-item pity after 20 dry kills. Signatures are independent.
-  const LOOT_NORMAL = 9, LOOT_ELITE = 28, LOOT_PITY = 20;
+  // Fewer ordinary rewards; opening five-slot learning retains its old rates. Useful-item pity and signatures stay independent.
+  const LOOT_NORMAL = 5, LOOT_ELITE = 18, LOOT_PITY = 20, LOOT_START_NORMAL = 9, LOOT_START_ELITE = 28;
   const XP = Object.freeze({ prisoner: 20, guard: 25, cultist: 23, stalker: 23, carrier: 25 });
   const hash = value => { let h = 2166136261; for (let n = 0; n < value.length; n++) h = Math.imul(h ^ value.charCodeAt(n), 16777619); return h >>> 0; };
   const result = (ok, reason) => ({ ok, reason: reason || '' });
@@ -323,6 +328,7 @@
     let boons = { points: 0, flasks: 0, hp: 0, damage: 0, claimed: [] }, pointCredit = 0;
     const pointCapacity = () => B.TalentTree ? B.TalentTree.legalCapacity : 17;
     const totalPointBudget = () => Math.min(pointCapacity(), POINTS[state.level - 1] + boons.points + pointCredit);
+    const powerLevel = () => powerLevelForXp(state.xp);
     function cleanBoons(raw) {
       const b = raw && typeof raw === 'object' ? raw : {}, n = (v, lo, hi) => Number.isFinite(v) ? Math.max(lo, Math.min(hi, v)) : 0;
       return { points: Math.round(n(b.points, 0, QUEST_POINTS)), flasks: Math.round(n(b.flasks, 0, 3)), hp: Math.round(n(b.hp, -40, 40)), damage: n(b.damage, -.2, .2),
@@ -339,7 +345,7 @@
       if (Number.isFinite(reward.damage)) { const before = boons.damage; boons.damage = Math.max(-.2, Math.min(.2, boons.damage + reward.damage)); gained.damage = boons.damage - before; }
       if (Number.isFinite(reward.xp) && reward.xp > 0) { const before = state.xp; state.xp = Math.min(THRESHOLDS[MAX_LEVEL - 1], state.xp + Math.floor(reward.xp)); gained.xp = state.xp - before; }
       for (const id of [].concat(reward.item || [])) { const entry = catalog[id] && !state.inventory.some(i => i.id === id) ? addItem(id, 'quest-' + id) : null; if (entry) gained.items.push(entry); }
-      recalculate(); changed('progression', Object.assign({}, gained, { quest: true, level: state.level, points: state.points, levels: state.level - oldLevel, earnedPoints: POINTS[state.level - 1] - POINTS[oldLevel - 1] }));
+      recalculate(); changed('progression', Object.assign({}, gained, { quest: true, questPoints: gained.points || 0, level: state.level, points: state.points, levels: state.level - oldLevel, earnedPoints: POINTS[state.level - 1] - POINTS[oldLevel - 1] }));
       if (gained.items.length) changed('loot', { items: gained.items, boss: false, chapter: state.chapter, quest: true });
       return gained;
     }
@@ -383,25 +389,25 @@
       signatureClaims=Object.create(null);if(profile.signatureClaims&&typeof profile.signatureClaims==='object')for(const key of Object.keys(profile.signatureClaims)){const id=profile.signatureClaims[key];if(/^[1-5]:/.test(key)&&key.length<240&&signatureIds.has(id))signatureClaims[key]=id;}
       let restoredXp = int(profile.xp, 0);
       const legacyEconomy = profile.economyVersion !== ECONOMY_VERSION;
-      if (legacyEconomy || profile.xpCurveVersion !== XP_CURVE_VERSION) {
-        // Preserve the earned level and progress within it; early-curve changes do not grant extra save points.
-        // Older economies map directly once. Economy 1 uses its prior curve without changing point-credit rules.
+      if (legacyEconomy || (profile.xpCurveVersion !== XP_CURVE_VERSION && profile.xpCurveVersion !== 2)) {
+        // Preserve the original power rank and progress within it. Curve 2 XP already uses the same power thresholds.
+        // Only older XP economies are translated, once; display-level compression never grants extra points.
         const old = legacyEconomy ? (profile.version === 1 ? LEGACY_THRESHOLDS : PREVIOUS_THRESHOLDS) : PREVIOUS_CURVE_THRESHOLDS;
         let tier = 0;
         for (let n = 1; n < old.length; n++) if (restoredXp >= old[n]) tier = n;
         const fraction = tier < old.length - 1 ? Math.min(1, (restoredXp - old[tier]) / (old[tier + 1] - old[tier])) : 0;
-        if (old[tier] !== THRESHOLDS[tier] || (tier < old.length - 1 && old[tier + 1] !== THRESHOLDS[tier + 1]))
-          restoredXp = Math.floor(THRESHOLDS[tier] + fraction * (tier < MAX_LEVEL - 1 ? THRESHOLDS[tier + 1] - THRESHOLDS[tier] : 0));
+        if (old[tier] !== POWER_THRESHOLDS[tier] || (tier < old.length - 1 && old[tier + 1] !== POWER_THRESHOLDS[tier + 1]))
+          restoredXp = Math.floor(POWER_THRESHOLDS[tier] + fraction * (tier < MAX_POWER_LEVEL - 1 ? POWER_THRESHOLDS[tier + 1] - POWER_THRESHOLDS[tier] : 0));
       }
       boons = cleanBoons(profile.boons); pointCredit = 0;
       state.xp = Math.min(THRESHOLDS[MAX_LEVEL - 1], restoredXp); recalculate();
       if (legacyEconomy && B.TalentTree) {
         const previousBonus = Math.min(8, int(profile.boons && profile.boons.points, 0));
-        const legal = B.TalentTree.validate(profile.learned, state.level, 0, Math.min(pointCapacity(), state.level - 1 + previousBonus));
+        const legal = B.TalentTree.validate(profile.learned, state.level, 0, Math.min(pointCapacity(), powerLevel() - 1 + previousBonus), powerLevel());
         pointCredit = Math.max(0, legal.length - POINTS[state.level - 1] - boons.points);
       } else pointCredit = Math.min(pointCapacity(), int(profile.pointCredit, 0));
-      const learned = new Set(B.TalentTree ? B.TalentTree.validate(profile.learned, state.level, boons.points + pointCredit) : []);
-      if (!B.TalentTree) for (const skill of skills) if (learned.size < POINTS[state.level - 1] + boons.points && Array.isArray(profile.learned) && profile.learned.includes(skill.id) && state.level >= skill.level &&
+      const learned = new Set(B.TalentTree ? B.TalentTree.validate(profile.learned, state.level, boons.points + pointCredit, undefined, powerLevel()) : []);
+      if (!B.TalentTree) for (const skill of skills) if (learned.size < POINTS[state.level - 1] + boons.points && Array.isArray(profile.learned) && profile.learned.includes(skill.id) && powerLevel() >= skill.requiredPowerLevel &&
         (!skill.requires || learned.has(skill.requires))) learned.add(skill.id);
       state.learned = B.TalentTree ? Array.from(learned) : Array.isArray(profile.learned) ? profile.learned.filter((id, n, list) => learned.has(id) && list.indexOf(id) === n) : []; recalculate();
       const seen = new Set();
@@ -417,7 +423,7 @@
       state.equipment = {};
       for (const slot of slots) {
         const entry = state.inventory.find(i => profile.equipment && i.uid === profile.equipment[slot]);
-        state.equipment[slot] = entry && catalog[entry.id].slot === slot && catalog[entry.id].level <= state.level ? entry.uid : null;
+        state.equipment[slot] = entry && catalog[entry.id].slot === slot && catalog[entry.id].requiredPowerLevel <= powerLevel() ? entry.uid : null;
       }
       if (!profile.equipment || !Object.prototype.hasOwnProperty.call(profile.equipment,'weapon')) state.equipment.weapon = addItem('dull-sword').uid;
       // A slotted skill whose node no longer exists (cut tier II forms) falls back to the best learned skill of the same line, so the slot is not lost.
@@ -449,7 +455,7 @@
     }
     // Talent tree 3: give one node back (when the rest of the tree stays legal) or every node at once. The caller decides when (out of combat).
     function refund(id) {
-      if (!B.TalentTree || !B.TalentTree.canRefund(state.learned, id, state.level, boons.points + pointCredit)) return result(false, KabirI18n.t('Bu düğüme ya da harcanan puan sayısına bağlı başka düğümler var; önce onları geri al.'));
+      if (!B.TalentTree || !B.TalentTree.canRefund(state.learned, id, state.level, boons.points + pointCredit, powerLevel())) return result(false, KabirI18n.t('Bu düğüme ya da harcanan puan sayısına bağlı başka düğümler var; önce onları geri al.'));
       const skill = skillIndex[id];
       state.learned = state.learned.filter(x => x !== id); recalculate();
       state.loadout = state.loadout.map(o => o !== id ? o : skill && skill.requires && state.learned.includes(skill.requires) ? skill.requires : null);
@@ -468,11 +474,17 @@
       if (other !== -1 && other !== slot) state.loadout[other] = previous;
       state.loadout[slot] = id; changed(); return result(true);
     }
+    function itemAccess(entry) {
+      const def = entry && catalog[entry.id];
+      const canEquip = !!def && def.requiredPowerLevel <= powerLevel();
+      const remaining = def ? Math.max(0, def.requiredXp - state.xp) : 0;
+      return { canEquip, reason: canEquip ? '' : !def ? KabirI18n.t('Bu eşya çantanda değil.') : KabirI18n.lang === 'en' ? 'Earn ' + remaining + ' more experience to equip this item.' : 'Bu eşyayı kuşanmak için ' + remaining + ' tecrübe daha kazan.' };
+    }
     function equip(uid) {
       const entry = state.inventory.find(i => i.uid === uid);
       if (!entry) return result(false, KabirI18n.t('Bu eşya çantanda değil.'));
       const def = catalog[entry.id];
-      if (def.level > state.level) return result(false, (KabirI18n.lang === 'en' ? 'Requires level ' + def.level + '.' : def.level + KabirI18n.t('. seviye gerekli.')));
+      const access = itemAccess(entry); if (!access.canEquip) return result(false, access.reason);
       state.equipment[def.slot] = uid; changed('progression', { equipped: uid, slot: def.slot }); return result(true);
     }
     function unequip(slot) {
@@ -482,7 +494,7 @@
     }
     function stats() {
       if (statCache && statRevision === state.revision) return statCache;
-      let hp = 100 + (state.level - 1) * 6, damage = .72 + Math.min(6, state.level - 1) * (.53 / 6) + Math.max(0, state.level - 7) * .05, defense = 0, weaponId = null;
+      let hp = 100 + (powerLevel() - 1) * 6, damage = .72 + Math.min(6, powerLevel() - 1) * (.53 / 6) + Math.max(0, powerLevel() - 7) * .05, defense = 0, weaponId = null;
       for (const slot of slots) {
         const entry = state.inventory.find(i => i.uid === state.equipment[slot]);
         if (!entry) continue;
@@ -506,10 +518,10 @@
       const old = resolveItem(oldEntry);
       if (!old) return true;
       if (def.slot === 'weapon') {
-        const base = .72 + Math.min(6, state.level - 1) * (.53 / 6) + Math.max(0, state.level - 7) * .05;
+        const base = .72 + Math.min(6, powerLevel() - 1) * (.53 / 6) + Math.max(0, powerLevel() - 7) * .05;
         return Math.min(1.95, base * (1 + def.damage)) > Math.min(1.95, base * (1 + old.damage)) + .00001;
       }
-      let hp = 100 + (state.level - 1) * 6, defense = 0;
+      let hp = 100 + (powerLevel() - 1) * 6, defense = 0;
       for (const slot of slots) {
         if (slot === def.slot) continue;
         const part = resolveItem(state.inventory.find(i => i.uid === state.equipment[slot]));
@@ -524,8 +536,8 @@
       return Math.min(184, others.hp + def.hp) / (1 - Math.min(.30, others.defense + def.defense));
     }
     function slotContext(slot) {
-      let hp = 100 + (state.level - 1) * 6, defense = 0;
-      const base = .72 + Math.min(6, state.level - 1) * (.53 / 6) + Math.max(0, state.level - 7) * .05;
+      let hp = 100 + (powerLevel() - 1) * 6, defense = 0;
+      const base = .72 + Math.min(6, powerLevel() - 1) * (.53 / 6) + Math.max(0, powerLevel() - 7) * .05;
       for (const other of slots) {
         if (other === slot) continue;
         const part = resolveItem(state.inventory.find(i => i.uid === state.equipment[other]));
@@ -536,26 +548,30 @@
     // Picks the item base of an ordinary drop: favours real upgrades over everything the hero owns, the weakest slots first,
     // never repeats a base already dropped this chapter / owned / lying on the ground, and keeps junk to a small share.
     function lootPick(chapter, elite, seed, roll) {
-      const lootLevel = Math.min(state.level, chapter >= 4 ? MAX_LEVEL : chapter === 3 ? 10 : chapter === 2 ? 8 : 5);
+      const lootLevel = Math.min(powerLevel(), chapter >= 4 ? MAX_POWER_LEVEL : chapter === 3 ? 10 : chapter === 2 ? 8 : 5);
       const pool = items.filter(i => i.rarity !== 'boss' && !signatureIds.has(i.id) && i.id !== 'dull-sword' && i.id !== 'torn-chest' &&
-        i.level <= lootLevel && i.level >= Math.max(1, lootLevel - 2));
+        i.requiredPowerLevel <= lootLevel && i.requiredPowerLevel >= Math.max(1, lootLevel - 2));
       if (!pool.length) return null;
-      const tier = elite ? pool.filter(def => def.level >= Math.max(1, state.level - 1)) : pool;
-      const available = tier.length ? tier : pool;
+      const tier = elite ? pool.filter(def => def.requiredPowerLevel >= Math.max(1, powerLevel() - 1)) : pool;
+      const eligible = tier.length ? tier : pool;
+      // Raise quality inside the XP-unlocked pool; low-power saves always keep an eligible fallback.
+      const qualityFloor = chapter >= 3 && lootLevel >= 6 ? 2 : chapter >= 2 && lootLevel >= 2 ? 1 : 0;
+      const greener = eligible.filter(def => qualities[def.rarity].rank >= qualityFloor);
+      const available = greener.length ? greener : eligible;
       const taken = id => state.inventory.some(e => e.id === id) || state.groundLoot.some(e => e.id === id) || lootIdentities.has(id);
       const contexts = {}, best = {}, need = {};
       for (const slot of slots) {
         contexts[slot] = slotContext(slot);
         let top = 0, topLevel = 0;
         for (const e of state.inventory) {
-          const d = resolveItem(e); if (!d || d.slot !== slot || d.level > state.level) continue;
-          top = Math.max(top, slotValue(d, contexts[slot])); if (state.equipment[slot] === e.uid) topLevel = d.level;
+          const d = resolveItem(e); if (!d || d.slot !== slot || d.requiredPowerLevel > powerLevel()) continue;
+          top = Math.max(top, slotValue(d, contexts[slot])); if (state.equipment[slot] === e.uid) topLevel = d.requiredPowerLevel;
         }
         best[slot] = top; need[slot] = Math.max(0, Math.min(6, lootLevel - topLevel));
       }
       const scored = available.filter(def => !taken(def.id)).map(def => {
         const d = resolveItem({ id: def.id, roll });   // judged with the craftsmanship this very drop will have
-        const own = state.inventory.map(resolveItem).filter(o => o && o.slot === def.slot && o.level <= state.level);
+        const own = state.inventory.map(resolveItem).filter(o => o && o.slot === def.slot && o.requiredPowerLevel <= powerLevel());
         const power = B.GearPowers && B.GearPowers.text && B.GearPowers.text[def.id];
         const newType = def.slot === 'weapon' && !own.some(o => o.type === def.type);
         const ctx = contexts[def.slot];
@@ -567,7 +583,11 @@
       const alternatives = scored.filter(c => !c.up && c.alternative);
       const choices = ups.concat(alternatives);
       if (!choices.length) return null;   // pity waits for a meaningful reward rather than creating junk
-      let total = 0; const weights = choices.map(c => { const w = (1 + .3 * qualities[c.def.rarity].rank) * (1 + .35 * need[c.def.slot]) * (c.up ? 3 : 1) * (lootSlots[lootSlots.length-1] === c.def.slot ? .18 : lootSlots.slice(-3).includes(c.def.slot) ? .6 : 1); total += w; return w; });
+      let total = 0; const weights = choices.map(c => {
+        const rank = qualities[c.def.rarity].rank;
+        const qualityWeight = rank === 0 ? [1, .12, .035, .015, .005][chapter - 1] : (1 + .3 * rank) * (rank >= 2 ? 1 + .15 * (chapter - 1) : 1);
+        const w = qualityWeight * (1 + .35 * need[c.def.slot]) * (c.up ? 3 : 1) * (lootSlots[lootSlots.length-1] === c.def.slot ? .18 : lootSlots.slice(-3).includes(c.def.slot) ? .6 : 1); total += w; return w;
+      });
       let r = (((seed >>> 8) & 0xfff) / 4096) * total;
       for (let n = 0; n < choices.length; n++) { r -= weights[n]; if (r < 0) return choices[n].def.id; }
       return choices[choices.length - 1].def.id;
@@ -601,7 +621,9 @@
         }
       } else {
         let id;
-        if (seed % 100 >= (elite ? LOOT_ELITE : LOOT_NORMAL) && lootDry < LOOT_PITY) { lootDry++; return []; }
+        const learningGear = chapter === 1 && slots.some(slot => !state.inventory.some(entry => catalog[entry.id].slot === slot && catalog[entry.id].requiredPowerLevel <= powerLevel()));
+        const rate = elite ? (learningGear ? LOOT_START_ELITE : LOOT_ELITE) : (learningGear ? LOOT_START_NORMAL : LOOT_NORMAL);
+        if (seed % 100 >= rate && lootDry < LOOT_PITY) { lootDry++; return []; }
         id = lootPick(chapter, elite, seed, (hash(key + ':craft:' + lootSeed) % 5) - 2);
         if (!id) return [];   // nothing useful left to offer: no drop, the pity counter keeps waiting
         if (signatureIds.has(id)) { if (typeof console !== 'undefined') console.error('boss-only item from the general picker', id); return []; }   // exclusivity assert
@@ -660,12 +682,12 @@
     }
     Object.assign(state, { grantQuest, boons: () => boons, snapshot, restore, grantEnemy, unlock, assign, equip, stats, loot, completedChapter, reset, refund, respec,
       skillForSlot: slot => { const s = skillIndex[state.loadout[slot]] || null; return s && B.TalentTree ? B.TalentTree.effective(s, state.learned) : s; },
-      collectLoot, unequip, isUpgrade, bagLimit: Infinity, bagFull: () => state.inventory.length >= state.bagLimit, debugLootPick: lootPick,   // ajan:bossloot: the exclusivity check scans the general picker
+      collectLoot, unequip, isUpgrade, itemAccess, bagLimit: Infinity, bagFull: () => state.inventory.length >= state.bagLimit, debugLootPick: lootPick,   // ajan:bossloot: the exclusivity check scans the general picker
       itemForSlot: slot => { const entry = state.inventory.find(i => i.uid === state.equipment[slot]); return resolveItem(entry); },
       nextLevelXp: () => state.level < MAX_LEVEL ? THRESHOLDS[state.level] : null });
-    Object.defineProperty(state, 'totalPointBudget', { get: totalPointBudget });
+    Object.defineProperties(state, { totalPointBudget: { get: totalPointBudget }, powerLevel: { get: powerLevel } });
     reset(); state.chapter = chapterId(options.chapter); if (options.profile) restore(options.profile);
     return state;
   }
-  B.Progression = Object.freeze({ create, skills, lines: LINES, skillsByLine, skillFacts, skillAccess, SKILL_TREE, items, catalog, bossSignatures, qualities, resolveItem, slots, MAX_LEVEL, VERSION, ECONOMY_VERSION, XP_CURVE_VERSION, QUEST_POINTS, thresholds: THRESHOLDS, earnedPoints: POINTS, milestones: MILESTONES, FINAL_CHAPTER });
+  B.Progression = Object.freeze({ create, skills, lines: LINES, skillsByLine, skillFacts, skillAccess, SKILL_TREE, items, catalog, bossSignatures, qualities, resolveItem, slots, MAX_LEVEL, VERSION, ECONOMY_VERSION, XP_CURVE_VERSION, QUEST_POINTS, thresholds: THRESHOLDS, earnedPoints: POINTS, powerLevels: POWER_LEVELS, powerThresholds: POWER_THRESHOLDS, levelForPower, powerLevelForXp, milestones: MILESTONES, FINAL_CHAPTER });
 }());
