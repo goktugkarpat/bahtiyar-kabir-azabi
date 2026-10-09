@@ -94,7 +94,7 @@
   const AUTO_QUALITY = detectQuality();
   let qualityForce = null, qualityStored = null;   // ?q= forces this load only; retired ultra aliases high and is never saved
   const DEFAULTS = { difficulty: 'normal', quality: AUTO_QUALITY, qualityUser: false, qualityVersion: 7, ...DISPLAY.defaults, frameRate: FRAME_LIMIT, exposure: 1.15, shake: .55, master: .65, music: .42, sfx: .75, voice: .85, narrationMode: 'essential', subtitles: true, autoLoot: false, kbOnly: false, uiScale: .85 };
-  const FRAME_RATES = [60, 90, 120, 0];   // 0 = follow the display (every refresh; best with G-Sync / FreeSync / ProMotion)
+  const FRAME_RATES = [60, 90, 120, -1, 0];   // -1 = smooth: about 120, snapped to an exact divisor of the screen refresh;   // 0 = follow the display (every refresh; best with G-Sync / FreeSync / ProMotion)
   const UI_STEPS = [.75, .85, 1];   // Küçük (new, smaller) | Normal (was 'Küçük') | Büyük (was 'Normal')
   const LIMITS = { exposure: [.7, 1.7], shake: [0, 1], master: [0, 1], music: [0, 1], sfx: [0, 1], voice: [0, 1] };
   // `cfg` is shared with effects.js / world.js / combat.js (they read the technical fields).
@@ -252,7 +252,7 @@
   }
   function deriveSettings() {
     Object.assign(cfg, QUALITY[cfg.quality] || QUALITY.high);
-    cfg.fps = cfg.frameRate;
+    cfg.fps = cfg.frameRate < 0 ? 120 : cfg.frameRate; cfg.snap = cfg.frameRate < 0;
     if (document.body) document.body.classList.toggle('kb-only', kbMode());
     if (B.GroundLoot) B.GroundLoot.auto = cfg.autoLoot === true;   // old proximity auto-pickup of ground items (default off: click / E)
     // 60 Hz-class targets: distant characters cast shadows over a shorter reach (see combat.js); 0 = all cast.
@@ -960,7 +960,7 @@
         : KabirI18n.t('Ekranın bütün piksellerini kullanır. Retina ekranda Düşük kalite seçilse de çizim boyutu azalmaz.');
     }
     if (resolution) resolution.textContent = KabirI18n.t('Seçilen görüntü boyutunu büyütür. 1.25× daha net, 1.50× en ayrıntılı görüntüdür; daha fazla ekran kartı gücü kullanır.');
-    if (rate) rate.textContent = cfg.fps ? KabirI18n.t('En fazla ') + cfg.fps + KabirI18n.t(' kare/sn. Ekranının yenileme hızına uygun bir sınır seç. Daha düşük sınırlar işlemci yükünü ve fan sesini azaltabilir.') : KabirI18n.t('Ekranın her yenilemesinde çizer (G-Sync / FreeSync / ProMotion ile en düzgünü).');
+    if (rate) rate.textContent = cfg.snap ? KabirI18n.t('Yaklaşık 120 kare/sn; kare aralığı ekranının yenileme hızına tam bölünecek şekilde ayarlanır (ör. 200 Hz ekranda 100). Mikro takılma hissini azaltır.') : cfg.fps ? KabirI18n.t('En fazla ') + cfg.fps + KabirI18n.t(' kare/sn. Ekranının yenileme hızına uygun bir sınır seç. Daha düşük sınırlar işlemci yükünü ve fan sesini azaltabilir.') : KabirI18n.t('Ekranın her yenilemesinde çizer (G-Sync / FreeSync / ProMotion ile en düzgünü).');
   }
   function renderSettings() {
     const video = $('settings-video'), audio = $('settings-audio');
@@ -981,7 +981,7 @@
     const displayNote = document.createElement('small'); displayNote.id = 'display-note'; q.append(displayNote);
     video.append(choiceRow('displayMode', KabirI18n.t('Görüntü boyutu'), ['auto', 'native'], v => ({ auto: KabirI18n.t('Otomatik'), native: KabirI18n.t('Tam boyut') })[v]),
       choiceRow('renderScale', KabirI18n.t('Render çözünürlüğü'), [1, 1.25, 1.5], v => v.toFixed(v === 1 ? 1 : 2) + '×'),
-      choiceRow('frameRate', KabirI18n.t('Kare hızı'), FRAME_RATES, v => v ? v + ' FPS' : KabirI18n.t('Ekran hızı')),
+      choiceRow('frameRate', KabirI18n.t('Kare hızı'), FRAME_RATES, v => v < 0 ? KabirI18n.t('Akıcı') : v ? v + ' FPS' : KabirI18n.t('Ekran hızı')),
       choiceRow('uiScale', KabirI18n.t('Arayüz boyutu'), UI_STEPS, v => v < .8 ? KabirI18n.t('Küçük') : v < 1 ? KabirI18n.t('Normal') : KabirI18n.t('Büyük')));
     // Edge smoothing (SMAA post pass in post.js) is always on: no settings row.
     paintGraphicsNotes();
@@ -1981,7 +1981,7 @@
     if (measured) performanceMeter.callback(ts);
     // One selected render rate for gameplay, the title and every menu. A pause
     // stops combat, never presentation; zero follows every browser callback.
-    const frameDue = renderClock.due(ts, cfg.fps);
+    const frameDue = renderClock.due(ts, cfg.fps, cfg.snap);
     if (!frameDue) return;
     const cpuStart = measured ? performance.now() : 0;
     // Game.update subdivides this bounded interval into collision-safe 1/60 s steps.

@@ -94,3 +94,6 @@ Object.assign(window.KabirI18n.dictionary,{"Eşya alındı:":"Item acquired:","G
 /* /ajan:loot3 */
 /* Balance localization: keep the Blood Oath description aligned with its 3.5% runtime leech. */
 Object.assign(window.KabirI18n.dictionary,{"Verdiğin bütün hasarın %2,5’i can olarak sana döner.":"2.5% of all the damage you deal returns to you as life."});
+/* ajan:smooth */
+Object.assign(window.KabirI18n.dictionary,{"Akıcı":"Smooth","Yaklaşık 120 kare/sn; kare aralığı ekranının yenileme hızına tam bölünecek şekilde ayarlanır (ör. 200 Hz ekranda 100). Mikro takılma hissini azaltır.":"About 120 frames/s, with the frame interval fitted to divide your screen's refresh rate exactly (e.g. 100 on a 200 Hz screen). Reduces the feel of micro stutter."});
+/* /ajan:smooth */
