@@ -199,6 +199,13 @@
     var CORNERS = [[-1, -1], [1, -1], [1, 1], [-1, 1]];
     // kind: SPR.*; w/h = half size in metres; col [r,g,b] (HDR allowed); ex = rise height / wander radius
     K.spr = function (id, kind, x, y, z, w, h, col, a, phase, speed, ex) {
+      // Chapter III: retain the light sources, but keep large atmospheric quads from veiling the floor.
+      if (!forge) {
+        a = a == null ? 1 : a;
+        if (kind === SPR.beam) { w *= .72; a *= .55; }
+        else if (kind === SPR.glow && Math.max(w, h) > 2) { w *= .80; h *= .80; a *= .65; }
+        else if (kind === SPR.smoke) a *= .65;
+      }
       var R = sprRooms[id] || (sprRooms[id] = { pos: [], corner: [], size: [], col: [], kind: [], idx: [], n: 0 }), base = R.n;
       for (var q = 0; q < 4; q++) {
         var c = CORNERS[q]; R.pos.push(x, y, z);

@@ -6,24 +6,24 @@
   var B = window.BABA, PI = Math.PI;
   var COLD = [.84, .9, 1.04], ASH = [.9, .9, .93], WARM = [1.1, .94, .8], CRIM = [1.1, .84, .8], CAVEC = [.82, .95, 1.0], CAVEV = [.9, .85, 1.1], CAVEG = [.86, 1.02, .92], GOLD = [1.16, 1.02, .8], WHITE = [1.05, 1.03, 1.0];
 
-  var moodBase = { fog: '#0c0e12', fogDensity: .012, mist: '#141722', mistA: .12, mistH: .7, mistGlow: .5, scatter: .65, wind: [.025, -.015], sky: '#9eacb8', ground: '#302e2b', hemi: .85, env: .28, key: '#b2bfd0', keyI: 1.65, keyDir: [-12, 24, -8],
+  var moodBase = { fog: '#0c0e12', fogDensity: 0.0102, mist: '#141820', mistA: 0.084, mistH: .7, mistGlow: 0.325, scatter: 0.4875, wind: [.025, -.015], sky: '#9eacb8', ground: '#302e2b', hemi: .85, env: .28, key: '#b2bfd0', keyI: 1.65, keyDir: [-12, 24, -8],
     rim: '#7a9abc', rimI: 1.15, charRim: '#c3d4df', charRimI: 1.3, rimDir: [.4, .6, -1], rimWrap: 1, charFill: .23, lift: [.003, .005, .008], gain: [1, 1.03, 1.07], sat: .82, contrast: .2, shadowTint: [.9, 1, 1.1], highTint: [1.08, 1.02, .9],
-    vignette: .5, vigColor: [.005, .005, .01], bloom: .38, bloomTint: [.94, 1, 1.05], exposure: 1.25 };
+    vignette: .5, vigColor: [.005, .005, .01], bloom: 0.285, bloomTint: [.94, 1, 1.05], exposure: 1.25 };
   var moodSpecs = [
-    { key: '#a9bde0', keyI: 1.75, sky: '#a8b8d0', hemi: .92, fog: '#0b0e15', gain: [.98, 1.02, 1.1], sat: .78, mistA: .13 },
-    { key: '#a4b8e0', keyI: 1.7, sky: '#a2b4d2', hemi: .9, fog: '#0a0d16', gain: [.97, 1.02, 1.12], sat: .78, mistA: .17, mist: '#161b2a' },
-    { key: '#c8c6d4', keyI: 1.6, sky: '#b0aeb8', fog: '#12100f', mist: '#1d1917', mistA: .21, gain: [1.03, 1.0, 1.03], sat: .8, ground: '#322d2a' },
-    { key: '#e0b88a', keyI: 1.5, sky: '#b8a08a', ground: '#3a2d24', hemi: .82, fog: '#120d0a', mist: '#271b12', mistA: .15, gain: [1.1, 1, .9], highTint: [1.14, 1.02, .84], sat: .92, bloom: .46, rim: '#c88050', rimI: 1.1 },
-    { key: '#dca08c', keyI: 1.45, sky: '#aa8a82', ground: '#341f1c', fog: '#140b0a', mist: '#2a1512', mistA: .16, gain: [1.1, .97, .9], vignette: .6, sat: .88, rim: '#c06a50', bloom: .44 },
-    { key: '#d0c6b0', keyI: 1.55, sky: '#b0a898', fog: '#15130f', mist: '#2c261d', mistA: .27, gain: [1.04, 1.01, .96], sat: .8, hemi: .95, bloom: .42 },
-    { key: '#9fc4cc', keyI: 1.35, sky: '#8ea8b4', ground: '#242a2c', fog: '#0a1012', mist: '#122428', mistA: .23, gain: [.96, 1.04, 1.07], sat: .8, hemi: .86, rim: '#6ab0b8' },
-    { key: '#80b2dc', keyI: 1.2, sky: '#7094c4', ground: '#241c34', hemi: 1.0, env: .4, fog: '#07101a', mist: '#0e2432', mistA: .17, mistGlow: .55, bloom: .5, gain: [.93, 1.06, 1.16], highTint: [.94, 1.06, 1.16], shadowTint: [.9, .95, 1.26], sat: 1.0, vignette: .55, rim: '#6a9ee0', charRim: '#a8d0f0' },
-    { key: '#9496d0', keyI: 1.15, sky: '#7274a8', ground: '#1f1a30', fog: '#0a0814', mist: '#1a1530', mistA: .28, mistGlow: .8, bloom: .54, gain: [1.0, .97, 1.12], sat: .9, rim: '#8a70d0', hemi: .92 },
-    { key: '#94c8b4', keyI: 1.2, sky: '#7ca494', ground: '#1c2a24', fog: '#08100d', mist: '#112219', mistA: .31, mistGlow: .7, gain: [.95, 1.08, 1.02], sat: .88, bloom: .48, rim: '#58a890' },
-    { key: '#e0c492', keyI: 1.45, sky: '#a89674', ground: '#3a3024', fog: '#100c08', mist: '#261d12', mistA: .2, gain: [1.07, 1.02, .93], sat: .95, bloom: .52, hemi: .9, rim: '#c89050' },
-    { key: '#f0d8a4', keyI: 1.6, sky: '#c8b08a', ground: '#403424', hemi: 1.02, fog: '#14100a', mist: '#2e2314', mistA: .17, mistGlow: .95, bloom: .66, exposure: 1.34, vignette: .42, sat: 1.0, gain: [1.1, 1.03, .9], highTint: [1.14, 1.04, .84], rim: '#e0a860', charRim: '#f0dcb4' },
-    { key: '#ecca8c', keyI: 1.55, sky: '#b8a07c', ground: '#382c20', hemi: .92, fog: '#120d08', mist: '#2a1f12', mistA: .18, gain: [1.05, 1.01, .94], bloom: .52, vignette: .5, sat: .86, rim: '#d89a58', shadowTint: [.92, .98, 1.14], gain: [1.05, 1.01, .94] },
-    { key: '#f4d294', keyI: 1.7, sky: '#b49e82', ground: '#2c2234', hemi: .95, fog: '#0e0a10', mist: '#22171c', mistA: .19, mistGlow: .85, gain: [1.06, 1.01, .94], shadowTint: [.9, .94, 1.22], highTint: [1.15, 1.04, .84], contrast: .24, vignette: .56, bloom: .62, sat: 1.0, exposure: 1.3, rim: '#e0a050', charRim: '#f4dcb0' }
+    { key: '#a9bde0', keyI: 1.75, sky: '#a8b8d0', hemi: .92, fog: '#0b0e15', gain: [.98, 1.02, 1.1], sat: .78, mistA: 0.091 },
+    { key: '#a4b8e0', keyI: 1.7, sky: '#a2b4d2', hemi: .9, fog: '#0a0d16', gain: [.97, 1.02, 1.12], sat: .78, mistA: 0.119, mist: '#151922' },
+    { key: '#c8c6d4', keyI: 1.6, sky: '#b0aeb8', fog: '#12100f', mist: '#1d1917', mistA: 0.147, gain: [1.03, 1.0, 1.03], sat: .8, ground: '#322d2a' },
+    { key: '#e0b88a', keyI: 1.5, sky: '#b8a08a', ground: '#3a2d24', hemi: .82, fog: '#120d0a', mist: '#271b12', mistA: 0.105, gain: [1.1, 1, .9], highTint: [1.14, 1.02, .84], sat: .92, bloom: 0.345, rim: '#c88050', rimI: 1.1 },
+    { key: '#dca08c', keyI: 1.45, sky: '#aa8a82', ground: '#341f1c', fog: '#140b0a', mist: '#2a1512', mistA: 0.112, gain: [1.1, .97, .9], vignette: .6, sat: .88, rim: '#c06a50', bloom: 0.33 },
+    { key: '#d0c6b0', keyI: 1.55, sky: '#b0a898', fog: '#15130f', mist: '#2c261d', mistA: 0.189, gain: [1.04, 1.01, .96], sat: .8, hemi: .95, bloom: 0.315 },
+    { key: '#9fc4cc', keyI: 1.35, sky: '#8ea8b4', ground: '#242a2c', fog: '#0a1012', mist: '#122428', mistA: 0.161, gain: [.96, 1.04, 1.07], sat: .8, hemi: .86, rim: '#6ab0b8' },
+    { key: '#80b2dc', keyI: 1.2, sky: '#7094c4', ground: '#241c34', hemi: 1.0, env: .4, fog: '#07101a', mist: '#0e2432', mistA: 0.119, mistGlow: 0.3575, bloom: 0.375, gain: [.93, 1.06, 1.16], highTint: [.94, 1.06, 1.16], shadowTint: [.9, .95, 1.26], sat: 1.0, vignette: .55, rim: '#6a9ee0', charRim: '#a8d0f0' },
+    { key: '#9496d0', keyI: 1.15, sky: '#7274a8', ground: '#1f1a30', fog: '#0a0814', mist: '#1a1530', mistA: 0.196, mistGlow: 0.52, bloom: 0.405, gain: [1.0, .97, 1.12], sat: .9, rim: '#8a70d0', hemi: .92 },
+    { key: '#94c8b4', keyI: 1.2, sky: '#7ca494', ground: '#1c2a24', fog: '#08100d', mist: '#112219', mistA: 0.217, mistGlow: 0.455, gain: [.95, 1.08, 1.02], sat: .88, bloom: 0.36, rim: '#58a890' },
+    { key: '#e0c492', keyI: 1.45, sky: '#a89674', ground: '#3a3024', fog: '#100c08', mist: '#261d12', mistA: 0.14, gain: [1.07, 1.02, .93], sat: .95, bloom: 0.39, hemi: .9, rim: '#c89050' },
+    { key: '#f0d8a4', keyI: 1.6, sky: '#c8b08a', ground: '#403424', hemi: 1.02, fog: '#14100a', mist: '#2e2314', mistA: 0.119, mistGlow: 0.6175, bloom: 0.495, exposure: 1.34, vignette: .42, sat: 1.0, gain: [1.1, 1.03, .9], highTint: [1.14, 1.04, .84], rim: '#e0a860', charRim: '#f0dcb4' },
+    { key: '#ecca8c', keyI: 1.55, sky: '#b8a07c', ground: '#382c20', hemi: .92, fog: '#120d08', mist: '#2a1f12', mistA: 0.126, gain: [1.05, 1.01, .94], bloom: 0.39, vignette: .5, sat: .86, rim: '#d89a58', shadowTint: [.92, .98, 1.14], gain: [1.05, 1.01, .94] },
+    { key: '#f4d294', keyI: 1.7, sky: '#b49e82', ground: '#2c2234', hemi: .95, fog: '#0e0a10', mist: '#22171c', mistA: 0.133, mistGlow: 0.5525, gain: [1.06, 1.01, .94], shadowTint: [.9, .94, 1.22], highTint: [1.15, 1.04, .84], contrast: .24, vignette: .56, bloom: 0.465, sat: 1.0, exposure: 1.3, rim: '#e0a050', charRim: '#f4dcb0' }
   ];
 
   function dress(K, r, i, info) {
