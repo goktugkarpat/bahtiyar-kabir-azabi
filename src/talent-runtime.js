@@ -52,7 +52,14 @@
       if (!best) return null;
       const out = [best];
       if (P.extra) {   // Dikenli Çengel: the closest other foe next to the first one is caught as well
-        const near = enemies.filter(o => o !== best && alive(o) && !o.boss && dist(o, best.x, best.z) < 3.8 && ctx.canHit(o)).sort((p, q) => dist(p, best.x, best.z) - dist(q, best.x, best.z)).slice(0, P.extra);
+        // The fork catches a neighbour in the same frontal group, including slightly spread-out targets.
+        // Both tethers still respect weapon reach and walls; bosses are struck but never dragged.
+        const near = enemies.filter(o => {
+          if(o===best || !alive(o) || o.boss || !ctx.canHit(o)) return false;
+          const d=dist(o,player.x,player.z),angle=Math.atan2(o.x-player.x,o.z-player.z)-face;
+          const facing=Math.abs(Math.atan2(Math.sin(angle),Math.cos(angle)));
+          return d>=1.6 && d<=P.range+(o.radius||0) && facing<=1.05 && dist(o,best.x,best.z)<=5.2;
+        }).sort((p,q)=>dist(p,best.x,best.z)-dist(q,best.x,best.z)).slice(0,P.extra);
         for (const o of near) out.push(o);
       }
       return out;

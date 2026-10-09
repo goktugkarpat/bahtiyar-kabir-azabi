@@ -129,10 +129,19 @@
     const barbParts = []; for (let k = 0; k < 8; k++) barbParts.push(new T.ConeGeometry(.04, .32, 5).translate(0, .16, 0).rotateX(-.6).translate(0, .1, -.12).rotateZ(k * Math.PI / 4));
     const spikes = new T.InstancedMesh(merged, headMat, CHAINS * 2), barbs = new T.InstancedMesh(mergeParts(barbParts), headMat, CHAINS);
     for (const m of [spikes, barbs]) { m.frustumCulled = false; m.count = 0; group.add(m); m.setColorAt(0, new T.Color(1, 1, 1)); }
-    const STY = {   // chain colour, head colour, head scale, strands, link scale
-      hook: { link: [.4, .48, .6], head: [.85, .5, .36], hs: .72, strands: 1, ls: .5, spark: [1.4, 1.3, 1.1], hot: [2.6, .75, .14], glow: [2.3, 1.0, .2], core: [3, 2.3, .9], ember: [[2.4, 1.1, .25], [1.6, .35, .06]] },
-      long: { link: [.55, .7, .95], head: [.95, .6, .45], hs: .58, strands: 2, ls: .42, spark: [.8, 1.0, 1.5], hot: [2.6, .8, .2], glow: [2.4, 1.1, .3], core: [3, 2.4, 1.1], ember: [[2.6, 1.3, .35], [1.7, .45, .08]] },
-      barb: { link: [.2, .17, .18], head: [.5, .14, .1], hs: .8, strands: 1, ls: .6, spark: [1.5, .08, .05], hot: [1.9, .2, .05], glow: [1.5, .16, .04], core: [2.4, .6, .18], ember: [[1.5, .14, .04], [1.0, .06, .03]] } };
+    const hookCurve = new T.CatmullRomCurve3([new T.Vector3(0,0,-.35),new T.Vector3(0,0,.30),new T.Vector3(.13,0,.56),new T.Vector3(.32,0,.53),new T.Vector3(.34,0,.26)]);
+    const hookGeo = mergeParts([new T.TubeGeometry(hookCurve,12,.065,6,false),new T.ConeGeometry(.10,.27,5).rotateX(-Math.PI/2).translate(.34,0,.16),new T.TorusGeometry(.12,.035,6,10).translate(0,0,-.38)]);
+    const lanceGeo = mergeParts([new T.CylinderGeometry(.055,.065,.72,6).rotateX(Math.PI/2).translate(0,0,.02),new T.ConeGeometry(.18,.68,4).scale(1,1,.45).rotateX(Math.PI/2).translate(0,0,.70),new T.TorusGeometry(.12,.035,6,10).translate(0,0,-.40)]);
+    const hookHeads = new T.InstancedMesh(hookGeo,headMat,CHAINS*2), longHeads = new T.InstancedMesh(lanceGeo,headMat,CHAINS*2);
+    hookHeads.name='HookHead_Steel';longHeads.name='HookHead_Twin';spikes.name='HookHead_Barbed';links.name='HookLinks';
+    for(const m of [hookHeads,longHeads]) { m.frustumCulled=false;m.count=0;m.setColorAt(0,new T.Color(1,1,1));group.add(m); }
+    headMat.emissive.setRGB(.018,.014,.012);
+    const CHAIN_ASH = [.20,.12,.10];
+    const STY = {
+      hook: { link:[.68,.72,.76],head:[.94,.97,1.0],hs:1.05,strands:1,ls:.65,spark:[1.15,1.25,1.4],hot:[.86,.93,1.0],glow:[.7,.8,1],core:[1,1.1,1.3],ember:[[.7,.8,1],[.5,.6,.8]] },
+      long: { link:[.045,.48,.85],head:[.10,.78,1.0],hs:.95,strands:2,ls:.55,spark:[.10,.95,1.65],hot:[.12,.90,1.4],glow:[.08,.65,1.1],core:[.15,1.0,1.5],ember:[[.08,.75,1.3],[.04,.45,.85]] },
+      barb: { link:[.52,.055,.035],head:[.92,.15,.075],hs:1.4,strands:1,ls:1.0,spark:[1.3,.12,.045],hot:[1.0,.14,.06],glow:[.85,.07,.025],core:[1.15,.22,.07],ember:[[.9,.075,.025],[.50,.025,.015]] }
+    };
     // fire scale of the quality preset: 0 on 'low' (bright tip only, no particles), else particles/440 capped at 1 (ultra does not add more: the tip stays small)
     const fq = () => { const c = B.app && B.app.settings; if (!c) return 1; if (c.quality === 'low') return 0; return Math.min(1, (c.particles || 440) / 440); };
     const _m = new T.Matrix4(), _q = new T.Quaternion(), _q2 = new T.Quaternion(), _e = new T.Euler(), _p = new T.Vector3(), _s = new T.Vector3(1, 1, 1), _c = new T.Color(), _ax = new T.Vector3(0, 0, 1), _o = new T.Vector3();
@@ -209,23 +218,17 @@
       for (const e of foes.slice(0, CHAINS)) {
         if (chainList.length >= CHAINS) chainList.shift();
         const hk = !!(opt && opt.hook);
-        chainList.push({ from: p, to: e, x: e.x, z: e.z, t: 0, life: opt && opt.life || (lash ? .45 : .55), lash: !!lash, hook: hk, style: (opt && opt.style) || 'hook', throwT: (opt && opt.throw) || .24, flight: (opt && opt.flight) || .1, landed: false, acc: 0 });
+        chainList.push({ from: p, to: e, x: e.x, z: e.z, t: 0, life: opt && opt.life || (lash ? .45 : .55), lash: !!lash, hook: hk, style: (opt && opt.style) || 'hook', throwT: (opt && opt.throw) || .24, flight: (opt && opt.flight) || .1, landed: false, acc: 0, strandAcc: 0, strandStarted: false });
         if (!hk) { const y = (e.model && e.model.root.position.y) || 0; for (let i = 0; i < 10; i++) spark(e.x, y + 1, e.z, rnd(-2, 2), rnd(.5, 2.5), rnd(-2, 2), i % 2 ? [1.8, 1.5, 1.1] : [1.6, .4, .12], .35, .07, -6); }
       }
       if (!lash) ring(p.x, p.z, 7, [.55, .55, .62], .4);
     }
     // the grapnel bites: sparks off the steel, a short ring, blood from the barbs
-    function hookLand(c, x, y, z) {
-      const S = STY[c.style] || STY.hook, barb = c.style === 'barb', n = barb ? 22 : 14;
-      ring(x, z, barb ? 1.5 : 1.2, barb ? [1.1, .1, .07] : [.7, .75, .95], .2); ring(x, z, .6, [2, 1.9, 1.7], .1);
-      for (let i = 0; i < 3; i++) spark(x, y, z, rnd(-.3, .3), rnd(-.1, .3), rnd(-.3, .3), [3, 2.8, 2.4], .09, rnd(.38, .55), 0);   // the flash of the strike: a few hot, big, very short-lived motes
-      const F = fq(), nn = Math.round(n * (F > 0 ? .6 : .5));
-      for (let i = 0; i < nn; i++) { const a = Math.random() * 6.283, v = rnd(1.2, 4); spark(x, y, z, Math.sin(a) * v, rnd(.3, 2.6), Math.cos(a) * v, barb && i % 3 ? COLORS.blood : i % 2 ? S.spark : [1.8, 1.6, 1.3], rnd(.25, .5), rnd(.06, .12), barb ? -9 : -5); }
-      spark(x, y, z, 0, 0, 0, S.glow, .22, .6, 0); spark(x, y, z, 0, .3, 0, S.core, .14, .32, 0);   // the flame flash
-      ring(x, z, barb ? 1.0 : .9, S.hot, .22, .0);
-      const ne = Math.round(16 * F);   // fire burst: embers thrown out, a few flame tongues licking up
-      for (let i = 0; i < ne; i++) { const a = Math.random() * 6.283, v = rnd(.8, 3.6); spark(x, y, z, Math.sin(a) * v, rnd(.6, 3), Math.cos(a) * v, S.ember[i % 2], rnd(.3, .7), rnd(.05, .11), -3.5); }
-      for (let i = 0; i < Math.round(5 * F); i++) { const a = Math.random() * 6.283; spark(x + Math.sin(a) * .1, y, z + Math.cos(a) * .1, Math.sin(a) * .5, rnd(1.4, 2.6), Math.cos(a) * .5, S.glow, rnd(.18, .3), rnd(.12, .2), .8); }
+    function hookLand(c,x,y,z) {
+      const S=STY[c.style]||STY.hook,barb=c.style==='barb',dual=c.style==='long';
+      // Small contact flecks expose the metal head rather than burying all three heads in the same flame.
+      for(let i=0,n=barb?14:dual?10:7;i<n;i++) { const a=Math.random()*6.283,v=rnd(1,3);spark(x,y,z,Math.sin(a)*v,rnd(.3,1.7),Math.cos(a)*v,barb&&i%3?S.ember[0]:S.spark,rnd(.18,.36),rnd(.04,.07),barb?-9:-5); }
+      if(dual) { ring(x,z,.62,S.spark,.17);ring(x,z,.92,S.spark,.22); }
     }
     // dust scraped up by a foe dragged along the floor (call every .04 s while he slides) and the thud when he stops
     function dust(x, z, dx, dz, n) {
@@ -346,7 +349,7 @@
         if (m.sigil) { const s = m.sigil; s.m.position.set(e.x, gy(e.x, e.z) + .05, e.z); const r = (e.radius || .5) + .55; s.m.scale.set(r, 1, r); s.m.rotation.y = time * .8; s.mat.uniforms.uTime.value = time; s.mat.uniforms.uFade.value = .3 + .08 * Math.sin(time * 2.4); }   // rot mark: a dim, slow pulse so it never reads as a telegraph ring
       }
       // chains: the head flies out, bites, the chain stays taut while the foe is dragged along it, then everything whips home
-      let li = 0, hi = 0, bi = 0;
+      let li = 0, hi = 0, bi = 0, hhook = 0, hlong = 0, hbarb = 0;
       for (let c = chainList.length - 1; c >= 0; c--) {
         const ch = chainList[c]; ch.t += dt;
         if (ch.t >= ch.life) { chainList.splice(c, 1); continue; }
@@ -367,28 +370,44 @@
         const headLen = Math.max(0, len * reach - (hk && ch.t >= ch.throwT * .98 ? .32 : 0)), tipx = ox + dx / len * headLen, tipz = oz + dz / len * headLen, tipy = oy + (ty - oy) * (headLen / len);
         if (hk) {
           if (!ch.landed && ch.t >= ch.throwT) { ch.landed = true; hookLand(ch, tx, ty, tz); }
-          // the fire head: a glowing core on the tip (always, also on 'low'), orbiting sparks, flame tongues streaming back, drifting embers (not on 'low')
-          const flying = ch.t < ch.throwT, F = fq(), gl = (flying ? 1 : Math.max(.55, 1 - (ch.t - ch.throwT) * .7)) * (ch.t > ch.life - .2 ? Math.max(.2, reach) : 1);
-          const fl = 1 + .12 * Math.sin(time * 41 + ch.t * 9), hx = dx / len, hz = dz / len;
-          spark(tipx, tipy, tipz, 0, 0, 0, S.glow, .06, (ch.style === 'barb' ? .55 : .5) * gl * fl, 0); spark(tipx, tipy, tipz, 0, 0, 0, S.core, .05, .24 * gl, 0);
-          if (F > 0) {
-            const no = F > .6 ? 3 : 2, sx0 = Math.cos(yaw), sz0 = -Math.sin(yaw);
-            for (let k = 0; k < no; k++) { const a = time * 26 + k * 6.283 / no, r = .15 + .03 * Math.sin(time * 17 + k); spark(tipx + sx0 * Math.cos(a) * r, tipy + Math.sin(a) * r, tipz + sz0 * Math.cos(a) * r, 0, 0, 0, S.glow, .06, .075 * gl, 0); }
-            ch.acc += dt * (flying ? 120 : 50) * F * gl;
-            while (ch.acc >= 1) { ch.acc--; const e0 = Math.random();
-              if (e0 < .5) spark(tipx, tipy, tipz, -hx * rnd(.8, 2.2) + rnd(-.5, .5), rnd(.4, 1.5), -hz * rnd(.8, 2.2) + rnd(-.5, .5), S.ember[e0 < .25 ? 0 : 1], rnd(.2, .4), rnd(.05, .1), 1.4);   // flame tongue streaming back and up
-              else if (e0 < .8) spark(tipx + rnd(-.08, .08), tipy, tipz + rnd(-.08, .08), rnd(-1, 1), rnd(-.2, 1.2), rnd(-1, 1), S.ember[0], rnd(.45, .8), rnd(.05, .09), -3);   // heavy kor falling away
-              else if (ch.style === 'barb' && !flying) spark(tipx + rnd(-.1, .1), tipy, tipz + rnd(-.1, .1), rnd(-.2, .2), rnd(-.2, .3), rnd(-.2, .2), COLORS.blood, rnd(.4, .7), rnd(.06, .1), -9);   // blood drips off the barbs
-              else spark(tipx, tipy, tipz, rnd(-.5, .5), rnd(.2, .9), rnd(-.5, .5), S.spark, rnd(.15, .3), rnd(.04, .08), -2); }
-          }
+          // Only the twin form sheds sparse blue steel flecks; the barbed form sheds blood after biting.
+          const flying=ch.t<ch.throwT,F=fq();
+          ch.acc+=dt*(ch.style==='long'?28:ch.style==='barb'?18:0)*F;
+          while(ch.acc>=1) { ch.acc--;if(ch.style==='barb'&&!flying) spark(tipx,tipy,tipz,rnd(-.2,.2),rnd(-.3,.2),rnd(-.2,.2),S.ember[0],.36,.065,-9);
+            else if(ch.style==='long') spark(tipx,tipy,tipz,-dx/len*.7,rnd(-.2,.5),-dz/len*.7,S.spark,.20,.045,-1); }
         }
+
         const strands = hk ? S.strands : 1, n = Math.min(LINKS, Math.max(2, Math.round(headLen / (hk ? .25 * S.ls : .2))));
         // S-wave of the whip: big while the head flies, a short ripple after the bite (hooks only)
         const wAmp = !hk ? 0 : ch.t < ch.throwT ? Math.min(.5, .05 * len) * (1 - reach * reach) : .06 * Math.exp(-(ch.t - ch.throwT) * 14), wPh = ch.t * 55;
         const side = _p.set(Math.cos(yaw), 0, -Math.sin(yaw));
         const sx = side.x, sz = side.z;
+        // Decorations use the existing bounded particle pool, with a per-second rate independent of FPS.
+        if (hk && headLen > .35) {
+          const F=fq(), dual=ch.style==='long',barb=ch.style==='barb';
+          if(!ch.strandStarted) { ch.strandStarted=true;ch.strandAcc=(dual?9:barb?10:6)*F; }
+          const fade=ch.t>ch.life-.2?reach:1;
+          ch.strandAcc+=Math.min(dt,.05)*(dual?54:barb?48:34)*Math.min(1.4,headLen/4)*F*fade;
+          while(ch.strandAcc>=1) {
+            ch.strandAcc--;
+            const u=rnd(.12,.96),h=headLen*u/len,sag=Math.sin(u*Math.PI)*sag0;
+            const lane=dual?(Math.random()<.5?-.30:.30)*Math.sin(u*Math.PI/2):0;
+            const wave=wAmp?Math.sin(u*Math.PI*2-wPh*(ch.t<ch.throwT?.15:.3))*Math.sin(u*Math.PI)*wAmp:0;
+            const px=ox+dx*h+sx*(lane+wave),py=oy+(ty-oy)*h-sag,pz=oz+dz*h+sz*(lane+wave);
+            if(dual) {
+              const spin=time*9+u*12,sideV=Math.cos(spin)*.28;
+              spark(px,py,pz,sx*sideV,rnd(.12,.45),sz*sideV,S.spark,rnd(.27,.43),rnd(.065,.095),-.3);
+            } else if(barb) {
+              const ash=Math.random()<.22;
+              spark(px,py,pz,rnd(-.16,.16),ash?rnd(.15,.35):rnd(.3,.75),rnd(-.16,.16),ash?CHAIN_ASH:S.ember[0],rnd(.28,.48),ash?.09:rnd(.06,.09),ash?-.2:.45);
+            } else {
+              const sideV=rnd(-.4,.4);
+              spark(px,py,pz,sx*sideV,rnd(.08,.32),sz*sideV,S.spark,rnd(.18,.30),rnd(.045,.07),-1.8);
+            }
+          }
+        }
         for (let sd = 0; sd < strands; sd++) for (let i = 0; i < n && li < LCAP; i++) {
-          const u = (i + .5) / n, h = headLen * u / len, sag = Math.sin(u * Math.PI) * sag0, tw = hk && strands > 1 ? u * headLen * 1.3 - time * 5 + sd * Math.PI : 0, off = strands > 1 ? .095 : 0;
+          const u = (i + .5) / n, h = headLen * u / len, sag = Math.sin(u * Math.PI) * sag0, tw = sd * Math.PI, off = strands > 1 ? .30 * Math.sin(u * Math.PI / 2) : 0;
           const wob = Math.sin(time * 30 + i) * (hk ? .002 : .02), wv = wAmp ? Math.sin(u * Math.PI * 2 - wPh * (ch.t < ch.throwT ? .15 : .3)) * Math.sin(u * Math.PI) * wAmp : 0;
           _p.set(ox + dx * h + sx * (Math.cos(tw) * off + wv), oy + (ty - oy) * h - sag + Math.sin(tw) * off + wob, oz + dz * h + sz * (Math.cos(tw) * off + wv));
           _e.set(pitch, yaw, 0, 'YXZ'); _q.setFromEuler(_e); if ((i + sd) % 2) { _q2.setFromAxisAngle(_ax, Math.PI / 2); _q.multiply(_q2); }
@@ -399,16 +418,16 @@
           const dual = ch.style === 'long', hs = S.hs, tw0 = headLen * 1.3 - time * 5;   // 'long': both strands end in their own burning head, riding the helix
           for (let sd = 0; sd < (dual ? 2 : 1); sd++) {
             let hx0 = tipx, hy0 = tipy, hz0 = tipz;
-            if (dual) { const w = tw0 + sd * Math.PI; hx0 += sx * Math.cos(w) * .095; hy0 += Math.sin(w) * .095; hz0 += sz * Math.cos(w) * .095; if (sd) { const fl2 = fq(), gl2 = ch.t < ch.throwT ? 1 : .8; spark(hx0, hy0, hz0, 0, 0, 0, S.glow, .06, .3 * gl2, 0); if (fl2 > 0 && Math.random() < dt * 40 * fl2) spark(hx0, hy0, hz0, rnd(-.4, .4), rnd(.4, 1.2), rnd(-.4, .4), S.ember[1], rnd(.2, .35), .06, 1.4); } }
-            _p.set(hx0, hy0, hz0); _e.set(pitch, yaw, 0, 'YXZ'); _q.setFromEuler(_e); _q2.setFromAxisAngle(_ax, ch.t < ch.throwT ? ch.t * 14 : .5); _q.multiply(_q2);
+            if(dual) { const offset=sd?-.30:.30;hx0+=sx*offset;hz0+=sz*offset; }
+            _p.set(hx0, hy0, hz0); _e.set(pitch, yaw, 0, 'YXZ'); _q.setFromEuler(_e); _q2.setFromAxisAngle(_ax, ch.style === 'hook' ? .35 : ch.style === 'long' ? sd * Math.PI : ch.t < ch.throwT ? ch.t * 9 : .5); _q.multiply(_q2);
             _s.set(hs, hs, hs * (dual ? 1.25 : 1)); _m.compose(_p, _q, _s);
-            spikes.setMatrixAt(hi, _m); _c.setRGB(S.head[0], S.head[1], S.head[2]); spikes.setColorAt(hi, _c); hi++;
+            const hm=ch.style==='hook'?hookHeads:dual?longHeads:spikes,hn=ch.style==='hook'?hhook++:dual?hlong++:hbarb++;hm.setMatrixAt(hn,_m);_c.setRGB(...S.head);hm.setColorAt(hn,_c);hi++;
             if (ch.style === 'barb') { barbs.setMatrixAt(bi, _m); barbs.setColorAt(bi, _c); bi++; }
           }
         }
       }
       links.count = li; if (li) { links.instanceMatrix.needsUpdate = true; links.instanceColor.needsUpdate = true; }
-      spikes.count = hi; if (hi) { spikes.instanceMatrix.needsUpdate = true; spikes.instanceColor.needsUpdate = true; }
+      spikes.count=hbarb;hookHeads.count=hhook;longHeads.count=hlong;for(const m of [spikes,hookHeads,longHeads])if(m.count){m.instanceMatrix.needsUpdate=true;m.instanceColor.needsUpdate=true;}
       barbs.count = bi; if (bi) { barbs.instanceMatrix.needsUpdate = true; barbs.instanceColor.needsUpdate = true; }
       // Demir Duruş: a steel ring under the hero for the whole stance
       if (guardView && guardView.p && !guardView.p.dead) {
@@ -478,7 +497,7 @@
       for (const o of ringPool) o.m.visible = false;
       for (const [e] of marks) clear(e);
       for (let i = 0; i < MAX; i++) life[i] = 0;
-      chainList.length = 0; links.count = 0; spikes.count = barbs.count = 0; guardView = null; guardMesh.visible = false;
+      chainList.length = 0; links.count = 0; spikes.count = hookHeads.count = longHeads.count = barbs.count = 0; guardView = null; guardMesh.visible = false;
     }
     function dispose() {
       reset(); root.remove(group);

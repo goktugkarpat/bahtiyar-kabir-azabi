@@ -622,12 +622,19 @@
   // A dry, short body-contact boom. Several targets in one sweep share one beat (charge.js); no long slam tail on the way through.
   H.chargeContact = (o, k) => {
     const t = now(), tier = o.tier || 1, at = { x: o.x, z: o.z }, s = spatial(o.x, o.z);
-    thud(t, { f0: 92 - 8 * tier, f1: 30, dur: .16, vol: .65 * k * s.gain, pan: s.pan, send: .10 });
-    sample('thump', { vol: .5 * k, at, rate: .85, prio: 1 }); sample('hitCrack', { vol: .22 * k, at, rate: .8, lp: 2200 });
+    // Immediate low-mid punch survives small speakers; the short tail leaves room for the next contact.
+    thud(t, { f0: 138 - 10 * tier, f1: 46, dur: .19, vol: .82 * k * s.gain, pan: s.pan, send: .055 });
+    sample('thump', { vol: .72 * k, at, rate: .94 - .05 * tier, prio: 1 });
+    sample('hitCrack', { vol: .38 * k, at, rate: .86 - .04 * tier, lp: 3200 });
+    if (tier > 1) sample('metal', { vol: .13 * k, at, rate: .8, lp: 2100, delay: .012 });
   };
   // Impact layers: I the old iron crack and floor thud; II + stone fissures cracking and a molten ring; III a deep, long boom with tumbling rubble.
   H.chargeImpact = (o, k) => {
-    const tier = o.tier || 1, t = now(), at = { x: o.x, z: o.z }; H.specialHit(o, k * (tier === 3 ? 1.1 : .95), true);
+    const tier = o.tier || 1, t = now(), at = { x: o.x, z: o.z }, sp = spatial(o.x, o.z);
+    // Weight comes from the contact transient, not added lights or a louder long rumble.
+    thud(t, { f0: 154 - tier * 12, f1: 48, dur: .17, vol: .56 * k * sp.gain, pan: sp.pan, send: .06 });
+    sample('thump', { vol: .65 * k, at, rate: .88 - tier * .035, prio: 1 });
+    H.specialHit(o, k * (tier === 3 ? .96 : .9), true);
     // identity tails (offline render showed I and II nearly identical): I Kül = a dry ash crumble settling; II Kor = molten hiss with ember crackle
     if (tier === 1) { sample('debris', { vol: .5 * k, at, rate: 1.15, delay: .06 }); burst(t + .04, .7, .09 * k, 900, { q: .5, f1: 260, attack: .08, send: .25 }); }
     if (tier === 2) {
@@ -639,13 +646,16 @@
       burst(t + .02, .5, .13 * k, 2600, { q: 1, f1: 700, send: .2 }); ring(t + .04, { f: 262, partials: [1, 2.4, 3.9, 5.7], decay: 1.1, vol: .035 * k, send: .5 });
     }
     if (tier === 3) {
-      thud(t, { f0: 56, f1: 18, dur: 1.1, vol: 1.25 * k, send: .4 }); sample('stomp', { vol: .9 * k, at, rate: .6, prio: 1 }); sample('debris', { vol: .7 * k, at, rate: .6, delay: .22 });
+      thud(t, { f0: 64, f1: 26, dur: .72, vol: 1.0 * k, send: .22 }); sample('stomp', { vol: .9 * k, at, rate: .6, prio: 1 }); sample('debris', { vol: .7 * k, at, rate: .6, delay: .22 });
       burst(t, .9, .3 * k, 240, { q: .45, f1: 70, send: .45 }); ring(t + .03, { f: 110, partials: [1, 2.03, 3.05, 4.1], decay: 1.6, vol: .05 * k, send: .55 }); muffle(1500, .06, .3);
     }
   };
   H.chargeSlam2 = (o, k) => {
     const t = now(), at = { x: o.x, z: o.z };
-    thud(t, { f0: 52, f1: 16, dur: 1.3, vol: 1.5 * k, send: .45 }); sample('stomp', { vol: 1 * k, at, rate: .55, prio: 1 }); sample('debris', { vol: .9 * k, at, rate: .55, delay: .03 }); sample('debris', { vol: .6 * k, at, rate: .8, delay: .24 });
+    const sp = spatial(o.x, o.z);
+    thud(t, { f0: 142, f1: 44, dur: .18, vol: .6 * k * sp.gain, pan: sp.pan, send: .05 });
+    sample('thump', { vol: .7 * k, at, rate: .76, prio: 1 });
+    thud(t, { f0: 58, f1: 24, dur: .82, vol: 1.15 * k, send: .25 }); sample('stomp', { vol: 1 * k, at, rate: .55, prio: 1 }); sample('debris', { vol: .9 * k, at, rate: .55, delay: .03 }); sample('debris', { vol: .6 * k, at, rate: .8, delay: .24 });
     sample('hitCrack', { vol: .8 * k, rate: .6 }); sample('metal', { vol: .5 * k, at, rate: .5, delay: .02 }); burst(t, 1, .34 * k, 200, { q: .4, f1: 60, send: .5 });
     ring(t + .03, { f: 87, partials: [1, 2.03, 3.05, 4.1, 5.9], decay: 2, vol: .06 * k, send: .6 }); muffle(1100, .1, .4);
   };
