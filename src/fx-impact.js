@@ -128,7 +128,8 @@
     // so the first real hit does not pay for object setup and vertex-array binding (measured ~15 ms on the first big cast).
     const primed = []; let primeFrames = 0;
     function prepare(actors) {
-      for (const e of (actors || []).slice(0, 24)) { if (!e || !e.model || !e.model.root || overlays.has(e.model)) continue; const ov = overlayOf(e.model);
+      // Include later rooms and reserved summons: first contact must not allocate body overlays.
+      for (const e of (actors || [])) { if (!e || !e.model || !e.model.root || overlays.has(e.model)) continue; const ov = overlayOf(e.model);
         for (const it of ov.list) { it.c.material = primeMat; it.c.matrix.copy(it.src.matrixWorld); it.c.visible = true; primed.push(it.c); } }
       if (primed.length) primeFrames = 3;
     }

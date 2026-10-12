@@ -94,7 +94,7 @@
   const AUTO_QUALITY = detectQuality();
   let qualityForce = null, qualityStored = null;   // ?q= forces this load only; retired ultra aliases high and is never saved
   const DEFAULTS = { difficulty: 'normal', quality: AUTO_QUALITY, qualityUser: false, qualityVersion: 7, ...DISPLAY.defaults, frameRate: FRAME_LIMIT, exposure: 1.15, shake: .55, master: .65, music: .42, sfx: .75, voice: .85, narrationMode: 'essential', subtitles: true, autoLoot: false, kbOnly: false, uiScale: .85 };
-  const FRAME_RATES = [60, 90, 120, -1, 0];   // -1 = smooth: about 120, snapped to an exact divisor of the screen refresh;   // 0 = follow the display (every refresh; best with G-Sync / FreeSync / ProMotion)
+  const FRAME_RATES = [60, 90, 120, 0];   // 0 follows every display refresh. Legacy smooth (-1) settings migrate to this mode.
   const UI_STEPS = [.75, .85, 1];   // Küçük (new, smaller) | Normal (was 'Küçük') | Büyük (was 'Normal')
   const LIMITS = { exposure: [.7, 1.7], shake: [0, 1], master: [0, 1], music: [0, 1], sfx: [0, 1], voice: [0, 1] };
   // `cfg` is shared with effects.js / world.js / combat.js (they read the technical fields).
@@ -220,7 +220,7 @@
       // Preserve valid display choices; retired choices fall back to Auto.
       Object.assign(cfg, DISPLAY.settings(raw));
       if (raw.displayVersion !== DISPLAY.defaults.displayVersion || raw.displayMode !== cfg.displayMode) migrated = true;
-      cfg.frameRate = FRAME_RATES.includes(raw.frameRate) ? raw.frameRate : raw.frameRate === 144 ? 0 : DEFAULTS.frameRate;
+      cfg.frameRate = FRAME_RATES.includes(raw.frameRate) ? raw.frameRate : (raw.frameRate === 144 || raw.frameRate === -1) ? 0 : DEFAULTS.frameRate;
       if (raw.frameRate !== cfg.frameRate) migrated = true;
       cfg.shake = DEFAULTS.shake;   // camera shake is no longer a setting
     }
@@ -252,7 +252,7 @@
   }
   function deriveSettings() {
     Object.assign(cfg, QUALITY[cfg.quality] || QUALITY.high);
-    cfg.fps = cfg.frameRate < 0 ? 120 : cfg.frameRate; cfg.snap = cfg.frameRate < 0;
+    cfg.fps = cfg.frameRate; cfg.snap = false;
     if (document.body) document.body.classList.toggle('kb-only', kbMode());
     if (B.GroundLoot) B.GroundLoot.auto = cfg.autoLoot === true;   // old proximity auto-pickup of ground items (default off: click / E)
     // 60 Hz-class targets: distant characters cast shadows over a shorter reach (see combat.js); 0 = all cast.
@@ -960,7 +960,7 @@
         : KabirI18n.t('Ekranın bütün piksellerini kullanır. Retina ekranda Düşük kalite seçilse de çizim boyutu azalmaz.');
     }
     if (resolution) resolution.textContent = KabirI18n.t('Seçilen görüntü boyutunu büyütür. 1.25× daha net, 1.50× en ayrıntılı görüntüdür; daha fazla ekran kartı gücü kullanır.');
-    if (rate) rate.textContent = cfg.snap ? KabirI18n.t('Yaklaşık 120 kare/sn; kare aralığı ekranının yenileme hızına tam bölünecek şekilde ayarlanır (ör. 200 Hz ekranda 100). Mikro takılma hissini azaltır.') : cfg.fps ? KabirI18n.t('En fazla ') + cfg.fps + KabirI18n.t(' kare/sn. Ekranının yenileme hızına uygun bir sınır seç. Daha düşük sınırlar işlemci yükünü ve fan sesini azaltabilir.') : KabirI18n.t('Ekranın her yenilemesinde çizer (G-Sync / FreeSync / ProMotion ile en düzgünü).');
+    if (rate) rate.textContent = cfg.fps ? KabirI18n.t('En fazla ') + cfg.fps + KabirI18n.t(' kare/sn. Ekranının yenileme hızına uygun bir sınır seç. Daha düşük sınırlar işlemci yükünü ve fan sesini azaltabilir.') : KabirI18n.t('Ekranın her yenilemesinde çizer (G-Sync / FreeSync / ProMotion ile en düzgünü).');
   }
   function renderSettings() {
     const video = $('settings-video'), audio = $('settings-audio');
@@ -981,7 +981,7 @@
     const displayNote = document.createElement('small'); displayNote.id = 'display-note'; q.append(displayNote);
     video.append(choiceRow('displayMode', KabirI18n.t('Görüntü boyutu'), ['auto', 'native'], v => ({ auto: KabirI18n.t('Otomatik'), native: KabirI18n.t('Tam boyut') })[v]),
       choiceRow('renderScale', KabirI18n.t('Render çözünürlüğü'), [1, 1.25, 1.5], v => v.toFixed(v === 1 ? 1 : 2) + '×'),
-      choiceRow('frameRate', KabirI18n.t('Kare hızı'), FRAME_RATES, v => v < 0 ? KabirI18n.t('Akıcı') : v ? v + ' FPS' : KabirI18n.t('Ekran hızı')),
+      choiceRow('frameRate', KabirI18n.t('Kare hızı'), FRAME_RATES, v => v ? v + ' FPS' : KabirI18n.t('Ekran hızı')),
       choiceRow('uiScale', KabirI18n.t('Arayüz boyutu'), UI_STEPS, v => v < .8 ? KabirI18n.t('Küçük') : v < 1 ? KabirI18n.t('Normal') : KabirI18n.t('Büyük')));
     // Edge smoothing (SMAA post pass in post.js) is always on: no settings row.
     paintGraphicsNotes();
@@ -1944,7 +1944,7 @@
   }
   // Gaps between presented frames (last ~600), so the counter can also show the longest frame: a few slow frames are
   // what the eye reads as stutter even when the FPS average looks fine.
-  const BUILD_TAG = 386, fpsGaps = new Float32Array(600);
+  const BUILD_TAG = 393, fpsGaps = new Float32Array(600);
   let fpsGapAt = 0, fpsGapLast = 0;
   function frameStats() {
     let longest = 0, slow = 0;
@@ -2328,6 +2328,7 @@
       if (characterUI && characterUI.warm) { try { await characterUI.warm(); } catch (e) { console.warn(KabirI18n.t('[Kabir Azabı]'), e); } }   // I / T pages painted once under the cover
       warmStats.portrait = Math.round(performance.now() - portraitStart);
       warmStats.portraitPrograms = renderer.info.programs.length - portraitPrograms;
+      if (B.GraphicsReady) warmStats.gpuReady = await B.GraphicsReady.wait(renderer);
       warmStats.total = Math.round(performance.now() - t0); warmStats.count = renderer.info.programs.length;
       if (WARM_LOG) console.warn('[warm] done', JSON.stringify(warmStats));
       return true;
