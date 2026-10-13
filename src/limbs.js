@@ -246,12 +246,29 @@
           });
         });
       });
+      // Cut shapes are shared by type, but the corpse's mutable index is private to each actor.
+      // Allocate these exact future indices before play, then let warmGeometryObjects upload them.
+      // Only meshes reached by a real cached cut get copies; vertex attributes remain shared.
+      const indexActors = (enemies || []).filter(e => e && !e.boss && e.model);
+      const total = jobs.length + indexActors.length;
       const yieldNext = yieldStep || (() => new Promise(resolve => setTimeout(resolve, 0)));
       preparing = (async () => {
         for (let i = 0; i < jobs.length && !disposed; i++) {
           const job = jobs[i];
           if (!cache.has(job.key)) cache.set(job.key, buildCut(job.model, job.skeleton, job.role, job.ri));
-          await yieldNext(i + 1, jobs.length);
+          await yieldNext(i + 1, total);
+        }
+        const indicesByType = new Map();
+        cache.forEach((cut, key) => {
+          if (!cut) return;
+          const type = key.slice(0, key.lastIndexOf(':'));
+          let used = indicesByType.get(type); if (!used) indicesByType.set(type, used = new Set());
+          for (const part of cut.parts) used.add(part.mi);
+        });
+        for (let i = 0; i < indexActors.length && !disposed; i++) {
+          const enemy = indexActors[i], used = indicesByType.get(enemy.type);
+          if (used) { const list = skinnedList(enemy.model); for (const mi of used) if (list[mi]) ensureG2(enemy, list[mi]); }
+          await yieldNext(jobs.length + i + 1, total);
         }
         return stats();
       })().finally(() => { preparing = null; });
@@ -268,6 +285,7 @@
         cut.parts.forEach(part => { add(part.pieceGeo); add(part.restGeo); });
         add(cut.stumpCap); add(cut.pieceCap);
       });
+      privateG2.forEach(add);   // first cuts update ready index buffers instead of allocating/uploading new geometry
       return objects;
     }
 
@@ -308,13 +326,16 @@
       s.used = cut.used; s.lowFx = low;
       cut.used.forEach(i => { s.frozen[i].copy(skeleton.bones[i].matrixWorld); s.inverses[i].copy(skeleton.boneInverses[i]); s.bones[i].matrixWorld.copy(s.frozen[i]); });
       joint.getWorldPosition(s.j0);
-      let far = 0; skeleton.bones.forEach(b => { if (isUnder(b, joint)) { b.getWorldPosition(V1); far = Math.max(far, V1.distanceTo(s.j0)); } });
+      // The joint read keeps native ancestor refresh and capture ordering. Refresh its branch
+      // once, so the following measurements read ready matrices instead of rebuilding every ancestry.
+      joint.updateWorldMatrix(false, true);
+      let far = 0; skeleton.bones.forEach(b => { if (isUnder(b, joint)) { V1.setFromMatrixPosition(b.matrixWorld); far = Math.max(far, V1.distanceTo(s.j0)); } });
       if (role.round) {   // the head: up the neck from the joint
-        const par = joint.parent; if (par && par.isBone) { par.getWorldPosition(V1); s.a0.subVectors(s.j0, V1); } else s.a0.copy(UP);
+        const par = joint.parent; if (par && par.isBone) { V1.setFromMatrixPosition(par.matrixWorld); s.a0.subVectors(s.j0, V1); } else s.a0.copy(UP);
         if (s.a0.lengthSq() < 1e-8) s.a0.copy(UP); s.a0.normalize(); s.L = .27 * scale;
       } else {
         // limb axis: from the joint to the farthest bone of the chain
-        let best = 0; s.a0.set(0, -1, 0); skeleton.bones.forEach(b => { if (isUnder(b, joint)) { b.getWorldPosition(V1); const d = V1.distanceTo(s.j0); if (d > best) { best = d; s.a0.subVectors(V1, s.j0); } } });
+        let best = 0; s.a0.set(0, -1, 0); skeleton.bones.forEach(b => { if (isUnder(b, joint)) { V1.setFromMatrixPosition(b.matrixWorld); const d = V1.distanceTo(s.j0); if (d > best) { best = d; s.a0.subVectors(V1, s.j0); } } });
         s.a0.normalize(); s.L = Math.max(.2 * scale, far + .06 * scale);
       }
       s.r = role.r * scale; s.h = Math.max(0, s.L * .5 - s.r * .5);
@@ -424,6 +445,7 @@
     }
 
     function update(dt) {
+      cutActorsFrame = 0;
       if (disposed) return;
       if (warmLeft > 0) warmLeft--;
       dt = Math.min(dt, 1 / 30);
@@ -441,12 +463,22 @@
     }
 
     // The killing blow. `rand` is the foe's own seeded generator (0..1). Returns the number of parts severed.
+    let cutActorsFrame = 0;
+    // A ready cut cache tells us exactly whether severOne can succeed. During a
+    // crowd finish, preserve every seeded choice and its gameplay return value,
+    // while later bodies use the ordinary complete corpse instead of extra parts.
+    function preparedCutResult(enemy, role, side, skeleton) {
+      if (pickBone(skeleton, role, side) < 0 || skeleton.bones.length > MAXBONES) return false;
+      const cut = cache.get(enemy.type + ':' + role + side);
+      return cut === undefined ? null : !!cut;   // unknown: use the real path, never guess
+    }
     function cutFoe(enemy, kind, face, rand, player) {
       if (disposed || enemy.boss || !enemy.model || !enemy.model.root) return 0;
+      const detailed = !!B.Limbs.force || cutActorsFrame++ < 1;
       const chance = CHANCE[kind]; if (!(chance > 0) || rand() >= chance) return 0;
       const strong = kind === 'heavy' || kind === 'finisher' || kind === 'whirlLast', o = { kind, face };
       const table = strong ? [['head', .3], ['arm', .16], ['forearm', .2], ['leg', .12], ['shin', .16]] : [['head', .08], ['arm', .3], ['forearm', .3], ['leg', .12], ['shin', .2]];
-      const made = [];
+      const made = []; let visualMade = false;
       const wanted = B.Limbs.force ? B.Limbs.force.length : 1 + (!low && rand() < (kind === 'finisher' ? .45 : strong ? .35 : .12) ? 1 : 0);
       const list = skinnedList(enemy.model); if (!list.length) return 0; const skeleton = list[0].skeleton;
       for (let n = 0; n < wanted; n++) {
@@ -465,10 +497,12 @@
           side = sl;
           if (B.Limbs.force && n < B.Limbs.force.length && B.Limbs.force[n][1]) side = B.Limbs.force[n][1];
         }
-        if (severOne(enemy, role, side, o)) { made.push({ role, side }); }
+        const planned = detailed ? null : preparedCutResult(enemy, role, side, skeleton);
+        const success = planned === null ? severOne(enemy, role, side, o) : planned;
+        if (success) { made.push({ role, side }); if (planned === null) visualMade = true; }
       }
       if (made.length) {
-        const info = enemy._limb; hookBody(enemy, info);
+        if (visualMade) { const info = enemy._limb; hookBody(enemy, info); }
         sound('heavyHit', { volume: 1 }); emit('sever', { x: enemy.x, z: enemy.z, parts: made.length, head: made.some(m => m.role === 'head') });
       }
       return made.length;
@@ -506,6 +540,7 @@
       enemy._limb = null;
     }
     function reset(enemies) {
+      cutActorsFrame = 0;
       slots.forEach(release); stumps.length = 0;
       if (enemies) enemies.forEach(restore);
     }

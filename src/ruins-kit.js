@@ -407,7 +407,11 @@
         if (o.skip && o.skip(px - r.x, pz - r.z)) { R(); R(); R(); R(); continue; }
         var b = 1 + (R() - .5) * 2 * vary, hs = (R() - .5) * warm, t = [tint[0] * b * (1 + hs), tint[1] * b, tint[2] * b * (1 - hs)], lv = R(), y = lv < .1 ? -.079 : lv > .94 ? -.045 : -.067, a = (R() - .5) * (o.tilt == null ? .03 : o.tilt);
         if (o.zone) { var zm = o.zone(px - r.x, pz - r.z); if (zm) t = [t[0] * zm[0], t[1] * zm[1], t[2] * zm[2]]; }
-        var hh = .18; K.put(id, 'tile', key, px, y, pz, cw - .05 - R() * .04, hh, ch - .05 - R() * .04, a, 0, 0, t, 0);
+        // Keep rotated top faces inside their row/cell: equal-height slab corners must never overlap.
+        // Preserve the two random width/depth draws and every later room decoration.
+        var hh = .18, tw = cw - .05 - R() * .04, td = ch - .05 - R() * .04, ca = Math.abs(Math.cos(a)), sa = Math.abs(Math.sin(a));
+        var fit = Math.min(1, (cw - .05) / (ca * tw + sa * td), (ch - .05) / (sa * tw + ca * td));
+        K.put(id, 'tile', key, px, y + (o.elevation || 0), pz, tw * fit, hh, td * fit, a, 0, 0, t, 0);
       }
     };
     // Flat natural stone plates, for cave floors.

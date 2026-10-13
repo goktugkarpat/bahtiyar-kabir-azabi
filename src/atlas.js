@@ -597,7 +597,7 @@
     function stamp(x, img, sx, sy, rot) { const k = miniK; if (rot) { x.setTransform(Math.cos(rot), Math.sin(rot), -Math.sin(rot), Math.cos(rot), sx * k, sy * k); x.drawImage(img, -img.width / 2, -img.height / 2); x.setTransform(1, 0, 0, 1, 0, 0); } else x.drawImage(img, Math.round(sx * k - img.width / 2), Math.round(sy * k - img.height / 2)); }
     function drawMinimap(c) {
       if (disposed || !c) return false; compose();
-      const x = c.getContext('2d'), k = c.width / 256, p = game.player, scale = MINI_BASE * mini.zoom, cx = 128, cy = mini.rotate ? 146 : 136;
+      const x = c.getContext('2d', B.uiBitmapOptions), k = c.width / 256, p = game.player, scale = MINI_BASE * mini.zoom, cx = 128, cy = mini.rotate ? 146 : 136;
       const goalAngle = mini.rotate ? Math.PI + (p.face || 0) : 0; let da = goalAngle - miniAngle; da = Math.atan2(Math.sin(da), Math.cos(da)); miniAngle = Math.abs(da) < .01 ? goalAngle : miniAngle + da * .25;
       const range = 128 / scale + 2;
       let key = c.width + '|' + Math.round(p.x * 30) + ',' + Math.round(p.z * 30) + ',' + Math.round((p.face || 0) * 100) + '|' + Math.round(miniAngle * 200) + '|' + composedVersion + '|' + routeVersion + '|' + mini.zoom + (mini.rotate ? 'R' : '') + '|' + (game.checkpointIndex ? 1 : 0) + '|' + (game.quests ? game.quests.revision : '');
@@ -636,7 +636,7 @@
       stamp(x, sp.hero, cx, cy, mini.rotate ? -(p.face || 0) + miniAngle : -(p.face || 0));
       return true;
     }
-    function warmMinimap(c) { if (!c) return; const k = c.width / 256; if (!miniSprites || miniK !== k) { miniK = k; miniSprites = buildMiniSprites(k); } const x = c.getContext('2d'); x.setTransform(1, 0, 0, 1, 0, 0); x.clearRect(0, 0, c.width, c.height); Object.values(miniSprites).forEach((img, i) => stamp(x, img, 20 + (i % 9) * 26, 30 + Math.floor(i / 9) * 30, i % 2 ? .4 : 0)); miniKey = ''; }
+    function warmMinimap(c) { if (!c) return; const k = c.width / 256; if (!miniSprites || miniK !== k) { miniK = k; miniSprites = buildMiniSprites(k); } const x = c.getContext('2d', B.uiBitmapOptions); x.setTransform(1, 0, 0, 1, 0, 0); x.clearRect(0, 0, c.width, c.height); Object.values(miniSprites).forEach((img, i) => stamp(x, img, 20 + (i % 9) * 26, 30 + Math.floor(i / 9) * 30, i % 2 ? .4 : 0)); miniKey = ''; }
     function saveMini() { try { localStorage.setItem(MINI_STORAGE, JSON.stringify(mini)); } catch (_) {} miniKey = ''; }
     function attachMinimap(c) {
       if (!c || miniTools || !c.parentElement) return; const host = c.parentElement; miniTools = node('div', 'minimap-tools');

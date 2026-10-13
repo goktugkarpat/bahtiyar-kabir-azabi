@@ -100,18 +100,113 @@
       g.fillStyle = gr; g.fillRect(0, 0, 128, 128); const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; return t;
     })();
     const flashSlots = Array.from({ length: 8 }, () => ({ mat: new T.MeshMatcapMaterial({ matcap: rimMap, color: 0xffffff, transparent: true, opacity: 0, depthWrite: false, blending: T.AdditiveBlending, fog: false }), ov: null, t: 9, life: .16, a: 0 }));
-    const overlays = new WeakMap();
+    const overlays = new WeakMap(), flashGeometryCache = new Map(), privateFlashGeometries = new Set();
+    // The same pose/material can flash in one draw. Keep the original copies as
+    // fallback when a limb disappears or a part acquires a different transform.
+    // All buffers are made under the loading cover and shared between foe types.
+    function mergeableFlash(src) {
+      const g = src.geometry, a = g.attributes, n = a.position && a.position.count;
+      return n > 0 && a.normal && a.normal.count === n && a.normal.itemSize === 3 &&
+        a.position.itemSize === 3 && a.skinIndex && a.skinIndex.count === n && a.skinIndex.itemSize === 4 &&
+        a.skinWeight && a.skinWeight.count === n && a.skinWeight.itemSize === 4 &&
+        !Object.keys(g.morphAttributes || {}).some(k => g.morphAttributes[k].length) &&
+        (!src.morphTargetInfluences || !src.morphTargetInfluences.length) &&
+        g.drawRange.start === 0 && g.drawRange.count >= (g.index ? g.index.count : n);
+    }
+    function flashGeometry(items) {
+      const key = items.map(it => it.src.geometry.uuid).join(';');
+      let g = flashGeometryCache.get(key); if (g) return g;
+      let count = 0, indexCount = 0;
+      for (const it of items) { const q = it.src.geometry; count += q.attributes.position.count; indexCount += q.index ? q.index.count : q.attributes.position.count; }
+      g = new T.BufferGeometry();
+      for (const [name, size] of [['position', 3], ['normal', 3], ['skinIndex', 4], ['skinWeight', 4]]) {
+        const arr = name === 'skinIndex' ? new Uint16Array(count * size) : new Float32Array(count * size); let at = 0;
+        for (const it of items) { const a = it.src.geometry.attributes[name];
+          for (let i = 0; i < a.count; i++) for (let j = 0; j < size; j++) arr[at++] = a.getComponent(i, j);
+        }
+        g.setAttribute(name, new T.BufferAttribute(arr, size));
+      }
+      const indices = new Uint32Array(indexCount); let vertex = 0, at = 0;
+      for (const it of items) { const q = it.src.geometry, n = q.attributes.position.count;
+        if (q.index) for (let i = 0; i < q.index.count; i++) indices[at++] = vertex + q.index.getX(i);
+        else for (let i = 0; i < n; i++) indices[at++] = vertex + i;
+        vertex += n;
+      }
+      g.setIndex(new T.BufferAttribute(indices, 1)); flashGeometryCache.set(key, g); return g;
+    }
+    // Each actor owns only this mutable index. Merged vertex attributes remain
+    // shared by type; every future buffer is allocated/uploaded during prepare().
+    function privateFlashGeometry(items) {
+      const shared = flashGeometry(items), g = new T.BufferGeometry();
+      for (const name in shared.attributes) g.setAttribute(name, shared.attributes[name]);
+      const index = new T.BufferAttribute(new Uint32Array(shared.index.array), 1);
+      index.setUsage(T.DynamicDrawUsage); g.setIndex(index); privateFlashGeometries.add(g);
+      let vertex = 0;
+      for (const it of items) {
+        const q = it.src.geometry;
+        it.flashVertex = vertex; vertex += q.attributes.position.count;
+        it.flashSkeleton = it.src.skeleton; it.flashBindMode = it.src.bindMode; it.flashBindMatrix = it.src.bindMatrix.clone();
+        it.flashCapacity = q.index ? q.index.count : q.attributes.position.count;
+        it.flashAttributes = ['position', 'normal', 'skinIndex', 'skinWeight'].map(name => ({ name, attr: q.attributes[name], version: q.attributes[name].version }));
+        it.flashIndex = q.index; it.flashIndexVersion = q.index ? q.index.version : -1;
+        it.flashStart = 0; it.flashCount = it.flashCapacity;
+      }
+      return g;
+    }
+    function indexCompatible(it) {
+      const q = it.src.geometry, count = q.index ? q.index.count : q.attributes.position.count;
+      if (it.src.skeleton !== it.flashSkeleton || it.src.bindMode !== it.flashBindMode || !it.src.bindMatrix.equals(it.flashBindMatrix) ||
+        count > it.flashCapacity || !Number.isInteger(q.drawRange.start) || q.drawRange.start < 0 ||
+        !(q.drawRange.count === Infinity || (Number.isInteger(q.drawRange.count) && q.drawRange.count >= 0))) return false;
+      for (const a of it.flashAttributes) if (q.attributes[a.name] !== a.attr || a.attr.version !== a.version) return false;
+      for (const name in q.morphAttributes) if (q.morphAttributes[name].length) return false;
+      return !it.src.morphTargetInfluences || !it.src.morphTargetInfluences.length;
+    }
+    function syncFlashIndices(group) {
+      let changed = false;
+      for (const it of group.items) {
+        const q = it.src.geometry, count = q.index ? q.index.count : q.attributes.position.count;
+        const start = Math.min(count, q.drawRange.start), live = Math.min(count - start, q.drawRange.count);
+        if (q.index !== it.flashIndex || (q.index ? q.index.version : -1) !== it.flashIndexVersion ||
+          start !== it.flashStart || live !== it.flashCount) changed = true;
+      }
+      if (!changed) return;
+      const g = group.c.geometry, index = g.index.array; let at = 0;
+      for (const it of group.items) {
+        const q = it.src.geometry, count = q.index ? q.index.count : q.attributes.position.count;
+        const start = Math.min(count, q.drawRange.start), live = Math.min(count - start, q.drawRange.count);
+        for (let i = start; i < start + live; i++) index[at++] = it.flashVertex + (q.index ? q.index.getX(i) : i);
+        it.flashIndex = q.index; it.flashIndexVersion = q.index ? q.index.version : -1;
+        it.flashStart = start; it.flashCount = live;
+      }
+      g.setDrawRange(0, at); g.index.needsUpdate = true;
+    }
+    function flashCopy(src, geometry) {
+      const c = new T.SkinnedMesh(geometry, flashSlots[0].mat); c.bind(src.skeleton, src.bindMatrix); c.bindMode = src.bindMode;
+      c.matrixAutoUpdate = false; c.frustumCulled = false; c.renderOrder = 7; c.visible = false;
+      c.castShadow = c.receiveShadow = false; c.name = 'fx_hitflash'; root.add(c); return c;
+    }
     function overlayOf(model) {
       let ov = overlays.get(model); if (ov) return ov;
       const list = [];
       model.root.traverse(n => {
         if (!n.isSkinnedMesh || !n.skeleton || !n.geometry || list.length >= 14) return;
         const mt = n.material; if (!mt || Array.isArray(mt) || mt.isShaderMaterial || mt.blending === T.AdditiveBlending) return;
-        const c = new T.SkinnedMesh(n.geometry, flashSlots[0].mat); c.bind(n.skeleton, n.bindMatrix); c.bindMode = n.bindMode;
-        c.matrixAutoUpdate = false; c.frustumCulled = false; c.renderOrder = 7; c.visible = false; c.castShadow = c.receiveShadow = false; c.name = 'fx_hitflash';
-        root.add(c); list.push({ c, src: n });
+        const c = flashCopy(n, n.geometry); list.push({ c, src: n });
       });
-      ov = { list, model, slot: null }; overlays.set(model, ov); return ov;
+      const groups = [];
+      for (const it of list) {
+        if (!mergeableFlash(it.src)) continue;
+        const n = it.src;
+        let group = groups.find(g => g.src.skeleton === n.skeleton && g.src.bindMode === n.bindMode &&
+          g.src.bindMatrix.equals(n.bindMatrix) && g.src.matrixWorld.equals(n.matrixWorld));
+        if (!group) { group = { src: n, items: [], c: null }; groups.push(group); }
+        group.items.push(it);
+      }
+      const merged = groups.filter(g => g.items.length > 1);
+      for (const group of merged) { group.c = flashCopy(group.src, privateFlashGeometry(group.items)); for (const it of group.items) it.group = group; }
+      const copies = list.concat(merged);
+      ov = { list, merged, copies, model, slot: null }; overlays.set(model, ov); return ov;
     }
     function shown(n, top) { for (let p = n; p; p = p.parent) { if (!p.visible) return false; if (p === top) return true; } return true; }
     function hitFlash(enemy, d) {
@@ -119,7 +214,7 @@
       const ov = overlayOf(enemy.model); if (!ov.list.length) return;
       let s = ov.slot; if (!s) {   // low particle budgets (iPad) flash fewer bodies at once: each flash redraws that body's skinned meshes
         let busy = 0; for (const q of flashSlots) if (q.ov) busy++; if (busy >= Math.min(8, scaleCount(8))) return;
-        s = flashSlots.find(q => !q.ov) || null; if (!s) return; s.ov = ov; ov.slot = s; for (const it of ov.list) it.c.material = s.mat; }
+        s = flashSlots.find(q => !q.ov) || null; if (!s) return; s.ov = ov; ov.slot = s; for (const it of ov.copies) it.c.material = s.mat; }
       const col = (d && d.col) || [1, .82, .66], a = d && d.a != null ? d.a : .55;
       const left = s.t < s.life ? s.a * Math.pow(1 - s.t / s.life, 2) : 0;
       s.t = 0; s.life = (d && d.life) || .16; s.a = Math.max(a, left); s.mat.color.setRGB(col[0], col[1], col[2]); s.mat.opacity = s.a;
@@ -130,11 +225,11 @@
     function prepare(actors) {
       // Include later rooms and reserved summons: first contact must not allocate body overlays.
       for (const e of (actors || [])) { if (!e || !e.model || !e.model.root || overlays.has(e.model)) continue; const ov = overlayOf(e.model);
-        for (const it of ov.list) { it.c.material = primeMat; it.c.matrix.copy(it.src.matrixWorld); it.c.visible = true; primed.push(it.c); } }
+        for (const it of ov.copies) { it.c.material = primeMat; it.c.matrix.copy(it.src.matrixWorld); it.c.visible = true; primed.push(it.c); } }
       if (primed.length) primeFrames = 3;
     }
     const primeMat = new T.MeshMatcapMaterial({ matcap: rimMap, color: 0x000000, transparent: true, opacity: 0, depthWrite: false, blending: T.AdditiveBlending, fog: false });
-    function releaseSlot(s) { if (s.ov) { for (const it of s.ov.list) it.c.visible = false; s.ov.slot = null; } s.ov = null; s.t = 9; s.mat.opacity = 0; }
+    function releaseSlot(s) { if (s.ov) { for (const it of s.ov.copies) it.c.visible = false; s.ov.slot = null; } s.ov = null; s.t = 9; s.mat.opacity = 0; }
     // Identity colours for the body flash (and the default edge of their impact walls).
     const TINT = { cleave: [1.05, .45, .2], brand: [1.25, .3, .2], temper: [.85, .32, 1.15], roar: [1.1, .55, .22], quake: [1.05, .9, .7], chainstorm: [1.1, .4, .45],
       whirl: [1.05, .5, .2], reap: [1.2, .86, .36], rend: [.85, .42, 1.35], charge: [1.25, .55, .2], grasp: [1.25, .78, .3], havoc: [.8, .38, 1.35] };
@@ -157,7 +252,20 @@
         const e = s.ov.model.root, dead = !e.parent;
         if (k >= 1 || dead) { releaseSlot(s); continue; }
         s.mat.opacity = s.a * Math.pow(1 - k, 2);
-        for (const it of s.ov.list) { const vis = shown(it.src, e); it.c.visible = vis; if (vis) it.c.matrix.copy(it.src.matrixWorld); }
+        for (const group of s.ov.merged) {
+          const src = group.src, vis = shown(src, e); let compatible = true;
+          for (const it of group.items) {
+            const n = it.src;
+            if (!indexCompatible(it) || shown(n, e) !== vis || n.skeleton !== src.skeleton || n.bindMode !== src.bindMode ||
+              !n.bindMatrix.equals(src.bindMatrix) || !n.matrixWorld.equals(src.matrixWorld)) { compatible = false; break; }
+          }
+          group.drawn = compatible; group.c.visible = compatible && vis;
+          if (group.c.visible) { syncFlashIndices(group); group.c.matrix.copy(src.matrixWorld); }
+        }
+        for (const it of s.ov.list) {
+          const vis = (!it.group || !it.group.drawn) && shown(it.src, e);
+          it.c.visible = vis; if (vis) { it.c.geometry = it.src.geometry; it.c.skeleton = it.src.skeleton; it.c.bindMode = it.src.bindMode; it.c.bindMatrix.copy(it.src.bindMatrix); it.c.bindMatrixInverse.copy(it.src.bindMatrixInverse); it.c.matrix.copy(it.src.matrixWorld); }
+        }
       }
     }
     function clear() {
@@ -175,6 +283,10 @@
       clear(); for (const w of walls) { w.m.removeFromParent(); w.mat.dispose(); } for (const p of blades) { p.m.removeFromParent(); p.mat.dispose(); }
       wallBase.dispose(); bladeBase.dispose(); wallGeo.dispose(); bladeGeo.dispose(); for (const s of flashSlots) s.mat.dispose(); primeMat.dispose(); rimMap.dispose();
       const drop = []; root.traverse(n => { if (n.name === 'fx_hitflash') drop.push(n); }); for (const n of drop) n.removeFromParent();
+      // Private index disposal must not release shared merged vertex attributes.
+      for (const g of privateFlashGeometries) { for (const name in g.attributes) g.deleteAttribute(name); g.dispose(); }
+      privateFlashGeometries.clear();
+      for (const g of flashGeometryCache.values()) g.dispose(); flashGeometryCache.clear();
       if (B.FxImpact.active === inst) B.FxImpact.active = null;
     }
     const inst = { dome, pillar, plume, deathAsh, hitFlash, prepare, skillTint, step, clear, warmObjects, dispose };

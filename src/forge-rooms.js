@@ -308,7 +308,7 @@
     function bannerX(x, y, z, w, h, rot, tint) { K.banner(i, X(x), y, Z(z), w, h, rot, tint); }
     function ashDrift(x, z, w, d) { for (var q = 0; q < 5; q++) BX('rock', 'rock', x + (R2() - .5) * w, .12, z + (R2() - .5) * d, 1.6 + R2() * 1.6, .3 + R2() * .22, 1.2 + R2() * 1.2, R2() * 6, [.55, .53, .5], .5); }
     // low-lying hot-metal runner on the floor between two points (flat, above the slab tops)
-    function runner(x1, z1, x2, z2, w) { var dx = x2 - x1, dz = z2 - z1, len = Math.hypot(dx, dz); K.put(i, 'box', 'hot', X((x1 + x2) / 2), .075, Z((z1 + z2) / 2), w, .03, len, Math.atan2(dx, dz), 0, 0, [1.25, .46, .11], 0); K.put(i, 'box', 'iron', X((x1 + x2) / 2), .06, Z((z1 + z2) / 2), w + .34, .06, len, Math.atan2(dx, dz), 0, 0, [.4, .38, .36], .2); }
+    function runner(x1, z1, x2, z2, w) { var dx = x2 - x1, dz = z2 - z1, len = Math.hypot(dx, dz); K.put(i, 'box', 'hot', X((x1 + x2) / 2), .105, Z((z1 + z2) / 2), w, .02, len, Math.atan2(dx, dz), 0, 0, [1.25, .46, .11], 0); K.put(i, 'box', 'iron', X((x1 + x2) / 2), .06, Z((z1 + z2) / 2), w + .34, .06, len, Math.atan2(dx, dz), 0, 0, [.4, .38, .36], .2); }
     function censer(x, y, z, s) {   // hanging bowl of embers at the end of a chain
       var P = frame(x, z, 0, s || 1);
       P('vat', 'iron', 0, y, 0, .9, .6, .9, [.5, .46, .44], .2); P('rim', 'iron', 0, y + .3, 0, .92, .92, .92, [.62, .58, .56], .1, PI / 2); P('disc', 'hot', 0, y + .24, 0, .74, 1, .74, [1.5, .55, .14], 0);
@@ -664,7 +664,7 @@
       var wallX = r.x + s * r.w / 2;
       if (DOORS[i] === s) {
         var len = Math.abs(xi - wallX) + 1.2, cx = (xi + wallX) / 2;
-        K.floor(i, { x: cx, z: r.z, w: len, d: DOOR_HW * 2 + .4 }, { key: 'iron', tint: [.44, .41, .4], vary: .1, cols: Math.max(1, Math.round(len / 2)), rows: 2 });
+        K.floor(i, { x: cx, z: r.z, w: len, d: DOOR_HW * 2 + .4 }, { key: 'iron', tint: [.44, .41, .4], vary: .1, cols: Math.max(1, Math.round(len / 2)), rows: 2, elevation: .006 });
         if (len > 3) [-1, 1].forEach(function (q) { lavaRiver(cx, r.z + q * (DOOR_HW + 1.7), len, 2.6); K.bar(i, 'cyl', 'iron', wallX, 1.05, r.z + q * (DOOR_HW + .1), xi, 1.05, r.z + q * (DOOR_HW + .1), .05, [.6, .56, .54], .2); for (var p = 0; p <= len; p += 2.2) K.put(i, 'box', 'iron', wallX + s * p, .55, r.z + q * (DOOR_HW + .1), .1, 1.1, .1, 0, 0, 0, IRONT, .2); });
       }
       // void between the room wall and the wing: broken masonry, scaffolds and crags (reads as solid ground falling away)

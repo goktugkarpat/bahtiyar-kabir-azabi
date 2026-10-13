@@ -301,10 +301,19 @@
       if (heavy) smear(x, z, (Number.isFinite(spray) ? spray : Math.random() * 6.28) + rnd(-.5, .5), 1.4, .34, true);
     }
     // ---- room walls (long side walls only) so droplets can stick to them
+    const roomWallBounds = new WeakMap(), fallbackWallBounds = { l: -3.35, r: 3.35, top: 2.1 };
     function wallBox(z) {
       const rooms = B.app && B.app.world && B.app.world.rooms; if (!rooms) return null;
-      for (const r of rooms) if (Math.abs(z - r.z) <= r.d / 2) return { l: r.x - r.w / 2 + .375, r: r.x + r.w / 2 - .375, top: r.id === 6 ? 5.8 : 4.25 };
-      return { l: -3.35, r: 3.35, top: 2.1 };
+      // Keep the authored first-room selection, including live z/d changes and overlaps.
+      for (const r of rooms) if (Math.abs(z - r.z) <= r.d / 2) {
+        let entry = roomWallBounds.get(r);
+        if (!entry || entry.x !== r.x || entry.w !== r.w || entry.id !== r.id) {
+          entry = { x: r.x, w: r.w, id: r.id, bounds: { l: r.x - r.w / 2 + .375, r: r.x + r.w / 2 - .375, top: r.id === 6 ? 5.8 : 4.25 } };
+          roomWallBounds.set(r, entry);
+        }
+        return entry.bounds;
+      }
+      return fallbackWallBounds;
     }
     // ---- stretched blood streaks (droplets, jets): one camera-facing quad each, tapered tail, round head, normal blending
     const bsPos = new Float32Array(GS * 12), bsUv = new Float32Array(GS * 8), bsCol = new Float32Array(GS * 16), bsIdx = [], bs = new Array(GS).fill(null); let bsCur = 0, bsLive = 0;
@@ -314,8 +323,17 @@
       vertexShader: 'attribute vec4 aCol;varying vec2 vUv;varying vec4 c;void main(){vUv=uv;c=aCol;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
       fragmentShader: 'varying vec2 vUv;varying vec4 c;void main(){float ux=clamp(vUv.x,0.,1.);float dy=abs(vUv.y*2.-1.);float prof=.24+.76*smoothstep(0.,.7,ux);float cap=ux>.84?sqrt(max(0.,1.-pow((ux-.84)/.16,2.))):1.;float e=1.-dy/max(prof*cap,.001);float a=smoothstep(0.,.32,e)*(.3+.7*smoothstep(0.,.55,ux))*c.a;if(a<.012)discard;float sh=pow(clamp(1.-dy*1.7,0.,1.),3.)*(.3+.7*ux);vec3 col=c.rgb*(.72+.5*(1.-dy))+vec3(.34,.13,.11)*sh*.12;gl_FragColor=vec4(col,a);}' });
     const bsMesh = new T.Mesh(bsGeo, bsMat); bsMesh.frustumCulled = false; bsMesh.renderOrder = 4; bsMesh.visible = false; root.add(bsMesh);
+    function makeBloodStreakRecord() { return { x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, t: 0, life: 0, w: 0, col: BCOL[0], stick: .3, kid: false }; }
+    // Landing drops may spawn a child into their own ring slot while still being read.
+    // Two records per slot preserve that native evaluation order without allocating mid-fight.
+    const bsRecords = Array.from({ length: GS }, () => [makeBloodStreakRecord(), makeBloodStreakRecord()]);
+    let bsProcessing = null;
     function bstreak(x, y, z, vx, vy, vz, life, w, col, stick, kid) {
-      const cap = Math.max(40, Math.round(GS * gTier())); bs[bsCur++ % cap] = { x, y, z, vx, vy, vz, t: 0, life, w, col: col || BCOL[Math.random() < .6 ? 0 : Math.random() < .75 ? 1 : 2], stick: stick == null ? .3 : stick, kid: !!kid };
+      const cap = Math.max(40, Math.round(GS * gTier())), at = bsCur++ % cap, pair = bsRecords[at];
+      const s = pair[0] === bsProcessing ? pair[1] : pair[0];
+      s.x = x; s.y = y; s.z = z; s.vx = vx; s.vy = vy; s.vz = vz; s.t = 0; s.life = life; s.w = w;
+      s.col = col || BCOL[Math.random() < .6 ? 0 : Math.random() < .75 ? 1 : 2];
+      s.stick = stick == null ? .3 : stick; s.kid = !!kid; bs[at] = s;
       bsMesh.visible = true;
     }
     // a fan of droplets/jets from (x,y,z) thrown along heading a; fan = half spread, sp = speed scale, w = thickness scale
@@ -338,10 +356,16 @@
     const gcMat = new T.MeshStandardMaterial({ color: 0xffffff, roughness: .3, metalness: 0 }), gcMesh = new T.InstancedMesh(chGeoG, gcMat, GC);
     gcMesh.count = 0; gcMesh.visible = false; gcMesh.frustumCulled = false; gcMesh.instanceMatrix.setUsage(T.DynamicDrawUsage); gcMesh.setColorAt(0, new T.Color()); root.add(gcMesh);
     const GCOL = [[.16, .008, .012], [.11, .006, .009], [.26, .07, .06], [.42, .37, .3]], gibs = []; const gcTmp = new T.Object3D(), gcCol = new T.Color();
+    function makeGibRecord() { return { x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, rx: 0, ry: 0, rz: 0, wx: 0, wy: 0, wz: 0, size: 0, ax: 0, az: 0, t: 0, rest: false, restAt: undefined, hit: 0, trail: 0, col: GCOL[0] }; }
+    const freeGibs = Array.from({ length: GC }, makeGibRecord);
     function gib(x, y, z, a, sp, size) {
-      const cap = Math.max(6, Math.round(GC * gTier())); while (gibs.length >= cap) gibs.shift();
-      const an = a + rnd(-.9, .9), s = sp * rnd(.35, 1), c = GCOL[Math.random() < .25 ? 3 : Math.random() < .3 ? 2 : Math.random() < .5 ? 0 : 1];
-      gibs.push({ x, y, z, vx: Math.sin(an) * s, vy: rnd(2, 5.5) * Math.min(1.4, .6 + sp / 8), vz: Math.cos(an) * s, rx: rnd(0, 6), ry: rnd(0, 6), rz: rnd(0, 6), wx: rnd(-14, 14), wy: rnd(-14, 14), wz: rnd(-14, 14), size, ax: rnd(.8, 1.5), az: rnd(.8, 1.5), t: 0, rest: false, hit: 0, trail: 0, col: c });
+      const cap = Math.max(6, Math.round(GC * gTier())); while (gibs.length >= cap) freeGibs.push(gibs.shift());
+      const an = a + rnd(-.9, .9), speed = sp * rnd(.35, 1), c = GCOL[Math.random() < .25 ? 3 : Math.random() < .3 ? 2 : Math.random() < .5 ? 0 : 1];
+      const g = freeGibs.pop() || makeGibRecord();
+      g.x = x; g.y = y; g.z = z; g.vx = Math.sin(an) * speed; g.vy = rnd(2, 5.5) * Math.min(1.4, .6 + sp / 8); g.vz = Math.cos(an) * speed;
+      g.rx = rnd(0, 6); g.ry = rnd(0, 6); g.rz = rnd(0, 6); g.wx = rnd(-14, 14); g.wy = rnd(-14, 14); g.wz = rnd(-14, 14);
+      g.size = size; g.ax = rnd(.8, 1.5); g.az = rnd(.8, 1.5); g.t = 0; g.rest = false; g.restAt = undefined; g.hit = 0; g.trail = 0; g.col = c;
+      gibs.push(g);
     }
     // ---- heartbeat spurts (arterial jets from a wound or a stump); follows the nearest foe so a sliding corpse keeps spurting
     const spurts = [];
@@ -367,14 +391,19 @@
       gdAdd({ cell: 3, x: x + Math.cos(yaw) * side * .1, y: GFLOOR + .001, z: z - Math.sin(yaw) * side * .1, rot: yaw - Math.PI / 2, sx: .62, sy: .9, a0: .3 + .65 * k, life: 22, dryT: 14 }, true);
     }
     // ---- one blow: heading a (direction the blood is thrown), S = strength (light .5, heavy 1, kill 1.5+), o = { kill, heavy, boss, player, foe }
+    // Keep isolated deaths full; a simultaneous crowd shares secondary blood detail.
+    // This resets with presentation, never changes enemy RNG, hit feedback, or rewards.
+    let goreDeaths = 0, goreHits = 0;
+    const goreBurstCount = (n, detail) => Math.max(1, Math.round(gn(n) * detail));
     function goreHit(x, y, z, a, S, o) {
+      const detail = o.boss || o.player ? 1 : (++goreHits > 2 ? .35 : 1);
       const dec = getSettings().decals > 0;
-      bfan(x, y, z, a, gn(12 + 22 * S), .32 + .28 * Math.min(S, 1.6), .62 + .34 * S, .8 + .3 * S, .75 + .25 * S, .3);
-      if (S > .7) bfan(x, y, z, a + Math.PI + rnd(-.4, .4), gn(3 + 6 * S), .7, .4 + .25 * S, .75, .7, .3);   // exit backspray
-      for (let i = 0; i < gn(6 + 12 * S); i++) particle(x, y + rnd(-.1, .1), z, 0, i % 2 ? RED : DARK, .5 + .4 * S, a + rnd(-.9, .9), .5).size = rnd(.025, .06);   // fine mist
+      bfan(x, y, z, a, goreBurstCount(12 + 22 * S, detail), .32 + .28 * Math.min(S, 1.6), .62 + .34 * S, .8 + .3 * S, .75 + .25 * S, .3);
+      if (S > .7) bfan(x, y, z, a + Math.PI + rnd(-.4, .4), goreBurstCount(3 + 6 * S, detail), .7, .4 + .25 * S, .75, .7, .3);   // exit backspray
+      for (let i = 0, n = goreBurstCount(6 + 12 * S, detail); i < n; i++) particle(x, y + rnd(-.1, .1), z, 0, i % 2 ? RED : DARK, .5 + .4 * S, a + rnd(-.9, .9), .5).size = rnd(.025, .06);   // fine mist
       if (S >= .95 || o.kill) spurt(x, y, z, a + rnd(-.25, .25), .55 + .3 * S, o.kill ? .2 + .3 * S : .2, .55, o.foe);
       else if (S > .45) spurt(x, y, z, a, .3 + .4 * S, .16, .4, o.foe);
-      if (S >= .95 || (o.kill && S > .6)) for (let i = 0, n = gn(Math.round((o.kill ? 2 : 1) * (1 + S) * (o.boss ? 1.4 : 1))); i < n; i++) gib(x, y, z, a, 4 + 5 * S, rnd(.045, .1) * (.8 + .3 * S));
+      if (S >= .95 || (o.kill && S > .6)) for (let i = 0, n = goreBurstCount(Math.round((o.kill ? 2 : 1) * (1 + S) * (o.boss ? 1.4 : 1)), detail); i < n; i++) gib(x, y, z, a, 4 + 5 * S, rnd(.045, .1) * (.8 + .3 * S));
       if (dec) { spraySplat(x, z, a, 1.6 + 1.8 * S, .9 + .6 * S, false); if (S > .8) splat(x + dirX(a) * .4, z + dirZ(a) * .4, .7 + .5 * S, true); }
       lastDir.a = a; lastDir.t = performance.now();
       if (o.foe) bleedAdd(o.foe, S); const game = getGame();
@@ -385,16 +414,17 @@
     }
     // The killing blow: everything opens up. big = boss / heavy finisher.
     function goreKill(x, y, z, a, big, foe, boss) {
+      const detail = boss ? 1 : (++goreDeaths > 1 ? .35 : 1);
       big = true;   // killing blows are always at full gore (no setting), the preset only scales the counts
       const S = 1.9;
-      for (let i = 0; i < gn(big ? 46 : 30); i++) { const an = Math.random() * 6.283, s = (2 + Math.random() * 6) * (big ? 1.3 : 1); bstreak(x + rnd(-.2, .2), y + rnd(-.3, .3), z + rnd(-.2, .2), Math.sin(an) * s + Math.sin(a) * 2, 1.5 + Math.random() * 6, Math.cos(an) * s + Math.cos(a) * 2, .9 + Math.random() * .5, .06 * rnd(.7, 1.5), null, .35); }
-      for (let i = 0; i < gn(big ? 14 : 8); i++) particle(x, y, z, 0, i % 2 ? RED : DARK, 1.2, Math.random() * 6.28, .7).size = rnd(.03, .07);
-      for (let i = 0; i < gn(12); i++) gib(x, y, z, Math.random() * 6.28, 3 + Math.random() * 7, rnd(.05, .13));
+      for (let i = 0, n = goreBurstCount(big ? 46 : 30, detail); i < n; i++) { const an = Math.random() * 6.283, s = (2 + Math.random() * 6) * (big ? 1.3 : 1); bstreak(x + rnd(-.2, .2), y + rnd(-.3, .3), z + rnd(-.2, .2), Math.sin(an) * s + Math.sin(a) * 2, 1.5 + Math.random() * 6, Math.cos(an) * s + Math.cos(a) * 2, .9 + Math.random() * .5, .06 * rnd(.7, 1.5), null, .35); }
+      for (let i = 0, n = goreBurstCount(big ? 14 : 8, detail); i < n; i++) particle(x, y, z, 0, i % 2 ? RED : DARK, 1.2, Math.random() * 6.28, .7).size = rnd(.03, .07);
+      for (let i = 0, n = goreBurstCount(12, detail === 1 ? 1 : 1 / 4); i < n; i++) gib(x, y, z, Math.random() * 6.28, 3 + Math.random() * 7, rnd(.05, .13));
       const f = foe || nearestFoe(x, z, 1.4, true);
-      spurt(x, Math.max(.8, y), z, a + rnd(-.3, .3), 1.15, 3.6, .6, f); spurt(x, Math.max(.7, y - .1), z, a + Math.PI * rnd(.5, .9) * (Math.random() < .5 ? 1 : -1), .8, 2.8, .74, f); spurt(x, Math.max(.9, y + .1), z, a + rnd(-1.2, 1.2), .7, 2.2, .52, f);
-      bfan(x, y, z, a, gn(34), .8, 1.25, 1.25, 1.1, .35);
+      spurt(x, Math.max(.8, y), z, a + rnd(-.3, .3), 1.15, 3.6, .6, f); if (detail === 1) { spurt(x, Math.max(.7, y - .1), z, a + Math.PI * rnd(.5, .9) * (Math.random() < .5 ? 1 : -1), .8, 2.8, .74, f); spurt(x, Math.max(.9, y + .1), z, a + rnd(-1.2, 1.2), .7, 2.2, .52, f); }
+      bfan(x, y, z, a, goreBurstCount(34, detail), .8, 1.25, 1.25, 1.1, .35);
       bloodPool(x, z, boss ? 5.4 : 4.2);
-      if (getSettings().decals > 0) { for (let i = 0; i < 3; i++) spraySplat(x, z, Math.random() * 6.28, rnd(1.6, 3.2), rnd(.9, 1.6), i > 0); splat(x, z, 2.6, false); }
+      if (getSettings().decals > 0) { for (let i = 0; i < (detail === 1 ? 3 : 1); i++) spraySplat(x, z, Math.random() * 6.28, rnd(1.6, 3.2), rnd(.9, 1.6), i > 0); splat(x, z, 2.6, false); }
     }
     // Public hook (LIMBS / dismemberment): kind 'spray' | 'burst' | 'stump' | 'mist' | 'chunks'; heading (dirX, dirZ) = where the blood is thrown; strength ~ .3 (nick) .. 1 (limb) .. 2 (boss).
     function gore(kind, x, y, z, dx, dz, strength) {
@@ -439,6 +469,7 @@
         const cam = B.app && B.app.camera; if (cam) cam.getWorldDirection(camDir); let live = 0, last = -1;
         for (let i = 0; i < GS; i++) {
           const s = bs[i], o = i * 12; if (!s) continue;
+          bsProcessing = s;
           s.t += dt; let dead = s.t >= s.life;
           if (!dead) {
             s.vy -= 10 * dt; const air = Math.exp(-dt * .5); s.vx *= air; s.vz *= air; const nx = s.x + s.vx * dt, ny = s.y + s.vy * dt, nz = s.z + s.vz * dt, wb = ny < 6 ? wallBox(nz) : null;
@@ -454,7 +485,7 @@
               if (s.t > .08 && ny > .1) for (const A of gActors) if (ny < A.h && (A.e.x - nx) * (A.e.x - nx) + (A.e.z - nz) * (A.e.z - nz) < A.r * A.r) { if (Math.random() < .12) bleedAdd(A.e, .15); dead = true; break; }
             }
           }
-          if (dead) { bs[i] = null; bsPos.fill(0, o, o + 12); bsCol.fill(0, i * 16, i * 16 + 16); continue; }
+          if (dead) { bsProcessing = null; bs[i] = null; bsPos.fill(0, o, o + 12); bsCol.fill(0, i * 16, i * 16 + 16); continue; }
           const sp = Math.hypot(s.vx, s.vy, s.vz) || 1, len = clamp(sp * .018, s.w * 1.15, .35);
           qa.set(s.x, s.y, s.z); cv1.set(s.vx, s.vy, s.vz).multiplyScalar(1 / sp); qb.copy(qa).addScaledVector(cv1, -len);
           cv2.crossVectors(cv1, camDir); if (cv2.lengthSq() < 1e-6) cv2.set(1, 0, 0); cv2.normalize().multiplyScalar(s.w * .34);
@@ -462,7 +493,7 @@
           bsPos[o] = qb.x - cv2.x; bsPos[o + 1] = qb.y - cv2.y; bsPos[o + 2] = qb.z - cv2.z; bsPos[o + 3] = qb.x + cv2.x; bsPos[o + 4] = qb.y + cv2.y; bsPos[o + 5] = qb.z + cv2.z;
           bsPos[o + 6] = qa.x + cv2.x; bsPos[o + 7] = qa.y + cv2.y; bsPos[o + 8] = qa.z + cv2.z; bsPos[o + 9] = qa.x - cv2.x; bsPos[o + 10] = qa.y - cv2.y; bsPos[o + 11] = qa.z - cv2.z;
           for (let j = 0, c = i * 16, c0 = s.col[0], c1 = s.col[1], c2 = s.col[2]; j < 4; j++, c += 4) { bsCol[c] = c0; bsCol[c + 1] = c1; bsCol[c + 2] = c2; bsCol[c + 3] = a; }
-          live++; last = i;
+          bsProcessing = null; live++; last = i;
         }
         bsLive = live; bsGeo.setDrawRange(0, (last + 1) * 6);
         uploadPrefix(bsGeo.attributes.position, (last + 1) * 12); uploadPrefix(bsGeo.attributes.aCol, (last + 1) * 16); bsMesh.visible = live > 0;
@@ -470,7 +501,7 @@
       // gibs
       if (gibs.length || gcMesh.count) {
         for (let i = gibs.length - 1; i >= 0; i--) {
-          const g = gibs[i]; g.t += dt; const fade = g.rest ? clamp(1 - (g.t - g.restAt - 8) / 1.5, 0, 1) : 1; if (fade <= 0) { gibs.splice(i, 1); continue; }
+          const g = gibs[i]; g.t += dt; const fade = g.rest ? clamp(1 - (g.t - g.restAt - 8) / 1.5, 0, 1) : 1; if (fade <= 0) { freeGibs.push(g); gibs.splice(i, 1); continue; }
           if (!g.rest) {
             g.vy -= 11 * dt; g.x += g.vx * dt; g.y += g.vy * dt; g.z += g.vz * dt; g.rx += g.wx * dt; g.ry += g.wy * dt; g.rz += g.wz * dt;
             const wb = wallBox(g.z); if (wb && g.y < wb.top) { if (g.x < wb.l) { g.x = wb.l; g.vx = Math.abs(g.vx) * .3; wallSplat(wb.l, Math.max(.3, g.y), g.z, true, g.size * 4, .5, false); } else if (g.x > wb.r) { g.x = wb.r; g.vx = -Math.abs(g.vx) * .3; wallSplat(wb.r, Math.max(.3, g.y), g.z, false, g.size * 4, .5, false); } }
@@ -489,6 +520,9 @@
       gdStep(dt);
     }
     function goreClear() {
+      bsProcessing = null;
+      for (const g of gibs) freeGibs.push(g);
+      goreDeaths = 0; goreHits = 0;
       bs.fill(null); bsPos.fill(0); bsCol.fill(0); bsLive = 0; bsMesh.visible = false; bsGeo.attributes.position.needsUpdate = true; bsGeo.attributes.aCol.needsUpdate = true;
       gdPri.length = gdMic.length = gibs.length = spurts.length = bleeders.length = 0; gcMesh.count = 0; gcMesh.visible = false; gdMesh.count = 0; gdMesh.visible = false; feet = 0; bladeBlood = 0; bladeHave = false;
     }
@@ -521,7 +555,7 @@
       const map = new T.CanvasTexture(canvas); map.colorSpace = T.SRGBColorSpace;
       const m = new T.Sprite(new T.SpriteMaterial({ map, transparent: true, depthWrite: false, depthTest: false }));
       m.renderOrder = 20; m.visible = false; root.add(m);
-      const l = { m, canvas, time: 0, vx: 0, bw: 0, bh: 0, x0: 0, z0: 0, side: 0, life: .9, target: null, value: 0, player: false, heavy: false, kill: false, boss: false };
+      const l = { m, canvas, ownedMap: map, time: 0, vx: 0, bw: 0, bh: 0, x0: 0, z0: 0, side: 0, life: .9, target: null, value: 0, player: false, heavy: false, kill: false, boss: false };
       labelPool.push(l); freeLabels.push(l); return l;
     }
     function releaseLabel(l) { l.m.visible = false; l.target = null; freeLabels.push(l); }
@@ -534,12 +568,25 @@
       // Eighteen live labels was already the limit; reuse the oldest sprite instead of replacing its GPU resources.
       if (!merged && !freeLabels.length) { if (labelPool.length < 18) makeLabel(); else releaseLabel(labels.shift()); }
       const l = merged || freeLabels.pop(), m = l.m;
+      // Equal live numerals borrow one already-painted texture. Every pool entry
+      // still owns its original texture/canvas; never repaint a texture another
+      // live label is using, including borrowers of a released owner's map.
+      const painter = B.HUD && B.HUD.damageCanvas || null;
+      const matching = labels.find(o => o !== l && o.painter === painter && o.value === value && o.player === !!player && o.heavy === !!heavy && o.style === style);
+      if (matching) m.material.map = matching.m.material.map;
+      else {
+      const owner = labelPool.find(o => !labels.some(active => active !== l && active.m.material.map === o.ownedMap));
+      // Excluding this label leaves at most seventeen live maps for eighteen
+      // owners (or N-1 for a lazy N-entry pool), so a free owner always exists.
+      m.material.map = owner.ownedMap;
       // Engraved numerals come from the HUD (src/hud.js); the plain fallback keeps effects.js standalone.
-      const c = B.HUD && B.HUD.damageCanvas ? B.HUD.damageCanvas(value, player, heavy, l.canvas, style) : (() => {
-        const c = l.canvas; c.width = 128; c.height = 72; const ctx = c.getContext('2d');
+      const c = B.HUD && B.HUD.damageCanvas ? B.HUD.damageCanvas(value, player, heavy, owner.canvas, style) : (() => {
+        const c = owner.canvas; c.width = 128; c.height = 72; const ctx = c.getContext('2d');
         ctx.font = (heavy ? '800 47px' : '700 40px') + ' "Source Sans 3", Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineWidth = 6; ctx.strokeStyle = '#170b0c'; ctx.strokeText(String(value), 64, 36);
         ctx.fillStyle = player ? '#e58c78' : heavy ? '#e9bd78' : '#dad2c2'; ctx.fillText(String(value), 64, 36); return c; })();
-      m.material.map.image = c; m.material.map.needsUpdate = true; m.material.opacity = 1; m.material.color.setRGB(1, 1, 1);
+      m.material.map.image = c; m.material.map.needsUpdate = true;
+      }
+      m.material.opacity = 1; m.material.color.setRGB(1, 1, 1);
       // Bigger numbers for bigger blows, a hot tint on the killing blow, and a nudge so numbers from a flurry do not stack on each other.
       const k = player ? 1 : clamp(.82 + value / 130, .82, 1.3) * (kill ? 1.18 : 1) * (boss ? 1.08 : 1) * (style === 'crit' ? 1.16 : 1), bw = (heavy ? 1.45 : 1.2) * k, bh = (heavy ? .82 : .68) * k;
       if (style === 'crit' && !player) m.material.color.setRGB(1.35, 1.2, 1); else if (kill && !player) m.material.color.setRGB(1.5, 1.12, .75); else if (heavy && !player) m.material.color.setRGB(1.2, 1.08, .9);
@@ -552,7 +599,7 @@
       m.position.set(x + side, y + lift, z); m.scale.set(bw, bh, 1); m.visible = true;
       l.time = 0; l.vx = reduced.matches ? 0 : rnd(-.25, .25) + side * .3; l.bw = bw; l.bh = bh; l.x0 = x; l.z0 = z;
       l.side = side || (Math.random() < .5 ? 1 : -1); l.life = kill ? 1.1 : .9; l.lift = lift; l.offset = side;
-      l.target = target; l.value = value; l.style = style; l.player = !!player; l.heavy = !!heavy; l.kill = !!kill; l.boss = !!boss;
+      l.target = target; l.value = value; l.style = style; l.painter = painter; l.player = !!player; l.heavy = !!heavy; l.kill = !!kill; l.boss = !!boss;
       if (!merged) labels.push(l);
     }
     // ------------------------------------------------------------ "Kor ve Kül" tells (src/telegraphs.js; optional)
@@ -1328,6 +1375,13 @@
         return;
       }
       if (red) {
+        // A landed killing blow already produced its directional hit spray.
+        // The death has one dedicated burst, rather than another hit plus a burst.
+        if (name === 'death') {
+          if (impactFx) { const pl = game.player, sk = pl && (pl.attack && pl.attack.skill || (pl.roar ? 'roar' : '')); impactFx.deathAsh(x, z, !!large, sk ? impactFx.skillTint(sk) : null); }
+          goreKill(x, Math.max(.7, y), z, performance.now() - lastDir.t < 400 ? lastDir.a : Math.random() * 6.28, !!large, null, !!d.boss);
+          return;
+        }
         const spray = Number.isFinite(d.spray) ? d.spray : Number.isFinite(d.face) ? d.face : Math.random() * Math.PI * 2, heavy = !!large;
         if (!d.player && name === 'blood') flash(x, y, z, heavy ? 1.2 : .8, new T.Color(heavy ? '#ffc9a0' : '#ffdcc0'), .06);
         // Directional arterial spray, droplets with gravity that splash where they land, gibs on heavy blows, a spurt that pulses on kills (goreHit).
@@ -1359,8 +1413,6 @@
         }
         // Blows struck in fury leave burning embers in the wound.
         if (d.rage && !d.player) for (let i = 0; i < scaleCount(heavy ? 18 : 10); i++) emit(x, y, z, 4, i % 2 ? [2.6, .6, .12] : [2.2, .25, .08], Math.sin(spray) * rnd(.6, 2.2) + rnd(-.5, .5), rnd(.4, 1.6), Math.cos(spray) * rnd(.6, 2.2) + rnd(-.5, .5), rnd(.4, .8), .045);
-        if (name === 'death' && impactFx) { const pl = game.player, sk = pl && (pl.attack && pl.attack.skill || (pl.roar ? 'roar' : '')); impactFx.deathAsh(x, z, !!large, sk ? impactFx.skillTint(sk) : null); }
-        if (name === 'death') goreKill(x, Math.max(.7, y), z, performance.now() - lastDir.t < 400 ? lastDir.a : Math.random() * 6.28, !!large, null, !!d.boss);
         return;
       }
       if (name === 'bossPhase') {
@@ -1453,6 +1505,7 @@
       }
       if (tells) tells.sync(dt);
       signatureStep(dt); fragmentsStep(dt); scarsStep(dt); cracksStep(dt); whirlStep(dt); roarSpiralStep(dt); streaksStep(dt); goreStep(dt);
+      goreDeaths = 0; goreHits = 0;
     }
     function clear() {
       for (const l of labels) releaseLabel(l); labels.length = 0;
@@ -1472,7 +1525,7 @@
       ghosts.length = 0; ghostSources.clear(); ghostModel = null;
     }
     function disposePools() {
-      for (const l of labelPool) { l.m.material.map.dispose(); l.m.material.dispose(); l.m.removeFromParent(); }
+      for (const l of labelPool) { l.ownedMap.dispose(); l.m.material.dispose(); l.m.removeFromParent(); }
       labelPool.length = freeLabels.length = 0;
       for (const f of flashPool) { f.m.material.dispose(); f.m.removeFromParent(); }
       flashPool.clear(); freeFlashes.length = 0;

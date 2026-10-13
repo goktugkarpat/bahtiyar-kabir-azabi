@@ -275,15 +275,35 @@
     });
     // The ordered loop in animate() already refreshed every pose node; only the nodes hanging off them (skinned parts, accessories,
     // anchors) still need their world matrix, so walk past the pose nodes instead of recomputing them a second time.
-    function refreshRest(node) {
-      var c = node.children, pw = node.matrixWorld;
+    // The retargeted hierarchy is fixed, while accessories may appear or disappear.
+    // Cache the frontier below posed joints, not the dynamic subtrees themselves.
+    // Child events invalidate only this list; all live subtree/matrix semantics stay native.
+    var restFrontier = [], restWatch = new Set(), restDirty = true, restStart = null;
+    function invalidateRest() { restDirty = true; }
+    function watchRest(node) {
+      if (restWatch.has(node)) return;
+      restWatch.add(node); node.addEventListener('childadded', invalidateRest); node.addEventListener('childremoved', invalidateRest);
+    }
+    function collectRest(node) {
+      watchRest(node);
+      var c = node.children;
       for (var i = 0; i < c.length; i++) {
         var ch = c[i];
-        if (poseNodes.has(ch)) refreshRest(ch);
-        // A skinned part with an untouched identity transform and no children has exactly its parent's world matrix: copy it.
-        else if (ch.isSkinnedMesh && ch.children.length === 0 && ch.matrixAutoUpdate && identityLocal(ch)) { ch.matrixWorld.copy(pw); ch.matrixWorldNeedsUpdate = false; }
+        if (poseNodes.has(ch)) collectRest(ch); else restFrontier.push(ch);
+      }
+    }
+    function refreshRest(node) {
+      if (restDirty || restStart !== node) { restFrontier.length = 0; collectRest(node); restStart = node; restDirty = false; }
+      for (var i = 0; i < restFrontier.length; i++) {
+        var ch = restFrontier[i];
+        // Check live local transforms and children: equipment/limb attachments can change either.
+        if (ch.isSkinnedMesh && ch.children.length === 0 && ch.matrixAutoUpdate && identityLocal(ch)) { ch.matrixWorld.copy(ch.parent.matrixWorld); ch.matrixWorldNeedsUpdate = false; }
         else ch.updateWorldMatrix(false, true);
       }
+    }
+    function disposeRest() {
+      restWatch.forEach(function (node) { node.removeEventListener('childadded', invalidateRest); node.removeEventListener('childremoved', invalidateRest); });
+      restWatch.clear(); restFrontier.length = 0;
     }
     function identityLocal(n) {
       var p = n.position, s = n.scale, q = n.quaternion;
@@ -1599,7 +1619,7 @@
     }
     prepareBladeProfiles();
     animate(0, {});
-    return { animate: animate, resolveGroundedWeapon: resolveGroundedWeapon, bones: armAliases, dispose: function () { disposed = true; } };
+    return { animate: animate, resolveGroundedWeapon: resolveGroundedWeapon, bones: armAliases, dispose: function () { disposed = true; disposeRest(); } };
   }
   // Whirlwind body yaw (radians to add to the root; u = 0..1 over the spin). Speed eases in over the first 12 %, cruises, brakes over u .50-.78 so the body is planted
   // for the last tick and its overhead slam (WHIRL_HIT / 1.3 = .76), and the angle ends on exactly `turns` full turns: the root lands on its resting heading with no jump.
@@ -1608,5 +1628,10 @@
     var t = [0]; for (var i = 1; i <= 96; i++) { var u = i / 96; t.push(t[i - 1] + smooth(u / .12) * (1 - smooth((u - .5) / .28))); } return t.map(function (v) { return v / t[96]; });
   })();
   function whirlAngle(u, turns) { var f = clamp(u, 0, 1) * 96, i = Math.min(95, Math.floor(f)); return (SPIN_TAB[i] + (SPIN_TAB[i + 1] - SPIN_TAB[i]) * (f - i)) * turns * TAU; }
+  // Decode and normalize every shipped pose under the HTML loading cover.
+  // The exact lazy helpers still own the data; play only reads their ready cache.
+  Object.keys(D.clips).forEach(function (name) {
+    var prepared = clip(name); if (!prepared.norm) prepared.norm = normalised(prepared);
+  });
   B.AuthoredMotion = { create: create, moves: MOVES, strides: STRIDE, strideMul: STRIDE_MUL, tune: TUNE_AM, whirlAngle: whirlAngle, late: LATE };
 })();

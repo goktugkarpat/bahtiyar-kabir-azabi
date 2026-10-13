@@ -311,6 +311,7 @@
     post.setOverlay(flash * .8, ovRage, lv);
   }
   let storyScenes = null;
+  let boneProjection = null;
   let ready = false, paused = true, frame = 0, last = 0, qaClock = 0, visualDt = 0;
   let resumeAudioOnVisible = null;
   let graphicsLost = false, graphicsRecovering = false, graphicsEpoch = 0;
@@ -961,6 +962,7 @@
     }
     if (resolution) resolution.textContent = KabirI18n.t('Seçilen görüntü boyutunu büyütür. 1.25× daha net, 1.50× en ayrıntılı görüntüdür; daha fazla ekran kartı gücü kullanır.');
     if (rate) rate.textContent = cfg.fps ? KabirI18n.t('En fazla ') + cfg.fps + KabirI18n.t(' kare/sn. Ekranının yenileme hızına uygun bir sınır seç. Daha düşük sınırlar işlemci yükünü ve fan sesini azaltabilir.') : KabirI18n.t('Ekranın her yenilemesinde çizer (G-Sync / FreeSync / ProMotion ile en düzgünü).');
+    if (rate && cfg.fps === 120) rate.textContent += KabirI18n.lang === 'en' ? ' On a 180 Hz display, Screen rate presents a more even rhythm; use a 120 Hz display mode for an even 120 FPS cap.' : ' 180 Hz ekranda Ekran hızı daha eşit ritim verir; eşit aralıklı 120 FPS için ekranı da 120 Hz kullan.';
   }
   function renderSettings() {
     const video = $('settings-video'), audio = $('settings-audio');
@@ -1935,6 +1937,7 @@
       gpu: { available: post.timingAvailable, enabled: post.timingEnabled, ready: post.timingReady,
         error: post.timingError, sampleIntervalMs: post.timingSampleIntervalMs, milliseconds: post.gpuSections },
       rendering: { ...renderer.info.render, multiDraw, worldSubmission, programs: renderer.info.programs.length,
+        boneProjection: boneProjection ? { ...boneProjection.stats } : null,
         memory: { ...renderer.info.memory }, lastFrame: { ...post.frameResources },
         uiBitmaps: B.uiBitmapOptions?.willReadFrequently ? 'software' : 'browser-default',
         shaderPreparation: B.Lighting.shaderPreparation },
@@ -1944,7 +1947,7 @@
   }
   // Gaps between presented frames (last ~600), so the counter can also show the longest frame: a few slow frames are
   // what the eye reads as stutter even when the FPS average looks fine.
-  const BUILD_TAG = 393, fpsGaps = new Float32Array(600);
+  const BUILD_TAG = 399, fpsGaps = new Float32Array(600);
   let fpsGapAt = 0, fpsGapLast = 0;
   function frameStats() {
     let longest = 0, slow = 0;
@@ -2055,8 +2058,13 @@
       if (!limbRoot && ts - limbLookup > 1000) { limbLookup = ts; scene.traverse(o => { if (!limbRoot && o.isGroup && o.name === 'limbs' && o.parent && o.parent.parent === scene) limbRoot = o; }); }
       if (limbRoot) assignDepthMaterials(limbRoot);
       game.beginRenderTraversal();
-      try { renderer.info.reset(); post.render(elapsed); }
-      finally { game.endRenderTraversal(); }
+      try {
+        if (boneProjection) boneProjection.beginRender();
+        renderer.info.reset(); post.render(elapsed);
+      } finally {
+        try { if (boneProjection) boneProjection.endRender(); }
+        finally { game.endRenderTraversal(); }
+      }
       const submissionEnd = measured ? performance.now() : 0;
       document.body.classList.toggle('in-combat', fighting && view === 'playing');
       drawWarnings();
@@ -2328,6 +2336,8 @@
       if (characterUI && characterUI.warm) { try { await characterUI.warm(); } catch (e) { console.warn(KabirI18n.t('[Kabir Azabı]'), e); } }   // I / T pages painted once under the cover
       warmStats.portrait = Math.round(performance.now() - portraitStart);
       warmStats.portraitPrograms = renderer.info.programs.length - portraitPrograms;
+      // Build projection plans under the cover after all limb/rim/equipment setup.
+      if (boneProjection) { boneProjection.prepare([game.player, ...game.enemies]); warmStats.bonePlans = boneProjection.stats.plans; }
       if (B.GraphicsReady) warmStats.gpuReady = await B.GraphicsReady.wait(renderer);
       warmStats.total = Math.round(performance.now() - t0); warmStats.count = renderer.info.programs.length;
       if (WARM_LOG) console.warn('[warm] done', JSON.stringify(warmStats));
@@ -2436,10 +2446,15 @@
     // The shadow pass clones ONE depth material per source material and then reuses it for skinned, instanced and plain casters alike,
     // so it switched programs on every change of caster type. Give each (material, caster type) pair its own depth material instead.
     safe(() => { if (B.Perf && B.Perf.optimize) B.Perf.optimize(world, scene); });   // ajan:perf: post-build static merge (?noopt disables)
+    if (B.BoneProjection) {
+      boneProjection = B.BoneProjection.create(scene, camera);
+      const disposeGame = game.dispose;
+      game.dispose = function (...args) { boneProjection.dispose(); return disposeGame.apply(this, args); };
+    }
     safe(() => assignDepthMaterials(scene));
     ready = true; applySettings();
     B.app = { scene, camera, renderer, world, game, post, rig, scaler, resetPerformance, settings: cfg, input, get view() { return view; }, begin, show, fx, applySettings, clearFX, warmShaders,
-      characterUI, openCharacter, controller, characterPreview, questUI, atlasUI, openAtlas, storyScenes,
+      characterUI, openCharacter, controller, characterPreview, questUI, atlasUI, openAtlas, storyScenes, boneProjection,
       get warming() { return !!warming; }, get warmStats() { return warmStats; },
       get performance() { return performanceReport(); }, frameStats,
       // Deterministic frame stepping for headless QA pages (virtual time barely runs requestAnimationFrame).

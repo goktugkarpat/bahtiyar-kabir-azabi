@@ -214,12 +214,26 @@
       const skill = selectedSkill(slot);
       return { slot, key, skill, id: skill ? skill.id : null, line: skill ? skill.line : null, tier: skill ? skill.tier : 0, name: skill ? skill.name : KabirI18n.t('Boş yuva'), cooldown: skill ? skillCooldowns[skill.line] || 0 : 0, maxCooldown: skill ? skill.cooldown : 0, cost: skill ? skill.cost : 0 };
     });
+    let profileSaveDepth = 0, profileSavePending = false, profileSaveElapsed = 0;
+    // A single swing can finish several foes. Keep every reward live immediately,
+    // but serialize/write their complete checkpoint only once before update returns.
     function saveProfileChoices() {
+      if (profileSaveDepth > 0 && game.state === 'playing' && checkpointSnapshot) {
+        profileSavePending = true; profileSaveElapsed = game.elapsed; game.hasSave = true; return true;
+      }
+      profileSavePending = false; return persistProfileChoices();
+    }
+    function flushProfileChoices() {
+      if (!profileSavePending) return false;
+      const elapsed = profileSaveElapsed; profileSavePending = false;
+      return persistProfileChoices(elapsed);
+    }
+    function persistProfileChoices(savedElapsed) {
       // Victory has no living checkpoint foes to duplicate. Ordinary runs retain the authoritative oath snapshot.
       if (game.state !== 'won') {
         if (!checkpointSnapshot || game.state === 'ready') return false;
         checkpointSnapshot = Object.assign({},checkpointSnapshot,{
-          dead:enemies.filter(e=>e.dead).map(e=>e.id), kills:game.kills, elapsed:game.elapsed,
+          dead:enemies.filter(e=>e.dead).map(e=>e.id), kills:game.kills, elapsed:savedElapsed === undefined ? game.elapsed : savedElapsed,
           progression:progression.snapshot(), quests:quests ? quests.snapshot() : null, ongoing:true
         });
         saveCheckpoint(); return true;
@@ -248,6 +262,13 @@
       const skill = id && state.learned.includes(id) ? SKILLS[id] || null : null;
       return skill && talents ? talents.effective(skill) : skill;
     }
+    // This tuple needs identities, not rolled combat values. Resolve only the
+    // authoritative catalog id; stats() still owns all numeric gear effects.
+    function equippedItemId(slot) {
+      const uid = progression.equipment[slot], entry = progression.inventory.find(item => item.uid === uid);
+      const definition = entry && BABA.Progression.catalog[entry.id];
+      return definition ? definition.id || null : null;
+    }
     function syncProgression(fill) {
       const stats = progression.stats();
       const wasMax = player.effectiveMaxHp || stats.maxHp, woundHp = player.hp * wasMax / 100;
@@ -257,7 +278,13 @@
       // Preserve the original effective wounds and growth: 100 is the health unit, not a loss of gear strength.
       const levelHeal = progression.powerLevel > appliedPowerLevel ? Math.max(0, stats.maxHp - wasMax) : 0;
       player.hp = fill ? 100 : Math.min(100, (woundHp + levelHeal) * 100 / stats.maxHp); appliedPowerLevel = progression.powerLevel;
-      if (hero.setEquipment) hero.setEquipment({ weaponType: stats.weaponType, weaponId: stats.weaponId, headId: progression.itemForSlot('head')?.id || null, chestId: progression.itemForSlot('chest')?.id || null, handsId: progression.itemForSlot('hands')?.id || null, bootsId: progression.itemForSlot('boots')?.id || null });
+      if (hero.setEquipment) {
+        const next = { weaponType: stats.weaponType, weaponId: stats.weaponId, headId: equippedItemId('head'), chestId: equippedItemId('chest'), handsId: equippedItemId('hands'), bootsId: equippedItemId('boots') };
+        // XP and wounds still update on every reward. Repainting all hidden gear variants
+        // is only necessary when the live equipment changed (or a full pose reset asks for it).
+        const worn = hero.equipment;
+        if (fill || !worn || worn.weaponType !== next.weaponType || worn.weaponId !== next.weaponId || worn.headId !== next.headId || worn.chestId !== next.chestId || worn.handsId !== next.handsId || worn.bootsId !== next.bootsId) hero.setEquipment(next);
+      }
       emit('progression', { state: progression, stats });
     }
     function skillAim(hasAim) {
@@ -849,7 +876,7 @@
 
     function start() {
       if (disposed || game.state === 'playing') return;
-      resetToSnapshot(checkpointSnapshot);
+      flushProfileChoices(); resetToSnapshot(checkpointSnapshot);
       if (checkpointSnapshot.completed) {
         blockedPropHold = null;
         endAnnounced = true; game.state = 'won';
@@ -861,18 +888,20 @@
     }
     function restart() {
       if (disposed) return;
+      profileSavePending = false;
       removeSave(); progression.reset(); checkpointSnapshot = freshSnapshot(progression.snapshot()); resetToSnapshot(checkpointSnapshot); game.state = 'playing'; wakeAge = 0;
       emit('toast', { text: KabirI18n.t('Yeni yürüyüş. Geçit seni bekliyor.') });
     }
     function respawn() {
       if (disposed) return;
-      saveProfileChoices(); resetToSnapshot(checkpointSnapshot); game.state = 'playing'; wakeAge = 0;
+      profileSavePending = false; persistProfileChoices(); resetToSnapshot(checkpointSnapshot); game.state = 'playing'; wakeAge = 0;
       emit('toast', { text: KabirI18n.t('Yaraların kapandı. Eşyaların, seviyen ve yeteneklerin korundu.') });
     }
     // Behind the title the temple is shown from its entrance (the world, fog and lights follow the hero), even with a
     // saved oath stone; the save itself is only placed on the map by start().
     function toTitle() {
       if (disposed) return;
+      flushProfileChoices();
       resetToSnapshot(Object.assign(freshSnapshot(checkpointSnapshot.progression), { completed: !!checkpointSnapshot.completed })); game.checkpointIndex = checkpointSnapshot.index; game.state = 'ready';
     }
     function atSafeCheckpoint() {
@@ -886,6 +915,7 @@
         index: 1, x: checkpoint.x, z: checkpoint.z,
         dead: enemies.filter(e => e.dead).map(e => e.id), kills: game.kills, elapsed: game.elapsed, progression: progression.snapshot(), quests: quests ? quests.snapshot() : null
       };
+      profileSavePending = false;   // the new oath snapshot includes all current rewards
       game.checkpointIndex = 1;
       player.hp = player.maxHp; player.stamina = player.maxStamina; player.flasks = player.maxFlasks;
       player.specialCd = player.rageCd = 0;
@@ -921,8 +951,12 @@
       let sx = 0, sz = 0;
       for (const other of enemies) {
         if (other === enemy || other.dead || !other.active || enemyUnderground(other)) continue;
-        const dx = enemy.x - other.x, dz = enemy.z - other.z, d = Math.hypot(dx, dz);
+        const dx = enemy.x - other.x, dz = enemy.z - other.z;
         const minD = enemy.radius + other.radius + .15;
+        // Most active pairs are outside contact range. Reject those without a square root;
+        // keep the original distance and accumulated push for every actual contact.
+        if (Math.abs(dx) >= minD || Math.abs(dz) >= minD) continue;
+        const d = Math.hypot(dx, dz);
         if (d > .01 && d < minD) { sx += dx / d * (minD - d) * 2.8; sz += dz / d * (minD - d) * 2.8; }
       }
       moveBody(enemy, sx * dt, sz * dt, enemy.radius);
@@ -1824,6 +1858,7 @@
     }
     function win() {
       if (endAnnounced) return;
+      profileSavePending = false;   // the atomic transition below supersedes the old chapter checkpoint
       cancelPlayerCharge();
       endAnnounced = true; game.state = 'won'; clearHazards(); player.attack = null; order = null; showTargetRing(null); clearMoveMark();
       buffer = {}; pendingDodge = null; player.pendingAction = null; player.lack = null; game.attackTarget = null;
@@ -2609,13 +2644,14 @@
     }
     // The move an enemy is performing: its current beat, time into it, contact and end (s). A beat hands over
     // to the next one part-way through its follow-through so chained blows flow instead of snapping.
-    function enemyBeat(enemy) {
+    function enemyBeat(enemy, out) {
       const action = enemy.action; if (!action) return null;
       if (!action.beats.length) {
         const v = action.visualIntent;
-        return v ? { index: 0, t: action.age - v.start, contact: v.contact - v.start,
-          end: action.duration - v.start, pose: v.pose,
-          visualRelease: false, visualIntent: true } : null;
+        if (!v) return null;
+        out.index = 0; out.t = action.age - v.start; out.contact = v.contact - v.start;
+        out.end = action.duration - v.start; out.pose = v.pose;
+        out.visualRelease = false; out.visualIntent = true; return out;
       }
       const beats = action.beats; let i = 0;
       while (i < beats.length - 1) {
@@ -2624,7 +2660,9 @@
       }
       const b = beats[i], n = beats[i + 1];
       const end = n ? b.strike + clamp((n.strike - b.strike) * .3, .08, .3) : action.duration;
-      return { index: i, t: action.age - b.start, contact: (Number.isFinite(b.release) ? b.release : b.strike) - b.start, end: end - b.start, pose: b.pose || action.pose || '', visualRelease: Number.isFinite(b.release) && b.release < b.strike };
+      out.index = i; out.t = action.age - b.start; out.contact = (Number.isFinite(b.release) ? b.release : b.strike) - b.start;
+      out.end = end - b.start; out.pose = b.pose || action.pose || '';
+      out.visualRelease = Number.isFinite(b.release) && b.release < b.strike; out.visualIntent = false; return out;
     }
     // Both actor types reach the authored contact pose on the frame that deals
     // damage. The visual wind-up is never allowed to lag a live hazard.
@@ -2746,7 +2784,7 @@
           const leap = action && action.movement && action.movement.leap
             ? clamp((action.age - action.movement.start) / action.movement.duration, 0, 1) : 0;
           enemy.model.root.position.y = launchLift + Math.sin(leap * Math.PI) * 1.15;
-          const beat = enemyBeat(enemy);
+          const beat = enemyBeat(enemy, enemy._beatState || (enemy._beatState = {}));
           const es = em;   // the enemy's reused animation state; same fields as the old per-callback spread
           es.time = simTime + enemy.index * .31;
           es.beat = beat ? beat.index : 0; es.beatTime = beat ? beat.t : -1; es.beatContact = beat ? beat.contact : 0; es.beatEnd = beat ? beat.end : 0; es.beatVisualRelease = !!(beat && beat.visualRelease); es.beatVisualIntent = !!(beat && beat.visualIntent);
@@ -2819,6 +2857,12 @@
       if (!active) victims.length = 0;
     }
     function update(dt, input) {
+      if (disposed || !Number.isFinite(dt) || dt <= 0) return;
+      profileSaveDepth++;
+      try { return updateFrame(dt, input); }
+      finally { if (--profileSaveDepth === 0) flushProfileChoices(); }
+    }
+    function updateFrame(dt, input) {
       if (disposed) return;
       if (!Number.isFinite(dt) || dt <= 0) return;
       dt = Math.min(dt, .1); input = input || {}; navigationBudget = 2;
@@ -2862,7 +2906,7 @@
       game.hitStop = freeze;
     }
     function dispose() {
-      if (disposed) return; disposed = true;
+      if (disposed) return; flushProfileChoices(); disposed = true;
       if (talents) talents.dispose();
       dazeFX.dispose();
       cancelPlayerCharge();

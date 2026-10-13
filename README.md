@@ -153,10 +153,30 @@ Her bölümde onlarca düşman vardır.
 Esc ile **Mola** açılır: devam, ayarlar, karakter, yetenekler, görev günlüğü, kontroller, baştan başla, ana menü. Mola, karakter, yetenek ve ayar ekranları ortak gotik taş, metal ve kumaş görünümü kullanır; sözlerin bulunduğu flamalar demon kabartmalarıyla çevrilidir.
 
 - **Oynanış:** zorluk **Kolay / Normal / Zor**. Oyun her açılışta Normal başlar.
-- **Görüntü:** grafik kalitesi **Düşük / Orta / Yüksek / Azami** (Mac'te başlangıç Orta, güçlü ekran kartlı bilgisayarda Yüksek; Azami yalnızca elle seçilir: keskin gölgeler, ışık huzmeleri, ıslak zemin yansımaları, hafif hareket bulanıklığı); görüntü boyutu **Otomatik / Tam boyut**; kare hızı **60, 90, 120 FPS veya ekran hızı** (Mac'te başlangıç 60); arayüz boyutu **Küçük / Normal**; parlaklık; kamera sarsıntısı. Kenar yumuşatma her zaman açıktır.
+- **Görüntü:** grafik kalitesi **Düşük / Orta / Yüksek** (Mac’te başlangıç Orta, güçlü ekran kartlı bilgisayarda Yüksek); görüntü boyutu **Otomatik / Tam boyut**; kare hızı **60, 90, 120 FPS veya ekran hızı** (Mac’te başlangıç 60); arayüz boyutu **Küçük / Normal / Büyük**; parlaklık; kamera sarsıntısı. Kenar yumuşatma her zaman açıktır.
 - **Ses:** ana ses, müzik, efekt ve konuşma sesi kaydırıcıları; **altyazılar** açma/kapama.
 - **Kontroller:** tuş atamaları ve kol ayarları.
 - **Varsayılanlar** düğmesi ayarları sıfırlar.
+
+### Yoğun savaş ve zemin kararlılığı
+
+Üçüncü–beşinci bölümlerde karakter pozları aynı matrisleri üreten bir önbellekle hazırlanır; çizilmeyen saf kemik dalları yalnız ana çizim sırasında atlanır ve hiyerarşi hemen geri yüklenir. Kopan uzuv, yeni silah ve yardımcı parça ekleri korunur. Yetenek parıltısının aynı iskeleti paylaşan parçaları yüklemede birleştirilir; renk, şiddet, süre ve kaliteye bağlı efekt bütçesi değişmez. Gizlenen/ayrı hareket eden parça eski çizim yoluna döner. Düşman ayırma, uzak çiftlerde gereksiz mesafe hesabını atlar; savaş sayıları değişmez.
+
+Aynı oyun güncellemesindeki ölüm ve eşya toplama ödülleri hemen uygulanır; son kayıt tek yazıda ve güncelleme dönmeden tamamlanır. Menü, yemin taşı ve bölüm geçişleri anında kaydolur. Ekipman kimlikleri değişmediyse kahramanın tüm görünüm parçaları yeniden dolaşılmaz; can, hasar, savunma ve seviye iyileşmesi aynı şekilde güncellenir.
+
+Kalabalık ölüm anında ek kan ayrıntıları paylaşılır: ilk normal ölüm ve ilk iki normal vuruş tam, sonraki ölümlerde ikincil damla ve parçalar daha azdır. Aynı ölümde tekrarlanan vuruş püskürtmesi kaldırılmıştır. Bossun ölüm patlaması, her vuruşun sesi, beden parlaması, hasar yazısı ve ödülleri korunur. Uzuvların üç boyutlu kesimi aynı karede ilk düşmanda yapılır; sonraki düşmanlar normal bütün bedenle ölür. Kesim seçimlerinin düşmana ait rastgele dizisi ve savaşın vuruş duraklaması değişmez.
+
+Aynı canlı hasar yazıları sabit 18 doku havuzundan tek bir doku boyamasını paylaşır; başka canlı yazının kullandığı doku yeniden boyanmaz. Sayı, renk, boyut ve konum değişmez. Güç seviyesi, donanım, yetenekler veya HP/hasar ödülü değişmediyse karakter değerleri tekrar hesaplanmaz; XP ve yetenek puanı eğrileri aynıdır.
+
+İlk toplu ölümde oluşan düşmana özel uzuv indeksleri yükleme sırasında hazırlanıp GPU’ya gönderilir. Canlı gövde ve paylaşılan vertex verileri değişmez; tekli ölümlerde kesim görüntüsü korunur; kalabalıkta ayrıntı bütçesi uygulanır. III–V bölümlerde bu indeksler yaklaşık 10–12 MB ek veri kullanır. Kesilen kemik dalının matrisleri tek taramada yenilenir; eklem, kopan parça ve silah konumları korunur.
+
+Kan damlası ve küçük parça kayıtları yüklemede hazırlanıp yeniden kullanılır; oda duvar sınırları değişmedikçe yeni kayıt oluşturulmaz. Animasyon kliplerinin ilk çözümü ve normalizasyonu da yükleme altında yapılır (yaklaşık 2,65 MB). Ekipman görünümündeki kimlik sorguları, her ödülde eşyanın sayısal değerlerini klonlamaz. Kesilmiş bedenin birleşik parıltısı, düşmana özel önceden hazırlanmış indeksle güncellenir; kopan uzuv yeniden görünmez ve başka düşmanın parıltısını değiştirmez.
+
+Döndürülmüş döşeme taşlarının köşeleri hücre içinde tutulur; dördüncü bölümde kapı döşemeleri ve sıcak metal şeritleri eş düzlemli yüzeylerden ayrılır. Son bölümde ışıklı damar ve rünler taşların içinde kalmaz. Collider, rota, karşılaşma ve geometri sayısı korunur.
+
+180 Hz ekranda 120 FPS sınırı 5,56 / 11,11 ms aralıklarla çizilebilir; bu ritim GPU performansından ayrıdır. Ekran hızı seçeneği her yenilemede çizer. Sabit 180 Hz yenilemede eşit aralıklı 120 FPS için ekranın 120 Hz modu kullanılabilir; değişken yenileme (VRR) destekleyen ekranlarda ritim ekran ve tarayıcı desteğine de bağlıdır. Ölçüm için ayrı ve sessiz `?sessiz&warm&gpums` oturumu kullanılabilir; hazırlık, CPU ve GPU süreleri `BABA.app.performance` raporunda ayrıdır. Bu testler her cihazda sabit 180 FPS garantisi değildir.
+
+13 Ekim 2026 kontrolü: RTX 5080 üzerinde Edge, 2560 × 1440 ve Yüksek kaliteyle III–V bölümlerin 46 odası, uzun kalabalık savaşlar, ekran hızı ve 120 FPS sınırı sessizce sınandı. Her bölümde aynı saldırıyla sekiz gerçek ölümde yeni geometri/efekt programı hazırlanmadı ve kayıt tek yazıda tamamlandı. Çalışan savaş senaryoları ve kaynak/çevrimdışı dosya kontrolleri geçti. Kısa ilk ölüm testlerinde yaklaşık 11–17 ms; uzun testlerde seyrek 22–33 ms kare aralıkları hâlâ görüldü. Bu sürüm tüm mikro takılmaların ortadan kalktığı veya her savaşta sabit 180 FPS sağlandığı iddiasını taşımaz.
 
 ## Dosyalar
 

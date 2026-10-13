@@ -324,6 +324,10 @@
     const state = { level: 1, xp: 0, points: 0, learned: [], loadout: [null, null, null, null], inventory: [],
       equipment: {}, groundLoot: [], revision: 0, chapter: chapterId(options.chapter), completed: [] };
     let lootSeed = 0, lootDry = 0, lootSeen = [], lootIdentities = new Set(), lootSlots = [], signatureClaims = Object.create(null), rewards = Object.create(null), serial = 0, statCache = null, statRevision = -1;
+    // Revisions include loot, XP and slot assignments that need no new combat
+    // totals. Reuse one input snapshot, keeping unchanged-revision calls cheap.
+    let statPower = -1, statHpBoon = null, statDamageBoon = null, statTalentEffects = null;
+    const statEntries = [], statGearUids = [], statGearIds = [], statGearRolls = [], statLearned = [];
     // ajan:quests — permanent quest boons (skill tokens, flask capacity, small vitality / damage) travel with the profile.
     let boons = { points: 0, flasks: 0, hp: 0, damage: 0, claimed: [] }, pointCredit = 0;
     const pointCapacity = () => B.TalentTree ? B.TalentTree.legalCapacity : 17;
@@ -349,7 +353,7 @@
       if (gained.items.length) changed('loot', { items: gained.items, boss: false, chapter: state.chapter, quest: true });
       return gained;
     }
-    function changed(kind, data) { state.revision++; statCache = null; emit(kind || 'progression', data || { level: state.level, points: state.points }); }
+    function changed(kind, data) { state.revision++; emit(kind || 'progression', data || { level: state.level, points: state.points }); }
     function recalculate() {
       state.level = 1;
       for (let i = 1; i < MAX_LEVEL; i++) if (state.xp >= THRESHOLDS[i]) state.level = i + 1;
@@ -493,10 +497,20 @@
       state.equipment[slot] = null; changed('progression',{unequipped:slot}); return result(true);
     }
     function stats() {
-      if (statCache && statRevision === state.revision) return statCache;
-      let hp = 100 + (powerLevel() - 1) * 6, damage = .72 + Math.min(6, powerLevel() - 1) * (.53 / 6) + Math.max(0, powerLevel() - 7) * .05, defense = 0, weaponId = null;
-      for (const slot of slots) {
-        const entry = state.inventory.find(i => i.uid === state.equipment[slot]);
+      const effectsFunction = B.TalentTree ? B.TalentTree.effects : null;
+      if (statCache && statRevision === state.revision && statTalentEffects === effectsFunction) return statCache;
+      const power = powerLevel();
+      let same = !!statCache && power === statPower && boons.hp === statHpBoon && boons.damage === statDamageBoon && effectsFunction === statTalentEffects && state.learned.length === statLearned.length;
+      for (let i = 0; same && i < state.learned.length; i++) if (state.learned[i] !== statLearned[i]) same = false;
+      for (let i = 0; i < slots.length; i++) {
+        const uid = state.equipment[slots[i]], entry = state.inventory.find(item => item.uid === uid);
+        statEntries[i] = entry;
+        if (uid !== statGearUids[i] || (entry ? entry.id : null) !== statGearIds[i] || (entry ? entry.roll : null) !== statGearRolls[i]) same = false;
+      }
+      if (same) { statRevision = state.revision; return statCache; }
+      let hp = 100 + (power - 1) * 6, damage = .72 + Math.min(6, power - 1) * (.53 / 6) + Math.max(0, power - 7) * .05, defense = 0, weaponId = null;
+      for (let i = 0; i < slots.length; i++) {
+        const slot = slots[i], entry = statEntries[i];
         if (!entry) continue;
         const def = resolveItem(entry); hp += def.hp; defense += def.defense;
         if (slot === 'weapon') { damage *= 1 + def.damage; weaponId = def.id; }
@@ -505,6 +519,13 @@
       const tal = B.TalentTree ? B.TalentTree.effects(state.learned) : null;
       if (tal) hp = Math.round(hp * tal.hpMul + tal.hpAdd);
       hp = Math.max(60, hp + boons.hp); damage *= 1 + boons.damage;   // ajan:quests boons sit on top of the gear caps
+      statPower = power; statHpBoon = boons.hp; statDamageBoon = boons.damage; statTalentEffects = effectsFunction;
+      statLearned.length = state.learned.length;
+      for (let i = 0; i < state.learned.length; i++) statLearned[i] = state.learned[i];
+      for (let i = 0; i < slots.length; i++) {
+        const entry = statEntries[i]; statGearUids[i] = state.equipment[slots[i]];
+        statGearIds[i] = entry ? entry.id : null; statGearRolls[i] = entry ? entry.roll : null;
+      }
       statRevision = state.revision;
       statCache = Object.freeze({ maxHp: hp, maxHealth: hp, damage, damageMultiplier: damage, defense, defenseReduction: defense,
         weaponId, weaponType: weaponId ? catalog[weaponId].type : 'unarmed', criticalChance: .08 + (tal ? tal.crit : 0), criticalMultiplier: 1.5 });
