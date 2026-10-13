@@ -152,11 +152,27 @@
     }
     // Floor life: thin blood veins creep through the stone joints (molten seams, baked), carved rune inlays catch gold or void light.
     function floorLife(nVein, nRune, runeCol) {
-      var RV = K.rng(i, 57);
+      var RV = K.rng(i, 57), veinPieces = [];
+      // Colour each intersecting vein footprint once at build time. Adjacent
+      // strips retain their painted colour but never share a depth plane.
+      function crosses(p, x, z, w, d, yaw) {
+        var ca = Math.cos(yaw), sa = Math.sin(yaw), cb = Math.cos(p.yaw), sb = Math.sin(p.yaw), dx = x - p.x, dz = z - p.z;
+        function separated(ax, az) { return Math.abs(dx * ax + dz * az) >=
+          (Math.abs(ca * ax - sa * az) * w + Math.abs(sa * ax + ca * az) * d +
+           Math.abs(cb * ax - sb * az) * p.w + Math.abs(sb * ax + cb * az) * p.d) * .5 + .0001; }
+        return !separated(ca, -sa) && !separated(sa, ca) && !separated(cb, -sb) && !separated(sb, cb);
+      }
+      function veinPart(x, z, w, d, yaw, tint) {
+        var levels = [], layer = 0;
+        for (var p = 0; p < veinPieces.length; p++) { var part = veinPieces[p]; if (crosses(part, x, z, w, d, yaw)) levels[part.layer] = true; }
+        while (levels[layer]) layer++;
+        veinPieces.push({ x: x, z: z, w: w, d: d, yaw: yaw, layer: layer });
+        K.put(i, 'box', 'hot', X(x), .064 + layer * .002, Z(z), w, .012, d, yaw, 0, 0, tint, 0);
+      }
       for (var k = 0; k < nVein; k++) { var x = (RV() - .5) * (r.w - 6), z = (RV() - .5) * (r.d - 6), a = RV() * PI * 2;
         for (var sgm = 0; sgm < 7; sgm++) { var L = .8 + RV() * 1.4, nx = x + Math.cos(a) * L, nz = z + Math.sin(a) * L; if (!inRoom(nx, nz, .8)) break;
-          K.put(i, 'box', 'hot', X((x + nx) / 2), .064, Z((z + nz) / 2), L + .05, .012, .045 + RV() * .04, -a, 0, 0, [.3 + RV() * .18, .022, .014], 0);
-          if (RV() < .35) { var b = a + (RV() < .5 ? 1 : -1) * (.6 + RV()), bl = .5 + RV() * .7; K.put(i, 'box', 'hot', X(nx + Math.cos(b) * bl / 2), .064, Z(nz + Math.sin(b) * bl / 2), bl, .012, .03, -b, 0, 0, [.26, .02, .012], 0); }
+          veinPart((x + nx) / 2, (z + nz) / 2, L + .05, .045 + RV() * .04, -a, [.3 + RV() * .18, .022, .014]);
+          if (RV() < .35) { var b = a + (RV() < .5 ? 1 : -1) * (.6 + RV()), bl = .5 + RV() * .7; veinPart(nx + Math.cos(b) * bl / 2, nz + Math.sin(b) * bl / 2, bl, .03, -b, [.26, .02, .012]); }
           x = nx; z = nz; a += (RV() - .5) * 1.1; } }
       for (var k = 0; k < nRune; k++) { var x = (RV() - .5) * (r.w - 8), z = (RV() - .5) * (r.d - 8); if (!inRoom(x, z, 2)) continue; var rr = .9 + RV() * .8;
         K.put(i, 'inlay', 'hot', X(x), .064, Z(z), rr * 2, 1, rr * 2, 0, 0, 0, runeCol, 0); K.put(i, 'inlay', 'hot', X(x), .064, Z(z), rr * 1.4, 1, rr * 1.4, 0, 0, 0, [runeCol[0] * .7, runeCol[1] * .7, runeCol[2] * .7], 0);
@@ -257,7 +273,7 @@
       // gallows frames
       [-1, 1].forEach(function (s) { BX('box', 'wood', s * 10, 3, 5, .45, 6, .45, 0, [.5, .4, .38], .5); BX('box', 'wood', s * 10 - s * 1.6, 5.9, 5, 3.6, .4, .4, 0, [.5, .4, .38], .3); K.chain(i, X(s * 10 - s * 3), 5.7, Z(5), 2.4, RUST); solidL(s * 10, 5, .7, .7); });
       // blood channels cut into the floor leading to the block
-      for (var k = 0; k < 3; k++) { var x0 = (k - 1) * 4.5; HOT(x0 * .5, .02, -2.4 + Math.abs(k - 1) * .6, .22, .03, 9, [.75, .05, .03], (k - 1) * .35); }
+      for (var k = 0; k < 3; k++) { var x0 = (k - 1) * 4.5; HOT(x0 * .5, .056, -2.4 + Math.abs(k - 1) * .6, .22, .012, 9, [.75, .05, .03], (k - 1) * .35); }
       K.dec(i, 5, X(0), Z(-2), 11, 11, .4, [.5, .05, .04], .25, 'glow');
       pyre(-7, -6, 1.1, 30); pyre(7, -6, 1.1, 30); obelisk(-14, 2, 5, .3); obelisk(14, -2, 5, -.3);
       decals({ cracks: 6, blood: 7, soot: 4, bones: 3 }); debris(8, 4, 16); embers(14, -12, 12, -10, 9, 5, 1);
@@ -320,14 +336,14 @@
       var PAGES = [[-12.5, -5.4, .95], [-8, -8.6, .45], [8, -8.6, -.45], [12.5, -5.4, -.95], [-13.4, 3, 1.35]];
       for (var k = 0; k < 5; k++) { var x = PAGES[k][0], z = PAGES[k][1], rot = PAGES[k][2];
         BX('box', 'stone', x, 2.6, z, 3.4, 5.2, .5, rot, [.72, .68, .64], .5); BX('box', 'stone', x, 5.35, z, 3.6, .3, .7, rot, PALE, .2); solidL(x, z, 2.6, 1.8);
-        for (var l = 0; l < 6; l++) HOT(x, 1.2 + l * .62, z + .27, 2.2 - (l % 3) * .4, .05, .02, [1.4, .16, .08], rot); }
+        for (var l = 0; l < 6; l++) HOT(x + Math.sin(rot) * .27, 1.2 + l * .62, z + Math.cos(rot) * .27, 2.2 - (l % 3) * .4, .05, .02, [1.4, .16, .08], rot); }
       SP(S.glow, -10, 3, -7, 6, 3.4, [.4, .04, .02], .5, 1, 1); SP(S.glow, 10, 3, -7, 6, 3.4, [.4, .04, .02], .5, 1, 1);
       [[-6, 0], [6, 0], [0, 5]].forEach(function (p) { BX('box', 'wood', p[0], .55, p[1], .3, 1.1, .3, 0, [.45, .38, .36], .4); BX('box', 'stone', p[0], 1.15, p[1], 1.0, .12, .7, .3, BONE, .2, -.3, 0); candleCluster(p[0] + .7, p[1] + .5, 3); solidL(p[0], p[1], .6, .6); });
       // the Ledger itself hovers over the platform, open, chained to four anchors: its pages burn with names
       var by = 4.4, bz = .5;
       BX('box', 'wood', -2.1, by, bz, 4.0, .35, 5.4, 0, [.22, .1, .09], .3, 0, .16); BX('box', 'wood', 2.1, by, bz, 4.0, .35, 5.4, 0, [.22, .1, .09], .3, 0, -.16);
       BX('box', 'stone', -2.0, by + .3, bz, 3.7, .18, 5.0, 0, [.9, .84, .74], .2, 0, .16); BX('box', 'stone', 2.0, by + .3, bz, 3.7, .18, 5.0, 0, [.9, .84, .74], .2, 0, -.16);
-      for (var l = 0; l < 9; l++) { HOT(-2.0, by + .55 - .02 * l, bz - 2 + l * .5, 2.6 - (l % 3) * .5, .02, .06, [1.3, .1, .05], 0); HOT(2.0, by + .55 - .02 * l, bz - 2 + l * .5, 2.4 - (l % 2) * .6, .02, .06, [1.3, .1, .05], 0); }
+      for (var l = 0; l < 9; l++) { BX('box', 'hot', -2.0 - .105 * Math.sin(.16), by + .3 + .105 * Math.cos(.16), bz - 2 + l * .5, 2.6 - (l % 3) * .5, .02, .06, 0, [1.3, .1, .05], 0, 0, .16); BX('box', 'hot', 2.0 + .105 * Math.sin(.16), by + .3 + .105 * Math.cos(.16), bz - 2 + l * .5, 2.4 - (l % 2) * .6, .02, .06, 0, [1.3, .1, .05], 0, 0, -.16); }
       SP(S.glow, 0, by + .8, bz, 5, 3, [.6, .06, .03], .6, .6, 1); for (var q = 0; q < 16; q++) K.spr(i, S.ember, X((R() - .5) * 7), by + .6, Z(bz + (R() - .5) * 5), .05, .05, [2.4, .3, .15], 1, R(), .2, 4);
       [[-4.5, -6.5], [4.5, -6.5], [-4.5, .5], [4.5, .5]].forEach(function (q) { BX('cyl', 'iron', q[0] * 2.2, .25, q[1] + (q[1] > 0 ? 3 : -2), 1, .5, 1, 0, IRONT, .4); bigChain(K, i, X(q[0] * 2.2), .4, Z(q[1] + (q[1] > 0 ? 3 : -2)), X(q[0] * .85), by - .1, Z(bz + q[1] * .55), .9, [.46, .4, .38], .5); });
       pyre(-12, 4, 1, 26); pyre(12, 4, 1, 26);
@@ -384,7 +400,13 @@
       // the pulpit's dressing: the open Black Ledger on a lectern, tall candles on every step, braziers and hanging verdict banners
       BX('box', 'stone', 0, 2.25, pz + .9, 1.2, 1.3, .8, 0, PALE, .4); BX('box', 'wood', 0, 2.98, pz + .9, 1.9, .12, 1.2, 0, [.16, .1, .1], .2, -.32, 0);
       BX('box', 'stone', -.48, 3.08, pz + .92, .82, .05, 1.0, 0, BONE, .1, -.32, .05); BX('box', 'stone', .48, 3.08, pz + .92, .82, .05, 1.0, 0, BONE, .1, -.32, -.05);
-      for (var l = 0; l < 5; l++) { HOT(-.48, 3.13, pz + .62 + l * .13, .55 - (l % 2) * .15, .01, .02, [1.2, .1, .05], 0); HOT(.48, 3.13, pz + .62 + l * .13, .5 - (l % 3) * .1, .01, .02, [1.2, .1, .05], 0); }
+      for (var l = 0; l < 5; l++) { var pageZ = -.3 + l * .13;
+        [-1, 1].forEach(function (side) { var rz = -side * .05, normalLift = .038;
+          BX('box', 'hot', side * .48 - Math.sin(rz) * normalLift,
+            3.08 + Math.cos(-.32) * Math.cos(rz) * normalLift - Math.sin(-.32) * pageZ,
+            pz + .92 + Math.sin(-.32) * Math.cos(rz) * normalLift + Math.cos(-.32) * pageZ,
+            side < 0 ? .55 - (l % 2) * .15 : .5 - (l % 3) * .1, .01, .02, 0, [1.2, .1, .05], 0, -.32, rz);
+        }); }
       SP(S.glow, 0, 3.3, pz + .9, 1.4, 1.0, [.6, .06, .03], .6, 1, 1);
       for (var k = 0; k < 3; k++) { candleCluster(-4.4 + k * .6, pz + 1.6 - k * .4, 3); candleCluster(4.4 - k * .6, pz + 1.6 - k * .4, 3); }
       pyre(-7, pz + 1.2, 1.2, 30); pyre(7, pz + 1.2, 1.2, 30);

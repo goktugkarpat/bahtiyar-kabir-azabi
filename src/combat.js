@@ -719,6 +719,14 @@
     });
     game.totalKills = enemies.filter(e => !e.reserve).length;
     const signature = enemies.map(e => e.id + '@' + e.spawnX + ',' + e.spawnZ + ':' + e.type).join('|');
+    // One court witness was authored inside the platform monument. Keep the authored
+    // save identity above unchanged; only its live/home point moves to adjacent safe stone.
+    if (chapter === 5) for (const enemy of enemies) {
+      if (enemy.id === 'finale-4:6' && enemy.type === 'voidwitness' && enemy.spawnX === -3 && enemy.spawnZ === -102.5 && (!world.isWalkable || world.isWalkable(-3, -101.3, enemy.radius))) {
+        enemy.x = enemy.spawnX = -3; enemy.z = enemy.spawnZ = -101.3;
+        enemy.model.root.position.set(enemy.x, enemy.model.root.position.y, enemy.z);
+      }
+    }
 
     // Paths stay open. Only the boss entrance seals after the hero enters the arena.
     encounterDefs.filter(enc => enc.enemies.some(e => e.boss)).forEach(enc => {
@@ -1179,14 +1187,18 @@
       const crowd = enemies.filter(o => o !== e && o.active && !o.dead && !o.boss && distance(o, player) < 4.2).length;
       if (!crowd) return player;
       const a = angleTo(player, e) + (e.index % 2 ? 1 : -1) * Math.min(1.2, .55 * crowd);
-      return { x: player.x + Math.sin(a) * 2.2, z: player.z + Math.cos(a) * 2.2 };
+      const point = { x: player.x + Math.sin(a) * 2.2, z: player.z + Math.cos(a) * 2.2 };
+      // The court's narrow/optional platforms can put a pack offset over the void.
+      // Use the existing direct approach rather than repeatedly pathing to an impossible point.
+      return chapter === 5 && world.isWalkable && !world.isWalkable(point.x, point.z, e.radius) ? player : point;
     }
     // Bodyguard: a guard stands between its caster and the hero.
     function guardPost(e) {
       const w = enemies.find(o => (o.stats.ranged || o.type === 'cultist' || o.type === 'carrier') && o.active && !o.dead && o.encounter === e.encounter && distance(o, e) < 10);
       if (!w || distance(player, w) < 3) return null;
       const a = angleTo(w, player), dd = Math.max(1.5, distance(w, player) - 2.4), s = (e.index % 2 ? 1.1 : -1.1);
-      return { x: w.x + Math.sin(a) * dd + Math.cos(a) * s, z: w.z + Math.cos(a) * dd - Math.sin(a) * s };
+      const point = { x: w.x + Math.sin(a) * dd + Math.cos(a) * s, z: w.z + Math.cos(a) * dd - Math.sin(a) * s };
+      return chapter === 5 && world.isWalkable && !world.isWalkable(point.x, point.z, e.radius) ? null : point;
     }
 
     function prisonerAttack(e, d) {

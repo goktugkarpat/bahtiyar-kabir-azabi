@@ -54,7 +54,7 @@
           vec4 rp=vec4(transformed,1.);vec3 rn=objectNormal;
           ruinP=(modelMatrix*rp).xyz;ruinN=normalize(mat3(modelMatrix)*rn);`);
         sh.fragmentShader = 'varying vec3 ruinP;varying vec3 ruinN;uniform float ruinTile;uniform vec3 ruinHero;\n' + sh.fragmentShader
-          .replace('#include <clipping_planes_fragment>', '#include <clipping_planes_fragment>\n if(ruinP.y>1.7){vec3 re=vec3(ruinHero.x,1.2,ruinHero.z),rd=cameraPosition-re;float rt=clamp(dot(ruinP-re,rd)/dot(rd,rd),0.,1.);if(rt>.03&&rt<.97&&distance(ruinP,re+rd*rt)<1.15+rt*.9)discard;}\n float rcd=distance(ruinP,cameraPosition);if(ruinP.y>2.4&&rcd<9.){float dth=fract(52.9829189*fract(dot(gl_FragCoord.xy,vec2(.06711056,.00583715))));if(rcd<5.2||dth>(rcd-5.2)/3.8)discard;}')
+          .replace('#include <clipping_planes_fragment>', '#include <clipping_planes_fragment>\n if(ruinP.y>1.7){vec3 re=vec3(ruinHero.x,1.2,ruinHero.z),rd=cameraPosition-re;float rt=clamp(dot(ruinP-re,rd)/dot(rd,rd),0.,1.);if(rt>.03&&rt<.97&&distance(ruinP,re+rd*rt)<2.2+rt*.9)discard;}\n float rcd=distance(ruinP,cameraPosition);if(ruinP.y>2.4&&rcd<9.){float dth=fract(52.9829189*fract(dot(gl_FragCoord.xy,vec2(.06711056,.00583715))));if(rcd<5.2||dth>(rcd-5.2)/3.8)discard;}')
           .replace('#include <map_fragment>', `vec3 rn=abs(ruinN);vec2 ru=rn.y>max(rn.x,rn.z)?ruinP.xz:(rn.x>rn.z?ruinP.zy:ruinP.xy);ru*=ruinTile;
             vec4 sampledDiffuseColor=texture2D(map,ru);diffuseColor*=sampledDiffuseColor;diffuseColor.rgb*=.94+.06*sin(ruinP.x*.31+sin(ruinP.z*.21));
             diffuseColor.rgb*=mix(.35,1.,smoothstep(-7.,-.4,ruinP.y));`)
@@ -65,7 +65,7 @@
           .replace('#include <normal_fragment_maps>', T.ShaderChunk.normal_fragment_maps.replace(/vNormalMapUv/g, 'ru'));
       };
       // (the underside darkening above makes the floating platforms sink into the void instead of ending in a lit cut)
-      m.customProgramCacheKey = function () { return 'finale-scan-1'; }; m.normalScale.set(.7, .7); m.name = 'finale-' + key; materials[key] = m; return m;
+      m.customProgramCacheKey = function () { return 'finale-scan-cutaway-2'; }; m.normalScale.set(.7, .7); m.name = 'finale-' + key; materials[key] = m; return m;
     }
     // Judgement stone is bone-pale limestone; the platforms are black basalt; iron is old, blood-browned.
     surface('floor', 'monastery', 0xbab2ac, .44); surface('stone', 'paving', 0xc9c0b4, .38); surface('wall', 'wall', 0x8e8a86, .26);
@@ -77,6 +77,14 @@
     materials.iron.color.setHex(0xb8aaa2); materials.iron.metalness = .34; materials.iron.metalnessMap = whiteMap(); materials.iron.roughness = .62;
     materials.lamp = new T.MeshBasicMaterial({ color: 0xff7a5a, vertexColors: true, toneMapped: false, fog: false });
     materials.hot = new T.MeshBasicMaterial({ color: 0xffffff, vertexColors: true, toneMapped: false, fog: false });
+    // Match the stone cutaway so book glyphs and inscriptions cannot float across the view.
+    // Low floor veins stay intact under the shared height thresholds.
+    materials.hot.onBeforeCompile = function (sh) {
+      sh.uniforms.ruinHero = hero;
+      sh.vertexShader = 'varying vec3 ruinP;\n' + sh.vertexShader.replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\n ruinP=(modelMatrix*vec4(transformed,1.)).xyz;');
+      sh.fragmentShader = 'varying vec3 ruinP;uniform vec3 ruinHero;\n' + sh.fragmentShader.replace('#include <clipping_planes_fragment>', '#include <clipping_planes_fragment>\n if(ruinP.y>1.7){vec3 re=vec3(ruinHero.x,1.2,ruinHero.z),rd=cameraPosition-re;float rt=clamp(dot(ruinP-re,rd)/dot(rd,rd),0.,1.);if(rt>.03&&rt<.97&&distance(ruinP,re+rd*rt)<2.2+rt*.9)discard;}\n float rcd=distance(ruinP,cameraPosition);if(ruinP.y>2.4&&rcd<9.){float dth=fract(52.9829189*fract(dot(gl_FragCoord.xy,vec2(.06711056,.00583715))));if(rcd<5.2||dth>(rcd-5.2)/3.8)discard;}');
+    };
+    materials.hot.customProgramCacheKey = function () { return 'finale-hot-cutaway-1'; };
     // Shared sculpted profiles (same set as III/IV, so the kit's composite props work unchanged).
     var shaft = geo(new T.LatheGeometry([new T.Vector2(.58, -.5), new T.Vector2(.58, -.44), new T.Vector2(.48, -.40), new T.Vector2(.44, -.34), new T.Vector2(.42, .30), new T.Vector2(.46, .38), new T.Vector2(.58, .44), new T.Vector2(.58, .5)], 16));
     var sp = shaft.attributes.position;
@@ -207,16 +215,56 @@
     var nodes = []; secrets.forEach(function (q) { [[q.x, q.z], [q.bridge.x, q.bridge.z], [q.x + (q.cx < 0 ? 3 : -3), q.z + 2.5]].forEach(function (n) { if (isWalkable(n[0], n[1], .9)) nodes.push({ x: n[0], z: n[1], edges: [] }); }); });
     rooms.forEach(function (r) { [-12, -6, 0, 6, 12].forEach(function (x) { [-8, 0, 8].forEach(function (z) { if (isWalkable(r.x + x, r.z + z, 1.05)) nodes.push({ x: r.x + x, z: r.z + z, edges: [] }); }); }); });
     bridges.forEach(function (b) { if (isWalkable(0, b.z, 1.05)) nodes.push({ x: 0, z: b.z, edges: [] }); });
-    for (var i = 0; i < nodes.length; i++) for (var j = i + 1; j < nodes.length; j++) if (Math.hypot(nodes[i].x - nodes[j].x, nodes[i].z - nodes[j].z) < 30 && hasClearPath(nodes[i].x, nodes[i].z, nodes[j].x, nodes[j].z, 1.05)) { nodes[i].edges.push(j); nodes[j].edges.push(i); }
+    // The four court pillars sit outside the ordinary room grid. Keep a route
+    // around their outer faces, including the Black Qadi's full body clearance.
+    // The well and the furnace channel have walkable side pockets beyond the
+    // centre grid. Connect both ends of these pockets to their room's main floor.
+    [[3, 10.5, -8], [3, 10.5, 8], [3, 12.5, -5.5], [3, 12.5, 5.5], [7, -11, -8], [7, -11, 8], [5, 10.8, 7]].forEach(function (q) {
+      var room = rooms[q[0]], x = room.x + q[1], z = room.z + q[2];
+      if (isWalkable(x, z, 1.05)) nodes.push({ x: x, z: z, edges: [] });
+    });
+    var courtNodeStart = nodes.length;
+    [-16.5, 16.5].forEach(function (x) {
+      [-11.5, -6, 6, 11.5].forEach(function (z) {
+        if (isWalkable(court.x + x, court.z + z, 1.15)) nodes.push({ x: court.x + x, z: court.z + z, edges: [] });
+      });
+    });
+    // Selected obstacle corners complete the small pockets missed by the room
+    // grid. Derive them from the real colliders; only navigation data is added.
+    var narrowNodeStart = nodes.length;
+    var cornerDetours = [[59,1,1,1.25],[0,-1,-1,0.55],[82,1,-1,1.25],[68,-1,1,0.94],[85,-1,-1,1.25],[60,1,1,0.94],[81,-1,1,0.94],[23,-1,1,0.94],[24,1,1,0.94],[70,-1,-1,0.55],[71,1,1,0.94],[5,-1,-1,0.94],[51,1,-1,0.94],[27,-1,-1,0.94],[63,-1,-1,0.94],[64,1,-1,0.94],[95,-1,1,0.94],[0,1,-1,0.55],[3,-1,-1,0.94],[28,1,-1,0.94],[38,-1,-1,0.94],[41,1,1,0.55],[62,1,-1,0.94],[30,1,-1,0.94],[40,-1,1,0.94],[52,-1,-1,0.94],[99,1,-1,0.94],[108,-1,-1,0.94],[109,1,-1,0.94]];
+    cornerDetours.forEach(function (q) {
+      var obstacle = colliders[q[0]], x = +(obstacle.x + q[1] * (obstacle.w / 2 + q[3])).toFixed(3), z = +(obstacle.z + q[2] * (obstacle.d / 2 + q[3])).toFixed(3);
+      if (isWalkable(x, z, .45)) nodes.push({ x: x, z: z, edges: [] });
+    });
+    nodes.forEach(function (n) { n.edgeClearances = []; });
+    var clearanceRadii = [1.15, 1.05, .84, .74, .56, .5, .46, .45];
+    for (var i = 0; i < nodes.length; i++) for (var j = i + 1; j < nodes.length; j++) {
+      var a = nodes[i], b = nodes[j];
+      if (Math.hypot(a.x - b.x, a.z - b.z) >= 30) continue;
+      var narrow = i >= narrowNodeStart || j >= narrowNodeStart;
+      var minimum = narrow ? .45 : i >= courtNodeStart || j >= courtNodeStart ? 1.15 : 1.05;
+      if (!hasClearPath(a.x, a.z, b.x, b.z, minimum)) continue;
+      var clearance = minimum;
+      for (var k = 0; k < clearanceRadii.length; k++) {
+        var radius = clearanceRadii[k]; if (radius <= minimum) break;
+        if (hasClearPath(a.x, a.z, b.x, b.z, radius)) { clearance = radius; break; }
+      }
+      a.edges.push(j); a.edgeClearances.push(clearance); b.edges.push(i); b.edgeClearances.push(clearance);
+    }
     var dist = new Float64Array(nodes.length), prev = new Int16Array(nodes.length), used = new Uint8Array(nodes.length);
     function pathTo(from, to, r) {
+      var queryRadius = r == null ? .46 : Math.max(.01, r);
       if (!isWalkable(to.x, to.z, r)) return []; if (hasClearPath(from.x, from.z, to.x, to.z, r)) return [{ x: to.x, z: to.z }];
       dist.fill(Infinity); prev.fill(-1); used.fill(0);
       for (var i = 0; i < nodes.length; i++) if (Math.hypot(nodes[i].x - from.x, nodes[i].z - from.z) < 24 && hasClearPath(from.x, from.z, nodes[i].x, nodes[i].z, r)) dist[i] = Math.hypot(nodes[i].x - from.x, nodes[i].z - from.z);
-      var end = -1; for (var k = 0; k < nodes.length; k++) { var at = -1, best = Infinity; for (var i = 0; i < nodes.length; i++) if (!used[i] && dist[i] < best) { best = dist[i]; at = i; } if (at < 0) break; used[at] = 1; var n = nodes[at]; if (Math.hypot(to.x - n.x, to.z - n.z) < 24 && hasClearPath(n.x, n.z, to.x, to.z, r)) { end = at; break; } for (var j = 0; j < n.edges.length; j++) { var id = n.edges[j], next = nodes[id], cost = best + Math.hypot(next.x - n.x, next.z - n.z); if (cost < dist[id]) { dist[id] = cost; prev[id] = at; } } }
+      var end = -1; for (var k = 0; k < nodes.length; k++) { var at = -1, best = Infinity; for (var i = 0; i < nodes.length; i++) if (!used[i] && dist[i] < best) { best = dist[i]; at = i; } if (at < 0) break; used[at] = 1; var n = nodes[at]; if (Math.hypot(to.x - n.x, to.z - n.z) < 24 && hasClearPath(n.x, n.z, to.x, to.z, r)) { end = at; break; } for (var j = 0; j < n.edges.length; j++) { if (queryRadius > n.edgeClearances[j]) continue; var id = n.edges[j], next = nodes[id], cost = best + Math.hypot(next.x - n.x, next.z - n.z); if (cost < dist[id]) { dist[id] = cost; prev[id] = at; } } }
       if (end < 0) return []; var path = [{ x: to.x, z: to.z }]; for (var at = end, guard = 0; at >= 0 && guard++ < nodes.length; at = prev[at]) path.unshift({ x: nodes[at].x, z: nodes[at].z }); return path;
     }
     function roomAt(x, z) { var closest = rooms[0], best = Infinity; for (var i = 0; i < rooms.length; i++) { var r = rooms[i]; if (Math.abs(x - r.x) <= r.w / 2 && Math.abs(z - r.z) <= r.d / 2) return r; var d = Math.abs(z - r.z); if (d < best) { best = d; closest = r; } } return closest; }
+    // The kit stores authored attenuation in distance; lightStep reuses that
+    // field for hero distance. Preserve the real range before the first update.
+    sources.forEach(function (source) { source.range = source.distance || 13; });
     // Three pooled point lights handed from source to source (as in III/IV: the light COUNT never changes).
     for (var i = 0; i < 3; i++) { var light = new T.PointLight(0xff6a4a, 0, 13, 2); root.add(light); lights.push(light); }
     var slots = [{ src: null, w: 0 }, { src: null, w: 0 }, { src: null, w: 0 }], near = [];

@@ -178,6 +178,14 @@ Döndürülmüş döşeme taşlarının köşeleri hücre içinde tutulur; dörd
 
 13 Ekim 2026 kontrolü: RTX 5080 üzerinde Edge, 2560 × 1440 ve Yüksek kaliteyle III–V bölümlerin 46 odası, uzun kalabalık savaşlar, ekran hızı ve 120 FPS sınırı sessizce sınandı. Her bölümde aynı saldırıyla sekiz gerçek ölümde yeni geometri/efekt programı hazırlanmadı ve kayıt tek yazıda tamamlandı. Çalışan savaş senaryoları ve kaynak/çevrimdışı dosya kontrolleri geçti. Kısa ilk ölüm testlerinde yaklaşık 11–17 ms; uzun testlerde seyrek 22–33 ms kare aralıkları hâlâ görüldü. Bu sürüm tüm mikro takılmaların ortadan kalktığı veya her savaşta sabit 180 FPS sağlandığı iddiasını taşımaz.
 
+### Son bölümün görsel ve yol temizliği (400)
+
+Son bölümde birbirine değen ışıklı damarlar eş düzlemde kalmaz; kitap ve levha yazıları gerçek yüzey eğimine oturur. Büyük kitap, levha ve benzeri yüksek süslerin görüş açma alanı genişletilir; parlayan yazıları da aynı açıklığı izler. Üç ışık havuzu, kaynakların gerçek 12/14/18 metre menzilini korur.
+
+Anıt içinde doğan Boşluk Tanığı güvenli taş zemine alınır. Eski bölüm kayıt imzası, eşya, görev ve öldürülen düşman bilgileri korunur. Düşmanlar yürünemeyen yan yaklaşma/koruma hedefini zorlamaz. Kuyunun, ocak kanalının, dar dekor köşelerinin ve son boss sütunlarının çevresindeki yol noktaları tamamlanır; geçiş genişlikleri yüklemede hesaplanır. Düşman sayısı, hasarı, görev koşulları ve fiziksel engeller değişmez.
+
+Kontrol: gerçek RTX 5080 ile 14 oda tekrar gezildi; normal düşmanlarda geçersiz doğuş, zemine sıkışmış konum veya yakından etkinleşmeme bulunmadı. Boss görev kapısı tamamlanmadan beklemeyi sürdürür. Geometri kontrolünde 445 damar çakışması, taş altında kalan üç kanal ve 58 yazı satırı düzeltildi. 32.236 oda hedefi, 22.537 boss rotası ve ana/gizli/görev yolları geçerli segmentlerle sınandı. İlk açılış takılmasının tamamen ortadan kalktığı doğrulanmış değildir; piksel eşitliğini tam geçmeyen deneysel harita optimizasyonu bu sürüme alınmadı.
+
 ## Dosyalar
 
 | Dosya / klasör | Ne işe yarar |
