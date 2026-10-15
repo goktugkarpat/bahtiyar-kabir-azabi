@@ -13,3 +13,11 @@ KABIR-OPTIMIZASYON-NOTU.md
 .english-voice-cache/
 .claude/
 integ_*.png
+
+# Geçici dosyalar ve test çıktıları
+*.py[cod]
+*.tmp
+*~
+/test-results/
+/playwright-report/
+/blob-report/
