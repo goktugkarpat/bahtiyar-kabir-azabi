@@ -15,7 +15,7 @@
   const KIND_COLOR = { dot: '#e07a62', control: '#a9c1d6', debuff: '#e0bf7e', immune: '#b8ae98' };
   const KIND_NAME = { dot: 'Zamanla hasar', control: 'Kontrol', debuff: 'Zayıflatma', immune: 'Bağışıklık' };
   function fmt(template, o) { return tr(template).replace(/\{(\w+)\}/g, (m, k) => o && o[k] !== undefined ? o[k] : m); }
-  const secs = v => v >= 10 ? String(Math.round(v)) : (Math.round(v * 10) / 10).toString().replace('.', KabirI18n.lang === 'en' ? '.' : ',');
+  const secs = v => v >= 10 ? String(Math.round(v)) : (Math.round(v * 10) / 10).toString().replace('.', ',');
   function register(id, def) { def.id = id; if (!sdefs.has(id)) sorder.push(def); sdefs.set(id, def); return def; }
   function sentry() { return spool[sused] || (spool[sused] = { id: '', def: null, left: 0, total: 0, dps: 0, value: 0, stacks: 1 }); }
   function statusOf(e, g) {
@@ -112,21 +112,6 @@
   register('immune', { kind: 'immune', name: 'Zincire Bağışık', icon: ICONS.immune,
     read(e, g, x) { return !!e.boss; },
     desc: () => tr('Sersemletilemez, korkutulamaz ve çekilemez.') });
-  Object.assign(KabirI18n.dictionary || {}, {
-    'Kanama': 'Bleeding', 'Yanma': 'Burning', 'Çürüme Laneti': 'Curse of Rot', 'Dehşet': 'Dread', 'Sersemlemiş': 'Stunned', 'Savunması Kırık': 'Guard Broken',
-    'Korku': 'Fear', 'Yavaşlamış': 'Slowed', 'Kancalı': 'Hooked', 'İşaretli': 'Marked', 'Savunmasız': 'Vulnerable', 'Zincire Bağışık': 'Chain-proof',
-    'Etkiler': 'Effects', 'Zamanla hasar': 'Damage over time', 'Kontrol': 'Control', 'Zayıflatma': 'Weakness', 'Bağışıklık': 'Immunity',
-    'Saniyede {n} hasar verir. {s} sn kaldı.': 'Deals {n} damage per second. {s} s left.',
-    'Aldığı hasar %{p} artar. {s} sn kaldı.': 'Takes {p}% more damage. {s} s left.',
-    'Korkudan titriyor; %20 fazla hasar alır. {s} sn kaldı.': 'Trembling in fear; takes 20% more damage. {s} s left.',
-    'Sendeliyor; saldıramaz, yürüyemez. {s} sn kaldı.': 'Reeling; cannot attack or move. {s} s left.',
-    'Siperi kırıldı; bir an açıkta. {s} sn kaldı.': 'Its guard is broken; open for a moment. {s} s left.',
-    'Korkudan kaçıyor, saldırmıyor. {s} sn kaldı.': 'Fleeing in terror, not attacking. {s} s left.',
-    'Hareketi %{p} yavaşladı. {s} sn kaldı.': 'Movement slowed by {p}%. {s} s left.',
-    'Kancaya takıldı, yerinden çekildi. {s} sn kaldı.': 'Caught on the hook and dragged. {s} s left.',
-    'Hedef alındı; bir sonraki darbeler daha ağır. {s} sn kaldı.': 'Singled out; the next blows land harder. {s} s left.',
-    'Sersemletilemez, korkutulamaz ve çekilemez.': 'Cannot be stunned, frightened or pulled.'
-  });
   B.Status = Object.freeze({ register, apply, remove, tick, of: statusOf, get: id => sdefs.get(id), list: () => sorder.slice(), icons: ICONS, kindName: k => tr(KIND_NAME[k] || ''), fmt, secs });
   const portraits = Object.freeze({
     prisoner: 'assets/ui/target-prisoner.webp', guard: 'assets/ui/target-guard.webp',

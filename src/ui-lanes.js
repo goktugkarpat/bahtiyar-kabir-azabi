@@ -43,11 +43,6 @@
   /* ---------- 2. başlık ekranı ---------- */
   function decorateTitle() {
     const title = $('title'); if (!title) return;
-    const logo = title.querySelector('.logo-wrap');
-    if (logo && !title.querySelector('.ui-logo-sub')) {
-      const sub = document.createElement('span'); sub.className = 'ui-logo-sub'; sub.setAttribute('aria-hidden', 'true');
-      logo.insertAdjacentElement('afterend', sub);
-    }
     title.querySelectorAll('.title-actions .btn').forEach(b => { if (!b.querySelector('.ui-sheen')) { const i = document.createElement('i'); i.className = 'ui-sheen'; i.setAttribute('aria-hidden', 'true'); b.prepend(i); } });
     const meta = title.querySelector('.title-meta');
     if (meta && !meta.querySelector('.ui-build')) {
@@ -55,7 +50,6 @@
       const v = document.createElement('span'); v.className = 'ui-build'; v.dataset.build = s ? s[1] : '';
       const paint = () => { v.textContent = T('Sürüm') + ' 0.' + (v.dataset.build || '1') + ' · ' + T('Bir yeraltı ağıtı'); };
       paint(); meta.appendChild(v);
-      new MutationObserver(paint).observe(document.documentElement, { attributes: true, attributeFilter: ['lang'] });
     }
   }
   // Fareyle bir menü düğmesinin üstüne gelince çok kısık demir tık (ses kapalıysa/?sessiz'de Audio zaten susar).
@@ -83,8 +77,6 @@
     try { const c = JSON.parse(localStorage.getItem('baba.kabir.campaign.v1') || 'null'); if (c && c.chapter) ch = c.chapter | 0; } catch (_) {}
     if (/[?&]yolculuk=yeni/.test(location.search)) ch = 1;
     box.dataset.chapter = String(Math.max(1, Math.min(5, ch)));
-    const art = box.querySelector('.load-art'), mark = art && art.querySelector('.wordmark');
-    if (mark && !art.querySelector('.ui-logo-sub')) { const s = document.createElement('span'); s.className = 'ui-logo-sub'; s.setAttribute('aria-hidden', 'true'); mark.insertAdjacentElement('afterend', s); }
     const tip = box.querySelector('.load-tip'); if (!tip) return;
     let i = Math.floor(Math.random() * TIPS.length);
     const show = () => {

@@ -6,15 +6,15 @@
 (() => {
   'use strict';
   const B = window.BABA = window.BABA || {};
-  const L = (tr, en) => (B.QuestText ? B.QuestText(tr, en) : KabirI18n.t(tr));
+  const L = tr => (B.QuestText ? B.QuestText(tr) : KabirI18n.t(tr));
   const T = {
-    optHead: L('İsteğe Bağlı · Kapıyı açmaz, ödül verir', 'Optional · Does not open the gate, grants rewards'),
-    mainHead: L('Ana Hikâye · Efendinin kapısını açar', 'Main Story · Opens the master’s gate'),
-    pages: L('Okunan sayfalar', 'Pages read'), unread: L('Henüz bulunmadı', 'Not yet found'),
-    reward: L('Ödül', 'Reward'), choose: L('KARARINI VER', 'MAKE YOUR CHOICE'), done: L('Tamamlandı', 'Complete'), steps: L(' ADIM', ' STEPS'),
-    locked: L('Kilitli', 'Locked'), open: L('Açık', 'Open'), active: L('Sürüyor', 'In progress'),
-    lockedHint: L('Ana hikâye ilerleyince açılır.', 'Opens as the main story advances.'),
-    gateOpen: L('Efendinin kapısı açık', 'The master’s gate is open'), metres: L(' m', ' m')
+    optHead: L('İsteğe Bağlı · Kapıyı açmaz, ödül verir'),
+    mainHead: L('Ana Hikâye · Efendinin kapısını açar'),
+    pages: L('Okunan sayfalar'), unread: L('Henüz bulunmadı'),
+    reward: L('Ödül'), choose: L('KARARINI VER'), done: L('Tamamlandı'), steps: L(' ADIM'),
+    locked: L('Kilitli'), open: L('Açık'), active: L('Sürüyor'),
+    lockedHint: L('Ana hikâye ilerleyince açılır.'),
+    gateOpen: L('Efendinin kapısı açık'), metres: L(' m')
   };
   function create(options) {
     const game = options.game, $ = id => document.getElementById(id);
@@ -101,16 +101,16 @@
     if (bottom) bottom.prepend(compass); else tracker.after(compass);
     const arrow = compass.querySelector('svg'), compassName = compass.querySelector('span'), compassDist = compass.querySelector('b');
     // Campaign recap uses only earned quest/profile markers. It never changes the quest state.
-    const tabs = document.createElement('div'); tabs.className = 'journal-tabs'; tabs.setAttribute('role', 'tablist'); tabs.setAttribute('aria-label', L('Günlük bölümleri', 'Journal sections'));
+    const tabs = document.createElement('div'); tabs.className = 'journal-tabs'; tabs.setAttribute('role', 'tablist'); tabs.setAttribute('aria-label', L('Günlük bölümleri'));
     const questTab = document.createElement('button'), storyTab = document.createElement('button');
-    for (const [button, id, label] of [[questTab, 'quests', L('Görevler', 'Quests')], [storyTab, 'story', L('Hikâye', 'Story')]]) {
+    for (const [button, id, label] of [[questTab, 'quests', L('Görevler')], [storyTab, 'story', L('Hikâye')]]) {
       button.type = 'button'; button.id = 'journal-tab-' + id; button.setAttribute('role', 'tab'); button.setAttribute('aria-controls', 'journal-' + id + '-body'); button.textContent = label; tabs.append(button);
     }
     journal.before(tabs);
     const questBody = document.createElement('div'); questBody.id = 'journal-quests-body'; questBody.className = 'journal-tasks'; questBody.setAttribute('role', 'tabpanel'); questBody.setAttribute('aria-labelledby', questTab.id);
     while (journal.firstChild) questBody.append(journal.firstChild); journal.append(questBody);
     const storyBody = document.createElement('section'); storyBody.id = 'journal-story-body'; storyBody.className = 'journal-story'; storyBody.setAttribute('role', 'tabpanel'); storyBody.setAttribute('aria-labelledby', storyTab.id); storyBody.hidden = true;
-    const storyNav = document.createElement('nav'); storyNav.className = 'story-chapters'; storyNav.setAttribute('aria-label', L('Yaşanan bölümler', 'Chapters experienced'));
+    const storyNav = document.createElement('nav'); storyNav.className = 'story-chapters'; storyNav.setAttribute('aria-label', L('Yaşanan bölümler'));
     const storyMain = document.createElement('div'); storyMain.className = 'story-main'; storyBody.append(storyNav, storyMain); journal.append(storyBody);
     let journalTab = 'quests', storyChapter = q.chapter, storyKey = '', storyGoal = '';
     const paragraph = text => { const p = document.createElement('p'); p.textContent = text; return p; };
@@ -121,7 +121,7 @@
     }
     function renderStory(force = false) {
       if (!B.StoryJournal) { storyTab.hidden = true; return; }
-      const p = game.progression, key = (p ? p.revision : 0) + '|' + q.revision + '|' + storyChapter + '|' + KabirI18n.lang;
+      const p = game.progression, key = (p ? p.revision : 0) + '|' + q.revision + '|' + storyChapter;
       if (!force && key === storyKey) return; storyKey = key;
       const entries = B.StoryJournal.entries(game);
       if (!entries.some(e => e.chapter === storyChapter)) storyChapter = q.chapter;
@@ -130,29 +130,29 @@
       entries.forEach(e => {
         const button = document.createElement('button'); button.type = 'button'; button.className = 'story-chapter'; button.dataset.chapter = e.chapter;
         const number = document.createElement('span'), name = document.createElement('strong'), state = document.createElement('small');
-        number.textContent = ['I', 'II', 'III', 'IV', 'V'][e.chapter - 1]; name.textContent = e.title; state.textContent = e.completed ? L('Geride kalan', 'Completed') : L('Şimdi', 'Current');
+        number.textContent = ['I', 'II', 'III', 'IV', 'V'][e.chapter - 1]; name.textContent = e.title; state.textContent = e.completed ? L('Geride kalan') : L('Şimdi');
         button.append(number, name, state); button.setAttribute('aria-pressed', String(e.chapter === storyChapter));
         button.onclick = () => { storyChapter = e.chapter; renderStory(true); journal.scrollTop = 0; storyNav.querySelector('[data-chapter="' + e.chapter + '"]').focus({ preventScroll: true }); };
         storyNav.append(button);
       });
       const heading = document.createElement('h2'); heading.className = 'story-heading'; heading.textContent = ['I', 'II', 'III', 'IV', 'V'][entry.chapter - 1] + ' · ' + entry.title; storyMain.append(heading);
-      storySection(L('Neden buradasın?', 'Why you are here'), [entry.opening]);
-      storySection(entry.current && !entry.completed ? L('Amacın', 'Your purpose') : L('Bu bölümdeki amacın', 'Your purpose in this chapter'), [entry.goal], 'story-purpose');
+      storySection(L('Neden buradasın?'), [entry.opening]);
+      storySection(entry.current && !entry.completed ? L('Amacın') : L('Bu bölümdeki amacın'), [entry.goal], 'story-purpose');
       if (entry.narration && entry.narration.length) {
         const section = document.createElement('section'); section.className = 'story-section story-transcripts';
-        const detail = document.createElement('details'), summary = document.createElement('summary'); summary.textContent = L('Bölüm anlatısı', 'Chapter narration'); detail.append(summary);
+        const detail = document.createElement('details'), summary = document.createElement('summary'); summary.textContent = L('Bölüm anlatısı'); detail.append(summary);
         entry.narration.forEach(line => { const h = document.createElement('h4'); h.textContent = line.title; detail.append(h, paragraph(line.text)); });
         section.append(detail); storyMain.append(section);
       }
-      if (entry.closing) storySection(L('Ne öğrendin?', 'What you learned'), [entry.closing]);
-      if (entry.learnedPages) storySection(L('Sayfaların açığa çıkardığı', 'What the pages revealed'), [entry.learnedPages]);
-      if (entry.discoveries.length) storySection(L('Bulduğun izler', 'Clues you found'), entry.discoveries.map(e => e.text));
+      if (entry.closing) storySection(L('Ne öğrendin?'), [entry.closing]);
+      if (entry.learnedPages) storySection(L('Sayfaların açığa çıkardığı'), [entry.learnedPages]);
+      if (entry.discoveries.length) storySection(L('Bulduğun izler'), entry.discoveries.map(e => e.text));
       if (entry.decisions.length) {
-        const section = storySection(L('Verdiğin hükümler', 'Your verdicts'), []);
+        const section = storySection(L('Verdiğin hükümler'), []);
         entry.decisions.forEach(e => { const h = document.createElement('h4'); h.textContent = e.title; section.append(h, paragraph(e.text)); });
       }
-      const pages = storySection(L('Okuduğun sayfalar', 'Pages you have read'), []);
-      if (!entry.pages.length) pages.append(paragraph(L('Bu bölümden henüz bir sayfa okumadın. Bulduğun sayfalar burada kalır.', 'You have not read a page from this chapter yet. Pages you find remain here.')));
+      const pages = storySection(L('Okuduğun sayfalar'), []);
+      if (!entry.pages.length) pages.append(paragraph(L('Bu bölümden henüz bir sayfa okumadın. Bulduğun sayfalar burada kalır.')));
       entry.pages.forEach(pg => {
         const detail = document.createElement('details'), summary = document.createElement('summary'); summary.textContent = pg.title; detail.append(summary, paragraph(pg.text)); pages.append(detail);
       });
@@ -163,7 +163,7 @@
       journalTab = tab; questBody.hidden = tab !== 'quests'; storyBody.hidden = tab !== 'story';
       questTab.setAttribute('aria-selected', String(tab === 'quests')); storyTab.setAttribute('aria-selected', String(tab === 'story'));
       questTab.tabIndex = tab === 'quests' ? 0 : -1; storyTab.tabIndex = tab === 'story' ? 0 : -1;
-      journal.setAttribute('aria-label', tab === 'story' ? L('Hikâye özeti', 'Story recap') : L('Görev adımları', 'Quest steps'));
+      journal.setAttribute('aria-label', tab === 'story' ? L('Hikâye özeti') : L('Görev adımları'));
       journal.scrollTop = 0; if (tab === 'story') renderStory();
       if (focus) (tab === 'story' ? storyTab : questTab).focus({ preventScroll: true });
     }
@@ -270,7 +270,7 @@
       const sideEntry = earnedPageSet && q.side && q.side.find(entry => entry.id === data.id);
       const text = earnedPageSet && sideEntry && sideEntry.rewardText ? sideEntry.rewardText : data.text;
       $('quest-notice-state').textContent = data.complete ? KabirI18n.t('GÖREV TAMAMLANDI') : data.choice ? KabirI18n.t('KARARIN KAYDEDİLDİ') : KabirI18n.t('GÖREV İLERLEDİ');
-      if (data.side && data.kind && B.QuestWords) $('quest-notice-state').textContent = B.QuestWords[data.kind] ? B.QuestWords[data.kind].toLocaleUpperCase(KabirI18n.lang === 'en' ? 'en' : 'tr') + ' · ' + $('quest-notice-state').textContent : $('quest-notice-state').textContent;
+      if (data.side && data.kind && B.QuestWords) $('quest-notice-state').textContent = B.QuestWords[data.kind] ? B.QuestWords[data.kind].toLocaleUpperCase('tr') + ' · ' + $('quest-notice-state').textContent : $('quest-notice-state').textContent;
       $('quest-notice-title').textContent = data.name;
       $('quest-notice-text').textContent = text;
       notice.dataset.kind = data.side ? data.kind || 'main' : 'main';

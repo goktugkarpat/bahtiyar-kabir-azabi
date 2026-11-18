@@ -3,567 +3,486 @@
     "chapter": 1,
     "kind": "opening",
     "speaker": "narr",
-    "tr": "Seni canlı gömdüler, Bahtiyar. Taş kapağı kırdın. Şimdi tutsakların zincirlerini kır ve bu mezardan çık.",
-    "en": "They buried you alive, Bahtiyar. You broke the stone lid. Break the prisoners’ chains and leave this grave."
+    "tr": "Seni canlı gömdüler, Bahtiyar. Taş kapağı kırdın. Şimdi tutsakların zincirlerini kır ve bu mezardan çık."
   },
   "story1": {
     "chapter": 1,
     "kind": "discovery",
     "speaker": "narr",
-    "tr": "Nakil emrinde Kara Kadı’nın mührü var. Seni canlı istiyor. Gardiyanlar onun için çalışıyor.",
-    "en": "The transport order bears the Black Qadi’s seal. He wants you alive. The guards serve him."
+    "tr": "Nakil emrinde Kara Kadı’nın mührü var. Seni canlı istiyor. Gardiyanlar onun için çalışıyor."
   },
   "chains": {
     "chapter": 1,
     "kind": "event",
     "speaker": "narr",
-    "tr": "Bu zincirlerin ucunda hâlâ yaşayan insanlar var. Hücreleri aç.",
-    "en": "Living prisoners remain at the ends of these chains. Open the cells."
+    "tr": "Bu zincirlerin ucunda hâlâ yaşayan insanlar var. Hücreleri aç."
   },
   "ritual": {
     "chapter": 1,
     "kind": "event",
     "speaker": "narr",
-    "tr": "Yaralıları tedavi etmek için getirmemişler. Acıları, Kadı’nın ayinini besliyor.",
-    "en": "The wounded were never brought here to heal. Their suffering feeds the Qadi’s ritual."
+    "tr": "Yaralıları tedavi etmek için getirmemişler. Acıları, Kadı’nın ayinini besliyor."
   },
   "crypt": {
     "chapter": 1,
     "kind": "event",
     "speaker": "narr",
-    "tr": "Sunak hâlâ sıcak. Bu mezar, kurbanların ilk durağı.",
-    "en": "The altar is still warm. This grave is the first stop for the sacrifices."
+    "tr": "Sunak hâlâ sıcak. Bu mezar, kurbanların ilk durağı."
   },
   "rot": {
     "chapter": 1,
     "kind": "event",
     "speaker": "narr",
-    "tr": "Kemikler duvarlara örülmüş. Kadı, ölülerini bile serbest bırakmıyor.",
-    "en": "Bones are built into the walls. The Qadi will not release even his dead."
+    "tr": "Kemikler duvarlara örülmüş. Kadı, ölülerini bile serbest bırakmıyor."
   },
   "checkpoint": {
     "chapter": 1,
     "kind": "event",
     "speaker": "narr",
-    "tr": "Taşın yanında soluklan. Yolun henüz bitmedi.",
-    "en": "Catch your breath beside the stone. Your road is not over."
+    "tr": "Taşın yanında soluklan. Yolun henüz bitmedi."
   },
   "boss": {
     "chapter": 1,
     "kind": "event",
     "speaker": "narr",
-    "tr": "Mezar Gardiyanı geçidi tutuyor. Limana giden yol onun ardında.",
-    "en": "The Grave Warden holds the passage. The road to the port lies behind him."
+    "tr": "Mezar Gardiyanı geçidi tutuyor. Limana giden yol onun ardında."
   },
   "heroOath": {
     "chapter": 1,
     "kind": "event",
     "speaker": "hero",
-    "tr": "Beni gömdünüz. Şimdi sıra sizde.",
-    "en": "You buried me. Now it is your turn."
+    "tr": "Beni gömdünüz. Şimdi sıra sizde."
   },
   "cellat": {
     "chapter": 1,
     "kind": "event",
     "speaker": "warden",
-    "tr": "Kadı seni canlı istiyor. Yeniden tabutuna gireceksin.",
-    "en": "The Qadi wants you alive. You will return to your coffin."
+    "tr": "Kadı seni canlı istiyor. Yeniden tabutuna gireceksin."
   },
   "seal": {
     "chapter": 1,
     "kind": "event",
     "speaker": "narr",
-    "tr": "Bir zincir daha kırıldı. İlerle.",
-    "en": "Another chain is broken. Keep moving."
+    "tr": "Bir zincir daha kırıldı. İlerle."
   },
   "death": {
     "chapter": 1,
     "kind": "event",
     "speaker": "narr",
-    "tr": "Nefesin hâlâ var. Ayağa kalk.",
-    "en": "You are still breathing. Get up."
+    "tr": "Nefesin hâlâ var. Ayağa kalk."
   },
   "death2": {
     "chapter": 1,
     "kind": "event",
     "speaker": "narr",
-    "tr": "Bu mezar seni tutamayacak. Yeniden dene.",
-    "en": "This grave cannot hold you. Try again."
+    "tr": "Bu mezar seni tutamayacak. Yeniden dene."
   },
   "death3": {
     "chapter": 1,
     "kind": "event",
     "speaker": "narr",
-    "tr": "Taş kapağı kırdın. Burada pes etme.",
-    "en": "You broke the stone lid. Do not give up here."
+    "tr": "Taş kapağı kırdın. Burada pes etme."
   },
   "win": {
     "chapter": 1,
     "kind": "event",
     "speaker": "narr",
-    "tr": "Gardiyan düştü. Esirlerin götürüldüğü limana giden yol açıldı.",
-    "en": "The warden has fallen. The road to the slave port is open."
+    "tr": "Gardiyan düştü. Esirlerin götürüldüğü limana giden yol açıldı."
   },
   "truth1": {
     "chapter": 1,
     "kind": "boss_truth",
     "speaker": "narr",
-    "tr": "Gardiyanın son sözü bir uyarı: Liman efendisi seni bekliyor. Kara Kadı kaçışını öğrendi.",
-    "en": "The warden’s last words are a warning: the port master awaits you. The Black Qadi knows you escaped."
+    "tr": "Gardiyanın son sözü bir uyarı: Liman efendisi seni bekliyor. Kara Kadı kaçışını öğrendi."
   },
   "questNames": {
     "chapter": 1,
     "kind": "event",
     "speaker": "narr",
-    "tr": "Hücreler açıldı. Tutsaklar nakil yolunu gösteriyor.",
-    "en": "The cells are open. The prisoners show you the transport route."
+    "tr": "Hücreler açıldı. Tutsaklar nakil yolunu gösteriyor."
   },
   "questVerdict": {
     "chapter": 1,
     "kind": "event",
     "speaker": "narr",
-    "tr": "Esirlerin zincirleri kırıldı. Kıyıya çıkan yolu mezarın gardiyanı tutuyor.",
-    "en": "The captives’ chains are broken. The grave warden guards the passage to the shore."
+    "tr": "Esirlerin zincirleri kırıldı. Kıyıya çıkan yolu mezarın gardiyanı tutuyor."
   },
   "rescue1": {
     "chapter": 1,
     "kind": "event",
     "speaker": "narr",
-    "tr": "Derviş güvenli yere ulaştı. Matarasını sana bıraktı.",
-    "en": "Dervish has reached safety. He left his flask for you."
+    "tr": "Derviş güvenli yere ulaştı. Matarasını sana bıraktı."
   },
   "hunt1": {
     "chapter": 1,
     "kind": "event",
     "speaker": "narr",
-    "tr": "Kefen Dokuyucu düştü. Bir daha yaşayan birini saramayacak.",
-    "en": "The Shroud Weaver has fallen. He will wrap no more living bodies."
+    "tr": "Kefen Dokuyucu düştü. Bir daha yaşayan birini saramayacak."
   },
   "pages1": {
     "chapter": 1,
     "kind": "pages",
     "speaker": "narr",
-    "tr": "Üç kayıt aynı yolu gösteriyor: mezar, liman, harabeler. Hepsinde Kara Kadı’nın mührü var.",
-    "en": "Three records reveal the same route: grave, port, ruins. All bear the Black Qadi’s seal."
+    "tr": "Üç kayıt aynı yolu gösteriyor: mezar, liman, harabeler. Hepsinde Kara Kadı’nın mührü var."
   },
   "coastIntro": {
     "chapter": 2,
     "kind": "opening",
     "speaker": "narr",
-    "tr": "Bu limanın yükü insan. Kadı’nın gemileri esirleri buraya getiriyor.",
-    "en": "This port trades in people. The Qadi’s ships bring prisoners here."
+    "tr": "Bu limanın yükü insan. Kadı’nın gemileri esirleri buraya getiriyor."
   },
   "story2": {
     "chapter": 2,
     "kind": "discovery",
     "speaker": "narr",
-    "tr": "Gemilerin güvertesi boş. Esirler aşağıda zincirli. Liman efendisi onları harabelere gönderiyor.",
-    "en": "The decks are empty. The prisoners are chained below. The port master sends them to the ruins."
+    "tr": "Gemilerin güvertesi boş. Esirler aşağıda zincirli. Liman efendisi onları harabelere gönderiyor."
   },
   "coastRoots": {
     "chapter": 2,
     "kind": "event",
     "speaker": "narr",
-    "tr": "Kökler, kıyıya gömülen kurbanlara dolanmış. Toprak onları bırakmıyor.",
-    "en": "Roots coil around the victims buried on the shore. The earth will not let them go."
+    "tr": "Kökler, kıyıya gömülen kurbanlara dolanmış. Toprak onları bırakmıyor."
   },
   "coastStreet": {
     "chapter": 2,
     "kind": "event",
     "speaker": "narr",
-    "tr": "Evler boşaltılmış. Kapılarda esirlerin sayıldığı işaretler var.",
-    "en": "The houses were emptied. Marks on the doors count the prisoners."
+    "tr": "Evler boşaltılmış. Kapılarda esirlerin sayıldığı işaretler var."
   },
   "coastPier": {
     "chapter": 2,
     "kind": "event",
     "speaker": "narr",
-    "tr": "Fenerler kurban gemilerine yol gösteriyor. İçeride yaşayanlar var.",
-    "en": "The lanterns guide the slave ships. There are living people inside."
+    "tr": "Fenerler kurban gemilerine yol gösteriyor. İçeride yaşayanlar var."
   },
   "coastSquare": {
     "chapter": 2,
     "kind": "event",
     "speaker": "narr",
-    "tr": "Meydanın altında isimsiz mezarlar var. Liman efendisi sayıları biliyor. İsimleri değil.",
-    "en": "Nameless graves lie beneath the square. The port master knows the numbers, not the names."
+    "tr": "Meydanın altında isimsiz mezarlar var. Liman efendisi sayıları biliyor. İsimleri değil."
   },
   "coastCheckpoint": {
     "chapter": 2,
     "kind": "event",
     "speaker": "narr",
-    "tr": "Fenerin yanında soluklan. Çanlığa giden yol açık.",
-    "en": "Catch your breath beside the lantern. The road to the belfry is clear."
+    "tr": "Fenerin yanında soluklan. Çanlığa giden yol açık."
   },
   "coastBoss": {
     "chapter": 2,
     "kind": "event",
     "speaker": "narr",
-    "tr": "Liman efendisi çanıyla avcılarını çağırıyor. Çanı sustur.",
-    "en": "The port master calls his hunters with the bell. Silence it."
+    "tr": "Liman efendisi çanıyla avcılarını çağırıyor. Çanı sustur."
   },
   "coastDeath": {
     "chapter": 2,
     "kind": "event",
     "speaker": "narr",
-    "tr": "Deniz seni almadı. Kıyıya dön ve ayağa kalk.",
-    "en": "The sea did not take you. Return to shore and rise."
+    "tr": "Deniz seni almadı. Kıyıya dön ve ayağa kalk."
   },
   "coastDeath2": {
     "chapter": 2,
     "kind": "event",
     "speaker": "narr",
-    "tr": "Kökler seni tutamadı. Yeniden yürü.",
-    "en": "The roots could not hold you. Walk again."
+    "tr": "Kökler seni tutamadı. Yeniden yürü."
   },
   "coastDeath3": {
     "chapter": 2,
     "kind": "event",
     "speaker": "narr",
-    "tr": "Çan hâlâ çalıyor. Bu kıyıda kalmayacaksın.",
-    "en": "The bell still tolls. You will not remain on this shore."
+    "tr": "Çan hâlâ çalıyor. Bu kıyıda kalmayacaksın."
   },
   "coastSeal": {
     "chapter": 2,
     "kind": "event",
     "speaker": "narr",
-    "tr": "Nakil yolu açılıyor. Kıyının içlerine ilerle.",
-    "en": "The transport route is opening. Head inland."
+    "tr": "Nakil yolu açılıyor. Kıyının içlerine ilerle."
   },
   "coastWin": {
     "chapter": 2,
     "kind": "event",
     "speaker": "narr",
-    "tr": "Çan sustu. Esirlerin nakli durdu. Kadı’ya giden yol harabelerden geçiyor.",
-    "en": "The bell is silent. The prisoners’ transport has stopped. The road to the Qadi runs through the ruins."
+    "tr": "Çan sustu. Esirlerin nakli durdu. Kadı’ya giden yol harabelerden geçiyor."
   },
   "truth2": {
     "chapter": 2,
     "kind": "boss_truth",
     "speaker": "narr",
-    "tr": "Liman efendisi son nefesinde harabeleri işaret ediyor. Kadı’nın kurbanları orada bekliyor.",
-    "en": "With his final breath, the port master points toward the ruins. The Qadi’s victims wait there."
+    "tr": "Liman efendisi son nefesinde harabeleri işaret ediyor. Kadı’nın kurbanları orada bekliyor."
   },
   "questBell": {
     "chapter": 2,
     "kind": "event",
     "speaker": "narr",
-    "tr": "Gemideki esirler serbest. Çanın emri artık geçmiyor.",
-    "en": "The prisoners aboard the ship are free. The bell no longer commands them."
+    "tr": "Gemideki esirler serbest. Çanın emri artık geçmiyor."
   },
   "questMemory": {
     "chapter": 2,
     "kind": "event",
     "speaker": "narr",
-    "tr": "Kara sevkiyat durdu. Harabelere giden yol ortaya çıktı.",
-    "en": "The dark shipment is halted. The road to the ruins is revealed."
+    "tr": "Kara sevkiyat durdu. Harabelere giden yol ortaya çıktı."
   },
   "rescue2": {
     "chapter": 2,
     "kind": "event",
     "speaker": "narr",
-    "tr": "Kerem fenere ulaştı. Artık geminin zincirlerinden uzakta.",
-    "en": "Kerem has reached the lantern. He is beyond the ship’s chains now."
+    "tr": "Kerem fenere ulaştı. Artık geminin zincirlerinden uzakta."
   },
   "hunt2": {
     "chapter": 2,
     "kind": "event",
     "speaker": "narr",
-    "tr": "Tuz İçindeki Yeminli düştü. Üzerinde bir anahtar ve sevkiyat kaydı var.",
-    "en": "The Saltbound Oathkeeper has fallen. He carried a key and a transport record."
+    "tr": "Tuz İçindeki Yeminli düştü. Üzerinde bir anahtar ve sevkiyat kaydı var."
   },
   "pages2": {
     "chapter": 2,
     "kind": "pages",
     "speaker": "narr",
-    "tr": "Gemi kayıtları aynı emri taşıyor: Esirler canlı teslim edilecek. Alıcı, Kara Kadı.",
-    "en": "The ship records carry the same order: deliver the prisoners alive. The buyer is the Black Qadi."
+    "tr": "Gemi kayıtları aynı emri taşıyor: Esirler canlı teslim edilecek. Alıcı, Kara Kadı."
   },
   "ruinsIntro": {
     "chapter": 3,
     "kind": "opening",
     "speaker": "narr",
-    "tr": "Kadı’nın kurtuluş dediği yer burası. Kurbanlar ölemiyor. Toprak onları bağlı tutuyor.",
-    "en": "This is what the Qadi calls salvation. His victims cannot die. The earth holds them bound."
+    "tr": "Kadı’nın kurtuluş dediği yer burası. Kurbanlar ölemiyor. Toprak onları bağlı tutuyor."
   },
   "story3": {
     "chapter": 3,
     "kind": "discovery",
     "speaker": "narr",
-    "tr": "Taşın içindeki sesler yardım istiyor. Kadı onları bu mağaraya bağlamış. Zincirlerin dövüldüğü ocak daha derinde.",
-    "en": "Voices inside the stone cry for help. The Qadi bound them to this cavern. The forge that made their chains lies deeper."
+    "tr": "Taşın içindeki sesler yardım istiyor. Kadı onları bu mağaraya bağlamış. Zincirlerin dövüldüğü ocak daha derinde."
   },
   "ruinsCheckpoint": {
     "chapter": 3,
     "kind": "event",
     "speaker": "narr",
-    "tr": "Taş güvenli. Mağaranın son geçidine ilerle.",
-    "en": "The stone is safe. Head for the cavern’s final passage."
+    "tr": "Taş güvenli. Mağaranın son geçidine ilerle."
   },
   "ruinsBoss": {
     "chapter": 3,
     "kind": "event",
     "speaker": "narr",
-    "tr": "Kurban Bekçisi, Kadı’nın yolunu koruyor. Onu aş.",
-    "en": "The Sacrifice Warden guards the Qadi’s road. Break through."
+    "tr": "Kurban Bekçisi, Kadı’nın yolunu koruyor. Onu aş."
   },
   "ruinsWin": {
     "chapter": 3,
     "kind": "event",
     "speaker": "narr",
-    "tr": "Bekçi düştü. Mağaranın altından ocağın sıcaklığı geliyor.",
-    "en": "The warden has fallen. Heat rises from the forge beneath the cavern."
+    "tr": "Bekçi düştü. Mağaranın altından ocağın sıcaklığı geliyor."
   },
   "truth3": {
     "chapter": 3,
     "kind": "boss_truth",
     "speaker": "narr",
-    "tr": "Bekçinin zırhında ocağın damgası var. Bu zincirleri yapan usta aşağıda.",
-    "en": "The warden’s armor bears the forge mark. The master who made these chains is below."
+    "tr": "Bekçinin zırhında ocağın damgası var. Bu zincirleri yapan usta aşağıda."
   },
   "questKing": {
     "chapter": 3,
     "kind": "event",
     "speaker": "narr",
-    "tr": "Kurbanların bağları çözüldü. Taşın içindeki sesler susuyor.",
-    "en": "The victims’ bonds are broken. The voices inside the stone fall silent."
+    "tr": "Kurbanların bağları çözüldü. Taşın içindeki sesler susuyor."
   },
   "questEcho": {
     "chapter": 3,
     "kind": "event",
     "speaker": "narr",
-    "tr": "Mağara geçidi açıldı. Ocağa giden yolu buldun.",
-    "en": "The cavern passage is open. You found the road to the forge."
+    "tr": "Mağara geçidi açıldı. Ocağa giden yolu buldun."
   },
   "rescue3": {
     "chapter": 3,
     "kind": "event",
     "speaker": "narr",
-    "tr": "Kör taşçı güvenli yere ulaştı. Bildiği geçidi sana gösterdi.",
-    "en": "The blind mason has reached safety. He showed you a passage he knew."
+    "tr": "Kör taşçı güvenli yere ulaştı. Bildiği geçidi sana gösterdi."
   },
   "hunt3": {
     "chapter": 3,
     "kind": "event",
     "speaker": "narr",
-    "tr": "Kehanetçi Ulvi düştü. Kadı’nın avcıları bir rehber daha kaybetti.",
-    "en": "Ulvi the Seer has fallen. The Qadi’s hunters have lost another guide."
+    "tr": "Kehanetçi Ulvi düştü. Kadı’nın avcıları bir rehber daha kaybetti."
   },
   "pages3": {
     "chapter": 3,
     "kind": "pages",
     "speaker": "narr",
-    "tr": "Kayıtlarda kurtuluş yazıyor. Duvarların içinde yaşayan insanlar var. Kadı’nın vaadi bu.",
-    "en": "The records promise salvation. Living people are sealed inside the walls. This is the Qadi’s promise."
+    "tr": "Kayıtlarda kurtuluş yazıyor. Duvarların içinde yaşayan insanlar var. Kadı’nın vaadi bu."
   },
   "forgeIntro": {
     "chapter": 4,
     "kind": "opening",
     "speaker": "narr",
-    "tr": "Burada gardiyanların silahları, esirlerin zincirleri dövülüyor. Kadı’nın ocağına geldin.",
-    "en": "The guards’ weapons and the prisoners’ chains are forged here. You have reached the Qadi’s furnace."
+    "tr": "Burada gardiyanların silahları, esirlerin zincirleri dövülüyor. Kadı’nın ocağına geldin."
   },
   "story4": {
     "chapter": 4,
     "kind": "discovery",
     "speaker": "narr",
-    "tr": "Esirler ateşin başında çalıştırılıyor. Ocak durursa Kadı yeni zincir yaptıramaz. Önce onları çıkar.",
-    "en": "Prisoners are forced to work beside the fire. Stop the forge, and the Qadi gets no new chains. Get them out first."
+    "tr": "Esirler ateşin başında çalıştırılıyor. Ocak durursa Kadı yeni zincir yaptıramaz. Önce onları çıkar."
   },
   "forgeCheckpoint": {
     "chapter": 4,
     "kind": "event",
     "speaker": "narr",
-    "tr": "Közlerin uzağında soluklan. Ocağın ustası son kapıyı tutuyor.",
-    "en": "Catch your breath away from the embers. The forge master holds the final gate."
+    "tr": "Közlerin uzağında soluklan. Ocağın ustası son kapıyı tutuyor."
   },
   "forgeBoss": {
     "chapter": 4,
     "kind": "event",
     "speaker": "narr",
-    "tr": "Ocağın Ustası geliyor. Bu kez kendi demiriyle yüzleşecek.",
-    "en": "The Forge Master approaches. This time he faces his own iron."
+    "tr": "Ocağın Ustası geliyor. Bu kez kendi demiriyle yüzleşecek."
   },
   "forgeWin": {
     "chapter": 4,
     "kind": "event",
     "speaker": "narr",
-    "tr": "Ocak sustu. Zincir üretimi durdu. Son Mahkeme’ye giden yol açık.",
-    "en": "The forge is silent. No more chains will be made. The road to the Final Court is open."
+    "tr": "Ocak sustu. Zincir üretimi durdu. Son Mahkeme’ye giden yol açık."
   },
   "truth4": {
     "chapter": 4,
     "kind": "boss_truth",
     "speaker": "narr",
-    "tr": "Ustanın anahtarı son kapıyı açıyor. Ardında Kara Kadı’nın mahkemesi var.",
-    "en": "The master’s key opens the final gate. Beyond it lies the Black Qadi’s court."
+    "tr": "Ustanın anahtarı son kapıyı açıyor. Ardında Kara Kadı’nın mahkemesi var."
   },
   "questPrisoner": {
     "chapter": 4,
     "kind": "event",
     "speaker": "narr",
-    "tr": "Ocaktaki tutsaklar serbest. Artık ateşi beslemeyecekler.",
-    "en": "The forge prisoners are free. They will no longer feed the fire."
+    "tr": "Ocaktaki tutsaklar serbest. Artık ateşi beslemeyecekler."
   },
   "questHeart": {
     "chapter": 4,
     "kind": "event",
     "speaker": "narr",
-    "tr": "Son kapının düzeneği senin elinde. Mahkemeye ilerle.",
-    "en": "You control the final gate mechanism. Head for the court."
+    "tr": "Son kapının düzeneği senin elinde. Mahkemeye ilerle."
   },
   "rescue4": {
     "chapter": 4,
     "kind": "event",
     "speaker": "narr",
-    "tr": "Yusuf zincir örsünden uzaklaştı. Son işini senin silahın için yapıyor.",
-    "en": "Yusuf has left the chain anvil. His last work is for your weapon."
+    "tr": "Yusuf zincir örsünden uzaklaştı. Son işini senin silahın için yapıyor."
   },
   "hunt4": {
     "chapter": 4,
     "kind": "event",
     "speaker": "narr",
-    "tr": "Kül Veziri düştü. Üzerindeki mühür, Kadı’nın mahkemesine ait.",
-    "en": "The Ash Vizier has fallen. His seal belongs to the Qadi’s court."
+    "tr": "Kül Veziri düştü. Üzerindeki mühür, Kadı’nın mahkemesine ait."
   },
   "pages4": {
     "chapter": 4,
     "kind": "pages",
     "speaker": "narr",
-    "tr": "Demir hesabı, esir hesabıyla aynı defterde. Kadı için insan da zincir de bir yük.",
-    "en": "Iron and prisoners are counted in the same ledger. To the Qadi, people and chains are only cargo."
+    "tr": "Demir hesabı, esir hesabıyla aynı defterde. Kadı için insan da zincir de bir yük."
   },
   "ch5Intro": {
     "chapter": 5,
     "kind": "opening",
     "speaker": "narr",
-    "tr": "Seni gömdüren adam burada. Bu kez mahkemesine zincirsiz geldin.",
-    "en": "The man who had you buried is here. This time you enter his court unchained."
+    "tr": "Seni gömdüren adam burada. Bu kez mahkemesine zincirsiz geldin."
   },
   "story5": {
     "chapter": 5,
     "kind": "discovery",
     "speaker": "narr",
-    "tr": "Kadı kurbanların soluğuyla ömrünü uzatıyor. Son esirler hâlâ bağlı. Onları çıkar, sonra hesabını gör.",
-    "en": "The Qadi extends his life with his victims’ breath. The last prisoners are still bound. Free them, then settle your score."
+    "tr": "Kadı kurbanların soluğuyla ömrünü uzatıyor. Son esirler hâlâ bağlı. Onları çıkar, sonra hesabını gör."
   },
   "ch5Checkpoint": {
     "chapter": 5,
     "kind": "event",
     "speaker": "narr",
-    "tr": "Son kapıya geldin. Arkanda açtığın yol, önünde Kara Kadı var.",
-    "en": "You have reached the final gate. Behind you lies the road you opened. Ahead stands the Black Qadi."
+    "tr": "Son kapıya geldin. Arkanda açtığın yol, önünde Kara Kadı var."
   },
   "ch5Boss": {
     "chapter": 5,
     "kind": "event",
     "speaker": "narr",
-    "tr": "Kara Kadı. Seni canlı gömen adam. Onun düzenini bitir.",
-    "en": "The Black Qadi. The man who buried you alive. End his reign."
+    "tr": "Kara Kadı. Seni canlı gömen adam. Onun düzenini bitir."
   },
   "ch5Win": {
     "chapter": 5,
     "kind": "event",
     "speaker": "narr",
-    "tr": "Kadı düştü. Son zincirleri kır ve esirleri gün ışığına çıkar.",
-    "en": "The Qadi has fallen. Break the last chains and lead the prisoners into daylight."
+    "tr": "Kadı düştü. Son zincirleri kır ve esirleri gün ışığına çıkar."
   },
   "ch5Death": {
     "chapter": 5,
     "kind": "event",
     "speaker": "narr",
-    "tr": "Seni bir kez gömdüler. İkinci kez izin verme. Kalk.",
-    "en": "They buried you once. Do not let them do it again. Rise."
+    "tr": "Seni bir kez gömdüler. İkinci kez izin verme. Kalk."
   },
   "questSeals": {
     "chapter": 5,
     "kind": "event",
     "speaker": "narr",
-    "tr": "Kurban düzeninin bağları koptu. Kadı’nın kapısı açılıyor.",
-    "en": "The bonds of the sacrificial rite are broken. The Qadi’s gate is opening."
+    "tr": "Kurban düzeninin bağları koptu. Kadı’nın kapısı açılıyor."
   },
   "questSelvi": {
     "chapter": 5,
     "kind": "event",
     "speaker": "narr",
-    "tr": "Son esirlerin zincirleri çözüldü. Çıkış yolu onların da yolu.",
-    "en": "The last prisoners’ chains are broken. Your way out is theirs as well."
+    "tr": "Son esirlerin zincirleri çözüldü. Çıkış yolu onların da yolu."
   },
   "selviFreed": {
     "chapter": 5,
     "kind": "event",
     "speaker": "narr",
-    "tr": "Esirler ayağa kalkıyor. Bahtiyar yolu gösteriyor: Yürüyebilen, benimle gelsin.",
-    "en": "The prisoners rise. Bahtiyar points the way: If you can walk, come with me."
+    "tr": "Esirler ayağa kalkıyor. Bahtiyar yolu gösteriyor: Yürüyebilen, benimle gelsin."
   },
   "hunt5": {
     "chapter": 5,
     "kind": "event",
     "speaker": "narr",
-    "tr": "Mürekkep Celladı düştü. Kadı’nın son avcısı sustu.",
-    "en": "The Ink Executioner has fallen. The Qadi’s last hunter is silent."
+    "tr": "Mürekkep Celladı düştü. Kadı’nın son avcısı sustu."
   },
   "pages5": {
     "chapter": 5,
     "kind": "pages",
     "speaker": "narr",
-    "tr": "Emirde senin adın var: Bahtiyar. Canlı gömülecek. Altındaki mühür Kara Kadı’nın.",
-    "en": "Your name is on the order: Bahtiyar. To be buried alive. Beneath it lies the Black Qadi’s seal."
+    "tr": "Emirde senin adın var: Bahtiyar. Canlı gömülecek. Altındaki mühür Kara Kadı’nın."
   },
   "endingName": {
     "chapter": 5,
     "kind": "ending",
     "speaker": "narr",
-    "tr": "Kara Kadı öldü. Zincirler düştü. Bahtiyar esirlerle birlikte gün ışığına çıkıyor. Arkalarında mezar ilk kez sessiz. Önlerinde açık bir yol var.",
-    "en": "The Black Qadi is dead. The chains have fallen. Bahtiyar leads the prisoners into daylight. Behind them, the grave is silent at last. An open road lies ahead."
+    "tr": "Kara Kadı öldü. Zincirler düştü. Bahtiyar esirlerle birlikte gün ışığına çıkıyor. Arkalarında mezar ilk kez sessiz. Önlerinde açık bir yol var."
   },
   "endingBurn": {
     "chapter": 5,
     "kind": "ending",
     "speaker": "narr",
-    "tr": "Kara Kadı öldü. Zincirler düştü. Bahtiyar esirlerle birlikte gün ışığına çıkıyor. Arkalarında mezar ilk kez sessiz. Önlerinde açık bir yol var.",
-    "en": "The Black Qadi is dead. The chains have fallen. Bahtiyar leads the prisoners into daylight. Behind them, the grave is silent at last. An open road lies ahead."
+    "tr": "Kara Kadı öldü. Zincirler düştü. Bahtiyar esirlerle birlikte gün ışığına çıkıyor. Arkalarında mezar ilk kez sessiz. Önlerinde açık bir yol var."
   },
   "endingQuill": {
     "chapter": 5,
     "kind": "ending",
     "speaker": "narr",
-    "tr": "Kara Kadı öldü. Zincirler düştü. Bahtiyar esirlerle birlikte gün ışığına çıkıyor. Arkalarında mezar ilk kez sessiz. Önlerinde açık bir yol var.",
-    "en": "The Black Qadi is dead. The chains have fallen. Bahtiyar leads the prisoners into daylight. Behind them, the grave is silent at last. An open road lies ahead."
+    "tr": "Kara Kadı öldü. Zincirler düştü. Bahtiyar esirlerle birlikte gün ışığına çıkıyor. Arkalarında mezar ilk kez sessiz. Önlerinde açık bir yol var."
   },
   "leanMercy": {
     "chapter": 5,
     "kind": "event",
     "speaker": "narr",
-    "tr": "Açtığın hücrelerin ardından ayak sesleri geliyor. Kurtulanlar yolunu takip ediyor.",
-    "en": "Footsteps follow you from the cells you opened. The freed prisoners follow your road."
+    "tr": "Açtığın hücrelerin ardından ayak sesleri geliyor. Kurtulanlar yolunu takip ediyor."
   },
   "leanWrath": {
     "chapter": 5,
     "kind": "event",
     "speaker": "narr",
-    "tr": "Kırdığın her zincir, Kadı’nın elinden bir güç daha alıyor.",
-    "en": "Every chain you break takes more power from the Qadi."
+    "tr": "Kırdığın her zincir, Kadı’nın elinden bir güç daha alıyor."
   },
   "ch5Kadi": {
     "chapter": 5,
     "kind": "event",
     "speaker": "kadi",
-    "tr": "Mezarını kırdın, barbar. Buradan çıkacağını mı sandın? Diz çök.",
-    "en": "You broke your grave, barbarian. Did you think you could leave? Kneel."
+    "tr": "Mezarını kırdın, barbar. Buradan çıkacağını mı sandın? Diz çök."
   },
   "ch5Echo": {
     "chapter": 5,
     "kind": "event",
     "speaker": "narr",
-    "tr": "Kadı düşen gardiyanlarının gücünü topluyor. Eski saldırılara dikkat et.",
-    "en": "The Qadi gathers the power of his fallen wardens. Watch for their attacks."
+    "tr": "Kadı düşen gardiyanlarının gücünü topluyor. Eski saldırılara dikkat et."
   },
   "ch5LastVerdict": {
     "chapter": 5,
     "kind": "event",
     "speaker": "kadi",
-    "tr": "Son hüküm benim. Işığın dışındaki her şey yanacak.",
-    "en": "The final judgment is mine. Everything outside the light will burn."
+    "tr": "Son hüküm benim. Işığın dışındaki her şey yanacak."
   }
 }

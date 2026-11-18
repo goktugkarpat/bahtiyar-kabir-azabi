@@ -3,83 +3,80 @@
    BABA.BossLootTables: which boss / warden owns which iconic items). Every item below drops ONLY from its own boss:
    progression.js excludes them from the general picker, and loot() asserts it. Powers live in gear-powers.js,
    meshes in gear-weapons.js / gear-armor.js (rarity 'boss' = unique look), icons in assets/equipment/boss-thumbnails.js.
-   Every visible string is registered in both languages through L(tr, en) into KabirI18n.dictionary. */
+   Every visible string goes through L(tr) (KabirI18n.t). */
 (function () {
   'use strict';
   var B = window.BABA = window.BABA || {};
-  var I = window.KabirI18n, DICT = I && I.dictionary;
-  function L(tr, en) { if (DICT && en && !DICT[tr]) DICT[tr] = en; return I ? I.t(tr) : tr; }
+  var I = window.KabirI18n;
+  function L(tr) { return I ? I.t(tr) : tr; }
 
   // ---- bosses and wardens: key = chapter number (chapter boss) or enemy type (warden), as used by progression.js bossSignatures.
   // crest: small emblem on the item card; the FIRST id of a table is the signature (guaranteed on the first kill).
   var BOSSES = {
-    1: { tr: 'Zincir Celladı', trFrom: 'Zincir Celladı’ndan', en: 'Chain Executioner', crest: 'chain', ids: ['executioner-axe', 'rusted-mail-chest', 'headsman-hood', 'hook-chain-gauntlets'] },
-    2: { tr: 'Derinliklerin Çancısı', trFrom: 'Derinliklerin Çancısı’ndan', en: 'Bellringer of the Depths', crest: 'bell', ids: ['bell-spear', 'drowned-clapper-axe', 'bellringer-bronze-chest', 'drowned-ringer-helm', 'tide-chain-boots'] },
-    3: { tr: 'Kurban Bekçisi', trFrom: 'Kurban Bekçisi’ndan', en: 'King of the Hollows', crest: 'crown', ids: ['hollow-crown-blade', 'hollow-scepter-spear', 'king-ossuary-chest', 'hollow-king-spurs'] },
-    ruinwarden: { tr: 'Harabe Muhafızı', trFrom: 'Harabe Muhafızı’ndan', en: 'Ruin Warden', crest: 'visor', ids: ['warden-chainmail', 'warden-verdict-helm', 'warden-iron-claws'] },
-    4: { tr: 'Ocağın Kalbi', trFrom: 'Ocağın Kalbi’nden', en: 'Heart of the Furnace', crest: 'flame', ids: ['furnace-oath-axe', 'heart-forged-sword', 'anvil-heart-chest', 'furnace-heart-helm', 'cinder-breath-boots'] },
-    ashwarden: { tr: 'Külün Baş Muhafızı', trFrom: 'Külün Baş Muhafızı’ndan', en: 'High Warden of Ash', crest: 'visor', ids: ['ash-warden-chest', 'ash-warden-grasp', 'ash-warden-greaves'] },
-    5: { tr: 'Kara Kadı', trFrom: 'Kara Kadı’dan', en: 'Black Qadi', crest: 'scales', ids: ['last-verdict-blade', 'black-gavel-axe', 'qadi-black-robe', 'qadi-iron-turban'] },
-    verdictwarden: { tr: 'Hüküm Bekçisi', trFrom: 'Hüküm Bekçisi’nden', en: 'Verdict Warden', crest: 'visor', ids: ['verdict-warden-helm', 'verdict-warden-chest', 'verdict-warden-boots'] }
+    1: { tr: 'Zincir Celladı', trFrom: 'Zincir Celladı’ndan', crest: 'chain', ids: ['executioner-axe', 'rusted-mail-chest', 'headsman-hood', 'hook-chain-gauntlets'] },
+    2: { tr: 'Derinliklerin Çancısı', trFrom: 'Derinliklerin Çancısı’ndan', crest: 'bell', ids: ['bell-spear', 'drowned-clapper-axe', 'bellringer-bronze-chest', 'drowned-ringer-helm', 'tide-chain-boots'] },
+    3: { tr: 'Kurban Bekçisi', trFrom: 'Kurban Bekçisi’ndan', crest: 'crown', ids: ['hollow-crown-blade', 'hollow-scepter-spear', 'king-ossuary-chest', 'hollow-king-spurs'] },
+    ruinwarden: { tr: 'Harabe Muhafızı', trFrom: 'Harabe Muhafızı’ndan', crest: 'visor', ids: ['warden-chainmail', 'warden-verdict-helm', 'warden-iron-claws'] },
+    4: { tr: 'Ocağın Kalbi', trFrom: 'Ocağın Kalbi’nden', crest: 'flame', ids: ['furnace-oath-axe', 'heart-forged-sword', 'anvil-heart-chest', 'furnace-heart-helm', 'cinder-breath-boots'] },
+    ashwarden: { tr: 'Külün Baş Muhafızı', trFrom: 'Külün Baş Muhafızı’ndan', crest: 'visor', ids: ['ash-warden-chest', 'ash-warden-grasp', 'ash-warden-greaves'] },
+    5: { tr: 'Kara Kadı', trFrom: 'Kara Kadı’dan', crest: 'scales', ids: ['last-verdict-blade', 'black-gavel-axe', 'qadi-black-robe', 'qadi-iron-turban'] },
+    verdictwarden: { tr: 'Hüküm Bekçisi', trFrom: 'Hüküm Bekçisi’nden', crest: 'visor', ids: ['verdict-warden-helm', 'verdict-warden-chest', 'verdict-warden-boots'] }
   };
-  var SOURCE_TR_EN = {};   // 'Zincir Celladı’ndan' -> 'From the Chain Executioner'
   var sourceOf = {};       // item id -> boss key
   Object.keys(BOSSES).forEach(function (key) {
     var b = BOSSES[key];
-    SOURCE_TR_EN[b.trFrom] = 'From the ' + b.en;
-    L(b.trFrom, 'From the ' + b.en);
     b.ids.forEach(function (id) { sourceOf[id] = key; });
   });
-  L('Boss ganimeti', 'Boss loot');
-  L('Yalnız bu düşmandan düşer', 'Drops only from this foe');
+  L('Boss ganimeti');
+  L('Yalnız bu düşmandan düşer');
 
   // [id, name, slot, level, rarity, damage, defense, hp, type, description, modelId, finish]   (modelId = fitted core or the weapon's own mesh id)
   var SPECS = [
     // ---- Chapter I — Zincir Celladı
-    ['rusted-mail-chest', L('Celladın Paslı Zırhı', 'The Executioner’s Rusted Mail'), 'chest', 3, 'boss', 0, .075, 3, null,
-      L('Celladın boynundaki zincirlerden örülmüş ağır halkalar. Her halkada bir ismin paslı izi var.', 'Heavy rings woven from the chains about the executioner’s neck. Each link bears the rusted trace of a name.'), 'chainmail-chest', 'rust'],
-    ['headsman-hood', L('Celladın Kara Başlığı', 'The Headsman’s Black Hood'), 'head', 3, 'boss', 0, .045, 4, null,
-      L('Kütüğün başında kararmış kalın bir başlık. Kimsenin yüzünü hatırlamaz.', 'A thick hood blackened at the block. It remembers no one’s face.'), 'buried-hood', 'blood'],
-    ['hook-chain-gauntlets', L('Kanca Zincirli Eldivenler', 'Hook-Chain Gauntlets'), 'hands', 3, 'boss', 0, .045, 2, null,
-      L('Bileklerinden sarkan zincirlerin ucunda eski kancalar var. Tutunduğunu bırakmaz.', 'Old hooks hang from the chains at the wrists. Whatever they catch, they do not release.'), 'chain-gloves', 'rust'],
+    ['rusted-mail-chest', L('Celladın Paslı Zırhı'), 'chest', 3, 'boss', 0, .075, 3, null,
+      L('Celladın boynundaki zincirlerden örülmüş ağır halkalar. Her halkada bir ismin paslı izi var.'), 'chainmail-chest', 'rust'],
+    ['headsman-hood', L('Celladın Kara Başlığı'), 'head', 3, 'boss', 0, .045, 4, null,
+      L('Kütüğün başında kararmış kalın bir başlık. Kimsenin yüzünü hatırlamaz.'), 'buried-hood', 'blood'],
+    ['hook-chain-gauntlets', L('Kanca Zincirli Eldivenler'), 'hands', 3, 'boss', 0, .045, 2, null,
+      L('Bileklerinden sarkan zincirlerin ucunda eski kancalar var. Tutunduğunu bırakmaz.'), 'chain-gloves', 'rust'],
     // ---- Chapter II — Derinliklerin Çancısı
-    ['drowned-clapper-axe', L('Boğulmuş Çan Dili', 'The Drowned Clapper'), 'weapon', 5, 'boss', .17, 0, 2, 'axe',
-      L('Çancının kendi çan dilinden dövülmüş balta. Çan çoktan sustu; ağırlığı kaldı.', 'An axe beaten from the ringer’s own clapper. The bell fell silent; the weight remained.'), 'drowned-clapper-axe', 'brine'],
-    ['bellringer-bronze-chest', L('Çancının Bronz Zırhı', 'The Bellringer’s Bronze Cuirass'), 'chest', 5, 'boss', 0, .105, 3, null,
-      L('Derinlikte yeşile dönmüş bronz plakalar. Tuz içlerinden akmış, ama çatlatamamış.', 'Bronze plates turned green in the deep. Salt ran through them but never cracked them.'), 'coast-chest', 'brine'],
-    ['drowned-ringer-helm', L('Boğulmuş Çancının Yüzü', 'Face of the Drowned Ringer'), 'head', 5, 'boss', 0, .075, 3, null,
-      L('Siperinin ardında yutulmuş bir çığlık kalmış. Tuz hâlâ kemirir.', 'A swallowed scream remains behind the visor. The salt still gnaws at it.'), 'bell-helm', 'brine'],
-    ['tide-chain-boots', L('Gelgit Zincirinin Adımları', 'Steps of the Tide Chain'), 'boots', 5, 'boss', 0, .075, 2, null,
-      L('Bileklerinde kopmuş bir çapa zinciri sallanır. Dibe çekilen her adımı geri alır.', 'A snapped anchor chain swings at the ankles. It takes back every step the deep pulled down.'), 'shackle-boots', 'brine'],
+    ['drowned-clapper-axe', L('Boğulmuş Çan Dili'), 'weapon', 5, 'boss', .17, 0, 2, 'axe',
+      L('Çancının kendi çan dilinden dövülmüş balta. Çan çoktan sustu; ağırlığı kaldı.'), 'drowned-clapper-axe', 'brine'],
+    ['bellringer-bronze-chest', L('Çancının Bronz Zırhı'), 'chest', 5, 'boss', 0, .105, 3, null,
+      L('Derinlikte yeşile dönmüş bronz plakalar. Tuz içlerinden akmış, ama çatlatamamış.'), 'coast-chest', 'brine'],
+    ['drowned-ringer-helm', L('Boğulmuş Çancının Yüzü'), 'head', 5, 'boss', 0, .075, 3, null,
+      L('Siperinin ardında yutulmuş bir çığlık kalmış. Tuz hâlâ kemirir.'), 'bell-helm', 'brine'],
+    ['tide-chain-boots', L('Gelgit Zincirinin Adımları'), 'boots', 5, 'boss', 0, .075, 2, null,
+      L('Bileklerinde kopmuş bir çapa zinciri sallanır. Dibe çekilen her adımı geri alır.'), 'shackle-boots', 'brine'],
     // ---- Chapter III — Kurban Bekçisi
-    ['hollow-scepter-spear', L('Kurban Bekçisinin Kemik Mızrağı', 'The Sacrificial Warden’s Bone Spear'), 'weapon', 7, 'boss', .235, 0, 2, 'spear',
-      L('Kadı’nın bekçisinin taşıdığı kemik mızrak. Taşın altında bağlanan kurbanların kemikleriyle güçlendirilmiş.', 'A bone spear carried by the Judge’s warden, reinforced with the bones of victims bound beneath the stone.'), 'hollow-scepter-spear', 'bone'],
-    ['king-ossuary-chest', L('Kurban Bekçisinin Kemik Zırhı', 'The Warden’s Ossuary Plate'), 'chest', 7, 'boss', 0, .13, 3, null,
-      L('Kurban bekçisinin kemik göğüslüğü. Kaburgalar arasındaki demir bağlar Kadı’nın ocağında dövülmüş.', 'The sacrificial warden’s bone cuirass. The iron bindings between its ribs were forged in the Judge’s furnace.'), 'rib-chest', 'bone'],
-    ['hollow-king-spurs', L('Kurban Bekçisinin Mahmuzları', 'The Warden’s Spurs'), 'boots', 7, 'boss', 0, .09, 3, null,
-      L('Taht odasının taşını çizmiş altın mahmuzlar. Artık hiçbir ata binmez; yalnız yürür.', 'Gold spurs that scored the throne room’s stone. They ride no horse now; they only walk.'), 'crown-boots', 'bone'],
-    ['warden-iron-claws', L('Muhafızın Demir Pençeleri', 'The Warden’s Iron Claws'), 'hands', 5, 'boss', 0, .09, 2, null,
-      L('Harabe kapısını kırmak için dökülmüş kalın pençeler. Kapı yıkıldı, pençeler durdu.', 'Thick claws cast to break the ruin’s gate. The gate fell; the claws stayed.'), 'claw-gauntlets', 'bone'],
+    ['hollow-scepter-spear', L('Kurban Bekçisinin Kemik Mızrağı'), 'weapon', 7, 'boss', .235, 0, 2, 'spear',
+      L('Kadı’nın bekçisinin taşıdığı kemik mızrak. Taşın altında bağlanan kurbanların kemikleriyle güçlendirilmiş.'), 'hollow-scepter-spear', 'bone'],
+    ['king-ossuary-chest', L('Kurban Bekçisinin Kemik Zırhı'), 'chest', 7, 'boss', 0, .13, 3, null,
+      L('Kurban bekçisinin kemik göğüslüğü. Kaburgalar arasındaki demir bağlar Kadı’nın ocağında dövülmüş.'), 'rib-chest', 'bone'],
+    ['hollow-king-spurs', L('Kurban Bekçisinin Mahmuzları'), 'boots', 7, 'boss', 0, .09, 3, null,
+      L('Taht odasının taşını çizmiş altın mahmuzlar. Artık hiçbir ata binmez; yalnız yürür.'), 'crown-boots', 'bone'],
+    ['warden-iron-claws', L('Muhafızın Demir Pençeleri'), 'hands', 5, 'boss', 0, .09, 2, null,
+      L('Harabe kapısını kırmak için dökülmüş kalın pençeler. Kapı yıkıldı, pençeler durdu.'), 'claw-gauntlets', 'bone'],
     // ---- Chapter IV — Ocağın Kalbi
-    ['heart-forged-sword', L('Kalbin Döküm Kılıcı', 'Heartforged Blade'), 'weapon', 9, 'boss', .28, 0, 3, 'sword',
-      L('Ocağın kalbinde bir kez kızarmış, bir daha soğumamış kılıç. Sapı elini yakmaz; yalnız hatırlatır.', 'A blade that reddened once in the furnace’s heart and never cooled. Its hilt does not burn the hand; it only reminds it.'), 'heart-forged-sword', 'blood'],
-    ['anvil-heart-chest', L('Örs Kalbinin Zırhı', 'Anvil-Heart Plate'), 'chest', 9, 'boss', 0, .15, 3, null,
-      L('Dev örsün kırılan parçasından dövülmüş göğüslük. Her darbeyi hatırlar, hiçbirini geri vermez.', 'A cuirass hammered from a broken piece of the great anvil. It remembers every blow and returns none.'), 'warden-chest', 'rust'],
-    ['furnace-heart-helm', L('Ocak Kalbinin Siperi', 'Visor of the Furnace Heart'), 'head', 9, 'boss', 0, .105, 3, null,
-      L('Gözlerin arkasında hâlâ bir kor dönüyor. Bakışı eritir, vazgeçmez.', 'An ember still turns behind the eyes. Its gaze melts and does not relent.'), 'furnace-mask', 'blood'],
-    ['cinder-breath-boots', L('Köz Soluğunun Adımları', 'Steps of the Cinder Breath'), 'boots', 9, 'boss', 0, .11, 3, null,
-      L('Tabanlarında kömür tozu, ağızlarında körük sesi. Sıcak tabanlı kimse üşümez.', 'Coal dust in the soles, the sound of bellows in the throats. Whoever walks on warm soles never feels the cold.'), 'crown-boots', 'ash'],
-    ['ash-warden-greaves', L('Kül Muhafızının Kaval Zırhı', 'The Ash Warden’s Greaves'), 'boots', 7, 'boss', 0, .105, 2, null,
-      L('Nöbet boyunca hiç oturmayan bir muhafızın demir kavalları. Külün içinde bile ayakta kalır.', 'Iron greaves of a warden who never sat during his watch. They stand even in the ash.'), 'shackle-boots', 'ash'],
+    ['heart-forged-sword', L('Kalbin Döküm Kılıcı'), 'weapon', 9, 'boss', .28, 0, 3, 'sword',
+      L('Ocağın kalbinde bir kez kızarmış, bir daha soğumamış kılıç. Sapı elini yakmaz; yalnız hatırlatır.'), 'heart-forged-sword', 'blood'],
+    ['anvil-heart-chest', L('Örs Kalbinin Zırhı'), 'chest', 9, 'boss', 0, .15, 3, null,
+      L('Dev örsün kırılan parçasından dövülmüş göğüslük. Her darbeyi hatırlar, hiçbirini geri vermez.'), 'warden-chest', 'rust'],
+    ['furnace-heart-helm', L('Ocak Kalbinin Siperi'), 'head', 9, 'boss', 0, .105, 3, null,
+      L('Gözlerin arkasında hâlâ bir kor dönüyor. Bakışı eritir, vazgeçmez.'), 'furnace-mask', 'blood'],
+    ['cinder-breath-boots', L('Köz Soluğunun Adımları'), 'boots', 9, 'boss', 0, .11, 3, null,
+      L('Tabanlarında kömür tozu, ağızlarında körük sesi. Sıcak tabanlı kimse üşümez.'), 'crown-boots', 'ash'],
+    ['ash-warden-greaves', L('Kül Muhafızının Kaval Zırhı'), 'boots', 7, 'boss', 0, .105, 2, null,
+      L('Nöbet boyunca hiç oturmayan bir muhafızın demir kavalları. Külün içinde bile ayakta kalır.'), 'shackle-boots', 'ash'],
     // ---- Chapter V — Kara Kadı
-    ['black-gavel-axe', L('Kara Tokmak', 'The Black Gavel'), 'weapon', 11, 'boss', .32, 0, 4, 'axe',
-      L('Kürsüye vurularak binlerce hüküm veren ağır tokmak balta. Tek bir sanığı bile bağışlamadı.', 'The heavy gavel-axe that pronounced a thousand sentences on the bench. It spared not one defendant.'), 'black-gavel-axe', 'blood'],
-    ['qadi-black-robe', L('Kadı’nın Kara Cübbesi', 'The Black Qadi’s Robe'), 'chest', 11, 'boss', 0, .155, 6, null,
-      L('Hüküm okurken giyilen ağır cübbe. Kıvrımlarında dört efendinin mührü kurumuş.', 'The heavy robe worn when reading a verdict. The seals of four masters have dried in its folds.'), 'brigandine-chest', 'blood'],
-    ['qadi-iron-turban', L('Kadı’nın Demir Sarığı', 'The Qadi’s Iron Turban'), 'head', 11, 'boss', 0, .11, 5, null,
-      L('Sarığın demir katları hüküm kadar ağır. Altındaki baş hiç eğilmedi.', 'The turban’s iron folds weigh as much as a verdict. The head beneath it never bowed.'), 'warden-crown', 'ash'],
-    ['verdict-warden-boots', L('Hüküm Bekçisinin Zincirli Adımları', 'The Verdict Warden’s Chained Steps'), 'boots', 9, 'boss', 0, .115, 4, null,
-      L('Her adımda bir mahkûmu kürsüye çeken zincirler. Zincirler şimdi boş.', 'Chains that dragged a prisoner to the bench with every step. The chains are empty now.'), 'shackle-boots', 'blood']
+    ['black-gavel-axe', L('Kara Tokmak'), 'weapon', 11, 'boss', .32, 0, 4, 'axe',
+      L('Kürsüye vurularak binlerce hüküm veren ağır tokmak balta. Tek bir sanığı bile bağışlamadı.'), 'black-gavel-axe', 'blood'],
+    ['qadi-black-robe', L('Kadı’nın Kara Cübbesi'), 'chest', 11, 'boss', 0, .155, 6, null,
+      L('Hüküm okurken giyilen ağır cübbe. Kıvrımlarında dört efendinin mührü kurumuş.'), 'brigandine-chest', 'blood'],
+    ['qadi-iron-turban', L('Kadı’nın Demir Sarığı'), 'head', 11, 'boss', 0, .11, 5, null,
+      L('Sarığın demir katları hüküm kadar ağır. Altındaki baş hiç eğilmedi.'), 'warden-crown', 'ash'],
+    ['verdict-warden-boots', L('Hüküm Bekçisinin Zincirli Adımları'), 'boots', 9, 'boss', 0, .115, 4, null,
+      L('Her adımda bir mahkûmu kürsüye çeken zincirler. Zincirler şimdi boş.'), 'shackle-boots', 'blood']
   ];
 
   // Small crest emblems (24x24, stroke only) shown on the item card; own vectors, no textures.
@@ -103,7 +100,7 @@
   B.BossLootTables = { signatures: Object.freeze(signatures), bosses: BOSSES, sourceOf: sourceOf, order: order, extraChance: Object.freeze([35, 10]) };
   B.BossLoot = {
     sourceOf: function (id) { return sourceOf[id] || null; },
-    // 'Zincir Celladı’ndan' / 'From the Chain Executioner' for the item card (empty for items without a boss).
+    // 'Zincir Celladı’ndan' for the item card (empty for items without a boss).
     sourceText: function (id) { var k = sourceOf[id]; return k ? (I ? I.t(BOSSES[k].trFrom) : BOSSES[k].trFrom) : ''; },
     crest: crestSvg,
     // Card line: crest + source + "only from this foe".

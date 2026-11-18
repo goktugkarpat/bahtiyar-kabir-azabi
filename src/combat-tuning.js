@@ -51,7 +51,7 @@
   // (the .36 / .58 s punish floor and every tell time stay untouched); PHASE = damage of the boss's own blows in phase 2 / 3 (and the late-phase signature cadence: boss-framework.js pace()).
   const BOSS_REST = .88, BOSS_PHASE = Object.freeze({ 1: 1, 2: 1.06, 3: 1.12 });
   function profile(level) { return DIFFICULTY[level] || DIFFICULTY.normal; }
-  // Text for the settings screen (Turkish source, translated through KabirI18n; English in i18n.js block "ajan:combat").
+  // Text for the settings screen (Turkish source, passed through KabirI18n.t).
   function describe(level) {
     const t = s => (window.KabirI18n ? KabirI18n.t(s) : s);
     if (level === 'easy') return t('Kolay: hikâye ve keşif için. Düşmanlar yarı hasar verir, daha yavaş saldırır ve aynı anda daha az kişi üstüne gelir. Yuvarlanma ucuzdur, 5 şifa matarası taşırsın.');

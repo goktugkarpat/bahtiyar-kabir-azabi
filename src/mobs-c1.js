@@ -29,15 +29,6 @@
     eliteName: 'Zindan Bekçibaşı'
   };
 
-  // ================================================================= çeviriler
-  var L = {
-    'Pranga Bekçisi': 'Shackle Warden', 'Ağıtçı': 'Dirge-Weeper', 'Zindan Bekçibaşı': 'Head Gaoler',
-    'Kanca Darbesi': 'Hook Strike', 'Anahtar Topuzu': 'Key Pommel', 'Pranga Tuzağı': 'Shackle Trap', 'Açık Pranga': 'Open Shackle', 'Zincir Çarkı': 'Chain Wheel',
-    'Matem Mührü': 'Mourning Ward', 'Yas Çığlığı': 'Wail of Grief', 'Ağıt Nefesi': 'Dirge Breath', 'Yas Kalkanı': 'Mourning Shield',
-    'Pranga Bekçisi · kanca': 'Shackle Warden · hook'
-  };
-  (function () { var d = window.KabirI18n && KabirI18n.dictionary; if (d) for (var k in L) if (d[k] === undefined) d[k] = L[k]; })();
-
   // ================================================================= istatistikler (combat.js STATS'a eklenir)
   var stats = {
     shacklewarden: { name: tr('Pranga Bekçisi'), hp: TUNE.shacklewarden.hp, speed: TUNE.shacklewarden.speed, radius: TUNE.shacklewarden.radius, reach: TUNE.shacklewarden.reach, cooldown: TUNE.shacklewarden.cooldown, color: 0x9a8f86, c1: true },

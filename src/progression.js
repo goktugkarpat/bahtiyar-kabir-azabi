@@ -108,12 +108,12 @@
     const previous = skill.tier > 1 ? skills.filter(s => s.tier === skill.tier - 1) : [];
     const missingTier = previous.filter(s => !learned.has(s.id)).length;
     const blocked = !known && (low || !!missingParent || missingTier > 0);
-    const reason = known ? KabirI18n.t('Öğrenildi') : low ? (KabirI18n.lang === 'en' ? 'Requires level ' + skill.level + '.' : skill.level + KabirI18n.t('. seviye gerekli.')) : missingParent ? KabirI18n.t('Önce ') + skillIndex[skill.requires].name + KabirI18n.t(' öğrenilmeli.') : missingTier ? KabirI18n.t('Önce ') + (skill.tier - 1) + KabirI18n.t('. aşamadaki dört yeteneği öğren.') : state.points < 1 ? KabirI18n.t('Yetenek puanın yok.') : KabirI18n.t('1 puanla öğren');
+    const reason = known ? KabirI18n.t('Öğrenildi') : low ? (skill.level + KabirI18n.t('. seviye gerekli.')) : missingParent ? KabirI18n.t('Önce ') + skillIndex[skill.requires].name + KabirI18n.t(' öğrenilmeli.') : missingTier ? KabirI18n.t('Önce ') + (skill.tier - 1) + KabirI18n.t('. aşamadaki dört yeteneği öğren.') : state.points < 1 ? KabirI18n.t('Yetenek puanın yok.') : KabirI18n.t('1 puanla öğren');
     return { known, blocked, canLearn:!known && !blocked && state.points > 0, reason, missingTier, low, missingParent };
   }
 
   // Numbers shown on the tree page and in tooltips: [label, text]. Same params the fight uses.
-  const num = n => String(Number(n.toFixed(2))).replace('.', KabirI18n.lang === 'en' ? '.' : ',');
+  const num = n => String(Number(n.toFixed(2))).replace('.', ',');
   function skillFacts(s) {
     const p = s.params, out = [];
     if (s.line === 'cleave') {
@@ -482,7 +482,7 @@
       const def = entry && catalog[entry.id];
       const canEquip = !!def && def.requiredPowerLevel <= powerLevel();
       const remaining = def ? Math.max(0, def.requiredXp - state.xp) : 0;
-      return { canEquip, reason: canEquip ? '' : !def ? KabirI18n.t('Bu eşya çantanda değil.') : KabirI18n.lang === 'en' ? 'Earn ' + remaining + ' more experience to equip this item.' : 'Bu eşyayı kuşanmak için ' + remaining + ' tecrübe daha kazan.' };
+      return { canEquip, reason: canEquip ? '' : !def ? KabirI18n.t('Bu eşya çantanda değil.') : 'Bu eşyayı kuşanmak için ' + remaining + ' tecrübe daha kazan.' };
     }
     function equip(uid) {
       const entry = state.inventory.find(i => i.uid === uid);

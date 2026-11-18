@@ -205,17 +205,17 @@ body:has(#lu-banner.lu-on) #announcement{opacity:0!important}   /* the arena / r
     if (!ensureDom()) return;
     d = d || {};
     const level = d.level | 0 || 1, levels = Math.max(0, d.levels | 0), old = Math.max(1, level - levels);
-    const pts = Math.max(0, d.points | 0), earned = Math.max(0, d.earnedPoints | 0), quest = Math.max(0, d.questPoints | 0), gained = earned + quest, en = KabirI18n.lang === 'en';
+    const pts = Math.max(0, d.points | 0), earned = Math.max(0, d.earnedPoints | 0), quest = Math.max(0, d.questPoints | 0), gained = earned + quest;
     S.on = true; S.t = 0; S.questOnly = levels === 0; S.calm = S.questOnly || !!reduced.matches; S.level = level; S.old = old; S.hx = hero ? hero.x : 0; S.hz = hero ? hero.z : 0;
-    const reward = '+' + gained + (en ? ' Skill Points' : ' Yetenek Puanı');
+    const reward = '+' + gained + ' Yetenek Puanı';
     fillTitle(elTitle, S.questOnly ? reward : TITLE);
     elLevel.hidden = S.questOnly; elOld.textContent = String(old); elNew.textContent = String(level);
     elSource.hidden = quest === 0;
-    elSource.textContent = levels > 0 ? (en ? 'Level + quest reward' : 'Seviye + görev ödülü') : (en ? 'Quest reward' : 'Görev ödülü');
+    elSource.textContent = levels > 0 ? 'Seviye + görev ödülü' : 'Görev ödülü';
     elReward.hidden = S.questOnly || gained === 0; elReward.textContent = reward;
     elNote.textContent = quest > 0 && levels > 0
-      ? (en ? 'Level: +' : 'Seviye: +') + earned + (en ? ' · Quest reward: +' : ' · Görev ödülü: +') + quest
-      : gained === 0 ? (en ? 'LEVEL GAINED' : 'SEVİYE YÜKSELDİ') : '';
+      ? 'Seviye: +' + earned + ' · Görev ödülü: +' + quest
+      : gained === 0 ? 'SEVİYE YÜKSELDİ' : '';
     setAvailablePoints(pts);
     const sk = levels > 0 ? skillsGained(old, level) : [];
     elSkill.textContent = sk.length ? (sk.length > 1 ? KabirI18n.t('YENİ YETENEKLER: ') : KabirI18n.t('YENİ YETENEK: ')) + sk.join(' · ') : '';
@@ -225,8 +225,7 @@ body:has(#lu-banner.lu-on) #announcement{opacity:0!important}   /* the arena / r
   }
   function setAvailablePoints(points) {
     if (!elHint) return;
-    const en = KabirI18n.lang === 'en';
-    elHint.textContent = (en ? 'Available: ' : 'Kullanılabilir: ') + Math.max(0, points | 0) + (en ? ' · T — Skills' : ' · T — Yetenekler');
+    elHint.textContent = 'Kullanılabilir: ' + Math.max(0, points | 0) + ' · T — Yetenekler';
   }
   function cancel() { S.on = false; S.t = 99; if (el) { el.setAttribute('aria-hidden', 'true'); el.setAttribute('aria-live', 'off'); el.classList.remove('lu-on', 'lu-paint', 'lu-paused'); } }
   /* Her kare, gerçek dt ile (app.js frameStep). Kapalıyken maliyeti sıfıra yakındır. */
@@ -264,8 +263,8 @@ body:has(#lu-banner.lu-on) #announcement{opacity:0!important}   /* the arena / r
     const cap = B.Progression && B.Progression.MAX_LEVEL || 9;
     if (o) o.textContent = String(cap - 1); if (n) n.textContent = String(cap); if (no) no.textContent = ''; if (sk) sk.textContent = KabirI18n.t('YENİ YETENEK: Kıyamet Narası');
     const reward = q('.lu-reward'), hint = q('.lu-hint');
-    if (reward) { reward.hidden = false; reward.textContent = KabirI18n.lang === 'en' ? '+1 Skill Point' : '+1 Yetenek Puanı'; }
-    if (hint) hint.textContent = KabirI18n.lang === 'en' ? 'Available: 5 · T — Skills' : 'Kullanılabilir: 5 · T — Yetenekler';
+    if (reward) { reward.hidden = false; reward.textContent = '+1 Yetenek Puanı'; }
+    if (hint) hint.textContent = 'Kullanılabilir: 5 · T — Yetenekler';
     root.classList.add('lu-paint');
   }
 

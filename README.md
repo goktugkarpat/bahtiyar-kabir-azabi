@@ -34,7 +34,6 @@ Her bölümde iki ana hikâye görevi, yan görevler, bir yemin taşı (kayıt n
 - **Bilgisayarda:** klasördeki `index.html` dosyasına çift tıkla. Kurulum gerekmez; kütüphaneler klasörün içindedir.
 - **Ana Ekrana Ekle:** Safari'de Paylaş → Ana Ekrana Ekle. İlk yüklemeden sonra internetsiz de açılır. Oyun asıl olarak fare ve klavyeli bilgisayar için yapılmıştır.
 - **Sessiz açma:** adresin sonuna `?sessiz` ekle.
-- **Dil:** başlık ekranındaki **Türkçe / English** düğmeleri (İngilizce adı *Grave Torment*).
 
 ## Nasıl oynanır
 
@@ -69,7 +68,7 @@ Ana ekranda **Yolculuğa başla** (kayıt varsa **Yolculuğa devam**) düğmesin
 
 - İlerleme ve ayarlar kullandığın tarayıcıda saklanır; başka tarayıcıya ya da bilgisayara kendiliğinden taşınmaz.
 - Zorluk **Kolay / Normal / Zor**; grafik kalitesi **Düşük / Orta / Yüksek**. Ses, müzik, konuşma ve altyazı ayrı ayrı ayarlanır.
-- **Anlatıcı:** erkek sesi (`tr-TR-AhmetNeural`), önceden kaydedilip oyuna gömülmüştür; internetsiz de çalışır. İngilizce sürümün sesleri de gömülüdür.
+- **Anlatıcı:** erkek sesi (`tr-TR-AhmetNeural`), önceden kaydedilip oyuna gömülmüştür; internetsiz de çalışır.
 - **Müzik** oyunun içinde üretilir. GitHub'a göndermek için klasördeki `yayinla.command` dosyasına çift tıkla.
 
 ## Kaynaklar ve lisanslar

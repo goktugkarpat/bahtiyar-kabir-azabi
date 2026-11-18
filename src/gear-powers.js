@@ -29,29 +29,28 @@
   };
   // ajan:bossloot — powers of the boss-only items (src/boss-loot.js). id -> [name TR, text TR, name EN, text EN]
   const BOSS_TEXT = {
-    'rusted-mail-chest': ['Pas Kabuğu', 'Canın %50’nin altındayken %12 daha az hasar alırsın.', 'Rust Crust', 'Below 50% health you take 12% less damage.'],
-    'headsman-hood': ['Kara Hüküm', 'Kritik vuruşlar hedefi kanatır: vuruşun %40’ı kadar kan 3 saniyede akar.', 'Black Verdict', 'Critical hits open a wound: 40% of the blow bleeds out over 3 seconds.'],
-    'hook-chain-gauntlets': ['Kanca Zinciri', 'Her 6. vuruş düşmanı kancayla yakalar ve yarım saniye sersemletir.', 'Hooked Chain', 'Every 6th blow hooks the foe and stuns it for half a second.'],
-    'drowned-clapper-axe': ['Batık Ağırlık', 'Ağır vuruşlar %25 fazla hasar verir.', 'Sunken Weight', 'Heavy blows deal 25% more damage.'],
-    'bellringer-bronze-chest': ['Tuzlu Deri', 'Yuvarlandıktan sonra 3 saniye boyunca %15 daha az hasar alırsın.', 'Brine Hide', 'For 3 seconds after a roll you take 15% less damage.'],
-    'drowned-ringer-helm': ['Derin Soluk', 'Canın %40’ın altındayken her öldürme canının %4’ünü iyileştirir.', 'Deep Breath', 'Below 40% health every kill heals 4% of your health.'],
-    'tide-chain-boots': ['Kıyı Adımı', 'Her yuvarlanma 10 dayanıklılık geri verir.', 'Shoreline Stride', 'Every roll restores 10 stamina.'],
-    'hollow-scepter-spear': ['Asa Darbesi', 'Bitirici (3.) vuruşlar %25 fazla hasar verir.', 'Scepter Strike', 'Finishing (3rd) blows deal 25% more damage.'],
-    'king-ossuary-chest': ['Taht Ağırlığı', 'Canın %70’in üstündeyken verdiğin hasar %8 artar.', 'Weight of the Throne', 'While above 70% health you deal 8% more damage.'],
-    'hollow-king-spurs': ['Mahmuz Hamlesi', 'Yuvarlandıktan sonraki ilk vuruş %30 fazla hasar verir.', 'Spur Lunge', 'The first blow after a roll deals 30% more damage.'],
-    'warden-iron-claws': ['Muhafız Avcısı', 'Seçkin düşmanlara, muhafızlara ve bosslara %10 fazla hasar.', 'Warden Hunter', 'Deal 10% more damage to elite foes, wardens and bosses.'],
-    'heart-forged-sword': ['Kor Kanı', 'Canın %50’nin altındayken verdiğin hasar %15 artar.', 'Ember Blood', 'Below 50% health you deal 15% more damage.'],
-    'anvil-heart-chest': ['Öfke Dökümü', 'Hasar aldıktan sonra 3 saniye boyunca vuruşların %15 daha sert olur.', 'Cast Fury', 'For 3 seconds after taking damage your blows hit 15% harder.'],
-    'furnace-heart-helm': ['İnfaz Bakışı', 'Canı %30’un altındaki düşmanlara %12 fazla hasar.', 'Executioner’s Stare', 'Deal 12% more damage to foes below 30% health.'],
-    'cinder-breath-boots': ['Köz Soluğu', 'Her 7. vuruş canının %1,5’ini iyileştirir.', 'Cinder Breath', 'Every 7th blow heals 1.5% of your health.'],
-    'ash-warden-greaves': ['Kül Hırsı', 'Her öldürme 3 saniyeliğine %10 hasar verir.', 'Ash Greed', 'Every kill grants 10% more damage for 3 seconds.'],
-    'black-gavel-axe': ['Hüküm Emici', 'Kritik vuruşlar canının %2’sini iyileştirir.', 'Verdict Drinker', 'Critical hits heal 2% of your health.'],
-    'qadi-black-robe': ['Hükmün Ertelenişi', '90 saniyede bir ölümcül darbe seni canının %15’iyle ayakta bırakır.', 'Stay of Sentence', 'Once every 90 seconds a killing blow leaves you standing with 15% health.'],
-    'qadi-iron-turban': ['Hüküm Gözü', 'Kritik vuruşlar 6 dayanıklılık geri verir.', 'Eye of Judgement', 'Critical hits restore 6 stamina.'],
-    'verdict-warden-boots': ['Zincir Çekişi', 'Yuvarlandıktan sonraki ilk vuruş düşmanı yarım saniye sersemletir.', 'Chain Pull', 'The first blow after a roll stuns the foe for half a second.']
+    'rusted-mail-chest': ['Pas Kabuğu', 'Canın %50’nin altındayken %12 daha az hasar alırsın.'],
+    'headsman-hood': ['Kara Hüküm', 'Kritik vuruşlar hedefi kanatır: vuruşun %40’ı kadar kan 3 saniyede akar.'],
+    'hook-chain-gauntlets': ['Kanca Zinciri', 'Her 6. vuruş düşmanı kancayla yakalar ve yarım saniye sersemletir.'],
+    'drowned-clapper-axe': ['Batık Ağırlık', 'Ağır vuruşlar %25 fazla hasar verir.'],
+    'bellringer-bronze-chest': ['Tuzlu Deri', 'Yuvarlandıktan sonra 3 saniye boyunca %15 daha az hasar alırsın.'],
+    'drowned-ringer-helm': ['Derin Soluk', 'Canın %40’ın altındayken her öldürme canının %4’ünü iyileştirir.'],
+    'tide-chain-boots': ['Kıyı Adımı', 'Her yuvarlanma 10 dayanıklılık geri verir.'],
+    'hollow-scepter-spear': ['Asa Darbesi', 'Bitirici (3.) vuruşlar %25 fazla hasar verir.'],
+    'king-ossuary-chest': ['Taht Ağırlığı', 'Canın %70’in üstündeyken verdiğin hasar %8 artar.'],
+    'hollow-king-spurs': ['Mahmuz Hamlesi', 'Yuvarlandıktan sonraki ilk vuruş %30 fazla hasar verir.'],
+    'warden-iron-claws': ['Muhafız Avcısı', 'Seçkin düşmanlara, muhafızlara ve bosslara %10 fazla hasar.'],
+    'heart-forged-sword': ['Kor Kanı', 'Canın %50’nin altındayken verdiğin hasar %15 artar.'],
+    'anvil-heart-chest': ['Öfke Dökümü', 'Hasar aldıktan sonra 3 saniye boyunca vuruşların %15 daha sert olur.'],
+    'furnace-heart-helm': ['İnfaz Bakışı', 'Canı %30’un altındaki düşmanlara %12 fazla hasar.'],
+    'cinder-breath-boots': ['Köz Soluğu', 'Her 7. vuruş canının %1,5’ini iyileştirir.'],
+    'ash-warden-greaves': ['Kül Hırsı', 'Her öldürme 3 saniyeliğine %10 hasar verir.'],
+    'black-gavel-axe': ['Hüküm Emici', 'Kritik vuruşlar canının %2’sini iyileştirir.'],
+    'qadi-black-robe': ['Hükmün Ertelenişi', '90 saniyede bir ölümcül darbe seni canının %15’iyle ayakta bırakır.'],
+    'qadi-iron-turban': ['Hüküm Gözü', 'Kritik vuruşlar 6 dayanıklılık geri verir.'],
+    'verdict-warden-boots': ['Zincir Çekişi', 'Yuvarlandıktan sonraki ilk vuruş düşmanı yarım saniye sersemletir.']
   };
-  { const D = window.KabirI18n && KabirI18n.dictionary;
-    for (const id of Object.keys(BOSS_TEXT)) { const p = BOSS_TEXT[id]; if (D) { if (!D[p[0]]) D[p[0]] = p[2]; if (!D[p[1]]) D[p[1]] = p[3]; } TEXT[id] = [p[0], p[1]]; } }
+  for (const id of Object.keys(BOSS_TEXT)) TEXT[id] = BOSS_TEXT[id];
   function describe(def) {
     const p = def && TEXT[def.id]; if (!p) return '';
     return '<div class="cd-unique-power"><span class="cd-up-label">' + t('Eşsiz Güç') + '</span><strong>' + t(p[0]) + '</strong><p>' + t(p[1]) + '</p></div>';

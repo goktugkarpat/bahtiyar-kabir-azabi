@@ -26,13 +26,7 @@
   };
   var TYPES = ['bellowsmaster', 'shackler'];
 
-  // ------------------------------------------------------------------------------------------------ KİMLİK / ÇEVİRİ
-  var D = window.KabirI18n && KabirI18n.dictionary;
-  if (D) Object.assign(D, {
-    'Körük Ustası': 'Bellows Keeper', 'Pranga Ustası': 'Shackle Warden', 'Tavlama': 'Tempering', 'Körük Alevi': 'Bellows Jet', 'Körük Darbesi': 'Bellows Slap',
-    'Körük Alevi · ikinci': 'Bellows Jet · second', 'Pranga Mayınları': 'Shackle Mines', 'Pranga Mayını': 'Shackle Mine', 'Zincir Ağı': 'Chain Web', 'Zincir Ağı · ikinci': 'Chain Web · second',
-    'Kızgın Maşa': 'Hot Tongs', 'Körüklerin Ustabaşısı': 'Foreman of the Bellows', 'Pranga Közü': 'Shackle Embers'
-  });
+  // ------------------------------------------------------------------------------------------------ KİMLİK
   B.ForgeCombat.stats.bellowsmaster = { name: tr('Körük Ustası'), hp: TUNE.bellowsmaster.hp, speed: TUNE.bellowsmaster.speed, radius: TUNE.bellowsmaster.radius, reach: TUNE.bellowsmaster.reach, cooldown: TUNE.bellowsmaster.cooldown, color: 0xc79566, forge: true, ranged: true };
   B.ForgeCombat.stats.shackler = { name: tr('Pranga Ustası'), hp: TUNE.shackler.hp, speed: TUNE.shackler.speed, radius: TUNE.shackler.radius, reach: TUNE.shackler.reach, cooldown: TUNE.shackler.cooldown, color: 0xa88f7a, forge: true };
 

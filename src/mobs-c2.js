@@ -16,10 +16,6 @@
     netcaster: { name: tr('Ağ Dökücü'), hp: N.hp, speed: N.speed, radius: N.radius, reach: N.reach, cooldown: N.cooldown, color: 0xb9a778, coast: true, ranged: true },
     tidecaller: { name: tr('Dip Çağırıcısı'), hp: C.hp, speed: C.speed, radius: C.radius, reach: C.reach, cooldown: C.cooldown, color: 0x7fc4b8, coast: true, ranged: true }
   };
-  Object.assign(KabirI18n.dictionary || {}, {
-    'Ağ Dökücü': 'Net Caster', 'Dip Çağırıcısı': 'Depth Caller', 'Çengel Savuruşu': 'Gaff Sweep', 'Zıpkın Dürtüşü': 'Gaff Thrust',
-    'Ağ Çukuru': 'Net Pit', 'Kıskaç Tuzakları': 'Pincer Snares', 'Kabuk Asası': 'Shell Staff', 'Boğuk Eller': 'Muffled Hands', 'Tuzlu Köpük': 'Brine Foam'
-  });
   var v3 = function (x, y, z) { return new T.Vector3(x, y, z); }, arr = function (p) { return [p.x, p.y, p.z]; };
 
   /* ---------------- MODELLER ---------------- */

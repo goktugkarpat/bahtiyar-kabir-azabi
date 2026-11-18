@@ -1709,9 +1709,8 @@
   const TELLS = new Set(['enemyWindup', 'enemyAttack', 'slam', 'explosion', 'poison', 'warning', 'hurt', 'guardBreak', 'tellCommit']);
   let caption = null, voiceNode = null, voiceGain = null, current = null, queue = [], nclock = 0, lastTellN = -9;
   const heard = new Set(), recent = {}, voiceBuffers = {};
-  const voiceLanguage = () => window.KabirI18n && window.KabirI18n.lang === 'en' ? 'en' : 'tr';
-  const narrationLines = () => voiceLanguage() === 'en' ? (B.NarrationEN || {}) : (B.Narration || {});
-  const voiceKey = key => voiceLanguage() + ':' + key;
+  const narrationLines = () => B.Narration || {};
+  const voiceKey = key => 'tr:' + key;
   let deathTurn = 0, narrationMode = 'essential', lastNarrationEnd = -60;
   const INCIDENTAL_LINES = new Set(['chains','ritual','crypt','rot','coastRoots','coastStreet','coastPier','coastSquare','seal','coastSeal']);
   function updateNarrationDuck() {
@@ -1831,7 +1830,7 @@
     const words = String(entry.line.text || '').trim().split(/\s+/).filter(Boolean).length;
     const total = audible ? entry.buffer.duration : Math.max(entry.line.duration || 0, 2.5, .8 + words / 2.6);
     current = { key: entry.key, force: entry.force, left: total, total, elapsed: 0,
-      clockStart: audible ? ctx.currentTime : null, text: entry.line.text, speaker: entry.line.speaker || (voiceLanguage() === 'en' ? 'Narrator' : 'Anlatıcı') };
+      clockStart: audible ? ctx.currentTime : null, text: entry.line.text, speaker: entry.line.speaker || 'Anlatıcı' };
     captionState = null;
     captionStep();
     if (!ctx || !entry.buffer || (silent && !offline)) return;

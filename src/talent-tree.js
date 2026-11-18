@@ -85,12 +85,11 @@
     const gateNeed = 0;
     const exclusive = !known ? blockerOf(learned, n) : null;
     const blocked = !known && (low || !!missingParent || gateNeed > 0 || !!exclusive);
-    const en = KabirI18n.lang === 'en';
     const sameLevel = low && state.level >= n.level && Number.isFinite(state.xp), remaining = sameLevel ? Math.max(0, n.requiredXp - state.xp) : 0;
-    const reason = known ? t('Öğrenildi') : low ? (sameLevel ? (en ? 'Earn ' + remaining + ' more experience.' : remaining + ' tecrübe daha kazan.') : en ? 'Requires level ' + n.level + '.' : n.level + '. seviye gerekli.')
-      : exclusive ? (en ? 'Excludes ' + exclusive.name + '.' : exclusive.name + ' ile birlikte alınamaz.')
-      : missingParent ? (en ? 'Learn ' + missingParent.name + ' first.' : 'Önce ' + missingParent.name + ' öğrenilmeli.')
-      : gateNeed ? (en ? 'Spend ' + gateNeed + ' more point' + (gateNeed > 1 ? 's' : '') + ' in the tree.' : 'Ağaca ' + gateNeed + ' puan daha harca.')
+    const reason = known ? t('Öğrenildi') : low ? (sameLevel ? remaining + ' tecrübe daha kazan.' : n.level + '. seviye gerekli.')
+      : exclusive ? exclusive.name + ' ile birlikte alınamaz.'
+      : missingParent ? 'Önce ' + missingParent.name + ' öğrenilmeli.'
+      : gateNeed ? 'Ağaca ' + gateNeed + ' puan daha harca.'
       : state.points < 1 ? t('Yetenek puanın yok.') : t('1 puanla öğren');
     return { known, blocked, canLearn: !known && !blocked && state.points > 0, reason, low, gateNeed, missingParent, exclusive, missingTier: 0 };
   }

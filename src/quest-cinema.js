@@ -4,7 +4,7 @@
 (() => {
   'use strict';
   const B = window.BABA = window.BABA || {};
-  const L = (tr, en) => B.QuestText ? B.QuestText(tr, en) : KabirI18n.t(tr);
+  const L = tr => B.QuestText ? B.QuestText(tr) : KabirI18n.t(tr);
   let root = null, bars = null, reader = null, epi = null, closeButton = null;
   let barTimer = 0, barLeft = 0, barStamp = 0, barReadable = false;
   let readerPages = [], readerPage = 0, readerNext = null, readerPrevious = null, readerCounter = null;
@@ -26,13 +26,13 @@
     const sheet = el('article', 'qc-sheet', reader); el('small', 'qc-eyebrow', sheet);
     el('h3', 'qc-title', sheet).id = 'qc-reader-title'; el('p', 'qc-text', sheet).id = 'qc-reader-text'; el('p', 'qc-note', sheet);
     const nav = el('div', 'qc-reader-nav', sheet);
-    readerPrevious = el('button', 'qc-page-previous', nav, L('Önceki', 'Previous')); readerPrevious.type = 'button'; readerPrevious.onclick = () => changePage(-1);
+    readerPrevious = el('button', 'qc-page-previous', nav, L('Önceki')); readerPrevious.type = 'button'; readerPrevious.onclick = () => changePage(-1);
     readerCounter = el('small', 'qc-page-counter', nav);
-    readerNext = el('button', 'qc-page-next', nav, L('Devam', 'Continue')); readerNext.type = 'button'; readerNext.onclick = () => changePage(1);
-    closeButton = el('button', 'qc-close', nav, L('Sayfayı kapat', 'Close the page')); closeButton.type = 'button'; closeButton.onclick = e => { e.stopPropagation(); hideReader(); };
+    readerNext = el('button', 'qc-page-next', nav, L('Devam')); readerNext.type = 'button'; readerNext.onclick = () => changePage(1);
+    closeButton = el('button', 'qc-close', nav, L('Sayfayı kapat')); closeButton.type = 'button'; closeButton.onclick = e => { e.stopPropagation(); hideReader(); };
     epi = el('div', 'qc-epilogue', root); epi.hidden = true;
-    const card = el('article', 'qc-epi-card', epi); el('small', 'qc-eyebrow', card, L('SON', 'THE END')); el('h2', 'qc-title', card); el('div', 'qc-paras', card); el('p', 'qc-tally', card);
-    const done = el('button', 'qc-close', card, L('Devam', 'Continue')); done.type = 'button'; done.onclick = () => { epi.classList.remove('show'); setTimeout(() => { epi.hidden = true; }, 900); };
+    const card = el('article', 'qc-epi-card', epi); el('small', 'qc-eyebrow', card, L('SON')); el('h2', 'qc-title', card); el('div', 'qc-paras', card); el('p', 'qc-tally', card);
+    const done = el('button', 'qc-close', card, L('Devam')); done.type = 'button'; done.onclick = () => { epi.classList.remove('show'); setTimeout(() => { epi.hidden = true; }, 900); };
     window.addEventListener('keydown', e => {
       // A fresh press after a lost keyup is allowed; only the release of a closing press is suppressed.
       if (reader.hidden) { blockedRelease.delete(releaseCode(e)); return; }
@@ -130,7 +130,7 @@
     ensure(); o = o || {};
     if (readerClosing) { clearTimeout(readerTimer); readerClosing = false; }
     const wasHidden = reader.hidden, sheet = reader.querySelector('.qc-sheet');
-    sheet.querySelector('.qc-eyebrow').textContent = o.eyebrow || L('BULUNAN BELGE', 'RECOVERED DOCUMENT');
+    sheet.querySelector('.qc-eyebrow').textContent = o.eyebrow || L('BULUNAN BELGE');
     sheet.querySelector('.qc-title').textContent = o.title || '';
     readerPages = Array.isArray(o.pages) && o.pages.length ? o.pages.map(String) : pageText(o.text); readerPage = 0; changePage(0);
     const note = sheet.querySelector('.qc-note'); note.textContent = o.note || ''; note.hidden = !o.note;

@@ -8,18 +8,6 @@
   const FALL = .36, LANDED = .5, TAKE_REACH = 1.4, TAKE_KEY = 2, FALLBACK_WAIT = 25, FALLBACK_REACH = 4, MAX_LABELS = 24, LABEL_BASE = 20; let LABEL_H = 20, LK = 1;   // LK: label scale for big screens (1 up to ~2133 px wide, 1.3 max)
   const GLOW_K = [.30, .45, .65, .85, 1.05];   // ground-ring strength by rarity rank (common ... unique)
   let atlas = null, atlasTask = null, labelBox = null, labelPool = null;
-  const dict = {
-    'Çanta dolu. Yer açmadan bu eşyayı alamazsın.': 'Bag full. Make room before you can take this item.',
-    'Efendi yenildi. Düşürdüğü eşyaya tıkla ve al.': 'The master has fallen. Click the item it dropped to take it.',
-    'Efendinin düşürdüğü eşyayı al.': "Take the boss's drop.",
-    'Eşyaları otomatik topla': 'Auto-pickup items',
-    'Yakına düşen eşyalar kendiliğinden çantaya uçar. Kapalıyken eşyaya tıkla (ya da E).': 'Items that land nearby fly into your bag on their own. When off, click an item (or press E).',
-    'Eşya adları': 'Item names',
-    'Basılı tutunca yerdeki bütün eşyaların adı görünür': 'Hold to show the names of every item on the ground',
-    'Basılı tutunca yerdeki bütün eşyaların adı görünür · eşyaya tıkla: yürür ve alır · E: yakındakini al': 'Hold to show the names of every item on the ground · click an item: walk there and take it · E: take the nearest one',
-    'Efendinin düşürdüğü eşyayı al.': "Take the boss's drop."
-  };
-  try { Object.assign(window.KabirI18n.dictionary, dict); } catch (_) { /* dictionary is optional */ }
   const L = s => (window.KabirI18n ? KabirI18n.t(s) : s);
 
   /* ───────────── name labels (DOM, pooled, positioned from world → screen each frame) ───────────── */

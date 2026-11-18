@@ -1,15 +1,15 @@
 /* KABİR AZABI — side, hidden and campaign-story quests (ajan: quests).
    Loaded BEFORE progression.js (it publishes BABA.QuestItemSpecs, the quest-only unique items) and before quests.js,
    which calls BABA.QuestSide.create(...) and owns persistence, prompts and the shared prop kit.
-   Every visible string is registered in both languages through L(tr, en) into KabirI18n.dictionary.
+   Every visible string goes through L(tr) (KabirI18n.t).
    Kinds (three optional threads per chapter): hunt (named mini-boss promoted from an existing foe), rescue (living captive follows you to the oath stone),
    lore (three records per chapter). Older saves may still list removed threads (altar, siege, escape, puzzle, chest, hunt2): restore() ignores unknown ids.
    Site ids follow STORY.md: world.questSites['c1.hunt'] = {x, z} overrides the room fallback. */
 (function () {
   'use strict';
   var B = window.BABA = window.BABA || {}, T = window.THREE, PI = Math.PI, RANGE = 2.35;
-  var I = window.KabirI18n, DICT = I && I.dictionary;
-  function L(tr, en) { if (DICT && en && !DICT[tr]) DICT[tr] = en; return I ? I.t(tr) : tr; }
+  var I = window.KabirI18n;
+  function L(tr) { return I ? I.t(tr) : tr; }
   B.QuestText = L;
 
   // ---------------------------------------------------------------- unique quest items (never dropped at random)
@@ -45,7 +45,7 @@
     ],
     [
       "scribe-clasp-helm",
-      L("Mezar Gardiyanının Başlığı", "Grave Warden’s Hood"),
+      L("Mezar Gardiyanının Başlığı"),
       "head",
       3,
       "boss",
@@ -53,7 +53,7 @@
       0.05,
       3,
       null,
-      L("Esir kilitlerinin işaretini taşıyan ağır demir başlık.", "A heavy iron hood bearing the mark of the captive locks."),
+      L("Esir kilitlerinin işaretini taşıyan ağır demir başlık."),
       "iron-helm",
       "rust"
     ],
@@ -95,7 +95,7 @@
       0.085,
       5,
       null,
-      L("Esir gemisinin ambarından çıkarılan tuzlu kaftan.", "A salted coat recovered from the captive ship’s hold."),
+      L("Esir gemisinin ambarından çıkarılan tuzlu kaftan."),
       "coast-chest",
       "brine"
     ],
@@ -115,7 +115,7 @@
     ],
     [
       "kings-cup-axe",
-      L("Kurban Bekçisinin Baltası", "Sacrifice Warden’s Axe"),
+      L("Kurban Bekçisinin Baltası"),
       "weapon",
       7,
       "boss",
@@ -123,13 +123,13 @@
       0,
       0,
       "axe",
-      L("Harabelerin bekçisinden alınmış, eski bronzla güçlendirilmiş balta.", "An axe taken from the ruins’ warden, reinforced with ancient bronze."),
+      L("Harabelerin bekçisinden alınmış, eski bronzla güçlendirilmiş balta."),
       "executioner-axe",
       "ash"
     ],
     [
       "royal-scribe-gauntlets",
-      L("Kurban Bekçisinin Eldivenleri", "Sacrifice Warden’s Gauntlets"),
+      L("Kurban Bekçisinin Eldivenleri"),
       "hands",
       7,
       "boss",
@@ -137,7 +137,7 @@
       0.075,
       3,
       null,
-      L("Taş kilitleri kavrayan demir eldivenler.", "Iron gauntlets made to grip the stone locks."),
+      L("Taş kilitleri kavrayan demir eldivenler."),
       "salt-gauntlets",
       "bone"
     ],
@@ -171,7 +171,7 @@
     ],
     [
       "selvi-last-road",
-      L("Esirin Son Yolu", "Captive’s Last Road"),
+      L("Esirin Son Yolu"),
       "boots",
       9,
       "boss",
@@ -179,7 +179,7 @@
       0.09,
       4,
       null,
-      L("Kaçış yolunda taş ve cürufa dayanacak kalın tabanlı çizmeler.", "Thick-soled boots made to cross stone and slag on the road to freedom."),
+      L("Kaçış yolunda taş ve cürufa dayanacak kalın tabanlı çizmeler."),
       "tide-boots",
       "bone"
     ],
@@ -207,7 +207,7 @@
       0.045,
       3,
       null,
-      L("Esirleri tutmak için kullanılan eski demir donanım. Artık seni ileri taşıyor.", "Old iron gear used to hold captives. Now it carries you forward."),
+      L("Esirleri tutmak için kullanılan eski demir donanım. Artık seni ileri taşıyor."),
       "grave-boots",
       "ash"
     ],
@@ -235,7 +235,7 @@
       0.115,
       5,
       null,
-      L("Harabelerin gizli odasında saklanan ağır zırh.", "Heavy armor hidden in a secret chamber within the ruins."),
+      L("Harabelerin gizli odasında saklanan ağır zırh."),
       "grave-chest",
       "bone"
     ],
@@ -285,12 +285,12 @@
 
   // ---------------------------------------------------------------- common UI words
   var W = {
-    hunt: L('Ad Avı', 'Named Hunt'), rescue: L('Kurtarma', 'Rescue'), lore: L('Kadı’nın Kayıtları', 'The Judge’s Records'), main: L('Ana Hikâye', 'Main Story'),
-    reward: L('Ödül: ', 'Reward: '), done: L('Tamamlandı', 'Complete'),
-    guarded: L('Önce etraftaki ölüleri sustur', 'First silence the dead around you'),
-    follow: L('Seni izliyor. Onu yemin taşına götür.', 'Following you. Lead them to the oath stone.'), waiting: L('Yakında düşman var; kurtardığın kişi siniyor.', 'Enemies are near; the one you freed cowers.'),
-    point: L('+1 yetenek puanı', '+1 skill point'), flask: L('Kalıcı +1 şifa matarası', 'Permanent +1 healing flask'), hp: L('Kalıcı +6 can', 'Permanent +6 health'), dmg: L('Kalıcı +%3 hasar', 'Permanent +3% damage'),
-    read: L('Sayfa okundu', 'Page read')
+    hunt: L('Ad Avı'), rescue: L('Kurtarma'), lore: L('Kadı’nın Kayıtları'), main: L('Ana Hikâye'),
+    reward: L('Ödül: '), done: L('Tamamlandı'),
+    guarded: L('Önce etraftaki ölüleri sustur'),
+    follow: L('Seni izliyor. Onu yemin taşına götür.'), waiting: L('Yakında düşman var; kurtardığın kişi siniyor.'),
+    point: L('+1 yetenek puanı'), flask: L('Kalıcı +1 şifa matarası'), hp: L('Kalıcı +6 can'), dmg: L('Kalıcı +%3 hasar'),
+    read: L('Sayfa okundu')
   };
   B.QuestWords = W;
 
@@ -316,9 +316,9 @@
           ],
           "scale": 2.4
         },
-        "description": L("Kara Kadı’nın seçkin avcısı bu bölgede kaçan esirleri arıyor. Onu durdur.", "The Black Judge’s elite hunter searches this region for escaped captives. Stop them."),
-        "objective": L("Kara Kadı’nın avcısını yen.", "Defeat the Black Judge’s hunter."),
-        "story": L("Avcı düştü. Üzerindeki emir açıktı: “Barbar canlı alınacak.”", "The hunter falls. The order carried on their body was clear: “Take the barbarian alive.”"),
+        "description": L("Kara Kadı’nın seçkin avcısı bu bölgede kaçan esirleri arıyor. Onu durdur."),
+        "objective": L("Kara Kadı’nın avcısını yen."),
+        "story": L("Avcı düştü. Üzerindeki emir açıktı: “Barbar canlı alınacak.”"),
         "reward": {
           "item": "shroud-needle-grasp",
           "xp": 60
@@ -336,13 +336,13 @@
           "dz": -2
         },
         "voice": "rescue1",
-        "name": L("Son Esir", "The Last Captive"),
-        "npc": L("Ömer", "Ömer"),
-        "description": L("Zincirli bir esir hâlâ yaşıyor. Onu serbest bırak ve yemin taşına götür.", "A chained captive is still alive. Free them and lead them to the oath stone."),
-        "objective": L("Zincirli esiri kurtar.", "Free the chained captive."),
-        "follow": L("Ömer adlı esiri yemin taşına götür.", "Lead Ömer to the oath stone."),
-        "freeStory": L("Ömer doğruluyor: “Tabutunu taşıdıklarını gördüm. İçinden sen mi çıktın?”", "Ömer rises: “I saw them carrying your coffin. Was it you who broke out?”"),
-        "story": L("Ömer güvenli yere ulaşıyor: “Liman yolunu gardiyan kullanır. Silahını hazır tut.”", "Ömer reaches safety: “The warden uses the port passage. Keep your weapon ready.”"),
+        "name": L("Son Esir"),
+        "npc": L("Ömer"),
+        "description": L("Zincirli bir esir hâlâ yaşıyor. Onu serbest bırak ve yemin taşına götür."),
+        "objective": L("Zincirli esiri kurtar."),
+        "follow": L("Ömer adlı esiri yemin taşına götür."),
+        "freeStory": L("Ömer doğruluyor: “Tabutunu taşıdıklarını gördüm. İçinden sen mi çıktın?”"),
+        "story": L("Ömer güvenli yere ulaşıyor: “Liman yolunu gardiyan kullanır. Silahını hazır tut.”"),
         "reward": {
           "flasks": 1,
           "xp": 40
@@ -353,29 +353,29 @@
         "id": "c1-pages",
         "kind": "lore",
         "voice": "pages1",
-        "name": L("Kadı’nın Kayıtları · 1", "The Judge’s Records · 1"),
-        "description": L("Kurban düzeninin kayıtları bu bölgeye dağılmış.", "Records of the tribute machinery lie scattered through this region."),
-        "objective": L("Üç kayıt parçasını bul.", "Find the three records."),
-        "story": L("Kayıtlar Kara Kadı’nın düzenini ortaya koyuyor. Bir sonraki adım artık açık.", "The records reveal the Black Judge’s machinery. Your next step is clear."),
+        "name": L("Kadı’nın Kayıtları · 1"),
+        "description": L("Kurban düzeninin kayıtları bu bölgeye dağılmış."),
+        "objective": L("Üç kayıt parçasını bul."),
+        "story": L("Kayıtlar Kara Kadı’nın düzenini ortaya koyuyor. Bir sonraki adım artık açık."),
         "reward": {
           "points": 1
         },
-        "rewardText": L("+1 yetenek puanı ve Kadı’nın düzenine ait kayıtlar", "+1 skill point and records of the Judge’s machinery"),
+        "rewardText": L("+1 yetenek puanı ve Kadı’nın düzenine ait kayıtlar"),
         "pages": [
           {
             "site": "c1.page1",
-            "name": L("Kayıt: Canlı Gömme Emri", "Record: Order for Live Burial"),
-            "text": L("Kara Kadı’nın mührü: Bahtiyar adlı barbar diri teslim alınsın. Güçlü beden mezara kapatılsın. Tabut sabaha kadar açılmasın. Gardiyanın kenar notu: Yaralı ama zinciri iki kez kopardı.", "The Black Judge’s seal: Take the barbarian Bahtiyar alive. Seal his strong body within the grave. Do not open the coffin before dawn. A warden’s note: Wounded, but he broke his chain twice.")
+            "name": L("Kayıt: Canlı Gömme Emri"),
+            "text": L("Kara Kadı’nın mührü: Bahtiyar adlı barbar diri teslim alınsın. Güçlü beden mezara kapatılsın. Tabut sabaha kadar açılmasın. Gardiyanın kenar notu: Yaralı ama zinciri iki kez kopardı.")
           },
           {
             "site": "c1.page2",
-            "name": L("Kayıt: Esir Listesi", "Record: Captive Roster"),
-            "text": L("Kurbanlar limandan alınır, zindanda bekletilir. Güçlü olanlar derin mezara; çalışabilecek olanlar ocağa gönderilir. Altında Kara Kadı’nın kara göz mührü var.", "Captives arrive through the port and wait in the dungeon. Send the strong to the deep grave and the able-bodied to the forge. The Black Judge’s black-eye seal lies beneath.")
+            "name": L("Kayıt: Esir Listesi"),
+            "text": L("Kurbanlar limandan alınır, zindanda bekletilir. Güçlü olanlar derin mezara; çalışabilecek olanlar ocağa gönderilir. Altında Kara Kadı’nın kara göz mührü var.")
           },
           {
             "site": "c1.page3",
-            "name": L("Kayıt: Gardiyanın Uyarısı", "Record: Warden’s Warning"),
-            "text": L("Taş kapaktan vurma sesi gelirse yaklaşmayın. Kadı kurbanın nefesini ister, başını değil. Mezar açılamaz sanmışlar. Kapakta içeriden kırılmış bir parça var.", "If blows sound beneath the stone lid, do not approach. The Judge wants the sacrifice’s breath, not his head. They thought the grave could not open. A piece of the lid has broken from within.")
+            "name": L("Kayıt: Gardiyanın Uyarısı"),
+            "text": L("Taş kapaktan vurma sesi gelirse yaklaşmayın. Kadı kurbanın nefesini ister, başını değil. Mezar açılamaz sanmışlar. Kapakta içeriden kırılmış bir parça var.")
           }
         ],
         "fallbacks": [
@@ -417,9 +417,9 @@
           ],
           "scale": 2.4
         },
-        "description": L("Kara Kadı’nın seçkin avcısı bu bölgede kaçan esirleri arıyor. Onu durdur.", "The Black Judge’s elite hunter searches this region for escaped captives. Stop them."),
-        "objective": L("Kara Kadı’nın avcısını yen.", "Defeat the Black Judge’s hunter."),
-        "story": L("Avcı düştü. Üzerindeki emir açıktı: “Barbar canlı alınacak.”", "The hunter falls. The order carried on their body was clear: “Take the barbarian alive.”"),
+        "description": L("Kara Kadı’nın seçkin avcısı bu bölgede kaçan esirleri arıyor. Onu durdur."),
+        "objective": L("Kara Kadı’nın avcısını yen."),
+        "story": L("Avcı düştü. Üzerindeki emir açıktı: “Barbar canlı alınacak.”"),
         "reward": {
           "item": "salt-oath-steps",
           "xp": 90
@@ -437,13 +437,13 @@
           "dz": 3
         },
         "voice": "rescue2",
-        "name": L("Ambarın Sağ Kalanı", "Survivor of the Hold"),
-        "npc": L("Kerem", "Kerem"),
-        "description": L("Zincirli bir esir hâlâ yaşıyor. Onu serbest bırak ve yemin taşına götür.", "A chained captive is still alive. Free them and lead them to the oath stone."),
-        "objective": L("Zincirli esiri kurtar.", "Free the chained captive."),
-        "follow": L("Kerem adlı esiri yemin taşına götür.", "Lead Kerem to the oath stone."),
-        "freeStory": L("Kerem doğruluyor: “Bizi harabelere götüreceklerdi. Gemiden atlayanları çan geri çağırıyor.”", "Kerem rises: “They were taking us to the ruins. The bell calls back anyone who jumps overboard.”"),
-        "story": L("Kerem güvenli yere ulaşıyor: “Harabelerin altında başka esirler var. Onları unutma.”", "Kerem reaches safety: “There are more captives under the ruins. Do not forget them.”"),
+        "name": L("Ambarın Sağ Kalanı"),
+        "npc": L("Kerem"),
+        "description": L("Zincirli bir esir hâlâ yaşıyor. Onu serbest bırak ve yemin taşına götür."),
+        "objective": L("Zincirli esiri kurtar."),
+        "follow": L("Kerem adlı esiri yemin taşına götür."),
+        "freeStory": L("Kerem doğruluyor: “Bizi harabelere götüreceklerdi. Gemiden atlayanları çan geri çağırıyor.”"),
+        "story": L("Kerem güvenli yere ulaşıyor: “Harabelerin altında başka esirler var. Onları unutma.”"),
         "reward": {
           "hp": 6,
           "xp": 70
@@ -454,29 +454,29 @@
         "id": "c2-pages",
         "kind": "lore",
         "voice": "pages2",
-        "name": L("Kadı’nın Kayıtları · 2", "The Judge’s Records · 2"),
-        "description": L("Kurban düzeninin kayıtları bu bölgeye dağılmış.", "Records of the tribute machinery lie scattered through this region."),
-        "objective": L("Üç kayıt parçasını bul.", "Find the three records."),
-        "story": L("Kayıtlar Kara Kadı’nın düzenini ortaya koyuyor. Bir sonraki adım artık açık.", "The records reveal the Black Judge’s machinery. Your next step is clear."),
+        "name": L("Kadı’nın Kayıtları · 2"),
+        "description": L("Kurban düzeninin kayıtları bu bölgeye dağılmış."),
+        "objective": L("Üç kayıt parçasını bul."),
+        "story": L("Kayıtlar Kara Kadı’nın düzenini ortaya koyuyor. Bir sonraki adım artık açık."),
         "reward": {
           "points": 1
         },
-        "rewardText": L("+1 yetenek puanı ve Kadı’nın düzenine ait kayıtlar", "+1 skill point and records of the Judge’s machinery"),
+        "rewardText": L("+1 yetenek puanı ve Kadı’nın düzenine ait kayıtlar"),
         "pages": [
           {
             "site": "c2.page1",
-            "name": L("Kayıt: Kara Sevkiyat", "Record: Black Shipment"),
-            "text": L("İki gemi esir getirir. Biri ocağa, biri harabelere ayrılır. Kıyıda kalanlar köklerin altında tutulur. Hiçbir yolcu serbest bırakılmayacaktır. Emir Kara Kadı’dan.", "Two ships carry captives. One shipment is for the forge, the other for the ruins. Keep those left ashore beneath the roots. Release no passenger. By order of the Black Judge.")
+            "name": L("Kayıt: Kara Sevkiyat"),
+            "text": L("İki gemi esir getirir. Biri ocağa, biri harabelere ayrılır. Kıyıda kalanlar köklerin altında tutulur. Hiçbir yolcu serbest bırakılmayacaktır. Emir Kara Kadı’dan.")
           },
           {
             "site": "c2.page2",
-            "name": L("Kayıt: Çancının Emri", "Record: The Bellringer’s Orders"),
-            "text": L("Kaçanları yakalayın. Dalgaya kapılanları çanla geri çağırın. Mezardan çıkan barbar canlı alınacak. Kadı, gardiyanın başarısızlığını limanda tekrar görmek istemiyor.", "Catch the fugitives. Call back those taken by the waves with the bell. Take the barbarian who escaped the grave alive. The Judge will not tolerate the warden’s failure repeated at the port.")
+            "name": L("Kayıt: Çancının Emri"),
+            "text": L("Kaçanları yakalayın. Dalgaya kapılanları çanla geri çağırın. Mezardan çıkan barbar canlı alınacak. Kadı, gardiyanın başarısızlığını limanda tekrar görmek istemiyor.")
           },
           {
             "site": "c2.page3",
-            "name": L("Kayıt: Harabelerin Yolu", "Record: Road to the Ruins"),
-            "text": L("Fenerin ardındaki patika eski mezarlara çıkar. Taş köprünün altında mağara ağzı var. Gemilerin kaptanları bu yolu bilir; esirlerin gözleri orada bağlanır.", "The path behind the lantern reaches the old tombs. A cavern opens beneath the stone bridge. The captains know the road; there the captives are blindfolded.")
+            "name": L("Kayıt: Harabelerin Yolu"),
+            "text": L("Fenerin ardındaki patika eski mezarlara çıkar. Taş köprünün altında mağara ağzı var. Gemilerin kaptanları bu yolu bilir; esirlerin gözleri orada bağlanır.")
           }
         ],
         "fallbacks": [
@@ -517,9 +517,9 @@
           ],
           "scale": 2.6
         },
-        "description": L("Kara Kadı’nın seçkin avcısı bu bölgede kaçan esirleri arıyor. Onu durdur.", "The Black Judge’s elite hunter searches this region for escaped captives. Stop them."),
-        "objective": L("Kara Kadı’nın avcısını yen.", "Defeat the Black Judge’s hunter."),
-        "story": L("Avcı düştü. Üzerindeki emir açıktı: “Barbar canlı alınacak.”", "The hunter falls. The order carried on their body was clear: “Take the barbarian alive.”"),
+        "description": L("Kara Kadı’nın seçkin avcısı bu bölgede kaçan esirleri arıyor. Onu durdur."),
+        "objective": L("Kara Kadı’nın avcısını yen."),
+        "story": L("Avcı düştü. Üzerindeki emir açıktı: “Barbar canlı alınacak.”"),
         "reward": {
           "item": "blind-seer-gaze",
           "xp": 140
@@ -537,13 +537,13 @@
           "dz": 3
         },
         "voice": "rescue3",
-        "name": L("Taşın İçindeki Adam", "The Man Within Stone"),
-        "npc": L("Hıdır", "Hıdır"),
-        "description": L("Zincirli bir esir hâlâ yaşıyor. Onu serbest bırak ve yemin taşına götür.", "A chained captive is still alive. Free them and lead them to the oath stone."),
-        "objective": L("Zincirli esiri kurtar.", "Free the chained captive."),
-        "follow": L("Hıdır adlı esiri yemin taşına götür.", "Lead Hıdır to the oath stone."),
-        "freeStory": L("Hıdır doğruluyor: “Kadı kurtuluş dedi. Duvarın içinde yıllar geçirdim.”", "Hıdır rises: “The Judge called it salvation. I spent years inside that wall.”"),
-        "story": L("Hıdır güvenli yere ulaşıyor: “Sıcak yolu izle. Ocağa çıkar. Kadı’nın gardiyanları orada silahlanır.”", "Hıdır reaches safety: “Follow the warm passage to the forge. The Judge’s wardens arm themselves there.”"),
+        "name": L("Taşın İçindeki Adam"),
+        "npc": L("Hıdır"),
+        "description": L("Zincirli bir esir hâlâ yaşıyor. Onu serbest bırak ve yemin taşına götür."),
+        "objective": L("Zincirli esiri kurtar."),
+        "follow": L("Hıdır adlı esiri yemin taşına götür."),
+        "freeStory": L("Hıdır doğruluyor: “Kadı kurtuluş dedi. Duvarın içinde yıllar geçirdim.”"),
+        "story": L("Hıdır güvenli yere ulaşıyor: “Sıcak yolu izle. Ocağa çıkar. Kadı’nın gardiyanları orada silahlanır.”"),
         "reward": {
           "flasks": 1,
           "xp": 120
@@ -554,29 +554,29 @@
         "id": "c3-pages",
         "kind": "lore",
         "voice": "pages3",
-        "name": L("Kadı’nın Kayıtları · 3", "The Judge’s Records · 3"),
-        "description": L("Kurban düzeninin kayıtları bu bölgeye dağılmış.", "Records of the tribute machinery lie scattered through this region."),
-        "objective": L("Üç kayıt parçasını bul.", "Find the three records."),
-        "story": L("Kayıtlar Kara Kadı’nın düzenini ortaya koyuyor. Bir sonraki adım artık açık.", "The records reveal the Black Judge’s machinery. Your next step is clear."),
+        "name": L("Kadı’nın Kayıtları · 3"),
+        "description": L("Kurban düzeninin kayıtları bu bölgeye dağılmış."),
+        "objective": L("Üç kayıt parçasını bul."),
+        "story": L("Kayıtlar Kara Kadı’nın düzenini ortaya koyuyor. Bir sonraki adım artık açık."),
         "reward": {
           "points": 1
         },
-        "rewardText": L("+1 yetenek puanı ve Kadı’nın düzenine ait kayıtlar", "+1 skill point and records of the Judge’s machinery"),
+        "rewardText": L("+1 yetenek puanı ve Kadı’nın düzenine ait kayıtlar"),
         "pages": [
           {
             "site": "c3.page1",
-            "name": L("Kayıt: Taşın Altındakiler", "Record: Those Beneath the Stone"),
-            "text": L("Kadı kurtuluş vaat etti. İnsanlar kendi ayaklarıyla geldi. Taş kapanınca onları kimse çıkarmadı. Duvarlara kulak ver: İçeridekiler hâlâ nefes alıyor.", "The Judge promised salvation. People came willingly. When the stone closed, no one let them out. Listen at the walls: They still breathe within.")
+            "name": L("Kayıt: Taşın Altındakiler"),
+            "text": L("Kadı kurtuluş vaat etti. İnsanlar kendi ayaklarıyla geldi. Taş kapanınca onları kimse çıkarmadı. Duvarlara kulak ver: İçeridekiler hâlâ nefes alıyor.")
           },
           {
             "site": "c3.page2",
-            "name": L("Kayıt: Bekçinin Buyruğu", "Record: The Warden’s Command"),
-            "text": L("Kurban Bekçisi geçidi tutacak. Kadı’nın ömrünü uzatan bağlar koparılmayacak. Barbar harabelere girerse ocağa inmeden durdurulsun.", "The Sacrifice Warden will hold the passage. Preserve the bonds that prolong the Judge’s life. If the barbarian enters the ruins, stop him before he reaches the forge.")
+            "name": L("Kayıt: Bekçinin Buyruğu"),
+            "text": L("Kurban Bekçisi geçidi tutacak. Kadı’nın ömrünü uzatan bağlar koparılmayacak. Barbar harabelere girerse ocağa inmeden durdurulsun.")
           },
           {
             "site": "c3.page3",
-            "name": L("Kayıt: Sıcak Geçit", "Record: The Warm Passage"),
-            "text": L("Mağaranın kuzey duvarından sıcak hava gelir. İki kilit açılınca taş merdiven görünür. Aşağıdaki demir sesleri yıllardır susmadı.", "Warm air comes through the cavern’s north wall. Open both locks to reveal the stone stairs. The sound of iron below has not stopped for years.")
+            "name": L("Kayıt: Sıcak Geçit"),
+            "text": L("Mağaranın kuzey duvarından sıcak hava gelir. İki kilit açılınca taş merdiven görünür. Aşağıdaki demir sesleri yıllardır susmadı.")
           }
         ],
         "fallbacks": [
@@ -618,9 +618,9 @@
           ],
           "scale": 2.6
         },
-        "description": L("Kara Kadı’nın seçkin avcısı bu bölgede kaçan esirleri arıyor. Onu durdur.", "The Black Judge’s elite hunter searches this region for escaped captives. Stop them."),
-        "objective": L("Kara Kadı’nın avcısını yen.", "Defeat the Black Judge’s hunter."),
-        "story": L("Avcı düştü. Üzerindeki emir açıktı: “Barbar canlı alınacak.”", "The hunter falls. The order carried on their body was clear: “Take the barbarian alive.”"),
+        "description": L("Kara Kadı’nın seçkin avcısı bu bölgede kaçan esirleri arıyor. Onu durdur."),
+        "objective": L("Kara Kadı’nın avcısını yen."),
+        "story": L("Avcı düştü. Üzerindeki emir açıktı: “Barbar canlı alınacak.”"),
         "reward": {
           "item": "ash-vizier-robe",
           "xp": 180
@@ -638,13 +638,13 @@
           "dz": 3
         },
         "voice": "rescue4",
-        "name": L("Zincir Döven Esir", "The Captive Chainmaker"),
-        "npc": L("Yusuf", "Yusuf"),
-        "description": L("Zincirli bir esir hâlâ yaşıyor. Onu serbest bırak ve yemin taşına götür.", "A chained captive is still alive. Free them and lead them to the oath stone."),
-        "objective": L("Zincirli esiri kurtar.", "Free the chained captive."),
-        "follow": L("Yusuf adlı esiri yemin taşına götür.", "Lead Yusuf to the oath stone."),
-        "freeStory": L("Yusuf doğruluyor: “Bu halkaları bize dövdürdüler. Ellerimiz örse bağlıydı.”", "Yusuf rises: “They made us forge these links. Our hands were chained to the anvils.”"),
-        "story": L("Yusuf güvenli yere ulaşıyor: “Mahkemeye giden kapıyı ocak besler. Ana vanayı kapat.”", "Yusuf reaches safety: “The forge feeds the court gate. Close the main valve.”"),
+        "name": L("Zincir Döven Esir"),
+        "npc": L("Yusuf"),
+        "description": L("Zincirli bir esir hâlâ yaşıyor. Onu serbest bırak ve yemin taşına götür."),
+        "objective": L("Zincirli esiri kurtar."),
+        "follow": L("Yusuf adlı esiri yemin taşına götür."),
+        "freeStory": L("Yusuf doğruluyor: “Bu halkaları bize dövdürdüler. Ellerimiz örse bağlıydı.”"),
+        "story": L("Yusuf güvenli yere ulaşıyor: “Mahkemeye giden kapıyı ocak besler. Ana vanayı kapat.”"),
         "reward": {
           "damage": 0.03,
           "xp": 160
@@ -655,29 +655,29 @@
         "id": "c4-pages",
         "kind": "lore",
         "voice": "pages4",
-        "name": L("Kadı’nın Kayıtları · 4", "The Judge’s Records · 4"),
-        "description": L("Kurban düzeninin kayıtları bu bölgeye dağılmış.", "Records of the tribute machinery lie scattered through this region."),
-        "objective": L("Üç kayıt parçasını bul.", "Find the three records."),
-        "story": L("Kayıtlar Kara Kadı’nın düzenini ortaya koyuyor. Bir sonraki adım artık açık.", "The records reveal the Black Judge’s machinery. Your next step is clear."),
+        "name": L("Kadı’nın Kayıtları · 4"),
+        "description": L("Kurban düzeninin kayıtları bu bölgeye dağılmış."),
+        "objective": L("Üç kayıt parçasını bul."),
+        "story": L("Kayıtlar Kara Kadı’nın düzenini ortaya koyuyor. Bir sonraki adım artık açık."),
         "reward": {
           "points": 1
         },
-        "rewardText": L("+1 yetenek puanı ve Kadı’nın düzenine ait kayıtlar", "+1 skill point and records of the Judge’s machinery"),
+        "rewardText": L("+1 yetenek puanı ve Kadı’nın düzenine ait kayıtlar"),
         "pages": [
           {
             "site": "c4.page1",
-            "name": L("Kayıt: Zincir Hesabı", "Record: Chain Tally"),
-            "text": L("Bir halka, bir bilek. Bir zincir, bir esir. Ocak durmayacak. Yorgun işçiler yeni sevkiyatla değiştirilecek. Kara Kadı’nın muhafızlarına önce silah verilsin.", "One link, one wrist. One chain, one captive. The forge must not stop. Replace exhausted workers with the next shipment. Arm the Black Judge’s guards first.")
+            "name": L("Kayıt: Zincir Hesabı"),
+            "text": L("Bir halka, bir bilek. Bir zincir, bir esir. Ocak durmayacak. Yorgun işçiler yeni sevkiyatla değiştirilecek. Kara Kadı’nın muhafızlarına önce silah verilsin.")
           },
           {
             "site": "c4.page2",
-            "name": L("Kayıt: Kapının Basıncı", "Record: Gate Pressure"),
-            "text": L("Son Mahkeme’nin sürgüsü ana döküm hattına bağlı. Besleme kesilirse kapı geri çekilir. Ocağın ustası vanaları koruyacak.", "The Last Court’s bolt runs from the main casting line. Cut the feed and the gate withdraws. The master of the forge must protect the valves.")
+            "name": L("Kayıt: Kapının Basıncı"),
+            "text": L("Son Mahkeme’nin sürgüsü ana döküm hattına bağlı. Besleme kesilirse kapı geri çekilir. Ocağın ustası vanaları koruyacak.")
           },
           {
             "site": "c4.page3",
-            "name": L("Kayıt: Son Sevkiyat", "Record: The Last Shipment"),
-            "text": L("Liman susmuş. Harabelerin bağları kırılmış. Barbar ocağa ulaştı. Esirleri mahkemeye alın. Kadı son ayini kendi kürsüsünde yapacak.", "The port has fallen silent. The ruins’ bonds are broken. The barbarian has reached the forge. Move the captives to the court. The Judge will conduct the last rite upon his own dais.")
+            "name": L("Kayıt: Son Sevkiyat"),
+            "text": L("Liman susmuş. Harabelerin bağları kırılmış. Barbar ocağa ulaştı. Esirleri mahkemeye alın. Kadı son ayini kendi kürsüsünde yapacak.")
           }
         ],
         "fallbacks": [
@@ -710,13 +710,13 @@
           "index": 0.7
         },
         "voice": null,
-        "name": L("Son Tutsak", "The Last Prisoner"),
-        "npc": L("Narin", "Narin"),
-        "description": L("Zincirli bir esir hâlâ yaşıyor. Onu serbest bırak ve yemin taşına götür.", "A chained captive is still alive. Free them and lead them to the oath stone."),
-        "objective": L("Zincirli esiri kurtar.", "Free the chained captive."),
-        "follow": L("Narin adlı esiri yemin taşına götür.", "Lead Narin to the oath stone."),
-        "freeStory": L("Narin doğruluyor: “Kadı seni yeniden getireceklerini söyledi. Bu kez yürüyerek geldin.”", "Narin rises: “The Judge said they would bring you back. This time you came on your feet.”"),
-        "story": L("Narin güvenli yere ulaşıyor: “Hepimiz dışarı çıkacağız. Sen de gel, barbar.”", "Narin reaches safety: “We are all getting out. You too, barbarian.”"),
+        "name": L("Son Tutsak"),
+        "npc": L("Narin"),
+        "description": L("Zincirli bir esir hâlâ yaşıyor. Onu serbest bırak ve yemin taşına götür."),
+        "objective": L("Zincirli esiri kurtar."),
+        "follow": L("Narin adlı esiri yemin taşına götür."),
+        "freeStory": L("Narin doğruluyor: “Kadı seni yeniden getireceklerini söyledi. Bu kez yürüyerek geldin.”"),
+        "story": L("Narin güvenli yere ulaşıyor: “Hepimiz dışarı çıkacağız. Sen de gel, barbar.”"),
         "reward": {
           "flasks": 1,
           "xp": 200
@@ -740,9 +740,9 @@
           ],
           "scale": 2.6
         },
-        "description": L("Kara Kadı’nın seçkin avcısı bu bölgede kaçan esirleri arıyor. Onu durdur.", "The Black Judge’s elite hunter searches this region for escaped captives. Stop them."),
-        "objective": L("Kara Kadı’nın avcısını yen.", "Defeat the Black Judge’s hunter."),
-        "story": L("Avcı düştü. Üzerindeki emir açıktı: “Barbar canlı alınacak.”", "The hunter falls. The order carried on their body was clear: “Take the barbarian alive.”"),
+        "description": L("Kara Kadı’nın seçkin avcısı bu bölgede kaçan esirleri arıyor. Onu durdur."),
+        "objective": L("Kara Kadı’nın avcısını yen."),
+        "story": L("Avcı düştü. Üzerindeki emir açıktı: “Barbar canlı alınacak.”"),
         "reward": {
           "item": "ink-headsman-helm",
           "xp": 240
@@ -753,29 +753,29 @@
         "id": "c5-pages",
         "kind": "lore",
         "voice": "pages5",
-        "name": L("Kadı’nın Kayıtları · 5", "The Judge’s Records · 5"),
-        "description": L("Kurban düzeninin kayıtları bu bölgeye dağılmış.", "Records of the tribute machinery lie scattered through this region."),
-        "objective": L("Üç kayıt parçasını bul.", "Find the three records."),
-        "story": L("Kayıtlar Kara Kadı’nın düzenini ortaya koyuyor. Bir sonraki adım artık açık.", "The records reveal the Black Judge’s machinery. Your next step is clear."),
+        "name": L("Kadı’nın Kayıtları · 5"),
+        "description": L("Kurban düzeninin kayıtları bu bölgeye dağılmış."),
+        "objective": L("Üç kayıt parçasını bul."),
+        "story": L("Kayıtlar Kara Kadı’nın düzenini ortaya koyuyor. Bir sonraki adım artık açık."),
         "reward": {
           "points": 1
         },
-        "rewardText": L("+1 yetenek puanı ve Kadı’nın düzenine ait kayıtlar", "+1 skill point and records of the Judge’s machinery"),
+        "rewardText": L("+1 yetenek puanı ve Kadı’nın düzenine ait kayıtlar"),
         "pages": [
           {
             "site": "c5.page1",
-            "name": L("Kayıt: Kadı’nın Buyruğu", "Record: The Judge’s Command"),
-            "text": L("Barbarın dönüş yolu açık bırakılsın. İradesi kırılmadıysa bedeni yine bağlanabilir. Onu kürsüye getirin. Diz çöktüğünü görmek istiyorum. — Kara Kadı.", "Leave the barbarian’s return road open. If his will cannot be broken, his body can still be bound. Bring him before the dais. I wish to see him kneel. — The Black Judge.")
+            "name": L("Kayıt: Kadı’nın Buyruğu"),
+            "text": L("Barbarın dönüş yolu açık bırakılsın. İradesi kırılmadıysa bedeni yine bağlanabilir. Onu kürsüye getirin. Diz çöktüğünü görmek istiyorum. — Kara Kadı.")
           },
           {
             "site": "c5.page2",
-            "name": L("Kayıt: Son Esirlerin Sesi", "Record: Voices of the Last Captives"),
-            "text": L("Dışarıdan demir sesi geldi. Gardiyanlar koştu. Biri mezardan çıkan adamın yaklaştığını söyledi. Kapının altında ışık var. Bu gece birimiz bile çıkarsa diğerlerini bırakmasın.", "Iron sounded outside. The wardens ran. Someone said the man who escaped the grave was coming. Light shows beneath the door. If even one of us gets out tonight, let them not leave the others.")
+            "name": L("Kayıt: Son Esirlerin Sesi"),
+            "text": L("Dışarıdan demir sesi geldi. Gardiyanlar koştu. Biri mezardan çıkan adamın yaklaştığını söyledi. Kapının altında ışık var. Bu gece birimiz bile çıkarsa diğerlerini bırakmasın.")
           },
           {
             "site": "c5.page3",
-            "name": L("Kayıt: Kurban Bağları", "Record: Tribute Bonds"),
-            "text": L("Kadı’nın ömrü mezarın, limanın ve ocağın zincirlerinden beslenir. Üç bağ da kırılırsa kürsünün koruması düşer. Son tutsaklar çıkarılmadan ayin durmaz.", "The Judge’s life feeds on the chains of grave, port and forge. Break all three bonds to strip the dais of its protection. The rite cannot end until the last prisoners are free.")
+            "name": L("Kayıt: Kurban Bağları"),
+            "text": L("Kadı’nın ömrü mezarın, limanın ve ocağın zincirlerinden beslenir. Üç bağ da kırılırsa kürsünün koruması düşer. Son tutsaklar çıkarılmadan ayin durmaz.")
           }
         ],
         "fallbacks": [
@@ -793,16 +793,16 @@
     ]
   };
   var FINALE = {
-    "title": L("Mezara Sığmayan", "The Unburied"),
-    "question": L("Kara Kadı düştü. Son zincirler kırıldı. Gün ışığına çıkan yol açık.", "The Black Judge has fallen. The last chains are broken. The road to daylight is open."),
-    "truth": L("Kurtulanlar dışarı çıkıyor. Sen de mezarı ardında bırak.", "The survivors are leaving. Leave the grave behind you, too."),
+    "title": L("Mezara Sığmayan"),
+    "question": L("Kara Kadı düştü. Son zincirler kırıldı. Gün ışığına çıkan yol açık."),
+    "truth": L("Kurtulanlar dışarı çıkıyor. Sen de mezarı ardında bırak."),
     "options": [
       {
         "id": "escape",
-        "name": L("Mezardan çık", "Leave the grave"),
-        "effect": L("Bahtiyar ve bütün esirler özgürce gün ışığına çıkar.", "Bahtiyar and all captives walk freely into daylight."),
+        "name": L("Mezardan çık"),
+        "effect": L("Bahtiyar ve bütün esirler özgürce gün ışığına çıkar."),
         "voice": "endingName",
-        "story": L("Kara Kadı’nın kürsüsü parçalanıyor. Zincirler yere düşüyor. Bahtiyar silahını omzuna alıp kurtulanların ardından yürür. Dışarıda sabah rüzgârı var. Bu mezara bir kurban indirdiler; içinden bir barbar çıktı.", "The Black Judge’s dais breaks apart. The chains fall. Bahtiyar shoulders his weapon and follows the survivors. The morning wind waits outside. They lowered a sacrifice into this grave. A barbarian walked out.")
+        "story": L("Kara Kadı’nın kürsüsü parçalanıyor. Zincirler yere düşüyor. Bahtiyar silahını omzuna alıp kurtulanların ardından yürür. Dışarıda sabah rüzgârı var. Bu mezara bir kurban indirdiler; içinden bir barbar çıktı.")
       }
     ]
   };
@@ -814,9 +814,9 @@
     return endings.indexOf(savedId) >= 0 || (Array.isArray(claimed) && claimed.some(function (key) { return typeof key === 'string' && key.indexOf('c5:finale:') === 0 && endings.indexOf(key.slice(10)) >= 0; })) ? 'escape' : null;
   }
   function endingReflection(id) {
-    return id === 'escape' ? { text: L('Mezar arkanda sessizleşiyor. Önünde yeni bir yol var.', 'The grave falls silent behind you. A new road lies ahead.'), mercy: 0, wrath: 0 } : null;
+    return id === 'escape' ? { text: L('Mezar arkanda sessizleşiyor. Önünde yeni bir yol var.'), mercy: 0, wrath: 0 } : null;
   }
-  var LEAN = { rescueMercy: L('Zincirini kırdığını görünce elini tutuyor.', 'They take your hand when they see their chain break.'), rescueWrath: L('Silahına bakıp doğruluyor. Kaçış yolu açıldı.', 'They glance at your weapon and rise. The way out is open.') };
+  var LEAN = { rescueMercy: L('Zincirini kırdığını görünce elini tutuyor.'), rescueWrath: L('Silahına bakıp doğruluyor. Kaçış yolu açıldı.') };
 
   // ---------------------------------------------------------------- engine
   function create(o) {
@@ -842,8 +842,8 @@
     }
     function boons() { var p = prog(); return p && p.boons ? p.boons() : { points: 0, flasks: 0, hp: 0, damage: 0, claimed: [] }; }
     function say(key) { if (key && B.Audio && B.Audio.say) B.Audio.say(key); }
-    function lineText(key) { var lines = KabirI18n.lang === 'en' ? B.NarrationEN : B.Narration; return lines && lines[key] ? lines[key].text : ''; }
-    function lineDuration(key) { var lines = KabirI18n.lang === 'en' ? B.NarrationEN : B.Narration; return lines && lines[key] && Number.isFinite(lines[key].duration) ? lines[key].duration : 0; }
+    function lineText(key) { var lines = B.Narration; return lines && lines[key] ? lines[key].text : ''; }
+    function lineDuration(key) { var lines = B.Narration; return lines && lines[key] && Number.isFinite(lines[key].duration) ? lines[key].duration : 0; }
     var storyGateClock = 0;
     var cinema = function () { return B.QuestCinema; };
 
@@ -1072,13 +1072,13 @@
         if (def.kind === 'hunt') {
           q.huntAt = spot(def.site, def.fallback); promote(q);
         } else if (def.kind === 'rescue') {
-          q.captive = node(q, 'post', def.site, def.fallback, { verb: L('Zincirini çöz', 'Break the chain'), role: 'captive' });
+          q.captive = node(q, 'post', def.site, def.fallback, { verb: L('Zincirini çöz'), role: 'captive' });
           q.actor = makeActor(def); q.actor.x = q.captive.x + .55; q.actor.z = q.captive.z + .35; q.actor.face = 0;
           var goalAt = world.questSites && world.questSites[def.goal] ? world.questSites[def.goal] : world.checkpoint || { x: q.captive.x, z: q.captive.z };
           q.goal = { x: goalAt.x, z: goalAt.z };
         } else if (def.kind === 'lore') {
           entry.total = def.pages.length; entry.pages = [];
-          def.pages.forEach(function (pg, i) { var n = node(q, 'page', pg.site, def.fallbacks[i], { verb: L('Sayfayı oku', 'Read the page'), role: 'page', page: i }); q.nodes.push(n); entry.pages.push({ name: pg.name, text: pg.text, found: false }); });
+          def.pages.forEach(function (pg, i) { var n = node(q, 'page', pg.site, def.fallbacks[i], { verb: L('Sayfayı oku'), role: 'page', page: i }); q.nodes.push(n); entry.pages.push({ name: pg.name, text: pg.text, found: false }); });
         }
       } catch (e) { console.warn('[quests] side quest disabled', def.id, e); q.disabled = true; }
       if (q.captive) q.nodes.push(q.captive);
@@ -1129,9 +1129,9 @@
       var bits = [];
       (r.items || []).forEach(function (it) { var def = B.Progression && B.Progression.catalog[it.id]; if (def) bits.push(def.name); });
       if (r.points) bits.push(W.point); if (r.flasks) bits.push(W.flask);
-      if (r.hp) bits.push((r.hp > 0 ? '+' : '') + r.hp + L(' kalıcı can', ' permanent health'));
-      if (r.damage) bits.push((r.damage > 0 ? '+%' : '-%') + Math.round(Math.abs(r.damage) * 100) + L(' kalıcı hasar', ' permanent damage'));
-      if (r.xp) bits.push('+' + r.xp + L(' tecrübe', ' experience'));
+      if (r.hp) bits.push((r.hp > 0 ? '+' : '') + r.hp + L(' kalıcı can'));
+      if (r.damage) bits.push((r.damage > 0 ? '+%' : '-%') + Math.round(Math.abs(r.damage) * 100) + L(' kalıcı hasar'));
+      if (r.xp) bits.push('+' + r.xp + L(' tecrübe'));
       return bits.length ? ' ' + W.reward + bits.join(' · ') : '';
     }
     function complete(q, story, rewardKey, reward) {
@@ -1176,7 +1176,7 @@
         var count = 0; for (var i = 0; i < d.pages.length; i++) if (s.bits & (1 << i)) count++;
         var pg = d.pages[n.page];
         grant('read:' + pg.site, {});   // Recorded page only; no XP, points, equipment or other reward.
-        if (cinema()) cinema().reader({ title: pg.name, text: pg.text, note: count === d.pages.length ? d.story : count + ' / ' + d.pages.length + L(' sayfa bulundu.', ' pages found.') });
+        if (cinema()) cinema().reader({ title: pg.name, text: pg.text, note: count === d.pages.length ? d.story : count + ' / ' + d.pages.length + L(' sayfa bulundu.') });
         if (count === d.pages.length) complete(q, d.story);
         else { if (api.onChange) api.onChange(); notify(q, pg.name + ' · ' + count + ' / ' + d.pages.length, false); }
         return true;
@@ -1307,7 +1307,7 @@
         if (q.def.kind === 'hunt' && !q.enemy && !s.done) { q.retry = (q.retry || 0) - dt; if (q.retry <= 0) { q.retry = 2; if (promote(q)) { q.marker = { id: q.def.id, side: q.def.id, kind: 'hunt', name: q.def.target.name, x: q.enemy.x, z: q.enemy.z, active: false, complete: false, moving: true }; info.sideMarkers.push(q.marker); dirty = true; } } }
         if (q.def.kind === 'hunt' && q.enemy) {
           if (q.marker && !q.enemy.dead) { q.marker.x = q.enemy.x; q.marker.z = q.enemy.z; }
-          if (!s.done && !q.sighted && !q.enemy.dead && Math.hypot(q.enemy.x - player.x, q.enemy.z - player.z) < 16) { q.sighted = true; api.emit('toast', { text: W.hunt + ': ' + q.def.target.name + L(' yakında. Ondan kaçma.', ' is near. Do not run from it.') }); }
+          if (!s.done && !q.sighted && !q.enemy.dead && Math.hypot(q.enemy.x - player.x, q.enemy.z - player.z) < 16) { q.sighted = true; api.emit('toast', { text: W.hunt + ': ' + q.def.target.name + L(' yakında. Ondan kaçma.') }); }
           if (!s.done && q.enemy.dead) complete(q, q.def.story);
         }
         if (q.def.kind === 'rescue') updateFollower(q, dt);

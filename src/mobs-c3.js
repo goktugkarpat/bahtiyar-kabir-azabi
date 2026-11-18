@@ -25,14 +25,6 @@
     rooms: { 1: [0, 1], 2: [1, 0], 3: [0, 1], 4: [1, 1], 5: [0, 1], 6: [1, 0], 7: [0, 1], 8: [1, 0], 9: [1, 1], 10: [1, 0], 12: [1, 1] }
   };
 
-  /* ------------------------------------------------------------------ çeviriler */
-  if (window.KabirI18n && KabirI18n.dictionary) Object.assign(KabirI18n.dictionary, {
-    'Taht Yasçısı': 'Throne Mourner', 'Mezar Kapancısı': 'Grave Snarer',
-    'Koruyucu Ağıt': 'Warding Dirge', 'Çınlayan Yas': 'Tolling Grief', 'Kemik Dokunuşu': 'Bone Touch',
-    'Kapan Ekimi': 'Trap Sowing', 'Geri Sıçrayış': 'Spring Back', 'Kanca Yırtışı': 'Hook Rip', 'Diş Kapanı': 'Tooth Trap', 'Kemik Tozu': 'Bone Dust',
-    'Ağıt Koruması': 'Dirge Ward', 'Patlayan Kapan': 'Springing Trap'
-  });
-
   var X = null;   // MobAbilities.create(bfApi) ile gelen tam api (enemies, addHazard, fx, sound...)
 
   /* ------------------------------------------------------------------ istatistik */

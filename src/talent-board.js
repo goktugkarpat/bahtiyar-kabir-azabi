@@ -7,7 +7,6 @@
   'use strict';
   const B = window.BABA = window.BABA || {};
   const t = s => KabirI18n.t(s);
-  const en = () => KabirI18n.lang === 'en';
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
   // engraved glyphs (24 x 24) — only shown when a talent picture is missing
   const GLYPH = {
@@ -163,7 +162,7 @@
       return '<div class="tb-panel' + (count && count === lead ? ' lead' : count ? ' used' : '') + '" style="left:' + p.x.toFixed(1) + 'px;width:' + p.w.toFixed(1) + 'px;--c1:' + cols[0].color + ';--c2:' + (cols[1] || cols[0]).color + '">' +
         '<span class="tb-panelart" style="background:' + bg + '"></span>' +
         '<header>' + (acts[0] ? '<span class="tb-crest"><img src="assets/ui/abilities/' + acts[0].id + '.png" alt="" draggable="false"></span>' : '') +
-        '<span class="tb-ptitle"><b>' + esc(t(p.name)) + '</b><small><em>' + count + '</em> ' + esc(count === 1 && en() ? 'point' : t('puan')) + '</small></span>' +
+        '<span class="tb-ptitle"><b>' + esc(t(p.name)) + '</b><small><em>' + count + '</em> ' + esc(t('puan')) + '</small></span>' +
         '<span class="tb-paths">' + cols.map(c => { const a = T.nodes().find(n => n.kind === 'active' && n.line === c.line); return '<i style="color:' + c.color + '" title="' + esc(c.name + (c.hint ? ' · ' + c.hint : '')) + '">' + esc(a ? a.name : c.name) + '</i>'; }).join('') + '</span></header>' +
         (p.keys.length ? '<span class="tb-keycap" style="right:' + (p.w - (pos(p.keys[0]).x - p.x) + KEY_R + 6).toFixed(1) + 'px;top:' + ROW_Y[4] + 'px;max-width:' + Math.max(30, pos(p.keys[0]).x - p.x - KEY_R - 10).toFixed(0) + 'px">' + esc(t('Kilit taşı')) + '</span>' : '') + '</div>';
     }).join('');
@@ -221,9 +220,9 @@
     if (sel.kind === 'key') extra = '<p class="tb-price">' + esc(sel.price) + '</p><p class="tb-rule excl">' + esc(t('Bir yolculukta yalnız bir kilit taşı seçilir.')) + '</p>';
     else if (sel.kind === 'form' || sel.kind === 'passive' || sel.kind === 'mod') {
       const root = sel.requires ? T.get(sel.requires) : null, rival = sel.group ? nodes.find(n => n.group === sel.group && n.id !== sel.id) : null;
-      extra = (sel.kind === 'form' && root ? '<p class="tb-rule">' + esc(en() ? 'Replaces ' + root.name + ' in its slot.' : root.name + ' yerine aynı yuvaya geçer.') + '</p>' : '') +
+      extra = (sel.kind === 'form' && root ? '<p class="tb-rule">' + esc(root.name + ' yerine aynı yuvaya geçer.') + '</p>' : '') +
         (sel.kind === 'form' && sel.skill && sel.skill.delta ? '<p class="tb-delta">' + esc(sel.skill.delta) + '</p>' : '') +
-        (rival ? '<p class="tb-rule excl">✕ ' + esc((en() ? 'Or: ' : 'Ya da: ') + rival.name) + '</p>' : '');
+        (rival ? '<p class="tb-rule excl">✕ ' + esc('Ya da: ' + rival.name) + '</p>' : '');
     }
     extra += archNote(sel);
     const canRefund = known && T.canRefund(learned, sel.id, state.level, bonus, state.powerLevel);
@@ -234,9 +233,9 @@
       const here = id === sel.id;
       return '<button type="button" data-char="assign" data-skill="' + sel.id + '" data-slot="' + slot + '" class="' + (here ? 'here' : '') + '" ' + (here ? 'disabled' : '') + ' aria-label="' + esc(h.slotWord(h.keys[slot]) + ' · ' + sel.name) + '">' + h.capHtml(h.keys[slot]) + '</button>';
     }).join('') + '</div>' : '';
-    const side = '<aside class="skt-inspect tb-side" style="--c:' + col.color + '"><small class="tb-kicker">' + esc(KIND[sel.kind]) + ' · ' + esc(col.name) + ' · ' + esc(en() ? 'lvl ' + sel.level : 'sv. ' + sel.level) + '</small>' +
+    const side = '<aside class="skt-inspect tb-side" style="--c:' + col.color + '"><small class="tb-kicker">' + esc(KIND[sel.kind]) + ' · ' + esc(col.name) + ' · ' + esc('sv. ' + sel.level) + '</small>' +
       '<header><span class="tb-sideicon tb-' + sel.kind + (known ? ' learned' : '') + '"><span class="tb-frame">' + art(sel, col.color) + '</span></span><h3>' + esc(sel.name) + '</h3></header>' + status +
-      '<div class="tb-sidebody" tabindex="-1" role="region" aria-label="' + esc(en() ? 'Skill details' : 'Yetenek ayrıntıları') + '"><p class="tb-desc">' + esc(sel.desc) + '</p>' + extra + facts + '</div>' +
+      '<div class="tb-sidebody" tabindex="-1" role="region" aria-label="' + esc('Yetenek ayrıntıları') + '"><p class="tb-desc">' + esc(sel.desc) + '</p>' + extra + facts + '</div>' +
       '<div class="tb-actions">' + learnBtn + refund + '</div>' + assign + '</aside>';
     // ---- bottom bar: identity, slot bar, help -------------------------------------------------------------------
     const weight = T.cols.map(c => ({ c, n: nodes.filter(n => n.line === c.line && learned.includes(n.id)).length })).filter(o => o.n).sort((x, y) => y.n - x.n);
@@ -286,7 +285,7 @@
       top.slice(0, 4).forEach((id, n) => state.assign(n, id));
       preview = '';
       try { if (B.Audio && B.Audio.play) B.Audio.play('talentKeystone', { volume: .5 }); } catch (_) { /* optional */ }
-      return { ok: true, message: (en() ? 'Path chosen: ' : 'Yol seçildi: ') + pre.name + ' (' + order.length + '/' + pre.nodes.length + ')' };
+      return { ok: true, message: 'Yol seçildi: ' + pre.name + ' (' + order.length + '/' + pre.nodes.length + ')' };
     }
     return { ok: false, reason: '' };
   }

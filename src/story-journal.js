@@ -2,113 +2,52 @@
 (() => {
   'use strict';
   const B = window.BABA = window.BABA || {};
-  const pick = (tr, en) => window.KabirI18n && KabirI18n.lang === 'en' ? en : tr;
   const DATA = [
   null,
   {
-    "title": [
-      "Mezara Sığmayan",
-      "The Unburied"
-    ],
-    "opening": [
-      "Seni yaralı ele geçirdiler. Kara Kadı’nın emriyle canlı gömdüler. Taş kapak kırıldı; şimdi çıkış yolunu bul.",
-      "They captured you wounded and buried you alive on the Black Judge’s orders. The stone lid has broken. Find your way out."
-    ],
-    "goal": [
-      "Gardiyanların sakladığı kilit levhasını bul ve hücre düzeneğini aç. Esirlerin tutulduğu ayinin iki bağını kır.",
-      "Find the lock plate hidden by the wardens and release the cells. Break the two ritual bonds holding the captives."
-    ],
-    "closing": [
-      "Gardiyan düştü. Kara Kadı’nın emri cebinde; tutsakların gösterdiği yol kıyıya çıkıyor.",
-      "The warden falls. You carry the Black Judge’s order; the captives’ passage leads to the shore."
-    ],
+    "title": "Mezara Sığmayan",
+    "opening": "Seni yaralı ele geçirdiler. Kara Kadı’nın emriyle canlı gömdüler. Taş kapak kırıldı; şimdi çıkış yolunu bul.",
+    "goal": "Gardiyanların sakladığı kilit levhasını bul ve hücre düzeneğini aç. Esirlerin tutulduğu ayinin iki bağını kır.",
+    "closing": "Gardiyan düştü. Kara Kadı’nın emri cebinde; tutsakların gösterdiği yol kıyıya çıkıyor.",
     "voiceStart": "intro",
     "voiceEnd": "truth1"
   },
   {
-    "title": [
-      "Esir Limanı",
-      "Port of Captives"
-    ],
-    "opening": [
-      "Kara Kadı’nın kurbanları bu limandan taşınıyor. Esirleri çıkar, sevkiyatı durdur ve harabelere giden yolu bul.",
-      "The Black Judge’s sacrifices pass through this port. Free the captives, stop the shipment and find the road to the ruins."
-    ],
-    "goal": [
-      "Sevkiyat çanının dilini bul; geminin esir kilitlerini aç. Mezarlıkta gizlenen iki sevkiyat bağını kır.",
-      "Find the shipment bell’s clapper and unlock the captive hold. Break the two shipment bonds hidden in the cemetery."
-    ],
-    "closing": [
-      "Esir gemisi boş. Sevkiyat durdu. Kadı’nın izini harabelerin altında süreceksin.",
-      "The captive ship is empty. The shipment has stopped. Follow the Judge’s trail beneath the ruins."
-    ],
+    "title": "Esir Limanı",
+    "opening": "Kara Kadı’nın kurbanları bu limandan taşınıyor. Esirleri çıkar, sevkiyatı durdur ve harabelere giden yolu bul.",
+    "goal": "Sevkiyat çanının dilini bul; geminin esir kilitlerini aç. Mezarlıkta gizlenen iki sevkiyat bağını kır.",
+    "closing": "Esir gemisi boş. Sevkiyat durdu. Kadı’nın izini harabelerin altında süreceksin.",
     "voiceStart": "coastIntro",
     "voiceEnd": "truth2"
   },
   {
-    "title": [
-      "Toprağın Tutsakları",
-      "Prisoners of the Earth"
-    ],
-    "opening": [
-      "Kadı’nın eski kurbanları taşın içinde tutuluyor. Bağlarını kır; ocağa inen geçidi aç.",
-      "The Judge’s old victims are held within the stone. Break their bonds and open the passage to the forge."
-    ],
-    "goal": [
-      "Kurbanların bağ levhasını bul ve taş kilidine yerleştir. Mağaradaki iki geçit bağını çöz.",
-      "Find the victims’ bond plate and fit it into the stone lock. Release the cavern’s two passage bonds."
-    ],
-    "closing": [
-      "Kurban Bekçisi düştü. Taş hücreler açıldı; sıcak merdiven ocağa iniyor.",
-      "The Sacrifice Warden falls. The stone cells open; the warm stairs descend to the forge."
-    ],
+    "title": "Toprağın Tutsakları",
+    "opening": "Kadı’nın eski kurbanları taşın içinde tutuluyor. Bağlarını kır; ocağa inen geçidi aç.",
+    "goal": "Kurbanların bağ levhasını bul ve taş kilidine yerleştir. Mağaradaki iki geçit bağını çöz.",
+    "closing": "Kurban Bekçisi düştü. Taş hücreler açıldı; sıcak merdiven ocağa iniyor.",
     "voiceStart": "ruinsIntro",
     "voiceEnd": "truth3"
   },
   {
-    "title": [
-      "Zincirlerin Kaynağı",
-      "Source of the Chains"
-    ],
-    "opening": [
-      "Kadı’nın gardiyanları burada silahlanıyor. Esir işçileri çıkar; zincir üretimini durdur.",
-      "The Judge’s wardens are armed here. Free the captive workers and stop the forging of chains."
-    ],
-    "goal": [
-      "Vinç anahtarını bul ve işçilerin zincirlerini bırak. Dökümü durdur ve mahkeme kapısının beslemesini kes.",
-      "Find the winch key and release the workers’ chains. Stop the casting and cut the court gate’s feed."
-    ],
-    "closing": [
-      "Ocak sustu. Esir işçiler çıktı. Son Mahkeme’nin kapısı açık.",
-      "The forge falls silent. The captive workers are out. The Last Court’s gate stands open."
-    ],
+    "title": "Zincirlerin Kaynağı",
+    "opening": "Kadı’nın gardiyanları burada silahlanıyor. Esir işçileri çıkar; zincir üretimini durdur.",
+    "goal": "Vinç anahtarını bul ve işçilerin zincirlerini bırak. Dökümü durdur ve mahkeme kapısının beslemesini kes.",
+    "closing": "Ocak sustu. Esir işçiler çıktı. Son Mahkeme’nin kapısı açık.",
     "voiceStart": "forgeIntro",
     "voiceEnd": "truth4"
   },
   {
-    "title": [
-      "Son Mahkeme",
-      "The Last Court"
-    ],
-    "opening": [
-      "Kadı seni yeniden zincirlemek istiyor. Son esirleri çıkar, kurban bağlarını kır ve hesabı kapat.",
-      "The Judge means to chain you again. Free the last captives, break the tribute bonds and settle the score."
-    ],
-    "goal": [
-      "Kadının kürsüsünü besleyen üç kurban bağını kır. Arşivin derinliklerindeki son esirlerin kilidini aç.",
-      "Break the three tribute bonds feeding the Judge’s dais. Open the lock holding the last captives deep in the archive."
-    ],
-    "closing": [
-      "Kara Kadı öldü. Kurban zincirleri kırıldı. Bahtiyar ve esirler gün ışığına çıktı.",
-      "The Black Judge is dead. The tribute chains are broken. Bahtiyar and the captives walk into daylight."
-    ],
+    "title": "Son Mahkeme",
+    "opening": "Kadı seni yeniden zincirlemek istiyor. Son esirleri çıkar, kurban bağlarını kır ve hesabı kapat.",
+    "goal": "Kadının kürsüsünü besleyen üç kurban bağını kır. Arşivin derinliklerindeki son esirlerin kilidini aç.",
+    "closing": "Kara Kadı öldü. Kurban zincirleri kırıldı. Bahtiyar ve esirler gün ışığına çıktı.",
     "voiceStart": "ch5Intro",
     "voiceEnd": null
   }
 ];
   function chapter(ch) {
     const d = DATA[ch]; if (!d) return null;
-    return { chapter: ch, title: pick(...d.title), opening: pick(...d.opening), goal: pick(...d.goal), closing: pick(...d.closing), voiceStart: d.voiceStart, voiceEnd: d.voiceEnd };
+    return { chapter: ch, title: d.title, opening: d.opening, goal: d.goal, closing: d.closing, voiceStart: d.voiceStart, voiceEnd: d.voiceEnd };
   }
   function currentChapter(game) {
     const p = game && game.progression, q = game && game.quests;
@@ -124,9 +63,9 @@
     const allowed = Array.from(new Set([current, ...completed])).sort((a, b) => a - b);
     return allowed.map(ch => {
       const d = chapter(ch), def = B.Quests && B.Quests.chapters[ch], local = q && q.chapter === ch ? q : null;
-      const lines = window.KabirI18n && KabirI18n.lang === 'en' ? B.NarrationEN : B.Narration;
+      const lines = B.Narration;
       const narration = [], seenNarration = new Set();
-      for (const [key, title] of [[d.voiceStart, pick('Bölüm başlangıcı', 'Chapter opening')], ['story' + ch, pick('Keşif', 'Discovery')]]) {
+      for (const [key, title] of [[d.voiceStart, 'Bölüm başlangıcı'], ['story' + ch, 'Keşif']]) {
         if (key === 'story' + ch && !completed.has(ch) && !(local && local.discoverySeen)) continue;
         const text = lines && lines[key] && lines[key].text;
         if (typeof text === 'string' && text.trim() && !seenNarration.has(text.trim())) { seenNarration.add(text.trim()); narration.push({ key, title, text }); }

@@ -511,7 +511,7 @@
       const key = String(r && r.id) + ':' + version + ':' + (q ? q.revision : -1) + ':' + (reward ? reward.uid : '') + ':' + JSON.stringify(tracked); if (key === lastLedger) return; lastLedger = key;
       here.textContent = r ? r.name : TITLES[chapter - 1];
       const pct = footCells ? Math.min(100, Math.round(revealedCells / footCells * 100)) : 0;
-      knowledge.textContent = visited.size + tr(' keşfedilen durak') + ' · ' + (KabirI18n.lang === 'tr' ? '%' + pct + ' keşfedildi' : pct + '% explored'); exploredFill.style.width = pct + '%';
+      knowledge.textContent = visited.size + tr(' keşfedilen durak') + ' · ' + ('%' + pct + ' keşfedildi'); exploredFill.style.width = pct + '%';
       goals.replaceChildren();
       goalHeading.textContent = reward ? tr('Zafer emaneti') : q && q.ready ? tr('Sonraki hedef') : tr('İzlenen yeminler');
       function goal(name, objective, complete, select, isTracked, kind, brief) {

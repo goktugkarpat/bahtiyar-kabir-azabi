@@ -6,7 +6,7 @@
   const RARITY = { common: KabirI18n.t('Sıradan'), uncommon: KabirI18n.t('Sıradışı'), rare: KabirI18n.t('Nadir'), epic: KabirI18n.t('Epik'), boss: KabirI18n.t('Eşsiz') };
   const TYPE = { sword: KabirI18n.t('Kılıç'), axe: KabirI18n.t('Balta'), spear: KabirI18n.t('Mızrak') };
   const escape = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  const percent = n => Number((n * 100).toFixed(1)).toLocaleString(KabirI18n.lang === 'en' ? 'en-US' : 'tr-TR') + '%';
+  const percent = n => Number((n * 100).toFixed(1)).toLocaleString('tr-TR') + '%';
   // Prepainted miniatures match the weapon / armour family. The actual worn
   // object remains the live animated 3D figure; no extra thumbnail renderer is used.
   function menuGearIcon(def) {
@@ -296,12 +296,10 @@
       const rest = lines.rest.length ? '<div class="cd-rest">' + lines.rest.map(r => '<div class="cd-row"><span>' + r.label + '</span><strong>' + r.text + '</strong>' + r.arrow + '</div>').join('') + '</div>' : '';
       let req = '<div class="cd-chips"><span class="cd-chip ' + (locked ? 'bad' : 'ok') + '">' + (locked ? escape(state.itemAccess(def).reason) : KabirI18n.t('Seviye ') + def.level) + KabirI18n.t('</span><span class="cd-chip power" title="Eşya gücü">Güç ') + def.power + '</span>' + (def.roll ? '<span class="cd-chip ' + (def.roll > 0 ? 'ok' : 'bad') + KabirI18n.t('" title="İşçilik">İşçilik ') + (def.roll > 0 ? '+' : '−') + Math.abs(def.roll) + '</span>' : '') + '</div>';
       // Hover / focus explanations for the three chips (level, power, craftsmanship); the plain title="" tooltips were slow and said almost nothing.
-      const en = KabirI18n.lang === 'en', tipAttr = text => ' data-tip="' + escape(text) + '" tabindex="0"';
-      const lvlTip = locked ? state.itemAccess(def).reason : en ? 'You can equip this item.' : 'Bu eşyayı kuşanabilirsin.';
-      const powTip = en ? 'Item power: level, rarity and craftsmanship added together. A quick way to compare items; higher is usually better.'
-        : 'Eşya gücü: seviye, nadirlik ve işçiliğin toplamı. Eşyaları hızlıca karşılaştırmak içindir; yüksek olan genelde daha iyidir.';
-      const crfTip = en ? 'Craftsmanship: how well this copy was made (−2 to +2). Each point changes its damage, defense and health by 2.5%.'
-        : 'İşçilik: bu eşyanın ne kadar iyi yapıldığı (−2 ile +2 arası). Her puan hasarı, savunmayı ve canı %2,5 değiştirir.';
+      const tipAttr = text => ' data-tip="' + escape(text) + '" tabindex="0"';
+      const lvlTip = locked ? state.itemAccess(def).reason : 'Bu eşyayı kuşanabilirsin.';
+      const powTip = 'Eşya gücü: seviye, nadirlik ve işçiliğin toplamı. Eşyaları hızlıca karşılaştırmak içindir; yüksek olan genelde daha iyidir.';
+      const crfTip = 'İşçilik: bu eşyanın ne kadar iyi yapıldığı (−2 ile +2 arası). Her puan hasarı, savunmayı ve canı %2,5 değiştirir.';
       req = req.replace('<div class="cd-chips"><span class="cd-chip ', '<div class="cd-chips"><span' + tipAttr(lvlTip) + ' class="cd-chip ')
         .replace(/<span class="cd-chip power" title="[^"]*">/, '<span' + tipAttr(powTip) + ' class="cd-chip power">')
         .replace(/<span class="cd-chip (ok|bad)" title="[^"]*">/, (m, c) => '<span' + tipAttr(crfTip) + ' class="cd-chip ' + c + '">');
@@ -393,7 +391,7 @@
       }).join('');
       const assignment = learned ? KabirI18n.t('<div class="skt-assign"><small>Hangi yuvaya konsun?</small><div>') + [0, 1, 2, 3].map(slot => {
         const here = state.loadout[slot] === chosen.id, other = byId.get(state.loadout[slot]);
-        return '<button aria-label="' + escape(slotWord(keys[slot], slot) + KabirI18n.t(' yuvasına ') + chosen.name + KabirI18n.t(' ata')) + '" title="' + escape(here ? KabirI18n.t('Bu yuvada') : other ? (KabirI18n.lang === 'en' ? 'Replace ' + other.name : other.name + ' yerine ata') : KabirI18n.t('Boş yuvaya ata')) + '" data-char="assign" data-skill="' + chosen.id + '" data-slot="' + slot + '" ' + (here ? 'disabled' : '') + '><span class="skt-cap">' + capHtml(keys[slot]) + '</span><span>' + (here ? KabirI18n.t('Burada') : other ? (KabirI18n.lang === 'en' ? 'Replace ' + escape(other.name) : escape(other.name) + ' yerine') : KabirI18n.t('Boş yuva')) + '</span></button>';
+        return '<button aria-label="' + escape(slotWord(keys[slot], slot) + KabirI18n.t(' yuvasına ') + chosen.name + KabirI18n.t(' ata')) + '" title="' + escape(here ? KabirI18n.t('Bu yuvada') : other ? other.name + ' yerine ata' : KabirI18n.t('Boş yuvaya ata')) + '" data-char="assign" data-skill="' + chosen.id + '" data-slot="' + slot + '" ' + (here ? 'disabled' : '') + '><span class="skt-cap">' + capHtml(keys[slot]) + '</span><span>' + (here ? KabirI18n.t('Burada') : other ? escape(other.name) + ' yerine' : KabirI18n.t('Boş yuva')) + '</span></button>';
       }).join('') + '</div></div>' : '';
       const loadout = state.loadout.map((id, slot) => {
         const s = byId.get(id), label = keys[slot];

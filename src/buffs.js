@@ -43,7 +43,7 @@
       node.className = 'timed-buff'; node.setAttribute('data-buff-id', id); node.setAttribute('role', 'listitem'); node.tabIndex = 0;
       icon.setAttribute('aria-hidden', 'true'); seconds.className = 'buff-seconds'; seconds.setAttribute('aria-hidden', 'true');
       node.appendChild(icon); node.appendChild(seconds); home.appendChild(node);
-      const slot = { node, icon, seconds, name: '', shown: -1, duration: -1, iconName: null, expiring: null, tone: null, pct: -1, tip: '', lang: '', home };
+      const slot = { node, icon, seconds, name: '', shown: -1, duration: -1, iconName: null, expiring: null, tone: null, pct: -1, tip: '', home };
       slots.set(id, slot); return slot;
     }
     function update(effects) {
@@ -79,10 +79,10 @@
         if (slot.tone !== effect.tone) { slot.tone = effect.tone; slot.node.dataset.tone = effect.tone; }
         if (slot.pct !== pct) { slot.pct = pct; slot.node.style.setProperty('--p', String(pct)); }
         slot.node.dataset.tipSide = home === shortContainer ? 'up' : 'down';
-        if (slot.name !== effect.name || slot.shown !== shown || slot.duration !== effect.duration || slot.tip !== effect.tip || slot.lang !== KabirI18n.lang) {
+        if (slot.name !== effect.name || slot.shown !== shown || slot.duration !== effect.duration || slot.tip !== effect.tip) {
           const label = KabirI18n.t(effect.name) + (effect.tip ? ': ' + KabirI18n.t(effect.tip) : '') + ' ' + shown + KabirI18n.t(' sn kaldı') + '.';
           slot.node.dataset.tip = label; slot.node.setAttribute('aria-label', label);
-          slot.name = effect.name; slot.shown = shown; slot.duration = effect.duration; slot.tip = effect.tip; slot.lang = KabirI18n.lang;
+          slot.name = effect.name; slot.shown = shown; slot.duration = effect.duration; slot.tip = effect.tip;
         }
         if (slot.expiring !== expiring) { slot.expiring = expiring; slot.node.classList.toggle('expiring', expiring); }
       }
@@ -97,7 +97,7 @@
     function clear() { hideTip(); container.replaceChildren(); source = null; revision = -1; }
     function update(info) {
       if (!info) { if (source) clear(); return; }
-      const sig = (info.activeBenefits || []).map(e => e.benefit + '|' + (e.name || e.quest)).join(';') + '#' + KabirI18n.lang;
+      const sig = (info.activeBenefits || []).map(e => e.benefit + '|' + (e.name || e.quest)).join(';');
       if (sig === source) return;
       source = sig; revision = info.revision;
       const nodes = [];
@@ -114,13 +114,4 @@
     return { update, clear };
   }
   B.Buffs = { create, createChapter };
-  (function () {   // English text for the bubbles
-    const D = window.KabirI18n && window.KabirI18n.dictionary; if (!D) return;
-    Object.assign(D, { 'Aldığın hasar azalır; yakındaki düşmana karşılık verirsin.': 'You take less damage and strike back at foes close to you.', 'Saldırdıkça can kazanır, vuruşların daha ağır iner, aldığın hasar azalır.': 'You heal as you strike, hit harder and take less damage.',
-      'Vuruşların daha ağır iner ve gücün daha hızlı yenilenir.': 'Your blows land harder and stamina returns faster.', 'Kaçınma ya da hücumdan sonra vuruşların daha ağır iner.': 'After a dodge or a charge your blows land harder.', 'Şifa matarasıyla can yenilendi.': 'The flask has mended your wounds.',
-      'İksir': 'Elixir', 'Hız Kazanımı': 'Momentum', 'Süreli etki': 'Timed effect',
-      'Kusursuz Kaçınma': 'Perfect Dodge', 'Boss Fırsatı': 'Boss Opening',
-      'Kusursuz kaçınma sonrası 3 saniye boyunca vuruşların %25 daha fazla hasar verir.': 'After a perfect dodge, your blows deal 25% more damage for 3 seconds.',
-      'Kusursuz kaçınma bossu 2,6 saniye açık bırakır; ona %30 daha fazla hasar verirsin.': 'A perfect dodge exposes the boss for 2.6 seconds; you deal 30% more damage to it.' });
-  })();
 })();

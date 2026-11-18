@@ -14,15 +14,6 @@
     voidwitness: { hp: 232, speed: 2.7, radius: .5, reach: 10, cooldown: 1.8, claw: 17, well: 6, implode: 21, steps: 13 }
   };
 
-  // ---------- Çeviriler ----------
-  Object.assign(KabirI18n.dictionary, {
-    'Mühür Kazıcı': 'Seal Engraver', 'Boşluk Tanığı': 'Void Witness',
-    'Damga Vuruşu': 'Stamp Blow', 'Damga Halkası': 'Stamp Ring', 'Mühür Tuzağı': 'Seal Trap', 'Mühür İzi': 'Seal Scar', 'Mühür Bağı': 'Seal Tether', 'Mühür Düğümü': 'Seal Knot',
-    'Tanığın Pençesi': 'Witness Claw', 'Boşluk Kuyusu': 'Void Well', 'Kuyunun Çöküşü': 'Well Collapse', 'Tanığın Adımları': 'Witness Steps',
-    'Mühür Kazıcı mühürleri senin altına kazır. Gölgesi açılan daireden yürü; iz kalan yerde durma.': 'The Seal Engraver carves sigils under your feet. Walk out of every marked circle and do not stand on the scar it leaves.',
-    'Mühür Bağı iki daireyi bir çizgiyle bağlar. Çizgiyi yandan, ince yönden kes; ortada durma.': 'The Seal Tether joins two circles with a line. Cut across the thin side of the line and never stand in its middle.',
-    'Kuyu seni içine çeker, sonra çöker. Çekimden önce yuvarlan ya da halkanın dışında kal; çökme dairesinden çık.': 'The well drags you in, then collapses. Roll before the pull or stay outside the ring, then leave the collapse circle.'
-  });
   if (B.FinaleCombat && B.FinaleCombat.deathTips) B.FinaleCombat.deathTips.push(
     [/Mühür Tuzağı|Mühür İzi|Damga/i, tr('Mühür Kazıcı mühürleri senin altına kazır. Gölgesi açılan daireden yürü; iz kalan yerde durma.')],
     [/Mühür Bağı|Mühür Düğümü/i, tr('Mühür Bağı iki daireyi bir çizgiyle bağlar. Çizgiyi yandan, ince yönden kes; ortada durma.')],

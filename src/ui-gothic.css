@@ -36,9 +36,6 @@ body:has(#announcement.show) #hud #quest-notice.show { opacity: 0; transition: o
 }
 #title .logo-wrap { margin-bottom: 4px }
 #title .title-copy .logo-wrap::before, #title .title-copy .logo-wrap::after { top: -12px; width: 18%; height: 14px; border-color: #b8925a88 }
-.ui-logo-sub { display: block; margin: 2px 0 0; color: #b99868; font: 600 clamp(12px, 1.25vw, 16px)/1.2 var(--text); letter-spacing: .62em; padding-left: .62em; text-transform: uppercase; text-shadow: 0 2px 3px #000; animation: fade-in 1.2s .7s both }
-html[lang=tr] .ui-logo-sub::before, html:not([lang]) .ui-logo-sub::before { content: 'GRAVE TORMENT' }
-html[lang=en] .ui-logo-sub::before { content: 'KABİR AZABI' }
 #title .title-divider { margin-top: 22px }
 /* düğmeler: kararmış demir + kan kırmızısı, altın kenar; üstüne gelince ışık süzülür */
 #title .title-actions .btn {
@@ -62,8 +59,6 @@ html[lang=en] .ui-logo-sub::before { content: 'KABİR AZABI' }
 #title .title-actions > .btn:nth-child(1) { animation-delay: .45s } #title .title-actions > .btn:nth-child(2) { animation-delay: .55s }
 #title .title-actions > .btn:nth-child(3) { animation-delay: .63s } #title .title-actions > .btn:nth-child(4) { animation-delay: .71s }
 @keyframes ui-rise { from { opacity: 0; transform: translateY(10px) } to { opacity: 1; transform: none } }
-#title .language-choice button { border-radius: 2px }
-#title .language-choice button[aria-pressed="true"], #title .language-choice button.active { border-color: #c79a5c; background: linear-gradient(#5a1611, #2c0908); color: #fff0d6 }
 .ui-build { color: #8c7c66; font: 500 12px/1.3 var(--text); letter-spacing: .08em }
 
 /* ───────── 3. Ölüm ekranı: kırmızı vinyet nabzı, ağır giriş ───────── */
@@ -84,7 +79,7 @@ body.ui-dying::after { content: ''; position: fixed; inset: 0; z-index: 9; point
 #death .death-card .icon { color: #d8c7a8; filter: drop-shadow(0 0 8px #8a1a12) }
 #death .end-tip:not(:empty) { max-width: min(560px, 88vw); margin-left: auto; margin-right: auto; padding: 8px 14px; border-left: 2px solid #a9241b; background: linear-gradient(90deg, #1b0807d9, #0000); color: #e8d4b8; text-align: left }
 
-@media (max-height: 780px) and (min-width: 700px) { html:not([lang=en]) #death .end-title { width: min(540px, 80vw) } #death .end-tip:not(:empty) { margin-top: 6px; margin-bottom: 6px } }
+@media (max-height: 780px) and (min-width: 700px) { html[lang] #death .end-title { width: min(540px, 80vw) } #death .end-tip:not(:empty) { margin-top: 6px; margin-bottom: 6px } }
 /* ───────── 4. Zafer ekranı ───────── */
 #victory .end-title { animation: ui-death-title 1.8s cubic-bezier(.16,.8,.2,1) .2s both }
 #victory .end-quote, #victory #victory-stats { animation: fade-in 1.2s 1s both }
@@ -178,7 +173,6 @@ body:has(#lu-banner.lu-on) #key-hints span:nth-child(2) kbd { border-color: #f0c
   #controls .ui-chamber .panel-head { position: absolute; top: 2.3%; left: 6.5%; width: 87%; padding: 0; margin: 0; border: 0; display: flex; justify-content: center; text-align: center }
   #controls .ui-chamber .panel-head .eyebrow { font-size: 0; letter-spacing: 0 }
   #controls .ui-chamber .panel-head .eyebrow::before { content: 'KABİR AZABI'; font: 400 clamp(26px, 2.65vw, 44px)/1.05 Georgia, serif; letter-spacing: .075em; color: #f0e3c9; text-shadow: 0 2px 3px #000 }
-  html[lang=en] #controls .ui-chamber .panel-head .eyebrow::before { content: 'GRAVE TORMENT' }
   #controls .ui-chamber .panel-head h2 { font: 400 18px/1.15 Georgia, serif; letter-spacing: .06em; color: #e6d7b9; margin-top: 4px }
   #controls .ui-chamber .panel-head .close { position: absolute; top: 0; right: 0; width: 32px; height: 32px; min-height: 32px; background: #0c0908d9; border: 1px solid #ba9864; color: #e6d6b6 }
   #controls .ui-chamber .ui-scroll { -webkit-mask: linear-gradient(#000 calc(100% - 28px), transparent); mask: linear-gradient(#000 calc(100% - 28px), transparent); position: absolute; top: 15.5%; bottom: 11.5%; left: 13.5%; right: 13.5%; overflow: auto; padding-right: 8px; scrollbar-width: thin; scrollbar-color: #997849 #100d0b }
@@ -201,14 +195,6 @@ body:has(#lu-banner.lu-on) #key-hints span:nth-child(2) kbd { border-color: #f0c
 #controls .control-grid > :nth-child(4) { order: 5 } #controls .control-grid > :nth-child(10) { order: 6 }
 #controls .control-grid > :nth-child(3) { order: 7 } #controls .control-grid > :nth-child(9) { order: 8 }
 #controls .control-grid > :nth-child(7) { order: 9 } #controls .control-grid > :nth-child(8) { order: 10 } #controls .control-grid > :nth-child(11) { order: 11 } #controls .control-grid > :nth-child(12) { order: 12 }   /* ajan:uifix Harita / Görev günlüğü rows */
-
-/* ───────── 10. İngilizce ölüm/zafer başlığı: Türkçe oyma altın görsele yakın, ortalı ───────── */
-html[lang=en] #death .end-title, html[lang=en] #victory .end-title {
-  display: block; margin-left: calc((100% - min(740px, 92vw)) / 2); margin-right: calc((100% - min(740px, 92vw)) / 2); text-align: center; text-transform: uppercase;
-  font: 400 clamp(34px, 5.2vw, 70px)/1.08 Georgia, 'Times New Roman', serif; letter-spacing: .045em; color: transparent;
-  background: linear-gradient(180deg, #fff1c9 0%, #f0c873 30%, #a8712c 55%, #6a3f16 64%, #d9a654 80%, #f7dc9a 100%);
-  -webkit-background-clip: text; background-clip: text; text-shadow: none; filter: drop-shadow(0 3px 1px #000) drop-shadow(0 0 16px #3a0a0699) }
-html[lang=en] #death .end-title { background: linear-gradient(180deg, #ffe9c4 0%, #e8b46a 30%, #9a5c26 55%, #5a2a10 64%, #c98a48 80%, #f0cf96 100%); -webkit-background-clip: text; background-clip: text }
 
 /* ───────── 11. Hedef çubuğu: yenen can izi, şampiyon (altın) ve boss (büyük, oymalı) ayrımı ───────── */
 #hud .target-fill { transition: transform .12s ease-out }
@@ -308,9 +294,6 @@ html body #title .wordmark, html body #loading .wordmark {
   -webkit-background-clip: text; background-clip: text; text-shadow: none;
   filter: drop-shadow(0 3px 3px #000) drop-shadow(0 0 26px #6a121088);
 }
-/* ajan:uifix: 'GRAVE TORMENT' is wider than 'KABİR AZABI'; keep it inside the title column (it was cut off at the left edge) */
-html[lang=en] body #title .title-copy .wordmark { font-size: clamp(26px, min(5vw, 64px), 64px); padding-left: 0 }
-html body .ui-logo-sub { font-family: 'Cormorant SC', Georgia, serif; font-weight: 700; color: #6c6862; letter-spacing: .6em; font-size: clamp(13px, 1.4vw, 18px) }
 html body #title .title-copy .logo-wrap::before, html body #title .title-copy .logo-wrap::after { border-color: #6c686266 }
 html body .title-divider { background: linear-gradient(90deg, transparent, #6c6862, transparent); box-shadow: 0 1px 8px #00000055 }
 html body .title-divider::after { border-color: #7d7872; background: #1c1817; box-shadow: 0 0 12px #6a121044 }

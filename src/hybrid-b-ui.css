@@ -534,9 +534,6 @@ body.in-combat #hud #interact.unavailable {display:none;}
 #character .tt-tree .tt-head {padding-inline:22px;}
 #character .tt-tree .tt-note {padding-inline:22px;}
 #character .skt-inspect.tt-inspect .skt-kicker {padding-inline:22px;}
-@media(max-width:1100px) {   /* the longer English name touched the pillars of the banner at 1024 wide */
- html[lang=en] :is(#character .mourning-title,#settings .panel-head .eyebrow,#journal .panel-head .eyebrow,#atlas .panel-head .eyebrow) {font-size:2.65vw;}
-}
 @media(max-width:1100px),(max-height:760px) {
  #character .char-sheet>h3,#character .char-bag>h3 {padding-left:28px;padding-right:30px;}
  #character .skt-loadout h4 {padding-left:30px;margin-bottom:9px;}

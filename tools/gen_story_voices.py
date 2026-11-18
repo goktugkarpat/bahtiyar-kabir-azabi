@@ -8,13 +8,13 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parent.parent
 LINES=json.loads((ROOT/'src/narration-story-text.json').read_text(encoding='utf-8'))
 CACHE=Path(tempfile.gettempdir())/'kabir-story-voice-cache'; CACHE.mkdir(exist_ok=True)
-CONF={'tr':('tr-TR-AhmetNeural','-10%','-6Hz'),'en':('en-US-SteffanNeural','-14%','-12Hz')}
-SPEAKERS={'narr':('Anlatıcı','Narrator'),'hero':('Bahtiyar','Bahtiyar'),'warden':('Mezar Gardiyanı','Grave Warden'),'kadi':('Kara Kadı','The Black Qadi')}
+CONF={'tr':('tr-TR-AhmetNeural','-10%','-6Hz')}
+SPEAKERS={'narr':'Anlatıcı','hero':'Bahtiyar','warden':'Mezar Gardiyanı','kadi':'Kara Kadı'}
 def configuration(lang,line):
  who=line.get('speaker','narr')
  voice,rate,pitch=CONF[lang]
- if who=='hero':return ('tr-TR-AhmetNeural' if lang=='tr' else 'en-US-EricNeural','-8%','-10Hz')
- if who=='warden':return ('tr-TR-AhmetNeural' if lang=='tr' else 'en-US-ChristopherNeural','-14%','-22Hz')
+ if who=='hero':return ('tr-TR-AhmetNeural','-8%','-10Hz')
+ if who=='warden':return ('tr-TR-AhmetNeural','-14%','-22Hz')
  if who=='kadi':return (voice,'-16%','-24Hz')
  return voice,rate,pitch
 FILTER='silenceremove=start_periods=1:start_threshold=-48dB:start_silence=0.035:detection=peak,areverse,silenceremove=start_periods=1:start_threshold=-48dB:start_silence=0.10:detection=peak,areverse,afade=t=in:d=0.006,highpass=f=60,lowpass=f=7600,equalizer=f=120:t=q:w=0.9:g=2,aecho=0.8:0.85:70:0.08,alimiter=limit=0.92'
@@ -38,14 +38,14 @@ async def record(lang,key,line,sem):
   d=float(subprocess.check_output(['ffprobe','-v','error','-show_entries','format=duration','-of','default=noprint_wrappers=1:nokey=1',str(p)]))
   assert d>1 and p.stat().st_size>1000
   print(lang,key,round(d,2),flush=True)
-  return lang,key,{'text':text,'speaker':SPEAKERS[line.get('speaker','narr')][0 if lang=='tr' else 1],'voice':voice,'style':'D','duration':round(d,3),'chapter':line['chapter'],'audio':base64.b64encode(p.read_bytes()).decode()}
+  return lang,key,{'text':text,'speaker':SPEAKERS[line.get('speaker','narr')],'voice':voice,'style':'D','duration':round(d,3),'chapter':line['chapter'],'audio':base64.b64encode(p.read_bytes()).decode()}
 async def main():
  sem=asyncio.Semaphore(3)
  records=await asyncio.gather(*(record(l,k,v,sem) for k,v in LINES.items() for l in CONF))
- out={'tr':{},'en':{}}
+ out={'tr':{}}
  for l,k,v in records:out[l][k]=v
 
- owners=[('narration.js','window.BABA.Narration = ','tr'),('narration-en.js','window.BABA.NarrationEN = ','en'),('narration-quests.js','  var TR = ','tr'),('narration-quests.js','  var EN = ','en'),('narration-finale.js','  var TR = ','tr'),('narration-finale.js','  var EN = ','en')]
+ owners=[('narration.js','window.BABA.Narration = ','tr'),('narration-quests.js','  var TR = ','tr'),('narration-finale.js','  var TR = ','tr')]
  edits={};count=0
  for filename,prefix,lang in owners:
   p=ROOT/'src'/filename
@@ -56,12 +56,12 @@ async def main():
    if key in old:
     old[key].update(generated); count+=1
   edits[p]=source[:begin]+json.dumps(old,ensure_ascii=False,separators=(',',':'))+source[begin+length:]
- assert count==len(LINES)*2,(count,len(LINES))
+ assert count==len(LINES),(count,len(LINES))
  if args.apply:
   for p,source in edits.items(): p.write_bytes(source.encode('utf-8'))
  print(f'{count} verified matching records; '+('embedded in original owners' if args.apply else 'cached only; use --apply to embed'),flush=True)
 def verify_existing():
- owners=[('narration.js','window.BABA.Narration = ','tr'),('narration-en.js','window.BABA.NarrationEN = ','en'),('narration-quests.js','  var TR = ','tr'),('narration-quests.js','  var EN = ','en'),('narration-finale.js','  var TR = ','tr'),('narration-finale.js','  var EN = ','en')]
+ owners=[('narration.js','window.BABA.Narration = ','tr'),('narration-quests.js','  var TR = ','tr'),('narration-finale.js','  var TR = ','tr')]
  found=set()
  with tempfile.TemporaryDirectory(prefix='kabir-story-verify-') as directory:
   for filename,prefix,lang in owners:
@@ -76,10 +76,10 @@ def verify_existing():
     stream=probe['streams'][0];duration=float(probe['format']['duration'])
     assert stream['codec_name']=='mp3' and stream['channels']==1 and int(stream['sample_rate'])==24000,(lang,key,stream)
     assert abs(duration-record['duration'])<0.02 and duration>1,(lang,key,duration)
- assert len(found)==len(LINES)*2,(len(found),len(LINES)*2)
+ assert len(found)==len(LINES),(len(found),len(LINES))
  print(json.dumps({'verified':len(found),'networkUsed':False,'sourceWrites':False}),flush=True)
 
-parser=argparse.ArgumentParser(description='Record the canonical Grave Torment story in Turkish and English; preserve unrelated voices and SoundBank.')
+parser=argparse.ArgumentParser(description='Record the canonical Kabir Azabı story in Turkish; preserve unrelated voices and SoundBank.')
 parser.add_argument('--apply',action='store_true',help='Embed the generated matching text/audio records into their existing source owners.')
 parser.add_argument('--verify-only',action='store_true',help='Offline: validate embedded text and MP3 metadata without contacting TTS or changing source files.')
 args=parser.parse_args()

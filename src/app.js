@@ -135,7 +135,7 @@
     if (!code) return '—';
     if (CAP_NAMES[code]) return CAP_NAMES[code];
     const ch = keyLayout && keyLayout.get(code);   // the character printed on this keyboard's key (Chrome), else the US letter
-    return ch ? ch.toLocaleUpperCase(KabirI18n.lang === 'en' ? 'en' : 'tr') : code.replace(/^(Key|Digit)/, '').replace(/^Numpad/, 'NUM ').toUpperCase();
+    return ch ? ch.toLocaleUpperCase('tr') : code.replace(/^(Key|Digit)/, '').replace(/^Numpad/, 'NUM ').toUpperCase();
   }
   function rebuildBindMap() { bindMap = {}; for (const a in binds) for (const c of binds[a]) if (c && !bindMap[c]) bindMap[c] = a; }
   // Fills `binds` from a saved value; anything invalid or double-used falls back to the default for that action.
@@ -573,8 +573,8 @@
     if (!finalLevelReward) return;
     let note = $('victory-reward');
     if (!note) { note = document.createElement('p'); note.id = 'victory-reward'; note.className = 'end-quote'; note.setAttribute('role', 'status'); $('victory-stats').after(note); }
-    const en = KabirI18n.lang === 'en', gained = finalLevelReward.earnedPoints + finalLevelReward.questPoints;
-    note.textContent = '+' + gained + (en ? ' Skill Points · Available: ' : ' Yetenek Puanı · Kullanılabilir: ') + Math.max(0, game.progression.points | 0);
+    const gained = finalLevelReward.earnedPoints + finalLevelReward.questPoints;
+    note.textContent = '+' + gained + ' Yetenek Puanı · Kullanılabilir: ' + Math.max(0, game.progression.points | 0);
   }
   const talentReminder = document.createElement('button');
   talentReminder.id = 'talent-point-reminder'; talentReminder.type = 'button'; talentReminder.hidden = true;
@@ -586,11 +586,10 @@
     const points = Math.max(0, game.progression.points | 0); if (points === rememberedTalentPoints) return;
     rememberedTalentPoints = points;
     B.LevelUp?.setAvailablePoints?.(points);
-    const en = KabirI18n.lang === 'en';
-    const label = en ? points + ' Skill Points · T' : points + ' Yetenek Puanı · T';
+    const label = points + ' Yetenek Puanı · T';
     talentReminder.hidden = points === 0; talentReminder.textContent = label;
-    talentReminder.setAttribute('aria-label', en ? points + ' available skill points. Open Skills.' : points + ' kullanılabilir yetenek puanı. Yetenekleri aç.');
-    talentReminder.title = en ? 'T · Open Skills and spend your points' : 'T · Yetenekleri aç ve puanlarını kullan';
+    talentReminder.setAttribute('aria-label', points + ' kullanılabilir yetenek puanı. Yetenekleri aç.');
+    talentReminder.title = 'T · Yetenekleri aç ve puanlarını kullan';
     talentPauseNote.textContent = points ? label : talentPauseDefault;
     if (finalLevelReward) updateVictoryReward();
   }
@@ -747,9 +746,9 @@
     const enemy = d.enemy || game.lastDeath?.enemy, attack = d.attack || game.lastDeath?.attack;
     $('death-cause').textContent = enemy || KabirI18n.t('Son darbeyi karanlık vurdu.');
     $('death-attack').textContent = attack || '';
-    const tip = (attack && (finaleChapter ? (B.FinaleCombat && B.FinaleCombat.deathTips || FORGE_DEATH_TIPS) : forgeChapter ? FORGE_DEATH_TIPS : ruinsChapter ? RUINS_DEATH_TIPS : coastChapter ? COAST_DEATH_TIPS : DEATH_TIPS).find(([re]) => re.test(KabirI18n.source(attack)))) || null;
+    const tip = (attack && (finaleChapter ? (B.FinaleCombat && B.FinaleCombat.deathTips || FORGE_DEATH_TIPS) : forgeChapter ? FORGE_DEATH_TIPS : ruinsChapter ? RUINS_DEATH_TIPS : coastChapter ? COAST_DEATH_TIPS : DEATH_TIPS).find(([re]) => re.test(attack))) || null;
     $('death-tip').textContent = tip ? tip[1] : GENERAL_TIPS[(deaths - 1) % GENERAL_TIPS.length];
-    const omens = DEATH_OMENS[KabirI18n.source(enemy)] || DEATH_OMENS_ANY;
+    const omens = DEATH_OMENS[enemy] || DEATH_OMENS_ANY;
     $('death-detail').textContent = KabirI18n.t('Eşyaların, seviyen ve yeteneklerin korundu. ') + (game.checkpointIndex ? KabirI18n.t('Son yemin taşından devam edeceksin.') : KabirI18n.t('Bölümün girişinden devam edeceksin.'));
     setTimeout(() => { if (game.state === 'dead') show('death'); }, 750);
   }
@@ -795,7 +794,7 @@
     if (advancing) return; advancing = true;
     clearInput(); B.HUD && B.HUD.dismissTips && B.HUD.dismissTips();
     const fade = $('chapter-fade');
-    const lines = KabirI18n.lang === 'en' ? B.NarrationEN : B.Narration;
+    const lines = B.Narration;
     const narr = lines?.[winKey], truth = lines?.[B.StoryJournal?.chapter(chapter)?.voiceEnd];
     const closing = B.StoryJournal?.chapter(chapter)?.closing || truth?.text || '';
     const readSeconds = Math.max(6, Math.min(12, 2 + closing.trim().split(/\s+/).length / 3));
@@ -962,7 +961,7 @@
     }
     if (resolution) resolution.textContent = KabirI18n.t('Seçilen görüntü boyutunu büyütür. 1.25× daha net, 1.50× en ayrıntılı görüntüdür; daha fazla ekran kartı gücü kullanır.');
     if (rate) rate.textContent = cfg.fps ? KabirI18n.t('En fazla ') + cfg.fps + KabirI18n.t(' kare/sn. Ekranının yenileme hızına uygun bir sınır seç. Daha düşük sınırlar işlemci yükünü ve fan sesini azaltabilir.') : KabirI18n.t('Ekranın her yenilemesinde çizer (G-Sync / FreeSync / ProMotion ile en düzgünü).');
-    if (rate && cfg.fps === 120) rate.textContent += KabirI18n.lang === 'en' ? ' On a 180 Hz display, Screen rate presents a more even rhythm; use a 120 Hz display mode for an even 120 FPS cap.' : ' 180 Hz ekranda Ekran hızı daha eşit ritim verir; eşit aralıklı 120 FPS için ekranı da 120 Hz kullan.';
+    if (rate && cfg.fps === 120) rate.textContent += ' 180 Hz ekranda Ekran hızı daha eşit ritim verir; eşit aralıklı 120 FPS için ekranı da 120 Hz kullan.';
   }
   function renderSettings() {
     const video = $('settings-video'), audio = $('settings-audio');
@@ -970,7 +969,6 @@
     { const note = document.createElement('small'); note.id = 'difficulty-note'; note.className = 'difficulty-note'; note.style.display = 'block'; note.style.marginTop = '8px'; note.style.lineHeight = '1.45'; difficultyRow.append(note); }   // what each difficulty changes (combat-tuning.js describe)
     $('settings-game').replaceChildren(difficultyRow);
     $('difficulty-note').textContent = (B.CombatTuning ? B.CombatTuning.describe(cfg.difficulty) + ' ' + KabirI18n.t('Seçimin hemen uygulanır; yeniden açılışta Normal başlar.') : KabirI18n.t('Kolay: daha az tehlike. Normal: dengeli bir yolculuk. Zor: daha sert savaşlar. Seçimin hemen uygulanır; yeniden açılışta Normal başlar.'));
-    const languageSetting=document.createElement('div');languageSetting.className='setting';languageSetting.innerHTML='<div class="setting-head"><label>'+KabirI18n.t('Dil')+KabirI18n.t('</label></div><div class="language-choice" data-language-native><button type="button" data-language="tr" lang="tr">Türkçe</button><button type="button" data-language="en" lang="en">English</button></div><small>')+KabirI18n.t('Dil değişince oyun yeniden açılır; kayıtların korunur.')+'</small>';languageSetting.querySelectorAll('[data-language]').forEach(button=>{button.classList.toggle('selected',button.dataset.language===KabirI18n.lang);button.setAttribute('aria-pressed',String(button.dataset.language===KabirI18n.lang));button.onclick=()=>KabirI18n.setLanguage(button.dataset.language);});$('settings-game').append(languageSetting);
     const gameHeading = document.createElement('h3'); gameHeading.textContent = KabirI18n.t('Yolculuğun'); $('settings-game').prepend(gameHeading);
     const saveInfo = document.createElement('div'); saveInfo.className = 'settings-save-info'; saveInfo.innerHTML = KabirI18n.t('<strong>Yeminin sürüyor</strong><p>Ölümde son yemin noktasına dönersin. Eşyaların, tecrüben ve öğrendiğin yetenekler korunur.</p>'); $('settings-game').append(saveInfo);
     video.querySelectorAll('.advanced-graphics, .setting').forEach(n => n.remove()); audio.querySelectorAll('.setting').forEach(n => n.remove());
